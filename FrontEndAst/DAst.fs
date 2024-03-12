@@ -441,6 +441,17 @@ type IcdAux = {
     typeAss        : IcdTypeAss
 }
 
+type NestingScope = {
+    acnOuterMaxSize: bigint
+    uperOuterMaxSize: bigint
+    nestingLevel: int
+    ix: int
+    acnOffset: bigint
+    uperOffset: bigint
+} with
+    static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint): NestingScope =
+        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0; ix = 0; acnOffset = 0I; uperOffset = 0I}
+
 type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
     func                : string option               // the body of the function
@@ -448,8 +459,8 @@ type AcnFunction = {
 
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
-    funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)
-    funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)
+    funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> ((AcnFuncBodyResult option)*State)
+    funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)
     isTestVaseValid     : AutomaticTestCase -> bool
     icd                 : IcdAux option (* always present in Encode, always None in Decode *)
 }
@@ -760,7 +771,7 @@ and AcnChild = {
     id                          : ReferenceToType
     Type                        : Asn1AcnAst.AcnInsertedType
     typeDefinitionBodyWithinSeq : string
-    funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
+    funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
     funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement
     Comments                    : string array
     initExpression              : string
@@ -885,7 +896,7 @@ and ReferenceType = {
 }
 
 and AcnChildUpdateResult = {
-    updateAcnChildFnc        : AcnChild -> CallerScope -> CallerScope -> string
+    updateAcnChildFnc        : AcnChild -> NestingScope -> CallerScope -> CallerScope -> string
     //Given an automatic test case (which includes a map with the IDs of the involved types), this function
     //checks if the automatic test case contains a type which depends on this acn Child. If this is true
     // it returns the value of the dependency, otherwise none
@@ -1054,4 +1065,3 @@ type TC_Function = {
     parameters      : TC_Param list
     body            : TC_Statement list
 }
-

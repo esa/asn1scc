@@ -97,15 +97,17 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (stmts:
       let noneCase  = {pattern = nonePat; rhs = mkBlock noneRhs}
       [MatchExpr {scrut = scrut; cases = [someCase; noneCase]}]
     | _ -> []
-  let maxSize = pg.maxSize enc
+  let outerMaxSize = pg.outerMaxSize enc
+  let thisMaxSize = pg.maxSize enc
   let wrap (ix: int, (snap: Var, child: SequenceChildProps, stmt: string option)) (offsetAcc: bigint, rest: Expr): bigint * Expr =
     let sz = child.typeInfo.maxSize enc
+    printfn "   SZ %A   offsetAcc %A" sz offsetAcc
     let body =
       match stmt with
-      | Some stmt when ix < nbChildren - 1 ->
+      | Some stmt when true || ix < nbChildren - 1 ->
         let lemma = AppliedLemma {
           lemma = ValidateOffsetBitsIneqLemma;
-          args = [selBitStream (Var snap); selBitStream (Var cdc); IntLit (maxSize - offsetAcc + sz); IntLit sz]}
+          args = [selBitStream (Var snap); selBitStream (Var cdc); IntLit (outerMaxSize - offsetAcc + sz); IntLit sz]}
         let extra = extraLemmas child.sel snap child.typeInfo.typeKind offsetAcc sz
         addAssert child.typeInfo.typeKind [EncDec stmt; Ghost (mkBlock (lemma :: extra)); rest]
       | Some stmt ->
@@ -116,16 +118,16 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (stmts:
         addAssert child.typeInfo.typeKind ([EncDec stmt] @ ghostBlock @ [rest])
       | _ -> mkBlock [rest]
     (offsetAcc - sz, LetGhost {bdg = snap; e = Snapshot (Var cdc); body = body})
-
+  // printfn "MAX SIZE %A   OFFSET %A" maxSize (pg.maxOffset enc)
   let stmts = List.zip3 snapshots pg.children stmts |> List.indexed
-  List.foldBack wrap stmts (maxSize, rest) |> snd
+  List.foldBack wrap stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd
 
 let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
   if stmts.IsEmpty then []
   else
     let codecTpe = runtimeCodecTypeFor enc
     let cdc = {Var.name = $"codec"; tpe = RuntimeType (CodecClass codecTpe)}
-    let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec{i}"; tpe = RuntimeType (CodecClass codecTpe)})
+    let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{i}"; tpe = RuntimeType (CodecClass codecTpe)})
 
     let wrappedStmts = wrapEncDecStmts enc snapshots cdc stmts pg codec
     (*
@@ -136,9 +138,10 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
         [generateTransitiveLemmaApp snapshots cdc] @
         [generateReadPrefixLemmaApp snapshots (pg.children |> List.map (fun c -> c.typeInfo)) cdc]
     *)
+    printfn "MAXSIZE %A   OFFSET %A    %A" pg.acnOuterMaxSize pg.acnMaxOffset (pg.children |> List.map (fun c -> c.typeInfo.acnMaxSizeBits))
     let postCondLemmas =
-      let cond = Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var snapshots.Head)), (IntLit (pg.maxSize enc))))
+      let cond = Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var snapshots.Head)), (IntLit (pg.outerMaxSize enc))))
       Ghost (Check (cond, mkBlock []))
-    let expr = wrappedStmts (mkBlock [postCondLemmas])
+    let expr = wrappedStmts (mkBlock []) // TODO: postCondLemmas triggers antialiasing in some instances --'
     let exprStr = show expr
     [exprStr]

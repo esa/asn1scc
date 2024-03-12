@@ -89,12 +89,21 @@ let getDeterminantTypeCheckEqual (lm:LanguageMacros) (det:Determinant) =
     let multiAcnUpdate_checkEqual_str     =  lm.acn.MultiAcnUpdate_checkEqual_str
     getDeterminant_macro det multiAcnUpdate_checkEqual_pri multiAcnUpdate_checkEqual_str
 
-let handleSavePosition (funcBody:State-> ErrorCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) savePosition c_name (typeId:ReferenceToType) (lm:LanguageMacros) (codec:CommonTypes.Codec) prms p =
+
+type FuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> (AcnFuncBodyResult option) * State
+type FuncBodyStateless = Codec -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> AcnFuncBodyResult option
+
+let handleSavePosition (funcBody: FuncBody)
+                       (savePosition: bool)
+                       (c_name: string)
+                       (typeId:ReferenceToType)
+                       (lm:LanguageMacros)
+                       (codec:CommonTypes.Codec): FuncBody =
     match savePosition with
     | false -> funcBody
     | true  ->
-        let newFuncBody st errCode prms p =
-            let content, ns1a = funcBody st errCode prms p
+        let newFuncBody st errCode prms nestingScope p =
+            let content, ns1a = funcBody st errCode prms nestingScope p
             let sequence_save_bitstream                 = lm.acn.sequence_save_bitstream
             let lvName = sprintf "bitStreamPositions_%d" (typeId.SequenceOfLevel + 1)
             let savePositionStatement = sequence_save_bitstream lvName c_name codec
@@ -109,7 +118,11 @@ let handleSavePosition (funcBody:State-> ErrorCode->((AcnGenericTypes.RelativePa
             newContent, ns1a
         newFuncBody
 
-let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (acnAlignment: AcnAlignment option ) (funcBody:State-> ErrorCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State))  =
+let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
+                                (lm:LanguageMacros)
+                                (codec:CommonTypes.Codec)
+                                (acnAlignment: AcnAlignment option)
+                                (funcBody: FuncBody): FuncBody  =
     let alignToNext =  lm.acn.alignToNext
     match acnAlignment with
     | None      -> funcBody
@@ -128,8 +141,8 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (code
                 match ST.lang with
                 | Scala -> "Int", 32I
                 | _ -> "NextDWord", 32I
-        let newFuncBody st errCode prms p =
-            let content, ns1a = funcBody st errCode prms p
+        let newFuncBody st errCode prms nestingScope p =
+            let content, ns1a = funcBody st errCode prms nestingScope p
             let newContent =
                 match content with
                 | Some bodyResult   ->
@@ -141,8 +154,11 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (code
             newContent, ns1a
         newFuncBody
 
-let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (acnAlignment : AcnAlignment option ) (funcBody:CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option))  =
-    let alignToNext                      =  lm.acn.alignToNext
+let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
+                               (lm:LanguageMacros)
+                               (acnAlignment : AcnAlignment option)
+                               (funcBody: FuncBodyStateless): FuncBodyStateless =
+    let alignToNext = lm.acn.alignToNext
     match acnAlignment with
     | None      -> funcBody
     | Some al   ->
@@ -151,8 +167,8 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (acn
             | AcnGenericTypes.NextByte   -> "NextByte", 8I
             | AcnGenericTypes.NextWord   -> "NextWord", 16I
             | AcnGenericTypes.NextDWord  -> "NextDWord", 32I
-        let newFuncBody (codec:CommonTypes.Codec) prms p =
-            let content = funcBody codec prms p
+        let newFuncBody (codec:CommonTypes.Codec) (prms: (RelativePath * AcnParameter) list) (nestingScope: NestingScope) (p: CallerScope) =
+            let content = funcBody codec prms nestingScope p
             let newContent =
                 match content with
                 | Some bodyResult   ->
@@ -222,18 +238,18 @@ let adaptArgumentValue = DAstUPer.adaptArgumentValue
 
 let joinedOrAsIdentifier = DAstUPer.joinedOrAsIdentifier
 
-let private createAcnFunction (r:Asn1AcnAst.AstRoot)
-                              (lm:LanguageMacros)
-                              (codec:CommonTypes.Codec)
-                              (t:Asn1AcnAst.Asn1Type)
-                              (typeDefinition:TypeDefinitionOrReference)
+let private createAcnFunction (r: Asn1AcnAst.AstRoot)
+                              (lm: LanguageMacros)
+                              (codec: CommonTypes.Codec)
+                              (t: Asn1AcnAst.Asn1Type)
+                              (typeDefinition: TypeDefinitionOrReference)
                               (isValidFunc: IsValidFunction option)
-                              (funcBody:State-> ErrorCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State))
+                              (funcBody: FuncBody)
                               isTestVaseValid
-                              (icdAux:IcdArgAux)
+                              (icdAux: IcdArgAux)
                               (soSparkAnnotations: string option)
                               (funcDefAnnots: string list)
-                              (us:State) =
+                              (us: State) =
     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let funcNameBase = td.typeName + "_ACN"
     let funcNameAndtasInfo   =
@@ -252,10 +268,14 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot)
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
 
-    let funcBodyAsSeqComp st prms p c_name : ((AcnFuncBodyResult option)*State) =
-        let funcBody = handleSavePosition funcBody t.SaveBitStreamPosition c_name t.id lm codec prms p
+    let funcBodyAsSeqComp (st: State)
+                          (prms: (RelativePath * AcnParameter) list)
+                          (nestingScope: NestingScope)
+                          (p: CallerScope)
+                          (c_name: string): ((AcnFuncBodyResult option)*State) =
+        let funcBody = handleSavePosition funcBody t.SaveBitStreamPosition c_name t.id lm codec
         let ret = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
-        ret st  errCode prms p
+        ret st errCode prms nestingScope p
 
     let funcBody = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
 
@@ -266,17 +286,17 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot)
     let sInitialExp = ""
     let func, funcDef,ns2  =
             match funcNameAndtasInfo  with
-            |  None              -> None, None, ns
-            |  Some funcName     ->
+            | None -> None, None, ns
+            | Some funcName ->
                 let precondAnnots = lm.lg.generatePrecond ACN t
                 let postcondAnnots = lm.lg.generatePostcond ACN funcNameBase p t codec
-                let content, ns1a = funcBody ns errCode [] p
+                let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits) p
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced =
                     match content with
-                    | None              ->
+                    | None ->
                         let emptyStatement = lm.lg.emptyStatement
                         emptyStatement, [], [], true, isValidFuncName.IsNone
-                    | Some bodyResult   ->
+                    | Some bodyResult ->
                         bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced
 
                 let handleAcnParameter (p:AcnGenericTypes.AcnParameter) =
@@ -331,8 +351,16 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot)
         }
     ret, ns3
 
+type AcnIntegerFuncBody = ErrorCode -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> (AcnFuncBodyResult option)
 
-let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange : BigIntegerUperRange) (intClass:Asn1AcnAst.IntegerClass) acnEncodingClass (uperfuncBody : ErrorCode -> CallerScope -> (UPERFuncBodyResult option)) (soMF:string option, soMFM:string option) : (ErrorCode -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option))  =
+let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
+                                             (lm:LanguageMacros)
+                                             (codec:CommonTypes.Codec)
+                                             (uperRange : BigIntegerUperRange)
+                                             (intClass:Asn1AcnAst.IntegerClass)
+                                             (acnEncodingClass: IntEncodingClass)
+                                             (uperfuncBody : ErrorCode -> CallerScope -> (UPERFuncBodyResult option))
+                                             (soMF:string option, soMFM:string option): AcnIntegerFuncBody =
     let PositiveInteger_ConstSize_8                  = lm.acn.PositiveInteger_ConstSize_8
     let PositiveInteger_ConstSize_big_endian_16      = lm.acn.PositiveInteger_ConstSize_big_endian_16
     let PositiveInteger_ConstSize_little_endian_16   = lm.acn.PositiveInteger_ConstSize_little_endian_16
@@ -357,9 +385,6 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (lm:Language
     let BCD_ConstSize                                = lm.acn.BCD_ConstSize
     let BCD_VarSize_NullTerminated                   = lm.acn.BCD_VarSize_NullTerminated
 
-    //let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    //let errCodeValue        = us.currErrCode
-    //let errCode             = {ErrorCode.errCodeName = errCodeName; errCodeValue = errCodeValue}
     let nUperMin, nUperMax =
         match uperRange with
         | Concrete(a,b) -> a,b
@@ -367,7 +392,10 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (lm:Language
         | PosInf(a)     -> a, r.args.IntMax (a>=0I)
         | Full          -> r.args.SIntMin, r.args.SIntMax
 
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode)
+                 (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)
+                 (nestingScope: NestingScope)
+                 (p:CallerScope) =
         let pp, resultExpr = adaptArgument lm codec p
         let uIntActualMax (nBits:int) =
             let a = 2I**nBits - 1I
@@ -381,7 +409,6 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (lm:Language
         let sSsuffix = DAstUPer.getIntDecFuncSuffix intClass
         let castPp encFuncBits = DAstUPer.castPp r lm codec pp intClass encFuncBits
         let word_size_in_bits = (int r.args.integerSizeInBytes)*8
-        //let soMF = match
         let funcBodyContent  =
             match acnEncodingClass with
             |Asn1AcnAst.Integer_uPER ->
@@ -506,7 +533,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
     let icdFnc fieldName sPresent comments =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=sAsn1Constraints; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
-    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations [] us
+    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations [] us
 
 let createAcnChildIcdFunction  (ch:AcnChild) =
     let icd fieldName comments  =
@@ -530,7 +557,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
     let uperRange = (Concrete (min,max))
     let intTypeClass = getIntEncodingClassByUperRange r.args uperRange
     let rtlIntType = (DAstTypeDefinition.getIntegerTypeByClass lm intTypeClass)()
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope)        =
         let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let localVar, intVal =
             let varName = $"intVal_{ToC p.arg.asIdentifier}"
@@ -550,7 +577,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
                 Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType (Some (FullyConstrainedPositive (min, max))))})
             createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass uperInt (None, None)
         let funcBodyContent =
-            match intFuncBody errCode acnArgs pVal with
+            match intFuncBody errCode acnArgs nestingScope pVal with
             | None -> None
             | Some intAcnFuncBdResult ->
                 let arrItems = o.items |> List.map(fun it ->
@@ -586,7 +613,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (lm:
         let newComments = comments@[enumComment icdStgFileName o]
         [{IcdRow.fieldName = fieldName; comments = newComments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None;}
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations  [] us
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations  [] us
 
 
 let createAcnEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToEnumerated)  (defOrRef:TypeDefinitionOrReference) (us:State)  =
@@ -596,8 +623,6 @@ let createAcnEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (code
     let typeDefinitionName = td.typeName
     let funcBody = createEnumCommon r lm codec typeId t.enumerated defOrRef typeDefinitionName
     (funcBody errCode), ns
-
-
 
 let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let Real_32_big_endian                  = lm.acn.Real_32_big_endian
@@ -612,7 +637,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
         | ASN1SCC_FP64   -> ""
 
 
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let pp, resultExpr = adaptArgument lm codec p
         let castPp = DAstUPer.castRPp lm codec (o.getClass r.args) pp
 
@@ -634,11 +659,11 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
         match ST.lang with
         | Scala -> ["extern"]
         | _ -> []
-    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations annots us
+    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations annots us
 
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let funcBodyContent =
             uperFunc.funcBody_e errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.resultExpr, x.typeEncodingKind)
         match funcBodyContent with
@@ -648,11 +673,11 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (c
     let icdFnc fieldName sPresent comments  =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
-    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations [] us
+    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations [] us
 
 
 let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let funcBodyContent =
             uperFunc.funcBody_e errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.resultExpr, x.typeEncodingKind)
         match funcBodyContent with
@@ -662,7 +687,7 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
     let icdFnc fieldName sPresent comments =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None;}
-    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations [] us
+    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations [] us
 
 
 let nestChildItems (lm:LanguageMacros) (codec:CommonTypes.Codec) children =
@@ -673,7 +698,7 @@ let createAcnBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName None
 
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let pp, resultExpr = adaptArgument lm codec p
         let Boolean         = lm.uper.Boolean
         let funcBodyContent =
@@ -682,7 +707,7 @@ let createAcnBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     (funcBody errCode), ns
 
 let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : AcnFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let Boolean         = lm.uper.Boolean
         let acnBoolean      = lm.acn.Boolean
         let funcBodyContent, resultExpr, typeEncodingKind =
@@ -709,7 +734,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
     let icdFnc fieldName sPresent comments =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> Some (funcBody e acnArgs p), us) (fun atc -> true) icd soSparkAnnotations [] us
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> Some (funcBody e acnArgs nestingScope p), us) (fun atc -> true) icd soSparkAnnotations [] us
 
 
 
@@ -718,7 +743,7 @@ let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName None
 
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let pp, resultExpr = adaptArgument lm codec p
         let nullType         = lm.acn.Null_pattern2
         match o.acnProperties.encodingPattern with
@@ -740,7 +765,7 @@ let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
     (funcBody errCode), ns
 
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (us:State)  =
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let pp, resultExpr = adaptArgument lm codec p
         let nullType         = lm.acn.Null_pattern
 
@@ -769,7 +794,7 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
     let icdFnc fieldName sPresent comments =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations [] us
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations [] us
 
 
 let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
@@ -848,7 +873,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     let Acn_String_CharIndex_External_Field_Determinant     = lm.acn.Acn_String_CharIndex_External_Field_Determinant
     let Acn_IA5String_CharIndex_External_Field_Determinant  = lm.acn.Acn_IA5String_CharIndex_External_Field_Determinant
 
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)  (us:State)      =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) (us:State) =
         let pp, resultExpr = adaptArgument lm codec p
         let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let funcBodyContent, ns =
@@ -882,7 +907,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     let icdFnc fieldName sPresent comments  =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p us) (fun atc -> true) icd soSparkAnnotations [] us
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p us) (fun atc -> true) icd soSparkAnnotations [] us
 
 
 let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToIA5String)  (us:State)  =
@@ -947,7 +972,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (AcnStringEncodingType o.acnEncodingClass)}
 
 
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let pp, resultExpr = adaptArgument lm codec p
         let funcBodyContent =
@@ -994,7 +1019,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     let lv = SequenceOfIndex (t.id.SequenceOfLevel + 1, None)
     let nAlignSize = 0I;
     let td = typeDefinition.longTypedefName2 lm.lg.hasModules
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let pp, resultExpr = joinedOrAsIdentifier lm codec p
         let access = lm.lg.getAccess p.arg
         let funcBodyContent =
@@ -1048,14 +1073,14 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     let icdFnc fieldName sPresent comments  =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations [] us
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations [] us
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let nAlignSize = 0I;
     let bitString_FixSize = lm.uper.bitString_FixSize
     let bitString_VarSize = lm.uper.bitString_VarSize
 
     let td = typeDefinition.longTypedefName2 lm.lg.hasModules
-    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let pp, resultExpr = joinedOrAsIdentifier lm codec p
         let access = lm.lg.getAccess p.arg
         let funcBodyContent =
@@ -1096,7 +1121,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     let icdFnc fieldName sPresent comments  =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations [] us
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations [] us
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option)  (child:Asn1Type) (us:State)  =
     let oct_sqf_null_terminated = lm.acn.oct_sqf_null_terminated
@@ -1118,7 +1143,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let nAlignSize = 0I;
     let nIntItemMaxSize = child.acnMaxSizeInBits
     let td = typeDefinition.longTypedefName2 lm.lg.hasModules
-    let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+    let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let pp, resultExpr = joinedOrAsIdentifier lm codec p
         // `childInitExpr` is used to initialize the array of elements in which we will write their decoded values
         // It is only meaningful for "Copy" decoding kind, since InPlace will directly modify `p`'s array
@@ -1127,7 +1152,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
         match child.getAcnFunction codec with
         | None         -> None, us
         | Some chFunc  ->
-            let internalItem, ns = chFunc.funcBody us acnArgs ({p with arg = lm.lg.getArrayItem p.arg i child.isIA5String})
+            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1}
+            let internalItem, ns = chFunc.funcBody us acnArgs childNestingScope ({p with arg = lm.lg.getArrayItem p.arg i child.isIA5String})
             let ret =
                 match o.acnEncodingClass with
                 | SZ_EC_FIXED_SIZE
@@ -1277,12 +1303,12 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         match prmUpdateStatement with
         | None  -> None, ns1
         | Some prmUpdateStatement   ->
-            let updateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
-                prmUpdateStatement.updateAcnChildFnc child vTarget pSrcRoot
+            let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
+                prmUpdateStatement.updateAcnChildFnc child nestingScope vTarget pSrcRoot
 
             Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=prmUpdateStatement.errCodes; testCaseFnc = prmUpdateStatement.testCaseFnc; localVariables=[]}), ns1
     | AcnDepSizeDeterminant (minSize, maxSize, szAcnProp)        ->
-        let updateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let unsigned =
@@ -1316,19 +1342,19 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let errCodes0, localVariables0, ns =
             match asn1TypeD.acnEncFunction with
             | Some f  ->
-                let fncBdRes, ns = f.funcBody us [] {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
+                let fncBdRes, ns = f.funcBody us [] (NestingScope.init asn1TypeD.acnMaxSizeInBits asn1TypeD.uperMaxSizeInBits) {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
                 match fncBdRes with
                 | Some x -> x.errCodes, x.localVariables, ns
                 | None   -> [], [], us
             | None    -> [], [], us
 
-        let updateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let sComment=
                 match asn1TypeD.acnEncFunction with
                 | Some f  ->
-                    let fncBdRes, _ = f.funcBody us [] pSizeable
+                    let fncBdRes, _ = f.funcBody us [] nestingScope pSizeable
                     match fncBdRes with
                     | None -> ""
                     | Some a -> a.funcBody
@@ -1345,7 +1371,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=errCodes0; testCaseFnc=testCaseFnc; localVariables= localVariables0@localVars}), ns
     | AcnDepIA5StringSizeDeterminant (minSize, maxSize, szAcnProp)   ->
 
-        let updateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type true lm pSrcRoot
             let updateStatement = sizeDependency v (getStringSize (pSizeable.arg.joined lm.lg))  minSize.uper maxSize.uper true child.typeDefinitionBodyWithinSeq
@@ -1356,7 +1382,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             atc.testCaseTypeIDsMap.TryFind d.asn1Type
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
     | AcnDepPresenceBool              ->
-        let updateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let parDecTypeSeq =
                 match d.asn1Type with
@@ -1372,7 +1398,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | None      -> Some TcvComponentAbsent
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
     | AcnDepPresence   (relPath, chc)               ->
-        let updateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let arrsChildUpdates =
@@ -1406,7 +1432,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | _         -> None
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
     | AcnDepPresenceStr   (relPath, chc, str)               ->
-        let updateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let arrsChildUpdates =
@@ -1438,8 +1464,8 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | v1::[]    -> Some v1
             | _         -> None
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc = testCaseFnc; localVariables=[]}), us
-    | AcnDepChoiceDeterminant       (enm, chc, isOptional)      ->
-        let updateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
+    | AcnDepChoiceDeterminant (enm, chc, isOptional) ->
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let arrsChildUpdates =
@@ -1499,7 +1525,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                 updates@[f1], nns) ([],us)
         let restErrCodes = localUpdateFuns |> List.choose id |> List.collect(fun z -> z.errCodes)
         let restLocalVariables = localUpdateFuns |> List.choose id |> List.collect(fun z -> z.localVariables)
-        let multiUpdateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
+        let multiUpdateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let arrsLocalUpdateStatements =
                 localUpdateFuns |>
@@ -1508,7 +1534,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                     let lv = {CallerScope.modName = vTarget.modName; arg = Selection.valueEmptyPath c_name}
                     match fn with
                     | None      -> None
-                    | Some fn   -> Some(fn.updateAcnChildFnc child lv pSrcRoot)) |>
+                    | Some fn   -> Some(fn.updateAcnChildFnc child nestingScope lv pSrcRoot)) |> // TODO: nestingScope?
                 List.choose id
 
             let isAlwaysInit (d: AcnDependency): bool =
@@ -1577,10 +1603,10 @@ type private SequenceChildStmt = {
 }
 type private SequenceChildState = {
     us: State
-    childPos: int // TODO: Unneeded
+    childIx: int
     // TODO: What about padding?
-    uperAccBits: BigInteger
-    acnAccBits: BigInteger
+    uperAccBits: BigInteger // TODO: Needed?
+    acnAccBits: BigInteger // TODO: Needed?
 }
 type private SequenceChildResult = {
     stmts: SequenceChildStmt list
@@ -1678,7 +1704,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
     let acnChildren = children |>  List.choose(fun x -> match x with AcnChild z -> Some z | Asn1Child _ -> None)
     let asn1Children = children |>  List.choose(fun x -> match x with Asn1Child z -> Some z | AcnChild _ -> None)
-    let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+    let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let acnlocalVariablesCh =
             acnChildren |>
             List.filter(fun x -> match x.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> true) |>
@@ -1704,15 +1730,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
         let printPresenceBit (child:Asn1Child) (existVar: string option)=
             match child.Optionality with
-            | None                       -> None
-            | Some Asn1AcnAst.AlwaysAbsent     -> None
-            | Some Asn1AcnAst.AlwaysPresent    -> None
             | Some (Asn1AcnAst.Optional opt)   ->
                 match opt.acnPresentWhen with
-                | None      ->
+                | None ->
                     assert (codec = Encode || existVar.IsSome)
                     Some (sequence_presence_optChild (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) existVar errCode.errCodeName codec)
-                | Some _    -> None
+                | Some _ -> None
+            | _ -> None
 
         let localVariables = acnlocalVariables
         let td = lm.lg.getSequenceTypeDefinition o.typeDef
@@ -1755,6 +1779,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             // This binding is suspect, isn't it
             let us = s.us
             let soSaveBitStrmPosStatement = None
+            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1; ix = s.childIx; acnOffset = nestingScope.acnOffset + s.acnAccBits}
             match child with
             | Asn1Child child   ->
                 let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
@@ -1766,13 +1791,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     {p with arg = newArg}
                 let childContentResult, ns1 =
                     match chFunc with
-                    | Some chFunc -> chFunc.funcBodyAsSeqComp us [] childP childName
+                    | Some chFunc -> chFunc.funcBodyAsSeqComp us [] childNestingScope childP childName
                     | None -> None, us
                 //handle present-when acn property
                 let present_when_statements, existVar, ns2 =
                     let acnPresenceStatement, lvs, errCodes, existVar, ns1b =
                         match child.Optionality with
-                        | Some (Asn1AcnAst.Optional opt)   ->
+                        | Some (Asn1AcnAst.Optional opt) ->
                             match opt.acnPresentWhen with
                             | None ->
                                 match codec with
@@ -1783,7 +1808,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                     let existVar = ToC (child._c_name + "_exist")
                                     let lv = FlagLocalVariable (existVar, None)
                                     None, [lv], [], Some existVar, ns1
-                            | Some (PresenceWhenBool _)    ->
+                            | Some (PresenceWhenBool _) ->
                                 match codec with
                                 | Encode -> None, [], [], None, ns1
                                 | Decode ->
@@ -1847,7 +1872,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 // TODO: Dire pk pas childP mais childSel (car on match sur p.child)
                 let props = {sel=Some (childSel.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo}
                 let res = {stmts=stmts; resultExpr=childResultExpr; existVar=existVar; props=props; typeKindEncoding=tpeKind}
-                let newAcc = {us=ns3; childPos=s.childPos + 1; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
+                let newAcc = {us=ns3; childIx=s.childIx + 1; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
                 res, newAcc
             | AcnChild acnChild ->
                 //handle updates
@@ -1859,7 +1884,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         let pRoot : CallerScope = lm.lg.getParamType t codec  //????
                         let updateStatement, lvs, errCodes =
                             match acnChild.funcUpdateStatement with
-                            | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild childP pRoot), funcUpdateStatement.localVariables, funcUpdateStatement.errCodes
+                            | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild childNestingScope childP pRoot), funcUpdateStatement.localVariables, funcUpdateStatement.errCodes
                             | None                     -> None, [], []
                         Some {acnStatement=AcnChildUpdateStatement; body=updateStatement; lvs=lvs; errCodes=errCodes}, us
                     | Decode -> None, us
@@ -1867,7 +1892,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 //acn child encode/decode
                 let childEncDecStatement, childTpeKind, ns2 =
                     let chFunc = acnChild.funcBody codec
-                    let childContentResult = chFunc []  childP
+                    let childContentResult = chFunc [] childNestingScope childP
                     match childContentResult with
                     | None              -> None, None, ns1
                     | Some childContent ->
@@ -1890,24 +1915,18 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let typeInfo = {uperMaxSizeBits=0I; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=childTpeKind}
                 let props = {sel=Some (childP.arg.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo}
                 let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; typeKindEncoding=childTpeKind}
-                let newAcc = {us=ns2; childPos=s.childPos + 1; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
+                let newAcc = {us=ns2; childIx=s.childIx + 1; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
                 res, newAcc
         // find acn inserted fields, which are not NULL types and which have no dependency.
         // For those fields we should generated no anc encode/decode function
         // Otherwise, the encoding function is wrong since an uninitialized value is encoded.
         let existsAcnChildWithNoUpdates =
             acnChildren |>
-            List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> true) |>
-            List.filter(fun acnChild ->
-                let childP = {CallerScope.modName = p.modName; arg = Selection.valueEmptyPath (getAcnDeterminantName acnChild.id)}
-                let pRoot : CallerScope = lm.lg.getParamType t codec
-                let updateStatement =
-                    match acnChild.funcUpdateStatement with
-                    | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild childP pRoot)
-                    | None                     -> None
-                updateStatement.IsNone)
+            List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> acnChild.funcUpdateStatement.IsNone)
         let saveInitialBitStrmStatements = soSaveInitialBitStrmStatement |> Option.toList
-        let childrenStatements00, scs = children |> foldMap handleChild {us=us; childPos=1; uperAccBits=0I; acnAccBits=0I}
+        // TODO: What about presence bits???
+        // TODO: nestingScope offsets
+        let childrenStatements00, scs = children |> foldMap handleChild {us=us; childIx=0; uperAccBits=0I; acnAccBits=0I}
         let ns = scs.us
         let childrenStatements0 = childrenStatements00 |> List.collect (fun xs -> xs.stmts)
 
@@ -1921,7 +1940,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 {sel=None; uperMaxOffset = bigint i; acnMaxOffset = bigint i;
                 typeInfo = {uperMaxSizeBits = 1I; acnMaxSizeBits = 1I; typeKind = Some (AcnBooleanEncodingType None)}})
             let children = childrenStatements00 |> List.map (fun xs -> xs.props)
-            {children = presenceBitsInfo @ children}
+            {acnOuterMaxSize = nestingScope.acnOuterMaxSize; uperOuterMaxSize = nestingScope.uperOuterMaxSize;
+            nestingLevel = nestingScope.nestingLevel; uperMaxOffset = nestingScope.uperOffset; acnMaxOffset = nestingScope.acnOffset;
+            children = presenceBitsInfo @ children}
         let allStmts =
             let presenceBits = presenceBits |> List.map Some
             let children = childrenStatements00 |> List.map (fun s -> s.joinedBodies lm codec)
@@ -2087,20 +2108,22 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
     let typeDefinitionName = defOrRef.longTypedefName2 lm.lg.hasModules//getTypeDefinitionName t.id.tasInfo typeDefinition
 
-    let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+    let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let td = (lm.lg.getChoiceTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let handleChild (us:State) (idx:int) (child:ChChildInfo) =
             let chFunc = child.chType.getAcnFunction codec
             let sChildInitExpr = child.chType.initFunction.initExpression
-
+            // TODO: dire pk (car choice donc c'est pas sequentiel)
+            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1}
             let childContentResult, ns1 =
                 match chFunc with
-                | Some chFunc   ->
-                    match lm.lg.acn.choice_requires_tmp_decoding with
-                    | false   ->  chFunc.funcBody us [] ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
-                    | true when codec = CommonTypes.Decode  ->  chFunc.funcBody us [] ({CallerScope.modName = p.modName; arg = Selection.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
-                    | true   ->  chFunc.funcBody us [] ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
-                | None          -> None, us
+                | Some chFunc ->
+                    let childP =
+                        if lm.lg.acn.choice_requires_tmp_decoding && codec = Decode then
+                            {CallerScope.modName = p.modName; arg = Selection.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")}
+                        else {p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}
+                    chFunc.funcBody us [] childNestingScope childP
+                | None -> None, us
 
             let childContent_funcBody, childContent_localVariables, childContent_errCodes =
                 match childContentResult with
@@ -2308,13 +2331,13 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     match baseTypeAcnFunction with
                     | None  -> None
                     | Some baseTypeAcnFunction   ->
-                        let funcBody us (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
-                            baseTypeAcnFunction.funcBody us (acnArgs@paramsArgsPairs) p
+                        let funcBody us (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
+                            baseTypeAcnFunction.funcBody us (acnArgs@paramsArgsPairs) nestingScope p
                         Some  {baseTypeAcnFunction with funcBody = funcBody}
 
                 ret, us
       | false ->
-            let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+            let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
                 let pp, resultExpr =
                     let str = lm.lg.getParamValue t p.arg codec
                     match codec, lm.lg.decodingKind with
@@ -2327,7 +2350,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
 
             let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-            let a, ns = createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) icd soSparkAnnotations [] us
+            let a, ns = createAcnFunction r lm codec t typeDefinition  isValidFunc funcBody (fun atc -> true) icd soSparkAnnotations [] us
             Some a, ns
 
     | Some encOptions ->
@@ -2343,7 +2366,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
         let baseTypeAcnFunction = baseType.getAcnFunction codec
 
-        let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) =
+        let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
             let pp, resultExpr =
                 let str = lm.lg.getParamValue t p.arg codec
                 match codec, lm.lg.decodingKind with
@@ -2363,7 +2386,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                         match baseTypeAcnFunction with
                         | None  -> None, [], []
                         | Some baseTypeAcnFunction   ->
-                            let acnRes, ns = baseTypeAcnFunction.funcBody us (acnArgs) p
+                            let acnRes, ns = baseTypeAcnFunction.funcBody us acnArgs nestingScope p
                             match acnRes with
                             | None  -> None, [], []
                             | Some r -> Some r.funcBody, r.errCodes, r.localVariables
@@ -2397,5 +2420,5 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (ReferenceEncodingType baseTypeDefinitionName)})
 
         let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-        let a,b = createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations [] us
+        let a,b = createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations [] us
         Some a, b

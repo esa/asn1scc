@@ -55,11 +55,11 @@ type UncheckedAccessKind =
     | PartialAccess // unwrap all but the last selection
 
 type TypeInfo = {
-    uperMaxSizeBits: BigInteger
-    acnMaxSizeBits: BigInteger
+    uperMaxSizeBits: bigint
+    acnMaxSizeBits: bigint
     typeKind: TypeEncodingKind option
 } with
-    member this.maxSize (enc: Asn1Encoding): BigInteger =
+    member this.maxSize (enc: Asn1Encoding): bigint =
         match enc with
         | ACN -> this.acnMaxSizeBits
         | UPER -> this.uperMaxSizeBits
@@ -70,22 +70,38 @@ type SequenceChildProps = {
     // TODO: String not ideal, but array selection index is string anyway...
     sel: string option
     // TODO: What about padding?
-    uperMaxOffset: BigInteger
-    acnMaxOffset: BigInteger
+    uperMaxOffset: bigint // TODO: Needed?
+    acnMaxOffset: bigint // TODO: Needed?
     typeInfo: TypeInfo
 } with
-    member this.maxOffset (enc: Asn1Encoding): BigInteger =
+    member this.maxOffset (enc: Asn1Encoding): bigint =
         match enc with
         | ACN -> this.acnMaxOffset
         | UPER -> this.uperMaxOffset
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
 type SequenceProofGen = {
+    acnOuterMaxSize: bigint
+    uperOuterMaxSize: bigint
+    nestingLevel: int
+    uperMaxOffset: bigint
+    acnMaxOffset: bigint
     children: SequenceChildProps list
 } with
     // TODO: What about padding?
     member this.maxSize (enc: Asn1Encoding): BigInteger =
         this.children |> List.map (fun c -> c.typeInfo.maxSize enc) |> List.sum
+
+    member this.outerMaxSize (enc: Asn1Encoding): bigint =
+        match enc with
+        | ACN -> this.acnOuterMaxSize
+        | UPER -> this.uperOuterMaxSize
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+    member this.maxOffset (enc: Asn1Encoding): bigint =
+        match enc with
+        | ACN -> this.acnMaxOffset
+        | UPER -> this.uperMaxOffset
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
 [<AbstractClass>]
 type ILangGeneric () =
