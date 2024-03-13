@@ -30,7 +30,7 @@ val MASK_POS_INT    = 0x7F_FF_FF_FFL
 opaque type UByte = Byte
 object UByte {
     @inline def fromRaw(u: Byte): UByte = u
-    @inline def fromArrayRaws(arr: Array[Byte]): Array[UByte] = arr
+    @inline @pure def fromArrayRaws(arr: Array[Byte]): Array[UByte] = arr
 }
 extension (l: UByte) {
     @inline def toRaw: Byte = l

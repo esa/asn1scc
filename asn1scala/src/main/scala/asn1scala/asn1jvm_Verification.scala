@@ -9,6 +9,7 @@ import stainless.math.*
 import StaticChecks.*
 
 @pure
+@inlineOnce
 def arraySameElements[T](a1: Array[T], a2: Array[T]): Boolean =
   a1.length == a2.length && arrayRangesEqOffset(a1, a2, 0, a1.length, 0)
 

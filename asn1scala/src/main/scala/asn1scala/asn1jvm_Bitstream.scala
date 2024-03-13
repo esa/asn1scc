@@ -1358,7 +1358,7 @@ case class BitStream private [asn1scala](
       val arr: Array[Byte] = Array.fill(arrLen)(0 : Byte)
       readBitsLoop(nBits, arr, 0, arrLen)
       UByte.fromArrayRaws(arr)
-   }
+   } ensuring(_ => old(this).bitIndex() +  ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt  == this.bitIndex() && BitStream.invariant(this.currentBit, this.currentByte, this.buf.length))// && old(this).currentByte <= this.currentByte)
 
    def readBitsLoop(nBits: Long, arr: Array[Byte], from: Long, to: Long): Unit = {
       require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
@@ -1404,7 +1404,8 @@ case class BitStream private [asn1scala](
       old(this).buf == this.buf &&
       old(arr).length == arr.length &&
       arrayBitRangesEq(old(arr), arr, 0, from) &&
-      ((from < to) ==> (bitAt(arr, from) == old(this).readBitPure()._2))
+      ((from < to) ==> (bitAt(arr, from) == old(this).readBitPure()._2)) &&
+      BitStream.invariant(this.currentBit, this.currentByte, this.buf.length)
    }
 
    def checkBitsLoop(nBits: Long, expected: Boolean, from: Long): Boolean = {
@@ -1656,9 +1657,25 @@ case class BitStream private [asn1scala](
       // TODO: The C code does indeed not reset the stream to the original position
       // in case we return 0 or 1, but doesn't it make sense to do so?
       // if !ret then
-      currentByte = tmpByte
-      currentBit = tmpBit
 
+      ghostExpr(check(BitStream.invariant(currentBit, currentByte, buf.length)))
+
+      // SAM: Here the issue is that the 2 assignments are not atomic, so the invariant can be temporarily violated
+      // For this reason it'd be better to have it as pre- and post condition everywhere rather than relying on the `require`
+      // Otherwise, we could store currentByte and currentBit in a tuple 
+      if(tmpByte == this.buf.length) {
+         ghostExpr({
+            check(this.currentBit == 0)
+            check(tmpBit == 0)
+            check(BitStream.invariant(tmpBit, currentByte, buf.length))
+         })
+         currentBit = tmpBit
+         currentByte = tmpByte
+      } else {
+         currentByte = tmpByte
+         currentBit = tmpBit
+      }
+      
       ret
    }.ensuring(_ => old(this) == this)
 
