@@ -53,26 +53,26 @@ let getChildrenByType (tree:ITree, childType) = getTreeChildren(tree) |> List.fi
 
 let getChildByType (tree:ITree, childType) = List.head(getChildrenByType(tree, childType))
 
-let getOptionChildByType (tree:ITree, childType) = 
+let getOptionChildByType (tree:ITree, childType) =
     getTreeChildren(tree) |> List.tryFind(fun x -> x.Type = childType)
 
 //let getTextLine (tree:ITree) = (tree.Text, tree.Line)
 
-type SrcLoc = 
-    { 
+type SrcLoc =
+    {
         srcFilename : string
-        srcLine : int 
+        srcLine : int
         charPos : int
     }
 
 
-let srcLocContaints (startLoc:SrcLoc) (endLoc:SrcLoc) (uiLoc:SrcLoc) =
-    startLoc.srcLine <= uiLoc.srcLine && 
-    startLoc.charPos <= uiLoc.charPos && 
-    uiLoc.srcLine <= endLoc.srcLine && 
-    uiLoc.charPos <= endLoc.charPos 
-        
-    
+let srcLocContains (startLoc:SrcLoc) (endLoc:SrcLoc) (uiLoc:SrcLoc) =
+    startLoc.srcLine <= uiLoc.srcLine &&
+    startLoc.charPos <= uiLoc.charPos &&
+    uiLoc.srcLine <= endLoc.srcLine &&
+    uiLoc.charPos <= endLoc.charPos
+
+
 
 
 let emptyLocation = {srcFilename=""; srcLine=0; charPos = 0}
@@ -80,18 +80,18 @@ let emptyLocation = {srcFilename=""; srcLine=0; charPos = 0}
 
 module Seq =
     let StrJoin str listItems =
-        if Seq.isEmpty listItems then 
+        if Seq.isEmpty listItems then
             ""
         else
             listItems |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
 
 [<CustomEquality; NoComparison>]
-type PrimitiveWithLocation<'T when 'T :equality>  = 
+type PrimitiveWithLocation<'T when 'T :equality>  =
     {
         Value:'T
         Location:SrcLoc
     }
-    override x.ToString() = 
+    override x.ToString() =
         x.Value.ToString()
     member x.AsTupple = (x.Value, x.Location)
     member x.IsEqual(other:PrimitiveWithLocation<'T>) = x.Value.Equals(other.Value)
@@ -144,7 +144,7 @@ type ITree with
     member t.Children = getTreeChildren(t)
     member t.GetChildByType (childType) = getChildByType(t, childType)
     member t.GetChildrenByType(childType) = getChildrenByType(t, childType)
-    member t.GetOptChild(childTyep) = 
+    member t.GetOptChild(childTyep) =
         match getChildrenByType(t, childTyep) with
         | []            -> None
         | first::_      -> Some(first)
@@ -164,9 +164,9 @@ type ITree with
         | :? CommonErrorNode as errToken    -> t.Text
         | _     ->
             tokens.[t.TokenStartIndex .. t.TokenStopIndex] |> Seq.map(fun (z:IToken) -> z.Text) |> Seq.StrJoin ""
-            
 
-        
+
+
     static member RegisterFiles(files:seq<ITree*string>) =
                     for (i,f) in files do
                         if dict.ContainsKey i then
@@ -177,7 +177,7 @@ type ITree with
     member t.FileName = dict.[t.Root]
     member t.Location = { srcFilename = t.FileName; srcLine = t.Line; charPos = t.CharPositionInLine}
 
-    member t.Parents = 
+    member t.Parents =
         seq {
             if t.Parent <> null then
                 yield t.Parent
@@ -187,7 +187,7 @@ type ITree with
     member t.AllChildren =
         seq {
             yield t
-            for ch in t.Children do        
+            for ch in t.Children do
                 yield! ch.AllChildren
         } |> Seq.toList
 
@@ -196,14 +196,14 @@ type ITree with
 //    member t.GetValueFL v = (v, t.Location)
 
     member t.GetValueL<'T when 'T :equality> (v:'T) = { StringLoc.Value = v; Location = t.Location}
-    
+
     member t.TextL = { StringLoc.Value = t.Text; Location = t.Location}
 
-     
 
-    member t.BigIntL integerSizeInBytes = { IntLoc.Value = t.BigInt integerSizeInBytes; Location = t.Location} 
-    
-    member t.BigInt integerSizeInBytes = 
+
+    member t.BigIntL integerSizeInBytes = { IntLoc.Value = t.BigInt integerSizeInBytes; Location = t.Location}
+
+    member t.BigInt integerSizeInBytes =
         let ret = BigInteger.Parse(t.Text)
         let mn = if integerSizeInBytes = 8I then (BigInteger System.Int64.MinValue) else (BigInteger System.Int32.MinValue)
         let mx = if integerSizeInBytes = 8I then (BigInteger System.Int64.MaxValue) else (BigInteger System.Int32.MaxValue)
@@ -214,8 +214,8 @@ type ITree with
         | false -> ret
 
     member t.Double = System.Double.Parse(t.Text, System.Globalization.NumberFormatInfo.InvariantInfo)
-    member t.DoubleL = { StringLoc.Value = t.Double; Location = t.Location} 
-    
+    member t.DoubleL = { StringLoc.Value = t.Double; Location = t.Location}
+
 
 
 type PositionWithinFile = {
@@ -243,7 +243,7 @@ let rec getAsTupples<'T> (list:array<'T>) (empty:'T) =
     } |> Seq.toList
 
 
-let rec combinations arr = 
+let rec combinations arr =
     seq {
         let nLength = Array.length arr
         for i=0 to nLength - 1 do
@@ -253,11 +253,11 @@ let rec combinations arr =
             | []    -> yield [arr.[i]]
             | _     ->
                 for rightPart in rightPartComb do
-                    yield  (arr.[i]) :: rightPart 
+                    yield  (arr.[i]) :: rightPart
     } |> Seq.toList |> List.filter(fun l -> List.length l = Array.length arr)
 
 
-let getOptionalChildByType (tree:ITree, childType) = 
+let getOptionalChildByType (tree:ITree, childType) =
     match getChildrenByType(tree, childType) with
         | head::tail    -> Some(head)
         | _             -> None
@@ -273,20 +273,20 @@ let MakeLowerFirst(s:string) =
 
 
 let tryGetEnvVar (varName:string) =
-    let envVars = 
-        System.Environment.GetEnvironmentVariables() |> Seq.cast<System.Collections.DictionaryEntry>  |> Seq.map (fun d -> d.Key :?> string, d.Value :?> string)    
-    envVars |> Seq.tryFind(fun (nm, vl) -> nm = varName) 
+    let envVars =
+        System.Environment.GetEnvironmentVariables() |> Seq.cast<System.Collections.DictionaryEntry>  |> Seq.map (fun d -> d.Key :?> string, d.Value :?> string)
+    envVars |> Seq.tryFind(fun (nm, vl) -> nm = varName)
 
 let checkForAdaKeywords () =
     match tryGetEnvVar "ASN1SCC_DISABLE_KEYW_CHECKS" with
     | Some (_,vl)    -> vl <> "1"
     | None      -> true
-    
+
 
 type System.String with
     member s.WithLoc (lc:SrcLoc) = {StringLoc.Value = s; Location=lc}
     member this.L1 = MakeLowerFirst this
-    member this.U1 = 
+    member this.U1 =
         if this.IsEmptyOrNull then ""
         else this.Substring(0,1).ToUpper() + this.Substring(1)
     member this.RDA =
@@ -320,15 +320,15 @@ type Option<'T> with
         | Some v    -> v
         | None      -> other
     //member this.map fnc = Option.map fnc this
-        
+
 
 type System.Int32 with
     member x.AsBigInt = BigInteger x
 
 
 type System.Collections.Generic.IEnumerable<'T> with
-    member t.StrJoin str = 
-        if Seq.isEmpty(t) then 
+    member t.StrJoin str =
+        if Seq.isEmpty(t) then
             ""
         else
             t |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
@@ -344,18 +344,18 @@ module List =
         | x::xs  -> match x = item with
                     | true  -> true
                     | false -> contains item xs
-    
+
     let rec StartsWith  subList biglist=
         match biglist,subList with
         |[],a::rest        -> false
         |_,[]              -> true
-        |h1::big, h2::smal -> h1=h2 &&  StartsWith smal big 
+        |h1::big, h2::smal -> h1=h2 &&  StartsWith smal big
 
     let split func list =
         let l1 = list |> List.filter func
         let l2 = list |> List.filter (fun x -> not (func x))
         (l1,l2)
-    
+
     let Replace listToSearch listToReplace mainList =
         let rec GetSubList smallList bigList =
             match smallList, bigList with
@@ -372,7 +372,7 @@ module List =
     let rec keepDuplicates_private lst fnc =
         match lst with
         | []   -> []
-        | x::xs -> 
+        | x::xs ->
             let dups = xs |> List.filter (fnc x)
             match dups with
             | []    -> keepDuplicates_private xs fnc
@@ -380,7 +380,7 @@ module List =
 
     let keepDuplicatesCaseSensitive lst =
         keepDuplicates_private lst (=)
-    
+
     let keepDuplicatesCaseInsensitive lst =
         keepDuplicates_private lst (fun (x:string) y -> x.icompare y)
 
@@ -392,7 +392,7 @@ module List =
     let rec keepDuplicatesI (lst:string list) =
         match lst with
         | []   -> []
-        | x::xs -> 
+        | x::xs ->
             let dups = xs |> List.filter (fun l -> l.icompare x)
             match dups with
             | []    -> keepDuplicatesI xs
@@ -417,14 +417,14 @@ let MinInt() = if WordSize()=64I then BigInteger(System.Int64.MinValue) else Big
 
 let powersof2 = [1..100] |> List.map(fun i -> (i, BigInteger.Pow(2I,i) - 1I ))
 
-(* 
-let GetNumberOfBitsForNonNegativeInteger(a:BigInteger) = 
+(*
+let GetNumberOfBitsForNonNegativeInteger(a:BigInteger) =
     let vl = a + 1I
     let lg = BigInteger.Log(vl, 2.0)
     BigInteger( System.Math.Ceiling(lg) )
 *)
 
-let GetNumberOfBitsForNonNegativeInteger(a:BigInteger) = 
+let GetNumberOfBitsForNonNegativeInteger(a:BigInteger) =
     if a > 0I then
         let aaa = powersof2 |> List.skipWhile(fun (i,pow2) -> a > pow2 )
         match aaa with
@@ -435,19 +435,19 @@ let GetNumberOfBitsForNonNegativeInteger(a:BigInteger) =
 
 
 (*
-let GetNumberOfBitsForNonNegativeInteger2(a:BigInteger) = 
+let GetNumberOfBitsForNonNegativeInteger2(a:BigInteger) =
     let a = System.Decimal.Parse( a.ToString())
     let lg = Math.Log(a+1m, 2.0)
-    System.Math.Ceiling() 
+    System.Math.Ceiling()
 *)
 
-let GetChoiceUperDeterminantLengthInBits(nChoiceAlternatives:BigInteger) = 
+let GetChoiceUperDeterminantLengthInBits(nChoiceAlternatives:BigInteger) =
     match nChoiceAlternatives with
     | _ when nChoiceAlternatives > 1I   -> GetNumberOfBitsForNonNegativeInteger (nChoiceAlternatives - 1I)  //BigInteger( System.Math.Ceiling(BigInteger.Log(nChoiceAlternatives,2.0)) )
     | _                                 -> 0I
 
 
-//let GetNumberOfBitsForNonNegativeInt(a:int) = 
+//let GetNumberOfBitsForNonNegativeInt(a:int) =
 //    int (System.Math.Ceiling(BigInteger.Log(BigInteger(a)+1I,2.0)) )
 
 let toString x = (sprintf "%A" x).Split(' ').[0].Trim()
@@ -465,7 +465,7 @@ let BI (i:int) = BigInteger i
 //        | i1::[]               -> [i1*8uy]
 //        | i1::i2::[]           -> [i1*8uy+i2*4uy]
 //        | i1::i2::i3::[]       -> [i1*8uy+i2*4uy+i3*2uy]
-//        | i1::i2::i3::i4::tail -> (i1*8uy+i2*4uy+i3*2uy+i4)::(BitsToNibbles tail)           
+//        | i1::i2::i3::i4::tail -> (i1*8uy+i2*4uy+i3*2uy+i4)::(BitsToNibbles tail)
 //    let rec NibblesToBytes l:list<byte> =
 //        match l with
 //        | []                    -> []
@@ -482,7 +482,7 @@ let bitStringValueToByteArray (s:StringLoc) =
             | i1::[]               -> BitsToNibblesAux [] (i1*8uy::acc)
             | i1::i2::[]           -> BitsToNibblesAux [] ((i1*8uy+i2*4uy)::acc)
             | i1::i2::i3::[]       -> BitsToNibblesAux [] ((i1*8uy+i2*4uy+i3*2uy)::acc)
-            | i1::i2::i3::i4::tail -> 
+            | i1::i2::i3::i4::tail ->
                 let newAcc = (i1*8uy+i2*4uy+i3*2uy+i4)::acc
                 BitsToNibblesAux tail newAcc
         BitsToNibblesAux l []
@@ -522,92 +522,92 @@ let byteArrayToBitStringValue (bytes: byte seq)  =
 
 
 let octetStringLiteralToByteArray (octLiteral:string) =
-    let chars = octLiteral.ToCharArray() 
-    let bytes = getAsTupples chars '0' |> List.map (fun (x1,x2)-> System.Byte.Parse(x1.ToString()+x2.ToString(), System.Globalization.NumberStyles.AllowHexSpecifier)) 
+    let chars = octLiteral.ToCharArray()
+    let bytes = getAsTupples chars '0' |> List.map (fun (x1,x2)-> System.Byte.Parse(x1.ToString()+x2.ToString(), System.Globalization.NumberStyles.AllowHexSpecifier))
     bytes
 
 
 
 //let rec DoTopologicalSort2 independentNodes dependentNodes  comparer excToThrow =
-//let rec DoTopologicalSort2 
-//                (independentNodes: PrimitiveWithLocation<string> list) 
-//                (dependentNodes: (PrimitiveWithLocation<string> * PrimitiveWithLocation<string> list) list)  
+//let rec DoTopologicalSort2
+//                (independentNodes: PrimitiveWithLocation<string> list)
+//                (dependentNodes: (PrimitiveWithLocation<string> * PrimitiveWithLocation<string> list) list)
 //                comparer excToThrow =
-let rec DoTopologicalSort2b 
-                (independentNodes: 'a list) 
-                (dependentNodes: ('a * 'b list) list)  
+let rec DoTopologicalSort2b
+                (independentNodes: 'a list)
+                (dependentNodes: ('a * 'b list) list)
                 comparer excToThrow =
     match independentNodes with
     | []          ->  if List.isEmpty dependentNodes then []
-                      else  
-                        raise(excToThrow dependentNodes) 
+                      else
+                        raise(excToThrow dependentNodes)
     | head::tail  ->
-        let dependentNodes2   = dependentNodes  |> List.map(fun (n,list) -> (n, list |>List.filter(fun x -> (not (comparer x head)))  ) ) 
+        let dependentNodes2   = dependentNodes  |> List.map(fun (n,list) -> (n, list |>List.filter(fun x -> (not (comparer x head)))  ) )
         let newDependentNodes = dependentNodes2 |> List.filter(fun (_,list) -> not(List.isEmpty list))
         let independentNodes2 = dependentNodes2 |> List.filter(fun (_,list) -> List.isEmpty list) |> List.map fst
         let newIndependentNodes = independentNodes2 @ tail
-        head::(DoTopologicalSort2b newIndependentNodes newDependentNodes comparer excToThrow) 
+        head::(DoTopologicalSort2b newIndependentNodes newDependentNodes comparer excToThrow)
 
 
-let DoTopologicalSort2_noexc 
-                    (independentNodes: 'a list) 
-                    (dependentNodes: ('a * 'b list) list)  
+let DoTopologicalSort2_noexc
+                    (independentNodes: 'a list)
+                    (dependentNodes: ('a * 'b list) list)
                     comparer  =
-    let rec DoTopologicalSort3_aux 
-                    (independentNodes: 'a list) 
-                    (dependentNodes: ('a * 'b list) list)  
+    let rec DoTopologicalSort3_aux
+                    (independentNodes: 'a list)
+                    (dependentNodes: ('a * 'b list) list)
                     comparer  ret=
         match independentNodes with
         | []          ->  ret |> List.rev, dependentNodes
         | head::tail  ->
-            let dependentNodes2   = dependentNodes  |> List.map(fun (n,list) -> (n, list |>List.filter(fun x -> (not (comparer x head)))  ) ) 
+            let dependentNodes2   = dependentNodes  |> List.map(fun (n,list) -> (n, list |>List.filter(fun x -> (not (comparer x head)))  ) )
             let newDependentNodes = dependentNodes2 |> List.filter(fun (_,list) -> not(List.isEmpty list))
             let independentNodes2 = dependentNodes2 |> List.filter(fun (_,list) -> List.isEmpty list) |> List.map fst
             let newIndependentNodes = independentNodes2 @ tail
             let newRet = head::ret
             DoTopologicalSort3_aux newIndependentNodes newDependentNodes comparer  newRet
-    let sorted, unsorted = DoTopologicalSort3_aux independentNodes dependentNodes  comparer [] 
+    let sorted, unsorted = DoTopologicalSort3_aux independentNodes dependentNodes  comparer []
     match unsorted with
     | []    -> Ok sorted
-    | _     -> Error(unsorted) 
+    | _     -> Error(unsorted)
 
 let rec DoTopologicalSort_noexc independentNodes dependentNodes   =
-    DoTopologicalSort2_noexc independentNodes dependentNodes  (=) 
+    DoTopologicalSort2_noexc independentNodes dependentNodes  (=)
 
 
 
-let DoTopologicalSort2 
-                    (independentNodes: 'a list) 
-                    (dependentNodes: ('a * 'b list) list)  
+let DoTopologicalSort2
+                    (independentNodes: 'a list)
+                    (dependentNodes: ('a * 'b list) list)
                     comparer excToThrow =
-    let rec DoTopologicalSort3_aux 
-                    (independentNodes: 'a list) 
-                    (dependentNodes: ('a * 'b list) list)  
+    let rec DoTopologicalSort3_aux
+                    (independentNodes: 'a list)
+                    (dependentNodes: ('a * 'b list) list)
                     comparer excToThrow ret=
         match independentNodes with
         | []          ->  ret |> List.rev, dependentNodes
         | head::tail  ->
-            let dependentNodes2   = dependentNodes  |> List.map(fun (n,list) -> (n, list |>List.filter(fun x -> (not (comparer x head)))  ) ) 
+            let dependentNodes2   = dependentNodes  |> List.map(fun (n,list) -> (n, list |>List.filter(fun x -> (not (comparer x head)))  ) )
             let newDependentNodes = dependentNodes2 |> List.filter(fun (_,list) -> not(List.isEmpty list))
             let independentNodes2 = dependentNodes2 |> List.filter(fun (_,list) -> List.isEmpty list) |> List.map fst
             let newIndependentNodes = independentNodes2 @ tail
             let newRet = head::ret
             DoTopologicalSort3_aux newIndependentNodes newDependentNodes comparer excToThrow newRet
-    let sorted, unsorted = DoTopologicalSort3_aux independentNodes dependentNodes  comparer excToThrow [] 
+    let sorted, unsorted = DoTopologicalSort3_aux independentNodes dependentNodes  comparer excToThrow []
     match unsorted with
     | []    -> sorted
-    | _     -> raise(excToThrow unsorted) 
+    | _     -> raise(excToThrow unsorted)
 
 let ind = ["A";"B";"C"]
 let dep = [("E",["D";"C"]); ("D",["A";"B"])]
 //DoTopologicalSort ind dep (fun x -> System.Exception "sdfds")
 let rec DoTopologicalSort independentNodes dependentNodes  excToThrow =
-    DoTopologicalSort2 independentNodes dependentNodes  (=) excToThrow 
-    
+    DoTopologicalSort2 independentNodes dependentNodes  (=) excToThrow
+
 
 
 //let rec DoTopologicalSort independentNodes dependentNodes  excToThrow =
-//    DoTopologicalSort2 independentNodes dependentNodes  (=) excToThrow 
+//    DoTopologicalSort2 independentNodes dependentNodes  (=) excToThrow
 
 //let a1 = ["a";"d";"e"]
 //let a2 = [("b",["c"]); ("c",["b"])]
@@ -634,29 +634,29 @@ let PrintLocation loc = sprintf "File:%s, line:%d" loc.srcFilename loc.srcLine
 
 
 /// Generic function which checks an input sequence of strings*location and if there
-/// are duplicate values it raises a user exception 
+/// are duplicate values it raises a user exception
 
 
-let CheckForDuplicatesCaseCaseInsensitive   (sequence:seq<StringLoc>)  =  
-    let duplicates = sequence 
-                     |> Seq.map(fun x -> x.AsTupple) 
+let CheckForDuplicatesCaseCaseInsensitive   (sequence:seq<StringLoc>)  =
+    let duplicates = sequence
+                     |> Seq.map(fun x -> x.AsTupple)
                      |> Seq.groupBy(fun (name,loc) -> name.ToLower()) |> Seq.filter(fun (n,dups) -> Seq.length dups > 1)
     if not(Seq.isEmpty duplicates) then
-        let duplicateNames = 
+        let duplicateNames =
             match Seq.toList duplicates with
-            | (_,dups)::_ -> 
+            | (_,dups)::_ ->
                 let aaa = dups |> Seq.map fst //|> Seq.map(fun n -> n.AsTupple) |> Seq.map fst
-                aaa |> Seq.StrJoin ", "   
-            | []          -> 
+                aaa |> Seq.StrJoin ", "
+            | []          ->
                 let inputSeq = sequence |> Seq.map(fun n -> n.AsTupple) |> Seq.map fst |> Seq.StrJoin ", "
                 raise(BugErrorException (sprintf "CheckForDuplicatesCaseCaseInsensitive. Input was %s" inputSeq))
         let loc = snd ((snd (duplicates |> Seq.head)) |> Seq.head)
         let errMsg = sprintf "Duplicate case insensitive definitions within the same scope: %s" duplicateNames
         raise (SemanticError (loc, errMsg))
 
-let CheckForDuplicates<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocation<'T>>) =  
-    let duplicates = sequence 
-                     |> Seq.map(fun x -> x.AsTupple) 
+let CheckForDuplicates<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocation<'T>>) =
+    let duplicates = sequence
+                     |> Seq.map(fun x -> x.AsTupple)
                      |> Seq.groupBy(fun (name,loc) -> name) |> Seq.filter(fun (n,dups) -> Seq.length dups > 1)
     if not(Seq.isEmpty duplicates) then
         let name = fst ( duplicates |> Seq.head)
@@ -665,31 +665,31 @@ let CheckForDuplicates<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocati
         raise (SemanticError (loc, errMsg))
 
 
-let CheckForDuplicates2<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocation<'T>>) : Result<unit, Asn1ParseError>=  
-    let duplicates = sequence 
-                     |> Seq.map(fun x -> x.AsTupple) 
+let CheckForDuplicates2<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocation<'T>>) : Result<unit, Asn1ParseError>=
+    let duplicates = sequence
+                     |> Seq.map(fun x -> x.AsTupple)
                      |> Seq.groupBy(fun (name,loc) -> name) |> Seq.filter(fun (n,dups) -> Seq.length dups > 1)
     if not(Seq.isEmpty duplicates) then
         let name = fst ( duplicates |> Seq.head)
         let loc = snd ((snd (duplicates |> Seq.head)) |> Seq.head)
         let errMsg = sprintf "Duplicate definition: %s" (name.ToString())
         Error (Semantic_Error (loc, errMsg))
-    else    
+    else
         Ok ()
 
 
 
 let CheckForDuplicatesCI asn1ConstructCheck (lst: StringLoc seq) =
-    lst |> 
-    Seq.groupBy(fun s -> s.Value.ToLower()) |> 
-    Seq.filter(fun (n,dups) -> Seq.length dups > 1) |> 
-    Seq.iter(fun (_,dups) -> 
+    lst |>
+    Seq.groupBy(fun s -> s.Value.ToLower()) |>
+    Seq.filter(fun (n,dups) -> Seq.length dups > 1) |>
+    Seq.iter(fun (_,dups) ->
         let head = dups |> Seq.head
         let dupStr = dups |> Seq.map(fun z -> "'" + z.Value + "'") |> Seq.StrJoin ", "
         let errMsg = sprintf "Duplicate %s. Values: %s have the same spelling but different case. Use different names to avoid conflicts in case insentive target languages" asn1ConstructCheck dupStr
         match checkForAdaKeywords () with
         | false   -> ()
-        | true    -> raise (SemanticError (head.Location, errMsg)) ) 
+        | true    -> raise (SemanticError (head.Location, errMsg)) )
 
 
 //it throws excToThrow if list2 contains an element that does not exist in list1
@@ -697,7 +697,7 @@ let CompareLists (list1:List<StringLoc>) (list2:List<StringLoc>) excToThrow =
     list2 |> Seq.iter(fun s2 ->match list1 |> Seq.exists(fun s1 -> s1.Value = s2.Value) with
                                | false -> raise (excToThrow s2)
                                | true -> ())
-    
+
 
 
 
@@ -706,22 +706,22 @@ let CompareLists (list1:List<StringLoc>) (list2:List<StringLoc>) excToThrow =
 //let thanos  =
 //    let str = "a-b-c-d"
 //    let parts = str.Split('-') |> Seq.toList |> List.rev
-//    let res = 
+//    let res =
 //        (parts,[]) |> Seq.unfold (fun (list1,list2)  -> match list1 with
 //                                                        | []  -> None
-//                                                        | x::xs -> 
+//                                                        | x::xs ->
 //                                                            let lst2 = x::list2
 //                                                            let str = lst2 |> Seq.StrJoin "-"
 //                                                            Some(str,(xs,lst2)) ) |> Seq.toList
-//    let parts = "a-b-c-d".Split('-') |> Seq.toList 
+//    let parts = "a-b-c-d".Split('-') |> Seq.toList
 //    let rec aux lst =
 //        match lst with
 //        | []    -> []
 //        | x::xs -> lst::(aux xs)
 //    let res2 = "a-b-c-d".Split('-') |> Seq.toList |> aux |> List.rev |> List.map (Seq.StrJoin "-")
-//            
+//
 //    res
-//    
+//
 
 
 let replaceErrorCodes (initialString:string) (patternToSearch:string) generalErrCode fileIdx initialCount =
@@ -734,16 +734,16 @@ let replaceErrorCodes (initialString:string) (patternToSearch:string) generalErr
             let str1 = stringToProcess.Substring(0,pos1)
             let str2 = stringToProcess.Substring(pos1 + patternToSearch.Length)
             let strRep = (generalErrCode<<<28) ||| (fileIdx<<<18) ||| initialCount
-            sw.Write(str1)    
-            sw.Write(strRep.ToString())    
+            sw.Write(str1)
+            sw.Write(strRep.ToString())
             replaceErrorCodes_aux str2  (initialCount+1)
     replaceErrorCodes_aux initialString  initialCount
     let ret = sw.ToString();
     sw.Dispose()
     ret
-    
 
-let inline getX (x: ^TX) : ^X = 
+
+let inline getX (x: ^TX) : ^X =
     (^TX : (member get_X : unit -> ^X) (x))
 
 type T1 = {
@@ -761,7 +761,7 @@ type T3 = {
     Z : int
 }
 
-let inline someFunc (x: ^REC) : int = 
+let inline someFunc (x: ^REC) : int =
     let xF = (^REC : (member get_X : unit -> int) (x))
     let yF = (^REC : (member get_Y : unit -> int) (x))
     xF+yF
@@ -783,19 +783,19 @@ let loadXmlFile (validationType:ValidationType) (xmlFileName:string) =
     settings.ValidationFlags <- settings.ValidationFlags ||| XmlSchemaValidationFlags.ProcessSchemaLocation
     settings.ValidationFlags <- settings.ValidationFlags ||| XmlSchemaValidationFlags.ReportValidationWarnings
     let  nErrors = ref 0
-    settings.ValidationEventHandler.AddHandler((fun s e -> 
+    settings.ValidationEventHandler.AddHandler((fun s e ->
                                                                 let ex = e.Exception :?> System.Xml.Schema.XmlSchemaValidationException
                                                                 Console.WriteLine("{0} '{1}':line {2}, {3}", e.Severity.ToString(), xmlFileName, ex.LineNumber, e.Message)
-                                                                nErrors := !nErrors + 1 
+                                                                nErrors := !nErrors + 1
                                                             ))
     let xmlRdr = XmlReader.Create(xmlFileName, settings)
-    try 
+    try
         let doc = XDocument.Load(xmlRdr, LoadOptions.SetLineInfo);
         if !nErrors > 0 then
             raise(BugErrorException "One or more errors detected in the xml parsing")
         doc
     with
-        | exc         -> 
+        | exc         ->
             Console.Error.WriteLine("Error in file: {0}", xmlFileName)
             raise exc
 
@@ -810,12 +810,12 @@ let getResourceAsString0 (resourcePrefix:string) (assembly:Reflection.Assembly) 
         let msg = sprintf "Resource '%s' not found!\nAvailable resources are\n%A" compositeResourceName names
         raise (UserException msg)
     | Some _    ->
-        let resource = assembly.GetManifestResourceStream compositeResourceName    
+        let resource = assembly.GetManifestResourceStream compositeResourceName
         use memStrm = new MemoryStream ()
         resource.CopyTo(memStrm)
         System.Text.Encoding.UTF8.GetString(memStrm.ToArray())
-        
-        
+
+
 let getResourceAsByteArray0 (resourcePrefix:string) (assembly:Reflection.Assembly) (rsName:string) =
     //let projName = "asn1scc"
     //let assembly = System.Reflection.Assembly.GetExecutingAssembly()
@@ -826,7 +826,7 @@ let getResourceAsByteArray0 (resourcePrefix:string) (assembly:Reflection.Assembl
         let msg = sprintf "Resource '%s' not found!\nAvailable resources are\n%A" compositeResourceName names
         raise (UserException msg)
     | Some _    ->
-        let resource = assembly.GetManifestResourceStream compositeResourceName    
+        let resource = assembly.GetManifestResourceStream compositeResourceName
         use memStrm = new MemoryStream ()
         resource.CopyTo(memStrm)
         memStrm.ToArray()
@@ -843,7 +843,7 @@ let TL  subSystem func =
     let totalElapsed = stopwatch.Elapsed
 
     match subsystems.ContainsKey subSystem with
-    | true -> 
+    | true ->
         let (oc, ts) = subsystems.[subSystem]
         subsystems.[subSystem] <-  (oc+1, ts+totalElapsed)
     | false ->
@@ -853,18 +853,18 @@ let TL  subSystem func =
 
 let TL_report () =
     let StrJoin_priv str listItems =
-        if Seq.isEmpty listItems then 
+        if Seq.isEmpty listItems then
             ""
         else
             listItems |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
 
 
     let aaa = subsystems.Keys |> Seq.toList
-    let bbb = 
-        aaa |> 
-        List.map(fun z -> 
+    let bbb =
+        aaa |>
+        List.map(fun z ->
             let (a,b) = subsystems.[z]
             sprintf "%s nCall %d = took %A" z a b) |> StrJoin_priv "\n"
     printfn "%s" bbb
 
-    
+

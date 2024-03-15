@@ -3,13 +3,24 @@ FROM  mcr.microsoft.com/dotnet/sdk:7.0 AS build
 RUN set -xe \
     && DEBIAN_FRONTEND=noninteractive apt-get update -y \
 	&& apt-get install -y libfontconfig libdbus-1-3 libx11-6 libx11-xcb-dev cppcheck htop \
-	    python3 python3-distutils gcc g++ make openjdk-11-jre nuget libgit2-dev libssl-dev \
+	    python3 python3-distutils gcc g++ make nuget libgit2-dev libssl-dev \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get purge --auto-remove \
     && apt-get clean 
 
-# Install GNAT AND SPARK from AdaCore
+# this SHELL command is needed to allow using source
+SHELL ["/bin/bash", "-c"]  
+# Install dependencies for scala backend
+RUN apt-get update -y \
+	&& apt-get install -y curl wget unzip zip \	
+	&& curl -s "https://get.sdkman.io" | bash \
+	&& chmod a+x "$HOME/.sdkman/bin/sdkman-init.sh" \
+ 	&& source "$HOME/.sdkman/bin/sdkman-init.sh" \	
+	&& sdk install java 17.0.9-oracle \				
+	&& sdk install scala 3.3.0 \					
+	&& sdk install sbt 1.9.0
 
+# Install GNAT AND SPARK from AdaCore
 WORKDIR /gnat_tmp/
 
 # The ADD instruction will always download the file and the cache will be invalidated if the checksum of the file no longer matches

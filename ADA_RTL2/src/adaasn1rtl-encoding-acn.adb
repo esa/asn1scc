@@ -1428,7 +1428,7 @@ is
       strVal (strVal'Last) := Standard.Ascii.NUL;
    end Acn_Dec_String_Ascii_FixSize;
 
-   procedure Acn_Enc_String_Ascii_Null_Teminated
+   procedure Acn_Enc_String_Ascii_Null_Terminated
      (bs : in out Bitstream; null_characters : OctetBuffer; strVal : String)
    is
       i : Integer := strVal'First;
@@ -1449,9 +1449,9 @@ is
             bs.Current_Bit_Pos'Loop_Entry + (i - null_characters'First) * 8);
          BitStream_AppendByte (bs, null_characters (i), False);
       end loop;
-   end Acn_Enc_String_Ascii_Null_Teminated;
+   end Acn_Enc_String_Ascii_Null_Terminated;
 
-   procedure Acn_Dec_String_Ascii_Null_Teminated
+   procedure Acn_Dec_String_Ascii_Null_Terminated
      (bs     : in out Bitstream; null_characters : OctetBuffer;
       strVal : in out String; Result : out ASN1_RESULT)
    is
@@ -1519,7 +1519,7 @@ is
          I          := I + 1;
       end loop;
 
-   end Acn_Dec_String_Ascii_Null_Teminated;
+   end Acn_Dec_String_Ascii_Null_Terminated;
 
    procedure Acn_Enc_String_Ascii_Internal_Field_Determinant
      (bs                           : in out Bitstream; asn1Min : Asn1Int;
@@ -1597,7 +1597,7 @@ is
    end Acn_Enc_String_Ascii_External_Field_Determinant;
 
    procedure Acn_Dec_String_Ascii_External_Field_Determinant
-     (bs     : in out Bitstream; extSizeDeterminatFld : Asn1Int;
+     (bs     : in out Bitstream; extSizeDeterminantFld : Asn1Int;
       strVal : in out String; Result : out ASN1_RESULT)
    is
       I         : Integer := strVal'First;
@@ -1607,7 +1607,7 @@ is
         ASN1_RESULT'(Success => True, ErrorCode => ERR_INCORRECT_STREAM);
 
       while Result.Success and then I <= strVal'Last - 1
-        and then I <= Integer (extSizeDeterminatFld)
+        and then I <= Integer (extSizeDeterminantFld)
       loop
          pragma Loop_Invariant
            (I >= strVal'First and I <= strVal'Last and
@@ -1649,7 +1649,7 @@ is
 
    procedure Acn_Dec_String_CharIndex_External_Field_Determinant
      (bs : in out Bitstream; charSet : String; nCharSize : Integer;
-      extSizeDeterminatFld :        Asn1Int; strVal : out String;
+      extSizeDeterminantFld :        Asn1Int; strVal : out String;
       Result               :    out ASN1_RESULT)
    is
       I         : Integer          := strVal'First;
@@ -1660,7 +1660,7 @@ is
         ASN1_RESULT'(Success => True, ErrorCode => ERR_INCORRECT_STREAM);
       strVal := (others => Standard.Ascii.NUL);
       while Result.Success and then I <= strVal'Last - 1
-        and then I <= Integer (extSizeDeterminatFld)
+        and then I <= Integer (extSizeDeterminantFld)
       loop
          pragma Loop_Invariant
            (I >= strVal'First and I <= strVal'Last and

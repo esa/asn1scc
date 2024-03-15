@@ -27,14 +27,14 @@ extern "C" {
 
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
 
-<arrsValueAssignments:{vas|<vas>}; separator="\n"> 
+<arrsValueAssignments:{vas|<vas>}; separator="\n">
 
 /* ================= Encoding/Decoding function prototypes =================
  * These functions are placed at the end of the file to make sure all types
  * have been declared first, in case of parameterized ACN encodings
  * ========================================================================= */
 
-<arrsPrototypes:{proto|<proto>}; separator="\n"> 
+<arrsPrototypes:{proto|<proto>}; separator="\n">
 
 
 #ifdef  __cplusplus
@@ -57,7 +57,7 @@ PrintValueAssignment(sName, sTypeDecl, sValue) ::= "extern const <sTypeDecl> <sN
 
 
 /*
-C TYPES 
+C TYPES
 */
 
 Declare_Integer() ::="asn1SccSint"
@@ -106,7 +106,7 @@ Declare_Asn1Date_UtcTimeNoRTL              	()::= "Asn1DateUtcTime"
 Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateTimeWithTimeZone"
 
 
-Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs) ::= <<
+Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
 typedef <sParentType> <sTypeDefinitionName>;
 <soExtraDefs>
 >>
@@ -155,9 +155,9 @@ typedef <prTd.typeName> <td.typeName>;
 Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize) ::= <<
 typedef struct {
 <if(!bFixedSize)>
-    int nCount; 
+    int nCount;
 
-<endif>    
+<endif>
     byte arr[<nMax>];
 } <td.typeName>;
 
@@ -180,7 +180,7 @@ typedef struct {
 <if(!bFixedSize)>
     int nCount; /*Number of bits in the array. Max value is : <nMax> */
 
-<endif>    
+<endif>
     byte arr[<nMaxOctets>];
 } <td.typeName>;
 >>
@@ -192,24 +192,24 @@ typedef <prTd.typeName> <td.typeName>;
 /***********************************       SEQUENCE OF    ************************************************************/
 
 
-Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefintion) ::= <<
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition) ::= <<
 
-<soChildDefintion>
+<soChildDefinition>
 
 typedef struct {
 <if(!bFixedSize)>
-    int nCount; 
+    int nCount;
 
-<endif>    
+<endif>
     <sChildType> arr[<nMax>];
 } <td.typeName>;
 >>
 
 
 
-Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefintion) ::= <<
+Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefinition) ::= <<
 
-<soChildDefintion>
+<soChildDefinition>
 
 typedef <prTd.typeName> <td.typeName>;
 >>
@@ -218,17 +218,17 @@ typedef <prTd.typeName> <td.typeName>;
 /***********************************       SEQUENCE     ************************************************************/
 
 Define_new_sequence_child_bit(sName) ::= "unsigned long <sName>:1;"
-Define_new_sequence_child(sName, sType) ::= "<sType> <sName>;"
+Define_new_sequence_child(sName, sType, bIsOptional) ::= "<sType> <sName>;"
 
 Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "BitStream <sName>;"
 
-Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildldrenDefintions, arrsNullFieldsSavePos) ::= <<
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos) ::= <<
 /*-- <td.typeName> --------------------------------------------*/
-<arrsChildldrenDefintions; separator= "\n">
+<arrsChildrenDefinitions; separator= "\n">
 <if (arrsNullFieldsSavePos)>
 typedef struct {
     <arrsNullFieldsSavePos; separator="\n">
-} <td.extention_function_potisions>;
+} <td.extension_function_positions>;
 
 <endif>
 <if (arrsOptionalChildren)>
@@ -250,7 +250,7 @@ typedef struct {
 Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
 typedef <prTd.typeName> <td.typeName>;
 <if (arrsNullFieldsSavePos)>
-typedef <prTd.extention_function_potisions> <td.extention_function_potisions>;
+typedef <prTd.extension_function_positions> <td.extension_function_positions>;
 
 <endif>
 >>
@@ -262,23 +262,23 @@ Define_new_choice_child(sName, sType, sPresent) ::=<<
 <sType> <sName>;
 >>
 
-Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildldrenDefintions) ::= <<
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions) ::= <<
 /*-- <td.typeName> --------------------------------------------*/
-<arrsChildldrenDefintions; separator= "\n">
+<arrsChildrenDefinitions; separator= "\n">
 
 typedef enum {
     <sChoiceIDForNone>,
-    <arrsPresent:{ch|<ch>}; separator=",\n"> 
+    <arrsPresent:{ch|<ch>}; separator=",\n">
 } <td.selection>;
 
 typedef union {
     <arrsChildren:{ch|<ch>}; separator="\n">
-} <td.union_name>; 
+} <td.union_name>;
 
 typedef struct {
     <td.selection> kind;
-    
-    <td.union_name> u; 
+
+    <td.union_name> u;
 } <td.typeName>;
 >>
 

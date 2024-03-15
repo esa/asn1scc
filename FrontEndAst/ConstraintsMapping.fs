@@ -4,50 +4,44 @@ open System.Numerics
 open FsUtils
 open Asn1AcnAst
 
-
-let rec getBaseValue (v: Asn1Value) = 
+let rec getBaseValue (v: Asn1Value) =
     match v.kind with
     | RefValue (_, rv)  -> getBaseValue rv
     | _                 -> v
 
-
-
-let foldBConstraint 
-    singleValueContraintFunc
-    rangeContraintFunc
-    rangeContraint_val_MAXFunc
-    rangeContraint_MIN_valFunc
-    sizeContraintFunc         
-    alphabetContraintFunc     
-    unionConstraintFunc       
+let foldBConstraint
+    singleValueConstraintFunc
+    rangeConstraintFunc
+    rangeConstraint_val_MAXFunc
+    rangeConstraint_MIN_valFunc
+    sizeConstraintFunc
+    alphabetConstraintFunc
+    unionConstraintFunc
     intersectionConstraintFunc
-    allExceptConstraintFunc   
-    exceptConstraintFunc      
-    rootConstraintFunc        
-    rootConstraint2Func  
-    withComponentConstraintFunc     
-    withComponentsConstraintFunc     
+    allExceptConstraintFunc
+    exceptConstraintFunc
+    rootConstraintFunc
+    rootConstraint2Func
+    withComponentConstraintFunc
+    withComponentsConstraintFunc
     (c:Asn1Ast.Asn1Constraint) =
     match c with
-    | Asn1Ast.SingleValueContraint       (s, rv)              -> singleValueContraintFunc s rv 
-    | Asn1Ast.RangeContraint             (s, rv1,rv2,b1,b2)   -> rangeContraintFunc s rv1 rv2 b1 b2 
-    | Asn1Ast.RangeContraint_val_MAX     (s, rv,b)            -> rangeContraint_val_MAXFunc s rv b 
-    | Asn1Ast.RangeContraint_MIN_val     (s, rv,b)            -> rangeContraint_MIN_valFunc s rv b 
-    | Asn1Ast.SizeContraint              (s, c)                 -> sizeContraintFunc s c 
-    | Asn1Ast.AlphabetContraint          (s, c)                 -> alphabetContraintFunc s c 
-    | Asn1Ast.UnionConstraint            (s, c1,c2,b)         -> unionConstraintFunc s c1 c2  b 
-    | Asn1Ast.IntersectionConstraint     (s, c1,c2)           -> intersectionConstraintFunc s c1 c2 
-    | Asn1Ast.AllExceptConstraint        (s, c)                 -> allExceptConstraintFunc s c 
-    | Asn1Ast.ExceptConstraint           (s, c1,c2)           -> exceptConstraintFunc s c1 c2 
-    | Asn1Ast.RootConstraint             (s, c1)                -> rootConstraintFunc s c1    
-    | Asn1Ast.RootConstraint2            (s, c1,c2)           -> rootConstraint2Func s c1 c2      
-    | Asn1Ast.RangeContraint_MIN_MAX                       -> raise(BugErrorException "Unexpected constraint type")
-    | Asn1Ast.TypeInclusionConstraint           _          -> raise(BugErrorException "Unexpected constraint type")   
+    | Asn1Ast.SingleValueConstraint      (s, rv)              -> singleValueConstraintFunc s rv
+    | Asn1Ast.RangeConstraint            (s, rv1,rv2,b1,b2)   -> rangeConstraintFunc s rv1 rv2 b1 b2
+    | Asn1Ast.RangeConstraint_val_MAX    (s, rv,b)            -> rangeConstraint_val_MAXFunc s rv b
+    | Asn1Ast.RangeConstraint_MIN_val    (s, rv,b)            -> rangeConstraint_MIN_valFunc s rv b
+    | Asn1Ast.SizeConstraint             (s, c)               -> sizeConstraintFunc s c
+    | Asn1Ast.AlphabetConstraint         (s, c)               -> alphabetConstraintFunc s c
+    | Asn1Ast.UnionConstraint            (s, c1,c2,b)         -> unionConstraintFunc s c1 c2  b
+    | Asn1Ast.IntersectionConstraint     (s, c1,c2)           -> intersectionConstraintFunc s c1 c2
+    | Asn1Ast.AllExceptConstraint        (s, c)               -> allExceptConstraintFunc s c
+    | Asn1Ast.ExceptConstraint           (s, c1,c2)           -> exceptConstraintFunc s c1 c2
+    | Asn1Ast.RootConstraint             (s, c1)              -> rootConstraintFunc s c1
+    | Asn1Ast.RootConstraint2            (s, c1,c2)           -> rootConstraint2Func s c1 c2
+    | Asn1Ast.RangeConstraint_MIN_MAX                         -> raise(BugErrorException "Unexpected constraint type")
+    | Asn1Ast.TypeInclusionConstraint    _                    -> raise(BugErrorException "Unexpected constraint type")
     | Asn1Ast.WithComponentConstraint    (s, c,l)             -> withComponentConstraintFunc  s c l //raise(BugErrorException "Unexpected constraint type")
     | Asn1Ast.WithComponentsConstraint   (s, ncs)               -> withComponentsConstraintFunc s ncs   //raise(BugErrorException "Unexpected constraint type")
-
-
-
 
 let rec private getValueAsBigInteger (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1Value) =
     let newValue = ValuesMapping.mapValue r t v
@@ -62,7 +56,7 @@ let private getValueAsDouble (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast
     | _                  -> raise(BugErrorException "Value is not of expected type")
 
 let private posIntValGetter (r:Asn1Ast.AstRoot) (v:Asn1Ast.Asn1Value) =
-    let sizeIntegerType = 
+    let sizeIntegerType =
         {
             Asn1Ast.Asn1Type.Kind = Asn1Ast.Integer
             Asn1Ast.Asn1Type.Constraints = []
@@ -79,7 +73,7 @@ let private posIntValGetter (r:Asn1Ast.AstRoot) (v:Asn1Ast.Asn1Value) =
     | _                                 -> raise(SemanticError(v.Location, "Value is not of expected type"))
 
 let private charGetter (r:Asn1Ast.AstRoot)  (v:Asn1Ast.Asn1Value) =
-    let charType = 
+    let charType =
         {
             Asn1Ast.Asn1Type.Kind = Asn1Ast.IA5String
             Asn1Ast.Asn1Type.Constraints = []
@@ -95,7 +89,7 @@ let private charGetter (r:Asn1Ast.AstRoot)  (v:Asn1Ast.Asn1Value) =
     | _                                         -> raise(SemanticError (v.Location, "Expecting a string with just one character"))
 
 let private strGetter (r:Asn1Ast.AstRoot)  (v:Asn1Ast.Asn1Value) =
-    let charType = 
+    let charType =
         {
             Asn1Ast.Asn1Type.Kind = Asn1Ast.IA5String
             Asn1Ast.Asn1Type.Constraints = []
@@ -119,7 +113,7 @@ let private strValueGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.A
 let private octGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1Value) =
     let newValue = ValuesMapping.mapValue r t v
     match (getBaseValue newValue).kind with
-    |OctetStringValue vl            -> (vl, (v.id, v.Location)) 
+    |OctetStringValue vl            -> (vl, (v.id, v.Location))
     | _                             -> raise(BugErrorException "Value is not of expected type")
 
 let private bitGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1Value) =
@@ -173,147 +167,147 @@ let private chValueGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.As
 
 let rec private getRecursiveTypeConstraint valueGetter   (c:Asn1Ast.Asn1Constraint)   =
     foldBConstraint
-        (fun s rv                 -> SingleValueConstraint (s, valueGetter rv )) 
+        (fun s rv                 -> SingleValueConstraint (s, valueGetter rv ))
         (fun s rv1 rv2 b1 b2      -> raise(BugErrorException "range constraint is not expected here"))
         (fun s rv b               -> raise(BugErrorException "range constraint is not expected here"))
         (fun s rv b               -> raise(BugErrorException "range constraint is not expected here"))
-        (fun s c                  -> raise(BugErrorException "SizeContraint is not expected here"))
-        (fun s c                  -> raise(BugErrorException "AlphabetContraint is not expected here"))
-        (fun s c1 c2 b            -> 
-            let c1 = getRecursiveTypeConstraint valueGetter c1 
-            let c2 = getRecursiveTypeConstraint valueGetter c2 
-            UnionConstraint (s, c1,c2,b))           
-        (fun s c1 c2             -> 
-            let c1 = getRecursiveTypeConstraint valueGetter c1 
-            let c2 = getRecursiveTypeConstraint valueGetter c2 
-            IntersectionConstraint (s, c1,c2))           
-        (fun s c             -> 
-            let c = getRecursiveTypeConstraint valueGetter c 
-            AllExceptConstraint (s, c))           
-        (fun s c1 c2             -> 
-            let c1 = getRecursiveTypeConstraint valueGetter c1 
-            let c2 = getRecursiveTypeConstraint valueGetter c2 
-            ExceptConstraint (s, c1,c2))           
-        (fun s c             -> 
-            let c = getRecursiveTypeConstraint valueGetter c 
-            RootConstraint (s,c))           
-        (fun s c1 c2             -> 
-            let c1 = getRecursiveTypeConstraint valueGetter c1 
-            let c2 = getRecursiveTypeConstraint valueGetter c2 
-            RootConstraint2 (s, c1,c2))  
-        (fun s c  -> raise(BugErrorException "Unexpected constraint type"))         
-        (fun s c  -> raise(BugErrorException "Unexpected constraint type"))         
+        (fun s c                  -> raise(BugErrorException "SizeConstraint is not expected here"))
+        (fun s c                  -> raise(BugErrorException "AlphabetConstraint is not expected here"))
+        (fun s c1 c2 b            ->
+            let c1 = getRecursiveTypeConstraint valueGetter c1
+            let c2 = getRecursiveTypeConstraint valueGetter c2
+            UnionConstraint (s, c1,c2,b))
+        (fun s c1 c2             ->
+            let c1 = getRecursiveTypeConstraint valueGetter c1
+            let c2 = getRecursiveTypeConstraint valueGetter c2
+            IntersectionConstraint (s, c1,c2))
+        (fun s c             ->
+            let c = getRecursiveTypeConstraint valueGetter c
+            AllExceptConstraint (s, c))
+        (fun s c1 c2             ->
+            let c1 = getRecursiveTypeConstraint valueGetter c1
+            let c2 = getRecursiveTypeConstraint valueGetter c2
+            ExceptConstraint (s, c1,c2))
+        (fun s c             ->
+            let c = getRecursiveTypeConstraint valueGetter c
+            RootConstraint (s,c))
+        (fun s c1 c2             ->
+            let c1 = getRecursiveTypeConstraint valueGetter c1
+            let c2 = getRecursiveTypeConstraint valueGetter c2
+            RootConstraint2 (s, c1,c2))
+        (fun s c  -> raise(BugErrorException "Unexpected constraint type"))
+        (fun s c  -> raise(BugErrorException "Unexpected constraint type"))
         c
 
 
 let rec private getRangeTypeConstraint valueGetter  valueGetter2 (c:Asn1Ast.Asn1Constraint)   =
-    foldBConstraint 
-        (fun s rv                 -> RangeSingleValueConstraint (s, valueGetter2 rv )) 
-        (fun s rv1 rv2 b1 b2      -> RangeContraint (s, valueGetter rv1 ,valueGetter rv2, b1,b2) )
-        (fun s rv b               -> RangeContraint_val_MAX (s, valueGetter rv, b))
-        (fun s rv b               -> RangeContraint_MIN_val (s, valueGetter rv, b))
-        (fun s c                  -> raise(BugErrorException "SizeContraint is not expected here"))
-        (fun s c                  -> raise(BugErrorException "AlphabetContraint is not expected here"))
-        (fun s c1 c2 b            -> 
-            let c1 = getRangeTypeConstraint valueGetter valueGetter2 c1 
-            let c2 = getRangeTypeConstraint valueGetter valueGetter2 c2 
-            RangeUnionConstraint (s, c1,c2,b))           
-        (fun s c1 c2             -> 
-            let c1 = getRangeTypeConstraint valueGetter valueGetter2 c1 
-            let c2 = getRangeTypeConstraint valueGetter valueGetter2 c2 
-            RangeIntersectionConstraint (s, c1,c2))           
-        (fun s c                 -> 
-            let c = getRangeTypeConstraint valueGetter valueGetter2 c 
-            RangeAllExceptConstraint (s,c))           
-        (fun s c1 c2             -> 
-            let c1 = getRangeTypeConstraint valueGetter valueGetter2 c1 
-            let c2 = getRangeTypeConstraint valueGetter valueGetter2 c2 
+    foldBConstraint
+        (fun s rv                 -> RangeSingleValueConstraint (s, valueGetter2 rv ))
+        (fun s rv1 rv2 b1 b2      -> RangeConstraint (s, valueGetter rv1 ,valueGetter rv2, b1,b2) )
+        (fun s rv b               -> RangeConstraint_val_MAX (s, valueGetter rv, b))
+        (fun s rv b               -> RangeConstraint_MIN_val (s, valueGetter rv, b))
+        (fun s c                  -> raise(BugErrorException "SizeConstraint is not expected here"))
+        (fun s c                  -> raise(BugErrorException "AlphabetConstraint is not expected here"))
+        (fun s c1 c2 b            ->
+            let c1 = getRangeTypeConstraint valueGetter valueGetter2 c1
+            let c2 = getRangeTypeConstraint valueGetter valueGetter2 c2
+            RangeUnionConstraint (s, c1,c2,b))
+        (fun s c1 c2             ->
+            let c1 = getRangeTypeConstraint valueGetter valueGetter2 c1
+            let c2 = getRangeTypeConstraint valueGetter valueGetter2 c2
+            RangeIntersectionConstraint (s, c1,c2))
+        (fun s c                 ->
+            let c = getRangeTypeConstraint valueGetter valueGetter2 c
+            RangeAllExceptConstraint (s,c))
+        (fun s c1 c2             ->
+            let c1 = getRangeTypeConstraint valueGetter valueGetter2 c1
+            let c2 = getRangeTypeConstraint valueGetter valueGetter2 c2
             RangeExceptConstraint (s, c1,c2))
-        (fun s c                 -> 
-            let c = getRangeTypeConstraint valueGetter valueGetter2 c 
+        (fun s c                 ->
+            let c = getRangeTypeConstraint valueGetter valueGetter2 c
             RangeRootConstraint (s,c))
-        (fun s c1 c2             -> 
-            let c1 = getRangeTypeConstraint valueGetter valueGetter2 c1 
-            let c2 = getRangeTypeConstraint valueGetter valueGetter2 c2 
-            RangeRootConstraint2 (s, c1,c2))           
-        (fun s c  -> raise(BugErrorException "Unexpected constraint type"))         
-        (fun s c  -> raise(BugErrorException "Unexpected constraint type"))         
+        (fun s c1 c2             ->
+            let c1 = getRangeTypeConstraint valueGetter valueGetter2 c1
+            let c2 = getRangeTypeConstraint valueGetter valueGetter2 c2
+            RangeRootConstraint2 (s, c1,c2))
+        (fun s c  -> raise(BugErrorException "Unexpected constraint type"))
+        (fun s c  -> raise(BugErrorException "Unexpected constraint type"))
         c
 
 
 let rec private getSizeTypeConstraint (r:Asn1Ast.AstRoot) valueGetter  (c:Asn1Ast.Asn1Constraint)   =
-    foldBConstraint 
-        (fun s rv                 -> SizeSingleValueConstraint (s, valueGetter rv)) 
+    foldBConstraint
+        (fun s rv                 -> SizeSingleValueConstraint (s, valueGetter rv))
         (fun s rv1 rv2 b1 b2      -> raise(BugErrorException "Range constraint is not expected here"))
         (fun s rv b               -> raise(BugErrorException "Range constraint is not expected here"))
         (fun s rv b               -> raise(BugErrorException "Range constraint is not expected here"))
-        (fun s c                  -> 
+        (fun s c                  ->
             let posIntCon = getRangeTypeConstraint (posIntValGetter r) (posIntValGetter r)  c
-            SizeContraint (s, posIntCon))
-        (fun s c                  -> raise(BugErrorException "AlphabetContraint is not expected here"))
-        (fun s c1 c2 b            -> 
-            let c1 = getSizeTypeConstraint r valueGetter c1
-            let c2 = getSizeTypeConstraint r valueGetter c2 
-            SizeUnionConstraint (s, c1,c2,b))           
-        (fun s c1 c2             -> 
+            SizeConstraint (s, posIntCon))
+        (fun s c                  -> raise(BugErrorException "AlphabetConstraint is not expected here"))
+        (fun s c1 c2 b            ->
             let c1 = getSizeTypeConstraint r valueGetter c1
             let c2 = getSizeTypeConstraint r valueGetter c2
-            SizeIntersectionConstraint (s, c1,c2))           
-        (fun s c                 -> 
-            let c = getSizeTypeConstraint r valueGetter c 
-            SizeAllExceptConstraint (s, c))           
-        (fun s c1 c2             -> 
+            SizeUnionConstraint (s, c1,c2,b))
+        (fun s c1 c2             ->
+            let c1 = getSizeTypeConstraint r valueGetter c1
+            let c2 = getSizeTypeConstraint r valueGetter c2
+            SizeIntersectionConstraint (s, c1,c2))
+        (fun s c                 ->
+            let c = getSizeTypeConstraint r valueGetter c
+            SizeAllExceptConstraint (s, c))
+        (fun s c1 c2             ->
             let c1 = getSizeTypeConstraint r valueGetter c1
             let c2 = getSizeTypeConstraint r valueGetter c2
             SizeExceptConstraint (s, c1,c2))
-        (fun s c                 -> 
-            let c = getSizeTypeConstraint r valueGetter c 
+        (fun s c                 ->
+            let c = getSizeTypeConstraint r valueGetter c
             SizeRootConstraint (s, c))
-        (fun s c1 c2             -> 
+        (fun s c1 c2             ->
             let c1 = getSizeTypeConstraint r valueGetter c1
             let c2 = getSizeTypeConstraint r valueGetter c2
-            SizeRootConstraint2 (s, c1,c2))           
-        (fun _  -> raise(BugErrorException "Unexpected constraint type"))         
-        (fun _  -> raise(BugErrorException "Unexpected constraint type"))         
+            SizeRootConstraint2 (s, c1,c2))
+        (fun _  -> raise(BugErrorException "Unexpected constraint type"))
+        (fun _  -> raise(BugErrorException "Unexpected constraint type"))
         c
 
 
 let rec private getStringTypeConstraint (r:Asn1Ast.AstRoot) valueGetter  (c:Asn1Ast.Asn1Constraint)   =
-    foldBConstraint 
-        (fun s rv                 -> StrSingleValueConstraint (s, valueGetter rv)) 
+    foldBConstraint
+        (fun s rv                 -> StrSingleValueConstraint (s, valueGetter rv))
         (fun s rv1 rv2 b1 b2      -> raise(SemanticError(rv1.Location, "Range constraint is not expected here in string types")))
         (fun s rv b               -> raise(SemanticError(rv.Location, "Range constraint is not expected here in string types")))
         (fun s rv b               -> raise(SemanticError(rv.Location, "Range constraint is not expected here in string types")))
-        (fun s c                  -> 
+        (fun s c                  ->
             let posIntCon = getRangeTypeConstraint (posIntValGetter r) (posIntValGetter r) c
-            StrSizeContraint (s, posIntCon))
-        (fun s c                  -> 
+            StrSizeConstraint (s, posIntCon))
+        (fun s c                  ->
             let charCons = getRangeTypeConstraint (charGetter r) (strGetter r) c
-            AlphabetContraint (s, charCons))
-        (fun s c1 c2 b            -> 
+            AlphabetConstraint (s, charCons))
+        (fun s c1 c2 b            ->
             let c1 = getStringTypeConstraint r valueGetter c1
             let c2 = getStringTypeConstraint r valueGetter c2
-            StrUnionConstraint (s, c1,c2,b))           
-        (fun s c1 c2             -> 
+            StrUnionConstraint (s, c1,c2,b))
+        (fun s c1 c2             ->
             let c1 = getStringTypeConstraint r valueGetter c1
             let c2 = getStringTypeConstraint r valueGetter c2
-            StrIntersectionConstraint (s, c1,c2))           
-        (fun s c                 -> 
+            StrIntersectionConstraint (s, c1,c2))
+        (fun s c                 ->
             let c = getStringTypeConstraint r valueGetter c
-            StrAllExceptConstraint (s, c))           
-        (fun s c1 c2             -> 
+            StrAllExceptConstraint (s, c))
+        (fun s c1 c2             ->
             let c1 = getStringTypeConstraint r valueGetter c1
             let c2 = getStringTypeConstraint r valueGetter c2
             StrExceptConstraint (s, c1,c2))
-        (fun s c                 -> 
+        (fun s c                 ->
             let c = getStringTypeConstraint r valueGetter c
             StrRootConstraint (s, c))
-        (fun s c1 c2             -> 
+        (fun s c1 c2             ->
             let c1 = getStringTypeConstraint r valueGetter c1
             let c2 = getStringTypeConstraint r valueGetter c2
-            StrRootConstraint2 (s, c1,c2))           
-        (fun _  -> raise(BugErrorException "Unexpected constraint type"))         
-        (fun _  -> raise(BugErrorException "Unexpected constraint type"))         
+            StrRootConstraint2 (s, c1,c2))
+        (fun _  -> raise(BugErrorException "Unexpected constraint type"))
+        (fun _  -> raise(BugErrorException "Unexpected constraint type"))
         c
 
 
@@ -351,39 +345,39 @@ let rec getAnyConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (c:Asn1Ast.Asn
 
 and getSequenceOfConstraint  (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (child : Asn1Ast.Asn1Type) =
     let rec  getSizeTypeConstraint (r:Asn1Ast.AstRoot) valueGetter  (c:Asn1Ast.Asn1Constraint)   =
-        foldBConstraint 
-            (fun s rv                 -> SeqOfSizeSingleValueConstraint (s, valueGetter rv)) 
+        foldBConstraint
+            (fun s rv                 -> SeqOfSizeSingleValueConstraint (s, valueGetter rv))
             (fun s rv1 rv2 b1 b2      -> raise(BugErrorException "Range constraint is not expected here"))
             (fun s rv b               -> raise(BugErrorException "Range constraint is not expected here"))
             (fun s rv b               -> raise(BugErrorException "Range constraint is not expected here"))
-            (fun s c                  -> 
+            (fun s c                  ->
                 let posIntCon = getRangeTypeConstraint (posIntValGetter r) (posIntValGetter r)  c
-                SeqOfSizeContraint (s,posIntCon))
-            (fun s c                  -> raise(BugErrorException "AlphabetContraint is not expected here"))
-            (fun s c1 c2 b            -> 
-                let c1 = getSizeTypeConstraint r valueGetter c1
-                let c2 = getSizeTypeConstraint r valueGetter c2 
-                SeqOfSizeUnionConstraint (s, c1,c2,b))           
-            (fun s c1 c2             -> 
+                SeqOfSizeConstraint (s,posIntCon))
+            (fun s c                  -> raise(BugErrorException "AlphabetConstraint is not expected here"))
+            (fun s c1 c2 b            ->
                 let c1 = getSizeTypeConstraint r valueGetter c1
                 let c2 = getSizeTypeConstraint r valueGetter c2
-                SeqOfSizeIntersectionConstraint (s, c1,c2))           
-            (fun s c                 -> 
-                let c = getSizeTypeConstraint r valueGetter c 
-                SeqOfSizeAllExceptConstraint (s, c))           
-            (fun s c1 c2             -> 
+                SeqOfSizeUnionConstraint (s, c1,c2,b))
+            (fun s c1 c2             ->
+                let c1 = getSizeTypeConstraint r valueGetter c1
+                let c2 = getSizeTypeConstraint r valueGetter c2
+                SeqOfSizeIntersectionConstraint (s, c1,c2))
+            (fun s c                 ->
+                let c = getSizeTypeConstraint r valueGetter c
+                SeqOfSizeAllExceptConstraint (s, c))
+            (fun s c1 c2             ->
                 let c1 = getSizeTypeConstraint r valueGetter c1
                 let c2 = getSizeTypeConstraint r valueGetter c2
                 SeqOfSizeExceptConstraint (s, c1,c2))
-            (fun s c                 -> 
-                let c = getSizeTypeConstraint r valueGetter c 
+            (fun s c                 ->
+                let c = getSizeTypeConstraint r valueGetter c
                 SeqOfSizeRootConstraint (s, c))
-            (fun s c1 c2             -> 
+            (fun s c1 c2             ->
                 let c1 = getSizeTypeConstraint r valueGetter c1
                 let c2 = getSizeTypeConstraint r valueGetter c2
-                SeqOfSizeRootConstraint2 (s, c1,c2))           
-            (fun s c l -> SeqOfSeqWithComponentConstraint(s, (getAnyConstraint r child c),l) )         
-            (fun _  -> raise(BugErrorException "Unexpected constraint type"))         
+                SeqOfSizeRootConstraint2 (s, c1,c2))
+            (fun s c l -> SeqOfSeqWithComponentConstraint(s, (getAnyConstraint r child c),l) )
+            (fun _  -> raise(BugErrorException "Unexpected constraint type"))
             c
     getSizeTypeConstraint r (seqOfValueGetter r t)
 
@@ -392,43 +386,43 @@ and getSequenceOfConstraint  (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (child : A
 
 and getRecursiveTypeSeqOrConstraint (r:Asn1Ast.AstRoot) valueGetter (children:Asn1Ast.ChildInfo list)  (c:Asn1Ast.Asn1Constraint)   =
     foldBConstraint
-        (fun s rv                 -> SeqOrChSingleValueConstraint (s, valueGetter rv )) 
+        (fun s rv                 -> SeqOrChSingleValueConstraint (s, valueGetter rv ))
         (fun s rv1 rv2 b1 b2      -> raise(BugErrorException "range constraint is not expected here"))
         (fun s rv b               -> raise(BugErrorException "range constraint is not expected here"))
         (fun s rv b               -> raise(BugErrorException "range constraint is not expected here"))
-        (fun s c                  -> raise(BugErrorException "SizeContraint is not expected here"))
-        (fun s c                  -> raise(BugErrorException "AlphabetContraint is not expected here"))
-        (fun s c1 c2 b            -> 
-            let c1 = getRecursiveTypeSeqOrConstraint r valueGetter children c1 
-            let c2 = getRecursiveTypeSeqOrConstraint r valueGetter children c2 
-            SeqOrChUnionConstraint (s, c1,c2,b))           
-        (fun s c1 c2             -> 
-            let c1 = getRecursiveTypeSeqOrConstraint r valueGetter children c1 
-            let c2 = getRecursiveTypeSeqOrConstraint r valueGetter children c2 
-            SeqOrChIntersectionConstraint (s, c1,c2))           
-        (fun s c             -> 
-            let c = getRecursiveTypeSeqOrConstraint r valueGetter children c 
-            SeqOrChAllExceptConstraint (s, c))           
-        (fun s c1 c2             -> 
-            let c1 = getRecursiveTypeSeqOrConstraint r valueGetter children c1 
-            let c2 = getRecursiveTypeSeqOrConstraint r valueGetter children c2 
-            SeqOrChExceptConstraint (s, c1,c2))           
-        (fun s c             -> 
-            let c = getRecursiveTypeSeqOrConstraint r valueGetter children c 
-            SeqOrChRootConstraint (s, c))           
-        (fun s c1 c2             -> 
-            let c1 = getRecursiveTypeSeqOrConstraint r valueGetter children c1 
-            let c2 = getRecursiveTypeSeqOrConstraint r valueGetter children c2 
-            SeqOrChRootConstraint2 (s, c1,c2))  
-        (fun s c  -> raise(BugErrorException "Unexpected constraint type"))         
-        (fun s ncs  -> 
-            let newItems = 
-                ncs |> 
-                List.map(fun nc -> 
+        (fun s c                  -> raise(BugErrorException "SizeConstraint is not expected here"))
+        (fun s c                  -> raise(BugErrorException "AlphabetConstraint is not expected here"))
+        (fun s c1 c2 b            ->
+            let c1 = getRecursiveTypeSeqOrConstraint r valueGetter children c1
+            let c2 = getRecursiveTypeSeqOrConstraint r valueGetter children c2
+            SeqOrChUnionConstraint (s, c1,c2,b))
+        (fun s c1 c2             ->
+            let c1 = getRecursiveTypeSeqOrConstraint r valueGetter children c1
+            let c2 = getRecursiveTypeSeqOrConstraint r valueGetter children c2
+            SeqOrChIntersectionConstraint (s, c1,c2))
+        (fun s c             ->
+            let c = getRecursiveTypeSeqOrConstraint r valueGetter children c
+            SeqOrChAllExceptConstraint (s, c))
+        (fun s c1 c2             ->
+            let c1 = getRecursiveTypeSeqOrConstraint r valueGetter children c1
+            let c2 = getRecursiveTypeSeqOrConstraint r valueGetter children c2
+            SeqOrChExceptConstraint (s, c1,c2))
+        (fun s c             ->
+            let c = getRecursiveTypeSeqOrConstraint r valueGetter children c
+            SeqOrChRootConstraint (s, c))
+        (fun s c1 c2             ->
+            let c1 = getRecursiveTypeSeqOrConstraint r valueGetter children c1
+            let c2 = getRecursiveTypeSeqOrConstraint r valueGetter children c2
+            SeqOrChRootConstraint2 (s, c1,c2))
+        (fun s c  -> raise(BugErrorException "Unexpected constraint type"))
+        (fun s ncs  ->
+            let newItems =
+                ncs |>
+                List.map(fun nc ->
                     let ch = children |> Seq.find(fun x -> x.Name.Value = nc.Name.Value)
-                    let newCon = nc.Contraint |> Option.map (getAnyConstraint r ch.Type)
-                    {NamedConstraint.Name = nc.Name; Mark = nc.Mark; Contraint = newCon})
-            SeqOrChWithComponentsConstraint (s, newItems) )         
+                    let newCon = nc.Constraint |> Option.map (getAnyConstraint r ch.Type)
+                    {NamedConstraint.Name = nc.Name; Mark = nc.Mark; Constraint = newCon})
+            SeqOrChWithComponentsConstraint (s, newItems) )
         c
 
 and getSeqConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (children:Asn1Ast.ChildInfo list)   =
@@ -438,5 +432,3 @@ and getSeqConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (children:Asn1Ast.
 
 and getChoiceConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (children:Asn1Ast.ChildInfo list)   =
     getRecursiveTypeSeqOrConstraint r (chValueGetter r t) children
-
-

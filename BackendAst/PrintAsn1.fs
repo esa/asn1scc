@@ -18,15 +18,15 @@ open Asn1Ast
 open FsUtils
 open CommonTypes
 
-let rec PrintAsn1Value (v:Asn1Value) = 
+let rec PrintAsn1Value (v:Asn1Value) =
     match v.Kind with
     |IntegerValue(v)         -> stg_asn1.Print_IntegerValue v.Value
     |RealValue(v)            -> stg_asn1.Print_RealValue v.Value
-    |StringValue(parts,_)          -> 
+    |StringValue(parts,_)          ->
         match parts with
         | (CStringValue v)::[] ->        stg_asn1.Print_StringValue v
-        | _     ->        stg_asn1.Print_SeqOfValue (parts |> List.map(fun p -> p.AsAsn1))  
-    |TimeValue v             -> 
+        | _     ->        stg_asn1.Print_SeqOfValue (parts |> List.map(fun p -> p.AsAsn1))
+    |TimeValue v             ->
         stg_asn1.Print_TimeValue (asn1DateTimeValueToString  v.Value)
     |BooleanValue(v)         -> stg_asn1.Print_BooleanValue v.Value
     |BitStringValue(v)       -> stg_asn1.Print_BitStringValue v.Value
@@ -36,34 +36,34 @@ let rec PrintAsn1Value (v:Asn1Value) =
     |SeqValue(vals)          -> stg_asn1.Print_SeqValue (vals |> Seq.map(fun (nm, v) -> stg_asn1.Print_SeqValue_Child nm.Value (PrintAsn1Value v) ) |> Seq.toArray)
     |ChValue(nm,v)           -> stg_asn1.Print_ChValue nm.Value (PrintAsn1Value v)
     |NullValue               -> stg_asn1.Print_NullValue()
-    |ObjOrRelObjIdValue coms    -> 
+    |ObjOrRelObjIdValue coms    ->
         stg_asn1.Print_ObjOrRelObjIdValue (coms |> List.map DAstAsn1.printComponent)
 
 
-let rec PrintConstraint (c:Asn1Constraint) = 
+let rec PrintConstraint (c:Asn1Constraint) =
     match c with
-    | SingleValueContraint(_, v)       -> stg_asn1.Print_SingleValueContraint (PrintAsn1Value v)
-    | RangeContraint(_, v1, v2, b1, b2)        -> stg_asn1.Print_RangeContraint (PrintAsn1Value v1) (PrintAsn1Value v2) b1 b2
-    | RangeContraint_val_MAX(_, v, b1)     -> stg_asn1.Print_RangeContraint_val_MAX (PrintAsn1Value v) b1
-    | RangeContraint_MIN_val(_, v, b2)     -> stg_asn1.Print_RangeContraint_MIN_val (PrintAsn1Value v) b2  
-    | RangeContraint_MIN_MAX        -> stg_asn1.Print_RangeContraint_MIN_MAX()
-    | TypeInclusionConstraint(_, mn,nm)-> 
-        stg_asn1.Print_TypeInclusionConstraint nm.Value       
-    | SizeContraint(_, c)              -> stg_asn1.Print_SizeContraint (PrintConstraint c)   
-    | AlphabetContraint(_, c)          -> stg_asn1.Print_AlphabetContraint (PrintConstraint c)   
-    | UnionConstraint(_, c1,c2,virtualCon)        -> 
+    | SingleValueConstraint(_, v)       -> stg_asn1.Print_SingleValueConstraint (PrintAsn1Value v)
+    | RangeConstraint(_, v1, v2, b1, b2)        -> stg_asn1.Print_RangeConstraint (PrintAsn1Value v1) (PrintAsn1Value v2) b1 b2
+    | RangeConstraint_val_MAX(_, v, b1)     -> stg_asn1.Print_RangeConstraint_val_MAX (PrintAsn1Value v) b1
+    | RangeConstraint_MIN_val(_, v, b2)     -> stg_asn1.Print_RangeConstraint_MIN_val (PrintAsn1Value v) b2
+    | RangeConstraint_MIN_MAX        -> stg_asn1.Print_RangeConstraint_MIN_MAX()
+    | TypeInclusionConstraint(_, mn,nm)->
+        stg_asn1.Print_TypeInclusionConstraint nm.Value
+    | SizeConstraint(_, c)              -> stg_asn1.Print_SizeConstraint (PrintConstraint c)
+    | AlphabetConstraint(_, c)          -> stg_asn1.Print_AlphabetConstraint (PrintConstraint c)
+    | UnionConstraint(_, c1,c2,virtualCon)        ->
         match virtualCon with
-        | false -> stg_asn1.Print_UnionConstraint (PrintConstraint c1) (PrintConstraint c2)   
+        | false -> stg_asn1.Print_UnionConstraint (PrintConstraint c1) (PrintConstraint c2)
         | true  -> ""
-    | IntersectionConstraint(_, c1,c2) -> stg_asn1.Print_IntersectionConstraint (PrintConstraint c1) (PrintConstraint c2)          
-    | AllExceptConstraint(_, c)        -> stg_asn1.Print_AllExceptConstraint (PrintConstraint c)      
-    | ExceptConstraint(_, c1,c2)       -> stg_asn1.Print_ExceptConstraint (PrintConstraint c1) (PrintConstraint c2)                 
-    | RootConstraint(_, c)             -> stg_asn1.Print_RootConstraint  (PrintConstraint c)        
+    | IntersectionConstraint(_, c1,c2) -> stg_asn1.Print_IntersectionConstraint (PrintConstraint c1) (PrintConstraint c2)
+    | AllExceptConstraint(_, c)        -> stg_asn1.Print_AllExceptConstraint (PrintConstraint c)
+    | ExceptConstraint(_, c1,c2)       -> stg_asn1.Print_ExceptConstraint (PrintConstraint c1) (PrintConstraint c2)
+    | RootConstraint(_, c)             -> stg_asn1.Print_RootConstraint  (PrintConstraint c)
     | RootConstraint2(_, c1,c2)        -> stg_asn1.Print_RootConstraint2 (PrintConstraint c1) (PrintConstraint c2)
     | WithComponentConstraint(_, c,_)  -> stg_asn1.Print_WithComponentConstraint (PrintConstraint c)
-    | WithComponentsConstraint(_, ncs) -> 
+    | WithComponentsConstraint(_, ncs) ->
         let print_nc (nc:NamedConstraint) =
-            let sConstraint = match nc.Contraint with
+            let sConstraint = match nc.Constraint with
                               | Some(c1)     -> PrintConstraint c1
                               | None        -> ""
             let sPresMark = match nc.Mark with
@@ -72,7 +72,7 @@ let rec PrintConstraint (c:Asn1Constraint) =
                             | MarkAbsent    -> "ABSENT"
                             | MarkOptional  -> "OPTIONAL"
             stg_asn1.Print_WithComponentsConstraint_child nc.Name.Value sConstraint sPresMark
-        stg_asn1.Print_WithComponentsConstraint (ncs |> Seq.map  print_nc |> Seq.toArray)    
+        stg_asn1.Print_WithComponentsConstraint (ncs |> Seq.map  print_nc |> Seq.toArray)
 
 let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSingleModule:bool) =
     let cons = t.Constraints |> Seq.map PrintConstraint |> Seq.toArray
@@ -88,7 +88,7 @@ let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSingleModule:bool) =
     |ObjectIdentifier -> stg_asn1.Print_ObjectIdenitifier cons
     |RelativeObjectIdentifier -> stg_asn1.Print_RelativeObjectIdenitifier cons
     |Enumerated(items)  ->
-        let printItem i (it:NamedItem) = 
+        let printItem i (it:NamedItem) =
             let arrsMultilineComments, soSingleLineComment  =
                 match it.Comments |> Seq.toList with
                 | [] -> [], None
@@ -98,7 +98,7 @@ let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSingleModule:bool) =
             stg_asn1.Print_Enumerated_child it.Name.Value it._value.IsSome (if it._value.IsSome then (PrintAsn1Value it._value.Value) else "")  arrsMultilineComments soSingleLineComment bLastChild
         stg_asn1.Print_Enumerated (items |> Seq.mapi printItem |> Seq.toArray) cons
     |Choice(children)   ->
-        let printChild i (c:ChildInfo) = 
+        let printChild i (c:ChildInfo) =
             let arrsMultilineComments, soSingleLineComment  =
                 match c.Comments |> Seq.toList with
                 | [] -> [], None
@@ -108,26 +108,27 @@ let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSingleModule:bool) =
             stg_asn1.Print_Choice_child c.Name.Value (PrintType c.Type m bPrintInSingleModule) arrsMultilineComments soSingleLineComment bLastChild
         stg_asn1.Print_Choice (children |> Seq.mapi printChild |> Seq.toArray) cons
     |Sequence(children) ->
-        let printChild i (c:ChildInfo) = 
+        let printChild i (c:ChildInfo) =
             let arrsMultilineComments, soSingleLineComment  =
                 match c.Comments |> Seq.toList with
                 | [] -> [], None
                 | x::[] -> [], Some x
                 | xs  -> xs, None
             let bLastChild = i = children.Length - 1
-            let bIsOptionalOrDefault, soDefValue = 
+            let bIsOptionalOrDefault, soDefValue =
                 match c.Optionality with
                 |Some(Optional(dv))   -> true, match dv.defaultValue with Some v -> Some (PrintAsn1Value v) | None -> None
                 |_                   -> false, None
             stg_asn1.Print_Sequence_child c.Name.Value (PrintType c.Type m bPrintInSingleModule) bIsOptionalOrDefault soDefValue arrsMultilineComments soSingleLineComment bLastChild
         stg_asn1.Print_Sequence (children |> Seq.mapi printChild |> Seq.toArray) cons
     |SequenceOf(child)  -> stg_asn1.Print_SequenceOf (PrintType child m bPrintInSingleModule) cons
-    //|ReferenceType(mname, name, _) ->  
-    |ReferenceType(r) ->  
+    //|ReferenceType(mname, name, _) ->
+    |ReferenceType(r) ->
         match bPrintInSingleModule || m.Name.Value = r.modName.Value with
         | true -> stg_asn1.Print_ReferenceType1 r.tasName.Value cons
         | false -> stg_asn1.Print_ReferenceType2 r.modName.Value r.tasName.Value cons
-        
+    |TimeType t -> stg_asn1.Print_TimeType cons
+
 
 let PrintTypeAss (t:TypeAssignment) m bPrintInSingleModule = stg_asn1.PrintTypeAssignment t.Name.Value (PrintType t.Type m bPrintInSingleModule) t.Comments "::="
 
@@ -160,7 +161,7 @@ let DoWork (r:AstRoot) outDir newFileExt =
 
 
 let printInASingleFile (r:AstRoot) outDir newFile (pdu:string option)=
-    
+
     let rec  getTypeDependencies2 (tsMap:Map<TypeAssignmentInfo,TypeAssignment>) (deep:bool) (t:Asn1Type) : (TypeAssignmentInfo list )    =
         match t.Kind with
         | Integer                    -> []
@@ -169,52 +170,52 @@ let printInASingleFile (r:AstRoot) outDir newFile (pdu:string option)=
         | NumericString              -> []
         | OctetString                -> []
         | NullType                   -> []
-        | BitString    _             -> []
+        | BitString _                -> []
         | Boolean                    -> []
-        | Enumerated   _             -> []
+        | Enumerated _               -> []
         | ObjectIdentifier           -> []
         | RelativeObjectIdentifier   -> []
-        | TimeType      _            -> []  
-        | SequenceOf    sqof         -> (getTypeDependencies2 tsMap deep sqof) 
+        | TimeType _                 -> []
+        | SequenceOf    sqof         -> (getTypeDependencies2 tsMap deep sqof)
         | Sequence      children     -> (children |> List.collect (fun ch -> getTypeDependencies2 tsMap deep ch.Type))
         | Choice        children     -> (children |> List.collect (fun ch -> getTypeDependencies2 tsMap deep ch.Type))
-        | ReferenceType ref          -> 
+        | ReferenceType ref          ->
             let thisRef = {TypeAssignmentInfo.modName = ref.modName.Value; TypeAssignmentInfo.tasName = ref.tasName.Value}
             match deep with
             | false -> [thisRef]
-            | true  -> 
+            | true  ->
                 let ts = tsMap.[thisRef]
                 thisRef::(getTypeDependencies2 tsMap deep ts.Type)
     let allTasses =
-        r.Files |> 
-        List.collect(fun f -> f.Modules) |> 
-        List.collect(fun m -> 
+        r.Files |>
+        List.collect(fun f -> f.Modules) |>
+        List.collect(fun m ->
             m.TypeAssignments |> List.map(fun ts -> ({TypeAssignmentInfo.modName = m.Name.Value; TypeAssignmentInfo.tasName = ts.Name.Value}, ts)))
     let modMap = r.Files |> List.collect(fun f -> f.Modules) |> List.map(fun m -> m.Name.Value, m) |> Map.ofList
     let tsMap = allTasses |> Map.ofList
     let allVasses =
         r.Files |> List.collect(fun f -> f.Modules) |> List.collect(fun m -> m.ValueAssignments |> List.map(fun vs -> m,vs))
-    let allNodesToSort = 
+    let allNodesToSort =
         allTasses |> List.map(fun (tasInfo,ts) -> (tasInfo, getTypeDependencies2 tsMap false ts.Type))
     let independentNodes = allNodesToSort |> List.filter(fun (_,list) -> List.isEmpty list) |> List.map(fun (n,l) -> n)
     let dependentNodes = allNodesToSort |> List.filter(fun (_,list) -> not (List.isEmpty list) )
-    let sortedTypeAss = 
-        DoTopologicalSort independentNodes dependentNodes 
-            (fun cyclicTasses -> 
+    let sortedTypeAss =
+        DoTopologicalSort independentNodes dependentNodes
+            (fun cyclicTasses ->
                 match cyclicTasses with
                 | []    -> BugErrorException "Impossible"
                 | (m1,deps) ::_ ->
-                    let printTas (md:TypeAssignmentInfo, deps: TypeAssignmentInfo list) = 
+                    let printTas (md:TypeAssignmentInfo, deps: TypeAssignmentInfo list) =
                         sprintf "Type assignment '%s.%s' depends on : %s" md.modName md.tasName (deps |> List.map(fun z -> "'" + z.modName + "." + z.tasName + "'") |> Seq.StrJoin ", ")
                     let cycTasses = cyclicTasses |> List.map printTas |> Seq.StrJoin "\n\tand\n"
                     SemanticError(emptyLocation, sprintf "Cyclic Types detected:\n%s\n"  cycTasses)                    )
 
-    let tastToPrint = 
+    let tastToPrint =
         match pdu with
         | None      -> sortedTypeAss
         | Some pdu  ->
             match allTasses |> Seq.tryFind(fun (_,ts) -> ts.Name.Value = pdu) with
-            | None -> 
+            | None ->
                 Console.Error.WriteLine("No type assignment with name {0} found", pdu)
                 sortedTypeAss
             | Some (tsInfo,ts)   ->
@@ -228,5 +229,3 @@ let printInASingleFile (r:AstRoot) outDir newFile (pdu:string option)=
     let outFileName = Path.Combine(outDir, newFile)
     File.WriteAllText(outFileName, modulesContent.Replace("\r",""))
     tastToPrint
-
-

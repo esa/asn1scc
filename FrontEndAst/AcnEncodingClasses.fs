@@ -8,15 +8,15 @@ open Asn1Fold
 open Asn1AcnAstUtilFunctions
 open AcnGenericTypes
 
-let getAlignmentSize (aligment: AcnAligment option) =
-    match aligment with
+let getAlignmentSize (alignment: AcnAlignment option) =
+    match alignment with
     | None              -> 0I
     | Some NextByte     -> 7I
     | Some NextWord     -> 15I
     | Some NextDWord    -> 31I
 
-let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment option) errLoc (p  : IntegerAcnProperties) (uperMinSizeInBits:BigInteger) (uperMaxSizeInBits:BigInteger) isUnsigned=
-    let alignmentSize = getAlignmentSize aligment
+let GetIntEncodingClass (integerSizeInBytes:BigInteger) (alignment: AcnAlignment option) errLoc (p  : IntegerAcnProperties) (uperMinSizeInBits:BigInteger) (uperMaxSizeInBits:BigInteger) isUnsigned=
+    let alignmentSize = getAlignmentSize alignment
     let maxDigitsInInteger =
         match integerSizeInBytes with
         | _ when integerSizeInBytes = 8I && isUnsigned      -> UInt64.MaxValue.ToString().Length
@@ -26,37 +26,37 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
         | _                                                 -> raise(SemanticError(errLoc, (sprintf "Unsuported integer size :%A" integerSizeInBytes)))
     let maxDigitsInInteger = BigInteger maxDigitsInInteger
 
-        
-    let encClass, minSizeInBits, maxSizeInBits = 
-        match p.encodingProp.IsNone && p.sizeProp.IsNone && p.endiannessProp.IsNone with     
+
+    let encClass, minSizeInBits, maxSizeInBits =
+        match p.encodingProp.IsNone && p.sizeProp.IsNone && p.endiannessProp.IsNone with
         | true -> Integer_uPER, uperMinSizeInBits, uperMaxSizeInBits
-        | false  -> 
-            let endianess = 
+        | false  ->
+            let endianness =
                 match p.endiannessProp with
                 | Some e -> e
                 | None   -> BigEndianness
-            let encProp = 
+            let encProp =
                 match p.encodingProp with
                 | Some e -> e
                 | None   -> raise(SemanticError(errLoc, "Mandatory ACN property 'encoding' is missing"))
 
-            let sizeProp = 
+            let sizeProp =
                 match p.sizeProp with
                 | Some e    -> e
                 | None   -> raise(SemanticError(errLoc, "Mandatory ACN property 'size' is missing"))
             let bUINT = isUnsigned
             let maxFxVal = integerSizeInBytes*8I
-            match encProp, sizeProp, endianess with
+            match encProp, sizeProp, endianness with
             | PosInt, _,_              when not bUINT       ->  raise(SemanticError(errLoc, "Acn property pos-int cannot be applied to signed INTEGER types"))
-            | PosInt, Fixed(fixedSizeInBits) , BigEndianness     when fixedSizeInBits = 8I              ->  
+            | PosInt, Fixed(fixedSizeInBits) , BigEndianness     when fixedSizeInBits = 8I              ->
                 match p.endiannessProp with
                 | Some BigEndianness ->
-                    let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n" 
+                    let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
                     Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg)
                 | _                 -> ()
                 PositiveInteger_ConstSize_8, 8I, 8I
-            | PosInt, Fixed(fixedSizeInBits) , LittleEndianness     when fixedSizeInBits = 8I              ->  
-                let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n" 
+            | PosInt, Fixed(fixedSizeInBits) , LittleEndianness     when fixedSizeInBits = 8I              ->
+                let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
                 Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg)
                 PositiveInteger_ConstSize_8, 8I, 8I
             | PosInt, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 16I->  PositiveInteger_ConstSize_big_endian_16, 16I, 16I
@@ -72,12 +72,12 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
             | TwosComplement, Fixed(fixedSizeInBits) , BigEndianness      when fixedSizeInBits = 8I  ->
                 match p.endiannessProp with
                 | Some BigEndianness ->
-                    let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n" 
+                    let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
                     Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg)
                 | _                 -> ()
                 TwosComplement_ConstSize_8, 8I, 8I
-            | TwosComplement, Fixed(fixedSizeInBits) , LittleEndianness   when fixedSizeInBits = 8I  ->  
-                let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n" 
+            | TwosComplement, Fixed(fixedSizeInBits) , LittleEndianness   when fixedSizeInBits = 8I  ->
+                let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
                 Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg)
                 TwosComplement_ConstSize_8, 8I, 8I
             | TwosComplement, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 16I ->  TwosComplement_ConstSize_big_endian_16, 16I, 16I
@@ -91,7 +91,7 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
             | TwosComplement, IntNullTerminated _, _         ->  raise(SemanticError(errLoc, "Acn properties twos-complement and null-terminated are mutually exclusive"))
             | IntAscii, Fixed(fxVal) , BigEndianness  when fxVal > maxDigitsInInteger*8I+8I       ->  raise(SemanticError(errLoc, (sprintf "Size must be less than %A" (maxDigitsInInteger*8I+8I))))
             | IntAscii, Fixed(fxVal) , BigEndianness  when fxVal % 8I <> 0I       ->  raise(SemanticError(errLoc, "size value should be multiple of 8"))
-            | IntAscii, Fixed(fxVal) , BigEndianness         ->  
+            | IntAscii, Fixed(fxVal) , BigEndianness         ->
                 match bUINT with
                 | true                                          -> ASCII_UINT_ConstSize fxVal, fxVal, fxVal
                 | false                                         -> ASCII_ConstSize  fxVal, fxVal, fxVal
@@ -99,7 +99,7 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
             | BCD, Fixed(fxVal) , BigEndianness   when fxVal % 4I <> 0I       ->  raise(SemanticError(errLoc, "size value should be multiple of 4"))
             | BCD, Fixed(fxVal) , BigEndianness                 ->  BCD_ConstSize fxVal, fxVal, fxVal
             | BCD, IntNullTerminated b, BigEndianness           ->  BCD_VarSize_NullTerminated b, 4I, 4I+maxDigitsInInteger*4I
-            | IntAscii, IntNullTerminated nullBytes, BigEndianness         ->  
+            | IntAscii, IntNullTerminated nullBytes, BigEndianness         ->
                 let nullBytesLength = BigInteger (nullBytes.Length*8)
                 match bUINT with
                 | true                                                            -> ASCII_UINT_VarSize_NullTerminated nullBytes, nullBytesLength, nullBytesLength + maxDigitsInInteger*8I
@@ -110,137 +110,137 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
     encClass, minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize
 
 
-let GetEnumeratedEncodingClass (integerSizeInBytes:BigInteger) (items:NamedItem list) (aligment: AcnAligment option) errLoc (p  : IntegerAcnProperties) uperMinSizeInBits uperMaxSizeInBits endodeValues =
-    match endodeValues with
-    | false -> 
-        GetIntEncodingClass integerSizeInBytes aligment errLoc p uperMinSizeInBits uperMaxSizeInBits true
-    | true  -> 
+let GetEnumeratedEncodingClass (integerSizeInBytes:BigInteger) (items:NamedItem list) (alignment: AcnAlignment option) errLoc (p  : IntegerAcnProperties) uperMinSizeInBits uperMaxSizeInBits encodeValues =
+    match encodeValues with
+    | false ->
+        GetIntEncodingClass integerSizeInBytes alignment errLoc p uperMinSizeInBits uperMaxSizeInBits true
+    | true  ->
         let minVal = items |> List.map(fun x -> x.acnEncodeValue) |> List.min
         let maxVal = items |> List.map(fun x -> x.acnEncodeValue) |> List.max
         let uperSizeForValues = GetNumberOfBitsForNonNegativeInteger(maxVal-minVal)
-        GetIntEncodingClass integerSizeInBytes aligment errLoc p uperSizeForValues uperSizeForValues (minVal >= 0I)
+        GetIntEncodingClass integerSizeInBytes alignment errLoc p uperSizeForValues uperSizeForValues (minVal >= 0I)
 
 (*
- ######                       
- #     # ######   ##   #      
- #     # #       #  #  #      
- ######  #####  #    # #      
- #   #   #      ###### #      
- #    #  #      #    # #      
- #     # ###### #    # ###### 
-                              
+ ######
+ #     # ######   ##   #
+ #     # #       #  #  #
+ ######  #####  #    # #
+ #   #   #      ###### #
+ #    #  #      #    # #
+ #     # ###### #    # ######
+
 *)
 
-let GetRealEncodingClass (aligment: AcnAligment option) errLoc (p  : RealAcnProperties) uperMinSizeInBits uperMaxSizeInBits =
-    let alignmentSize = getAlignmentSize aligment
-    let encClass, minSizeInBits, maxSizeInBits = 
-        match p.encodingProp.IsNone && p.endiannessProp.IsNone with     
+let GetRealEncodingClass (alignment: AcnAlignment option) errLoc (p  : RealAcnProperties) uperMinSizeInBits uperMaxSizeInBits =
+    let alignmentSize = getAlignmentSize alignment
+    let encClass, minSizeInBits, maxSizeInBits =
+        match p.encodingProp.IsNone && p.endiannessProp.IsNone with
         | true     -> Real_uPER, uperMinSizeInBits, uperMaxSizeInBits
         | false    ->
-            let endianess = 
+            let endianness =
                 match p.endiannessProp with
                 | Some e -> e
                 | None   -> BigEndianness
-            let encProp = 
+            let encProp =
                 match p.encodingProp with
                 | Some e -> e
                 | None   -> raise(SemanticError(errLoc, "Mandatory ACN property 'encoding' is missing"))
-            match encProp, endianess with
+            match encProp, endianness with
             | IEEE754_32, BigEndianness     -> Real_IEEE754_32_big_endian, 32I, 32I
             | IEEE754_64, BigEndianness     -> Real_IEEE754_64_big_endian, 64I, 64I
             | IEEE754_32, LittleEndianness  -> Real_IEEE754_32_little_endian, 32I, 32I
             | IEEE754_64, LittleEndianness  -> Real_IEEE754_64_little_endian, 64I, 64I
-    encClass, minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize  
+    encClass, minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize
 
 
 (*
- ###    #    #######  #####                               
-  #    # #   #       #     # ##### #####  # #    #  ####  
-  #   #   #  #       #         #   #    # # ##   # #    # 
-  #  #     # ######   #####    #   #    # # # #  # #      
-  #  #######       #       #   #   #####  # #  # # #  ### 
-  #  #     # #     # #     #   #   #   #  # #   ## #    # 
- ### #     #  #####   #####    #   #    # # #    #  ####  
+ ###    #    #######  #####
+  #    # #   #       #     # ##### #####  # #    #  ####
+  #   #   #  #       #         #   #    # # ##   # #    #
+  #  #     # ######   #####    #   #    # # # #  # #
+  #  #######       #       #   #   #####  # #  # # #  ###
+  #  #     # #     # #     #   #   #   #  # #   ## #    #
+ ### #     #  #####   #####    #   #    # # #    #  ####
 *)
 
 
 
-let GetStringEncodingClass (aligment: AcnAligment option) errLoc (p  : StringAcnProperties) (uperMinSizeInBits:BigInteger) (uperMaxSizeInBits:BigInteger) (asn1Min:BigInteger) (asn1Max:BigInteger) alphaSet =
-    let alignmentSize = getAlignmentSize aligment
+let GetStringEncodingClass (alignment: AcnAlignment option) errLoc (p  : StringAcnProperties) (uperMinSizeInBits:BigInteger) (uperMaxSizeInBits:BigInteger) (asn1Min:BigInteger) (asn1Max:BigInteger) alphaSet =
+    let alignmentSize = getAlignmentSize alignment
     let lengthDeterminantSize = GetNumberOfBitsForNonNegativeInteger (asn1Max-asn1Min)
 
-    let bAsciiEncoding = 
+    let bAsciiEncoding =
         match p.encodingProp with
         | Some StrAscii     -> true
         | None              -> false
     let charSizeInBits =
         match  bAsciiEncoding with
         | true      -> 8I
-        | false     -> 
+        | false     ->
             let allowedBytes = alphaSet |> Array.map(fun c -> (System.Text.Encoding.ASCII.GetBytes (c.ToString())).[0]) |> Set.ofArray
             GetNumberOfBitsForNonNegativeInteger (BigInteger(alphaSet.Length - 1))
 
-    let encClass, minSizeInBits, maxSizeInBits = 
+    let encClass, minSizeInBits, maxSizeInBits =
         match  bAsciiEncoding, p.sizeProp with
         | false, None                                  ->       Acn_Enc_String_uPER charSizeInBits, uperMinSizeInBits, uperMaxSizeInBits
         | false, Some (StrExternalField longField)     ->       Acn_Enc_String_CharIndex_External_Field_Determinant (charSizeInBits, longField) , asn1Min*charSizeInBits,  asn1Max*charSizeInBits
         | false, Some (StrNullTerminated b)            ->       raise(BugErrorException(sprintf "when a string type has the acn property 'size null-terminated' it must also have the acn property 'encoding ASCII'" ))
         | true, None                                   ->       Acn_Enc_String_uPER_Ascii charSizeInBits, lengthDeterminantSize + asn1Min*charSizeInBits, lengthDeterminantSize + asn1Max*charSizeInBits
         | true, Some (StrExternalField longField)      ->       Acn_Enc_String_Ascii_External_Field_Determinant (charSizeInBits, longField), asn1Min*charSizeInBits,  asn1Max*charSizeInBits
-        | true, Some (StrNullTerminated nullChars)             ->       Acn_Enc_String_Ascii_Null_Teminated (charSizeInBits, nullChars), asn1Min*charSizeInBits + (BigInteger (nullChars.Length * 8)),  asn1Max*charSizeInBits + (BigInteger (nullChars.Length * 8))
+        | true, Some (StrNullTerminated nullChars)             ->       Acn_Enc_String_Ascii_Null_Terminated (charSizeInBits, nullChars), asn1Min*charSizeInBits + (BigInteger (nullChars.Length * 8)),  asn1Max*charSizeInBits + (BigInteger (nullChars.Length * 8))
 
     encClass,  minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize
 
 //banner text from this link
 //http://patorjk.com/software/taag/#p=display&v=2&f=ANSI%20Shadow&t=Octet%20String%0A
 (*
- ███████╗███████╗ ██████╗ ██╗   ██╗███████╗███╗   ██╗ ██████╗███████╗     ██████╗ ███████╗     ██████╗  ██████╗████████╗███████╗████████╗ ██╗██████╗ ██╗████████╗    ███████╗████████╗██████╗ ██╗███╗   ██╗ ██████╗ 
-██╔════╝██╔════╝██╔═══██╗██║   ██║██╔════╝████╗  ██║██╔════╝██╔════╝    ██╔═══██╗██╔════╝    ██╔═══██╗██╔════╝╚══██╔══╝██╔════╝╚══██╔══╝██╔╝██╔══██╗██║╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██║████╗  ██║██╔════╝ 
+ ███████╗███████╗ ██████╗ ██╗   ██╗███████╗███╗   ██╗ ██████╗███████╗     ██████╗ ███████╗     ██████╗  ██████╗████████╗███████╗████████╗ ██╗██████╗ ██╗████████╗    ███████╗████████╗██████╗ ██╗███╗   ██╗ ██████╗
+██╔════╝██╔════╝██╔═══██╗██║   ██║██╔════╝████╗  ██║██╔════╝██╔════╝    ██╔═══██╗██╔════╝    ██╔═══██╗██╔════╝╚══██╔══╝██╔════╝╚══██╔══╝██╔╝██╔══██╗██║╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██║████╗  ██║██╔════╝
 ███████╗█████╗  ██║   ██║██║   ██║█████╗  ██╔██╗ ██║██║     █████╗      ██║   ██║█████╗      ██║   ██║██║        ██║   █████╗     ██║  ██╔╝ ██████╔╝██║   ██║       ███████╗   ██║   ██████╔╝██║██╔██╗ ██║██║  ███╗
 ╚════██║██╔══╝  ██║▄▄ ██║██║   ██║██╔══╝  ██║╚██╗██║██║     ██╔══╝      ██║   ██║██╔══╝      ██║   ██║██║        ██║   ██╔══╝     ██║ ██╔╝  ██╔══██╗██║   ██║       ╚════██║   ██║   ██╔══██╗██║██║╚██╗██║██║   ██║
 ███████║███████╗╚██████╔╝╚██████╔╝███████╗██║ ╚████║╚██████╗███████╗    ╚██████╔╝██║         ╚██████╔╝╚██████╗   ██║   ███████╗   ██║██╔╝   ██████╔╝██║   ██║       ███████║   ██║   ██║  ██║██║██║ ╚████║╚██████╔╝
-╚══════╝╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝╚══════╝     ╚═════╝ ╚═╝          ╚═════╝  ╚═════╝   ╚═╝   ╚══════╝   ╚═╝╚═╝    ╚═════╝ ╚═╝   ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ 
+╚══════╝╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝╚══════╝     ╚═════╝ ╚═╝          ╚═════╝  ╚═════╝   ╚═╝   ╚══════╝   ╚═╝╚═╝    ╚═════╝ ╚═╝   ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝
 *)
 
-let GetOctetBitSeqofEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize bOcteOrBitString hasNCount =
-    let alignmentSize = getAlignmentSize aligment
-    
-    let encClass, minSizeInBits, maxSizeInBits = 
+let GetOctetBitSeqofEncodingClass (alignment: AcnAlignment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize bOcteOrBitString hasNCount =
+    let alignmentSize = getAlignmentSize alignment
+
+    let encClass, minSizeInBits, maxSizeInBits =
         match  p.sizeProp with
-        | None                  -> 
+        | None                  ->
                 match hasNCount with
                 | false  -> SZ_EC_FIXED_SIZE, asn1Min*internalMaxSize, asn1Max*internalMaxSize
-                | true -> 
+                | true ->
                     let lenSize  = GetNumberOfBitsForNonNegativeInteger(asn1Max-asn1Min)
-                    SZ_EC_LENGTH_EMBEDDED lenSize, asn1Min*internalMaxSize + lenSize, asn1Max*internalMaxSize + lenSize 
+                    SZ_EC_LENGTH_EMBEDDED lenSize, asn1Min*internalMaxSize + lenSize, asn1Max*internalMaxSize + lenSize
             //let minSizeInBits, maxSizeInBits = uPER.getSizeableTypeSize asn1Min asn1Max internalMaxSize
             //SZ_EC_uPER, minSizeInBits, maxSizeInBits
-        | Some p                -> 
+        | Some p                ->
             match p with
             | SzExternalField p     -> SZ_EC_ExternalField p, asn1Min*internalMinSize, asn1Max*internalMaxSize
             | SzNullTerminated tp   -> SZ_EC_TerminationPattern tp,  (BigInteger tp.Value.Length) +  asn1Min*internalMinSize, (BigInteger tp.Value.Length) +  asn1Max*internalMaxSize
 
     encClass, minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize
 
-let GetOctetStringEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max hasNCount =
-    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 8I 8I true hasNCount
+let GetOctetStringEncodingClass (alignment: AcnAlignment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max hasNCount =
+    GetOctetBitSeqofEncodingClass alignment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 8I 8I true hasNCount
 
-let GetBitStringEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max hasNCount =
-    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 1I 1I true hasNCount
+let GetBitStringEncodingClass (alignment: AcnAlignment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max hasNCount =
+    GetOctetBitSeqofEncodingClass alignment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 1I 1I true hasNCount
 
-let GetSequenceOfEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize hasNCount =
-    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize false hasNCount
+let GetSequenceOfEncodingClass (alignment: AcnAlignment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize hasNCount =
+    GetOctetBitSeqofEncodingClass alignment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize false hasNCount
 
 
-let GetNullEncodingClass (aligment: AcnAligment option) errLoc (p  : NullTypeAcnProperties) =
-    let alignmentSize = getAlignmentSize aligment
+let GetNullEncodingClass (alignment: AcnAlignment option) errLoc (p  : NullTypeAcnProperties) =
+    let alignmentSize = getAlignmentSize alignment
     match  p.encodingPattern with
     | None                                  -> alignmentSize, alignmentSize
     | Some (PATTERN_PROP_BITSTR_VALUE p)    -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
     | Some (PATTERN_PROP_OCTSTR_VALUE p)    -> alignmentSize + (p.Length*8).AsBigInt, alignmentSize  + (p.Length*8).AsBigInt
 
-let GetBooleanEncodingClass (aligment: AcnAligment option) errLoc (p  : BooleanAcnProperties) =
-    let alignmentSize = getAlignmentSize aligment
+let GetBooleanEncodingClass (alignment: AcnAlignment option) errLoc (p  : BooleanAcnProperties) =
+    let alignmentSize = getAlignmentSize alignment
     match  p.encodingPattern with
     | None                      -> alignmentSize + 1I, alignmentSize + 1I
     | Some (TrueValue p)        -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
@@ -248,16 +248,16 @@ let GetBooleanEncodingClass (aligment: AcnAligment option) errLoc (p  : BooleanA
 
 
 
-let GetChoiceEncodingClass  (children : ChChildInfo list) (aligment: AcnAligment option) errLoc (p  : ChoiceAcnProperties) =
+let GetChoiceEncodingClass  (children : ChChildInfo list) (alignment: AcnAlignment option) errLoc (p  : ChoiceAcnProperties) =
     let maxChildSize = children |> List.map(fun c -> c.Type.acnMaxSizeInBits) |> Seq.max
     let minChildSize = children |> List.map(fun c -> c.Type.acnMinSizeInBits) |> Seq.min
-    let alignmentSize = getAlignmentSize aligment
+    let alignmentSize = getAlignmentSize alignment
 
-    let presenceDeterminentByAcn =
+    let presenceDeterminantByAcn =
         p.enumDeterminant.IsSome || (children |> Seq.exists(fun z -> not z.acnPresentWhenConditions.IsEmpty))
 
-    match presenceDeterminentByAcn with
-    | false      -> 
+    match presenceDeterminantByAcn with
+    | false      ->
         let indexSize = GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length children))
         alignmentSize + indexSize + minChildSize, alignmentSize + indexSize + maxChildSize
     | true   ->

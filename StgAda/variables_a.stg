@@ -45,32 +45,32 @@ PrintBooleanValue(bValue)	::= "<if(bValue)>True<else>FALSE<endif>"
 PrintNullValue()	::= "0"
 
 PrintOctetStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arruBytes, nCount) ::= <<
-<td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arruBytes)><arruBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">,<endif> others=> 16#0#)) 
+<td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arruBytes)><arruBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">,<endif> others=> 16#0#))
 >>
 
-PrintBitOrOctetStringValueAsCompoundLitteral(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, arruBytes, nCount) ::= <<
+PrintBitOrOctetStringValueAsCompoundLiteral(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, arruBytes, nCount) ::= <<
 <PrintOctetStringValue(td=td, bIsFixedSize=bIsFixedSize, arruBytes=arruBytes, nCount=nCount)>
 >>
 
-PrintOctetArrayAsCompoundLitteral(arruBytes) ::= <<
+PrintOctetArrayAsCompoundLiteral(arruBytes) ::= <<
 <rtlModuleName()>.OctetBuffer'(<arruBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">)
 >>
 
-PrintBitArrayAsCompoundLitteral(arruBits) ::= <<
+PrintBitArrayAsCompoundLiteral(arruBits) ::= <<
 <rtlModuleName()>.BitArray'(<arruBits:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">)
 >>
 
 PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount, arruBytes, nBytesCount) ::= <<
-<td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arrsBits)><arrsBits:{b|<i>=><b>}; wrap, anchor, separator=", ">,<endif> others=> 0)) 
+<td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arrsBits)><arrsBits:{b|<i>=><b>}; wrap, anchor, separator=", ">,<endif> others=> 0))
 >>
 
 
 PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount) ::= <<
-<td.typeName>'(Length => <nCount>, values => <rtlModuleName()>.ObjectIdentifier_array'(<if(arrnValues)><arrnValues; wrap, anchor, separator=", ">,<endif> others=> 0)) 
+<td.typeName>'(Length => <nCount>, values => <rtlModuleName()>.ObjectIdentifier_array'(<if(arrnValues)><arrnValues; wrap, anchor, separator=", ">,<endif> others=> 0))
 >>
 
 PrintObjectIdentifierValueAsCompoundLiteral(arrnValues, nCount) ::= <<
-<rtlModuleName()>.Asn1ObjectIdentifier'(Length => <nCount>, values => <rtlModuleName()>.ObjectIdentifier_array'(<if(arrnValues)><arrnValues; wrap, anchor, separator=", ">,<endif> others=> 0)) 
+<rtlModuleName()>.Asn1ObjectIdentifier'(Length => <nCount>, values => <rtlModuleName()>.ObjectIdentifier_array'(<if(arrnValues)><arrnValues; wrap, anchor, separator=", ">,<endif> others=> 0))
 >>
 
 
