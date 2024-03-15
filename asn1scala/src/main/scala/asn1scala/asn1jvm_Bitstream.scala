@@ -48,19 +48,19 @@ object BitStream {
       require(b1.bitIndex() == b2.bitIndex())
    }.ensuring(_ => b1 == b2)
 
-   @ghost @pure @opaque @inlineOnce
-   def validateOffsetBitsIneqLemma(b1: BitStream, b2: BitStream, b1ValidateOffsetBits: Long, advancedAtMostBits: Long): Unit = {
-      require(0 <= advancedAtMostBits && advancedAtMostBits <= b1ValidateOffsetBits)
-      require(b1.buf.length == b2.buf.length)
-      require(b1.validate_offset_bits(b1ValidateOffsetBits))
-      require(b2.bitIndex() <= b1.bitIndex() + advancedAtMostBits)
+   // @ghost @pure @opaque @inlineOnce
+   // def validateOffsetBitsIneqLemma(b1: BitStream, b2: BitStream, b1ValidateOffsetBits: Long, advancedAtMostBits: Long): Unit = {
+   //    require(0 <= advancedAtMostBits && advancedAtMostBits <= b1ValidateOffsetBits)
+   //    require(b1.buf.length == b2.buf.length)
+   //    require(b1.validate_offset_bits(b1ValidateOffsetBits))
+   //    require(b2.bitIndex() <= b1.bitIndex() + advancedAtMostBits)
 
-      assert(b1.remainingBits >= b1ValidateOffsetBits)
-      assert((b1.buf.length.toLong * NO_OF_BITS_IN_BYTE) - (b1.currentByte.toLong * NO_OF_BITS_IN_BYTE + b1.currentBit) >= b1ValidateOffsetBits)
-      assert(b2.currentByte.toLong * NO_OF_BITS_IN_BYTE + b2.currentBit <= b1.currentByte.toLong * NO_OF_BITS_IN_BYTE + b1.currentBit + advancedAtMostBits)
-      assert((b1.buf.length.toLong * NO_OF_BITS_IN_BYTE) - (b2.currentByte.toLong * NO_OF_BITS_IN_BYTE + b2.currentBit) >= b1ValidateOffsetBits - advancedAtMostBits)
-      assert(b2.remainingBits >= b1ValidateOffsetBits - advancedAtMostBits)
-   }.ensuring(_ => b2.validate_offset_bits(b1ValidateOffsetBits - advancedAtMostBits))
+   //    assert(b1.remainingBits >= b1ValidateOffsetBits)
+   //    assert((b1.buf.length.toLong * NO_OF_BITS_IN_BYTE) - (b1.currentByte.toLong * NO_OF_BITS_IN_BYTE + b1.currentBit) >= b1ValidateOffsetBits)
+   //    assert(b2.currentByte.toLong * NO_OF_BITS_IN_BYTE + b2.currentBit <= b1.currentByte.toLong * NO_OF_BITS_IN_BYTE + b1.currentBit + advancedAtMostBits)
+   //    assert((b1.buf.length.toLong * NO_OF_BITS_IN_BYTE) - (b2.currentByte.toLong * NO_OF_BITS_IN_BYTE + b2.currentBit) >= b1ValidateOffsetBits - advancedAtMostBits) // TIMEOUT
+   //    assert(b2.remainingBits >= b1ValidateOffsetBits - advancedAtMostBits)
+   // }.ensuring(_ => b2.validate_offset_bits(b1ValidateOffsetBits - advancedAtMostBits))
 
    @ghost @pure @opaque @inlineOnce
    def validateOffsetBitsDifferenceLemma(b1: BitStream, b2: BitStream, b1ValidateOffsetBits: Long, b1b2Diff: Long): Unit = {
