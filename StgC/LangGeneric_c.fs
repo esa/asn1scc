@@ -363,6 +363,7 @@ type LangGeneric_c() =
                 "BitStream_AttachBuffer2"
                 "BitStream_AttachBuffer"
                 "BitStream_Init"
+                "BitStream_GetLength"
             ]
 
         override this.RtlFuncNames : string list =
