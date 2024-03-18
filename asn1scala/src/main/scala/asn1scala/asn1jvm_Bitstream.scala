@@ -822,12 +822,34 @@ case class BitStream private [asn1scala](
       require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
       require(validate_offset_bits(nBits))
       appendNBits(nBits, false)
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w2 = this
+      w1.buf.length == w2.buf.length 
+      && w2.bitIndex() == w1.bitIndex() + nBits  
+      && w1.isPrefixOf(w2) && {
+         val (r1, r2) = reader(w1, w2)
+         validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits)
+         val (r2Got, bGot) = r1.checkBitsLoopPure(nBits, false, 0)
+         bGot && r2Got == r2
+      }
    }
 
    def appendNBits(nBits: Long, bit: Boolean): Unit = {
       require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
       require(validate_offset_bits(nBits))
       appendNBitsLoop(nBits, bit, 0)
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w2 = this
+      w1.buf.length == w2.buf.length 
+      && w2.bitIndex() == w1.bitIndex() + nBits  
+      && w1.isPrefixOf(w2) && {
+         val (r1, r2) = reader(w1, w2)
+         validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits)
+         val (r2Got, bGot) = r1.checkBitsLoopPure(nBits, bit, 0)
+         bGot && r2Got == r2
+      }
    }
 
    @opaque @inlineOnce
