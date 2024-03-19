@@ -844,66 +844,75 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
    /**
     * Real decoding implementation according to the PER standard
+    * If the buffer is invalid (too short or malformed), has an undefined behaviour, but does not crash.
     * @return decoded double bits as 64 bit integer
     */
    private def decodeRealBitString(): Long = {
       require(bitStream.validate_offset_bytes(1))
-      staticRequire({
-         val length = readBytePure()._2.toRaw
-         length >= 0 
-         && length != 1 // Otherwise there's only the space for the header SAM
-         && length <= DoubleMaxLengthOfSentBytes
-         && bitStream.validate_offset_bytes(1 + length.toInt)
+      // staticRequire({
+      //    val length = readBytePure()._2.toRaw
+      //    length >= 0 
+      //    && length != 1 // Otherwise there's only the space for the header SAM
+      //    && length <= DoubleMaxLengthOfSentBytes
+      //    && bitStream.validate_offset_bytes(1 + length.toInt)
 
-      })
+      // })
 
       // get length
       val length = readByte().toRaw
+      if(length >= 0 
+            && length != 1 // Otherwise there's only the space for the header SAM
+            && length <= DoubleMaxLengthOfSentBytes
+            && bitStream.validate_offset_bytes(1 + length.toInt)) then
 
-      // 8.5.2 PLUS-ZERO
-      if length == 0 then
-         return 0
+         // 8.5.2 PLUS-ZERO
+         if length == 0 then
+            return 0
 
-      // sanity check
-      assert(length > 0 && length <= DoubleMaxLengthOfSentBytes)
+         // sanity check
+         assert(length > 0 && length <= DoubleMaxLengthOfSentBytes)
 
-      // get value
-      assert(bitStream.validate_offset_bytes(1))
-      val header = readByte().toRaw
+         // get value
+         assert(bitStream.validate_offset_bytes(1))
+         val header = readByte().toRaw
 
-      // SAM here I don't think we should require that, but more exit if
-      // that's not the case, but we can discuss
+         // SAM here I don't think we should require that, but more exit if
+         // that's not the case, but we can discuss
 
-      if((header.unsignedToInt & 0x80) != 0x80) then
-         //  "only binary mode supported"
-         0L
-      else
-         // 8.5.9 PLUS-INFINITY
-         if header == 0x40 then
-            DoublePosInfBitString
-         // 8.5.9 MINUS-INFINITY
-         else if header == 0x41 then
-            DoubleNegInfBitString
-         // 8.5.9 NOT-A-NUMBER
-         else if header == 0x42 then
-            DoubleNotANumber
-         // 8.5.3 MINUS-ZERO
-         else if header == 0x43 then
-            DoubleNegZeroBitString
-         // Decode 8.5.7
+         if((header.unsignedToInt & 0x80) != 0x80) then
+            //  "only binary mode supported"
+            0L
          else
-            check((header.unsignedToInt & 0x80) == 0x80)
-            // SAM GUARD
-            if((header.toRaw & 0x03) + 1 > length.toInt - 1) then
-               0L
+            // 8.5.9 PLUS-INFINITY
+            if header == 0x40 then
+               DoublePosInfBitString
+            // 8.5.9 MINUS-INFINITY
+            else if header == 0x41 then
+               DoubleNegInfBitString
+            // 8.5.9 NOT-A-NUMBER
+            else if header == 0x42 then
+               DoubleNotANumber
+            // 8.5.3 MINUS-ZERO
+            else if header == 0x43 then
+               DoubleNegZeroBitString
+            // Decode 8.5.7
             else
-               decodeRealFromBitStream(length.toInt - 1, header.toRawUByte)
+               check((header.unsignedToInt & 0x80) == 0x80)
+               // SAM GUARD
+               if((header.toRaw & 0x03) + 1 > length.toInt - 1) then
+                  0L
+               else
+                  decodeRealFromBitStream(length.toInt - 1, header.toRawUByte)
+      else
+         0L
    }
 
    /**
     * Decode real number from bitstream, special cases are decoded by caller
     * The exponent length and other details given in the header have be be
     * decoded before calling this function
+    * 
+    * If the buffer is invalid (too short or malformed), has an undefined behaviour, but does not crash.
     *
     * @param lengthVal already decoded exponent length
     * @param header already decoded header
@@ -933,20 +942,27 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       assert(expLen >= 1 && expLen <= 4)
 
       // sanity check
-      // assert(expLen <= lengthVal) // TODO for the substraction overflow below
+      assert(expLen <= lengthVal) // TODO for the substraction overflow below
 
       // decode exponent
       var exponent: Int = if peekBit() then 0xFF_FF_FF_FF else 0
       assert(exponent == 0 || exponent == -1)
 
+      check(bitStream.validate_offset_bytes(lengthVal))
+
       var i: Int = 0
       (while i < expLen do
          decreases(expLen - i)
+         check(i < expLen && lengthVal - i > 0)
+         check(bitStream.validate_offset_bytes(lengthVal - i))
+         check(bitStream.validate_offset_bytes(1))
 
          exponent = exponent << 8 | (readByte().toRaw.toInt & 0xFF)
 
          i += 1
-      ).invariant(i >= 0 && i <= expLen)
+      ).invariant(i >= 0 && i <= expLen && bitStream.validate_offset_bytes(lengthVal - i))
+
+      check(bitStream.validate_offset_bytes(lengthVal - expLen))
 
       // TODO Check doc to see if exponent as a max value, otherwise there is a bug here
       // assert(exponent < (Int.MaxValue / 4) && exponent >= -1)
@@ -960,9 +976,9 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          N = (N << 8) | (readByte().toRaw.toInt & 0xFF)
 
          j += 1
-      ).invariant(j >= 0 && j <= length)
+      ).invariant(j >= 0 && j <= length && bitStream.validate_offset_bytes(length - j))
 
-      assert(N < (Long.MaxValue / 8) && N >= 0) // TODO Check the doc to see if N has a max value, otherwise there is a bug here
+      // assert(N < (Long.MaxValue / 8) && N >= 0) // TODO Check the doc to see if N has a max value, otherwise there is a bug here
       
       val x1: ULong = (N * factor).toRawULong
       val x2: Int = expFactor * exponent
