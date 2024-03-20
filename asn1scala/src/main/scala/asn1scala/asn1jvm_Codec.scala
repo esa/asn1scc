@@ -1014,12 +1014,17 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
       @ghost var nBlockHeadersWritten = 0
 
-      ghostExpr(check(nRemainingItemsVar1 >= 0 ))
-      ghostExpr(check(nRemainingItemsVar1 <= nCount ))
-      ghostExpr(check(nRemainingItemsVar1 == nCount - nCurOffset1 ))
+      ghostExpr(check(nCurOffset1 >= 0 ))
+      ghostExpr(check(nCount >= 0 ))
+      ghostExpr(check(nRemainingItemsVar1 >= 0))
+      ghostExpr(check(  nRemainingItemsVar1 <= nCount))
+      ghostExpr(check( nRemainingItemsVar1 + nCurOffset1 == nCount ))
       ghostExpr(check(nBlockHeadersWritten <= nCount / 0x4000 ))
       ghostExpr(check(nCurOffset1 + nRemainingItemsVar1 == nCount ))
-      ghostExpr(check(bitStream.validate_offset_bytes(nCount - nCurOffset1 + 8*(nCount / 0x4000) - 8*nBlockHeadersWritten + 16)))
+      ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
+      ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
+      ghostExpr(check(8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
+      ghostExpr(check(bitStream.validate_offset_bytes(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
 
       (while nRemainingItemsVar1 >= 0x4000 do
          decreases(nRemainingItemsVar1)
@@ -1048,31 +1053,53 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          
          ghostExpr(check(bitStream.validate_offset_bytes(nCurBlockSize1)))
 
+         ghostExpr(check(i1 >= 0 ))
+         ghostExpr(check(nCurBlockSize1 <= nRemainingItemsVar1 ))
+         ghostExpr(check(nCurBlockSize1 >= 0))
+         ghostExpr(check(nRemainingItemsVar1 >= 0))
+         ghostExpr(check(nCurOffset1 >= 0))
+         ghostExpr(check(nCurBlockSize1 + nCurOffset1 >= 0 ))
+         ghostExpr(check(i1 <= nCurBlockSize1 + nCurOffset1 ))
+         ghostExpr(check(nCurBlockSize1 + nCurOffset1 - i1 >= 0 ))
          ghostExpr(check(nCurBlockSize1 + nCurOffset1 <= nCount ))
          ghostExpr(check(nWrittenBytes == i1 - nCurOffset1 ))
-         ghostExpr(check(i1  < nCurBlockSize1 + nCurOffset1 ))
-         ghostExpr(check(   nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0))
-         ghostExpr(check(   nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0))
+         ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
+         ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
          ghostExpr(check(bitStream.validate_offset_bytes(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
 
          (while i1 < nCurBlockSize1 + nCurOffset1 do
             decreases(nCurBlockSize1 + nCurOffset1 - i1)
             check(bitStream.validate_offset_bytes(1)) 
             check(i1 < arr.length)
+            check(i1 >= 0)
 
             appendByte(arr(i1))
             ghostExpr(nWrittenBytes += 1)
             i1 += 1
 
-            check(nCurBlockSize1 + nCurOffset1 - (i1-1) > nCurBlockSize1 + nCurOffset1 - i1)
-            check(nCurBlockSize1 + nCurOffset1 - i1 >= 0 )
+            ghostExpr(check(i1 >= 0 ))
+            ghostExpr(check(nCurBlockSize1 <= nRemainingItemsVar1))
+            ghostExpr(check(nCurBlockSize1 <= nRemainingItemsVar1 ))
+            ghostExpr(check(nCurBlockSize1 >= 0))
+            ghostExpr(check(nRemainingItemsVar1 >= 0))
+            ghostExpr(check(nCurOffset1 >= 0))
+            ghostExpr(check(nCurBlockSize1 + nCurOffset1 >= 0 ))
+            ghostExpr(check(i1 <= nCurBlockSize1 + nCurOffset1 ))
+            ghostExpr(check(nCurBlockSize1 + nCurOffset1 - i1 >= 0 ))
             ghostExpr(check(nCurBlockSize1 + nCurOffset1 <= nCount ))
             ghostExpr(check(nWrittenBytes == i1 - nCurOffset1 ))
-            ghostExpr(check(i1  < nCurBlockSize1 + nCurOffset1 ))
+            ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
+            ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
             ghostExpr(check(bitStream.validate_offset_bytes(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
 
          ).invariant(
-            i1 < nCurBlockSize1 + nCurOffset1 &&
+            i1 >= 0 &&
+            nCurBlockSize1 <= nRemainingItemsVar1 &&
+            nCurBlockSize1 >= 0 &&
+            nRemainingItemsVar1 >= 0 &&
+            nCurOffset1 >= 0 &&
+            nCurBlockSize1 + nCurOffset1 >= 0 &&
+            i1 <= nCurBlockSize1 + nCurOffset1 &&
             nCurBlockSize1 + nCurOffset1 - i1 >= 0 &&
             nCurBlockSize1 + nCurOffset1 <= nCount &&
             nWrittenBytes == i1 - nCurOffset1 &&
@@ -1081,19 +1108,35 @@ case class Codec private [asn1scala](bitStream: BitStream) {
             bitStream.validate_offset_bytes(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)
          )
          ghostExpr(check(nWrittenBytes == nCurBlockSize1))
+         ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 == nCount - (nCurOffset1 + nCurBlockSize1) + 8*(nCount / 0x4000) - 8*nBlockHeadersWritten + 16))
+         ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0))
+         ghostExpr(check( nCount - (nCurOffset1 + nCurBlockSize1) + 8*(nCount / 0x4000) - 8*nBlockHeadersWritten + 16 >= 0))
+         check(nCurBlockSize1 <= nRemainingItemsVar1)
+         ghostExpr(check(nCurBlockSize1 >= 0))
+         ghostExpr(check(nRemainingItemsVar1 >= 0))
+         ghostExpr(check(nCurOffset1 >= 0))
 
          nCurOffset1 += nCurBlockSize1
          nRemainingItemsVar1 -= nCurBlockSize1
 
+         check(nRemainingItemsVar1 < nRemainingItemsVar1 + nCurBlockSize1) // measure decreases TODO
+
+         ghostExpr(check(nCurOffset1 >= 0 ))
+         ghostExpr(check(nCount >= 0 ))
          ghostExpr(check(nRemainingItemsVar1 >= 0 ))
-         ghostExpr(check(nRemainingItemsVar1 <= nCount ))
-         ghostExpr(check(nRemainingItemsVar1 == nCount - nCurOffset1 ))
+         ghostExpr(check(nRemainingItemsVar1 <= nCount)) // TODO
+         ghostExpr(check( nRemainingItemsVar1 + nCurOffset1 == nCount )) // TODO
          ghostExpr(check(nBlockHeadersWritten <= nCount / 0x4000 ))
          ghostExpr(check(nCurOffset1 + nRemainingItemsVar1 == nCount ))
-         ghostExpr(check(bitStream.validate_offset_bytes(nCount - nCurOffset1 + 8*(nCount / 0x4000) - 8*nBlockHeadersWritten + 16)))
+         ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
+         ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
+         ghostExpr(check(8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
+         ghostExpr(check(bitStream.validate_offset_bytes(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
 
       ).invariant(
-         nRemainingItemsVar1 >= 0 &&  nRemainingItemsVar1 <= nCount && nRemainingItemsVar1 == nCount - nCurOffset1 &&
+         nCurOffset1 >= 0 &&
+         nCount >= 0 &&
+         nRemainingItemsVar1 >= 0 &&  nRemainingItemsVar1 <= nCount && nRemainingItemsVar1 + nCurOffset1 == nCount &&
          nBlockHeadersWritten <= nCount / 0x4000 &&
          nCurOffset1 + nRemainingItemsVar1 == nCount &&
          nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 && // Because of potential overflows
