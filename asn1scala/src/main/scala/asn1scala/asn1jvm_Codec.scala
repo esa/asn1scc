@@ -340,7 +340,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    def encodeConstrainedWholeNumber(v: Long, min: Long, max: Long): Unit = {
       require(min <= max)
       require(min <= v && v <= max)
-      require(bitStream.validate_offset_bytes(GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong)))
+      require(bitStream.validate_offset_bits(GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong))) // SAM There was a bug here, we checked for N bytes even though the number returned by teh function is bits
       val range: Long = stainless.math.wrapping(max - min)
       // get number of bits that get written
       val nRangeBits: Int = GetBitCountUnsigned(range.toRawULong)
@@ -1003,7 +1003,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       readByteArray(nCount)
    }
 
-   def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int) = {
+   def encodeOctetString_fragmentation_old(arr: Array[UByte], nCount: Int) = {
       require(nCount >= 0 && nCount <= arr.length)
       require(nCount + 8 * (nCount / 0x4000) + 16 > 0) // To avoid overflow of the available length checks
       require(bitStream.validate_offset_bytes(nCount + 8 * (nCount / 0x4000) + 16)) // Room for information bytes + data
@@ -1162,6 +1162,140 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       //    i1 += 1
       // ).invariant(true) // TODO
    }
+
+   def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int) = {
+      require(nCount >= 0 && nCount <= arr.length)
+      require(nCount + 8 * (nCount / 0x4000) + 16 > 0) // To avoid overflow of the available length checks
+      require(bitStream.validate_offset_bytes(nCount + 8 * (nCount / 0x4000) + 16)) // Room for information bytes + data
+
+      var nRemainingItemsVar1: Int = nCount
+      var nCurBlockSize1: Int = 0
+      var nCurOffset1: Int = 0 // Which represents the currently written bytes number SAM
+
+      encodeOctetString_fragmentation_innerWhile(arr, nCount, 0, nRemainingItemsVar1, nCurOffset1, bitStream.bitIndex())
+
+      // if nRemainingItemsVar1 <= 0x7F then
+      //    check(bitStream.validate_offset_bytes(8)) // == GetLengthForEncodingUnsigned(0xFF)
+      //    encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0xFF)
+      // else
+      //    check(bitStream.validate_offset_bits(1))
+      //    appendBit(true)
+      //    check(bitStream.validate_offset_bytes(15)) // == GetLengthForEncodingUnsigned(0x7FFF)
+      //    encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0x7FFF)
+
+
+      // var i1: Int = nCurOffset1
+      // (while i1 < (nCurOffset1 + nRemainingItemsVar1) do
+      //    decreases(nCurOffset1 + nRemainingItemsVar1 - i1)
+      //    appendByte(arr(i1))
+      //    i1 += 1
+      // ).invariant(true) // TODO
+   }
+
+   def encodeOctetString_fragmentation_innerWhile(arr: Array[UByte], nCount: Int, currentlyWrittenBlocksOf0x4000: Int, nRemainingItemsVar1: Int, nCurOffset1: Int, bitIndex: Long ): Unit = {
+      require(nRemainingItemsVar1 >= 0)
+      require(currentlyWrittenBlocksOf0x4000 >= 0)
+      require(nCurOffset1 >= 0)
+      require(nCount + (nCount / 0x4000) >= 0)
+      require(nRemainingItemsVar1 + (nRemainingItemsVar1 / 0x4000) >= 0)
+      require(currentlyWrittenBlocksOf0x4000 < Int.MaxValue / 0x4000) // to avoid overflow
+      require(nCount <= arr.length)
+      require(nCount == nRemainingItemsVar1 + currentlyWrittenBlocksOf0x4000 * 0x4000)
+      require(nCurOffset1 == currentlyWrittenBlocksOf0x4000 * 0x4000)
+      require(bitStream.bitIndex() == bitIndex)
+      require(bitStream.validate_offset_bytes(nRemainingItemsVar1 + (nRemainingItemsVar1 / 0x4000)))
+
+      decreases(nRemainingItemsVar1)
+
+      if (nRemainingItemsVar1 >= 0x4000) then
+         @ghost val bitIndexBeforeHeader = this.bitStream.bitIndex()   
+         val nCurBlockSize1 = 
+            if nRemainingItemsVar1 >= 0x10000 then
+               0x10000
+            else if nRemainingItemsVar1 >= 0xC000 then
+               0xC000
+            else if nRemainingItemsVar1 >= 0x8000 then
+               0x8000
+            else
+               0x4000
+
+         // Write to the buffer the block header and return the number of blocks of 0x4000 it would represent
+         val nNewBlocksOf0x4000 = nCurBlockSize1 match {
+            case 0x10000 => 
+               encodeConstrainedWholeNumber(0xC4, 0, 0xFF)
+               4
+            case 0xC000 => 
+               encodeConstrainedWholeNumber(0xC3, 0, 0xFF)
+               3
+            case 0x8000 => 
+               encodeConstrainedWholeNumber(0xC2, 0, 0xFF)
+               2
+            case 0x4000 => 
+               encodeConstrainedWholeNumber(0xC1, 0, 0xFF)
+               1
+         }
+
+         @ghost val bitIndexAfterHeader = this.bitStream.bitIndex()
+
+         assert(bitIndexBeforeHeader + NO_OF_BITS_IN_BYTE == bitIndexAfterHeader)
+         assert( bitIndexAfterHeader <= bitIndexBeforeHeader + 4 * NO_OF_BITS_IN_BYTE)
+
+         assert(nCount == nRemainingItemsVar1 + nCurOffset1)
+         assert(nRemainingItemsVar1 >= nCurBlockSize1)
+         assert(nCurOffset1 + nCurBlockSize1 <= nCount)
+         assert(nCurOffset1 + nCurBlockSize1 <= arr.length)
+         assert(nCurOffset1 + nCurBlockSize1 >= 0)
+         encodeOctetString_fragmentation_innerMostWhile(arr, nCurOffset1, nCurOffset1 + nCurBlockSize1, bitStream.bitIndex())
+
+         @ghost val bitIndexAfterAppending = this.bitStream.bitIndex()
+
+         assert(bitIndexAfterAppending == bitIndexAfterHeader + nCurBlockSize1 * NO_OF_BITS_IN_BYTE)
+         
+         encodeOctetString_fragmentation_innerWhile(arr, nCount, currentlyWrittenBlocksOf0x4000 + nNewBlocksOf0x4000, nRemainingItemsVar1 - nCurBlockSize1, nCurOffset1 + nCurBlockSize1, bitStream.bitIndex())
+
+         @ghost val bitIndexAfterRecursive = this.bitStream.bitIndex()
+
+
+   } ensuring(_ => 
+         bitStream.bitIndex() <= bitIndex + currentlyWrittenBlocksOf0x4000 * NO_OF_BITS_IN_BYTE + nRemainingItemsVar1 * NO_OF_BITS_IN_BYTE
+   )
+
+   /**
+     * Append the bytes in the given array to the BitStream, starting at from index, to the to index (exclusive)
+     *
+     * @param bitStream
+     * @param arr
+     * @param from
+     * @param to
+     */
+   def encodeOctetString_fragmentation_innerMostWhile(arr: Array[UByte], from: Int, to: Int, bitIndex: Long): Unit = {
+      require(from >= 0)
+      require(to >= 0)
+      require(from < to)
+      require(to <= arr.length)
+      require(bitStream.validate_offset_bytes(to - from))
+      require(bitStream.bitIndex() == bitIndex)
+      require((to - from)  < Int.MaxValue / NO_OF_BITS_IN_BYTE) // to avoid overflow
+      require(bitIndex < Long.MaxValue - (to - from) * NO_OF_BITS_IN_BYTE) // to avoid overflow
+      decreases(to - from)
+
+      @ghost val bitIndexBeforeAppending = bitStream.bitIndex()
+
+      bitStream.appendByte(arr(from))
+
+      @ghost val bitIndexBeforeRecursive = bitStream.bitIndex()
+      assert(bitIndexBeforeRecursive == bitIndexBeforeAppending + NO_OF_BITS_IN_BYTE)
+
+      if from + 1 < to then
+         encodeOctetString_fragmentation_innerMostWhile(arr, from + 1, to, bitIndex + NO_OF_BITS_IN_BYTE)
+         @ghost val bitIndexAfterRecursive = bitStream.bitIndex()
+         assert(bitIndexAfterRecursive == bitIndexBeforeRecursive  + (to - from - 1) * NO_OF_BITS_IN_BYTE)
+         assert(NO_OF_BITS_IN_BYTE + (to - from - 1) * NO_OF_BITS_IN_BYTE == (to - from) * NO_OF_BITS_IN_BYTE)
+         assert(bitIndexAfterRecursive == bitIndexBeforeAppending + NO_OF_BITS_IN_BYTE + (to - from - 1) * NO_OF_BITS_IN_BYTE)
+   } ensuring(_ => 
+      val oldBistStream = old(this).bitStream
+      bitStream.bitIndex() == bitIndex + (to - from) * NO_OF_BITS_IN_BYTE
+   )
 
    def decodeOctetString_fragmentation(asn1SizeMax: Long): Array[UByte] = {
       require(asn1SizeMax >= 0 && asn1SizeMax < Int.MaxValue)
