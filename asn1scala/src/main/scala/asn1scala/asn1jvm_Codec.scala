@@ -814,23 +814,28 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          /* encode exponent */
          if exponent.toRaw >= 0 then
             // fill with zeros to have a whole byte   
-            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
             appendNZeroBits(nExpLen * NO_OF_BITS_IN_BYTE - GetBitCountUnsigned(exponent.toULong))
-            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + GetBitCountUnsigned(exponent.toULong)))
-            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(exponent.toULong)))
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + GetBitCountUnsigned(exponent.toULong)))
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(exponent.toULong)))
             encodeUnsignedInteger(exponent.toULong)
-            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE ))
+            check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE ))
          else
-            check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
-            check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE  + GetBitCountUnsigned(compactExp.toLong.toRawULong)))
-            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, GetBitCountUnsigned(compactExp.toLong.toRawULong)))
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE  + GetBitCountUnsigned(compactExp.toLong.toRawULong)))
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, GetBitCountUnsigned(compactExp.toLong.toRawULong)))
             encodeUnsignedInteger(compactExp.toLong.toRawULong)
-            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE ))
+            check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE ))
             
          /* encode mantissa */
-         // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE ))
-         appendNZeroBits(nManLen * NO_OF_BITS_IN_BYTE - GetBitCountUnsigned(mantissa))
-         // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(mantissa)))
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nManLen * NO_OF_BITS_IN_BYTE ))
+         @ghost val bitIndexBeforeAppendingZeros = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit)
+         val mantissaActualSize = GetBitCountUnsigned(mantissa)
+         val nZeros = nManLen * NO_OF_BITS_IN_BYTE - mantissaActualSize
+         appendNZeroBits(nZeros)
+         assert(BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit) == bitIndexBeforeAppendingZeros + nZeros)
+         assert(nManLen * NO_OF_BITS_IN_BYTE - nZeros == mantissaActualSize)
+         check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, mantissaActualSize))
          encodeUnsignedInteger(mantissa)
    }
 
