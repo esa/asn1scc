@@ -70,21 +70,21 @@ object Codec {
    @ghost @pure
    def decodeUnconstrainedWholeNumber_prefixLemma_helper(c1: Codec, c2: Codec): (Codec, Codec, Long, Codec, Long) = {
       require(c1.bufLength() == c2.bufLength())
-      require(c1.bitStream.validate_offset_bytes(1))
+      require(BitStream.validate_offset_bytes(c1.bitStream.buf.length.toLong, c1.bitStream.currentByte.toLong, c1.bitStream.currentBit.toLong,1))
       val nBytes = c1.bitStream.readBytePure()._2.unsignedToInt
       require(0 <= nBytes && nBytes <= 8)
-      require(c1.bitStream.validate_offset_bytes(1 + nBytes))
+      require(BitStream.validate_offset_bytes(c1.bitStream.buf.length.toLong, c1.bitStream.currentByte.toLong, c1.bitStream.currentBit.toLong,1 + nBytes))
       require(arrayBitRangesEq(
          c1.bitStream.buf,
          c2.bitStream.buf,
          0,
-         c1.bitIndex() + 8 + nBytes * 8
+         BitStream.bitIndex(c1.bitStream.buf.length, c1.bitStream.currentByte, c1.bitStream.currentBit) + 8 + nBytes * 8
       ))
 
       val c2Reset = c2.resetAt(c1)
       val (c1Res, l1) = c1.decodeUnconstrainedWholeNumberPure()
       validateOffsetBytesContentIrrelevancyLemma(c1.bitStream, c2.bitStream.buf, 1 + nBytes)
-      readByteRangesEq(c1.bitStream, c2.bitStream, c1.bitIndex() + 8 + nBytes * 8)
+      readByteRangesEq(c1.bitStream, c2.bitStream, BitStream.bitIndex(c1.bitStream.buf.length, c1.bitStream.currentByte, c1.bitStream.currentBit) + 8 + nBytes * 8)
       val (c2Res, l2) = c2Reset.decodeUnconstrainedWholeNumberPure()
       (c2Reset, c1Res, l1, c2Res, l2)
    }
@@ -92,15 +92,15 @@ object Codec {
    @ghost @pure @opaque @inlineOnce
    def decodeUnconstrainedWholeNumber_prefixLemma(c1: Codec, c2: Codec): Unit = {
       require(c1.bufLength() == c2.bufLength())
-      require(c1.bitStream.validate_offset_bytes(1))
+      require(BitStream.validate_offset_bytes(c1.bitStream.buf.length.toLong, c1.bitStream.currentByte.toLong, c1.bitStream.currentBit.toLong,1))
       val nBytes = c1.bitStream.readBytePure()._2.unsignedToInt
       require(0 <= nBytes && nBytes <= 8)
-      require(c1.bitStream.validate_offset_bytes(1 + nBytes))
+      require(BitStream.validate_offset_bytes(c1.bitStream.buf.length.toLong, c1.bitStream.currentByte.toLong, c1.bitStream.currentBit.toLong,1 + nBytes))
       require(arrayBitRangesEq(
          c1.bitStream.buf,
          c2.bitStream.buf,
          0,
-         c1.bitIndex() + 8 + nBytes * 8
+         BitStream.bitIndex(c1.bitStream.buf.length, c1.bitStream.currentByte, c1.bitStream.currentBit) + 8 + nBytes * 8
       ))
 
       val (c2Reset, c1Res, l1, c2Res, l2) = decodeUnconstrainedWholeNumber_prefixLemma_helper(c1, c2)
@@ -111,7 +111,7 @@ object Codec {
          assert(nBytes1 == nBytes2)
          readNLeastSignificantBitsPrefixLemma(c1_2, c2_2, nBytes1.unsignedToInt * 8)
       }.ensuring { _ =>
-         l1 == l2 && c1Res.bitIndex() == c2Res.bitIndex()
+         l1 == l2 && BitStream.bitIndex(c1Res.bitStream.buf.length, c1Res.bitStream.currentByte, c1Res.bitStream.currentBit) == BitStream.bitIndex(c2Res.bitStream.buf.length, c2Res.bitStream.currentByte, c2Res.bitStream.currentBit)
       }
    }
 
@@ -120,12 +120,12 @@ object Codec {
       require(c1.bufLength() == c2.bufLength())
       require(min <= max)
       val nBits = GetBitCountUnsigned(max - min)
-      require(c1.validate_offset_bits(nBits))
+      require(BitStream.validate_offset_bits(c1.bitStream.buf.length, c1.bitStream.currentByte, c1.bitStream.currentBit, nBits))
       require(arrayBitRangesEq(
          c1.bitStream.buf,
          c2.bitStream.buf,
          0,
-         c1.bitIndex() + nBits
+         BitStream.bitIndex(c1.bitStream.buf.length, c1.bitStream.currentByte, c1.bitStream.currentBit) + nBits
       ))
 
       val c2Reset = c2.resetAt(c1)
@@ -135,7 +135,7 @@ object Codec {
       {
          readNLeastSignificantBitsPrefixLemma(c1.bitStream, c2.bitStream, nBits)
       }.ensuring { _ =>
-         l1 == l2 && c1Res.bitIndex() == c2Res.bitIndex()
+         l1 == l2 && BitStream.bitIndex(c1Res.bitStream.buf.length, c1Res.bitStream.currentByte, c1Res.bitStream.currentBit) == BitStream.bitIndex(c2Res.bitStream.buf.length, c2Res.bitStream.currentByte, c2Res.bitStream.currentBit)
       }
    }
 
@@ -194,13 +194,13 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     */
    @opaque @inlineOnce
    def encodeUnsignedInteger(v: ULong): Unit = {
-      require(bitStream.validate_offset_bits(GetBitCountUnsigned(v)))
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(v)))
       appendNLeastSignificantBits(v.toRaw, GetBitCountUnsigned(v))
    } .ensuring { _ =>
       val w1 = old(this)
       val w2 = this
       val nBits = GetBitCountUnsigned(v)
-      w1.bitStream.buf.length == w2.bitStream.buf.length && w2.bitIndex() == w1.bitIndex() + nBits && w1.isPrefixOf(w2) && {
+      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
          val (r2Got, vGot) = r1.decodeUnsignedIntegerPure(nBits)
@@ -217,7 +217,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     */
    def decodeUnsignedInteger(nBits: Int): ULong = {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
-      require(bitStream.validate_offset_bits(nBits))
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBits))
 
       readNLeastSignificantBits(nBits).toRawULong
    }
@@ -225,7 +225,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    @ghost @pure
    def decodeUnsignedIntegerPure(nBits: Int): (Codec, ULong) = {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
-      require(bitStream.validate_offset_bits(nBits))
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBits))
 
       val cpy = snapshot(this)
       val res = cpy.decodeUnsignedInteger(nBits)
@@ -254,7 +254,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       val range = max - min
       // get number of bits that get written
       val nRangeBits: Int = GetBitCountUnsigned(range)
-      require(bitStream.validate_offset_bits(nRangeBits))
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRangeBits))
 
       if range != 0.toRawULong then
          // get value that gets written
@@ -273,7 +273,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       val w2 = this
       val range = max - min
       val nBits = GetBitCountUnsigned(range)
-      w1.bitStream.buf.length == w2.bitStream.buf.length && w2.bitIndex() == w1.bitIndex() + nBits && w1.isPrefixOf(w2) && {
+      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
          val (r2Got, vGot) = r1.decodeConstrainedPosWholeNumberPure(min, max)
@@ -295,7 +295,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    def decodeConstrainedPosWholeNumber(min: ULong, max: ULong): ULong = {
       require(min <= max)
       staticRequire(
-         bitStream.validate_offset_bits(GetBitCountUnsigned(max - min))
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(max - min))
       )
 
       val range: ULong = max - min
@@ -305,7 +305,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          min
       else
          val nRangeBits: Int = GetBitCountUnsigned(range)
-         assert(bitStream.validate_offset_bits(nRangeBits))
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRangeBits))
          val decVal = decodeUnsignedInteger(nRangeBits)
 
          // assert(min + decVal <= max) // TODO: T.O
@@ -317,7 +317,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    def decodeConstrainedPosWholeNumberPure(min: ULong, max: ULong): (Codec, ULong) = {
       staticRequire(min <= max)
       staticRequire(
-         bitStream.validate_offset_bits(GetBitCountUnsigned(max - min))
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(max - min))
       )
 
       val cpy = snapshot(this)
@@ -340,7 +340,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    def encodeConstrainedWholeNumber(v: Long, min: Long, max: Long): Unit = {
       require(min <= max)
       require(min <= v && v <= max)
-      require(bitStream.validate_offset_bits(GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong))) // SAM There was a bug here, we checked for N bytes even though the number returned by teh function is bits
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong))) // SAM There was a bug here, we checked for N bytes even though the number returned by teh function is bits
       val range: Long = stainless.math.wrapping(max - min)
       // get number of bits that get written
       val nRangeBits: Int = GetBitCountUnsigned(range.toRawULong)
@@ -351,7 +351,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
          @ghost val nEncValBits = GetBitCountUnsigned(encVal)
          //SAMassert(nRangeBits >= nEncValBits)
-         //SAMassert(bitStream.validate_offset_bits(nRangeBits))
+         //SAMassert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRangeBits))
 
          appendNLeastSignificantBits(encVal, nRangeBits)
       else
@@ -364,7 +364,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       val range = stainless.math.wrapping(max - min)
       val nBits = GetBitCountUnsigned(range.toRawULong)
       w1.bitStream.buf.length == w2.bitStream.buf.length
-      && w2.bitIndex() == w1.bitIndex() + nBits && 
+      && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits && 
       w1.isPrefixOf(w2) 
       && {
          val (r1, r2) = reader(w1, w2)
@@ -391,7 +391,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    def decodeConstrainedWholeNumber(min: Long, max: Long): Long = {
       require(min <= max)
       staticRequire(
-         bitStream.validate_offset_bits(
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,
             GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong)
          )
       )
@@ -403,7 +403,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          min
       else
          val nRangeBits = GetBitCountUnsigned(range.toRawULong)
-         assert(bitStream.validate_offset_bits(nRangeBits))
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRangeBits))
          val decVal = readNLeastSignificantBits(nRangeBits)
 
          // assert(min + decVal <= max) // TODO: Invalid
@@ -415,7 +415,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    def decodeConstrainedWholeNumberPure(min: Long, max: Long): (Codec, Long) = {
       staticRequire(min <= max)
       staticRequire(
-         bitStream.validate_offset_bits(
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,
             GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong)
          )
       )
@@ -428,7 +428,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    def decodeConstrainedWholeNumberInt(min: Int, max: Int): Int = {
       require(min <= max)
       staticRequire(
-         bitStream.validate_offset_bits(
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,
             GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong)
          )
       )
@@ -441,7 +441,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    def decodeConstrainedWholeNumberShort(min: Short, max: Short): Short = {
       require(min <= max)
       staticRequire(
-         bitStream.validate_offset_bits(
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,
             GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong)
          )
       )
@@ -454,7 +454,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    def decodeConstrainedWholeNumberByte(min: Byte, max: Byte): Byte = {
       require(min <= max)
       staticRequire(
-         bitStream.validate_offset_bits(
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,
             GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong)
          )
       )
@@ -476,7 +476,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     */
    def encodeSemiConstrainedWholeNumber(v: Long, min: Long): Unit = {
       require(min <= v)
-      staticRequire(bitStream.validate_offset_bytes(
+      staticRequire(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,
          GetLengthForEncodingUnsigned(stainless.math.wrapping(v - min).toRawULong) + 1)
       )
 
@@ -484,7 +484,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       val nBytes = GetLengthForEncodingUnsigned(encV).toByte
 
       // need space for length and value
-      assert(bitStream.validate_offset_bytes(nBytes + 1))
+      assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBytes + 1))
 
       // encode length
       appendByte(nBytes.toRawUByte)
@@ -501,20 +501,20 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     *
     */
    def decodeSemiConstrainedWholeNumber(min: Long): Long = {
-      require(bitStream.validate_offset_bytes(1))
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
 
       // decode length
       val nBytes = readByte()
       // check bitstream precondition
       // assert(nBytes.toRaw > 0)
-      // assert(bitStream.validate_offset_bytes(nBytes.toRaw)) // SAM Cannot be proven now.
+      // assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBytes.toRaw)) // SAM Cannot be proven now.
       // decode number
       // SAM: without an invariant here, it is impossible to prove that nBytes <= 8, so we need 
       // an guard here.
       val nBytesRaw = nBytes.toRaw
       val nBits = nBytesRaw * NO_OF_BITS_IN_BYTE
       // SAM GUARD
-      val v: ULong = if(!(nBits >= 0 && nBits <= 64) || !validate_offset_bits(nBits)){
+      val v: ULong = if(!(nBits >= 0 && nBits <= 64) || !BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nBits)){
          0L.toRawULong
       } else {
          readNLeastSignificantBits(nBits).toRawULong
@@ -537,7 +537,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     */
    def encodeSemiConstrainedPosWholeNumber(v: ULong, min: ULong): Unit = {
       require(min <= v)
-      staticRequire(bitStream.validate_offset_bytes(
+      staticRequire(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,
          GetLengthForEncodingUnsigned(stainless.math.wrapping(v - min)) + 1)
       )
 
@@ -545,7 +545,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       val nBytes = GetLengthForEncodingUnsigned(encV.toRawULong).toByte
 
       /* need space for length and value */
-      assert(bitStream.validate_offset_bytes(nBytes + 1))
+      assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBytes + 1))
 
       /* encode length */
       appendByte(nBytes.toRawUByte)
@@ -561,17 +561,17 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     *
     */
    def decodeSemiConstrainedPosWholeNumber(min: ULong): ULong = {
-      require(bitStream.validate_offset_bytes(1))
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
 
       // decode length
       val nBytes = readByte()
       // check bitstream precondition
-      // SAM assert(bitStream.validate_offset_bytes(nBytes.toRaw))
+      // SAM assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBytes.toRaw))
       // decode number
       val nBytesRaw = nBytes.toRaw 
       val nBits = nBytesRaw * NO_OF_BITS_IN_BYTE
       // SAM GUARD
-      val v = if(!(nBits >= 0 && nBits <= 64) || !validate_offset_bits(nBits)){
+      val v = if(!(nBits >= 0 && nBits <= 64) || !BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nBits)){
          0L.toRawULong
       } else {
          readNLeastSignificantBits(nBits).toRawULong
@@ -591,14 +591,14 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    @opaque @inlineOnce
    def encodeUnconstrainedWholeNumber(v: Long): Unit = {
       staticRequire(
-         bitStream.validate_offset_bytes(1 + GetLengthForEncodingSigned(v))
+         BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1 + GetLengthForEncodingSigned(v))
       )
 
       // call func that fulfills 8.3.2
       val nBytes: Int = GetLengthForEncodingSigned(v)
       val nBits = nBytes * NO_OF_BITS_IN_BYTE
       // need space for length and value
-      assert(bitStream.validate_offset_bytes(nBytes + 1))
+      assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBytes + 1))
 
       @ghost val this1 = snapshot(this)
       // encode number - single octet
@@ -623,7 +623,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       val w1 = old(this)
       val w2 = this
       val nBits = NO_OF_BITS_IN_BYTE + GetLengthForEncodingSigned(v) * NO_OF_BITS_IN_BYTE
-      w1.bitStream.buf.length == w2.bitStream.buf.length && w2.bitIndex() == w1.bitIndex() + nBits && w1.isPrefixOf(w2) && {
+      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
          val (r2Got, vGot) = r1.decodeUnconstrainedWholeNumberPure()
@@ -641,17 +641,17 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     * @return decoded number
     */
    def decodeUnconstrainedWholeNumber(): Long = {
-      require(bitStream.validate_offset_bytes(1))
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
       staticRequire {
          val nBytes = bitStream.readBytePure()._2.unsignedToInt
-         bitStream.validate_offset_bytes(1 + nBytes) && 0 <= nBytes && nBytes <= 8
+         BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1 + nBytes) && 0 <= nBytes && nBytes <= 8
       }
 
       // get length
       val nBytes = readByte().unsignedToInt
       val nBits = nBytes * NO_OF_BITS_IN_BYTE
       // check bitstream precondition
-      //SAM assert(bitStream.validate_offset_bytes(nBytes))
+      //SAM assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBytes))
       //SAM assert(0 <= nBytes && nBytes <= 8)
       // read value
       val read = readNLeastSignificantBits(nBits)
@@ -662,10 +662,10 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
    @ghost @pure
    def decodeUnconstrainedWholeNumberPure(): (Codec, Long) = {
-      require(bitStream.validate_offset_bytes(1))
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
       staticRequire {
          val nBytes = bitStream.readBytePure()._2.unsignedToInt
-         bitStream.validate_offset_bytes(1 + nBytes) && 0 <= nBytes && nBytes <= 8
+         BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1 + nBytes) && 0 <= nBytes && nBytes <= 8
       }
       val cpy = snapshot(this)
       val res = cpy.decodeUnconstrainedWholeNumber()
@@ -678,7 +678,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     */
    @extern
    def encodeReal(vVal: Double): Unit = {
-      require(bitStream.validate_offset_bytes(2*GetBitCountUnsigned(stainless.math.wrapping(0xFF).toRawULong)))
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,2*GetBitCountUnsigned(stainless.math.wrapping(0xFF).toRawULong)))
       encodeRealBitString(java.lang.Double.doubleToRawLongBits(vVal))
    }
 
@@ -721,11 +721,11 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          val nExpLen: Int = GetLengthForEncodingUnsigned(compactExp.toLong.toRawULong)
          nExpLen >= 1 && nExpLen <= 2 && nManLen <= 7 &&
          (if (vVal == DoublePosZeroBitString ) then
-            bitStream.validate_offset_bytes(8 )
+            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8 )
          else if (vVal == DoubleNegZeroBitString || (vVal & ExpoBitMask) == ExpoBitMask) then 
-            bitStream.validate_offset_bytes(16)
+            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16)
          else
-            bitStream.validate_offset_bytes(16 + nManLen  + nExpLen )
+            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16 + nManLen  + nExpLen )
          )
       })
       // according to T-REC-X.690 2021
@@ -734,15 +734,15 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
       // 8.5.2 Plus Zero
       if v == DoublePosZeroBitString then
-         check( bitStream.validate_offset_bytes(8))
+         check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
          encodeConstrainedWholeNumber(0, 0, 0xFF)
          
 
       // 8.5.3 Minus Zero
       else if v == DoubleNegZeroBitString then
-         check( bitStream.validate_offset_bytes(16))
+         check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
          encodeConstrainedWholeNumber(1, 0, 0xFF)
-         check( bitStream.validate_offset_bytes(8))
+         check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
          encodeConstrainedWholeNumber(0x43, 0, 0xFF)
          
 
@@ -751,23 +751,23 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
       // 8.5.9 PLUS-INFINITY
          if v == DoublePosInfBitString then
-            check( bitStream.validate_offset_bytes(16))
+            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
             encodeConstrainedWholeNumber(1, 0, 0xFF)
-            check( bitStream.validate_offset_bytes(8))
+            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
             encodeConstrainedWholeNumber(0x40, 0, 0xFF)
 
          // 8.5.9 MINUS-INFINITY
          else if v == DoubleNegInfBitString then
-            check( bitStream.validate_offset_bytes(16))
+            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
             encodeConstrainedWholeNumber(1, 0, 0xFF)
-            check( bitStream.validate_offset_bytes(8))
+            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
             encodeConstrainedWholeNumber(0x41, 0, 0xFF)
 
          // 8.5.9 NOT-A-NUMBER
          else
-            check( bitStream.validate_offset_bytes(16))
+            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
             encodeConstrainedWholeNumber(1, 0, 0xFF)
-            check( bitStream.validate_offset_bytes(8))
+            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
             encodeConstrainedWholeNumber(0x42, 0, 0xFF)
       else
          // 8.5.6 a)
@@ -798,39 +798,39 @@ case class Codec private [asn1scala](bitStream: BitStream) {
             header |= 0x02
          
          /* encode length */
-         bitStream.validate_offset_bytes(16 + nManLen  + nExpLen )
+         BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16 + nManLen  + nExpLen )
 
          encodeConstrainedWholeNumber(1 + nExpLen + nManLen, 0, 0xFF)
          
-         check(bitStream.validate_offset_bits(8 + nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
+         check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8 + nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
          // /* encode header */
-         bitStream.validate_offset_bytes(8 + nManLen  + nExpLen )
+         BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8 + nManLen  + nExpLen )
 
          encodeConstrainedWholeNumber(header & 0xFF, 0, 0xFF)
          
-          bitStream.validate_offset_bytes(nManLen  + nExpLen )
+          BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen  + nExpLen )
 
          // TODO this might be more complicated, because by removing the require in the bistream class, I'll in fact break the safety there
          /* encode exponent */
          if exponent.toRaw >= 0 then
             // fill with zeros to have a whole byte   
-            // check(bitStream.validate_offset_bits(nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
+            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
             appendNZeroBits(nExpLen * NO_OF_BITS_IN_BYTE - GetBitCountUnsigned(exponent.toULong))
-            // check(bitStream.validate_offset_bits(nManLen * NO_OF_BITS_IN_BYTE + GetBitCountUnsigned(exponent.toULong)))
-            // check(bitStream.validate_offset_bits(GetBitCountUnsigned(exponent.toULong)))
+            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + GetBitCountUnsigned(exponent.toULong)))
+            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(exponent.toULong)))
             encodeUnsignedInteger(exponent.toULong)
-            // check(bitStream.validate_offset_bits(nManLen * NO_OF_BITS_IN_BYTE ))
+            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE ))
          else
-            check(bitStream.validate_offset_bits(nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
-            check(bitStream.validate_offset_bits(nManLen * NO_OF_BITS_IN_BYTE  + GetBitCountUnsigned(compactExp.toLong.toRawULong)))
-            // check(bitStream.validate_offset_bits( GetBitCountUnsigned(compactExp.toLong.toRawULong)))
+            check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
+            check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE  + GetBitCountUnsigned(compactExp.toLong.toRawULong)))
+            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, GetBitCountUnsigned(compactExp.toLong.toRawULong)))
             encodeUnsignedInteger(compactExp.toLong.toRawULong)
-            // check(bitStream.validate_offset_bits(nManLen * NO_OF_BITS_IN_BYTE ))
+            // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE ))
             
          /* encode mantissa */
-         // check(bitStream.validate_offset_bits(nManLen * NO_OF_BITS_IN_BYTE ))
+         // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE ))
          appendNZeroBits(nManLen * NO_OF_BITS_IN_BYTE - GetBitCountUnsigned(mantissa))
-         // check(bitStream.validate_offset_bits(GetBitCountUnsigned(mantissa)))
+         // check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(mantissa)))
          encodeUnsignedInteger(mantissa)
    }
 
@@ -848,13 +848,13 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     * @return decoded double bits as 64 bit integer
     */
    private def decodeRealBitString(): Long = {
-      require(bitStream.validate_offset_bytes(1))
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
       // staticRequire({
       //    val length = readBytePure()._2.toRaw
       //    length >= 0 
       //    && length != 1 // Otherwise there's only the space for the header SAM
       //    && length <= DoubleMaxLengthOfSentBytes
-      //    && bitStream.validate_offset_bytes(1 + length.toInt)
+      //    && BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1 + length.toInt)
 
       // })
 
@@ -863,7 +863,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       if(length >= 0 
             && length != 1 // Otherwise there's only the space for the header SAM
             && length <= DoubleMaxLengthOfSentBytes
-            && bitStream.validate_offset_bytes(1 + length.toInt)) then
+            && BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1 + length.toInt)) then
 
          // 8.5.2 PLUS-ZERO
          if length == 0 then
@@ -873,7 +873,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          assert(length > 0 && length <= DoubleMaxLengthOfSentBytes)
 
          // get value
-         assert(bitStream.validate_offset_bytes(1))
+         assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
          val header = readByte().toRaw
 
          // SAM here I don't think we should require that, but more exit if
@@ -922,7 +922,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       require(lengthVal >= 1 && lengthVal < DoubleMaxLengthOfSentBytes) // without header byte
       require((header.toRaw & 0x03) + 1 <= lengthVal)
       require((header.unsignedToInt & 0x80) == 0x80)
-      require(bitStream.validate_offset_bytes(lengthVal))
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,lengthVal))
 
       // 8.5.7.2 Base
       val expFactor: Int = header.unsignedToInt match
@@ -948,21 +948,21 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       var exponent: Int = if peekBit() then 0xFF_FF_FF_FF else 0
       assert(exponent == 0 || exponent == -1)
 
-      check(bitStream.validate_offset_bytes(lengthVal))
+      check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,lengthVal))
 
       var i: Int = 0
       (while i < expLen do
          decreases(expLen - i)
          check(i < expLen && lengthVal - i > 0)
-         check(bitStream.validate_offset_bytes(lengthVal - i))
-         check(bitStream.validate_offset_bytes(1))
+         check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,lengthVal - i))
+         check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
 
          exponent = exponent << 8 | (readByte().toRaw.toInt & 0xFF)
 
          i += 1
-      ).invariant(i >= 0 && i <= expLen && bitStream.validate_offset_bytes(lengthVal - i))
+      ).invariant(i >= 0 && i <= expLen && BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,lengthVal - i))
 
-      check(bitStream.validate_offset_bytes(lengthVal - expLen))
+      check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,lengthVal - expLen))
 
       // TODO Check doc to see if exponent as a max value, otherwise there is a bug here
       // assert(exponent < (Int.MaxValue / 4) && exponent >= -1)
@@ -976,7 +976,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          N = (N << 8) | (readByte().toRaw.toInt & 0xFF)
 
          j += 1
-      ).invariant(j >= 0 && j <= length && bitStream.validate_offset_bytes(length - j))
+      ).invariant(j >= 0 && j <= length && BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,length - j))
 
       // assert(N < (Long.MaxValue / 8) && N >= 0) // TODO Check the doc to see if N has a max value, otherwise there is a bug here
       
@@ -993,20 +993,20 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
    def encodeOctetString_no_length(arr: Array[UByte], nCount: Int): Unit = {
       require(nCount >= 0 && nCount <= arr.length)
-      require(bitStream.validate_offset_bytes(nCount))
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount))
       appendByteArray(arr, nCount)
    }
 
    def decodeOctetString_no_length(nCount: Int): Array[UByte] = {
       require(nCount >= 0 && nCount <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
-      require(bitStream.validate_offset_bytes(nCount))
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount))
       readByteArray(nCount)
    }
 
    def encodeOctetString_fragmentation_old(arr: Array[UByte], nCount: Int) = {
       require(nCount >= 0 && nCount <= arr.length)
       require(nCount + 8 * (nCount / 0x4000) + 16 > 0) // To avoid overflow of the available length checks
-      require(bitStream.validate_offset_bytes(nCount + 8 * (nCount / 0x4000) + 16)) // Room for information bytes + data
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount + 8 * (nCount / 0x4000) + 16)) // Room for information bytes + data
 
       var nRemainingItemsVar1: Int = nCount
       var nCurBlockSize1: Int = 0
@@ -1024,13 +1024,13 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
       ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
       ghostExpr(check(8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
-      ghostExpr(check(bitStream.validate_offset_bytes(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
+      ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
 
       (while nRemainingItemsVar1 >= 0x4000 do
          decreases(nRemainingItemsVar1)
-         ghostExpr(check(bitStream.validate_offset_bytes(8))) // == GetLengthForEncodingUnsigned(0xFF)
+         ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))) // == GetLengthForEncodingUnsigned(0xFF)
 
-         @ghost val nBitsOld = this.bitStream.bitIndex()
+         @ghost val nBitsOld = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
          
          if nRemainingItemsVar1 >= 0x10000 then
             nCurBlockSize1 = 0x10000
@@ -1045,13 +1045,13 @@ case class Codec private [asn1scala](bitStream: BitStream) {
             nCurBlockSize1 = 0x4000
             encodeConstrainedWholeNumber(0xC1, 0, 0xFF)
 
-         ghostExpr(check(this.bitStream.bitIndex() == nBitsOld + 8))
+         ghostExpr(check(BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) == nBitsOld + 8))
          ghostExpr(nBlockHeadersWritten += 1)
 
          var i1: Int = nCurOffset1
          @ghost var nWrittenBytes = 0
          
-         ghostExpr(check(bitStream.validate_offset_bytes(nCurBlockSize1)))
+         ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCurBlockSize1)))
 
          ghostExpr(check(i1 >= 0 ))
          ghostExpr(check(nCurBlockSize1 <= nRemainingItemsVar1 ))
@@ -1065,11 +1065,11 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          ghostExpr(check(nWrittenBytes == i1 - nCurOffset1 ))
          ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
          ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
-         ghostExpr(check(bitStream.validate_offset_bytes(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
+         ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
 
          (while i1 < nCurBlockSize1 + nCurOffset1 do
             decreases(nCurBlockSize1 + nCurOffset1 - i1)
-            check(bitStream.validate_offset_bytes(1)) 
+            check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1)) 
             check(i1 < arr.length)
             check(i1 >= 0)
 
@@ -1090,7 +1090,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
             ghostExpr(check(nWrittenBytes == i1 - nCurOffset1 ))
             ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
             ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
-            ghostExpr(check(bitStream.validate_offset_bytes(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
+            ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
 
          ).invariant(
             i1 >= 0 &&
@@ -1105,7 +1105,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
             nWrittenBytes == i1 - nCurOffset1 &&
             nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 && // Because of potential overflows
             nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 && // Because of potential overflows
-            bitStream.validate_offset_bytes(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)
+            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)
          )
          ghostExpr(check(nWrittenBytes == nCurBlockSize1))
          ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 == nCount - (nCurOffset1 + nCurBlockSize1) + 8*(nCount / 0x4000) - 8*nBlockHeadersWritten + 16))
@@ -1131,7 +1131,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
          ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
          ghostExpr(check(8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
-         ghostExpr(check(bitStream.validate_offset_bytes(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
+         ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
 
       ).invariant(
          nCurOffset1 >= 0 &&
@@ -1142,16 +1142,16 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 && // Because of potential overflows
          nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 && // Because of potential overflows
          8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 &&
-         bitStream.validate_offset_bytes(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)
+         BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)
       )
 
       // if nRemainingItemsVar1 <= 0x7F then
-      //    check(bitStream.validate_offset_bytes(8)) // == GetLengthForEncodingUnsigned(0xFF)
+      //    check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8)) // == GetLengthForEncodingUnsigned(0xFF)
       //    encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0xFF)
       // else
-      //    check(bitStream.validate_offset_bits(1))
+      //    check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
       //    appendBit(true)
-      //    check(bitStream.validate_offset_bytes(15)) // == GetLengthForEncodingUnsigned(0x7FFF)
+      //    check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,15)) // == GetLengthForEncodingUnsigned(0x7FFF)
       //    encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0x7FFF)
 
 
@@ -1166,21 +1166,21 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int) = {
       require(nCount >= 0 && nCount <= arr.length)
       require(nCount + 8 * (nCount / 0x4000) + 16 > 0) // To avoid overflow of the available length checks
-      require(bitStream.validate_offset_bytes(nCount + 8 * (nCount / 0x4000) + 16)) // Room for information bytes + data
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount + 8 * (nCount / 0x4000) + 16)) // Room for information bytes + data
 
       var nRemainingItemsVar1: Int = nCount
       var nCurBlockSize1: Int = 0
       var nCurOffset1: Int = 0 // Which represents the currently written bytes number SAM
 
-      encodeOctetString_fragmentation_innerWhile(arr, nCount, 0, nRemainingItemsVar1, nCurOffset1, bitStream.bitIndex())
+      encodeOctetString_fragmentation_innerWhile(arr, nCount, 0, nRemainingItemsVar1, nCurOffset1, BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ))
 
       // if nRemainingItemsVar1 <= 0x7F then
-      //    check(bitStream.validate_offset_bytes(8)) // == GetLengthForEncodingUnsigned(0xFF)
+      //    check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8)) // == GetLengthForEncodingUnsigned(0xFF)
       //    encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0xFF)
       // else
-      //    check(bitStream.validate_offset_bits(1))
+      //    check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
       //    appendBit(true)
-      //    check(bitStream.validate_offset_bytes(15)) // == GetLengthForEncodingUnsigned(0x7FFF)
+      //    check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,15)) // == GetLengthForEncodingUnsigned(0x7FFF)
       //    encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0x7FFF)
 
 
@@ -1202,13 +1202,13 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       require(nCount <= arr.length)
       require(nCount == nRemainingItemsVar1 + currentlyWrittenBlocksOf0x4000 * 0x4000)
       require(nCurOffset1 == currentlyWrittenBlocksOf0x4000 * 0x4000)
-      require(bitStream.bitIndex() == bitIndex)
-      require(bitStream.validate_offset_bytes(nRemainingItemsVar1 + (nRemainingItemsVar1 / 0x4000)))
+      require(BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) == bitIndex)
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRemainingItemsVar1 + (nRemainingItemsVar1 / 0x4000)))
 
       decreases(nRemainingItemsVar1)
 
       if (nRemainingItemsVar1 >= 0x4000) then
-         @ghost val bitIndexBeforeHeader = this.bitStream.bitIndex()   
+         @ghost val bitIndexBeforeHeader = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )   
          val nCurBlockSize1 = 
             if nRemainingItemsVar1 >= 0x10000 then
                0x10000
@@ -1235,7 +1235,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
                1
          }
 
-         @ghost val bitIndexAfterHeader = this.bitStream.bitIndex()
+         @ghost val bitIndexAfterHeader = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
 
          assert(bitIndexBeforeHeader + NO_OF_BITS_IN_BYTE == bitIndexAfterHeader)
          assert( bitIndexAfterHeader <= bitIndexBeforeHeader + 4 * NO_OF_BITS_IN_BYTE)
@@ -1245,19 +1245,19 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          assert(nCurOffset1 + nCurBlockSize1 <= nCount)
          assert(nCurOffset1 + nCurBlockSize1 <= arr.length)
          assert(nCurOffset1 + nCurBlockSize1 >= 0)
-         encodeOctetString_fragmentation_innerMostWhile(arr, nCurOffset1, nCurOffset1 + nCurBlockSize1, bitStream.bitIndex())
+         encodeOctetString_fragmentation_innerMostWhile(arr, nCurOffset1, nCurOffset1 + nCurBlockSize1, BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ))
 
-         @ghost val bitIndexAfterAppending = this.bitStream.bitIndex()
+         @ghost val bitIndexAfterAppending = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
 
          assert(bitIndexAfterAppending == bitIndexAfterHeader + nCurBlockSize1 * NO_OF_BITS_IN_BYTE)
          
-         encodeOctetString_fragmentation_innerWhile(arr, nCount, currentlyWrittenBlocksOf0x4000 + nNewBlocksOf0x4000, nRemainingItemsVar1 - nCurBlockSize1, nCurOffset1 + nCurBlockSize1, bitStream.bitIndex())
+         encodeOctetString_fragmentation_innerWhile(arr, nCount, currentlyWrittenBlocksOf0x4000 + nNewBlocksOf0x4000, nRemainingItemsVar1 - nCurBlockSize1, nCurOffset1 + nCurBlockSize1, BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ))
 
-         @ghost val bitIndexAfterRecursive = this.bitStream.bitIndex()
+         @ghost val bitIndexAfterRecursive = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
 
 
    } ensuring(_ => 
-         bitStream.bitIndex() <= bitIndex + currentlyWrittenBlocksOf0x4000 * NO_OF_BITS_IN_BYTE + nRemainingItemsVar1 * NO_OF_BITS_IN_BYTE
+         BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) <= bitIndex + currentlyWrittenBlocksOf0x4000 * NO_OF_BITS_IN_BYTE + nRemainingItemsVar1 * NO_OF_BITS_IN_BYTE
    )
 
    /**
@@ -1273,28 +1273,28 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       require(to >= 0)
       require(from < to)
       require(to <= arr.length)
-      require(bitStream.validate_offset_bytes(to - from))
-      require(bitStream.bitIndex() == bitIndex)
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,to - from))
+      require(BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) == bitIndex)
       require((to - from)  < Int.MaxValue / NO_OF_BITS_IN_BYTE) // to avoid overflow
       require(bitIndex < Long.MaxValue - (to - from) * NO_OF_BITS_IN_BYTE) // to avoid overflow
       decreases(to - from)
 
-      @ghost val bitIndexBeforeAppending = bitStream.bitIndex()
+      @ghost val bitIndexBeforeAppending = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
 
       bitStream.appendByte(arr(from))
 
-      @ghost val bitIndexBeforeRecursive = bitStream.bitIndex()
+      @ghost val bitIndexBeforeRecursive = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
       assert(bitIndexBeforeRecursive == bitIndexBeforeAppending + NO_OF_BITS_IN_BYTE)
 
       if from + 1 < to then
          encodeOctetString_fragmentation_innerMostWhile(arr, from + 1, to, bitIndex + NO_OF_BITS_IN_BYTE)
-         @ghost val bitIndexAfterRecursive = bitStream.bitIndex()
+         @ghost val bitIndexAfterRecursive = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
          assert(bitIndexAfterRecursive == bitIndexBeforeRecursive  + (to - from - 1) * NO_OF_BITS_IN_BYTE)
          assert(NO_OF_BITS_IN_BYTE + (to - from - 1) * NO_OF_BITS_IN_BYTE == (to - from) * NO_OF_BITS_IN_BYTE)
          assert(bitIndexAfterRecursive == bitIndexBeforeAppending + NO_OF_BITS_IN_BYTE + (to - from - 1) * NO_OF_BITS_IN_BYTE)
    } ensuring(_ => 
       val oldBistStream = old(this).bitStream
-      bitStream.bitIndex() == bitIndex + (to - from) * NO_OF_BITS_IN_BYTE
+      BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) == bitIndex + (to - from) * NO_OF_BITS_IN_BYTE
    )
 
    def decodeOctetString_fragmentation(asn1SizeMax: Long): Array[UByte] = {
