@@ -1170,7 +1170,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
    def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int) = {
       require(nCount >= 0 && nCount <= arr.length)
-      require(nCount + 8 * (nCount / 0x4000) + 16 > 0) // To avoid overflow of the available length checks
+      require(nCount < Int.MaxValue - 16 - 8 * (nCount / 0x4000)) // To avoid overflow of the available length checks
       require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount + 8 * (nCount / 0x4000) + 16)) // Room for information bytes + data
 
       var nRemainingItemsVar1: Int = nCount
@@ -1201,11 +1201,13 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       require(nRemainingItemsVar1 >= 0)
       require(currentlyWrittenBlocksOf0x4000 >= 0)
       require(nCurOffset1 >= 0)
-      require(nCount + (nCount / 0x4000) >= 0)
-      require(nRemainingItemsVar1 + (nRemainingItemsVar1 / 0x4000) >= 0)
+      require(nCount >= 0)
+      require(nCount < Int.MaxValue - (nCount / 0x4000))
+      require(nRemainingItemsVar1 < Int.MaxValue / 8)
+      require(nRemainingItemsVar1 <= nCount)
       require(currentlyWrittenBlocksOf0x4000 < Int.MaxValue / 0x4000) // to avoid overflow
       require(nCount <= arr.length)
-      require(nCount == nRemainingItemsVar1 + currentlyWrittenBlocksOf0x4000 * 0x4000)
+      require(nCount - currentlyWrittenBlocksOf0x4000 * 0x4000 == nRemainingItemsVar1)
       require(nCurOffset1 == currentlyWrittenBlocksOf0x4000 * 0x4000)
       require(BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) == bitIndex)
       require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRemainingItemsVar1 + (nRemainingItemsVar1 / 0x4000)))
@@ -1213,7 +1215,6 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       decreases(nRemainingItemsVar1)
 
       if (nRemainingItemsVar1 >= 0x4000) then
-         @ghost val bitIndexBeforeHeader = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )   
          val nCurBlockSize1 = 
             if nRemainingItemsVar1 >= 0x10000 then
                0x10000
@@ -1223,27 +1224,43 @@ case class Codec private [asn1scala](bitStream: BitStream) {
                0x8000
             else
                0x4000
-
+                     
          // Write to the buffer the block header and return the number of blocks of 0x4000 it would represent
-         val nNewBlocksOf0x4000 = nCurBlockSize1 match {
+         val blockSize: Long = nCurBlockSize1 match {
             case 0x10000 => 
-               encodeConstrainedWholeNumber(0xC4, 0, 0xFF)
-               4
+               0xC4
             case 0xC000 => 
-               encodeConstrainedWholeNumber(0xC3, 0, 0xFF)
-               3
+               0xC3
             case 0x8000 => 
-               encodeConstrainedWholeNumber(0xC2, 0, 0xFF)
-               2
+               0xC2
             case 0x4000 => 
-               encodeConstrainedWholeNumber(0xC1, 0, 0xFF)
-               1
+               0xC1
          }
 
+         val nNewBlocksOf0x4000 = blockSize match {
+            case 0xC4 => 
+               4
+            case 0xC3 => 
+               3
+            case 0xC2 => 
+               2
+            case 0xC1 => 
+               1
+         }
+                                 
+         @ghost val bitIndexBeforeHeader = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )   
+         assert(GetBitCountUnsigned(0xFF.toRawULong) == 8)
+
+         encodeConstrainedWholeNumber(blockSize, 0, 0xFF)
+         
+
          @ghost val bitIndexAfterHeader = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
+         @ghost val currentByteAfterHeader = bitStream.currentByte
+         @ghost val currentBitAfterHeader = bitStream.currentBit
 
          assert(bitIndexBeforeHeader + NO_OF_BITS_IN_BYTE == bitIndexAfterHeader)
          assert( bitIndexAfterHeader <= bitIndexBeforeHeader + 4 * NO_OF_BITS_IN_BYTE)
+         assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRemainingItemsVar1 + (nRemainingItemsVar1 / 0x4000) - 1))
 
          assert(nCount == nRemainingItemsVar1 + nCurOffset1)
          assert(nRemainingItemsVar1 >= nCurBlockSize1)
@@ -1253,17 +1270,86 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          encodeOctetString_fragmentation_innerMostWhile(arr, nCurOffset1, nCurOffset1 + nCurBlockSize1, BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ))
 
          @ghost val bitIndexAfterAppending = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
+         @ghost val currentByteAfterAppending = bitStream.currentByte
+         @ghost val currentBitAfterAppending = bitStream.currentBit
 
          assert(bitIndexAfterAppending == bitIndexAfterHeader + nCurBlockSize1 * NO_OF_BITS_IN_BYTE)
+
+         assert(bitIndexAfterAppending - bitIndexAfterHeader == nCurBlockSize1 * 8)
          
-         encodeOctetString_fragmentation_innerWhile(arr, nCount, currentlyWrittenBlocksOf0x4000 + nNewBlocksOf0x4000, nRemainingItemsVar1 - nCurBlockSize1, nCurOffset1 + nCurBlockSize1, BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ))
+         val newRemaingItems = nRemainingItemsVar1 - nCurBlockSize1
+         val newWrittenBlocks = currentlyWrittenBlocksOf0x4000 + nNewBlocksOf0x4000
+         val newOffset = nCurOffset1 + nCurBlockSize1
+
+         val validatedOffset1: Int = nRemainingItemsVar1 + (nRemainingItemsVar1 / 0x4000) - 1
+         val validatedOffset2: Int = newRemaingItems + (newRemaingItems / 0x4000)
+
+         assert(validatedOffset1 - validatedOffset2 == nRemainingItemsVar1 + (nRemainingItemsVar1 / 0x4000) - 1 - (nRemainingItemsVar1 - nCurBlockSize1) - (nRemainingItemsVar1 - nCurBlockSize1) / 0x4000)
+         assert(validatedOffset1 - validatedOffset2 ==  nCurBlockSize1 - 1 + nCurBlockSize1 / 0x4000)
+         assert(validatedOffset1 - validatedOffset2 >= 0)
+
+         assert(BitStream.invariant(currentBitAfterHeader, currentByteAfterHeader, bitStream.buf.length))
+         assert(BitStream.invariant(currentBitAfterAppending, currentByteAfterAppending, bitStream.buf.length))
+         assert(validatedOffset1 >= 0)
+         assert(validatedOffset2 >= 0)
+         assert(bitIndexAfterHeader <= bitIndexAfterAppending)
+         assert(8*validatedOffset2 <= 8*validatedOffset1)
+         assert(BitStream.bitIndex(bitStream.buf.length, currentByteAfterHeader, currentBitAfterHeader) == bitIndexAfterHeader)
+         assert(BitStream.bitIndex(bitStream.buf.length, currentByteAfterAppending, currentBitAfterAppending) == bitIndexAfterAppending)
+         assert(bitIndexAfterAppending - bitIndexAfterHeader <= 8*validatedOffset1 - 8*validatedOffset2)
+         assert(BitStream.validate_offset_bytes(bitStream.buf.length, currentByteAfterHeader, currentBitAfterHeader, validatedOffset1))
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, currentByteAfterHeader, currentBitAfterHeader, 8*validatedOffset1))
+
+
+         ghostExpr(lemmaAdvanceBitIndexLessMaintainOffset(bitStream.buf.length, currentByteAfterHeader, currentBitAfterHeader, bitIndexAfterHeader, currentByteAfterAppending, currentBitAfterAppending, bitIndexAfterAppending, 8*validatedOffset1, 8*validatedOffset2))
+         
+         assert((BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8*validatedOffset2)))
+         assert((BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, validatedOffset2)))
+         encodeOctetString_fragmentation_innerWhile(arr, nCount, newWrittenBlocks , newRemaingItems, newOffset , BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ))
 
          @ghost val bitIndexAfterRecursive = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
 
+         assert(bitIndexAfterRecursive <= bitIndex + currentlyWrittenBlocksOf0x4000 * 8 + nRemainingItemsVar1 * 8)
+
 
    } ensuring(_ => 
-         BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) <= bitIndex + currentlyWrittenBlocksOf0x4000 * NO_OF_BITS_IN_BYTE + nRemainingItemsVar1 * NO_OF_BITS_IN_BYTE
+         BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) <= bitIndex + currentlyWrittenBlocksOf0x4000 * 8 + nRemainingItemsVar1 * 8
    )
+
+   /**
+     * Takes more than 100sec to verify, that's why it is extracted to a lemma, even though it does not need a specific proof
+     *
+     * @param bufLength
+     * @param currentByte1
+     * @param currentBit1
+     * @param bitIndex1
+     * @param currentByte2
+     * @param currentBit2
+     * @param bitIndex2
+     * @param offset1
+     * @param offset2
+     */
+   @ghost
+   @opaque
+   @inlineOnce
+   def lemmaAdvanceBitIndexLessMaintainOffset(
+      bufLength: Int, 
+      currentByte1: Int, currentBit1: Int, bitIndex1: Long,
+      currentByte2: Int, currentBit2: Int, bitIndex2: Long,
+      offset1Bits: Int,
+      offset2Bits: Int): Unit = {
+         require(BitStream.invariant(currentBit1, currentByte1, bufLength))
+         require(BitStream.invariant(currentBit2, currentByte2, bufLength))
+         require(offset1Bits >= 0)
+         require(offset2Bits >= 0)
+         require(bitIndex1 <= bitIndex2)
+         require(offset2Bits <= offset1Bits)
+         require(BitStream.bitIndex(bufLength, currentByte1, currentBit1) == bitIndex1)
+         require(BitStream.bitIndex(bufLength, currentByte2, currentBit2) == bitIndex2)
+         require(bitIndex2 - bitIndex1 <= offset1Bits - offset2Bits)
+         require(BitStream.validate_offset_bits(bufLength, currentByte1, currentBit1, offset1Bits))
+
+      } ensuring(_ => BitStream.validate_offset_bits(bufLength, currentByte2, currentBit2, offset2Bits))
 
    /**
      * Append the bytes in the given array to the BitStream, starting at from index, to the to index (exclusive)
