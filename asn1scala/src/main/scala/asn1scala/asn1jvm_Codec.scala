@@ -969,31 +969,41 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
       check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,lengthVal - expLen))
 
-      // TODO Check doc to see if exponent as a max value, otherwise there is a bug here
+      // SAM guard if for the exponent read from the bitstream
       // assert(exponent < (Int.MaxValue / 4) && exponent >= -1)
-      // decode mantissa parts
-      val length = lengthVal - expLen
-      var N: Long = 0
-      var j: Int = 0
-      (while j < length do
-         decreases(length - j)
+      if(exponent >= (Int.MaxValue / 4) || exponent <= -1) then 
+         0L
+      else 
+         // decode mantissa parts
+         val length = lengthVal - expLen
+         var N: Long = 0
+         var j: Int = 0
+         (while j < length do
+            decreases(length - j)
 
-         N = (N << 8) | (readByte().toRaw.toInt & 0xFF)
+            N = (N << 8) | (readByte().toRaw.toInt & 0xFF)
 
-         j += 1
-      ).invariant(j >= 0 && j <= length && BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,length - j))
+            j += 1
+         ).invariant(
+            j >= 0 && 
+            j <= length && 
+            BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length) &&
+            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, length - j))
 
-      // assert(N < (Long.MaxValue / 8) && N >= 0) // TODO Check the doc to see if N has a max value, otherwise there is a bug here
-      
-      val x1: ULong = (N * factor).toRawULong
-      val x2: Int = expFactor * exponent
-      var v: Long = GetDoubleBitStringByMantissaAndExp(x1, x2)
+         // assert(N < (Long.MaxValue / 8) && N >= 0) // TODO Check the doc to see if N has a max value, otherwise there is a bug here
+         // SAM guard if for the mantissa read from the bitstream
+         if(N >= (Long.MaxValue / 8) || N < 0) then 
+            0L
+         else
+            val x1: ULong = (N * factor).toRawULong
+            val x2: Int = expFactor * exponent
+            var v: Long = GetDoubleBitStringByMantissaAndExp(x1, x2)
 
-      // 8.5.7.1 Set Sign bit
-      if (header.toRaw & 0x40) > 0 then
-         v |= SignBitMask
+            // 8.5.7.1 Set Sign bit
+            if (header.toRaw & 0x40) > 0 then
+               v |= SignBitMask
 
-      v
+            v
    }
 
    def encodeOctetString_no_length(arr: Array[UByte], nCount: Int): Unit = {
@@ -1006,166 +1016,6 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       require(nCount >= 0 && nCount <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
       require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount))
       readByteArray(nCount)
-   }
-
-   def encodeOctetString_fragmentation_old(arr: Array[UByte], nCount: Int) = {
-      require(nCount >= 0 && nCount <= arr.length)
-      require(nCount + 8 * (nCount / 0x4000) + 16 > 0) // To avoid overflow of the available length checks
-      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount + 8 * (nCount / 0x4000) + 16)) // Room for information bytes + data
-
-      var nRemainingItemsVar1: Int = nCount
-      var nCurBlockSize1: Int = 0
-      var nCurOffset1: Int = 0 // Which represents the currently written bytes number SAM
-
-      @ghost var nBlockHeadersWritten = 0
-
-      ghostExpr(check(nCurOffset1 >= 0 ))
-      ghostExpr(check(nCount >= 0 ))
-      ghostExpr(check(nRemainingItemsVar1 >= 0))
-      ghostExpr(check(  nRemainingItemsVar1 <= nCount))
-      ghostExpr(check( nRemainingItemsVar1 + nCurOffset1 == nCount ))
-      ghostExpr(check(nBlockHeadersWritten <= nCount / 0x4000 ))
-      ghostExpr(check(nCurOffset1 + nRemainingItemsVar1 == nCount ))
-      ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
-      ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
-      ghostExpr(check(8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
-      ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
-
-      (while nRemainingItemsVar1 >= 0x4000 do
-         decreases(nRemainingItemsVar1)
-         ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))) // == GetLengthForEncodingUnsigned(0xFF)
-
-         @ghost val nBitsOld = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit )
-         
-         if nRemainingItemsVar1 >= 0x10000 then
-            nCurBlockSize1 = 0x10000
-            encodeConstrainedWholeNumber(0xC4, 0, 0xFF)
-         else if nRemainingItemsVar1 >= 0xC000 then
-            nCurBlockSize1 = 0xC000
-            encodeConstrainedWholeNumber(0xC3, 0, 0xFF)
-         else if nRemainingItemsVar1 >= 0x8000 then
-            nCurBlockSize1 = 0x8000
-            encodeConstrainedWholeNumber(0xC2, 0, 0xFF)
-         else
-            nCurBlockSize1 = 0x4000
-            encodeConstrainedWholeNumber(0xC1, 0, 0xFF)
-
-         ghostExpr(check(BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) == nBitsOld + 8))
-         ghostExpr(nBlockHeadersWritten += 1)
-
-         var i1: Int = nCurOffset1
-         @ghost var nWrittenBytes = 0
-         
-         ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCurBlockSize1)))
-
-         ghostExpr(check(i1 >= 0 ))
-         ghostExpr(check(nCurBlockSize1 <= nRemainingItemsVar1 ))
-         ghostExpr(check(nCurBlockSize1 >= 0))
-         ghostExpr(check(nRemainingItemsVar1 >= 0))
-         ghostExpr(check(nCurOffset1 >= 0))
-         ghostExpr(check(nCurBlockSize1 + nCurOffset1 >= 0 ))
-         ghostExpr(check(i1 <= nCurBlockSize1 + nCurOffset1 ))
-         ghostExpr(check(nCurBlockSize1 + nCurOffset1 - i1 >= 0 ))
-         ghostExpr(check(nCurBlockSize1 + nCurOffset1 <= nCount ))
-         ghostExpr(check(nWrittenBytes == i1 - nCurOffset1 ))
-         ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
-         ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
-         ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
-
-         (while i1 < nCurBlockSize1 + nCurOffset1 do
-            decreases(nCurBlockSize1 + nCurOffset1 - i1)
-            check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1)) 
-            check(i1 < arr.length)
-            check(i1 >= 0)
-
-            appendByte(arr(i1))
-            ghostExpr(nWrittenBytes += 1)
-            i1 += 1
-
-            ghostExpr(check(i1 >= 0 ))
-            ghostExpr(check(nCurBlockSize1 <= nRemainingItemsVar1))
-            ghostExpr(check(nCurBlockSize1 <= nRemainingItemsVar1 ))
-            ghostExpr(check(nCurBlockSize1 >= 0))
-            ghostExpr(check(nRemainingItemsVar1 >= 0))
-            ghostExpr(check(nCurOffset1 >= 0))
-            ghostExpr(check(nCurBlockSize1 + nCurOffset1 >= 0 ))
-            ghostExpr(check(i1 <= nCurBlockSize1 + nCurOffset1 ))
-            ghostExpr(check(nCurBlockSize1 + nCurOffset1 - i1 >= 0 ))
-            ghostExpr(check(nCurBlockSize1 + nCurOffset1 <= nCount ))
-            ghostExpr(check(nWrittenBytes == i1 - nCurOffset1 ))
-            ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
-            ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
-            ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
-
-         ).invariant(
-            i1 >= 0 &&
-            nCurBlockSize1 <= nRemainingItemsVar1 &&
-            nCurBlockSize1 >= 0 &&
-            nRemainingItemsVar1 >= 0 &&
-            nCurOffset1 >= 0 &&
-            nCurBlockSize1 + nCurOffset1 >= 0 &&
-            i1 <= nCurBlockSize1 + nCurOffset1 &&
-            nCurBlockSize1 + nCurOffset1 - i1 >= 0 &&
-            nCurBlockSize1 + nCurOffset1 <= nCount &&
-            nWrittenBytes == i1 - nCurOffset1 &&
-            nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 && // Because of potential overflows
-            nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 && // Because of potential overflows
-            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)
-         )
-         ghostExpr(check(nWrittenBytes == nCurBlockSize1))
-         ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 == nCount - (nCurOffset1 + nCurBlockSize1) + 8*(nCount / 0x4000) - 8*nBlockHeadersWritten + 16))
-         ghostExpr(check(nCount - nCurOffset1 - nWrittenBytes + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0))
-         ghostExpr(check( nCount - (nCurOffset1 + nCurBlockSize1) + 8*(nCount / 0x4000) - 8*nBlockHeadersWritten + 16 >= 0))
-         check(nCurBlockSize1 <= nRemainingItemsVar1)
-         ghostExpr(check(nCurBlockSize1 >= 0))
-         ghostExpr(check(nRemainingItemsVar1 >= 0))
-         ghostExpr(check(nCurOffset1 >= 0))
-
-         nCurOffset1 += nCurBlockSize1
-         nRemainingItemsVar1 -= nCurBlockSize1
-
-         check(nRemainingItemsVar1 < nRemainingItemsVar1 + nCurBlockSize1) // measure decreases TODO
-
-         ghostExpr(check(nCurOffset1 >= 0 ))
-         ghostExpr(check(nCount >= 0 ))
-         ghostExpr(check(nRemainingItemsVar1 >= 0 ))
-         ghostExpr(check(nRemainingItemsVar1 <= nCount)) // TODO
-         ghostExpr(check( nRemainingItemsVar1 + nCurOffset1 == nCount )) // TODO
-         ghostExpr(check(nBlockHeadersWritten <= nCount / 0x4000 ))
-         ghostExpr(check(nCurOffset1 + nRemainingItemsVar1 == nCount ))
-         ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
-         ghostExpr(check(nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 ))
-         ghostExpr(check(8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 ))
-         ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)))
-
-      ).invariant(
-         nCurOffset1 >= 0 &&
-         nCount >= 0 &&
-         nRemainingItemsVar1 >= 0 &&  nRemainingItemsVar1 <= nCount && nRemainingItemsVar1 + nCurOffset1 == nCount &&
-         nBlockHeadersWritten <= nCount / 0x4000 &&
-         nCurOffset1 + nRemainingItemsVar1 == nCount &&
-         nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 && // Because of potential overflows
-         nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16 >= 0 && // Because of potential overflows
-         8*(nCount / 0x4000 - nBlockHeadersWritten) >= 0 &&
-         BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRemainingItemsVar1 + 8*(nCount / 0x4000 - nBlockHeadersWritten) + 16)
-      )
-
-      // if nRemainingItemsVar1 <= 0x7F then
-      //    check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8)) // == GetLengthForEncodingUnsigned(0xFF)
-      //    encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0xFF)
-      // else
-      //    check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
-      //    appendBit(true)
-      //    check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,15)) // == GetLengthForEncodingUnsigned(0x7FFF)
-      //    encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0x7FFF)
-
-
-      // var i1: Int = nCurOffset1
-      // (while i1 < (nCurOffset1 + nRemainingItemsVar1) do
-      //    decreases(nCurOffset1 + nRemainingItemsVar1 - i1)
-      //    appendByte(arr(i1))
-      //    i1 += 1
-      // ).invariant(true) // TODO
    }
 
    def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int) = {
@@ -1213,6 +1063,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nRemainingItemsVar1 + 1))
          ghostExpr(check(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nRemainingItemsVar1 + 1)))
       else
+         // here we write 1000000000000000 (16 bits), to indicate that more than 128 elements remain
          ghostExpr(check(BitStream.validate_offset_bits(bufLength, bitStream.currentByte, bitStream.currentBit, 1)))
          appendBit(true)
          ghostExpr(lemmaGetBitCountUnsigned7FFFEquals15())
@@ -1525,83 +1376,252 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       } ensuring(_ => BitStream.validate_offset_bits(bufLength, currentByte2, currentBit2, offset2Bits))
 
 
+      /**
+        * Undefined behaviour if the bitstream is invalid (i.e., not supported format or wrong)
+        *
+        * @param asn1SizeMax
+        */
    def decodeOctetString_fragmentation(asn1SizeMax: Long): Array[UByte] = {
       require(asn1SizeMax >= 0 && asn1SizeMax < Int.MaxValue)
+
+      assert(BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length))
 
       val arr: Array[UByte] = Array.fill(asn1SizeMax.toInt)(0.toRawUByte)
       var nCount: Int = 0
 
-      var nLengthTmp1: Long = 0
-      var nCurBlockSize1: Long = 0
-      var nCurOffset1: Long = 0
+      assert(arr.length == asn1SizeMax.toInt)
 
-      // get header data
-      var nRemainingItemsVar1: Long = decodeConstrainedWholeNumber(0, 0xFF)
+      var nLengthTmp1: Long = 0
+      // var nCurBlockSize1: Long = 0
+      // var nCurOffset1: Long = 0
+
+      // SAM if guard to check that the number of items is in the bitstream
+      // if(!BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8)) then
+      //    return arr
+      // // get header data
+      // var nRemainingItemsVar1: Long = decodeConstrainedWholeNumber(0, 0xFF)
 
       // 11xx_xxxx header, there is a next fragment
-      (while (nRemainingItemsVar1 & 0xC0) == 0xC0 do
-         decreases(asn1SizeMax - nCurOffset1) // TODO: check experimental decrease
+      val resInnerWhile: (Long, Long) = decodeOctetString_fragmentation_innerWhile(arr, asn1SizeMax, 0)
+      var nRemainingItemsVar1 = resInnerWhile._1
+      var nCurOffset1 = resInnerWhile._2
+      nLengthTmp1 = nCurOffset1 // In the loops containing code, the nLengthTmp1 is updated along with the current offset, so has the same value after the loop
+      if(nRemainingItemsVar1 == -1L || nCurOffset1 == -1L) then
+         return arr
 
-         // get current block size
-         if nRemainingItemsVar1 == 0xC4 then
-            nCurBlockSize1 = 0x10000
-         else if nRemainingItemsVar1 == 0xC3 then
-            nCurBlockSize1 = 0xC000
-         else if nRemainingItemsVar1 == 0xC2 then
-            nCurBlockSize1 = 0x8000
-         else if nRemainingItemsVar1 == 0xC1 then
-            nCurBlockSize1 = 0x4000
-         else
-            assert(false, "unsupported format")
-
-         // fill current payload fragment into dest
-         var i1: Int = nCurOffset1.toInt
-         (while (nCurOffset1 + nCurBlockSize1 <= asn1SizeMax) && (i1 < (nCurOffset1 + nCurBlockSize1).toInt) do
-            decreases((nCurOffset1 + nCurBlockSize1).toInt - i1)
-            arr(i1) = readByte()
-            i1 += 1
-         ).invariant(true) // TODO invariant
-
-         // sum combined length
-         nLengthTmp1 += nCurBlockSize1
-         // set offset for next run
-         nCurOffset1 += nCurBlockSize1
-
-         // get next header
-         nRemainingItemsVar1 = decodeConstrainedWholeNumber(0, 0xFF)
-
-      ).invariant(true) // TODO invariant
-
+      // SAM given the code above in the encode function, this header is written when the number of remaining
+      // elements in <= 0x7F which is 127, and not 255
       // 1000_0000 header, last fragment has size bigger than 255 - current byte is upper, need to get lower
       if (nRemainingItemsVar1 & 0x80) > 0 then
 
          nRemainingItemsVar1 <<= 8 // put upper at correct position
 
+         assert(BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length))
+         // SAM Guard if
+         if(!BitStream.validate_offset_byte(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit)) then
+            return arr
+
+         assert(BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length))
+         ghostExpr(lemmaGetBitCountUnsignedFFEqualsEight())
+         assert(GetBitCountUnsigned(stainless.math.wrapping(0xFF).toRawULong) == 8)
+         assert(BitStream.validate_offset_byte(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit))
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8))
+
          // get size (lower byte)
          nRemainingItemsVar1 |= decodeConstrainedWholeNumber(0, 0xFF) // combine 15bit (7 upper, 8 lower) into size
          nRemainingItemsVar1 &= 0x7FFF // clear the control bit
+
+      // SAM Guard if
+      if(nRemainingItemsVar1 < 0 || nRemainingItemsVar1 > asn1SizeMax || nCurOffset1 > asn1SizeMax - nRemainingItemsVar1 ) then 
+         return arr
 
       assert(nCurOffset1 + nRemainingItemsVar1 <= asn1SizeMax) // TODO check with C implementation and standard
 
       var i1: Int = nCurOffset1.toInt
 
+
+      // This loop is implemented with the same helper function as the inner most loop
       // fill last payload fragment into dest
-      (while i1 < (nCurOffset1 + nRemainingItemsVar1).toInt do
-         decreases((nCurOffset1 + nRemainingItemsVar1).toInt - i1)
-         arr(i1) = readByte()
-         i1 += 1
-      ).invariant(true) // TODO invariant
+      // (while i1 < (nCurOffset1 + nRemainingItemsVar1).toInt do
+      //    decreases((nCurOffset1 + nRemainingItemsVar1).toInt - i1)
+      //    arr(i1) = readByte()
+      //    i1 += 1
+      // ).invariant(true) // TODO invariant
+
+      assert(arr.length == asn1SizeMax.toInt)
+
+      decodeOctetString_fragmentation_innerMostWhile(arr, asn1SizeMax, nCurOffset1.toInt, (nCurOffset1 + nRemainingItemsVar1).toInt)
 
       // add remainingSize to already written size - this var holds the absolut number in all fragments
-      nLengthTmp1 += nRemainingItemsVar1
+      nLengthTmp1 += nRemainingItemsVar1 // which is equal to curOffset + nRemainingItemsVar1
 
-      // resize output array and copy data
-      assert((nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax)) // TODO check with C implementation and standard
+
+      // // resize output array and copy data
+      assert((nLengthTmp1 >= 0) && (nLengthTmp1 <= asn1SizeMax)) 
+      // SAM why do we need the >= 1? We can prove >= 0 though
+      // assert((nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax)) // TODO check with C implementation and standard
 
       val newArr: Array[UByte] = Array.fill(nLengthTmp1.toInt)(0.toRawUByte)
       arrayCopyOffsetLen(arr, newArr, 0, 0, newArr.length)
       newArr
    }
+
+
+   /**
+    * Decodes the fragments until it encounters a header s.t., nRemainingItemsVar1 & 0xC0) != 0xC0
+     * Undefined behaviour if the bitstream is invalid (i.e., not supported format or wrong)
+     * Returns the remaining number of items and the current offset (or (-1, -1) in case of error)
+     *
+     * @param arr
+     * @param asn1SizeMax
+     * @param nRemainingItemsVar1
+     * @param nCurOffset1
+     */
+   def decodeOctetString_fragmentation_innerWhile(arr: Array[UByte], asn1SizeMax: Long, nCurOffset1: Long): (Long, Long) = {
+      require(asn1SizeMax >= 0 && asn1SizeMax < Int.MaxValue)
+      require(arr.length == asn1SizeMax)
+      require(nCurOffset1 >= 0)
+      require(nCurOffset1 <= asn1SizeMax)
+      staticRequire(BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length))
+      decreases(asn1SizeMax - nCurOffset1)
+
+      // Implements the following loop
+      // (while (nRemainingItemsVar1 & 0xC0) == 0xC0 do
+      //    decreases(asn1SizeMax - nCurOffset1) // TODO: check experimental decrease
+
+      //    // get current block size
+      //    if nRemainingItemsVar1 == 0xC4 then
+      //       nCurBlockSize1 = 0x10000
+      //    else if nRemainingItemsVar1 == 0xC3 then
+      //       nCurBlockSize1 = 0xC000
+      //    else if nRemainingItemsVar1 == 0xC2 then
+      //       nCurBlockSize1 = 0x8000
+      //    else if nRemainingItemsVar1 == 0xC1 then
+      //       nCurBlockSize1 = 0x4000
+      //    else
+      //       return arr
+      //       assert(false, "unsupported format")
+
+      //    // fill current payload fragment into dest
+      //    decodeOctetString_fragmentation_innerMostWhile(arr, asn1SizeMax, nCurOffset1, nCurOffset1 + nCurBlockSize1)
+
+      //    // sum combined length
+      //    nLengthTmp1 += nCurBlockSize1
+      //    // set offset for next run
+      //    nCurOffset1 += nCurBlockSize1
+
+      //    // get next header
+      //    nRemainingItemsVar1 = decodeConstrainedWholeNumber(0, 0xFF)
+
+      // ).invariant(true) // TODO invariant
+
+      if(!BitStream.validate_offset_byte(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit)) then
+         return (-1, -1L)
+
+      assert(BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length))
+
+      assert(GetBitCountUnsigned(stainless.math.wrapping(0xFF).toRawULong) == 8)
+      assert(BitStream.validate_offset_byte(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit))
+      assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8))
+      val nRemainingItemsVar1: Long = decodeConstrainedWholeNumber(0, 0xFF)
+
+
+      // get current block size
+      val nCurBlockSize1: Long = if nRemainingItemsVar1 == 0xC4 then
+         0x10000
+      else if nRemainingItemsVar1 == 0xC3 then
+         0xC000
+      else if nRemainingItemsVar1 == 0xC2 then
+         0x8000
+      else if nRemainingItemsVar1 == 0xC1 then
+         0x4000
+      else if (nRemainingItemsVar1 & 0xC0) != 0xC0 then
+         // End of the recursion, out with valid values
+         1L
+      else
+         // unsupported format
+         -1L
+         // assert(false, "unsupported format")
+      
+      if nCurBlockSize1 == -1L then
+         return (-1, -1L)
+      
+      if nCurBlockSize1 == 1L then
+         return (nRemainingItemsVar1, nCurOffset1)
+
+      if(nCurOffset1 > (asn1SizeMax.toLong - nCurBlockSize1)) then
+         return (-1, -1L)
+            
+      assert(arr.length == asn1SizeMax.toInt)
+      decodeOctetString_fragmentation_innerMostWhile(arr, asn1SizeMax, nCurOffset1.toInt, nCurOffset1.toInt + nCurBlockSize1.toInt)
+
+      // sum combined length
+      // nLengthTmp1 += nCurBlockSize1
+      // val newNLengthTmp1 = nLengthTmp1 + nCurBlockSize1
+      // set offset for next run
+      // nCurOffset1 += nCurBlockSize1
+      val newNCurOffset1 = nCurOffset1 + nCurBlockSize1
+
+      // get next header
+      // nRemainingItemsVar1 = decodeConstrainedWholeNumber(0, 0xFF)
+
+      assert(arr.length == asn1SizeMax.toInt)
+      decodeOctetString_fragmentation_innerWhile(arr, asn1SizeMax, newNCurOffset1)
+
+   } ensuring(res => 
+      (res._2 >= 0 && res._2 <= asn1SizeMax || res == (-1L, -1L)) &&
+      BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length) &&
+      old(this).bitStream.buf.length == bitStream.buf.length &&
+      arr.length == asn1SizeMax.toInt &&
+      old(arr).length == arr.length
+      ) 
+
+   /**
+     * Read bytes from bitstream, and write them in the array, starting at from and to to index. 
+     * If the bitstream is invalid, abort.
+     *
+     * @param arr
+     * @param asn1SizeMax
+     * @param from
+     * @param to
+     * @return
+     */
+   def decodeOctetString_fragmentation_innerMostWhile(arr: Array[UByte], asn1SizeMax: Long, from: Int, to: Int): Unit = {
+      require(asn1SizeMax >= 0 && asn1SizeMax < Int.MaxValue)
+      require(from >= 0)
+      require(to >= 0)
+      require(to >= from)
+      require(arr.length == asn1SizeMax.toInt)
+      staticRequire(BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length))
+      decreases(to - from)
+
+      // Implements the following loop
+       //    var i1: Int = nCurOffset1.toInt
+      //    (while (nCurOffset1 + nCurBlockSize1 <= asn1SizeMax) && (i1 < (nCurOffset1 + nCurBlockSize1).toInt) do
+      //       decreases((nCurOffset1 + nCurBlockSize1).toInt - i1)
+      //       arr(i1) = readByte()
+      //       i1 += 1
+      //    ).invariant(true) // TODO invariant
+
+      if(from >= to) then
+         return
+      // SAM guard ifs
+      if(from >= asn1SizeMax) then
+         return
+      if(!BitStream.validate_offset_byte(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit)) then
+         return
+      val nextByte = readByte()
+      arr(from) = nextByte
+      decodeOctetString_fragmentation_innerMostWhile(arr, asn1SizeMax, from + 1, to)
+      ()
+      
+   } ensuring(_ => 
+      old(this).buf.length == bitStream.buf.length && 
+      arr.length == asn1SizeMax.toInt &&
+      BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length) &&
+      old(this).bitStream.buf.length == bitStream.buf.length &&
+      old(arr).length == arr.length
+      )
 
    def encodeOctetString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long) = {
       require(nCount >= asn1SizeMin && nCount <= asn1SizeMax)
