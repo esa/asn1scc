@@ -386,6 +386,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     * Remarks:
     * If the decoded data does not fulfill the range condition
     * this method will fail.
+    * SAM Changed to cap the value to the max/min value, so that the post condition holds
     *
    */
    def decodeConstrainedWholeNumber(min: Long, max: Long): Long = {
@@ -408,8 +409,17 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
          // assert(min + decVal <= max) // TODO: Invalid
 
-         stainless.math.wrapping(min + decVal) // TODO: Overflows but seems fine?
-   }
+         val res = stainless.math.wrapping(min + decVal) // TODO: Overflows but seems fine?
+         if res > max then
+            max
+         else if res < min then
+            min
+         else
+            res
+   } ensuring( res => 
+      res >= min && res <= max &&
+      BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length)
+   )
 
    @ghost @pure
    def decodeConstrainedWholeNumberPure(min: Long, max: Long): (Codec, Long) = {
@@ -1464,7 +1474,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       val newArr: Array[UByte] = Array.fill(nLengthTmp1.toInt)(0.toRawUByte)
       arrayCopyOffsetLen(arr, newArr, 0, 0, newArr.length)
       newArr
-   }
+   } ensuring(_ => BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length))
 
 
    /**
@@ -1625,7 +1635,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
    def encodeOctetString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long) = {
       require(asn1SizeMin >= 0)
-      require(asn1SizeMax >= 0)
+      require(asn1SizeMax >= 0 && asn1SizeMax < Int.MaxValue) // to match the decodeOctetString_fragmentation spec
       require(asn1SizeMin <= asn1SizeMax)
       require(arr.length >= nCount)
       require(nCount >= asn1SizeMin && nCount <= asn1SizeMax)
@@ -1650,22 +1660,46 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    }
 
    def decodeOctetString(asn1SizeMin: Long, asn1SizeMax: Long): Array[UByte] = {
+      require(asn1SizeMin >= 0)
+      require(asn1SizeMax >= 0 && asn1SizeMax < Int.MaxValue)
+      require(asn1SizeMin <= asn1SizeMax)
 
       if asn1SizeMax >= 0x1_00_00 then // 65'536, bigger than 2 unsigned bytes
          return decodeOctetString_fragmentation(asn1SizeMax)
 
       var nCount: Int = 0
       if asn1SizeMin != asn1SizeMax then
+         // SAM guard if
+         assert(BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length))
+         if(!BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, GetBitCountUnsigned(stainless.math.wrapping(asn1SizeMax - asn1SizeMin).toRawULong))) then
+            return Array.empty
          nCount = decodeConstrainedWholeNumber(asn1SizeMin, asn1SizeMax).toInt
       else
          nCount = asn1SizeMin.toInt
 
       assert(nCount >= asn1SizeMin && nCount <= asn1SizeMax) // TODO check with C implementation and standard
 
+      assert(BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length))
+      if(!BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount)) then 
+         return Array.empty
       decodeOctetString_no_length(nCount)
    }
 
    def encodeBitString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Unit = {
+      require(asn1SizeMin >= 0)
+      require(asn1SizeMax >= 0)
+      require(asn1SizeMin <= asn1SizeMax)
+      require(arr.length >= nCount)
+      require(nCount <= asn1SizeMax)
+      require(nCount >= 0)
+      require(asn1SizeMax < Int.MaxValue)
+      require(nCount >= asn1SizeMin) // TODO SAM check
+      require(arr.length >= 0)
+      require(
+         if(asn1SizeMax < 65536 && asn1SizeMin != asn1SizeMax) then BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, GetBitCountUnsigned(stainless.math.wrapping(asn1SizeMax - asn1SizeMin).toRawULong) + nCount)
+         else if(asn1SizeMax < 65536) then BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nCount )
+         else true
+      )
       if asn1SizeMax < 65536 then
          if asn1SizeMin != asn1SizeMax then
             encodeConstrainedWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
