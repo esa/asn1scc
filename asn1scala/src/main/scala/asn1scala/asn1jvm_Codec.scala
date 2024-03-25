@@ -1624,11 +1624,25 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       )
 
    def encodeOctetString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long) = {
+      require(asn1SizeMin >= 0)
+      require(asn1SizeMax >= 0)
+      require(asn1SizeMin <= asn1SizeMax)
+      require(arr.length >= nCount)
       require(nCount >= asn1SizeMin && nCount <= asn1SizeMax)
+      require(nCount < Int.MaxValue - GetBitCountUnsigned(stainless.math.wrapping(asn1SizeMax - asn1SizeMin).toRawULong))
+      require(nCount < Int.MaxValue - 2 - 8 * (nCount / 0x4000))
+      require(nCount + (nCount / 0x4000) < Int.MaxValue / 8 - 2)
+      require(
+         if(asn1SizeMax < 65536) then
+            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nCount + GetBitCountUnsigned(stainless.math.wrapping(asn1SizeMax - asn1SizeMin).toRawULong))
+         else
+            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nCount + 8 * (nCount / 0x4000) + 2)
+         )
 
       if asn1SizeMax < 65536 then
          if asn1SizeMin != asn1SizeMax then
             encodeConstrainedWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
+            assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nCount))
          encodeOctetString_no_length(arr, nCount)
 
       else
