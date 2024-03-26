@@ -551,7 +551,7 @@ object BitStream {
             assert(BitStream.invariant(bsFinal1.currentBit, bsFinal1.currentByte, bsFinal1.buf.length))
             assert(bsFinal2PureBitIndex == BitStream.bitIndex(bsFinal2.buf.length, bsFinal2.currentByte, bsFinal2.currentBit ))
             assert(BitStream.bitIndex(bsFinal1.buf.length, bsFinal1.currentByte, bsFinal1.currentBit ) == bsFinal1PureBitIndex)
-            assert(BitStream.bitIndex(bsFinal1.buf.length, bsFinal1.currentByte, bsFinal1.currentBit ) == BitStream.bitIndex(bsFinal2.buf.length, bsFinal2.currentByte, bsFinal2.currentBit ))
+            assert(BitStream.bitIndex(bsFinal1.buf.length, bsFinal1.currentByte, bsFinal1.currentBit ) == BitStream.bitIndex(bsFinal2.buf.length, bsFinal2.currentByte, bsFinal2.currentBit )) // 200sec!!!
             check(BitStream.bitIndex(bsFinal1.buf.length, bsFinal1.currentByte, bsFinal1.currentBit ) == BitStream.bitIndex(bsFinal2.buf.length, bsFinal2.currentByte, bsFinal2.currentBit ))
          }
       }.ensuring { _ =>
