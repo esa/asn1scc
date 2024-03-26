@@ -1074,28 +1074,33 @@ case class BitStream private [asn1scala](
     *
     * @param srcBuffer source of the bits to add
     * @param nBits number of bits to add
+    * @param from start index in srcBuffer (in bits index, not UByte!!)
     *
     * Remarks:
     * bit 0 is the MSB of the first byte of srcBuffer
     *
     */
-   def appendBitsMSBFirst(srcBuffer: Array[UByte], nBits: Long): Unit = {
-      require(nBits >= 0 && nBits <= srcBuffer.length.toLong * 8L)
+   def appendBitsMSBFirst(srcBuffer: Array[UByte], nBits: Long, from: Long = 0): Unit = {
+      require(nBits >= 0)
+      require(from >= 0)
+      require(from < Long.MaxValue - nBits)
+      require(nBits + from <= srcBuffer.length.toLong * 8L)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
 
       @ghost val oldThis = snapshot(this)
-      var i = 0L
-      (while i < nBits do
-         decreases(nBits - i)
+      var i = from // from
+      val to = from + nBits
+      (while i < to do
+         decreases(to - i)
 
          appendBitFromByte(srcBuffer((i / NO_OF_BITS_IN_BYTE).toInt).toRaw, (i % NO_OF_BITS_IN_BYTE).toInt)
 
          i += 1L
-      ).invariant(i >= 0 &&& i <= nBits &&& i / NO_OF_BITS_IN_BYTE <= Int.MaxValue &&&
+      ).invariant(i >= from &&& i <= to &&& i / NO_OF_BITS_IN_BYTE <= Int.MaxValue &&&
          buf.length == oldThis.buf.length &&&
-         BitStream.remainingBits(buf.length.toLong, currentByte.toLong, currentBit.toLong) == BitStream.remainingBits(oldThis.buf.length.toLong, oldThis.currentByte.toLong, oldThis.currentBit.toLong) - i &&&
-         BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(oldThis.buf.length, oldThis.currentByte, oldThis.currentBit ) + i &&&
-         BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits - i))
+         BitStream.remainingBits(buf.length.toLong, currentByte.toLong, currentBit.toLong) == BitStream.remainingBits(oldThis.buf.length.toLong, oldThis.currentByte.toLong, oldThis.currentBit.toLong) - (i - from) &&&
+         BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(oldThis.buf.length, oldThis.currentByte, oldThis.currentBit ) + (i - from) &&&
+         BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, to - i))
 
    }.ensuring(_ => buf.length == old(this).buf.length && BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) + nBits)
 

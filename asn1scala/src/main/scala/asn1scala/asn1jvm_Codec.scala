@@ -8,6 +8,7 @@ import stainless.proof.*
 import stainless.math.*
 import StaticChecks.{require as staticRequire, _}
 import scala.annotation.static
+import scala.annotation.newMain
 
 val masks2: Array[Int] = Array(
    0x00000000, //         0 / 0000 0000 0000 0000 0000 0000 0000 0000 / 0x0000 0000
@@ -1686,13 +1687,14 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       require(nCount <= asn1SizeMax)
       require(nCount >= 0)
       require(asn1SizeMax < Int.MaxValue)
+      require(asn1SizeMax < Int.MaxValue - 8*(asn1SizeMax / 0x4000) - 16)
       require(nCount >= asn1SizeMin) // TODO SAM check
       require(arr.length >= 0)
       require(
          if(asn1SizeMax < 65536 && asn1SizeMin != asn1SizeMax) then BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, GetBitCountUnsigned(stainless.math.wrapping(asn1SizeMax - asn1SizeMin).toRawULong) + nCount)
          else if(asn1SizeMax < 65536) then BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nCount )
-         else true
-      )
+         else BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nCount + 8 * (nCount / 0x4000) + 16 )
+         )
       if asn1SizeMax < 65536 then
          if asn1SizeMin != asn1SizeMax then
             encodeConstrainedWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
@@ -1704,24 +1706,36 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          var nCurBlockSize1: Long = 0
          var nCurOffset1: Long = 0
         
-         val res = encodeBitString_while(nCount, asn1SizeMin, asn1SizeMax, nRemainingItemsVar1, nCurOffset1, BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit))
+         val res = encodeBitString_while(arr, nCount, asn1SizeMin, asn1SizeMax, nRemainingItemsVar1, nCurOffset1, BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit))
+         nRemainingItemsVar1 = res._1
+         nCurOffset1 = res._2
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nRemainingItemsVar1 + 16))
          if nRemainingItemsVar1 <= 0x7F then
+            ghostExpr(lemmaGetBitCountUnsignedFFEqualsEight())
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8))
             encodeConstrainedWholeNumber(nRemainingItemsVar1, 0, 0xFF)
          else
+            ghostExpr(lemmaGetBitCountUnsigned7FFFEquals15())
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 16))
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 1))
             appendBit(true)
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 15))
             encodeConstrainedWholeNumber(nRemainingItemsVar1, 0, 0x7FFF)
 
-         val t: Array[UByte] = Array.fill(nRemainingItemsVar1.toInt)(0.toRawUByte) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nRemainingItemsVar1.toInt)
-         appendBitsMSBFirst(t, nRemainingItemsVar1.toInt)
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nRemainingItemsVar1))
+
+         // val t: Array[UByte] = Array.fill(nRemainingItemsVar1.toInt)(0.toRawUByte) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nRemainingItemsVar1.toInt)
+         appendBitsMSBFirst(arr, nRemainingItemsVar1.toInt, nCurOffset1.toInt)
    }
 
-   def encodeBitString_while(nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long, nRemainingItemsVar1: Long, nCurOffset1: Long, bitIndex: Long): (Long, Long) = {
+   def encodeBitString_while(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long, nRemainingItemsVar1: Long, nCurOffset1: Long, bitIndex: Long): (Long, Long) = {
       require(asn1SizeMin >= 0)
       require(asn1SizeMax >= 0)
       require(asn1SizeMin <= asn1SizeMax)
       require(nCount <= asn1SizeMax)
       require(nCount >= 0)
       require(nCount >= asn1SizeMin) // TODO SAM check
+      require(nCount <= arr.length)
       require(asn1SizeMax < Int.MaxValue)
       require(nRemainingItemsVar1 >= 0)
       require(nCurOffset1 >= 0)
@@ -1729,8 +1743,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       require(bitIndex == BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit))
       require(nCount < Int.MaxValue - 8*(nCount / 0x4000) - 16)
       staticRequire(BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length))
-      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nCount + 8*(nCount / 0x4000) + 16))
-      // )
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nRemainingItemsVar1 + 8*(nRemainingItemsVar1 / 0x4000) + 16))
 
       
       decreases(nCount - nCurOffset1)
@@ -1774,17 +1787,29 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
          assert(bitIndexAfterHeader == bitIndexBeforeHeader + 8)
 
-         // SAM seems wrong to me, as it copies only 0s in the buffer
-         val t: Array[UByte] = Array.fill(nCurBlockSize1.toInt)(0.toRawUByte) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nCurBlockSize1.toInt)
-         appendBitsMSBFirst(t, nCurBlockSize1.toInt)
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nRemainingItemsVar1 + 8*(nRemainingItemsVar1 / 0x4000) + 16 - 8))
+
+         // val t: Array[UByte] = Array.fill(nCurBlockSize1.toInt)(0.toRawUByte) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nCurBlockSize1.toInt)
+         appendBitsMSBFirst(arr, nCurBlockSize1.toInt, nCurOffset1.toInt)
          val newOffset = nCurOffset1 + nCurBlockSize1
          val newRemaingItems = nRemainingItemsVar1 -  nCurBlockSize1
 
+         @ghost val currentBitAfterAppending = bitStream.currentBit
+         @ghost val currentByteAfterAppending = bitStream.currentByte
          val newBitIndex = BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit)
-         encodeBitString_while(nCount, asn1SizeMin, asn1SizeMax, newRemaingItems, newOffset, newBitIndex)
+
+         assert(newBitIndex == bitIndexAfterHeader + nCurBlockSize1)
+         assert(newRemaingItems == nRemainingItemsVar1 - nCurBlockSize1)
+         assert(newOffset == nCurOffset1 + nCurBlockSize1)
+
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nRemainingItemsVar1 + 8*(nRemainingItemsVar1 / 0x4000) + 16 - nCurBlockSize1 - 8)) // REALLY SLOW : > 160sec
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, newRemaingItems + 8*(newRemaingItems / 0x4000) + 16))
+         
+         encodeBitString_while(arr, nCount, asn1SizeMin, asn1SizeMax, newRemaingItems, newOffset, newBitIndex)
    } ensuring (res => 
       BitStream.invariant(bitStream.currentBit, bitStream.currentByte, bitStream.buf.length) &&
-      BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) <= bitIndex + (nRemainingItemsVar1 / 0x4000) * 8 + nRemainingItemsVar1 - res._1 &&
+      // BitStream.bitIndex(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit ) <= bitIndex + (nRemainingItemsVar1 / 0x4000) * 8 + nRemainingItemsVar1 - res._1 &&
+      BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, res._1 + 16) &&
       res._1 + res._2 == nCount &&
       res._1 >= 0 &&
       res._2 >= 0 &&
