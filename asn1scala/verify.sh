@@ -6,10 +6,25 @@ src/main/scala/asn1scala/asn1jvm_Codec.scala \
 --config-file=stainless.conf \
 -D-parallel=8 \
 --watch \
---functions=\
-encodeOctetString_fragmentation_innerMostWhile,\
-encodeOctetString_fragmentation_innerWhile,\
-encodeOctetString_fragmentation,\
+#--functions=\
+#encodeOctetString,\
+#encodeOctetString_fragmentation,\
+#encodeOctetString_fragmentation_innerMostWhile,\
+#encodeOctetString_fragmentation_innerWhile,\
+#decodeBitString_while,\
+#encodeOctetString_no_length,\
+#decodeBitString,\
+#encodeBitString,\
+#encodeBitString_while,\
+#decodeOctetString,\
+#decodeConstrainedWholeNumber,\
+#decodeOctetString,\
+#decodeOctetString_fragmentation_innerMostWhile,\
+#decodeOctetString_fragmentation_innerWhile,\
+#decodeOctetString_fragmentation,\
+#decodeRealFromBitStream,\
+#encodeOctetString_fragmentation_innerWhile,\
+#lemmaValidateOffsetBitsBytesEquiv,\
 #appendNBits,\
 #ByteStream_Init,\
 #runtimeAssert,\
@@ -49,14 +64,15 @@ encodeOctetString_fragmentation,\
 #encodeRealBitString,\
 #decodeReal,\
 #decodeRealBitString,\
-#decodeRealFromBitStream,\
+#encodeOctetString,\
 #encodeOctetString_no_length,\
 #decodeOctetString_no_length,\
 #encodeOctetString_fragmentation,\
-#encodeOctetString_fragmentation_innerMostWhile,\
-#decodeOctetString_fragmentation,\
-#encodeOctetString,\
-#decodeOctetString,\
+#lemmaAdvanceBitIndexLessMaintainOffset,\
+#lemmaGetBitCountUnsigned7FFFEquals15,\
+#lemmaGetBitCountUnsignedFFEqualsEight,\
 #encodeBitString,\
+#encodeBitString_while,\
+#decodeOctetString,\
 #decodeBitString,\
 $1

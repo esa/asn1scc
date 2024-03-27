@@ -1420,7 +1420,12 @@ case class BitStream private [asn1scala](
       val arr: Array[Byte] = Array.fill(arrLen)(0 : Byte)
       readBitsLoop(nBits, arr, 0, arrLen)
       UByte.fromArrayRaws(arr)
-   } ensuring(_ => BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) +  ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt  == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit ) && BitStream.invariant(this.currentBit, this.currentByte, this.buf.length))// && old(this).currentByte <= this.currentByte)
+   } ensuring(res => 
+      BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) +  ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt  == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit ) && 
+      BitStream.invariant(this.currentBit, this.currentByte, this.buf.length) && 
+      res.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
+   
+   )// && old(this).currentByte <= this.currentByte)
 
    def readBitsLoop(nBits: Long, arr: Array[Byte], from: Long, to: Long): Unit = {
       require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
