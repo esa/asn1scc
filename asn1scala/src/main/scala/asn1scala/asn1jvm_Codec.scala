@@ -1479,8 +1479,10 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
       // // resize output array and copy data
       assert((nLengthTmp1 >= 0) && (nLengthTmp1 <= asn1SizeMax)) 
-      // SAM why do we need the >= 1? We can prove >= 0 though
       // assert((nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax)) // TODO check with C implementation and standard
+      // SAM according to the C implementation, if the nLengthTmp1 == 0, it should fail, so 
+      if(nLengthTmp1 == 0) then
+         return Array.empty
 
       val newArr: Array[UByte] = Array.fill(nLengthTmp1.toInt)(0.toRawUByte)
       arrayCopyOffsetLen(arr, newArr, 0, 0, newArr.length)
@@ -1902,6 +1904,9 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       // Same as in decodeOctetString, we can only prove >= 0, not >= 1; at least not without assuming things about the buffer
       // assert((nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax))
       assert((nLengthTmp1 >= 0) && (nLengthTmp1 <= asn1SizeMax))
+      // SAM same here, according to C implementation it should fail if nLengthTmp1 == 0
+      if(nLengthTmp1 == 0) then
+         return Array.empty
 
       arr
    }

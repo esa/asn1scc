@@ -5,13 +5,20 @@ import stainless.lang.StaticChecks._
 import stainless.lang.{None => None, Option => Option, Some => Some, _}
 import stainless.annotation._
 
+
+// SAM Ignored for safety verification
+
 /**
  * Get an instance of a UPER coded bitstream
  * @param count of elements in underlaying buffer
  * @return UPER coded bitstream
  */
 def initUPERCodec(count: Int): UPER = {
-   UPER(Codec(BitStream(Array.fill(count)(0))))
+   //SAM guard to ensure the property
+   if count <= 0 then
+      UPER(Codec(BitStream(Array.fill(0)(0))))
+   else
+      UPER(Codec(BitStream(Array.fill(count)(0))))  
 }
 object UPER {
    @ghost @pure
@@ -25,7 +32,6 @@ case class UPER private [asn1scala](base: Codec) {
    import BitStream.*
    import UPER.*
    import base.*
-   export base.{isPrefixOf => _, withMovedBitIndex => _, withMovedByteIndex => _, *}
 
    @ghost @pure @inline
    def resetAt(other: UPER): UPER = {

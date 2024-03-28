@@ -3,6 +3,7 @@ package asn1scala
 import stainless.lang.StaticChecks._
 import stainless.annotation._
 
+// SAM ignored for the safety checks
 /**
  * Get an instance of a PER coded bitstream
  * @param count of elements in underlying buffer
