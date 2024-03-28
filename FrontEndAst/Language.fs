@@ -74,6 +74,7 @@ type SequenceChildProps = {
     acnMaxOffset: bigint // TODO: Needed?
     typeInfo: TypeInfo
 } with
+
     member this.maxOffset (enc: Asn1Encoding): bigint =
         match enc with
         | ACN -> this.acnMaxOffset
@@ -86,9 +87,18 @@ type SequenceProofGen = {
     nestingLevel: int
     uperMaxOffset: bigint
     acnMaxOffset: bigint
+    acnSiblingMaxSize: bigint option
+    uperSiblingMaxSize: bigint option
     children: SequenceChildProps list
 } with
     // TODO: What about padding?
+
+    member this.siblingMaxSize (enc: Asn1Encoding): bigint option =
+        match enc with
+        | ACN -> this.acnSiblingMaxSize
+        | UPER -> this.uperSiblingMaxSize
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+
     member this.maxSize (enc: Asn1Encoding): BigInteger =
         this.children |> List.map (fun c -> c.typeInfo.maxSize enc) |> List.sum
 

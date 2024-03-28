@@ -154,7 +154,7 @@ end if;
 MFen(soMF, soMFM, p) /*nogen*/ ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
 
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
 --align to next <sAlignmentValue>
 if (bs.Current_Bit_Pos mod <nAlignmentValue>) /= 0 then
     bs.Current_Bit_Pos := bs.Current_Bit_Pos + (<nAlignmentValue> - (bs.Current_Bit_Pos mod <nAlignmentValue>));
@@ -163,7 +163,7 @@ end if;
 >>
 
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
 --align to next <sAlignmentValue>
 if (bs.Current_Bit_Pos mod <nAlignmentValue>) /= 0 then
     bs.Current_Bit_Pos := bs.Current_Bit_Pos + (<nAlignmentValue> - (bs.Current_Bit_Pos mod <nAlignmentValue>));
@@ -1512,4 +1512,3 @@ begin
     <endif>
 end;
 >>
-

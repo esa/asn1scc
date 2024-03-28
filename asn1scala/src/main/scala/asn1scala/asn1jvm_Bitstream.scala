@@ -99,19 +99,19 @@ object BitStream {
       require(BitStream.bitIndex(b1.buf.length, b1.currentByte, b1.currentBit ) == BitStream.bitIndex(b2.buf.length, b2.currentByte, b2.currentBit ))
    }.ensuring(_ => b1 == b2)
 
-   // @ghost @pure @opaque @inlineOnce
-   // def validateOffsetBitsIneqLemma(b1: BitStream, b2: BitStream, b1ValidateOffsetBits: Long, advancedAtMostBits: Long): Unit = {
-   //    require(0 <= advancedAtMostBits && advancedAtMostBits <= b1ValidateOffsetBits)
-   //    require(b1.buf.length == b2.buf.length)
-   //    require(b1.validate_offset_bits(b1ValidateOffsetBits))
-   //    require(BitStream.bitIndex(b2.buf.length, b2.currentByte, b2.currentBit ) <= BitStream.bitIndex(b1.buf.length, b1.currentByte, b1.currentBit ) + advancedAtMostBits)
+   @ghost @pure @opaque @inlineOnce
+   def validateOffsetBitsIneqLemma(b1: BitStream, b2: BitStream, b1ValidateOffsetBits: Long, advancedAtMostBits: Long): Unit = {
+      require(0 <= advancedAtMostBits && advancedAtMostBits <= b1ValidateOffsetBits)
+      require(b1.buf.length == b2.buf.length)
+      require(BitStream.validate_offset_bits(b1.buf.length.toLong, b1.currentByte.toLong, b1.currentBit.toLong, b1ValidateOffsetBits))
+      require(BitStream.bitIndex(b2.buf.length, b2.currentByte, b2.currentBit) <= BitStream.bitIndex(b1.buf.length, b1.currentByte, b1.currentBit) + advancedAtMostBits)
 
-   //    assert(b1.remainingBits >= b1ValidateOffsetBits)
-   //    assert((b1.buf.length.toLong * NO_OF_BITS_IN_BYTE) - (b1.currentByte.toLong * NO_OF_BITS_IN_BYTE + b1.currentBit) >= b1ValidateOffsetBits)
-   //    assert(b2.currentByte.toLong * NO_OF_BITS_IN_BYTE + b2.currentBit <= b1.currentByte.toLong * NO_OF_BITS_IN_BYTE + b1.currentBit + advancedAtMostBits)
-   //    assert((b1.buf.length.toLong * NO_OF_BITS_IN_BYTE) - (b2.currentByte.toLong * NO_OF_BITS_IN_BYTE + b2.currentBit) >= b1ValidateOffsetBits - advancedAtMostBits) // TIMEOUT
-   //    assert(b2.remainingBits >= b1ValidateOffsetBits - advancedAtMostBits)
-   // }.ensuring(_ => b2.validate_offset_bits(b1ValidateOffsetBits - advancedAtMostBits))
+      assert(BitStream.remainingBits(b1.buf.length, b1.currentByte, b1.currentBit) >= b1ValidateOffsetBits)
+      assert((b1.buf.length.toLong * NO_OF_BITS_IN_BYTE) - (b1.currentByte.toLong * NO_OF_BITS_IN_BYTE + b1.currentBit) >= b1ValidateOffsetBits)
+      assert(b2.currentByte.toLong * NO_OF_BITS_IN_BYTE + b2.currentBit <= b1.currentByte.toLong * NO_OF_BITS_IN_BYTE + b1.currentBit + advancedAtMostBits)
+      assert((b1.buf.length.toLong * NO_OF_BITS_IN_BYTE) - (b2.currentByte.toLong * NO_OF_BITS_IN_BYTE + b2.currentBit) >= b1ValidateOffsetBits - advancedAtMostBits)
+      assert(BitStream.remainingBits(b2.buf.length, b2.currentByte, b2.currentBit) >= b1ValidateOffsetBits - advancedAtMostBits)
+   }.ensuring(_ => BitStream.validate_offset_bits(b2.buf.length.toLong, b2.currentByte.toLong, b2.currentBit.toLong, b1ValidateOffsetBits - advancedAtMostBits))
 
    @ghost @pure @opaque @inlineOnce
    def validateOffsetBitsDifferenceLemma(b1: BitStream, b2: BitStream, b1ValidateOffsetBits: Long, b1b2Diff: Long): Unit = {
@@ -1518,7 +1518,7 @@ case class BitStream private [asn1scala](
       require(nBits >= 0 && nBits <= 64)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
       readNLeastSignificantBitsLoop(nBits, 0, 0L)
-   }
+   }.ensuring(_ => buf == old(this).buf && BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) == BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits)
 
    @ghost @pure
    def readNLeastSignificantBitsPure(nBits: Int): (BitStream, Long) = {
@@ -1806,7 +1806,7 @@ case class BitStream private [asn1scala](
       if currentBit != 0 then
          currentBit = 0
          currentByte += 1
-   }
+   }.ensuring(_ => BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) <= BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + 7)
 
    @pure @ghost
    def withAlignedByte(): BitStream = {

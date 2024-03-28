@@ -67,6 +67,7 @@ type Expr =
   | Var of Var
   | Block of Expr list
   | Ghost of Expr
+  | Locally of Expr
   | AppliedLemma of AppliedLemma
   | Snapshot of Expr // TODO: Peut-être restreindre à des selection
   | Let of Let
@@ -135,8 +136,8 @@ let selBase (recv: Expr): Expr = FieldSelect (recv, "base")
 let selBitStream (recv: Expr): Expr = FieldSelect (selBase recv, "bitStream")
 let selBuf (recv: Expr): Expr = FieldSelect (selBase recv, "buf")
 let selBufLength (recv: Expr): Expr =  ArrayLength (selBuf recv)
-let selCurrentByte (recv: Expr): Expr =  FieldSelect (selBuf recv, "currentByte")
-let selCurrentBit (recv: Expr): Expr =  FieldSelect (selBuf recv, "currentBit")
+let selCurrentByte (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentByte")
+let selCurrentBit (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentBit")
 let callBitIndex (recv: Expr): Expr = BitStreamFunctionCall { fn = BitIndex; args = [selBufLength recv; selCurrentByte recv; selCurrentBit recv] }
 
 
@@ -208,7 +209,7 @@ let rtFnCall (fn: RTFunction): string =
 
 let bsFnCall (fn: BitStreamFunction): string =
   match fn with
-  | BitIndex -> "bitIndex"
+  | BitIndex -> "BitStream.bitIndex"
 
 //////////////////////////////////////////////////////////
 
@@ -242,19 +243,18 @@ let noBracesSub (e: Expr): Expr list =
   | LetGhost l -> [l.body]
   // | Ghost (Block stmts) -> stmts
   | Ghost e -> [e]
+  | Locally e -> [e]
   | Assert (_, body) -> [body]
   | _ -> []
 
 let requiresBraces (e: Expr) (within: Expr option): bool =
   match within with
   | _ when isSimpleExpr e -> false
-  | Some(Ghost _) -> false
+  | Some(Ghost _ | Locally _) -> false
   | Some(within) when List.contains e (noBracesSub within) -> false
   | Some(_) ->
     // TODO: FIXME: TEMPORARY
     false
-    // printfn "AAAAAA %A\n%A\n=========" e within
-    // true
   | _ -> false
 
 let joined (ctx: PrintCtx) (lines: Line list) (sep: string): Line =
@@ -306,19 +306,15 @@ and joinCallLike (ctx: PrintCtx) (prefix: Line list) (argss: Line list list): Li
         (List.initial args) @ [{last with txt = last.txt + ", "}]
     )) @ (List.last argss)) |> List.map (fun l -> l.inc)
     (join ctx "(" prefix args) @ [{lvl = ctx.lvl; txt = ")"}]
-    // [{lvl = ctx.lvl; txt = $"{prefix}("}] @ args @ [{lvl = ctx.lvl; txt = ")"}]
   else
     join ctx "(" prefix [{lvl = ctx.lvl; txt = ((List.concat argss) |> List.map (fun l -> l.txt)).StrJoin ", " + ")"}]
-    // [{lvl = ctx.lvl; txt = $"""{prefix}({(List.concat argss).StrJoin ", "})"""}]
 
 and ppLet (ctx: PrintCtx) (theLet: Expr) (lt: Let) (annot: string list): Line list =
   let e2 = pp (ctx.nest theLet) lt.e
   let body = pp (ctx.nest theLet) lt.body
   let annot = if annot.IsEmpty then "" else (annot.StrJoin " ") + " "
-  let aaa = (prepend ctx $"{annot}val {lt.bdg.name} = " e2)
-  // printfn "%A" aaa
-  // printfn "%A" body
-  aaa @ body
+  let prepended = (prepend ctx $"{annot}val {lt.bdg.name} = " e2)
+  prepended @ body
 
 and ppMatchExpr (ctx: PrintCtx) (mexpr: MatchExpr): Line list =
   let rec ppPattern (pat: Pattern): string =
@@ -350,6 +346,9 @@ and ppBody (ctx: PrintCtx) (e: Expr): Line list =
 
   | Ghost e2 ->
     [line "ghostExpr {"] @ (pp (ctx.inc.nest e) e2) @ [line "}"]
+
+  | Locally e2 ->
+    [line "locally {"] @ (pp (ctx.inc.nest e) e2) @ [line "}"]
 
   | AppliedLemma app ->
     let args = app.args |> List.map (pp (ctx.nest e))

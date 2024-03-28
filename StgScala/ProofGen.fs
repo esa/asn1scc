@@ -5,9 +5,6 @@ open FsUtils
 open CommonTypes
 open Language
 
-
-// TODO: Gag, est si l'un des codec manque?
-
 let generateTransitiveLemmaApp (snapshots: Var list) (codec: Var): Expr =
   assert (snapshots.Length >= 2)
 
@@ -54,7 +51,7 @@ let generateReadPrefixLemmaApp (snapshots: Var list) (children: TypeInfo list) (
 
   List.zip3 (List.skipLast 1 snapshots) snapshots.Tail (List.skipLast 1 children) |> List.map mkLemma |> Block
 
-let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (rest: Expr): Expr =
+let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc: Var) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (rest: Expr): Expr =
   let nbChildren = pg.children.Length
   assert (snapshots.Length = nbChildren)
   assert (stmts.Length = nbChildren)
@@ -78,47 +75,49 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (stmts:
     assertionsConditions tpe |> Option.map (fun cond -> Assert (cond, mkBlock exprs))
                              |> Option.defaultValue (mkBlock exprs)
 
-  let extraLemmas (sel: string option) (snap: Var) (tpe: TypeEncodingKind option) (offset: bigint) (sz: bigint): Expr list =
-    match tpe with
-    | Some (OptionEncodingType _) when codec = Encode ->
-      assert sel.IsSome
-      let scrut = SelectionExpr sel.Value
-      let somePat = ADTPattern {binder = None; id = "SomeMut"; subPatterns = [Wildcard None]}
-      let someCase = {pattern = somePat; rhs = mkBlock []}
-      let nonePat = ADTPattern {binder = None; id = "NoneMut"; subPatterns = []}
-      // let buf = selBuf (Var snap)
-      let noneRhs = [
-        // AppliedLemma {lemma = ValidReflexiveLemma; args = [selBitStream (Var snap)]};
-        Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var snapshots.Head)), (IntLit offset))), Block [])
-        // AppliedLemma {lemma = ArrayBitRangesEqReflexiveLemma; args = [buf]};
-        // Snapshot buf needed for AntiAliasing
-        // AppliedLemma {lemma = ArrayBitRangesEqSlicedLemma; args = [buf; Snapshot buf; IntLit 0I; Mult (ToLong (ArrayLength buf), IntLit 8I); IntLit 0I; IntLit offset]};
-      ]
-      let noneCase  = {pattern = nonePat; rhs = mkBlock noneRhs}
-      [MatchExpr {scrut = scrut; cases = [someCase; noneCase]}]
-    | _ -> []
   let outerMaxSize = pg.outerMaxSize enc
   let thisMaxSize = pg.maxSize enc
+  let fstSnap = snapshots.Head
+  let isNested = pg.nestingLevel > 0
+  assert (isNested || fstSnap = oldCdc)
+
   let wrap (ix: int, (snap: Var, child: SequenceChildProps, stmt: string option)) (offsetAcc: bigint, rest: Expr): bigint * Expr =
     let sz = child.typeInfo.maxSize enc
-    printfn "   SZ %A   offsetAcc %A" sz offsetAcc
+    assert (thisMaxSize <= (pg.siblingMaxSize enc |> Option.defaultValue thisMaxSize))
+    let relativeOffset = offsetAcc - (pg.maxOffset enc)
+    let offsetCheckOverall = Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var oldCdc)), (IntLit offsetAcc))), Block [])
+    let offsetCheckNested =
+      if isNested then [Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var fstSnap)), (IntLit relativeOffset))), Block [])]
+      else []
+    let bufCheck =
+      match codec with
+       | Encode -> []
+       | Decode -> [Check ((Equals (selBuf (Var cdc), selBuf (Var oldCdc))), Block [])]
+    let offsetWidening =
+      match pg.siblingMaxSize enc with
+      | Some siblingMaxSize when ix = nbChildren - 1 && siblingMaxSize <> thisMaxSize ->
+        let diff = siblingMaxSize - thisMaxSize
+        [
+          Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var oldCdc)), (IntLit (offsetAcc + diff)))), Block []);
+          Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var fstSnap)), (IntLit (relativeOffset + diff)))), Block []);
+        ]
+      | _ -> []
+    let checks = offsetCheckOverall :: offsetCheckNested @ bufCheck @ offsetWidening
     let body =
       match stmt with
       | Some stmt when true || ix < nbChildren - 1 ->
         let lemma = AppliedLemma {
           lemma = ValidateOffsetBitsIneqLemma;
-          args = [selBitStream (Var snap); selBitStream (Var cdc); IntLit (outerMaxSize - offsetAcc + sz); IntLit sz]}
-        let extra = extraLemmas child.sel snap child.typeInfo.typeKind offsetAcc sz
-        addAssert child.typeInfo.typeKind [EncDec stmt; Ghost (mkBlock (lemma :: extra)); rest]
+          args = [selBitStream (Var snap); selBitStream (Var cdc); IntLit (outerMaxSize - offsetAcc + sz); IntLit sz] }
+        addAssert child.typeInfo.typeKind [EncDec stmt; Ghost (mkBlock (lemma :: checks)); rest]
+
       | Some stmt ->
-        let extra = extraLemmas child.sel snap child.typeInfo.typeKind offsetAcc sz
-        let ghostBlock =
-          if extra.IsEmpty then []
-          else [Ghost (mkBlock extra)]
-        addAssert child.typeInfo.typeKind ([EncDec stmt] @ ghostBlock @ [rest])
-      | _ -> mkBlock [rest]
+        addAssert child.typeInfo.typeKind ([EncDec stmt; Ghost (mkBlock checks); rest])
+
+      | _ -> mkBlock [Ghost (mkBlock checks); rest]
+
     (offsetAcc - sz, LetGhost {bdg = snap; e = Snapshot (Var cdc); body = body})
-  // printfn "MAX SIZE %A   OFFSET %A" maxSize (pg.maxOffset enc)
+
   let stmts = List.zip3 snapshots pg.children stmts |> List.indexed
   List.foldBack wrap stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd
 
@@ -127,21 +126,14 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
   else
     let codecTpe = runtimeCodecTypeFor enc
     let cdc = {Var.name = $"codec"; tpe = RuntimeType (CodecClass codecTpe)}
+    let oldCdc = {Var.name = $"codec_0_1"; tpe = RuntimeType (CodecClass codecTpe)}
     let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{i}"; tpe = RuntimeType (CodecClass codecTpe)})
 
-    let wrappedStmts = wrapEncDecStmts enc snapshots cdc stmts pg codec
-    (*
-    let postCondLemmas =
-      match codec with
-      | Decode -> []
-      | Encode ->
-        [generateTransitiveLemmaApp snapshots cdc] @
-        [generateReadPrefixLemmaApp snapshots (pg.children |> List.map (fun c -> c.typeInfo)) cdc]
-    *)
-    printfn "MAXSIZE %A   OFFSET %A    %A" pg.acnOuterMaxSize pg.acnMaxOffset (pg.children |> List.map (fun c -> c.typeInfo.acnMaxSizeBits))
+    let wrappedStmts = wrapEncDecStmts enc snapshots cdc oldCdc stmts pg codec
+
     let postCondLemmas =
       let cond = Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var snapshots.Head)), (IntLit (pg.outerMaxSize enc))))
       Ghost (Check (cond, mkBlock []))
-    let expr = wrappedStmts (mkBlock []) // TODO: postCondLemmas triggers antialiasing in some instances --'
+    let expr = wrappedStmts (mkBlock [postCondLemmas]) // TODO: postCondLemmas triggers antialiasing in some instances --'
     let exprStr = show expr
     [exprStr]

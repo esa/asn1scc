@@ -155,23 +155,18 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     let IntRootExt2             = lm.uper.IntRootExt2
     let rootCons = cons |> List.choose(fun x -> match x with RangeRootConstraint(_, a) |RangeRootConstraint2(_, a,_) -> Some(x) |_ -> None)
 
-    let checkExp =
-        //match (DastValidate2.createIntegerFunctionByCons r l isUnsigned allCons) with
-        //| None  ->  None
-        //| Some expFunc -> Some (expFunc p)
-        None
     let suffix = getIntDecFuncSuffix intClass
     let castPp encFuncBits = castPp r lm codec pp intClass encFuncBits
 
     let IntBod (uperRange: uperRange<BigInteger>) (extCon: bool) : string * bool * bool * Asn1IntegerEncodingType option =
         match uperRange with
-        | Concrete(min, max) when min=max                    -> IntNoneRequired (lm.lg.getValue p.arg) (lm.lg.intValueToString min intClass)  errCode.errCodeName codec, codec=Decode, true, None
-        | Concrete(min, max) when intClass.IsPositive && (not extCon)    -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min))  suffix errCode.errCodeName codec, false, false, Some (FullyConstrainedPositive (min, max))
-        | Concrete(min, max)                                 -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min))  suffix errCode.errCodeName codec, false, false, Some (FullyConstrained (min, max))
-        | PosInf(a)  when a>=0I && (not extCon)  -> IntSemiConstraintPos pp a  errCode.errCodeName codec, false, false, Some (SemiConstrainedPositive a)
-        | PosInf(a)               -> IntSemiConstraint pp a  errCode.errCodeName codec, false, false, Some (SemiConstrained a)
-        | NegInf(max)             -> IntUnconstrainedMax pp max checkExp errCode.errCodeName codec, false, false, Some (UnconstrainedMax max)
-        | Full                    -> IntUnconstrained pp errCode.errCodeName false codec, false, false, Some Unconstrained
+        | Concrete (min, max) when min=max -> IntNoneRequired (lm.lg.getValue p.arg) (lm.lg.intValueToString min intClass) errCode.errCodeName codec, codec=Decode, true, None
+        | Concrete (min, max) when intClass.IsPositive && (not extCon) -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName codec, false, false, Some (FullyConstrainedPositive (min, max))
+        | Concrete (min, max) -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName codec, false, false, Some (FullyConstrained (min, max))
+        | PosInf a  when a>=0I && (not extCon) -> IntSemiConstraintPos pp a  errCode.errCodeName codec, false, false, Some (SemiConstrainedPositive a)
+        | PosInf a -> IntSemiConstraint pp a  errCode.errCodeName codec, false, false, Some (SemiConstrained a)
+        | NegInf max -> IntUnconstrainedMax pp max None errCode.errCodeName codec, false, false, Some (UnconstrainedMax max)
+        | Full -> IntUnconstrained pp errCode.errCodeName false codec, false, false, Some Unconstrained
 
     let getValueByConstraint uperRange =
         match uperRange with
@@ -196,9 +191,6 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             IntRootExt2 pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName codec, false, false, intEncodingType
         | _                             -> raise(BugErrorException "")
     Some({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=bValIsUnReferenced; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType intEncodingType)})
-
-
-
 
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =

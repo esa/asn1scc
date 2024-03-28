@@ -221,8 +221,8 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
       require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBits))
 
-      readNLeastSignificantBits(nBits).toRawULong
-   }
+      ULong.fromRaw(readNLeastSignificantBits(nBits))
+   }.ensuring(_ => buf == old(this).buf && BitStream.bitIndex(this.bitStream.buf.length, this.bitStream.currentByte, this.bitStream.currentBit) == BitStream.bitIndex(old(this).bitStream.buf.length, old(this).bitStream.currentByte, old(this).bitStream.currentBit) + nBits)
 
    @ghost @pure
    def decodeUnsignedIntegerPure(nBits: Int): (Codec, ULong) = {
@@ -312,8 +312,8 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
          // assert(min + decVal <= max) // TODO: T.O
 
-         min + decVal
-   }
+         (min + decVal): ULong
+   }.ensuring(_ => buf == old(this).buf && BitStream.bitIndex(this.bitStream.buf.length, this.bitStream.currentByte, this.bitStream.currentBit) == BitStream.bitIndex(old(this).bitStream.buf.length, old(this).bitStream.currentByte, old(this).bitStream.currentBit) + GetBitCountUnsigned(max - min))
 
    @ghost @pure
    def decodeConstrainedPosWholeNumberPure(min: ULong, max: ULong): (Codec, ULong) = {
@@ -625,7 +625,9 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          readBytePrefixLemma(this2Reset, this.bitStream)
          assert(this2.bitStream.resetAt(this1.bitStream).readBytePure()._2.unsignedToInt == nBytes)
          val (r1, r2) = reader(this1, this)
-         validateOffsetBitsContentIrrelevancyLemma(this1.bitStream, this.bitStream.buf, nBits)
+         validateOffsetBytesContentIrrelevancyLemma(this1.bitStream, this.bitStream.buf, nBytes + 1)
+         assert(r1 == Codec(BitStream(snapshot(this.bitStream.buf), this1.bitStream.currentByte, this1.bitStream.currentBit)))
+         assert(BitStream.validate_offset_bytes(r1.bitStream.buf.length, r1.bitStream.currentByte, r1.bitStream.currentBit, nBytes + 1))
          val (r2Got, vGot) = r1.decodeUnconstrainedWholeNumberPure()
          check(r2Got == r2)
          //SAM assert((vGot & onesLSBLong(nBits)) == (v & onesLSBLong(nBits)))
@@ -690,7 +692,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     */
    @extern
    def encodeReal(vVal: Double): Unit = {
-      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,2*GetBitCountUnsigned(stainless.math.wrapping(0xFF).toRawULong)))
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,2*GetBitCountUnsigned(stainless.math.wrapping(0xFF).toRawULong)))
       encodeRealBitString(java.lang.Double.doubleToRawLongBits(vVal))
    }
 
@@ -733,11 +735,11 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          val nExpLen: Int = GetLengthForEncodingUnsigned(compactExp.toLong.toRawULong)
          nExpLen >= 1 && nExpLen <= 2 && nManLen <= 7 &&
          (if (vVal == DoublePosZeroBitString ) then
-            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8 )
+            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8 )
          else if (vVal == DoubleNegZeroBitString || (vVal & ExpoBitMask) == ExpoBitMask) then
-            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16)
+            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16)
          else
-            BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16 + nManLen  + nExpLen )
+            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16 + nManLen  + nExpLen )
          )
       })
       // according to T-REC-X.690 2021
@@ -746,15 +748,15 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
       // 8.5.2 Plus Zero
       if v == DoublePosZeroBitString then
-         check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
+         check( BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
          encodeConstrainedWholeNumber(0, 0, 0xFF)
 
 
       // 8.5.3 Minus Zero
       else if v == DoubleNegZeroBitString then
-         check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
+         check( BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
          encodeConstrainedWholeNumber(1, 0, 0xFF)
-         check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
+         check( BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
          encodeConstrainedWholeNumber(0x43, 0, 0xFF)
 
 
@@ -763,23 +765,23 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
       // 8.5.9 PLUS-INFINITY
          if v == DoublePosInfBitString then
-            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
+            check( BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
             encodeConstrainedWholeNumber(1, 0, 0xFF)
-            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
+            check( BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
             encodeConstrainedWholeNumber(0x40, 0, 0xFF)
 
          // 8.5.9 MINUS-INFINITY
          else if v == DoubleNegInfBitString then
-            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
+            check( BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
             encodeConstrainedWholeNumber(1, 0, 0xFF)
-            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
+            check( BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
             encodeConstrainedWholeNumber(0x41, 0, 0xFF)
 
          // 8.5.9 NOT-A-NUMBER
          else
-            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
+            check( BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16))
             encodeConstrainedWholeNumber(1, 0, 0xFF)
-            check( BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
+            check( BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8))
             encodeConstrainedWholeNumber(0x42, 0, 0xFF)
       else
          // 8.5.6 a)
@@ -810,17 +812,17 @@ case class Codec private [asn1scala](bitStream: BitStream) {
             header |= 0x02
 
          /* encode length */
-         BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16 + nManLen  + nExpLen )
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16 + nManLen  + nExpLen )
 
          encodeConstrainedWholeNumber(1 + nExpLen + nManLen, 0, 0xFF)
 
          check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8 + nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
          // /* encode header */
-         BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8 + nManLen  + nExpLen )
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8 + nManLen  + nExpLen )
 
          encodeConstrainedWholeNumber(header & 0xFF, 0, 0xFF)
 
-          BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen  + nExpLen )
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen  + nExpLen )
 
          // TODO this might be more complicated, because by removing the require in the bistream class, I'll in fact break the safety there
          /* encode exponent */

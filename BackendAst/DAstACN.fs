@@ -146,10 +146,10 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
             let newContent =
                 match content with
                 | Some bodyResult   ->
-                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal codec
+                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) codec
                     Some {bodyResult with funcBody  = funcBodyStr}
                 | None              ->
-                    let funcBodyStr = alignToNext "" alStr nAlignmentVal codec
+                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) codec
                     Some {funcBody = funcBodyStr; errCodes =[errCode]; localVariables = []; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; typeEncodingKind = None}
             newContent, ns1a
         newFuncBody
@@ -172,10 +172,10 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
             let newContent =
                 match content with
                 | Some bodyResult   ->
-                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal codec
+                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) codec
                     Some {bodyResult with funcBody  = funcBodyStr}
                 | None              ->
-                    let funcBodyStr = alignToNext "" alStr nAlignmentVal codec
+                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) codec
                     Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; typeEncodingKind = None}
             newContent
         newFuncBody
@@ -573,7 +573,8 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
                 let castPp  = DAstUPer.castPp r lm codec pp intTypeClass
                 let sSsuffix = DAstUPer.getIntDecFuncSuffix intTypeClass
                 let word_size_in_bits = (int r.args.integerSizeInBytes)*8
-                let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max (GetNumberOfBitsForNonNegativeInteger (max-min))  sSsuffix errCode.errCodeName codec
+                let nbits = GetNumberOfBitsForNonNegativeInteger (max-min)
+                let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max nbits sSsuffix errCode.errCodeName codec
                 Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType (Some (FullyConstrainedPositive (min, max))))})
             createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass uperInt (None, None)
         let funcBodyContent =
@@ -1938,10 +1939,11 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let seqProofGen =
             let presenceBitsInfo = presenceBits |> List.mapi (fun i _ ->
                 {sel=None; uperMaxOffset = bigint i; acnMaxOffset = bigint i;
-                typeInfo = {uperMaxSizeBits = 1I; acnMaxSizeBits = 1I; typeKind = Some (AcnBooleanEncodingType None)}})
+                typeInfo = {uperMaxSizeBits = 1I; acnMaxSizeBits = 1I; typeKind = Some (AcnBooleanEncodingType None)};})
             let children = childrenStatements00 |> List.map (fun xs -> xs.props)
             {acnOuterMaxSize = nestingScope.acnOuterMaxSize; uperOuterMaxSize = nestingScope.uperOuterMaxSize;
             nestingLevel = nestingScope.nestingLevel; uperMaxOffset = nestingScope.uperOffset; acnMaxOffset = nestingScope.acnOffset;
+            acnSiblingMaxSize = nestingScope.acnSiblingMaxSize; uperSiblingMaxSize = nestingScope.uperSiblingMaxSize;
             children = presenceBitsInfo @ children}
         let allStmts =
             let presenceBits = presenceBits |> List.map Some
@@ -2110,11 +2112,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
     let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let td = (lm.lg.getChoiceTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+        let siblingMaxSize = children |> List.map (fun c -> c.chType.acnMaxSizeInBits) |> List.max
         let handleChild (us:State) (idx:int) (child:ChChildInfo) =
             let chFunc = child.chType.getAcnFunction codec
             let sChildInitExpr = child.chType.initFunction.initExpression
             // TODO: dire pk (car choice donc c'est pas sequentiel)
-            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1}
+            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1; acnSiblingMaxSize = Some siblingMaxSize}
             let childContentResult, ns1 =
                 match chFunc with
                 | Some chFunc ->

@@ -968,6 +968,3 @@ if result.Success then
 	<bitString_FixSize_decode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "Length"], sErrCode=sErrCode)>
 end if;
 >>
-
-
-

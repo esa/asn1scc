@@ -92,13 +92,27 @@ while <i> \< <fixedSize>.toInt do
     <i> += 1
 >>
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue) ::= <<
-codec.base.bitStream.alignTo<sAlignmentValue>()
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
+locally {
+    @ghost val unalignedCodec = snapshot(codec)
+    codec.base.bitStream.alignTo<sAlignmentValue>()
+    ghostExpr {
+        BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7)
+        check(BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) \<= BitStream.bitIndex(codec_0_1.base.bitStream.buf.length, codec_0_1.base.bitStream.currentByte, codec_0_1.base.bitStream.currentBit) + <nOffset> + 7)
+    }
+}
 <sMainBody>
 >>
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue) ::= <<
-codec.base.bitStream.alignTo<sAlignmentValue>()
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
+locally {
+    @ghost val unalignedCodec = snapshot(codec)
+    codec.base.bitStream.alignTo<sAlignmentValue>()
+    ghostExpr {
+        BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7)
+        check(BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) \<= BitStream.bitIndex(codec_0_1.base.bitStream.buf.length, codec_0_1.base.bitStream.currentByte, codec_0_1.base.bitStream.currentBit) + <nOffset> + 7)
+    }
+}
 <sMainBody>
 >>
 

@@ -259,7 +259,8 @@ def bitLSBLong(bit: Boolean, nBits: Int): Long = {
 
 def onesMSBLong(nBits: Int): Long = {
     require(0 <= nBits && nBits <= 64)
-    -1L << (64 - nBits)
+    // Note: on the JVM, -1L << 64 == -1L, not 0L as sane persons would expect
+    if (nBits == 0) 0L else -1L << (64 - nBits)
 }
 
 def bitMSBLong(bit: Boolean, nBits: Int): Long = {

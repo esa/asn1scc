@@ -307,9 +307,7 @@ type IsValidFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
-    //funcExp             : (CallerScope -> ValidationCodeBlock)    // return a single boolean expression
     funcBody            : CallerScope -> ValidationStatement            //returns a list of validations statements
-    //funcBody2           : string -> string -> string  //like funBody but with two arguments p and accessOper ( i.e. '->' or '.')
 
     alphaFuncs          : AlphaFunc list
     localVariables      : LocalVariable list
@@ -448,9 +446,11 @@ type NestingScope = {
     ix: int
     acnOffset: bigint
     uperOffset: bigint
+    acnSiblingMaxSize: bigint option
+    uperSiblingMaxSize: bigint option
 } with
     static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint): NestingScope =
-        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0; ix = 0; acnOffset = 0I; uperOffset = 0I}
+        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0; ix = 0; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
 
 type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)

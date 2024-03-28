@@ -1,10 +1,10 @@
 package asn1scala
 
-import stainless.lang.StaticChecks._
 import stainless.lang.{None => None, ghost => ghostExpr, Option => Option, _}
 import stainless.math.{wrapping => wrappingExpr, _}
 import stainless.annotation._
 import stainless.proof._
+import stainless.lang.StaticChecks._
 
 val FAILED_READ_ERR_CODE = 5400
 
@@ -314,9 +314,19 @@ case class ACN(base: Codec) {
    @pure @inline
    def isPrefixOf(acn2: ACN): Boolean = bitStream.isPrefixOf(acn2.base.bitStream)
 
+   @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize_8(intVal: ULong): Unit = {
       require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
+      require(intVal <= 255)
       appendByte(wrappingExpr { intVal.toUByte })
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w2 = this
+      w1.base.bufLength() == w2.base.bufLength() && BitStream.bitIndex(w2.base.bitStream.buf.length, w2.base.bitStream.currentByte, w2.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 8 && w1.isPrefixOf(w2) && {
+         val (r1, r2) = ACN.reader(w1, w2)
+         val (r2Got, vGot) = r1.dec_Int_PositiveInteger_ConstSize_8_pure()
+         vGot == intVal && r2Got == r2
+      }
    }
 
    @opaque @inlineOnce
@@ -500,7 +510,15 @@ case class ACN(base: Codec) {
 
    def dec_Int_PositiveInteger_ConstSize_8(): ULong = {
       require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
-      (readByte().toRaw & 0xFF).toULong
+      ULong.fromRaw(readByte().toRaw & 0xFF)
+   }.ensuring(_ => bitStream.buf == old(this).base.bitStream.buf && BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(old(this).base.bitStream.buf.length, old(this).base.bitStream.currentByte, old(this).base.bitStream.currentBit) + 8)
+
+   @ghost @pure
+   def dec_Int_PositiveInteger_ConstSize_8_pure(): (ACN, ULong) = {
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 8))
+      val cpy = snapshot(this)
+      val l = cpy.dec_Int_PositiveInteger_ConstSize_8()
+      (cpy, l)
    }
 
    def dec_Int_PositiveInteger_ConstSize_big_endian_16(): ULong = {
@@ -1139,24 +1157,45 @@ case class ACN(base: Codec) {
    /* Boolean Decode */
    // TODO move to codec?
    def BitStream_ReadBitPattern(patternToRead: Array[UByte], nBitsToRead: Int): Boolean = {
+      require(0 <= nBitsToRead && nBitsToRead <= patternToRead.length.toLong * 8L)
+      require(BitStream.validate_offset_bits(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit, nBitsToRead))
+
       val nBytesToRead: Int = nBitsToRead / 8
       val nRemainingBitsToRead: Int = nBitsToRead % 8
 
+      @ghost val oldThis = snapshot(this)
       var pBoolValue: Boolean = true
       var i: Int = 0
       (while i < nBytesToRead do
          decreases(nBytesToRead - i)
+         @ghost val oldThis2 = snapshot(this)
          if readByte() != patternToRead(i) then
             pBoolValue = false
+         ghostExpr {
+            assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit)
+               == BitStream.bitIndex(old(this).base.bitStream.buf.length, old(this).base.bitStream.currentByte, old(this).base.bitStream.currentBit)  + (i + 1).toLong * 8L)
+            BitStream.validateOffsetBitsIneqLemma(oldThis2.base.bitStream, base.bitStream, nBitsToRead - i.toLong * 8L, 8L)
+            assert(BitStream.validate_offset_bits(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit, nBitsToRead - (i + 1).toLong * 8L))
+         }
          i += 1
-      ).invariant(true) // TODO
+         assert(BitStream.validate_offset_bits(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit, nBitsToRead - i.toLong * 8L))
+      ).invariant(0 <= i && i <= nBytesToRead &&
+         buf == oldThis.base.bitStream.buf &&
+         BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + i.toLong * 8L &&
+         BitStream.validate_offset_bits(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit, nBitsToRead - i.toLong * 8L))
+
+      assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBytesToRead.toLong * 8L)
 
       if nRemainingBitsToRead > 0 then
          if readPartialByte(nRemainingBitsToRead.toByte).toRaw != ((patternToRead(nBytesToRead).toRaw & 0xFF) >>> (8 - nRemainingBitsToRead)) then
             pBoolValue = false
+         assert(nBytesToRead.toLong * 8L + nRemainingBitsToRead.toLong == nBitsToRead)
+         ghostExpr { check(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBitsToRead) }
+
+      assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBitsToRead)
 
       pBoolValue
-   }
+   }.ensuring(_ => buf == old(this).base.bitStream.buf && BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(old(this).base.bitStream.buf.length, old(this).base.bitStream.currentByte, old(this).base.bitStream.currentBit) + nBitsToRead)
 
    // TODO move to codec?
    def BitStream_ReadBitPattern_ignore_value(nBitsToRead: Int): Unit = {

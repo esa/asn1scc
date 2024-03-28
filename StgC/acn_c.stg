@@ -118,13 +118,13 @@ for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++)
 
 
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
 Acn_AlignTo<sAlignmentValue>(pBitStrm, TRUE);
 <sMainBody>
 >>
 
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
 Acn_AlignTo<sAlignmentValue>(pBitStrm, FALSE);
 <sMainBody>
 >>
@@ -1233,4 +1233,3 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 	<endif>
 }
 >>
-

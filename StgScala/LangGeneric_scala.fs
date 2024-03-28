@@ -332,8 +332,8 @@ res match
                 Some (res.TrimStart())
             | Decode -> Some $"codec.base.bitStream.buf == old(codec).base.bitStream.buf && BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) <= BitStream.bitIndex(old(codec).base.bitStream.buf.length, old(codec).base.bitStream.currentByte, old(codec).base.bitStream.currentBit) + {t.maxSizeInBits enc}"
 
-        // override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
-        //     ProofGen.generateSequenceChildProof enc stmts pg codec
+        override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
+            ProofGen.generateSequenceChildProof enc stmts pg codec
 
         override this.uper =
             {
