@@ -40,6 +40,8 @@ type Lemma =
 
 type BitStreamMethod =
   | ResetAt
+
+type BitStreamFunction =
   | BitIndex
 
 type RTFunction =
@@ -72,6 +74,7 @@ type Expr =
   | Assert of Expr * Expr
   | Check of Expr * Expr
   | BitStreamMethodCall of BitStreamMethodCall
+  | BitStreamFunctionCall of BitStreamFunctionCall
   | RTFunctionCall of RTFunctionCall // TODO: Not terrible; maybe merge with applied lemma?
   | TupleSelect of Expr * int
   | FieldSelect of Expr * string
@@ -104,6 +107,10 @@ and BitStreamMethodCall = {
   recv: Expr
   args: Expr list
 }
+and BitStreamFunctionCall = {
+  fn: BitStreamFunction
+  args: Expr list
+}
 and RTFunctionCall = {
   fn: RTFunction
   args: Expr list
@@ -126,8 +133,11 @@ let mkBlock (exprs: Expr list): Expr =
 let selBase (recv: Expr): Expr = FieldSelect (recv, "base")
 
 let selBitStream (recv: Expr): Expr = FieldSelect (selBase recv, "bitStream")
-let callBitIndex (recv: Expr): Expr = BitStreamMethodCall { method = BitIndex; recv = recv; args = [] }
 let selBuf (recv: Expr): Expr = FieldSelect (selBase recv, "buf")
+let selBufLength (recv: Expr): Expr =  ArrayLength (selBuf recv)
+let selCurrentByte (recv: Expr): Expr =  FieldSelect (selBuf recv, "currentByte")
+let selCurrentBit (recv: Expr): Expr =  FieldSelect (selBuf recv, "currentBit")
+let callBitIndex (recv: Expr): Expr = BitStreamFunctionCall { fn = BitIndex; args = [selBufLength recv; selCurrentByte recv; selCurrentBit recv] }
 
 
 //////////////////////////////////////////////////////////
@@ -191,11 +201,14 @@ let lemmaStr (lemma: Lemma): string =
 let bsMethodCallStr (meth: BitStreamMethod): string =
   match meth with
   | ResetAt -> "resetAt"
-  | BitIndex -> "bitIndex"
 
 let rtFnCall (fn: RTFunction): string =
   match fn with
   | GetBitCountUnsigned -> "GetBitCountUnsigned"
+
+let bsFnCall (fn: BitStreamFunction): string =
+  match fn with
+  | BitIndex -> "bitIndex"
 
 //////////////////////////////////////////////////////////
 
@@ -364,6 +377,11 @@ and ppBody (ctx: PrintCtx) (e: Expr): Line list =
     let meth = bsMethodCallStr call.method
     let args = call.args |> List.map (pp (ctx.nest e))
     joinCallLike ctx (append ctx $".{meth}" recv) args
+
+  | BitStreamFunctionCall call ->
+    let meth = bsFnCall call.fn
+    let args = call.args |> List.map (pp (ctx.nest e))
+    joinCallLike ctx [line meth] args
 
   | RTFunctionCall call ->
     let meth = rtFnCall call.fn

@@ -18,7 +18,7 @@ def initUPERCodec(count: Int): UPER = {
    if count <= 0 then
       UPER(Codec(BitStream(Array.fill(0)(0))))
    else
-      UPER(Codec(BitStream(Array.fill(count)(0))))  
+      UPER(Codec(BitStream(Array.fill(count)(0))))
 }
 object UPER {
    @ghost @pure

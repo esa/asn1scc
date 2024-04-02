@@ -762,6 +762,9 @@ case class BitStream private [asn1scala](
    @ghost @pure @inline
    def getBuf: Array[Byte] = buf
 
+   @pure @inline
+   def bitIndex: Long = BitStream.bitIndex(buf.length, currentByte, currentBit)
+
    @ghost @pure @inline
    def resetAt(b: BitStream): BitStream = {
       require(b.buf.length == buf.length)
@@ -851,8 +854,8 @@ case class BitStream private [asn1scala](
    }.ensuring { _ =>
       val w1 = old(this)
       val w2 = this
-      w1.buf.length == w2.buf.length 
-      && BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit ) == BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit ) + nBits  
+      w1.buf.length == w2.buf.length
+      && BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit ) == BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit ) + nBits
       && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits)
@@ -868,8 +871,8 @@ case class BitStream private [asn1scala](
    }.ensuring { _ =>
       val w1 = old(this)
       val w2 = this
-      w1.buf.length == w2.buf.length 
-      && BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit ) == BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit ) + nBits  
+      w1.buf.length == w2.buf.length
+      && BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit ) == BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit ) + nBits
       && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits)
@@ -1418,13 +1421,13 @@ case class BitStream private [asn1scala](
 
       val arrLen = ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
       val arr: Array[Byte] = Array.fill(arrLen)(0 : Byte)
-      readBitsLoop(nBits, arr, 0, arrLen)
+      readBitsLoop(nBits, arr, 0, nBits)
       UByte.fromArrayRaws(arr)
-   } ensuring(res => 
-      BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) +  ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt  == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit ) && 
-      BitStream.invariant(this.currentBit, this.currentByte, this.buf.length) && 
+   } ensuring(res =>
+      BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) +  ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt  == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit ) &&
+      BitStream.invariant(this.currentBit, this.currentByte, this.buf.length) &&
       res.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
-   
+
    )// && old(this).currentByte <= this.currentByte)
 
    def readBitsLoop(nBits: Long, arr: Array[Byte], from: Long, to: Long): Unit = {
@@ -1729,7 +1732,7 @@ case class BitStream private [asn1scala](
 
       // SAM: Here the issue is that the 2 assignments are not atomic, so the invariant can be temporarily violated
       // For this reason it'd be better to have it as pre- and post condition everywhere rather than relying on the `require`
-      // Otherwise, we could store currentByte and currentBit in a tuple 
+      // Otherwise, we could store currentByte and currentBit in a tuple
       if(tmpByte == this.buf.length) {
          ghostExpr({
             check(this.currentBit == 0)
@@ -1742,7 +1745,7 @@ case class BitStream private [asn1scala](
          currentByte = tmpByte
          currentBit = tmpBit
       }
-      
+
       ret
    }.ensuring(_ => old(this) == this)
 
@@ -1796,7 +1799,7 @@ case class BitStream private [asn1scala](
 
    // ************** Aligning functions *********
    def alignToByte(): Unit = {
-      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, 
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
          (NO_OF_BITS_IN_BYTE - currentBit) & (NO_OF_BITS_IN_BYTE - 1)
       ))
 
@@ -1807,7 +1810,7 @@ case class BitStream private [asn1scala](
 
    @pure @ghost
    def withAlignedByte(): BitStream = {
-      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, 
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
          (NO_OF_BITS_IN_BYTE - currentBit) & (NO_OF_BITS_IN_BYTE - 1)
       ))
       val cpy = snapshot(this)
@@ -1816,7 +1819,7 @@ case class BitStream private [asn1scala](
    }
 
    def alignToShort(): Unit = {
-      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, 
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
          (NO_OF_BITS_IN_SHORT -                                                                 // max alignment (16) -
             (NO_OF_BITS_IN_BYTE * (currentByte & (NO_OF_BYTES_IN_JVM_SHORT - 1)) + currentBit)  // current pos
             ) & (NO_OF_BITS_IN_SHORT - 1))                                                      // edge case (0,0) -> 0
@@ -1827,7 +1830,7 @@ case class BitStream private [asn1scala](
    }
 
    def alignToInt(): Unit = {
-      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, 
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
          (NO_OF_BITS_IN_INT -                                                                // max alignment (32) -
             (NO_OF_BITS_IN_BYTE * (currentByte & (NO_OF_BYTES_IN_JVM_INT - 1)) + currentBit) // current pos
             ) & (NO_OF_BITS_IN_INT - 1))                                                     // edge case (0,0) -> 0

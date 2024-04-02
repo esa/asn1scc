@@ -316,7 +316,7 @@ type LangGeneric_scala() =
 
         override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
-        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.validate_offset_bits({t.maxSizeInBits enc})"]
+        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"BitStream.validate_offset_bits(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit, {t.maxSizeInBits enc})"]
 
         // TODO: Non, mais avoir un AST
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
@@ -328,9 +328,9 @@ res match
     case Right(res) =>
         val w1 = old(codec)
         val w2 = codec
-        w1.bufLength() == w2.bufLength() && w2.bitIndex() <= w1.bitIndex() + {t.maxSizeInBits enc}"""
+        w1.base.bitStream.buf.length == w2.base.bitStream.buf.length && BitStream.bitIndex(w2.base.bitStream.buf.length, w2.base.bitStream.currentByte, w2.base.bitStream.currentBit) <= BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + {t.maxSizeInBits enc}"""
                 Some (res.TrimStart())
-            | Decode -> Some $"codec.base.bitStream.buf == old(codec).base.bitStream.buf && codec.base.bitStream.bitIndex() <= old(codec).base.bitStream.bitIndex() + {t.maxSizeInBits enc}"
+            | Decode -> Some $"codec.base.bitStream.buf == old(codec).base.bitStream.buf && BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) <= BitStream.bitIndex(old(codec).base.bitStream.buf.length, old(codec).base.bitStream.currentByte, old(codec).base.bitStream.currentBit) + {t.maxSizeInBits enc}"
 
         // override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
         //     ProofGen.generateSequenceChildProof enc stmts pg codec

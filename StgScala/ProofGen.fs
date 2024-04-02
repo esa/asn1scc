@@ -34,7 +34,7 @@ let generateReadPrefixLemmaApp (snapshots: Var list) (children: TypeInfo list) (
         | SemiConstrained max -> [IntLit max]
         | UnconstrainedMax max -> [IntLit max]
         | Unconstrained -> []
-      | _ -> [] // TODO: Rest
+    | _ -> [] // TODO: Rest
 
   let mkLemma (bs1: Var, bs2: Var, tpe: TypeInfo): Expr =
     let var = {Var.name = $"{bs2.name}_reset"; tpe = bs2.tpe}
