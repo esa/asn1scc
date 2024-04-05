@@ -1173,7 +1173,7 @@ case class ACN(base: Codec) {
             pBoolValue = false
          ghostExpr {
             assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit)
-               == BitStream.bitIndex(old(this).base.bitStream.buf.length, old(this).base.bitStream.currentByte, old(this).base.bitStream.currentBit)  + (i + 1).toLong * 8L)
+               == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit)  + (i + 1).toLong * 8L)
             BitStream.validateOffsetBitsIneqLemma(oldThis2.base.bitStream, base.bitStream, nBitsToRead - i.toLong * 8L, 8L)
             assert(BitStream.validate_offset_bits(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit, nBitsToRead - (i + 1).toLong * 8L))
          }
