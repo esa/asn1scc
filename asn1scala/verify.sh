@@ -11,7 +11,7 @@ src/main/scala/asn1scala/asn1jvm_Codec_ACN.scala \
 initACNCodec,\
 reader,\
 readPrefixLemma_TODO,\
-#dec_Int_PositiveInteger_ConstSize_big_endian_16_prefixLemma,\
+dec_Int_PositiveInteger_ConstSize_big_endian_16_prefixLemma,\
 #dec_Int_PositiveInteger_ConstSize_big_endian_32_prefixLemma,\
 #dec_Int_PositiveInteger_ConstSize_big_endian_64_prefixLemma,\
 #dec_Int_PositiveInteger_ConstSize_little_endian_16_prefixLemma,\
