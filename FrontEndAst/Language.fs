@@ -66,12 +66,11 @@ type TypeInfo = {
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
 type SequenceChildProps = {
-    // TODO: say it's none for presence bit
     // TODO: String not ideal, but array selection index is string anyway...
-    sel: string option
+    sel: string option // None for presence bits
     // TODO: What about padding?
-    uperMaxOffset: bigint // TODO: Needed?
-    acnMaxOffset: bigint // TODO: Needed?
+    uperMaxOffset: bigint
+    acnMaxOffset: bigint
     typeInfo: TypeInfo
 } with
 

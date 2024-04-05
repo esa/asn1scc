@@ -318,7 +318,7 @@ type LangGeneric_scala() =
 
         override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"BitStream.validate_offset_bits(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit, {t.maxSizeInBits enc})"]
 
-        // TODO: Non, mais avoir un AST
+        // TODO: Replace with an AST when it becomes complete
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
             match codec with
             | Encode ->

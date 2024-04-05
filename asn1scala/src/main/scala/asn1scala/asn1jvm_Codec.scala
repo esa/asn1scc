@@ -688,12 +688,30 @@ case class Codec private [asn1scala](bitStream: BitStream) {
 
    /**
     * Facade function for real encoding
-    * @param vVal real input in IEEE754 double format
+    * @param vValDouble real input in IEEE754 double format
     */
    @extern
-   def encodeReal(vVal: Double): Unit = {
-      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,2*GetBitCountUnsigned(stainless.math.wrapping(0xFF).toRawULong)))
-      encodeRealBitString(java.lang.Double.doubleToRawLongBits(vVal))
+   def encodeReal(vValDouble: Double): Unit = {
+      val vVal = java.lang.Double.doubleToRawLongBits(vValDouble)
+      require({
+         val rawExp = (vVal & ExpoBitMask) >>> DoubleNoOfMantissaBits
+         rawExp >= 0 &&& rawExp <= ((1 << 11) - 2) // 2046, 2047 is the infinity case - never end up here with infinity
+      })
+      require({
+         val (exponent, mantissa) = CalculateMantissaAndExponent(vVal)
+         val nManLen: Int = GetLengthForEncodingUnsigned(mantissa)
+         val compactExp = RemoveLeadingFFBytesIfNegative(exponent.toRaw)
+         val nExpLen: Int = GetLengthForEncodingUnsigned(compactExp.toLong.toRawULong)
+         nExpLen >= 1 && nExpLen <= 2 && nManLen <= 7 &&
+         (if (vVal == DoublePosZeroBitString ) then
+            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8)
+         else if (vVal == DoubleNegZeroBitString || (vVal & ExpoBitMask) == ExpoBitMask) then
+            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 16)
+         else
+            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 16 + nManLen * NO_OF_BITS_IN_BYTE  + nExpLen * NO_OF_BITS_IN_BYTE)
+         )
+      })
+      encodeRealBitString(vVal)
    }
 
    /**
@@ -723,7 +741,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
     *
     */
    private def encodeRealBitString(vVal: Long): Unit = {
-      // Require from CalculateManitssaAndExponent
+      // Require from CalculateMantissaAndExponent
       require({
          val rawExp = (vVal & ExpoBitMask) >>> DoubleNoOfMantissaBits
          rawExp >= 0 &&& rawExp <= ((1 << 11) - 2) // 2046, 2047 is the infinity case - never end up here with infinity
@@ -735,14 +753,16 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          val nExpLen: Int = GetLengthForEncodingUnsigned(compactExp.toLong.toRawULong)
          nExpLen >= 1 && nExpLen <= 2 && nManLen <= 7 &&
          (if (vVal == DoublePosZeroBitString ) then
-            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,8 )
+            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8)
          else if (vVal == DoubleNegZeroBitString || (vVal & ExpoBitMask) == ExpoBitMask) then
-            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16)
+            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 16)
          else
-            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16 + nManLen  + nExpLen )
+            BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 16 + nManLen * NO_OF_BITS_IN_BYTE  + nExpLen * NO_OF_BITS_IN_BYTE)
          )
       })
       // according to T-REC-X.690 2021
+
+      check(GetBitCountUnsigned(ULong.fromRaw(0xFF)) == 8)
 
       var v = vVal
 
@@ -812,7 +832,7 @@ case class Codec private [asn1scala](bitStream: BitStream) {
             header |= 0x02
 
          /* encode length */
-         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16 + nManLen  + nExpLen )
+         BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,16 + nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE)
 
          encodeConstrainedWholeNumber(1 + nExpLen + nManLen, 0, 0xFF)
 
@@ -828,12 +848,20 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          /* encode exponent */
          if exponent.toRaw >= 0 then
             // fill with zeros to have a whole byte
-            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
-            appendNZeroBits(nExpLen * NO_OF_BITS_IN_BYTE - GetBitCountUnsigned(exponent.toULong))
-            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + GetBitCountUnsigned(exponent.toULong)))
-            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(exponent.toULong)))
+            val remaining = nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, remaining))
+            val toFill = nExpLen * NO_OF_BITS_IN_BYTE - GetBitCountUnsigned(exponent.toULong)
+            val remainingAfter = remaining - toFill
+            @ghost val oldThis = snapshot(this)
+            appendNZeroBits(toFill)
+            ghostExpr {
+               BitStream.validateOffsetBitsIneqLemma(oldThis.bitStream, this.bitStream, remaining, toFill)
+            }
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, remainingAfter))
+            assert(GetBitCountUnsigned(exponent.toULong) <= remainingAfter)
+            assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, GetBitCountUnsigned(exponent.toULong)))
             encodeUnsignedInteger(exponent.toULong)
-            check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE ))
+            check(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nManLen * NO_OF_BITS_IN_BYTE ))
          else
             assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE + nExpLen * NO_OF_BITS_IN_BYTE))
             assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nManLen * NO_OF_BITS_IN_BYTE  + GetBitCountUnsigned(compactExp.toLong.toRawULong)))

@@ -134,6 +134,6 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
     let postCondLemmas =
       let cond = Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var snapshots.Head)), (IntLit (pg.outerMaxSize enc))))
       Ghost (Check (cond, mkBlock []))
-    let expr = wrappedStmts (mkBlock [postCondLemmas]) // TODO: postCondLemmas triggers antialiasing in some instances --'
+    let expr = wrappedStmts (mkBlock [postCondLemmas])
     let exprStr = show expr
     [exprStr]

@@ -31,7 +31,7 @@ type Type =
 
 
 type Lemma =
-  | ValidTransitiveLemma // TODO: Ou bien si c'est sur ACN, UPER ou bitstream?
+  | ValidTransitiveLemma
   | ValidReflexiveLemma
   | ArrayBitRangesEqReflexiveLemma
   | ArrayBitRangesEqSlicedLemma
@@ -47,7 +47,6 @@ type BitStreamFunction =
 type RTFunction =
   | GetBitCountUnsigned
 
-// TODO: Il faudrait plus que ça
 type Var = {
   name: string
   tpe: Type
@@ -69,14 +68,14 @@ type Expr =
   | Ghost of Expr
   | Locally of Expr
   | AppliedLemma of AppliedLemma
-  | Snapshot of Expr // TODO: Peut-être restreindre à des selection
+  | Snapshot of Expr
   | Let of Let
   | LetGhost of Let
   | Assert of Expr * Expr
   | Check of Expr * Expr
   | BitStreamMethodCall of BitStreamMethodCall
   | BitStreamFunctionCall of BitStreamFunctionCall
-  | RTFunctionCall of RTFunctionCall // TODO: Not terrible; maybe merge with applied lemma?
+  | RTFunctionCall of RTFunctionCall
   | TupleSelect of Expr * int
   | FieldSelect of Expr * string
   | ArraySelect of Expr * Expr
@@ -86,7 +85,7 @@ type Expr =
   | Mult of Expr * Expr
   | Plus of Expr * Expr
   | Leq of Expr * Expr
-  | IntLit of bigint // TODO: IntLit of what type?
+  | IntLit of bigint // TODO: Add the ranges as well
   | ToRawULong of Expr // TODO: Find something better and that makes all necessary "jumps", so no Int -> ULong but rather Int -> Long -> ULong
   | ToLong of Expr // TODO: Find something better and that makes all necessary "jumps", so no Int -> ULong but rather Int -> Long -> ULong
   | EncDec of string
@@ -230,18 +229,16 @@ type Line = {
 } with
   member this.inc: Line = {this with lvl = this.lvl + 1}
 
-// TODO: Ne pas oublier d'update ces fns
 let isSimpleExpr (e: Expr): bool =
   match e with
-  | Let _ | LetGhost _ | Block _ | Assert _ -> false // TODO Ghost _  ?
+  | Let _ | LetGhost _ | Block _ | Assert _ -> false
   | _ -> true
 
-// TODO: Match case!!!
+// TODO: Match case?
 let noBracesSub (e: Expr): Expr list =
   match e with
   | Let l -> [l.body]
   | LetGhost l -> [l.body]
-  // | Ghost (Block stmts) -> stmts
   | Ghost e -> [e]
   | Locally e -> [e]
   | Assert (_, body) -> [body]
@@ -253,7 +250,7 @@ let requiresBraces (e: Expr) (within: Expr option): bool =
   | Some(Ghost _ | Locally _) -> false
   | Some(within) when List.contains e (noBracesSub within) -> false
   | Some(_) ->
-    // TODO: FIXME: TEMPORARY
+    // TODO
     false
   | _ -> false
 
@@ -327,7 +324,6 @@ and ppMatchExpr (ctx: PrintCtx) (mexpr: MatchExpr): Line list =
       $"{bdg}{pat.id}({subpats})"
 
   let ppMatchCase (ctx: PrintCtx) (cse: MatchCase): Line list =
-    // TODO: noBracesSub MatchCase
     let pat = {txt = $"case {ppPattern cse.pattern} =>"; lvl = ctx.lvl}
     pat :: pp (ctx.inc) cse.rhs
 
