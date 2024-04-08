@@ -229,12 +229,14 @@ case class ACN(base: Codec) {
 
    @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize(intVal: ULong, encodedSizeInBits: Int): Unit = {
+      require(encodedSizeInBits >= 0 && encodedSizeInBits <= 64)
       /* Get number of bits*/
       val nBits: Int = GetBitCountUnsigned(intVal)
       require(nBits <= encodedSizeInBits && encodedSizeInBits <= 64)
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, encodedSizeInBits))
+
+      @ghost val this1 = snapshot(this)
       if (encodedSizeInBits != 0) {
-         @ghost val this1 = snapshot(this)
          /* put required zeros*/
          val diff = encodedSizeInBits - nBits
          appendNZeroBits(diff)
@@ -252,6 +254,9 @@ case class ACN(base: Codec) {
             val (r1_1, r3_1) = ACN.reader(this1, this)
             validateOffsetBitsContentIrrelevancyLemma(this1.base.bitStream, this.base.bitStream.buf, encodedSizeInBits)
             val (r3Got, iGot) = r1_1.dec_Int_PositiveInteger_ConstSize_pure(encodedSizeInBits)
+
+            check(this1.base.bufLength() == this.base.bufLength())
+            check(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(this1.base.bitStream.buf.length, this1.base.bitStream.currentByte, this1.base.bitStream.currentBit)  + encodedSizeInBits )
 
             if (encodedSizeInBits != nBits) {
                checkBitsLoopPrefixLemma2(this2Reset.base.bitStream, this.base.bitStream, diff, false, 0)
@@ -285,7 +290,9 @@ case class ACN(base: Codec) {
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit)  + encodedSizeInBits && w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit)  + encodedSizeInBits 
+      && w1.isPrefixOf(w3) 
+      && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, encodedSizeInBits)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_pure(encodedSizeInBits)
@@ -744,18 +751,24 @@ case class ACN(base: Codec) {
    }
 
    def enc_Int_TwosComplement_ConstSize_8(intVal: Long): Unit = {
+      require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
       enc_Int_PositiveInteger_ConstSize_8(int2uint(intVal))
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_16(intVal: Long): Unit = {
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16))
+      require(int2uint(intVal) <= 65535)
       enc_Int_PositiveInteger_ConstSize_big_endian_16(int2uint(intVal))
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_32(intVal: Long): Unit = {
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32))
+      require(int2uint(intVal) <= 4294967295L)
       enc_Int_PositiveInteger_ConstSize_big_endian_32(int2uint(intVal))
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_64(intVal: Long): Unit = {
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       enc_Int_PositiveInteger_ConstSize_big_endian_64(int2uint(intVal))
    }
 
@@ -812,31 +825,52 @@ case class ACN(base: Codec) {
 
 
    def dec_Int_TwosComplement_ConstSize_8(): Long = {
-      uint2int(dec_Int_PositiveInteger_ConstSize_8(), 1)
+      if(!BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) ) then 
+         0L 
+      else
+         uint2int(dec_Int_PositiveInteger_ConstSize_8(), 1)
    }
 
    def dec_Int_TwosComplement_ConstSize_big_endian_16(): Long = {
-      uint2int(dec_Int_PositiveInteger_ConstSize_big_endian_16(), NO_OF_BYTES_IN_JVM_SHORT)
+      if(!BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16) ) then 
+         0L 
+      else
+         uint2int(dec_Int_PositiveInteger_ConstSize_big_endian_16(), NO_OF_BYTES_IN_JVM_SHORT)
    }
 
    def dec_Int_TwosComplement_ConstSize_big_endian_32(): Long = {
-      uint2int(dec_Int_PositiveInteger_ConstSize_big_endian_32(), NO_OF_BYTES_IN_JVM_INT)
+      if(!BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32)) then 
+         0L 
+      else
+         uint2int(dec_Int_PositiveInteger_ConstSize_big_endian_32(), NO_OF_BYTES_IN_JVM_INT)
    }
 
    def dec_Int_TwosComplement_ConstSize_big_endian_64(): Long = {
-      uint2int(dec_Int_PositiveInteger_ConstSize_big_endian_64(), NO_OF_BYTES_IN_JVM_LONG)
+      if(!BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64)) then 
+         0L 
+      else
+         uint2int(dec_Int_PositiveInteger_ConstSize_big_endian_64(), NO_OF_BYTES_IN_JVM_LONG)
    }
 
    def dec_Int_TwosComplement_ConstSize_little_endian_16(): Long = {
-      uint2int(dec_Int_PositiveInteger_ConstSize_little_endian_16(), NO_OF_BYTES_IN_JVM_SHORT)
+      if(!BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16) ) then 
+         0L 
+      else
+         uint2int(dec_Int_PositiveInteger_ConstSize_little_endian_16(), NO_OF_BYTES_IN_JVM_SHORT)
    }
 
    def dec_Int_TwosComplement_ConstSize_little_endian_32(): Long = {
-      uint2int(dec_Int_PositiveInteger_ConstSize_little_endian_32(), NO_OF_BYTES_IN_JVM_INT)
+      if(!BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32)) then 
+         0L 
+      else
+         uint2int(dec_Int_PositiveInteger_ConstSize_little_endian_32(), NO_OF_BYTES_IN_JVM_INT)
    }
 
    def dec_Int_TwosComplement_ConstSize_little_endian_64(): Long = {
-      uint2int(dec_Int_PositiveInteger_ConstSize_little_endian_64(), NO_OF_BYTES_IN_JVM_LONG)
+      if(!BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64)) then 
+         0L 
+      else
+         uint2int(dec_Int_PositiveInteger_ConstSize_little_endian_64(), NO_OF_BYTES_IN_JVM_LONG)
    }
 
    def enc_Int_TwosComplement_VarSize_LengthEmbedded(intVal: Long): Unit = {
@@ -1157,35 +1191,60 @@ case class ACN(base: Codec) {
    /* Boolean Decode */
    // TODO move to codec?
    def BitStream_ReadBitPattern(patternToRead: Array[UByte], nBitsToRead: Int): Boolean = {
-      require(0 <= nBitsToRead && nBitsToRead <= patternToRead.length.toLong * 8L)
-      require(BitStream.validate_offset_bits(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit, nBitsToRead))
-
+      require(nBitsToRead < Int.MaxValue - 8)
+      require(nBitsToRead >= 0)
+      require(patternToRead.length >=  nBitsToRead / 8 + (if (nBitsToRead % 8 == 0) then 0 else 1))
       val nBytesToRead: Int = nBitsToRead / 8
       val nRemainingBitsToRead: Int = nBitsToRead % 8
+      val neededBytes = nBytesToRead + (if (nRemainingBitsToRead == 0) then 0 else 1)
 
       @ghost val oldThis = snapshot(this)
       var pBoolValue: Boolean = true
       var i: Int = 0
+
+
+      assert(i >= 0 )
+      assert(i <= nBytesToRead )
+      assert(nBitsToRead < Int.MaxValue )
+      assert(neededBytes <= patternToRead.length)
+      assert(neededBytes == nBytesToRead || neededBytes == nBytesToRead + 1)
+      assert(nBytesToRead <= Int.MaxValue / 8)
+      assert(neededBytes <= Int.MaxValue / 8)
+
+       if(!BitStream.validate_offset_bytes(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, neededBytes)) then
+         return false
+
+      assert(BitStream.validate_offset_bytes(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, neededBytes))
       (while i < nBytesToRead do
          decreases(nBytesToRead - i)
-         @ghost val oldThis2 = snapshot(this)
+
+         @ghost val oldBufLen = base.bitStream.buf.length
+         @ghost val oldCurrentByte = base.bitStream.currentByte
+         @ghost val oldCurrentBit = base.bitStream.currentBit
+         @ghost val oldBitIndex = BitStream.bitIndex(oldBufLen, oldCurrentByte, oldCurrentBit)
          if readByte() != patternToRead(i) then
             pBoolValue = false
-         ghostExpr {
-            assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit)
-               == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit)  + (i + 1).toLong * 8L)
-            BitStream.validateOffsetBitsIneqLemma(oldThis2.base.bitStream, base.bitStream, nBitsToRead - i.toLong * 8L, 8L)
-            assert(BitStream.validate_offset_bits(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit, nBitsToRead - (i + 1).toLong * 8L))
-         }
+         
+         assert(BitStream.bitIndex(oldBufLen, oldCurrentByte, oldCurrentBit) + 8 == BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
+         @ghost val bitIndex = BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit)
+         assert(bitIndex == oldBitIndex + 8)
          i += 1
-         assert(BitStream.validate_offset_bits(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit, nBitsToRead - i.toLong * 8L))
-      ).invariant(0 <= i && i <= nBytesToRead &&
-         buf == oldThis.base.bitStream.buf &&
-         BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + i.toLong * 8L &&
-         BitStream.validate_offset_bits(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit, nBitsToRead - i.toLong * 8L))
 
-      assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBytesToRead.toLong * 8L)
+         ghostExpr(base.lemmaAdvanceBitIndexLessMaintainOffset(oldBufLen, oldCurrentByte, oldCurrentBit, oldBitIndex, base.bitStream.currentByte, base.bitStream.currentBit, bitIndex, 8*(neededBytes - i + 1), 8*(neededBytes - i)))
+      ).invariant(
+         i >= 0 &&
+         i <= nBytesToRead &&
+         nBitsToRead < Int.MaxValue &&
+         neededBytes <= patternToRead.length &&
+         neededBytes >= nBytesToRead && 
+         neededBytes <= Int.MaxValue / 8 &&
+         nBytesToRead <= Int.MaxValue / 8 &&
+         base.bitStream.buf.length >= 0 && base.bitStream.currentByte >= 0 && base.bitStream.currentBit >= 0 &&
+         BitStream.invariant(base.bitStream) &&
+         BitStream.validate_offset_bytes(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, neededBytes - i)
+         )
 
+         
       if nRemainingBitsToRead > 0 then
          if readPartialByte(nRemainingBitsToRead.toByte).toRaw != ((patternToRead(nBytesToRead).toRaw & 0xFF) >>> (8 - nRemainingBitsToRead)) then
             pBoolValue = false
@@ -1370,12 +1429,27 @@ case class ACN(base: Codec) {
    }
 
    def enc_String_CharIndex_private(max: Long, allowedCharSet: Array[UByte], strVal: Array[ASCIIChar]): Long = {
+      // Does not make sense to have a max variable of type Long, as the index of an array must be an Int
+      require(max < Int.MaxValue && max >= 0)
+      require(allowedCharSet.length > 0)
       var i: Int = 0
-      while (i < max) && (strVal(i).toRaw != CHAR_0000) do
+      // SAM Here I put a dynamic check for the buffer size, because the buffer size depends on when the CHAR_0000 is found, and it does
+      // not make sense to require a buffer of size max, and I decided to return -1L if one of the checkes fails
+      val nBitsPerElmt = GetBitCountUnsigned(stainless.math.wrapping(allowedCharSet.length - 1).toRawULong)
+      (while (i < max) && (i < strVal.length) && (strVal(i).toRaw != CHAR_0000) do
+         decreases(max - i)
+         if((i >= strVal.length) ) then
+            return -1L
          val charIndex: Int = GetCharIndex(strVal(i), allowedCharSet)
+         if(!BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nBitsPerElmt)) then
+            return -1L
          encodeConstrainedWholeNumber(charIndex, 0, allowedCharSet.length - 1)
          i += 1
-
+      ).invariant(
+         i <= max && i >= 0 &&
+         max <= Int.MaxValue &&
+         i <= strVal.length
+         )
       i
    }
 
@@ -1392,6 +1466,7 @@ case class ACN(base: Codec) {
 
 
    def enc_IA5String_CharIndex_External_Field_Determinant(max: Long, strVal: Array[ASCIIChar]): Unit = {
+      require(max < Int.MaxValue && max >= 0)
       val allowedCharSet: Array[Byte] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
@@ -1509,13 +1584,30 @@ case class ACN(base: Codec) {
    }
 
    def dec_String_CharIndex_private(max: Long, charactersToDecode: Long, allowedCharSet: Array[UByte]): Array[ASCIIChar] = {
+      require(allowedCharSet.length > 0)
+      require(max < Int.MaxValue && max >= 0)
+      require(charactersToDecode >= 0 && charactersToDecode <= max)
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0.toRawUByte)
       var i: Int = 0
-      (while i < charactersToDecode do
+      assert(allowedCharSet.length > 0)
+      assert(strVal.length > 0)
+      assert(strVal.length > max)
+      assert(strVal.length > charactersToDecode)
+      assert(i < strVal.length)
+
+      val nBitsPerElmt = GetBitCountUnsigned(stainless.math.wrapping(allowedCharSet.length - 1).toRawULong)
+      (while i < charactersToDecode  do
          decreases(charactersToDecode - i)
+         if(!BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nBitsPerElmt))
+            return Array.empty
          strVal(i) = allowedCharSet(decodeConstrainedWholeNumber(0, allowedCharSet.length - 1).toInt)
          i += 1
-      ).invariant(true) // TODO
+      ).invariant(
+         i <= charactersToDecode && i >= 0 &&
+         charactersToDecode < Int.MaxValue &&
+         i < strVal.length &&
+         max < strVal.length
+      )
 
       strVal
    }
@@ -1536,6 +1628,9 @@ case class ACN(base: Codec) {
 
 
    def dec_IA5String_CharIndex_External_Field_Determinant(max: Long, extSizeDeterminantFld: Long): Array[ASCIIChar] = {
+      require(max < Int.MaxValue)
+      require(extSizeDeterminantFld >= 0)
+      require(max >= 0) // SAM Check whether this is correct, otherwise transform it into a runtime check
       val allowedCharSet: Array[Byte] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
@@ -1555,6 +1650,10 @@ case class ACN(base: Codec) {
    }
 
    def dec_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long): Array[ASCIIChar] = {
+      require(min <= max)
+      require(max < Int.MaxValue)
+      require(max >= 0)
+      require(min >= 0) // SAM Check whether this is correct, otherwise transform it into a runtime check
       val allowedCharSet: Array[Byte] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
@@ -1570,8 +1669,12 @@ case class ACN(base: Codec) {
          0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
+      if(!BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong)))
+         return Array.empty
       val nCount = decodeConstrainedWholeNumber(min, max)
-      dec_String_CharIndex_private(max, if nCount <= max then nCount else max, UByte.fromArrayRaws(allowedCharSet))
+      val charToDecode = if nCount <= max then nCount else max
+      assert(charToDecode >= 0 && charToDecode <= max)
+      dec_String_CharIndex_private(max, charToDecode, UByte.fromArrayRaws(allowedCharSet))
    }
 
 

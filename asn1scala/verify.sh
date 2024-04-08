@@ -8,6 +8,20 @@ src/main/scala/asn1scala/asn1jvm_Codec_ACN.scala \
 -D-parallel=12 \
 --watch \
 --functions=\
+enc_IA5String_CharIndex_External_Field_Determinant,\
+dec_IA5String_CharIndex_External_Field_Determinant,\
+dec_Int_TwosComplement_ConstSize_little_endian_64,\
+dec_Real_IEEE754_32_big_endian,\
+dec_Real_IEEE754_32_little_endian,\
+dec_Real_IEEE754_64_big_endian,\
+dec_Real_IEEE754_64_little_endian,\
+milbus_encode,\
+milbus_decode\
+BitStream_ReadBitPattern,\
+dec_IA5String_CharIndex_Internal_Field_Determinant,\
+dec_String_CharIndex_private,\
+enc_String_CharIndex_private,\
+GetCharIndex,\
 initACNCodec,\
 reader,\
 readPrefixLemma_TODO,\

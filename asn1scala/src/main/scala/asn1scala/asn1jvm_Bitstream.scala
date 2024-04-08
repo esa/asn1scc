@@ -10,12 +10,12 @@ import StaticChecks.*
 
 // TODO: "loopPrefixLemma" is a bad name, it's not the same "prefix lemma" as the others!!!
 object BitStream {
-   @pure @inline @ghost
+   @pure @inline //@ghost
    final def invariant(bs: BitStream): Boolean = {
       invariant(bs.currentBit, bs.currentByte, bs.buf.length)
    }
 
-   @pure @ghost
+   @pure //@ghost
    final def invariant(currentBit: Int, currentByte: Int, buffLength: Int): Boolean = {
          currentBit >= 0 && currentBit < NO_OF_BITS_IN_BYTE &&
          currentByte >= 0 && ((currentByte < buffLength) || (currentBit == 0 && currentByte == buffLength))
