@@ -752,6 +752,7 @@ case class ACN(base: Codec) {
 
    def enc_Int_TwosComplement_ConstSize_8(intVal: Long): Unit = {
       require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
+      require(int2uint(intVal) <= 255)
       enc_Int_PositiveInteger_ConstSize_8(int2uint(intVal))
    }
 
