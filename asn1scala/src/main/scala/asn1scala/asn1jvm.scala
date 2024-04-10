@@ -79,6 +79,9 @@ object UInt {
 extension (l: UInt) {
     @inline def toRaw: Int = l
     @inline def <=(r: UInt): Boolean = wrappingExpr { l + Int.MinValue <= r + Int.MinValue }
+    @inline def <(r: UInt): Boolean = wrappingExpr { l + Int.MinValue < r + Int.MinValue }
+    @inline def >(r: UInt): Boolean = wrappingExpr { l + Int.MinValue > r + Int.MinValue }
+    @inline def >=(r: UInt): Boolean = wrappingExpr { l + Int.MinValue >= r + Int.MinValue }
     @inline def unsignedToLong: Long = l & MASK_INT_L
     @inline def toULong: ULong = l
 }
@@ -93,14 +96,11 @@ extension (l: ULong) {
     @inline def toUShort: UShort = wrappingExpr { l.toShort }
     @inline def toUInt: UInt = wrappingExpr { l.toInt }
     @inline def <=(r: ULong): Boolean = wrappingExpr { l + Long.MinValue <= r + Long.MinValue }
+    @inline def <(r: ULong): Boolean = wrappingExpr { l + Long.MinValue < r + Long.MinValue }
+    @inline def >(r: ULong): Boolean = wrappingExpr { l + Long.MinValue > r + Long.MinValue }
+    @inline def >=(r: ULong): Boolean = wrappingExpr { l + Long.MinValue >= r + Long.MinValue }
     @inline def +(r: ULong): ULong = wrappingExpr { l + r }
     @inline def -(r: ULong): ULong = wrappingExpr { l - r }
-
-    // @ignore
-    // inline def ==(r: Int): Boolean = {
-    //     scala.compiletime.requireConst(r)
-    //     l == r.toLong.toRawULong
-    // }
 }
 
 extension (b: Byte) {
@@ -156,24 +156,6 @@ extension (l: Long) {
         scala.math.BigInt(l).toByteArray
     }
 }
-
-// @ignore
-// inline implicit def intlit2uint(inline i: Int): UInt = {
-//    scala.compiletime.requireConst(i)
-//    UInt.fromRaw(i)
-// }
-
-// @ignore
-// inline implicit def intlit2ulong(inline i: Int): ULong = {
-//    scala.compiletime.requireConst(i)
-//    ULong.fromRaw(i.toLong)
-// }
-
-// @ignore
-// inline implicit def longlit2ulong(inline i: Long): ULong = {
-//    scala.compiletime.requireConst(i)
-//    ULong.fromRaw(i)
-// }
 
 @extern
 type RealNoRTL = Float

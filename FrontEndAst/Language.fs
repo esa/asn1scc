@@ -84,6 +84,7 @@ type SequenceProofGen = {
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
     nestingLevel: int
+    nestingIx: int
     uperMaxOffset: bigint
     acnMaxOffset: bigint
     acnSiblingMaxSize: bigint option
@@ -111,6 +112,36 @@ type SequenceProofGen = {
         | ACN -> this.acnMaxOffset
         | UPER -> this.uperMaxOffset
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+
+type SequenceOfProofGen = {
+    acnOuterMaxSize: bigint
+    uperOuterMaxSize: bigint
+    nestingLevel: int
+    nestingIx: int
+    acnMaxOffset: bigint
+    uperMaxOffset: bigint
+    typeInfo: TypeInfo
+    sel: string // Selection
+    ixVariable: string
+} with
+    member this.outerMaxSize (enc: Asn1Encoding): bigint =
+        match enc with
+        | ACN -> this.acnOuterMaxSize
+        | UPER -> this.uperOuterMaxSize
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+
+    member this.maxOffset (enc: Asn1Encoding): bigint =
+        match enc with
+        | ACN -> this.acnMaxOffset
+        | UPER -> this.uperMaxOffset
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+
+type SequenceOfProofGenResult = {
+    preSerde: string
+    postSerde: string
+    postInc: string
+    invariant: string
+}
 
 [<AbstractClass>]
 type ILangGeneric () =
@@ -234,6 +265,7 @@ type ILangGeneric () =
     abstract member generatePrecond: Asn1Encoding -> t: Asn1AcnAst.Asn1Type -> string list
     abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
+    abstract member generateSequenceOfProof: Asn1Encoding -> Asn1AcnAst.SequenceOf -> internalItem: AcnFuncBodyResult option -> SequenceOfProofGen -> Codec -> SequenceOfProofGenResult option
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
@@ -250,6 +282,7 @@ type ILangGeneric () =
     default this.generatePrecond _ _ = []
     default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id
+    default this.generateSequenceOfProof _ _ _ _ _ = None
 
     //most programming languages are case sensitive
     default _.isCaseSensitive = true

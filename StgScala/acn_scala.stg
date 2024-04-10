@@ -1,12 +1,12 @@
 group scala_acn;
 
-getStringSize(p) ::= "<p>.indexOf(0x00.toRawUByte)"
+getStringSize(p) ::= "ULong.fromRaw(<p>.indexOf(0x00.toRawUByte))"
 
 getSizeableSize(p, sAcc, bIsUnsigned) ::= <<
 <if(bIsUnsigned)>
-ULong.fromRaw(<p><sAcc>nCount) // TODO acn:5
+ULong.fromRaw(<p><sAcc>nCount)
 <else>
-<p><sAcc>nCount // TODO acn:5
+<p><sAcc>nCount
 <endif>
 >>
 
@@ -24,14 +24,12 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-<arrsAnnots:{ann|@<ann>}; separator=" ">
+@opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN, bCheckConstraints: Boolean): Either[ErrorCode, Int] =  // acn:21
 {
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-    // TODO: "return" in ensuring is non-local return for Scala --'
-    // if bCheckConstraints then // TODO: we must always check constraint to verify
     <soIValidFuncName>(<sVarName>) match
         case Left(l) => return Left(l)
         case Right(_) =>
@@ -50,7 +48,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 >>
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
-<arrsAnnots:{ann|@<ann>}; separator=" ">
+@opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN): EitherMut[ErrorCode, <sTypeDefName>] =
 {
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
@@ -65,7 +63,9 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN): Ei
     <else>
     RightMut[ErrorCode, <sTypeDefName>](<sVarName>)
     <endif>
-}.ensuring(_ => <soPostcond>)
+}.ensuring { (res : EitherMut[ErrorCode, <sTypeDefName>]) =>
+    <soPostcond>
+}
 
 @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>_pure(codec: ACN): (ACN, EitherMut[ErrorCode, <sTypeDefName>]) =
@@ -87,9 +87,11 @@ MF(soMF) ::= /*nogen*/ <<
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
 <i> = 0
-while <i> \< <fixedSize>.toInt do
+(while (<i> \< <fixedSize>.toInt) {
+    decreases(<fixedSize>.toInt - <i>)
     <sInternalItem>
     <i> += 1
+}).invariant(0 \<= <i> && <i> \<= <fixedSize>.toInt)
 >>
 
 alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
@@ -97,8 +99,8 @@ locally {
     @ghost val unalignedCodec = snapshot(codec)
     codec.base.bitStream.alignTo<sAlignmentValue>()
     ghostExpr {
-        BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7)
-        check(BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) \<= BitStream.bitIndex(codec_0_1.base.bitStream.buf.length, codec_0_1.base.bitStream.currentByte, codec_0_1.base.bitStream.currentBit) + <nOffset> + 7)
+        BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
+        check(BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) \<= BitStream.bitIndex(codec_0_1.base.bitStream.buf.length, codec_0_1.base.bitStream.currentByte, codec_0_1.base.bitStream.currentBit) + <nOffset>L + 7L)
     }
 }
 <sMainBody>
@@ -109,14 +111,25 @@ locally {
     @ghost val unalignedCodec = snapshot(codec)
     codec.base.bitStream.alignTo<sAlignmentValue>()
     ghostExpr {
-        BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7)
-        check(BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) \<= BitStream.bitIndex(codec_0_1.base.bitStream.buf.length, codec_0_1.base.bitStream.currentByte, codec_0_1.base.bitStream.currentBit) + <nOffset> + 7)
+        BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
+        check(BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) \<= BitStream.bitIndex(codec_0_1.base.bitStream.buf.length, codec_0_1.base.bitStream.currentByte, codec_0_1.base.bitStream.currentBit) + <nOffset>L + 7L)
     }
 }
 <sMainBody>
 >>
 
-PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)"
+PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+locally {
+    ghostExpr {
+        @opaque @inlineOnce
+        def bitCountLemma(v: ULong): Unit = {
+            require(v \<= ULong.fromRaw(<nUperMax>))
+        }.ensuring(_ => GetBitCountUnsigned(v) \<= <nFixedSize>)
+        bitCountLemma(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
+    }
+}
+codec.enc_Int_PositiveInteger_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)
+>>
 PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
 val <p> = codec.dec_Int_PositiveInteger_ConstSize<sSsuffix>(<nFixedSize>)
 <MF(soMF)>
@@ -442,12 +455,23 @@ val <p> = codec.dec_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allo
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
-codec.enc_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <p>)
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+locally {
+    val bix = codec.base.bitStream.bitIndex
+    codec.enc_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <p>)
+    if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L  then
+        return Left(461)
+}
 >>
 
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
-val <p> = codec.dec_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <sExtFld>.toRaw)
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+val <p> = locally {
+    val bix = codec.base.bitStream.bitIndex
+    val <p> = codec.dec_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <sExtFld>.toRaw)
+    if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L  then
+        return LeftMut(470)
+    <p>
+}
 >>
 
 
@@ -474,28 +498,59 @@ val <p> =
 >>
 
 
-sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+<i> = 0
+(while(<i> \< <p>.nCount.toInt) {
+    decreases(<p>.nCount.toInt - <i>)
+    <soPreSerde>
+    <sInternalItem>
+    <soPostSerde>
+    <i> += 1
+    <soPostInc>
+}).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <p>.nCount.toInt<if(soInvariant)> && <soInvariant><endif>)
 >>
 
-sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
         val <p> = <sTypeDefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, Array.fill(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>)(<sChildInitExpr>))
-        <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+        <i> = 0
+        (while(<i> \< <p>.nCount.toInt) {
+            decreases(<p>.nCount.toInt - <i>)
+            <soPreSerde>
+            <sInternalItem>
+            <soPostSerde>
+            <i> += 1
+            <soPostInc>
+        }).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <p>.nCount.toInt<if(soInvariant)> && <soInvariant><endif>)
         <p>
     else return LeftMut(<sErrCode>)
 >>
 
-sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
+(while(<i> \< <nSizeMax>.toInt) {
+    decreases(<nSizeMax>.toInt - <i>)
+    <soPreSerde>
+    <sInternalItem>
+    <soPostSerde>
+    <i> += 1
+    <soPostInc>
+}).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <nSizeMax>.toInt<if(soInvariant)> && <soInvariant><endif>)
 >>
 
-sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
         val <p> = <sTypeDefName>(Array.fill(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>)(<sChildInitExpr>))
-        <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
+        (while(<i> \< <nSizeMax>.toInt) {
+            decreases(<nSizeMax>.toInt - <i>)
+            <soPreSerde>
+            <sInternalItem>
+            <soPostSerde>
+            <i> += 1
+            <soPostInc>
+        }).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <nSizeMax>.toInt<if(soInvariant)> && <soInvariant><endif>)
         <p>
     else return LeftMut(<sErrCode>)
 >>
@@ -814,6 +869,8 @@ val <p> = <sEnmExtFld> match
 /* Updates */
 SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
 val <v> = <sCount>
+if <v> \< ULong.fromRaw(<nMin>) || <v> \> ULong.fromRaw(<nMax>) then
+    return Left(860)
 >>
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<

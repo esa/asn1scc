@@ -316,24 +316,29 @@ type LangGeneric_scala() =
 
         override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
-        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"BitStream.validate_offset_bits(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit, {t.maxSizeInBits enc})"]
+        // TODO: Replace with an AST when it becomes complete
+        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.base.bitStream.validate_offset_bits({t.maxSizeInBits enc})"]
 
         // TODO: Replace with an AST when it becomes complete
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
-            match codec with
-            | Encode ->
-                let res = $"""
+            let suffix =
+                match codec with
+                | Encode -> ""
+                | Decode -> "Mut"
+            let res = $"""
 res match
-    case Left(_) => true
-    case Right(res) =>
+    case Left{suffix}(_) => true
+    case Right{suffix}(res) =>
         val w1 = old(codec)
         val w2 = codec
-        w1.base.bitStream.buf.length == w2.base.bitStream.buf.length && BitStream.bitIndex(w2.base.bitStream.buf.length, w2.base.bitStream.currentByte, w2.base.bitStream.currentBit) <= BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + {t.maxSizeInBits enc}"""
-                Some (res.TrimStart())
-            | Decode -> Some $"codec.base.bitStream.buf == old(codec).base.bitStream.buf && BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) <= BitStream.bitIndex(old(codec).base.bitStream.buf.length, old(codec).base.bitStream.currentByte, old(codec).base.bitStream.currentBit) + {t.maxSizeInBits enc}"
+        w1.base.bitStream.buf.length == w2.base.bitStream.buf.length && w2.base.bitStream.bitIndex <= w1.base.bitStream.bitIndex + {t.maxSizeInBits enc}"""
+            Some (res.TrimStart())
 
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
             ProofGen.generateSequenceChildProof enc stmts pg codec
+
+        override this.generateSequenceOfProof (enc: Asn1Encoding) (o: Asn1AcnAst.SequenceOf) (internalItem: AcnFuncBodyResult option) (pg: SequenceOfProofGen) (codec: Codec): SequenceOfProofGenResult option =
+            ProofGen.generateSequenceOfProof enc o internalItem pg codec
 
         override this.uper =
             {
