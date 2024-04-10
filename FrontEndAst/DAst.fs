@@ -446,11 +446,13 @@ type NestingScope = {
     nestingIx: int
     acnOffset: bigint
     uperOffset: bigint
+    acnRelativeOffset: bigint
+    uperRelativeOffset: bigint
     acnSiblingMaxSize: bigint option
     uperSiblingMaxSize: bigint option
 } with
     static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint): NestingScope =
-        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0; nestingIx = 0; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
+        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0; nestingIx = 0; acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
 
 type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)

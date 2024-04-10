@@ -118,13 +118,13 @@ for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++)
 
 
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 Acn_AlignTo<sAlignmentValue>(pBitStrm, TRUE);
 <sMainBody>
 >>
 
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 Acn_AlignTo<sAlignmentValue>(pBitStrm, FALSE);
 <sMainBody>
 >>

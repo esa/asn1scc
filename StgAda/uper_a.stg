@@ -163,8 +163,8 @@ result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber<sSsuffix>(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
 >>
 
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nBits>);"
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nBits>);"
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber<sSsuffix>(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
 >>

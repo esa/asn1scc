@@ -266,6 +266,7 @@ type ILangGeneric () =
     abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
     abstract member generateSequenceOfProof: Asn1Encoding -> Asn1AcnAst.SequenceOf -> internalItem: AcnFuncBodyResult option -> SequenceOfProofGen -> Codec -> SequenceOfProofGenResult option
+    abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CallerScope -> Codec -> string option
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
@@ -283,6 +284,7 @@ type ILangGeneric () =
     default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id
     default this.generateSequenceOfProof _ _ _ _ _ = None
+    default this.generateIntFullyConstraintRangeAssert _ _ _ = None
 
     //most programming languages are case sensitive
     default _.isCaseSensitive = true

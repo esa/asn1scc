@@ -94,25 +94,27 @@ loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
 }).invariant(0 \<= <i> && <i> \<= <fixedSize>.toInt)
 >>
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 locally {
     @ghost val unalignedCodec = snapshot(codec)
     codec.base.bitStream.alignTo<sAlignmentValue>()
     ghostExpr {
         BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
-        check(BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) \<= BitStream.bitIndex(codec_0_1.base.bitStream.buf.length, codec_0_1.base.bitStream.currentByte, codec_0_1.base.bitStream.currentBit) + <nOffset>L + 7L)
+        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
+        check(codec.base.bitStream.bitIndex \<= codec_<nLevel>_<nIx>.base.bitStream.bitIndex + <nOffset>L + 7L)
     }
 }
 <sMainBody>
 >>
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nOffset, nRemainingMinBits) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 locally {
     @ghost val unalignedCodec = snapshot(codec)
     codec.base.bitStream.alignTo<sAlignmentValue>()
     ghostExpr {
         BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
-        check(BitStream.bitIndex(codec.base.bitStream.buf.length, codec.base.bitStream.currentByte, codec.base.bitStream.currentBit) \<= BitStream.bitIndex(codec_0_1.base.bitStream.buf.length, codec_0_1.base.bitStream.currentByte, codec_0_1.base.bitStream.currentBit) + <nOffset>L + 7L)
+        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
+        check(codec.base.bitStream.bitIndex \<= codec_<nLevel>_<nIx>.base.bitStream.bitIndex + <nOffset>L + 7L)
     }
 }
 <sMainBody>

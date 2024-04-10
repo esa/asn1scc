@@ -166,7 +166,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 <endif>
 case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
 {
-    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMaxOctets><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length<endif>)
+    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMaxOctets><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length.toLong * 8L<endif>)
 }
 >>
 

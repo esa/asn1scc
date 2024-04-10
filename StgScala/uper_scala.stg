@@ -129,7 +129,7 @@ val <p> = codec.base.decodeConstrainedWholeNumber<sSsuffix>(<nMin>, <nMax>) // u
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
 locally {
     ghostExpr {
         @opaque @inlineOnce
@@ -137,10 +137,11 @@ locally {
         bitCountLemma()
     }
 }
+<soRangeAssert>
 codec.base.encodeConstrainedPosWholeNumber(<p>, <nMin>.toRawULong, <nMax>.toRawULong)
 >>
 
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
 locally {
     ghostExpr {
         @opaque @inlineOnce

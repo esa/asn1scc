@@ -321,17 +321,17 @@ type LangGeneric_scala() =
 
         // TODO: Replace with an AST when it becomes complete
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
-            let suffix =
+            let suffix, buf =
                 match codec with
-                | Encode -> ""
-                | Decode -> "Mut"
+                | Encode -> "", "w1.base.bitStream.buf.length == w2.base.bitStream.buf.length"
+                | Decode -> "Mut", "w1.base.bitStream.buf == w2.base.bitStream.buf"
             let res = $"""
 res match
     case Left{suffix}(_) => true
     case Right{suffix}(res) =>
         val w1 = old(codec)
         val w2 = codec
-        w1.base.bitStream.buf.length == w2.base.bitStream.buf.length && w2.base.bitStream.bitIndex <= w1.base.bitStream.bitIndex + {t.maxSizeInBits enc}"""
+        {buf} && w2.base.bitStream.bitIndex <= w1.base.bitStream.bitIndex + {t.maxSizeInBits enc}"""
             Some (res.TrimStart())
 
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
@@ -339,6 +339,11 @@ res match
 
         override this.generateSequenceOfProof (enc: Asn1Encoding) (o: Asn1AcnAst.SequenceOf) (internalItem: AcnFuncBodyResult option) (pg: SequenceOfProofGen) (codec: Codec): SequenceOfProofGenResult option =
             ProofGen.generateSequenceOfProof enc o internalItem pg codec
+
+        override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CallerScope) (codec: Codec): string option =
+            match codec with
+            | Encode -> Some $"assert({topLevelTd}_IsConstraintValid(pVal).isRight)" // TODO: HACK: When for CHOICE, `p` gets reset to the choice variant name, so we hardcode "pVal" here...
+            | Decode -> None
 
         override this.uper =
             {

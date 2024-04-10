@@ -278,15 +278,15 @@ let someTests () =
 (*
 let getDateTimeFromAsn1TimeStringValue timeClass (str:StringLoc) =
     try
-        let dt = 
+        let dt =
             match timeClass with
-            |Asn1LocalTime                  _ -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
+            |Asn1LocalTime                  _ -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFF", CultureInfo.InvariantCulture)
             |Asn1UtcTime                    _ -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
-            |Asn1LocalTimeWithTimeZone      _ -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
-            |Asn1Date                       -> DateTime.ParseExact(str.Value, "yyyy-MM-dd", CultureInfo.InvariantCulture) 
-            |Asn1Date_LocalTime             _ -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
+            |Asn1LocalTimeWithTimeZone      _ -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFFK", CultureInfo.InvariantCulture)
+            |Asn1Date                       -> DateTime.ParseExact(str.Value, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+            |Asn1Date_LocalTime             _ -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFF", CultureInfo.InvariantCulture)
             |Asn1Date_UtcTime               _ -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
-            |Asn1Date_LocalTimeWithTimeZone _ -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
+            |Asn1Date_LocalTimeWithTimeZone _ -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFFK", CultureInfo.InvariantCulture)
         {DateTimeLoc.Value = dt; Location = str.Location}
     with
         | :? System.FormatException as e -> raise(SemanticError(str.Location, "Invalid TIME VALUE"))
@@ -311,7 +311,7 @@ type ProgrammingLanguage =
     |C
     |Scala
     |Ada
-    with 
+    with
         static member AllLanguages = [C; Scala; Ada]
 
 type Codec =
@@ -485,9 +485,17 @@ type ReferenceToType with
                 match path with
                 | (MD modName)::(TA tasName)::[]    -> Some ({TypeAssignmentInfo.modName = modName; tasName=tasName})
                 | _                                 -> None
+
+        member this.topLevelTas =
+            match this with
+            | ReferenceToType path ->
+                match path with
+                | (MD modName) :: (TA tasName) :: _ -> Some {TypeAssignmentInfo.modName = modName; tasName=tasName}
+                | _ -> None
+
         member this.AcnAbsPath =
             match this with
-            | ReferenceToType path -> path |> List.map (fun i -> i.StrValue) 
+            | ReferenceToType path -> path |> List.map (fun i -> i.StrValue)
         //member this.getSeqChildId (childName:string) =
         //    match this with
         //    | ReferenceToType path -> ReferenceToType (path@[SEQ_CHILD childName])
@@ -506,12 +514,12 @@ type ReferenceToType with
 
         //member this.appendLongChildId (childRelativePath:string list) =
         //    match this with
-        //    | ReferenceToType path -> 
-        //        let newTail = 
-        //            childRelativePath |> 
+        //    | ReferenceToType path ->
+        //        let newTail =
+        //            childRelativePath |>
         //            List.map(fun s ->SEQ_CHILD s)
         //        ReferenceToType (path@newTail)
-        member this.beginsWith (md:string) (ts:string)= 
+        member this.beginsWith (md:string) (ts:string)=
             match this with
             | ReferenceToType((MD mdName)::(TA tasName)::[])   -> mdName = md && tasName = ts
             | _                                                                          -> false

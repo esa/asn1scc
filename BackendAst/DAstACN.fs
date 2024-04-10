@@ -146,10 +146,10 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
             let newContent =
                 match content with
                 | Some bodyResult   ->
-                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) codec
+                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (bigint nestingScope.nestingLevel - 1I) (bigint nestingScope.nestingIx) nestingScope.acnRelativeOffset codec
                     Some {bodyResult with funcBody  = funcBodyStr}
                 | None              ->
-                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) codec
+                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (bigint nestingScope.nestingLevel - 1I) (bigint nestingScope.nestingIx) nestingScope.acnRelativeOffset codec
                     Some {funcBody = funcBodyStr; errCodes =[errCode]; localVariables = []; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; typeEncodingKind = None}
             newContent, ns1a
         newFuncBody
@@ -172,10 +172,10 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
             let newContent =
                 match content with
                 | Some bodyResult   ->
-                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) codec
+                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (bigint nestingScope.nestingLevel - 1I) (bigint nestingScope.nestingIx) nestingScope.acnRelativeOffset codec
                     Some {bodyResult with funcBody  = funcBodyStr}
                 | None              ->
-                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) codec
+                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (bigint nestingScope.nestingLevel - 1I) (bigint nestingScope.nestingIx) nestingScope.acnRelativeOffset codec
                     Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; typeEncodingKind = None}
             newContent
         newFuncBody
@@ -499,7 +499,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let errCode, ns = getNextValidErrorCode us errCodeName None
 
     let uperFuncBody (errCode) (p:CallerScope) =
-        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) errCode p
+        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId errCode p
     let soMapFunMod, soMapFunc  =
         match t.acnProperties.mappingFunction with
         | Some (MappingFunction (soMapFunMod, mapFncName))    ->
@@ -574,7 +574,12 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
                 let sSsuffix = DAstUPer.getIntDecFuncSuffix intTypeClass
                 let word_size_in_bits = (int r.args.integerSizeInBytes)*8
                 let nbits = GetNumberOfBitsForNonNegativeInteger (max-min)
-                let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max nbits sSsuffix errCode.errCodeName codec
+                let rangeAssert =
+                    match typeId.topLevelTas with
+                    | Some tasInfo ->
+                        lm.lg.generateIntFullyConstraintRangeAssert (ToC (r.args.TypePrefix + tasInfo.tasName)) p codec
+                    | None -> None
+                let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max nbits sSsuffix errCode.errCodeName rangeAssert codec
                 Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType (Some (FullyConstrainedPositive (min, max))))})
             createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass uperInt (None, None)
         let funcBodyContent =
@@ -1802,7 +1807,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             // This binding is suspect, isn't it
             let us = s.us
             let soSaveBitStrmPosStatement = None
-            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1; nestingIx = nestingScope.nestingIx + s.childIx; acnOffset = nestingScope.acnOffset + s.acnAccBits}
+            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1; nestingIx = nestingScope.nestingIx + s.childIx; acnRelativeOffset = s.acnAccBits; acnOffset = nestingScope.acnOffset + s.acnAccBits}
             match child with
             | Asn1Child child   ->
                 let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
