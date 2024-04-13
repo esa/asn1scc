@@ -1,4 +1,7 @@
 #!/bin/bash
+
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+
 dotnet build Antlr/
 dotnet build parseStg2/
 dotnet build "asn1scc.sln"
