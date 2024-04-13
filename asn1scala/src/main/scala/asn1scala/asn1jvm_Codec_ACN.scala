@@ -756,37 +756,37 @@ case class ACN(base: Codec) {
 
    def enc_Int_TwosComplement_ConstSize_8(intVal: Long): Unit = {
       require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
-      require(int2uint(intVal) <= 255)
-      enc_Int_PositiveInteger_ConstSize_8(int2uint(intVal))
+      require(-128L <= intVal && intVal <= 127L)
+      enc_Int_PositiveInteger_ConstSize_8(ULong.fromRaw(intVal & 0xFFL))
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_16(intVal: Long): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16))
-      require(int2uint(intVal) <= 65535)
-      enc_Int_PositiveInteger_ConstSize_big_endian_16(int2uint(intVal))
+      require(-32768L <= intVal && intVal <= 32767L)
+      enc_Int_PositiveInteger_ConstSize_big_endian_16(ULong.fromRaw(intVal & 0xFFFFL))
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_32(intVal: Long): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32))
-      require(int2uint(intVal) <= 4294967295L)
-      enc_Int_PositiveInteger_ConstSize_big_endian_32(int2uint(intVal))
+      require(-2147483648L <= intVal && intVal <= 2147483647L)
+      enc_Int_PositiveInteger_ConstSize_big_endian_32(ULong.fromRaw(intVal & 0xFFFFFFFFL))
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_64(intVal: Long): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
-      enc_Int_PositiveInteger_ConstSize_big_endian_64(int2uint(intVal))
+      enc_Int_PositiveInteger_ConstSize_big_endian_64(ULong.fromRaw(intVal))
    }
 
    def enc_Int_TwosComplement_ConstSize_little_endian_16(intVal: Long): Unit = {
-      enc_Int_PositiveInteger_ConstSize_little_endian_16(int2uint(intVal))
+      enc_Int_PositiveInteger_ConstSize_little_endian_16(ULong.fromRaw(intVal))
    }
 
    def enc_Int_TwosComplement_ConstSize_little_endian_32(intVal: Long): Unit = {
-      enc_Int_PositiveInteger_ConstSize_little_endian_32(int2uint(intVal))
+      enc_Int_PositiveInteger_ConstSize_little_endian_32(ULong.fromRaw(intVal))
    }
 
    def enc_Int_TwosComplement_ConstSize_little_endian_64(intVal: Long): Unit = {
-      enc_Int_PositiveInteger_ConstSize_little_endian_64(int2uint(intVal))
+      enc_Int_PositiveInteger_ConstSize_little_endian_64(ULong.fromRaw(intVal))
    }
 
    def dec_Int_TwosComplement_ConstSize(encodedSizeInBits: Int): Long = {
@@ -1438,10 +1438,12 @@ case class ACN(base: Codec) {
          i += 1
    }
 
+   @opaque @inlineOnce
    def enc_String_CharIndex_private(max: Long, allowedCharSet: Array[UByte], strVal: Array[ASCIIChar]): Long = {
       // Does not make sense to have a max variable of type Long, as the index of an array must be an Int
       require(max < Int.MaxValue && max >= 0)
       require(allowedCharSet.length > 0)
+      @ghost val oldThis = snapshot(this)
       var i: Int = 0
       // SAM Here I put a dynamic check for the buffer size, because the buffer size depends on when the CHAR_0000 is found, and it does
       // not make sense to require a buffer of size max, and I decided to return -1L if one of the checkes fails
@@ -1458,23 +1460,28 @@ case class ACN(base: Codec) {
       ).invariant(
          i <= max && i >= 0 &&
          max <= Int.MaxValue &&
-         i <= strVal.length
-         )
-      i
-   }
+         i <= strVal.length &&
+         base.bitStream.buf.length == oldThis.base.bitStream.buf.length
+      )
 
+      i.toLong
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
+   @opaque @inlineOnce
    def enc_String_CharIndex_External_Field_Determinant(max: Long, allowedCharSet: Array[UByte], strVal: Array[ASCIIChar]): Unit = {
       enc_String_CharIndex_private(max, allowedCharSet, strVal)
-   }
+      ()
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
+   @opaque @inlineOnce
    def enc_String_CharIndex_Internal_Field_Determinant(max: Long, allowedCharSet: Array[UByte], min: Long, strVal: Array[ASCIIChar]): Unit = {
       val strLen: Int = strVal.length
       encodeConstrainedWholeNumber(if strLen <= max then strLen else max, min, max)
       enc_String_CharIndex_private(max, allowedCharSet, strVal)
-   }
+      ()
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
-
+   @opaque @inlineOnce
    def enc_IA5String_CharIndex_External_Field_Determinant(max: Long, strVal: Array[ASCIIChar]): Unit = {
       require(max < Int.MaxValue && max >= 0)
       val allowedCharSet: Array[Byte] = Array(
@@ -1494,8 +1501,10 @@ case class ACN(base: Codec) {
       )
 
       enc_String_CharIndex_private(max, UByte.fromArrayRaws(allowedCharSet), strVal)
-   }
+      ()
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
+   @opaque @inlineOnce
    def enc_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long, strVal: Array[ASCIIChar]): Unit = {
       val allowedCharSet: Array[Byte] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
@@ -1515,7 +1524,8 @@ case class ACN(base: Codec) {
       val strLen: Int = strVal.length
       encodeConstrainedWholeNumber(if strLen <= max then strLen else max, min, max)
       enc_String_CharIndex_private(max, UByte.fromArrayRaws(allowedCharSet), strVal)
-   }
+      ()
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
 
    def dec_String_Ascii_private(max: Long, charactersToDecode: Long): Array[ASCIIChar] = {
@@ -1584,19 +1594,23 @@ case class ACN(base: Codec) {
    }
 
 
+   @opaque @inlineOnce
    def dec_String_Ascii_External_Field_Determinant(max: Long, extSizeDeterminantFld: Long): Array[ASCIIChar] = {
       dec_String_Ascii_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max)
-   }
+   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
 
+   @opaque @inlineOnce
    def dec_String_Ascii_Internal_Field_Determinant(max: Long, min: Long): Array[ASCIIChar] = {
       val nCount = decodeConstrainedWholeNumber(min, max)
       dec_String_Ascii_private(max, if nCount <= max then nCount else max)
-   }
+   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
 
+   @opaque @inlineOnce
    def dec_String_CharIndex_private(max: Long, charactersToDecode: Long, allowedCharSet: Array[UByte]): Array[ASCIIChar] = {
       require(allowedCharSet.length > 0)
       require(max < Int.MaxValue && max >= 0)
       require(charactersToDecode >= 0 && charactersToDecode <= max)
+      @ghost val oldThis = snapshot(this)
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0.toRawUByte)
       var i: Int = 0
       assert(allowedCharSet.length > 0)
@@ -1616,11 +1630,12 @@ case class ACN(base: Codec) {
          i <= charactersToDecode && i >= 0 &&
          charactersToDecode < Int.MaxValue &&
          i < strVal.length &&
-         max < strVal.length
+         max < strVal.length &&
+         base.bitStream.buf == oldThis.base.bitStream.buf
       )
 
       strVal
-   }
+   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
 
    def dec_String_CharIndex_FixSize(max: Long, allowedCharSet: Array[ASCIIChar]): Array[ASCIIChar] = {
       dec_String_CharIndex_private(max, max, allowedCharSet)
@@ -1637,6 +1652,7 @@ case class ACN(base: Codec) {
    }
 
 
+   @opaque @inlineOnce
    def dec_IA5String_CharIndex_External_Field_Determinant(max: Long, extSizeDeterminantFld: Long): Array[ASCIIChar] = {
       require(max < Int.MaxValue)
       require(extSizeDeterminantFld >= 0)
@@ -1657,7 +1673,7 @@ case class ACN(base: Codec) {
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
       dec_String_CharIndex_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max, UByte.fromArrayRaws(allowedCharSet))
-   }
+   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
 
    def dec_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long): Array[ASCIIChar] = {
       require(min <= max)
@@ -1685,7 +1701,7 @@ case class ACN(base: Codec) {
       val charToDecode = if nCount <= max then nCount else max
       assert(charToDecode >= 0 && charToDecode <= max)
       dec_String_CharIndex_private(max, charToDecode, UByte.fromArrayRaws(allowedCharSet))
-   }
+   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
 
 
    /* Length Determinant functions*/

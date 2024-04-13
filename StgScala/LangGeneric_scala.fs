@@ -337,8 +337,8 @@ res match
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
             ProofGen.generateSequenceChildProof enc stmts pg codec
 
-        override this.generateSequenceOfProof (enc: Asn1Encoding) (o: Asn1AcnAst.SequenceOf) (internalItem: AcnFuncBodyResult option) (pg: SequenceOfProofGen) (codec: Codec): SequenceOfProofGenResult option =
-            ProofGen.generateSequenceOfProof enc o internalItem pg codec
+        override this.generateSequenceOfLikeProof (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
+            ProofGen.generateSequenceOfLikeProof enc o pg codec
 
         override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CallerScope) (codec: Codec): string option =
             match codec with

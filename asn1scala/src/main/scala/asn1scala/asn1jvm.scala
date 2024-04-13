@@ -218,15 +218,14 @@ val ber_aux: Array[Long] = Array(
 
 // TODO: check types and if neccesary as we don't have unsigned types
 def int2uint(v: Long): ULong = {
-    v.asInstanceOf[ULong]
-    /*var ret: ULong = 0
+    var ret: Long = 0L
     if v < 0 then
-        ret = -v - 1
-        ret = ~ret
+        ret = wrappingExpr(-v - 1)
+        ret = wrappingExpr(~ret)
     else
         ret = v
 
-    ret*/
+    ULong.fromRaw(ret)
 }
 
 def onesLSBLong(nBits: Int): Long = {

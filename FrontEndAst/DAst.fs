@@ -382,6 +382,22 @@ type TypeEncodingKind =
 /////////////////////////////////////////////////////////////////////
 
 
+type NestingScope = {
+    acnOuterMaxSize: bigint
+    uperOuterMaxSize: bigint
+    nestingLevel: int
+    nestingIx: int
+    acnOffset: bigint
+    uperOffset: bigint
+    acnRelativeOffset: bigint
+    uperRelativeOffset: bigint
+    acnSiblingMaxSize: bigint option
+    uperSiblingMaxSize: bigint option
+} with
+    static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint): NestingScope =
+        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0; nestingIx = 0; acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
+
+
 type UPERFuncBodyResult = {
     funcBody            : string
     errCodes            : ErrorCode list
@@ -395,8 +411,8 @@ type UPerFunction = {
     funcName            : string option               // the name of the function
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
-    funcBody            : CallerScope -> (UPERFuncBodyResult option)            // returns a list of validations statements
-    funcBody_e          : ErrorCode -> CallerScope -> (UPERFuncBodyResult option)
+    funcBody            : NestingScope -> CallerScope -> (UPERFuncBodyResult option)            // returns a list of validations statements
+    funcBody_e          : ErrorCode -> NestingScope -> CallerScope -> (UPERFuncBodyResult option)
 }
 
 type AcnFuncBodyResult = {
@@ -438,21 +454,6 @@ type IcdAux = {
     createRowsFunc : string->string->string list ->IcdRow list
     typeAss        : IcdTypeAss
 }
-
-type NestingScope = {
-    acnOuterMaxSize: bigint
-    uperOuterMaxSize: bigint
-    nestingLevel: int
-    nestingIx: int
-    acnOffset: bigint
-    uperOffset: bigint
-    acnRelativeOffset: bigint
-    uperRelativeOffset: bigint
-    acnSiblingMaxSize: bigint option
-    uperSiblingMaxSize: bigint option
-} with
-    static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint): NestingScope =
-        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0; nestingIx = 0; acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
 
 type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)

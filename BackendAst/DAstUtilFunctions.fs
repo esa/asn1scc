@@ -937,7 +937,7 @@ let hasUperEncodeFunction (encFunc : UPerFunction option)  =
     | None  -> false
     | Some fnc ->
             let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
-            match fnc.funcBody p with
+            match fnc.funcBody (NestingScope.init 0I 0I) p with
             | None   -> false
             | Some _ -> true
 

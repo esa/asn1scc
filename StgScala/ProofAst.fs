@@ -95,6 +95,7 @@ type Expr =
   | ArrayLength of Expr
   | MatchExpr of MatchExpr
   | And of Expr list
+  | SplitAnd of Expr list
   | Or of Expr list
   | Not of Expr
   | Equals of Expr * Expr
@@ -277,7 +278,7 @@ let requiresBraces (e: Expr) (within: Expr option): bool =
 let precedence (e: Expr): int =
   match e with
   | Or _ -> 1
-  | And _ -> 3
+  | And _ | SplitAnd _ -> 3
   | Leq _ -> 4
   | Equals _ | Not _ -> 5
   | Plus _ | Minus _ -> 7
@@ -315,6 +316,8 @@ let join (ctx: PrintCtx) (sep: string) (lhs: Line list) (rhs: Line list): Line l
     let middle = {lvl = lst.lvl; txt = $"{lst.txt}{sep}{rhs.Head.txt}"}
     (List.skipLast 1 lhs) @ [middle] @ rhs.Tail
 
+let lined (liness: Line list list): Line list list =
+  liness |> List.collect id |> List.map (fun l -> [l])
 
 let rec joinN (ctx: PrintCtx) (sep: string) (liness: Line list list): Line list =
   match liness with
@@ -470,6 +473,10 @@ and ppBody (ctx: PrintCtx) (e: Expr): Line list =
   | And conjs ->
     let conjs = conjs |> List.map (fun c -> pp (ctx.nest c) c)
     optP ctx (joinN ctx " && " conjs)
+
+  | SplitAnd conjs ->
+    let conjs = conjs |> List.map (fun c -> pp (ctx.nest c) c)
+    optP ctx (joinN ctx " &&& " conjs)
 
   | Or disjs ->
     let disjs = disjs |> List.map (fun d -> pp (ctx.nest d) d)

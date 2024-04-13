@@ -4,6 +4,7 @@ open System.Numerics
 open DAst
 open FsUtils
 open AbstractMacros
+open Asn1AcnAstUtilFunctions
 
 type Uper_parts = {
     createLv : string -> LocalVariable
@@ -113,7 +114,66 @@ type SequenceProofGen = {
         | UPER -> this.uperMaxOffset
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
-type SequenceOfProofGen = {
+type SequenceOfLike =
+    | SqOf of Asn1AcnAst.SequenceOf
+    | StrType of Asn1AcnAst.StringType
+with
+    member this.nbElems (enc: Asn1Encoding): bigint * bigint =
+        let nbElemsMin, nbElemsMax =
+            match this with
+            | SqOf sqf -> sqf.minSize, sqf.maxSize
+            | StrType st -> st.minSize, st.maxSize
+        match enc with
+        | ACN -> nbElemsMin.acn, nbElemsMax.acn
+        | UPER -> nbElemsMin.uper, nbElemsMax.uper
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+
+    member this.minNbElems (enc: Asn1Encoding): bigint =
+        fst (this.nbElems enc)
+
+    member this.maxNbElems (enc: Asn1Encoding): bigint =
+        snd (this.nbElems enc)
+
+    member this.sizeInBits (enc: Asn1Encoding): bigint * bigint =
+        match enc, this with
+        | ACN, SqOf sqf -> sqf.acnMinSizeInBits, sqf.acnMaxSizeInBits
+        | UPER, SqOf sqf -> sqf.uperMinSizeInBits, sqf.uperMaxSizeInBits
+        | ACN, StrType st -> st.acnMinSizeInBits, st.acnMaxSizeInBits
+        | UPER, StrType st -> st.uperMinSizeInBits, st.uperMaxSizeInBits
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+
+    member this.minSizeInBits (enc: Asn1Encoding): bigint =
+        fst (this.sizeInBits enc)
+
+    member this.maxSizeInBits (enc: Asn1Encoding): bigint =
+        snd (this.sizeInBits enc)
+
+
+    member this.elemSizeInBits (enc: Asn1Encoding): bigint * bigint =
+        match enc, this with
+        | ACN, SqOf sqf -> sqf.child.acnMinSizeInBits, sqf.child.acnMaxSizeInBits
+        | UPER, SqOf sqf -> sqf.child.uperMinSizeInBits, sqf.child.uperMaxSizeInBits
+        | ACN, StrType st -> st.acnEncodingClass.charSizeInBits, st.acnEncodingClass.charSizeInBits
+        | UPER, StrType st ->
+            let sz = GetNumberOfBitsForNonNegativeInteger (bigint (st.uperCharSet.Length - 1))
+            sz, sz
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+
+    member this.minElemSizeInBits (enc: Asn1Encoding): bigint =
+        fst (this.elemSizeInBits enc)
+
+    member this.maxElemSizeInBits (enc: Asn1Encoding): bigint =
+        snd (this.elemSizeInBits enc)
+
+
+
+    member this.isFixedSize: bool =
+        match this with
+        | SqOf sqf -> sqf.isFixedSize
+        | StrType st -> st.isFixedSize
+
+
+type SequenceOfLikeProofGen = {
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
     nestingLevel: int
@@ -136,7 +196,7 @@ type SequenceOfProofGen = {
         | UPER -> this.uperMaxOffset
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
-type SequenceOfProofGenResult = {
+type SequenceOfLikeProofGenResult = {
     preSerde: string
     postSerde: string
     postInc: string
@@ -265,7 +325,7 @@ type ILangGeneric () =
     abstract member generatePrecond: Asn1Encoding -> t: Asn1AcnAst.Asn1Type -> string list
     abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
-    abstract member generateSequenceOfProof: Asn1Encoding -> Asn1AcnAst.SequenceOf -> internalItem: AcnFuncBodyResult option -> SequenceOfProofGen -> Codec -> SequenceOfProofGenResult option
+    abstract member generateSequenceOfLikeProof: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
     abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CallerScope -> Codec -> string option
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
@@ -283,7 +343,7 @@ type ILangGeneric () =
     default this.generatePrecond _ _ = []
     default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id
-    default this.generateSequenceOfProof _ _ _ _ _ = None
+    default this.generateSequenceOfLikeProof _ _ _ _ = None
     default this.generateIntFullyConstraintRangeAssert _ _ _ = None
 
     //most programming languages are case sensitive

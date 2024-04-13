@@ -4,6 +4,7 @@ open DAst
 open FsUtils
 open CommonTypes
 open Language
+open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
 
 let generateTransitiveLemmaApp (snapshots: Var list) (codec: Var): Expr =
@@ -84,7 +85,7 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc
 
   let wrap (ix: int, (snap: Var, child: SequenceChildProps, stmt: string option)) (offsetAcc: bigint, rest: Expr): bigint * Expr =
     let sz = child.typeInfo.maxSize enc
-    assert (thisMaxSize <= (pg.siblingMaxSize enc |> Option.defaultValue thisMaxSize))
+    //assert (thisMaxSize <= (pg.siblingMaxSize enc |> Option.defaultValue thisMaxSize))
     let relativeOffset = offsetAcc - (pg.maxOffset enc)
     let offsetCheckOverall = Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var oldCdc)), (IntLit (Long, offsetAcc)))))
     let offsetCheckNested =
@@ -139,31 +140,39 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
     let exprStr = show expr
     [exprStr]
 
-let generateSequenceOfProof (enc: Asn1Encoding) (sqf: Asn1AcnAst.SequenceOf) (internalItem: AcnFuncBodyResult option) (pg: SequenceOfProofGen) (codec: Codec): SequenceOfProofGenResult option =
-  let nbItems =
-    if sqf.isFixedSize then
-      match enc with
-      | ACN -> IntLit (Int, sqf.minSize.acn)
-      | UPER -> IntLit (Int, sqf.minSize.uper)
-      | _ -> failwith $"Unexpected encoding: {enc}"
-    else
-      SelectionExpr $"{pg.sel}.nCount" // TODO: Not ideal...
-  let elemSz = sqf.child.maxSizeInBits enc
-  let elemSzExpr = IntLit (Long, elemSz)
-  let sqfMaxSize =
-    match enc with
-    | ACN -> sqf.acnMaxSizeInBits
-    | UPER -> sqf.uperMaxSizeInBits
+let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
+  let nbItemsMin, nbItemsMax = sqf.nbElems enc
+
+  let isSizeExternal =
+    match enc, sqf with
+    | UPER, _ -> true
+    | ACN, SqOf sqf ->
+      match sqf.acnEncodingClass with
+      | SizeableAcnEncodingClass.SZ_EC_FIXED_SIZE | SizeableAcnEncodingClass.SZ_EC_LENGTH_EMBEDDED _ -> not sqf.isFixedSize // TODO: Check if we can have SZ_EC_FIXED_SIZE with not sqf.isFixedSize (copying logic from DAstACN)
+      | _ -> true
+    | ACN, StrType str ->
+      true // TODO
     | _ -> failwith $"Unexpected encoding: {enc}"
-  let remainingBits = pg.outerMaxSize enc - sqfMaxSize - pg.maxOffset enc
+
+  let externSizeInBits =
+    if isSizeExternal then GetNumberOfBitsForNonNegativeInteger (nbItemsMax - nbItemsMin)
+    else 0I
+  let nbItems =
+    if sqf.isFixedSize then IntLit (Int, nbItemsMin)
+    else SelectionExpr $"{pg.sel}.nCount" // TODO: Not ideal...
+  let elemSz = sqf.maxElemSizeInBits enc
+  let elemSzExpr = IntLit (Long, elemSz)
+  let sqfMaxSizeInBits = sqf.maxSizeInBits enc
+  let remainingBits = pg.outerMaxSize enc - sqfMaxSizeInBits - pg.maxOffset enc
   let remainingBitsExpr = IntLit (Long, remainingBits)
 
   let codecTpe = runtimeCodecTypeFor enc
   let cdc = {Var.name = $"codec"; tpe = RuntimeType (CodecClass codecTpe)}
   // The codec snapshot before encoding/decoding the whole SequenceOf (i.e. snapshot before entering the while loop)
-  let cdcSnap = {Var.name = $"codec_{pg.nestingLevel - 1}_{pg.nestingIx + 1}"; tpe = RuntimeType (CodecClass codecTpe)}
+  let lvl = max 0 (pg.nestingLevel - 1)
+  let cdcSnap = {Var.name = $"codec_{lvl}_{pg.nestingIx + 1}"; tpe = RuntimeType (CodecClass codecTpe)}
   // The codec snapshot before encoding/decoding one item (snapshot local to the loop, taken before enc/dec one item)
-  let cdcLoopSnap = {Var.name = $"codecLoop_{pg.nestingLevel - 1}_{pg.nestingIx + 1}"; tpe = RuntimeType (CodecClass codecTpe)}
+  let cdcLoopSnap = {Var.name = $"codecLoop_{lvl}_{pg.nestingIx + 1}"; tpe = RuntimeType (CodecClass codecTpe)}
   let ix = {name = pg.ixVariable; tpe = IntegerType Int}
   let ixPlusOne = Plus (Var ix, IntLit (Int, 1I))
 
@@ -182,13 +191,16 @@ let generateSequenceOfProof (enc: Asn1Encoding) (sqf: Asn1AcnAst.SequenceOf) (in
     })
   let postSerde =
     Ghost (mkBlock [
+      // Assert (Equals (IntLit (Long, pg.outerMaxSize enc), IntLit (Long, pg.outerMaxSize enc)))
+      // Assert (Equals (IntLit (Long, sqfMaxSizeInBits), IntLit (Long, sqfMaxSizeInBits)))
+      // Assert (Equals (IntLit (Long, pg.maxOffset enc), IntLit (Long, pg.maxOffset enc)))
       Check (Equals (
         Mult (elemSzExpr, Plus (Var ix, IntLit (Int, 1I))),
         Plus (Mult (elemSzExpr, Var ix), elemSzExpr)
       ))
       Check (Leq (
         callBitIndex (Var cdc),
-        Plus (callBitIndex (Var cdcSnap), Mult (elemSzExpr, ixPlusOne))
+        Plus (callBitIndex (Var cdcSnap), Plus (IntLit (Long, externSizeInBits), Mult (elemSzExpr, ixPlusOne)))
       ))
       AppliedLemma {
         lemma = ValidateOffsetBitsIneqLemma
@@ -201,18 +213,23 @@ let generateSequenceOfProof (enc: Asn1Encoding) (sqf: Asn1AcnAst.SequenceOf) (in
       }
       Check (callValidateOffsetBits (Var cdc) (Plus (remainingBitsExpr, Mult (elemSzExpr, Minus (nbItems, ixPlusOne)))))
     ])
-  let invariants = [
-    if codec = Encode then
-      Equals (selBufLength (Var cdc), selBufLength (Var cdcSnap))
-    else
-      Equals (selBuf (Var cdc), selBuf (Var cdcSnap))
-    callInvariant (Var cdc)
-    Leq (
+  let invariants =
+    let bufInv =
+      if codec = Encode then
+        Equals (selBufLength (Var cdc), selBufLength (Var cdcSnap))
+      else
+        Equals (selBuf (Var cdc), selBuf (Var cdcSnap))
+    let cdcInv = callInvariant (Var cdc)
+    let boundsInv =
+      if sqf.isFixedSize then []
+      else [And [Leq (IntLit (Int, nbItemsMin), nbItems); Leq (nbItems, (IntLit (Int, nbItemsMax)))]]
+    let bixInv = Leq (
       callBitIndex (Var cdc),
-      Plus (callBitIndex (Var cdcSnap), Mult (elemSzExpr, Var ix))
+      Plus (callBitIndex (Var cdcSnap), Plus (IntLit (Long, externSizeInBits), Mult (elemSzExpr, Var ix)))
     )
-    callValidateOffsetBits (Var cdc) (Plus (remainingBitsExpr, Mult (elemSzExpr, Minus (nbItems, Var ix))))
-  ]
+    let offsetInv = callValidateOffsetBits (Var cdc) (Plus (remainingBitsExpr, Mult (elemSzExpr, Minus (nbItems, Var ix))))
+    [bufInv; cdcInv] @ boundsInv @ [bixInv; offsetInv]
+
   let postInc =
     Ghost (mkBlock (
       Check (And [
@@ -224,5 +241,5 @@ let generateSequenceOfProof (enc: Asn1Encoding) (sqf: Asn1AcnAst.SequenceOf) (in
     preSerde = show preSerde
     postSerde = show postSerde
     postInc = show postInc
-    invariant = show (And invariants)
+    invariant = show (SplitAnd invariants)
   }
