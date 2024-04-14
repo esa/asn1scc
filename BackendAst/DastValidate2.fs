@@ -691,9 +691,21 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnA
     createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 
+let createEfficientEnumValidation (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (o:Asn1AcnAst.Enumerated)   (us:State)  =
+    let getEnumIndexByName = l.isvalid.GetEnumIndexByName
+    let td = (l.lg.getEnumTypeDefinition o.typeDef)
+
+    let optimizedValidation (p:CallerScope) = 
+        let ret = getEnumIndexByName td.values_array td.values_array_count (l.lg.getValue p.arg)
+        VCBExpression (ret)
+    [optimizedValidation], us
+
 
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefinitionOrReference)  (us:State)  =
-    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> enumeratedConstraint2ValidationCodeBlock  l  o typeDefinition c us) us
+    let fncs, ns = 
+        match r.args.isEnumEfficientEnabled o.items.Length with
+        | false -> o.cons |> Asn1Fold.foldMap (fun us c -> enumeratedConstraint2ValidationCodeBlock  l  o typeDefinition c us) us
+        | true  -> createEfficientEnumValidation r l o us
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 

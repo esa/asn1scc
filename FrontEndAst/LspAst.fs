@@ -110,6 +110,7 @@ let defaultCommandLineSettings  =
         handleEmptySequences = false
         blm = []
         userRtlFunctionsToGenerate= []
+        enum_Items_To_Enable_Efficient_Enumerations = System.UInt32.MaxValue
     }    
 
 type LspWorkSpace = {

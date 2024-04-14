@@ -140,6 +140,14 @@ Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_Enumerat
 typedef <prTd.typeName> <td.typeName>;
 >>
 
+Define_new_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames) ::= <<
+static asn1SccSint <td.values_array>[] = {
+    <arrsValidEnumNames:{it|<it>}; separator=",">
+};
+
+static int <td.values_array_count> = <arrsValidEnumNames.Length>;
+>>
+
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<

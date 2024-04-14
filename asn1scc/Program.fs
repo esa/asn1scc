@@ -22,6 +22,8 @@ type CliArguments =
     | [<Unique; AltCommandLine("-x")>] Xml_Ast of xmlFilename:string
     | [<Unique; AltCommandLine("-typePrefix")>]Type_Prefix of prefix:string
     | [<Unique; AltCommandLine("-renamePolicy")>] Rename_Policy of int
+    | [<Unique; AltCommandLine("-eee")>] Enable_Efficient_Enumerations of uint option
+
     | [<Unique; AltCommandLine("-fp")>]  Field_Prefix of prefix:string
     | [<Unique; AltCommandLine("-gtc")>] Generate_Test_Grammar
     | [<AltCommandLine("-customStg")>] Custom_Stg  of custom_stg_colon_outfilename:string
@@ -78,7 +80,13 @@ with
       that has least one conflicting enumerant.
     3 all enumerants of all of an enumerated types
       are renamed.
-"""
+"""         
+            | Enable_Efficient_Enumerations _ -> """Enable efficient enumerations. (Applicable only to C.)
+    In this mode, the generated validation, encoding and decoding 
+    functions do not use switches but arrays. 
+    The argument is number of enumerants in an enumerated type in order to enable this mode.
+    E.g. -eee 10, will enable this mode for enumerated types with 10 or more enumerants.
+    """
             | Field_Prefix _     -> """  Apply <prefix> string to any component or alternative fields present in the grammar.
   If <prefix> is AUTO (i.e. -fp AUTO) then only the conflicting component or alternative names will be prefixed with the type name.
 """
@@ -203,6 +211,7 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | Equal_Func       -> ()
     | Generate_Test_Grammar -> ()
     | Init_Globals          -> ()
+    | Enable_Efficient_Enumerations _ -> ()
     | Xml_Ast xmlFileName   -> checkOutFileName xmlFileName ".xml" "-x"
     | Out outDir       ->
         match System.IO.Directory.Exists outDir with
@@ -288,7 +297,13 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 |XER_enc  -> Some CommonTypes.Asn1Encoding.XER
                 |ACN_enc  -> Some CommonTypes.Asn1Encoding.ACN
                 | _       -> None )
-
+        enum_Items_To_Enable_Efficient_Enumerations =
+            match parserResults.TryGetResult <@ Enable_Efficient_Enumerations @> with
+            | None -> System.UInt32.MaxValue
+            | Some n -> 
+                match n with
+                    | Some n -> n
+                    | None -> 0u
         GenerateEqualFunctions = (parserResults.Contains <@ Equal_Func @>) || (parserResults.Contains <@ Auto_test_cases @>)
         generateAutomaticTestCases = parserResults.Contains <@ Auto_test_cases @>
         TypePrefix = parserResults.GetResult(<@ Type_Prefix@>, defaultValue = "")

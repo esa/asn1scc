@@ -42,6 +42,8 @@ end if;
 >>
 
 
+GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp) ::= <<
+>>
 
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> = <sExp2>)"

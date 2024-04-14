@@ -69,6 +69,30 @@ flag Asn1Real_Equal(asn1Real Left, asn1Real Right) {
     }
 }
 
+int binarySearch(asn1SccSint arr[], int size, asn1SccSint value) {
+    int low = 0;
+    int high = size - 1;
+    while (low <= high) {
+        int mid = low + (high - low) / 2; // This prevents overflow.
+        if (arr[mid] == value)
+            return mid; // Value found
+        else if (arr[mid] < value)
+            low = mid + 1; // Search the right half
+        else
+            high = mid - 1; // Search the left half
+    }
+    return -1; // Value not found
+}
+
+int linearSearch(asn1SccSint arr[], int size, asn1SccSint value) {
+    for (int i = 0; i < size; i++) {
+        if (arr[i] == value)
+            return i; // Value found
+    }
+    return -1; // Value not found
+}
+
+
 /*
 
 #######                                      ###

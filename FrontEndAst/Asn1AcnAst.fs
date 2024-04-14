@@ -536,6 +536,7 @@ type ObjectIdentifier = {
 
 type Enumerated = {
     items               : NamedItem list
+    validItems          : NamedItem list            //this list contains only the items that are valid (i.e.returned true) after the constraints are applied
     acnProperties       : IntegerAcnProperties
     cons                : EnumConstraint list
     withcons            : EnumConstraint list

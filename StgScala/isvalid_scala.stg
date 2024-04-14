@@ -78,6 +78,10 @@ def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeD
 }
 >>
 
+GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp) ::= <<
+>>
+
+
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
 ExpStringEqual(sExp1, sExp2) ::= "(<sExp1>.sameElements(<sExp2>.getBytes))"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"

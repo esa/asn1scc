@@ -339,19 +339,23 @@ let rec registerEnumeratedTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLa
     | None      ->
         let ret, ns =
             match kind with
-            | FEI_Reference2RTL          -> raise(BugErrorException "String types are not defined in RTL")
+            | FEI_Reference2RTL          -> raise(BugErrorException "Enumerated types are not defined in RTL")
             | FEI_NewTypeDefinition      ->
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName us l id
                 let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id (l,ib) programUnit proposedTypeDefName
                 let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_index_range")
-                let itm = {FE_EnumeratedTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; index_range=index_range}
+                let values_array, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_values_array")
+                let values_array_count, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_values_array_count")
+                let itm = {FE_EnumeratedTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; index_range=index_range; values_array=values_array;values_array_count=values_array_count}
                 itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_EnumeratedTypeDefinition itm))}
             | FEI_NewSubTypeDefinition subId ->
                 let subType, ns1 = registerEnumeratedTypeDefinition us (l,ib) subId FEI_NewTypeDefinition
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName ns1 l id
                 let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id (l,ib) programUnit proposedTypeDefName
                 let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_index_range")
-                let itm = {FE_EnumeratedTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); index_range=index_range}
+                let values_array, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_values_array")
+                let values_array_count, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_values_array_count")
+                let itm = {FE_EnumeratedTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); index_range=index_range; values_array=values_array;values_array_count=values_array_count}
                 let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_EnumeratedTypeDefinition itm))}
                 itm, ns2
             | FEI_Reference2OtherType refId  ->

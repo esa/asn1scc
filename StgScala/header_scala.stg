@@ -124,6 +124,9 @@ Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_Enumerat
 typedef <prTd.typeName> <td.typeName>
 >>
 
+Define_new_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames) ::= <<
+>>
+
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
