@@ -245,7 +245,6 @@ let createEnumerated (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.A
     let nIndexMax = BigInteger ((Seq.length o.items)-1)
     let arrsValidEnumNames = o.validItems |> List.map( fun i -> lm.lg.getNamedItemBackendName None i)
 
-
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
         let completeDefinition = define_new_enumerated td arrsEnumNames arrsEnumNamesAndValues nIndexMax macros
