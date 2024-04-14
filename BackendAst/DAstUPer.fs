@@ -293,21 +293,33 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:Co
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations [] us
 
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefinitionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
+
+    let Enumerated         = lm.uper.Enumerated
+    let Enumerated_item    = lm.uper.Enumerated_item
+    let Enumerated_no_switch = lm.uper.Enumerated_no_switch
+
+
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
-        let Enumerated         = lm.uper.Enumerated
-        let Enumerated_item    = lm.uper.Enumerated_item
+        let nMax = BigInteger(Seq.length o.items) - 1I
+        let nLastItemIndex      = nMax
         let typeDef0 = lm.lg.getEnumTypeDefinition o.typeDef
         let td =  typeDef0.longTypedefName2 lm.lg.hasModules  (ToC p.modName)
         let pp, resultExpr = adaptArgumentValue lm codec p
-        let nMin = 0I
-        let nMax = BigInteger(Seq.length o.items) - 1I
-        let nLastItemIndex      = nMax
-        let items =
-            o.items |> List.mapi(fun i itm -> Enumerated_item pp (lm.lg.getNamedItemBackendName (Some typeDefinition) itm) (BigInteger i) nLastItemIndex codec)
-        let nBits = (GetNumberOfBitsForNonNegativeInteger (nMax-nMin))
         let sFirstItemName = lm.lg.getNamedItemBackendName (Some typeDefinition) o.items.Head
-        let funcBodyContent = Enumerated pp td items nMin nMax nBits errCode.errCodeName nLastItemIndex sFirstItemName codec
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType (Some (FullyConstrained (nMin, nMax))))}
+        let nMin = 0I
+        match r.args.isEnumEfficientEnabled o.items.Length with
+        | false ->
+            let items =
+                o.items |> List.mapi(fun i itm -> Enumerated_item pp (lm.lg.getNamedItemBackendName (Some typeDefinition) itm) (BigInteger i) nLastItemIndex codec)
+            let nBits = (GetNumberOfBitsForNonNegativeInteger (nMax-nMin))
+            let funcBodyContent = Enumerated pp td items nMin nMax nBits errCode.errCodeName nLastItemIndex sFirstItemName codec
+            {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType (Some (FullyConstrained (nMin, nMax))))}
+        | true ->
+            let sEnumIndex = "nEnumIndex"
+            let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
+            let funcBodyContent = Enumerated_no_switch pp td errCode.errCodeName sEnumIndex nLastItemIndex  sFirstItemName codec
+            {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = [enumIndexVar]; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType (Some (FullyConstrained (nMin, nMax))))}
+            
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p)) soSparkAnnotations [] us
 

@@ -281,6 +281,13 @@ val <p> = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match // 
         return LeftMut(<sErrCode>)
 >>
 
+Enumerated_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
+>>
+
+Enumerated_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
+>>
+
+
 /* CHOICE START*/
 
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<

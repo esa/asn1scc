@@ -42,7 +42,7 @@ end if;
 >>
 
 
-GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp) ::= <<
+GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
 >>
 
 

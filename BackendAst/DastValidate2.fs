@@ -694,9 +694,12 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnA
 let createEfficientEnumValidation (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (o:Asn1AcnAst.Enumerated)   (us:State)  =
     let getEnumIndexByName = l.isvalid.GetEnumIndexByName
     let td = (l.lg.getEnumTypeDefinition o.typeDef)
-
+    let bSorted = 
+        let sortedItems = o.validItems |> List.map(fun x -> x.definitionValue) |> List.sort
+        let items = o.validItems |> List.map(fun x -> x.definitionValue)
+        sortedItems = items
     let optimizedValidation (p:CallerScope) = 
-        let ret = getEnumIndexByName td.values_array td.values_array_count (l.lg.getValue p.arg)
+        let ret = getEnumIndexByName td.values_array td.values_array_count (l.lg.getValue p.arg) bSorted
         VCBExpression (ret)
     [optimizedValidation], us
 
@@ -945,8 +948,11 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
     | NullType _    ->
         [],us
     | Enumerated en  ->
-        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.EnumConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> enumeratedConstraint2ValidationCodeBlock  l  en.baseInfo typeDefinition c us) us
+        match r.args.isEnumEfficientEnabled en.baseInfo.items.Length with
+        | false ->
+            let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.EnumConstraint z -> Some z | _ -> None )
+            cons |> Asn1Fold.foldMap (fun us c -> enumeratedConstraint2ValidationCodeBlock  l  en.baseInfo typeDefinition c us) us
+        | true  -> createEfficientEnumValidation r l en.baseInfo us
     | Choice ch ->
         let valToStrFunc (p:CallerScope) (v:Asn1AcnAst.ChValue) = VCBTrue
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.ChoiceConstraint z -> Some z | _ -> None )

@@ -237,6 +237,7 @@ let createEnumerated (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.A
     let define_new_enumerated        = lm.typeDef.Define_new_enumerated
     let define_subType_enumerated    = lm.typeDef.Define_subType_enumerated
     let define_new_enumerated_private = lm.typeDef.Define_new_enumerated_private
+    let define_subType_enumerated_private = lm.typeDef.Define_subType_enumerated_private
     let orderedItems = o.items |> List.sortBy(fun i -> i.definitionValue)
     let arrsEnumNames = orderedItems |> List.map( fun i -> lm.lg.getNamedItemBackendName None i)
     let arrsEnumNamesAndValues = orderedItems |> List.map(fun i -> define_new_enumerated_item td (lm.lg.getNamedItemBackendName None i) i.definitionValue)
@@ -244,22 +245,31 @@ let createEnumerated (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.A
     let nIndexMax = BigInteger ((Seq.length o.items)-1)
     let arrsValidEnumNames = o.validItems |> List.map( fun i -> lm.lg.getNamedItemBackendName None i)
 
-    let privateDefinition = 
-        match r.args.isEnumEfficientEnabled o.items.Length with
-        | false -> None
-        | true  ->
-            let ret = define_new_enumerated_private td arrsValidEnumNames 
-            match System.String.IsNullOrWhiteSpace ret with
-            | true  -> None
-            | false -> Some ret
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
         let completeDefinition = define_new_enumerated td arrsEnumNames arrsEnumNamesAndValues nIndexMax macros
+        let privateDefinition = 
+            match r.args.isEnumEfficientEnabled o.items.Length with
+            | false -> None
+            | true  ->
+                let ret = define_new_enumerated_private td arrsValidEnumNames arrsEnumNames
+                match System.String.IsNullOrWhiteSpace ret with
+                | true  -> None
+                | false -> Some ret
+
         Some (completeDefinition, privateDefinition)
     | NonPrimitiveNewSubTypeDefinition subDef     ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
         let completeDefinition = define_subType_enumerated td subDef otherProgramUnit
+        let privateDefinition = 
+            match r.args.isEnumEfficientEnabled o.items.Length with
+            | false -> None
+            | true  ->
+                let ret = define_subType_enumerated_private td subDef arrsValidEnumNames arrsEnumNames
+                match System.String.IsNullOrWhiteSpace ret with
+                | true  -> None
+                | false -> Some ret
         Some (completeDefinition, privateDefinition)
     | NonPrimitiveReference2OtherType            -> None
 

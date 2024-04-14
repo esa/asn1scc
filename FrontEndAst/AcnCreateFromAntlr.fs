@@ -589,6 +589,7 @@ let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem li
                 allocateItems xs newAllocatedItems (vl + 1I)
         let newItems = allocateItems unallocated allocated 0I |> List.sortBy(fun ni -> namedItems |> Seq.findIndex(fun x -> x.Name.Value = ni.Name.Value) )
         newItems
+        //newItems |> List.sortBy(fun ni -> ni.Name.Value)
 
     let mapItem (i:int) (itm:Asn1Ast.NamedItem) =
         let definitionValue = Asn1Ast.GetValueAsInt itm._value.Value asn1
@@ -635,7 +636,7 @@ let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem li
         | false -> allocatedValuesToAllEnumItems items, false
         | true -> allocatedValuesToAllEnumItems items, true
     let uperSizeInBits = GetNumberOfBitsForNonNegativeInteger(BigInteger((Seq.length items) - 1))
-    let items = items0|> List.mapi mapItem
+    let items = items0|> List.mapi mapItem |> List.sortBy(fun x -> x.definitionValue)
 
     let acnProperties =
         match acnErrLoc with
@@ -651,7 +652,7 @@ let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem li
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetEnumeratedEncodingClass asn1.args.integerSizeInBytes items alignment loc acnProperties uperSizeInBits uperSizeInBits encodeValues
     
-    let validItems = items |> List.filter (Asn1Fold.isValidValueGeneric cons (fun a b -> a = b.Name.Value))
+    let validItems = items |> List.filter (Asn1Fold.isValidValueGeneric cons (fun a b -> a = b.Name.Value)) |> List.sortBy(fun x -> x.definitionValue)
 
     match validItems with
     | [] -> raise(SemanticError(loc, (sprintf "The constraints defined for this type do not allow any value" )))

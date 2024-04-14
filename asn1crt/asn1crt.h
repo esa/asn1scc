@@ -210,7 +210,7 @@ flag Asn1Real_Equal(asn1Real Left, asn1Real Right);
  * @param value The value to search for.
  * @return The index of the value if found, -1 otherwise.
  */
-int binarySearch(asn1SccSint arr[], int size, asn1SccSint value);
+int binarySearch(const asn1SccSint arr[], int size, asn1SccSint value);
 
 /**
  * Performs a linear search on an array to find a specific value.
@@ -220,7 +220,7 @@ int binarySearch(asn1SccSint arr[], int size, asn1SccSint value);
  * @param value The value to be searched for.
  * @return The index of the value if found, or -1 if not found.
  */
-int linearSearch(asn1SccSint arr[], int size, asn1SccSint value);
+int linearSearch(const asn1SccSint arr[], int size, asn1SccSint value);
 
 void ObjectIdentifier_Init(Asn1ObjectIdentifier* pVal);
 flag ObjectIdentifier_equal(const Asn1ObjectIdentifier* pVal1, const Asn1ObjectIdentifier* pVal2);

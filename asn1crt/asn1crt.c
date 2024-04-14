@@ -55,7 +55,7 @@ int GetCharIndex(char ch, byte Set[], int setLen)
     return 0;
 }
 
-flag Asn1Real_Equal(asn1Real Left, asn1Real Right) {
+flag Asn1Real_Equal(const asn1Real Left, asn1Real Right) {
     if (Left == Right) {
         return true;
     } else if (Left == 0.0) {
@@ -69,7 +69,7 @@ flag Asn1Real_Equal(asn1Real Left, asn1Real Right) {
     }
 }
 
-int binarySearch(asn1SccSint arr[], int size, asn1SccSint value) {
+int binarySearch(const asn1SccSint arr[], int size, asn1SccSint value) {
     int low = 0;
     int high = size - 1;
     while (low <= high) {
@@ -84,7 +84,7 @@ int binarySearch(asn1SccSint arr[], int size, asn1SccSint value) {
     return -1; // Value not found
 }
 
-int linearSearch(asn1SccSint arr[], int size, asn1SccSint value) {
+int linearSearch(const asn1SccSint arr[], int size, asn1SccSint value) {
     for (int i = 0; i < size; i++) {
         if (arr[i] == value)
             return i; // Value found

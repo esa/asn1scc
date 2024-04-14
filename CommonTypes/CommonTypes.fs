@@ -707,6 +707,8 @@ type FE_EnumeratedTypeDefinition = {
     index_range     : string
     values_array    : string            //The name of the array that holds the possible values of the enumeration.
     values_array_count : string         //The name of the variable that holds the number of elements in the enumeration.
+    encoded_values_array    : string            //The name of the array that holds the encoded values of the enumeration.
+    encoded_values_array_count : string         //The name of the variable that holds the number of encoded elements in the enumeration.
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_EnumeratedTypeDefinition>
 }
 with

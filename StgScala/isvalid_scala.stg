@@ -78,7 +78,7 @@ def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeD
 }
 >>
 
-GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp) ::= <<
+GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
 >>
 
 

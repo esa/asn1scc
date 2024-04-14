@@ -140,12 +140,28 @@ Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_Enumerat
 typedef <prTd.typeName> <td.typeName>;
 >>
 
-Define_new_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames) ::= <<
-static asn1SccSint <td.values_array>[] = {
+Define_new_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames, arrsEnumNames) ::= <<
+static const asn1SccSint <td.values_array>[] = {
     <arrsValidEnumNames:{it|<it>}; separator=",">
 };
 
-static int <td.values_array_count> = <arrsValidEnumNames.Length>;
+#define <td.values_array_count> <arrsValidEnumNames.Length>
+
+#define <td.encoded_values_array> <td.values_array>
+
+#define <td.encoded_values_array_count> <arrsEnumNames.Length>
+>>
+
+Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames, arrsEnumNames) ::= <<
+static const asn1SccSint <td.values_array>[] = {
+    <arrsValidEnumNames:{it|<it>}; separator=",">
+};
+
+#define <td.values_array_count> <arrsValidEnumNames.Length>
+
+#define <td.encoded_values_array> <prTd.encoded_values_array>
+
+#define <td.encoded_values_array_count> <prTd.encoded_values_array_count>
 >>
 
 /***********************************       STRING    ************************************************************/
