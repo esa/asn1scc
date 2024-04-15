@@ -62,7 +62,7 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 // test_cases_scala.stg:62
-codec.resetBitIndex()
+codec.base.bitStream.resetBitIndex()
 // Decode value
 <sFuncName>(codec) match
     case LeftMut(_) => return Left(2)
@@ -101,9 +101,9 @@ Codec_write_bitstreamToFile() ::= <<
 // test_cases_scala.stg:99
 val file = new File(filename+".dat")
 val bw = new FileOutputStream(file)
-val l = codec.getLength
-codec.resetBitIndex()
-bw.write(codec.readByteArray(l).toArrayRaws)
+val l = codec.base.bitStream.getLength
+codec.base.bitStream.resetBitIndex()
+bw.write(codec.base.bitStream.buf.toArrayRaws, 0, l)
 bw.close()
 >>
 
@@ -389,5 +389,3 @@ import stainless.lang._
 <arrsTestFunctionBodies;separator="\n\n">
 
 >>
-
-

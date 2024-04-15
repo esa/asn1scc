@@ -307,7 +307,7 @@ let private mergeReal (asn1: Asn1Ast.AstRoot) (loc: SrcLoc) (acnErrLoc: SrcLoc o
 let private mergeObjectIdentifier (asn1: Asn1Ast.AstRoot) (relativeId: bool) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let getRtlTypeName  (l:ProgrammingLanguage) = (asn1.args.getBasicLang l).getObjectIdentifierRtlTypeName relativeId
-    
+
     //check for invalid properties
     props |> Seq.iter(fun pr -> raise(SemanticError(acnErrLoc0, "Acn property cannot be applied to OBJECT IDENTIFIER types")))
 
@@ -423,9 +423,9 @@ let private mergeStringType (asn1: Asn1Ast.AstRoot) (t: Asn1Ast.Asn1Type option)
                     (l,itm), ns) us
             lanDefs |> Map.ofList, us1
 
-    {StringType.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; 
-        uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; uperCharSet=uperCharSet; 
-        acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; 
+    {StringType.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize;
+        uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; uperCharSet=uperCharSet;
+        acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits;
         acnMaxSizeInBits = acnMaxSizeInBits;isNumeric=isNumeric; typeDef=typeDef}, us1
 
 let private mergeOctetStringType (asn1: Asn1Ast.AstRoot) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
@@ -542,7 +542,7 @@ let private mergeBooleanType (args: CommandLineSettings) (acnErrLoc: SrcLoc opti
     {Boolean.acnProperties = acnProperties; cons = cons; withcons = withcons;uperMaxSizeInBits = 1I; uperMinSizeInBits=1I;
         acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; defaultInitVal="false"}, us1
 
-let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem list) (originalLocation: SrcLoc option, loc: SrcLoc) 
+let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem list) (originalLocation: SrcLoc option, loc: SrcLoc)
     (acnErrLoc: SrcLoc option) (acnType: AcnTypeEncodingSpec option) (props: GenericAcnProperty list) cons withcons (tdarg: EnmStrGetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let loc =
         match originalLocation with
@@ -775,8 +775,8 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
         let checkIntHasEnoughSpace asn1Min asn1Max =
             checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome acnErrLoc asn1Min asn1Max
         let  intClass = getIntEncodingClassByUperRange asn1.args uperRange
-        AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAlignment=acnAlignment; acnEncodingClass = acnEncodingClass; 
-            Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned; 
+        AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAlignment=acnAlignment; acnEncodingClass = acnEncodingClass;
+            Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned;
             uperRange= uperRange; intClass=intClass; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=None; defaultValue="0"}), us
 
     | AcnPrmBoolean  acnErrLoc ->
@@ -1041,7 +1041,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
             let newKind = {SequenceOf.child=newChType; acnProperties   = acnProperties; cons = cons; withcons = wcons;minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits = acnMinSizeInBits; acnMaxSizeInBits=acnMaxSizeInBits; typeDef=typeDef}
             SequenceOf newKind, us2
-        | Asn1Ast.Sequence    children     ->
+        | Asn1Ast.Sequence children ->
             let childrenNameConstraints = allCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint (_,w) -> Some w| _ -> None) |> List.collect id
             let myVisibleConstraints = refTypeCons@t.Constraints //|> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint _ -> None | _ -> Some c)
             let myNonVisibleConstraints = withCons //|> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint _ -> None | _ -> Some c)
@@ -1133,7 +1133,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                     | Some AlwaysAbsent
                     | Some (Optional _)
                     | Some AlwaysPresent -> true
-                
+
                 match cc with
                 | None      ->
                     let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) None None [] childWithCons [] [] None None us

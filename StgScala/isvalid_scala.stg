@@ -173,11 +173,11 @@ if ret.isRight then
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 <i> = 0
-while(ret.isRight && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>)
-{
+(while(ret.isRight && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>) {
+    decreases(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> - <i>)
     <sInnerStatement>
     <i> += 1
-}
+}).invariant(0 \<= <i> && <i> \<= <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>)
 >>
 
 
@@ -188,10 +188,11 @@ def <sFuncName>(str0: Array[UByte]): Boolean =
     val str = str0.toArrayRaws
     var valid: Boolean = true
     var i: Int = 0
-    while ((str(i) != CHAR_0000) && valid) {
+    (while (i \< str.length && (str(i) != CHAR_0000) && valid) {
+        decreases(str.length - i)
         valid = valid && (<arrsAlphaConBody; separator=" && ">);
         i = i + 1
-    }
+    }).invariant(0 \<= i && i \<= str.length)
     valid
 }
 >>
@@ -305,11 +306,11 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 <i> = 0
-while(<i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> && ret.isRight)
-{
+(while(<i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> && ret.isRight) {
+    decreases(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> - <i>)
     <sInnerStatement>
     <i> = <i> + 1
-}
+}).invariant(0 \<= <i> && <i> \<= <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>)
 >>
 
 

@@ -5,13 +5,20 @@ import stainless.lang.StaticChecks._
 import stainless.lang.{None => None, Option => Option, Some => Some, _}
 import stainless.annotation._
 
+
+// SAM Ignored for safety verification
+
 /**
  * Get an instance of a UPER coded bitstream
  * @param count of elements in underlaying buffer
  * @return UPER coded bitstream
  */
 def initUPERCodec(count: Int): UPER = {
-   UPER(Codec(BitStream(Array.fill(count)(0))))
+   //SAM guard to ensure the property
+   if count <= 0 then
+      UPER(Codec(BitStream(Array.fill(0)(0))))
+   else
+      UPER(Codec(BitStream(Array.fill(count)(0))))
 }
 object UPER {
    @ghost @pure
@@ -25,11 +32,12 @@ case class UPER private [asn1scala](base: Codec) {
    import BitStream.*
    import UPER.*
    import base.*
-   export base.*
 
    @ghost @pure @inline
-   def resetAt(other: UPER): UPER =
+   def resetAt(other: UPER): UPER = {
+      require(bitStream.buf.length == other.base.bitStream.buf.length)
       UPER(Codec(bitStream.resetAt(other.base.bitStream)))
+   }
 
    @ghost @pure @inline
    def withMovedByteIndex(diffInBytes: Int): UPER = {
@@ -41,18 +49,6 @@ case class UPER private [asn1scala](base: Codec) {
    def withMovedBitIndex(diffInBits: Int): UPER = {
       require(moveBitIndexPrecond(bitStream, diffInBits))
       UPER(Codec(bitStream.withMovedBitIndex(diffInBits)))
-   }
-
-   @pure @inline
-   def bitIndex(): Long = bitStream.bitIndex()
-
-   @pure @inline
-   def bufLength(): Int = bitStream.buf.length
-
-   @pure @inline
-   def validate_offset_bits(bits: Long = 0): Boolean = {
-      require(bits >= 0)
-      bitStream.validate_offset_bits(bits)
    }
 
    @pure @inline

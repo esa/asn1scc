@@ -87,6 +87,12 @@ type Asn1Type with
         | ObjectIdentifier x -> x.acnMaxSizeInBits
         | ReferenceType  x -> x.acnMaxSizeInBits
 
+    member this.maxSizeInBits (enc: Asn1Encoding): BigInteger =
+        match enc with
+        | UPER -> this.uperMaxSizeInBits
+        | ACN -> this.acnMaxSizeInBits
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+
     member this.ActualType =
         match this.Kind with
         | ReferenceType t-> t.resolvedType.ActualType
@@ -212,7 +218,38 @@ type AcnInsertedType with
 type BitString with
     member this.MaxOctets = int (ceil ((double this.maxSize.uper)/8.0))
 
+type Asn1Child with
+    member this.getBackendName0 l =
+        match l with
+        | CommonTypes.C         -> this._c_name
+        | CommonTypes.Scala     -> this._scala_name
+        | CommonTypes.Ada       -> this._ada_name
 
+    member this.acnMinSizeInBits =
+        match this.Optionality with
+        | Some(AlwaysAbsent) -> 0I
+        | _ -> this.Type.acnMinSizeInBits
+
+    member this.acnMaxSizeInBits =
+        match this.Optionality with
+        | Some(AlwaysAbsent) -> 0I
+        | _ -> this.Type.acnMaxSizeInBits
+
+    member this.uperMinSizeInBits =
+        match this.Optionality with
+        | Some(AlwaysAbsent) -> 0I
+        | _ -> this.Type.uperMinSizeInBits
+
+    member this.uperMaxSizeInBits =
+        match this.Optionality with
+        | Some(AlwaysAbsent) -> 0I
+        | _ -> this.Type.uperMaxSizeInBits
+
+    member this.maxSizeInBits (enc: Asn1Encoding): BigInteger =
+        match enc with
+        | UPER -> this.uperMaxSizeInBits
+        | ACN -> this.acnMaxSizeInBits
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
 type SeqChildInfo with
     member this.Name =
@@ -222,22 +259,12 @@ type SeqChildInfo with
 
     member this.acnMinSizeInBits =
         match this with
-        | Asn1Child x   ->
-            match x.Optionality with
-            | None                  ->  x.Type.acnMinSizeInBits
-            | Some(AlwaysAbsent)    ->  0I
-            | Some(AlwaysPresent)   ->  x.Type.acnMinSizeInBits
-            | Some(Optional o)      ->  x.Type.acnMinSizeInBits
-        | AcnChild  x   -> x.Type.acnMinSizeInBits
+        | Asn1Child x -> x.acnMinSizeInBits
+        | AcnChild  x -> x.Type.acnMinSizeInBits
     member this.acnMaxSizeInBits =
         match this with
-        | Asn1Child x   ->
-            match x.Optionality with
-            | None                  ->  x.Type.acnMaxSizeInBits
-            | Some(AlwaysAbsent)    ->  0I
-            | Some(AlwaysPresent)   ->  x.Type.acnMaxSizeInBits
-            | Some(Optional o)      ->  x.Type.acnMaxSizeInBits
-        | AcnChild  x   -> x.Type.acnMaxSizeInBits
+        | Asn1Child x -> x.acnMaxSizeInBits
+        | AcnChild  x -> x.Type.acnMaxSizeInBits
     member this.acnAlignment =
         match this with
         | Asn1Child x   -> x.Type.acnAlignment
@@ -247,6 +274,14 @@ type SeqChildInfo with
         | Asn1Child x   -> x.Optionality
         | AcnChild  x   -> None
 
+    member this.maxSizeInBits (enc: Asn1Encoding): BigInteger =
+        match enc with
+        | UPER ->
+            match this with
+            | Asn1Child x -> x.uperMaxSizeInBits
+            | AcnChild x -> raise (BugErrorException $"Unexpected UPER encoding for ACN child {x.Name}")
+        | ACN -> this.acnMaxSizeInBits
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
 let rec getASN1Name  (t:Asn1Type) =
     match t.Kind with
@@ -429,18 +464,6 @@ type Choice           with
 
 //type ReferenceType    with
 //    member this.AllCons  = this.cons@this.withcons
-
-
-type Asn1Child with
-    member this.getBackendName0 l =
-        match l with
-        | CommonTypes.C         -> this._c_name
-        | CommonTypes.Scala     -> this._scala_name
-        | CommonTypes.Ada       -> this._ada_name
-
-
-
-
 
 
 type Asn1Value with

@@ -143,7 +143,7 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 <endif>
 case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
 {
-    require(arr.length \<= <nMax>)
+    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMax><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length<endif>)
 }
 >>
 
@@ -166,7 +166,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 <endif>
 case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
 {
-    require(arr.length \<= <nMaxOctets>)
+    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMaxOctets><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length.toLong * 8L<endif>)
 }
 >>
 
@@ -183,7 +183,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 
 case class <td.typeName> (<if(!bFixedSize)>var nCount: Int, <endif>arr: Array[<sChildType>])
 {
-    require(arr.length \<= <nMax>)
+    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMax><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length<endif>)
 }
 >>
 

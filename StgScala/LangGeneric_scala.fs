@@ -86,12 +86,6 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}
 #endif
 
-let maxSizeInBits (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type): BigInteger =
-    match enc with
-    | UPER -> t.uperMaxSizeInBits
-    | ACN -> t.acnMaxSizeInBits
-    | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
-
 let srcDirName = Path.Combine("src", "main", "scala", "asn1src")
 let asn1rtlDirName  = Path.Combine("src", "main", "scala", "asn1scala")
 
@@ -322,24 +316,34 @@ type LangGeneric_scala() =
 
         override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
-        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.validate_offset_bits({maxSizeInBits enc t})"]
+        // TODO: Replace with an AST when it becomes complete
+        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.base.bitStream.validate_offset_bits({t.maxSizeInBits enc})"]
 
+        // TODO: Replace with an AST when it becomes complete
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
-            match codec with
-            | Encode ->
-                let res = $"""
+            let suffix, buf =
+                match codec with
+                | Encode -> "", "w1.base.bitStream.buf.length == w2.base.bitStream.buf.length"
+                | Decode -> "Mut", "w1.base.bitStream.buf == w2.base.bitStream.buf"
+            let res = $"""
 res match
-    case Left(_) => true
-    case Right(res) =>
+    case Left{suffix}(_) => true
+    case Right{suffix}(res) =>
         val w1 = old(codec)
         val w2 = codec
-        w1.bufLength() == w2.bufLength() && w2.bitIndex() <= w1.bitIndex() + {maxSizeInBits enc t} && w1.isPrefixOf(w2) && {{
-            val (r1, r2) = {enc}.reader(w1, w2)
-            val (r2Got, resGot) = {funcNameBase}_Decode_pure(r1)
-            resGot == RightMut(pVal) && r2Got == r2
-        }}"""
-                Some (res.TrimStart())
-            | Decode -> Some $"codec.base.bitStream.buf == old(codec).base.bitStream.buf && codec.base.bitStream.bitIndex() <= old(codec).base.bitStream.bitIndex() + {maxSizeInBits enc t}"
+        {buf} && w2.base.bitStream.bitIndex <= w1.base.bitStream.bitIndex + {t.maxSizeInBits enc}"""
+            Some (res.TrimStart())
+
+        override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
+            ProofGen.generateSequenceChildProof enc stmts pg codec
+
+        override this.generateSequenceOfLikeProof (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
+            ProofGen.generateSequenceOfLikeProof enc o pg codec
+
+        override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CallerScope) (codec: Codec): string option =
+            match codec with
+            | Encode -> Some $"assert({topLevelTd}_IsConstraintValid(pVal).isRight)" // TODO: HACK: When for CHOICE, `p` gets reset to the choice variant name, so we hardcode "pVal" here...
+            | Decode -> None
 
         override this.uper =
             {
