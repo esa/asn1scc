@@ -664,7 +664,7 @@ void BitStream_EncodeNonNegativeIntegerNeg(BitStream* pBitStrm, asn1SccUint v, f
 #endif
 }
 
-static int GetNumberOfBitsForNonNegativeInteger32(asn1SccUint32 v)
+int GetNumberOfBitsForNonNegativeInteger32(asn1SccUint32 v)
 {
 	int ret = 0;
 

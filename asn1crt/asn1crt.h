@@ -283,7 +283,7 @@ extern const asn1SccUint32 ber_aux[];
 
 // check if nBits still have space in pBitStrm (only for non streaming mode)
 #ifndef ASN1SCC_STREAMING
-#define CHECK_BIT_STREAM_PRE(pBitStrm, nBits)	assert(((pBitStrm)->currentByte * 8 + (pBitStrm)->currentBit + nBits) <= ((pBitStrm)->count * 8))
+#define CHECK_BIT_STREAM_PRE(pBitStrm, nBits)	assert( (long)((pBitStrm)->currentByte * 8 + (pBitStrm)->currentBit + (nBits)) <= ((pBitStrm)->count * 8))
 #else
 #define CHECK_BIT_STREAM_PRE(pBitStrm, nBits) ((void)pBitStrm)
 #endif
