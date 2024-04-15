@@ -336,7 +336,6 @@ with
         | S32 -> 32
         | S64 -> 64
 
-// TODO: Find a better name
 type IntegerEndianness =
     | Byte
     | Unbounded
@@ -363,18 +362,18 @@ type Asn1IntegerEncodingType =
     | Unconstrained
 
 type TypeEncodingKind =
-    | Asn1IntegerEncodingType of Asn1IntegerEncodingType option // None si range min = max
+    | Asn1IntegerEncodingType of Asn1IntegerEncodingType option // None if range min = max
     | Asn1RealEncodingType of Asn1AcnAst.RealClass
     | AcnIntegerEncodingType of AcnIntegerEncodingType
     | AcnRealEncodingType of AcnRealEncodingType
     | AcnBooleanEncodingType of AcnBooleanEncoding option
     | AcnNullEncodingType of PATTERN_PROP_VALUE option
     | AcnStringEncodingType of Asn1AcnAst.StringAcnEncodingClass
-    | AcnOctetStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass // TODO: ACN?
-    | AcnBitStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass // TODO: ACN?
-    | SequenceOfEncodingType of TypeEncodingKind * Asn1AcnAst.SizeableAcnEncodingClass // TODO: Quid uper?
-    | SequenceEncodingType of TypeEncodingKind option list // TODO: Quid des None?
-    | ChoiceEncodingType of TypeEncodingKind option list // TODO: Quid des None?
+    | AcnOctetStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass
+    | AcnBitStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass
+    | SequenceOfEncodingType of TypeEncodingKind * Asn1AcnAst.SizeableAcnEncodingClass
+    | SequenceEncodingType of TypeEncodingKind option list
+    | ChoiceEncodingType of TypeEncodingKind option list
     | ReferenceEncodingType of string
     | OptionEncodingType of TypeEncodingKind
     | Placeholder

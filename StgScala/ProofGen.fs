@@ -66,7 +66,7 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc
         | FullyConstrainedPositive (min, max) | FullyConstrained (min, max) ->
             // TODO: The RT library does not add 1, why?
             let call = RTFunctionCall {fn = GetBitCountUnsigned; args = [IntLit (ULong, max - min)]}
-            // TODO: Cas min = max?
+            // TODO: Case min = max?
             let nBits = if max = min then 0I else bigint (ceil ((log (double (max - min))) / (log 2.0)))
             let cond = Equals (call, IntLit (Int, nBits))
             Some cond
@@ -85,7 +85,7 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc
 
   let wrap (ix: int, (snap: Var, child: SequenceChildProps, stmt: string option)) (offsetAcc: bigint, rest: Expr): bigint * Expr =
     let sz = child.typeInfo.maxSize enc
-    //assert (thisMaxSize <= (pg.siblingMaxSize enc |> Option.defaultValue thisMaxSize))
+    //assert (thisMaxSize <= (pg.siblingMaxSize enc |> Option.defaultValue thisMaxSize)) // TODO: Somehow does not always hold with UPER?
     let relativeOffset = offsetAcc - (pg.maxOffset enc)
     let offsetCheckOverall = Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var oldCdc)), (IntLit (Long, offsetAcc)))))
     let offsetCheckNested =
@@ -191,9 +191,6 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
     })
   let postSerde =
     Ghost (mkBlock [
-      // Assert (Equals (IntLit (Long, pg.outerMaxSize enc), IntLit (Long, pg.outerMaxSize enc)))
-      // Assert (Equals (IntLit (Long, sqfMaxSizeInBits), IntLit (Long, sqfMaxSizeInBits)))
-      // Assert (Equals (IntLit (Long, pg.maxOffset enc), IntLit (Long, pg.maxOffset enc)))
       Check (Equals (
         Mult (elemSzExpr, Plus (Var ix, IntLit (Int, 1I))),
         Plus (Mult (elemSzExpr, Var ix), elemSzExpr)

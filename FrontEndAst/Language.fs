@@ -92,7 +92,6 @@ type SequenceProofGen = {
     uperSiblingMaxSize: bigint option
     children: SequenceChildProps list
 } with
-    // TODO: What about padding?
 
     member this.siblingMaxSize (enc: Asn1Encoding): bigint option =
         match enc with
@@ -181,7 +180,7 @@ type SequenceOfLikeProofGen = {
     acnMaxOffset: bigint
     uperMaxOffset: bigint
     typeInfo: TypeInfo
-    sel: string // Selection
+    sel: string
     ixVariable: string
 } with
     member this.outerMaxSize (enc: Asn1Encoding): bigint =
