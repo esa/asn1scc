@@ -23,18 +23,18 @@
       <EmbeddedResource Include="..\asn1scala\build.sbt">
       <Link>build.sbt</Link>
     </EmbeddedResource>
-      <EmbeddedResource Include="..\asn1scala\lib\stainless-library_2.13-0.9.7.jar">
-      <Link>stainless-library_2.13-0.9.7.jar</Link>
+      <EmbeddedResource Include="..\asn1scala\lib\stainless-library_2.13-0.9.8.2.jar">
+      <Link>stainless-library_2.13-0.9.8.2.jar</Link>
     </EmbeddedResource>
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
-      
+
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_x86.gpr" />
-      
+
       <EmbeddedResource Include="../ADA_RTL2/boards/msp430_board_config.ads" />
       <EmbeddedResource Include="../ADA_RTL2/boards/stm32_board_config.ads" />
       <EmbeddedResource Include="../ADA_RTL2/boards/x86_board_config.ads" />
-      
+
       <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl.ads" />
       <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl.adb" />
       <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding.adb" />
@@ -94,7 +94,7 @@
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
-  
+
   <ItemGroup>
         <PackageReference Update="FSharp.Core" Version="7.0.400" />
   </ItemGroup>

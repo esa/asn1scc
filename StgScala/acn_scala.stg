@@ -537,6 +537,7 @@ sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nS
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
         val <p> = <sTypeDefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, Array.fill(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>)(<sChildInitExpr>))
+        @ghost val <p>_snap = snapshot(<p>)
         <i> = 0
         (while(<i> \< <p>.nCount.toInt) {
             decreases(<p>.nCount.toInt - <i>)
@@ -545,7 +546,7 @@ val <p> =
             <soPostSerde>
             <i> += 1
             <soPostInc>
-        }).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <p>.nCount.toInt<if(soInvariant)> && <soInvariant><endif>)
+        }).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <p>.nCount.toInt && <p>_snap.arr.length == <p>.arr.length<if(soInvariant)> && <soInvariant><endif>)
         <p>
     else return LeftMut(<sErrCode>)
 >>
@@ -574,6 +575,7 @@ sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSi
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
         val <p> = <sTypeDefName>(Array.fill(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>)(<sChildInitExpr>))
+        @ghost val <p>_snap = snapshot(<p>)
         <i> = 0
         (while(<i> \< <nSizeMax>.toInt) {
             decreases(<nSizeMax>.toInt - <i>)
@@ -582,7 +584,7 @@ val <p> =
             <soPostSerde>
             <i> += 1
             <soPostInc>
-        }).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <nSizeMax>.toInt<if(soInvariant)> && <soInvariant><endif>)
+        }).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <nSizeMax>.toInt && <p>_snap.arr.length == <p>.arr.length<if(soInvariant)> && <soInvariant><endif>)
         <p>
     else return LeftMut(<sErrCode>)
 >>

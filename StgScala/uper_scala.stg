@@ -401,6 +401,7 @@ str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
+@ghost val <p>_snap = snapshot(<p>)
 <i> = 0
 (while(<i> \< <nFixedSize>.toInt) {
     decreases(<nFixedSize>.toInt - <i>)
@@ -409,7 +410,7 @@ str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
     <soPostSerde>
     <i> += 1
     <soPostInc>
-}).opaque.inline.invariant(0 \<= <i> && <i> \<= <nFixedSize>.toInt<if(soInvariant)> && <soInvariant><endif>)
+}).opaque.inline.invariant(0 \<= <i> && <i> \<= <nFixedSize>.toInt && <p>_snap.length == <p>.length<if(soInvariant)> && <soInvariant><endif>)
 >>
 
 str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
@@ -418,6 +419,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 <endif>
 
 val <p> = <soInitExpr>
+@ghost val <p>_snap = snapshot(<p>)
 <i> = 0
 (while(<i> \< <nFixedSize>.toInt) {
     decreases(<nFixedSize>.toInt - <i>)
@@ -426,7 +428,7 @@ val <p> = <soInitExpr>
     <soPostSerde>
     <i> += 1
     <soPostInc>
-}).opaque.inline.invariant(0 \<= <i> && <i> \<= <nFixedSize>.toInt<if(soInvariant)> && <soInvariant><endif>)
+}).opaque.inline.invariant(0 \<= <i> && <i> \<= <nFixedSize>.toInt && <p>_snap.length == <p>.length<if(soInvariant)> && <soInvariant><endif>)
 <p>(<nFixedSize>) = UByte.fromRaw(0x0)
 >>
 
@@ -506,6 +508,7 @@ val <p>_nCount = locally {
     <p>_nCount
 }
 val <p> = <sTasName>(<p>_nCount.toInt, Array.fill(<p>_nCount.toInt)(<sChildInitExpr>))
+@ghost val <p>_snap = snapshot(<p>)
 <i> = 0
 (while(<i> \< <p>_nCount.toInt) {
     decreases(<p>_nCount.toInt - <i>)
@@ -514,7 +517,7 @@ val <p> = <sTasName>(<p>_nCount.toInt, Array.fill(<p>_nCount.toInt)(<sChildInitE
     <soPostSerde>
     <i> += 1
     <soPostInc>
-}).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <p>_nCount.toInt<if(soInvariant)> && <soInvariant><endif>)
+}).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <p>_nCount.toInt && <p>_snap.arr.length == <p>.arr.length<if(soInvariant)> && <soInvariant><endif>)
 >>
 
 octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
@@ -943,7 +946,7 @@ if (ret) then {
 >>
 
 update_array_item(p, sI, sExpr) ::= <<
-<p>.arr(<sI>) = freshCopyHack(<sExpr>) // TODO: FIXME: To get around aliasing restriction, ideally we should do things differently
+<p>.arr(<sI>) = freshCopy(<sExpr>) // TODO: FIXME: To get around aliasing restriction, ideally we should do things differently
 >>
 
 InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
