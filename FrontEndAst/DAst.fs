@@ -384,8 +384,8 @@ type TypeEncodingKind =
 type NestingScope = {
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
-    nestingLevel: int
-    nestingIx: int
+    nestingLevel: bigint
+    nestingIx: bigint
     acnOffset: bigint
     uperOffset: bigint
     acnRelativeOffset: bigint
@@ -394,7 +394,7 @@ type NestingScope = {
     uperSiblingMaxSize: bigint option
 } with
     static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint): NestingScope =
-        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0; nestingIx = 0; acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
+        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I; acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
 
 
 type UPERFuncBodyResult = {

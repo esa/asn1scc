@@ -80,7 +80,7 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc
   let outerMaxSize = pg.outerMaxSize enc
   let thisMaxSize = pg.maxSize enc
   let fstSnap = snapshots.Head
-  let isNested = pg.nestingLevel > 0
+  let isNested = pg.nestingLevel > 0I
   assert (isNested || fstSnap = oldCdc)
 
   let wrap (ix: int, (snap: Var, child: SequenceChildProps, stmt: string option)) (offsetAcc: bigint, rest: Expr): bigint * Expr =
@@ -129,7 +129,7 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
     let codecTpe = runtimeCodecTypeFor enc
     let cdc = {Var.name = $"codec"; tpe = RuntimeType (CodecClass codecTpe)}
     let oldCdc = {Var.name = $"codec_0_1"; tpe = RuntimeType (CodecClass codecTpe)}
-    let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + i}"; tpe = RuntimeType (CodecClass codecTpe)})
+    let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = RuntimeType (CodecClass codecTpe)})
 
     let wrappedStmts = wrapEncDecStmts enc snapshots cdc oldCdc stmts pg codec
 
@@ -141,21 +141,25 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
     [exprStr]
 
 let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
+  let lvl = max 0I (pg.nestingLevel - 1I)
+  let nestingIx = pg.nestingIx + 1I
+
   let nbItemsMin, nbItemsMax = sqf.nbElems enc
 
-  let isSizeExternal =
+  let accountForSize =
     match enc, sqf with
     | UPER, _ -> true
     | ACN, SqOf sqf ->
       match sqf.acnEncodingClass with
-      | SizeableAcnEncodingClass.SZ_EC_FIXED_SIZE | SizeableAcnEncodingClass.SZ_EC_LENGTH_EMBEDDED _ -> not sqf.isFixedSize // TODO: Check if we can have SZ_EC_FIXED_SIZE with not sqf.isFixedSize (copying logic from DAstACN)
+      | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ -> not sqf.isFixedSize // TODO: Check if we can have SZ_EC_FIXED_SIZE with not sqf.isFixedSize (copying logic from DAstACN)
+      | SZ_EC_ExternalField _ -> false // The external field is encoded/decoded as an ACN field, it therefore has the bitstream index offset already taken care of
       | _ -> true
     | ACN, StrType str ->
       true // TODO
     | _ -> failwith $"Unexpected encoding: {enc}"
 
-  let externSizeInBits =
-    if isSizeExternal then GetNumberOfBitsForNonNegativeInteger (nbItemsMax - nbItemsMin)
+  let sizeInBits =
+    if accountForSize then GetNumberOfBitsForNonNegativeInteger (nbItemsMax - nbItemsMin)
     else 0I
   let nbItems =
     if sqf.isFixedSize then IntLit (Int, nbItemsMin)
@@ -163,16 +167,17 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
   let elemSz = sqf.maxElemSizeInBits enc
   let elemSzExpr = IntLit (Long, elemSz)
   let sqfMaxSizeInBits = sqf.maxSizeInBits enc
-  let remainingBits = pg.outerMaxSize enc - sqfMaxSizeInBits - pg.maxOffset enc
+  let offset = pg.maxOffset enc
+  let remainingBits = pg.outerMaxSize enc - sqfMaxSizeInBits - offset
   let remainingBitsExpr = IntLit (Long, remainingBits)
 
   let codecTpe = runtimeCodecTypeFor enc
   let cdc = {Var.name = $"codec"; tpe = RuntimeType (CodecClass codecTpe)}
   // The codec snapshot before encoding/decoding the whole SequenceOf (i.e. snapshot before entering the while loop)
-  let lvl = max 0 (pg.nestingLevel - 1)
-  let cdcSnap = {Var.name = $"codec_{lvl}_{pg.nestingIx + 1}"; tpe = RuntimeType (CodecClass codecTpe)}
+  let cdcSnap = {Var.name = $"codec_{lvl}_{nestingIx}"; tpe = RuntimeType (CodecClass codecTpe)}
   // The codec snapshot before encoding/decoding one item (snapshot local to the loop, taken before enc/dec one item)
-  let cdcLoopSnap = {Var.name = $"codecLoop_{lvl}_{pg.nestingIx + 1}"; tpe = RuntimeType (CodecClass codecTpe)}
+  let cdcLoopSnap = {Var.name = $"codecLoop_{lvl}_{nestingIx}"; tpe = RuntimeType (CodecClass codecTpe)}
+  let oldCdc = {Var.name = $"codec_0_1"; tpe = RuntimeType (CodecClass codecTpe)}
   let ix = {name = pg.ixVariable; tpe = IntegerType Int}
   let ixPlusOne = Plus (Var ix, IntLit (Int, 1I))
 
@@ -197,7 +202,7 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
       ))
       Check (Leq (
         callBitIndex (Var cdc),
-        Plus (callBitIndex (Var cdcSnap), Plus (IntLit (Long, externSizeInBits), Mult (elemSzExpr, ixPlusOne)))
+        Plus (callBitIndex (Var cdcSnap), Plus (IntLit (Long, sizeInBits), Mult (elemSzExpr, ixPlusOne)))
       ))
       AppliedLemma {
         lemma = ValidateOffsetBitsIneqLemma
@@ -222,10 +227,14 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
       else [And [Leq (IntLit (Int, nbItemsMin), nbItems); Leq (nbItems, (IntLit (Int, nbItemsMax)))]]
     let bixInv = Leq (
       callBitIndex (Var cdc),
-      Plus (callBitIndex (Var cdcSnap), Plus (IntLit (Long, externSizeInBits), Mult (elemSzExpr, Var ix)))
+      Plus (callBitIndex (Var cdcSnap), Plus (IntLit (Long, sizeInBits), Mult (elemSzExpr, Var ix)))
+    )
+    let bixInvOldCdc = Leq (
+      callBitIndex (Var cdc),
+      Plus (callBitIndex (Var oldCdc), Plus (IntLit (Long, offset + sizeInBits), Mult (elemSzExpr, Var ix)))
     )
     let offsetInv = callValidateOffsetBits (Var cdc) (Plus (remainingBitsExpr, Mult (elemSzExpr, Minus (nbItems, Var ix))))
-    [bufInv; cdcInv] @ boundsInv @ [bixInv; offsetInv]
+    [bufInv; cdcInv] @ boundsInv @ [bixInv; bixInvOldCdc; offsetInv]
 
   let postInc =
     Ghost (mkBlock (

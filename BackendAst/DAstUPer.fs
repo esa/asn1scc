@@ -461,7 +461,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let postSerde = sqfProofGenRes |> Option.map (fun r -> r.postSerde)
         let postInc = sqfProofGenRes |> Option.map (fun r -> r.postInc)
         let invariant = sqfProofGenRes |> Option.map (fun r -> r.invariant)
-        let introSnap = nestingScope.nestingLevel = 0
+        let introSnap = nestingScope.nestingLevel = 0I
         let funcBodyContent,localVariables =
             match o.minSize with
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper ->
@@ -581,7 +581,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         match baseFuncName with
         | None ->
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
-            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1}
+            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1I}
             let access = lm.lg.getAccess p.arg
             // `childInitExpr` is used to initialize the array of elements in which we will write their decoded values
             // It is only meaningful for "Copy" decoding kind, since InPlace will directly modify `p`'s array
@@ -624,10 +624,10 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
 
             let absOffset = nestingScope.uperOffset
             let remBits = nestingScope.uperOuterMaxSize - nestingScope.uperOffset
-            let lvl = bigint (max 0 (nestingScope.nestingLevel - 1))
-            let ix = bigint nestingScope.nestingIx + 1I
+            let lvl = max 0I (nestingScope.nestingLevel - 1I)
+            let ix = nestingScope.nestingIx + 1I
             let offset = nestingScope.uperRelativeOffset
-            let introSnap = nestingScope.nestingLevel = 0
+            let introSnap = nestingScope.nestingLevel = 0I
 
             match internalItem with
             | None  ->
@@ -662,9 +662,9 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations  [] us
 
 type private SequenceChildState = {
-    childIx: int
-    uperAccBits: BigInteger
-    acnAccBits: BigInteger
+    childIx: bigint
+    uperAccBits: bigint
+    acnAccBits: bigint
 }
 type private SequenceChildStmt = {
     body: string option
@@ -723,7 +723,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
             let childNestingScope =
                 {nestingScope with
-                    nestingLevel = nestingScope.nestingLevel + 1
+                    nestingLevel = nestingScope.nestingLevel + 1I
                     nestingIx = nestingScope.nestingIx + s.childIx
                     uperRelativeOffset = s.uperAccBits
                     uperOffset = nestingScope.uperOffset + s.uperAccBits}
@@ -753,7 +753,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
             let typeInfo = {uperMaxSizeBits=child.uperMaxSizeInBits; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=childContentResult |> Option.bind (fun c -> c.typeEncodingKind)}
             let props = {sel=Some (childP.arg.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo}
-            let newAcc = {childIx=s.childIx + 1; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
+            let newAcc = {childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
 
             match childContentResult with
             | None ->
@@ -788,7 +788,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
         let presenceBits = nonAcnChildren |> List.map printPresenceBit
         let nbPresenceBits = presenceBits |> List.sumBy (fun s -> if s.IsSome then 1I else 0I)
-        let childrenStatements00, _ = nonAcnChildren |> foldMap handleChild {childIx=0; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits}
+        let childrenStatements00, _ = nonAcnChildren |> foldMap handleChild {childIx=nbPresenceBits; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits}
 
         let seqProofGen =
             let presenceBitsInfo = presenceBits |> List.mapi (fun i _ ->
@@ -845,7 +845,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         let uperSiblingMaxSize = children |> List.map (fun c -> c.chType.uperMaxSizeInBits) |> List.max
 
         let handleChild (nIndexSizeInBits: BigInteger) (i: int) (child: ChChildInfo): string * LocalVariable list * ErrorCode list * TypeEncodingKind option =
-            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1; uperSiblingMaxSize = Some uperSiblingMaxSize; acnSiblingMaxSize = Some acnSiblingMaxSize}
+            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1I; uperSiblingMaxSize = Some uperSiblingMaxSize; acnSiblingMaxSize = Some acnSiblingMaxSize}
             let chFunc = child.chType.getUperFunction codec
             let uperChildRes =
                 match lm.lg.uper.catd with
@@ -886,7 +886,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let childrenLocalvars = childrenContent3 |> List.collect(fun (_,s,_,_) -> s)
             let childrenErrCodes = childrenContent3 |> List.collect(fun (_,_,s,_) -> s)
             let childrenTypeKindEncoding = childrenContent3 |> List.map(fun (_,_,_,s) -> s)
-            let introSnap = nestingScope.nestingLevel = 0
+            let introSnap = nestingScope.nestingLevel = 0I
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
             let ret = choice pp (lm.lg.getAccess p.arg) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits introSnap codec
             Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (ChoiceEncodingType childrenTypeKindEncoding)})

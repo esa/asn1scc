@@ -84,8 +84,8 @@ type SequenceChildProps = {
 type SequenceProofGen = {
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
-    nestingLevel: int
-    nestingIx: int
+    nestingLevel: bigint
+    nestingIx: bigint
     uperMaxOffset: bigint
     acnMaxOffset: bigint
     acnSiblingMaxSize: bigint option
@@ -175,8 +175,8 @@ with
 type SequenceOfLikeProofGen = {
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
-    nestingLevel: int
-    nestingIx: int
+    nestingLevel: bigint
+    nestingIx: bigint
     acnMaxOffset: bigint
     uperMaxOffset: bigint
     typeInfo: TypeInfo
