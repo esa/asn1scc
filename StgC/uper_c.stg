@@ -327,7 +327,7 @@ ret = <sEnumIndex> \>= 0 && <sEnumIndex> \<= <nLastItemIndex>;
 if (ret) {
 	BitStream_EncodeConstraintWholeNumber(pBitStrm, <sEnumIndex>, 0, <nLastItemIndex>);
 }
-*pErrCode = ret ? 0 : ERR_UPER_ENCODE_MY_ENUM1;
+*pErrCode = ret ? 0 : <sErrCode>;
 
 >>
 

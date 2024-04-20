@@ -142,7 +142,7 @@ typedef <prTd.typeName> <td.typeName>;
 
 Define_new_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames, arrsEnumNames) ::= <<
 static const asn1SccSint <td.values_array>[] = {
-    <arrsValidEnumNames:{it|<it>}; separator=",">
+    <arrsValidEnumNames:{it|<it>}; wrap, anchor, separator=",">
 };
 
 #define <td.values_array_count> <arrsValidEnumNames.Length>
@@ -154,7 +154,7 @@ static const asn1SccSint <td.values_array>[] = {
 
 Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames, arrsEnumNames) ::= <<
 static const asn1SccSint <td.values_array>[] = {
-    <arrsValidEnumNames:{it|<it>}; separator=",">
+    <arrsValidEnumNames:{it|<it>}; wrap, anchor, separator=",">
 };
 
 #define <td.values_array_count> <arrsValidEnumNames.Length>

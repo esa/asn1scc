@@ -82,10 +82,12 @@ with
       are renamed.
 """         
             | Enable_Efficient_Enumerations _ -> """Enable efficient enumerations. (Applicable only to C.)
-    In this mode, the generated validation, encoding and decoding 
-    functions do not use switches but arrays. 
-    The argument is number of enumerants in an enumerated type in order to enable this mode.
-    E.g. -eee 10, will enable this mode for enumerated types with 10 or more enumerants.
+This mode optimizes the generated C code for ASN.1 Enumerated types with multiple enumerants (e.g., 50 or more). 
+Instead of generating switch statements, asn1scc generates sorted arrays containing the possible values. 
+Lookups (e.g., for validation or index retrieval in uPER encoding) are performed using an optimized binary search. 
+This results in more efficient and less verbose code.
+The argument is the minimum number of enumerants in an enumerated type to enable this mode.
+E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumerants.
     """
             | Field_Prefix _     -> """  Apply <prefix> string to any component or alternative fields present in the grammar.
   If <prefix> is AUTO (i.e. -fp AUTO) then only the conflicting component or alternative names will be prefixed with the type name.
@@ -117,7 +119,7 @@ let printVersion () =
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
 
-    let version = "4.5.1.5"
+    let version = "4.5.2.0"
     printfn "asn1scc version %s\n" version
     ()
 

@@ -593,7 +593,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
                 let resultExpr, errCodes, typeEncodingKind =
                     intAcnFuncBdResult.resultExpr, intAcnFuncBdResult.errCodes, intAcnFuncBdResult.typeEncodingKind
                 let mainContent, localVariables =
-                    match r.args.isEnumEfficientEnabled o.items.Length with
+                    match r.args.isEnumEfficientEnabled o.items.Length  with
                     | false ->
                         let arrItems = 
                             o.items |> 

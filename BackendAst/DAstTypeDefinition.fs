@@ -243,7 +243,7 @@ let createEnumerated (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.A
     let arrsEnumNamesAndValues = orderedItems |> List.map(fun i -> define_new_enumerated_item td (lm.lg.getNamedItemBackendName None i) i.definitionValue)
     let macros = orderedItems |> List.map( fun i -> define_new_enumerated_item_macro td (ToC i.Name.Value) (lm.lg.getNamedItemBackendName None i) )
     let nIndexMax = BigInteger ((Seq.length o.items)-1)
-    let arrsValidEnumNames = o.validItems |> List.map( fun i -> lm.lg.getNamedItemBackendName None i)
+    let arrsValidEnumNames = o.validItems |> List.sortBy(fun i -> i.definitionValue) |> List.map( fun i -> lm.lg.getNamedItemBackendName None i)
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
