@@ -157,9 +157,11 @@ isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
 ret = (<p1><sAcc>nCount == <p2><sAcc>nCount)
 <if (soInnerStatement)>
 <i> = 0
-while ret && <i> \< <p1><sAcc>nCount do
+(while (ret && <i> \< <p1><sAcc>nCount) {
+    decreases(<p1><sAcc>nCount - <i>)
     <soInnerStatement>
     <i> += 1
+}).invariant(0 \<= <i> && <i> \<= <p1><sAcc>nCount)
 
 
 <endif>
@@ -167,9 +169,11 @@ while ret && <i> \< <p1><sAcc>nCount do
 
 isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
 <i> = 0
-while ret && <i> \< <nFixedSize> do
+(while (ret && <i> \< <nFixedSize>) {
+    decreases(<nFixedSize> - <i>)
     <sInnerStatement>
     <i> += 1
+}).invariant(0 \<= <i> && <i> \<= <nFixedSize>)
 
 >>
 

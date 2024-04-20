@@ -6,6 +6,7 @@ open System
 open System.Numerics
 open FsUtils
 open CommonTypes
+open AcnGenericTypes
 open AbstractMacros
 open System.Collections.Generic
 
@@ -306,9 +307,7 @@ type IsValidFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
-    //funcExp             : (CallerScope -> ValidationCodeBlock)    // return a single boolean expression
     funcBody            : CallerScope -> ValidationStatement            //returns a list of validations statements
-    //funcBody2           : string -> string -> string  //like funBody but with two arguments p and accessOper ( i.e. '->' or '.')
 
     alphaFuncs          : AlphaFunc list
     localVariables      : LocalVariable list
@@ -319,6 +318,84 @@ type IsValidFunction = {
 }
 
 
+/////////////////////////////////////////////////////////////////////
+
+
+type IntegerSignedness =
+    | Positive
+    | TwosComplement
+
+type IntegerEndiannessSize =
+    | S16
+    | S32
+    | S64
+with
+    member this.bitSize =
+        match this with
+        | S16 -> 16
+        | S32 -> 32
+        | S64 -> 64
+
+type IntegerEndianness =
+    | Byte
+    | Unbounded
+    | LittleEndian of IntegerEndiannessSize
+    | BigEndian of IntegerEndiannessSize
+
+type AcnIntegerEncodingType = {
+    signedness: IntegerSignedness
+    endianness: IntegerEndianness
+}
+
+type AcnRealEncodingType =
+    | BigEndian32
+    | BigEndian64
+    | LittleEndian32
+    | LittleEndian64
+
+type Asn1IntegerEncodingType =
+    | FullyConstrainedPositive of bigint * bigint
+    | FullyConstrained of bigint * bigint
+    | SemiConstrainedPositive of bigint
+    | SemiConstrained of bigint
+    | UnconstrainedMax of bigint
+    | Unconstrained
+
+type TypeEncodingKind =
+    | Asn1IntegerEncodingType of Asn1IntegerEncodingType option // None if range min = max
+    | Asn1RealEncodingType of Asn1AcnAst.RealClass
+    | AcnIntegerEncodingType of AcnIntegerEncodingType
+    | AcnRealEncodingType of AcnRealEncodingType
+    | AcnBooleanEncodingType of AcnBooleanEncoding option
+    | AcnNullEncodingType of PATTERN_PROP_VALUE option
+    | AcnStringEncodingType of Asn1AcnAst.StringAcnEncodingClass
+    | AcnOctetStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass
+    | AcnBitStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass
+    | SequenceOfEncodingType of TypeEncodingKind * Asn1AcnAst.SizeableAcnEncodingClass
+    | SequenceEncodingType of TypeEncodingKind option list
+    | ChoiceEncodingType of TypeEncodingKind option list
+    | ReferenceEncodingType of string
+    | OptionEncodingType of TypeEncodingKind
+    | Placeholder
+
+/////////////////////////////////////////////////////////////////////
+
+
+type NestingScope = {
+    acnOuterMaxSize: bigint
+    uperOuterMaxSize: bigint
+    nestingLevel: bigint
+    nestingIx: bigint
+    acnOffset: bigint
+    uperOffset: bigint
+    acnRelativeOffset: bigint
+    uperRelativeOffset: bigint
+    acnSiblingMaxSize: bigint option
+    uperSiblingMaxSize: bigint option
+} with
+    static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint): NestingScope =
+        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I; acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
+
 
 type UPERFuncBodyResult = {
     funcBody            : string
@@ -327,13 +404,14 @@ type UPERFuncBodyResult = {
     bValIsUnReferenced  : bool
     bBsIsUnReferenced   : bool
     resultExpr          : string option
+    typeEncodingKind    : TypeEncodingKind option
 }
 type UPerFunction = {
     funcName            : string option               // the name of the function
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
-    funcBody            : CallerScope -> (UPERFuncBodyResult option)            // returns a list of validations statements
-    funcBody_e          : ErrorCode -> CallerScope -> (UPERFuncBodyResult option)
+    funcBody            : NestingScope -> CallerScope -> (UPERFuncBodyResult option)            // returns a list of validations statements
+    funcBody_e          : ErrorCode -> NestingScope -> CallerScope -> (UPERFuncBodyResult option)
 }
 
 type AcnFuncBodyResult = {
@@ -343,6 +421,7 @@ type AcnFuncBodyResult = {
     bValIsUnReferenced  : bool
     bBsIsUnReferenced   : bool
     resultExpr          : string option
+    typeEncodingKind    : TypeEncodingKind option
 }
 
 type XERFuncBodyResult = {
@@ -382,8 +461,8 @@ type AcnFunction = {
 
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
-    funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)
-    funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)
+    funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> ((AcnFuncBodyResult option)*State)
+    funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)
     isTestVaseValid     : AutomaticTestCase -> bool
     icd                 : IcdAux option (* always present in Encode, always None in Decode *)
 }
@@ -694,7 +773,7 @@ and AcnChild = {
     id                          : ReferenceToType
     Type                        : Asn1AcnAst.AcnInsertedType
     typeDefinitionBodyWithinSeq : string
-    funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
+    funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
     funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement
     Comments                    : string array
     initExpression              : string
@@ -819,7 +898,7 @@ and ReferenceType = {
 }
 
 and AcnChildUpdateResult = {
-    updateAcnChildFnc        : AcnChild -> CallerScope -> CallerScope -> string
+    updateAcnChildFnc        : AcnChild -> NestingScope -> CallerScope -> CallerScope -> string
     //Given an automatic test case (which includes a map with the IDs of the involved types), this function
     //checks if the automatic test case contains a type which depends on this acn Child. If this is true
     // it returns the value of the dependency, otherwise none
@@ -857,7 +936,6 @@ and Asn1Type = {
     Kind            : Asn1TypeKind
     unitsOfMeasure  : string option
 }
-
 
 and Asn1TypeKind =
     | Integer           of Integer
@@ -989,4 +1067,3 @@ type TC_Function = {
     parameters      : TC_Param list
     body            : TC_Statement list
 }
-

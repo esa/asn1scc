@@ -30,7 +30,7 @@ val MASK_POS_INT    = 0x7F_FF_FF_FFL
 opaque type UByte = Byte
 object UByte {
     @inline def fromRaw(u: Byte): UByte = u
-    @inline def fromArrayRaws(arr: Array[Byte]): Array[UByte] = arr
+    @inline @pure def fromArrayRaws(arr: Array[Byte]): Array[UByte] = arr
 }
 extension (l: UByte) {
     @inline def toRaw: Byte = l
@@ -79,6 +79,9 @@ object UInt {
 extension (l: UInt) {
     @inline def toRaw: Int = l
     @inline def <=(r: UInt): Boolean = wrappingExpr { l + Int.MinValue <= r + Int.MinValue }
+    @inline def <(r: UInt): Boolean = wrappingExpr { l + Int.MinValue < r + Int.MinValue }
+    @inline def >(r: UInt): Boolean = wrappingExpr { l + Int.MinValue > r + Int.MinValue }
+    @inline def >=(r: UInt): Boolean = wrappingExpr { l + Int.MinValue >= r + Int.MinValue }
     @inline def unsignedToLong: Long = l & MASK_INT_L
     @inline def toULong: ULong = l
 }
@@ -89,18 +92,15 @@ object ULong {
 }
 extension (l: ULong) {
     @inline def toRaw: Long = l
-    @inline def toUByte: UByte = l.cutToByte
-    @inline def toUShort: UShort = l.cutToShort
-    @inline def toUInt: UInt = l.cutToInt
+    @inline def toUByte: UByte = wrappingExpr { l.toByte }
+    @inline def toUShort: UShort = wrappingExpr { l.toShort }
+    @inline def toUInt: UInt = wrappingExpr { l.toInt }
     @inline def <=(r: ULong): Boolean = wrappingExpr { l + Long.MinValue <= r + Long.MinValue }
+    @inline def <(r: ULong): Boolean = wrappingExpr { l + Long.MinValue < r + Long.MinValue }
+    @inline def >(r: ULong): Boolean = wrappingExpr { l + Long.MinValue > r + Long.MinValue }
+    @inline def >=(r: ULong): Boolean = wrappingExpr { l + Long.MinValue >= r + Long.MinValue }
     @inline def +(r: ULong): ULong = wrappingExpr { l + r }
     @inline def -(r: ULong): ULong = wrappingExpr { l - r }
-
-    // @ignore
-    // inline def ==(r: Int): Boolean = {
-    //     scala.compiletime.requireConst(r)
-    //     l == r.toLong.toRawULong
-    // }
 }
 
 extension (b: Byte) {
@@ -156,24 +156,6 @@ extension (l: Long) {
         scala.math.BigInt(l).toByteArray
     }
 }
-
-// @ignore
-// inline implicit def intlit2uint(inline i: Int): UInt = {
-//    scala.compiletime.requireConst(i)
-//    UInt.fromRaw(i)
-// }
-
-// @ignore
-// inline implicit def intlit2ulong(inline i: Int): ULong = {
-//    scala.compiletime.requireConst(i)
-//    ULong.fromRaw(i.toLong)
-// }
-
-// @ignore
-// inline implicit def longlit2ulong(inline i: Long): ULong = {
-//    scala.compiletime.requireConst(i)
-//    ULong.fromRaw(i)
-// }
 
 @extern
 type RealNoRTL = Float
@@ -236,15 +218,35 @@ val ber_aux: Array[Long] = Array(
 
 // TODO: check types and if neccesary as we don't have unsigned types
 def int2uint(v: Long): ULong = {
-    v.asInstanceOf[ULong]
-    /*var ret: ULong = 0
+    var ret: Long = 0L
     if v < 0 then
-        ret = -v - 1
-        ret = ~ret
+        ret = wrappingExpr(-v - 1)
+        ret = wrappingExpr(~ret)
     else
         ret = v
 
-    ret*/
+    ULong.fromRaw(ret)
+}
+
+def onesLSBLong(nBits: Int): Long = {
+    require(0 <= nBits && nBits <= 64)
+    -1L >>> (64 - nBits)
+}
+
+def bitLSBLong(bit: Boolean, nBits: Int): Long = {
+    require(0 <= nBits && nBits <= 64)
+    if bit then onesLSBLong(nBits) else 0L
+}
+
+def onesMSBLong(nBits: Int): Long = {
+    require(0 <= nBits && nBits <= 64)
+    // Note: on the JVM, -1L << 64 == -1L, not 0L as sane persons would expect
+    if (nBits == 0) 0L else -1L << (64 - nBits)
+}
+
+def bitMSBLong(bit: Boolean, nBits: Int): Long = {
+    require(0 <= nBits && nBits <= 64)
+    if bit then onesMSBLong(nBits) else 0L
 }
 
 def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
@@ -278,9 +280,9 @@ def GetCharIndex(ch: UByte, charSet: Array[UByte]): Int =
         if ch == charSet(i) then
             ret = i
         i += 1
-      ).invariant(i >= 0 &&& i <= charSet.length)
+      ).invariant(i >= 0 &&& i <= charSet.length && ret < charSet.length && ret >= 0)
     ret
-}
+} ensuring(res => charSet.length == 0 || res >= 0 && res < charSet.length)
 
 def NullType_Initialize(): NullType = {
     0

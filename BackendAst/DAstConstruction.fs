@@ -63,12 +63,12 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     let funcUpdateStatement, ns3 = DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
     let c_name         = DAstACN.getAcnDeterminantName ch.id
 
-    let newFuncBody (codec:Codec) (prms:((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)) (p:CallerScope) : (AcnFuncBodyResult option)=
-        let funBodyWithState st errCode prms p =
+    let newFuncBody (codec:Codec) (prms:((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)) (nestingScope: NestingScope) (p:CallerScope): AcnFuncBodyResult option=
+        let funBodyWithState st errCode prms nestingScope p =
             let funcBody codec = match codec with Codec.Encode -> funcBodyEncode | Codec.Decode -> funcBodyDecode
-            funcBody codec prms p, st
-        let retFunc = DAstACN.handleSavePosition funBodyWithState ch.Type.savePosition c_name ch.id lm codec prms p
-        retFunc emptyState {ErrorCode.errCodeName = ""; ErrorCode.errCodeValue=0; comment=None} prms p |> fst
+            funcBody codec prms nestingScope p, st
+        let retFunc = DAstACN.handleSavePosition funBodyWithState ch.Type.savePosition c_name ch.id lm codec
+        retFunc emptyState {ErrorCode.errCodeName = ""; ErrorCode.errCodeValue=0; comment=None} prms nestingScope p |> fst
 
     let tdBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnChildDeterminant ch)
     let initExpression =
@@ -962,4 +962,3 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         deps    = deps
         icdHashes   = ns.icdHashes
     }
-

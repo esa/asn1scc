@@ -351,6 +351,14 @@ type StringAcnEncodingClass =
     | Acn_Enc_String_Ascii_Null_Terminated                  of BigInteger*(byte  list)             //char size in bits, byte = the null character
     | Acn_Enc_String_Ascii_External_Field_Determinant       of BigInteger*RelativePath             //char size in bits, encode ascii, size is provided by an external length determinant
     | Acn_Enc_String_CharIndex_External_Field_Determinant   of BigInteger*RelativePath             //char size in bits, encode char index, size is provided by an external length determinant
+with
+    member this.charSizeInBits: bigint =
+        match this with
+        | Acn_Enc_String_uPER c
+        | Acn_Enc_String_uPER_Ascii c
+        | Acn_Enc_String_Ascii_Null_Terminated (c, _)
+        | Acn_Enc_String_Ascii_External_Field_Determinant (c, _)
+        | Acn_Enc_String_CharIndex_External_Field_Determinant (c, _) -> c
 
 type SizeableAcnEncodingClass =
     //| SZ_EC_uPER
@@ -619,6 +627,13 @@ with
         | AcnNullType a                 -> a.acnProperties.savePosition
         | AcnReferenceToEnumerated a    -> false
         | AcnReferenceToIA5String a     -> false
+    member this.acnMaxSizeInBits  =
+        match this with
+        | AcnInteger  a -> a.acnMaxSizeInBits
+        | AcnBoolean  a -> a.acnMaxSizeInBits
+        | AcnNullType a -> a.acnMaxSizeInBits
+        | AcnReferenceToEnumerated a -> a.enumerated.acnMaxSizeInBits
+        | AcnReferenceToIA5String a -> a.str.acnMaxSizeInBits
 
 
 type Asn1Type = {

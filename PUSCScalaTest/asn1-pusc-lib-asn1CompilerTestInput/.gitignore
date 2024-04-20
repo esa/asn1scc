@@ -1,3 +1,4 @@
+out-*/
 /.build
 /.dist
 /*.pro.user
