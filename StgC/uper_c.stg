@@ -335,12 +335,7 @@ Enumerated_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEn
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sEnumIndex>, 0, <nLastItemIndex>);
 ret = ret && <sEnumIndex> \>= 0 && <sEnumIndex> \<= <nLastItemIndex>;
 *pErrCode = ret ? 0 : <sErrCode>;
-if (ret) {
-	<p> = <td.encoded_values_array>[<sEnumIndex>];
-} else {
-	/* we could not decode a valid index, so we set the first value  */ /*COVERAGE_IGNORE*/
-    <p> = <sFirstItemName>;             /*COVERAGE_IGNORE*/
-}
+<p> = ret ? <td.encoded_values_array>[<sEnumIndex>] : <sFirstItemName>;
 >>
 
 

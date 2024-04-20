@@ -551,7 +551,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
     let EnumeratedEncValues                 = lm.acn.EnumeratedEncValues
     let Enumerated_item                     = lm.acn.Enumerated_item
     let IntFullyConstraintPos               = lm.uper.IntFullyConstraintPos
-    let Enumerated_no_switch                = lm.uper.Enumerated_no_switch
+    let Enumerated_no_switch                = lm.acn.EnumeratedEncValues_no_switch
 
     let min = o.items |> List.map(fun x -> x.acnEncodeValue) |> Seq.min
     let max = o.items |> List.map(fun x -> x.acnEncodeValue) |> Seq.max
@@ -559,6 +559,8 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
     let uperRange = (Concrete (min,max))
     let intTypeClass = getIntEncodingClassByUperRange r.args uperRange
     let rtlIntType = (DAstTypeDefinition.getIntegerTypeByClass lm intTypeClass)()
+    let nLastItemIndex      = BigInteger(Seq.length o.items) - 1I
+
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let localVar, intVal =
@@ -588,26 +590,22 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
             match intFuncBody errCode acnArgs nestingScope pVal with
             | None -> None
             | Some intAcnFuncBdResult ->
-                match r.args.isEnumEfficientEnabled o.items.Length with
-                | false ->
-                    let arrItems = 
-                        o.items |> 
-                        List.map(fun it ->
-                            let enumClassName = extractEnumClassName "" it.scala_name it.Name.Value
-                            Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
-                    Some (EnumeratedEncValues (lm.lg.getValue p.arg) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal codec, intAcnFuncBdResult.resultExpr, intAcnFuncBdResult.errCodes, localVar@intAcnFuncBdResult.localVariables, intAcnFuncBdResult.typeEncodingKind)
-                | true ->
-                (*
-                    let sEnumIndex = "nEnumIndex"
-                    let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
-                    let funcBodyContent = Enumerated_no_switch pp td errCode.errCodeName sEnumIndex nLastItemIndex  sFirstItemName codec
-                *)
-                    let arrItems = 
-                        o.items |> 
-                        List.map(fun it ->
-                            let enumClassName = extractEnumClassName "" it.scala_name it.Name.Value
-                            Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
-                    Some (EnumeratedEncValues (lm.lg.getValue p.arg) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal codec, intAcnFuncBdResult.resultExpr, intAcnFuncBdResult.errCodes, localVar@intAcnFuncBdResult.localVariables, intAcnFuncBdResult.typeEncodingKind)
+                let resultExpr, errCodes, typeEncodingKind =
+                    intAcnFuncBdResult.resultExpr, intAcnFuncBdResult.errCodes, intAcnFuncBdResult.typeEncodingKind
+                let mainContent, localVariables =
+                    match r.args.isEnumEfficientEnabled o.items.Length with
+                    | false ->
+                        let arrItems = 
+                            o.items |> 
+                            List.map(fun it ->
+                                let enumClassName = extractEnumClassName "" it.scala_name it.Name.Value
+                                Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
+                        EnumeratedEncValues (lm.lg.getValue p.arg) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal codec, localVar@intAcnFuncBdResult.localVariables
+                    | true ->
+                        let sEnumIndex = "nEnumIndex"
+                        let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
+                        Enumerated_no_switch (lm.lg.getValue p.arg) td intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName  intVal   sEnumIndex nLastItemIndex o.encodeValues   codec, enumIndexVar::localVar@intAcnFuncBdResult.localVariables
+                Some (mainContent, resultExpr, errCodes, localVariables, typeEncodingKind)
 
         match funcBodyContent with
         | None -> None
