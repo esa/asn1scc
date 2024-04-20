@@ -321,7 +321,22 @@ Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 }
 >>
 
+Enumerated_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
+<sEnumIndex>= binarySearch(<td.encoded_values_array>, <td.encoded_values_array_count>, <p>);
+ret = <sEnumIndex> \>= 0 && <sEnumIndex> \<= <nLastItemIndex>;
+if (ret) {
+	BitStream_EncodeConstraintWholeNumber(pBitStrm, <sEnumIndex>, 0, <nLastItemIndex>);
+}
+*pErrCode = ret ? 0 : <sErrCode>;
 
+>>
+
+Enumerated_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
+ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sEnumIndex>, 0, <nLastItemIndex>);
+ret = ret && <sEnumIndex> \>= 0 && <sEnumIndex> \<= <nLastItemIndex>;
+*pErrCode = ret ? 0 : <sErrCode>;
+<p> = ret ? <td.encoded_values_array>[<sEnumIndex>] : <sFirstItemName>;
+>>
 
 
 /* CHOICE START*/

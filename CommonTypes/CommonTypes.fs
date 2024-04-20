@@ -705,6 +705,10 @@ type FE_EnumeratedTypeDefinition = {
     programUnit     : string            //the program unit where this type is defined
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     index_range     : string
+    values_array    : string            //The name of the array that holds the possible values of the enumeration.
+    values_array_count : string         //The name of the variable that holds the number of elements in the enumeration.
+    encoded_values_array    : string            //The name of the array that holds the encoded values of the enumeration.
+    encoded_values_array_count : string         //The name of the variable that holds the number of encoded elements in the enumeration.
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_EnumeratedTypeDefinition>
 }
 with
@@ -885,6 +889,7 @@ type CommandLineSettings = {
     handleEmptySequences      : bool
     blm         : (ProgrammingLanguage*ILangBasic) list
     userRtlFunctionsToGenerate : string list
+    enum_Items_To_Enable_Efficient_Enumerations : uint
 }
 with
   member this.SIntMax =
@@ -918,6 +923,8 @@ with
     this.encodings |> Seq.contains (UPER)
   member this.getBasicLang l =
     this.blm |> List.find(fun (l1,_) -> l1 = l) |> snd
+  member this.isEnumEfficientEnabled (nItems:int) =
+    (uint) nItems >= this.enum_Items_To_Enable_Efficient_Enumerations
 
 let CharCR =  Convert.ToChar(13)
 let CharLF =  Convert.ToChar(10)

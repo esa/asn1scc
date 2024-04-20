@@ -187,6 +187,11 @@ Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_Enumerat
 <define_subtype(thisType=td.index_range, parentType=prTd.index_range, soParentTypePackage=soParentTypePackage)>
 >>
 
+Define_new_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames, arrsEnumNames) ::= <<
+>>
+
+Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, arrsValidEnumNames, arrsEnumNames) ::= <<
+>>
 
 
 /***********************************       STRING    ************************************************************/

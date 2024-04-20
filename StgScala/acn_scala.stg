@@ -416,6 +416,13 @@ val <p> = <sIntVal>.toRaw match
     case _ => return LeftMut(<sErrCode>)
 >>
 
+EnumeratedEncValues_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
+>>
+
+EnumeratedEncValues_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
+>>
+
+
 /* Strings */
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "codec.enc_String_Ascii_FixSize(<nAsn1Max>, <p>)"
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<

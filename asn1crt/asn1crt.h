@@ -202,6 +202,26 @@ int GetCharIndex(char ch, byte allowedCharSet[], int setLen);
 
 flag Asn1Real_Equal(asn1Real Left, asn1Real Right);
 
+/**
+ * Performs a binary search on a sorted array to find the index of a given value.
+ *
+ * @param arr The sorted array to search.
+ * @param size The size of the array.
+ * @param value The value to search for.
+ * @return The index of the value if found, -1 otherwise.
+ */
+int binarySearch(const asn1SccSint arr[], int size, asn1SccSint value);
+
+/**
+ * Performs a linear search on an array to find a specific value.
+ *
+ * @param arr The array to be searched.
+ * @param size The size of the array.
+ * @param value The value to be searched for.
+ * @return The index of the value if found, or -1 if not found.
+ */
+int linearSearch(const asn1SccSint arr[], int size, asn1SccSint value);
+
 void ObjectIdentifier_Init(Asn1ObjectIdentifier* pVal);
 flag ObjectIdentifier_equal(const Asn1ObjectIdentifier* pVal1, const Asn1ObjectIdentifier* pVal2);
 flag ObjectIdentifier_isValid(const Asn1ObjectIdentifier* pVal);

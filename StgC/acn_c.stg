@@ -460,6 +460,44 @@ if (ret) {
 
 
 
+EnumeratedEncValues_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
+<sEnumIndex>= binarySearch(<td.encoded_values_array>, <td.encoded_values_array_count>, <p>);
+if (<sEnumIndex> \>= 0 && <sEnumIndex> \<= <nLastItemIndex>) {
+	<sIntVal> = <if(bEncodeValues)><td.encoded_values_array>[<sEnumIndex>]<else><sEnumIndex><endif>;
+    <sActualCodecFunc>
+} else {
+    ret = FALSE;
+    *pErrCode = <sErrCode>;
+}
+>>
+
+EnumeratedEncValues_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
+<sActualCodecFunc>
+if (ret) {
+	<if(bEncodeValues)>
+	/*check if the value is in the encoded values list*/
+	<sEnumIndex>= binarySearch(<td.encoded_values_array>, <td.encoded_values_array_count>, <sIntVal>);
+	<else>
+	<sEnumIndex> = <sIntVal>;
+	<endif>
+	ret = ret && <sEnumIndex> \>= 0 && <sEnumIndex> \<= <nLastItemIndex>;
+	*pErrCode = ret ? 0 : <sErrCode>;
+	<p> = ret ? <td.encoded_values_array>[<sEnumIndex>] : <sFirstItemName>;
+	
+} /*COVERAGE_IGNORE*/
+>>
+
+
+
+
+
+
+
+
+
+
+
+
 /* Strings */
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "Acn_Enc_String_Ascii_FixSize(pBitStrm, <nAsn1Max>, <p>);"
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<

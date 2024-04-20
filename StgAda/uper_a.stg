@@ -307,6 +307,14 @@ begin
 end;
 >>
 
+Enumerated_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
+>>
+
+Enumerated_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
+>>
+
+
+
 /* ENUMERATED START */
 
 /* SEQUENCE START */

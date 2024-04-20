@@ -103,7 +103,9 @@ flag <sFuncName>(const <sTypeDefName><sPtrSuffix> <sVarName>, int* pErrCode)
 >>
 
 
-
+GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
+<if(bBinarySearch)>binarySearch<else>linearSearch<endif>(<sEnumValuesArray>, <sEnumValuesArrayCount>, <sExp>) >= 0
+>>
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
 ExpStringEqual(sExp1, sExp2) ::= "(strcmp(<sExp1>,<sExp2>)  == 0)"

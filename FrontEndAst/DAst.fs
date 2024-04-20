@@ -208,6 +208,12 @@ type TypeDefinition = {
     /// inner children
     typedefBody : unit -> string
     baseType    : ReferenceToExistingDefinition option
+
+    /// extra information that is needed for the type definition
+    /// E.g. the name of the array that is used to store the enumerated values, used in enum efficient encoding
+    /// This information is not exposed to other types, it is used only in the implementation of the type
+    /// and is not part of the public interface. That is why it should be defined in the implementation file, not in the header file
+    privateTypeDefinition : string option
 }
 
 type TypeDefinitionOrReference =

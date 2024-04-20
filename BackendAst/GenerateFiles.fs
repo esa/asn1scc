@@ -199,6 +199,12 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     //sourse file
     let arrsTypeAssignments =
         tases |> List.map(fun t ->
+            let privateDefinition =
+                match t.Type.typeDefinitionOrReference with
+                | TypeDefinition td -> td.privateTypeDefinition
+                | ReferenceToExistingDefinition _   -> None
+
+
             let initialize        =
                 match lm.lg.initMethod with
                 | InitMethod.Procedure  ->
@@ -256,7 +262,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     | CommonTypes.Encode    -> match t.Type.acnEncFunction with None -> None | Some x -> x.func
                     | CommonTypes.Decode    -> match t.Type.acnDecFunction with None -> None | Some x -> x.func
                 | false     -> None
-            let allProcs =  eqFuncs@isValidFuncs@special_init_funcs@([init_globals;initialize; (uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode);(xerEncDec CommonTypes.Encode); (xerEncDec CommonTypes.Decode)] |> List.choose id)
+            let allProcs =  ([privateDefinition]|>List.choose id)@eqFuncs@isValidFuncs@special_init_funcs@([init_globals;initialize; (uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode);(xerEncDec CommonTypes.Encode); (xerEncDec CommonTypes.Decode)] |> List.choose id)
             lm.src.printTass allProcs )
 
 
