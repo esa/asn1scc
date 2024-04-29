@@ -5,25 +5,16 @@ open Language
 open DAst
 open CommonTypes
 
+type Identifier = string // TODO: Find something better
+
 type CodecClass =
   | BaseCodec
   | AcnCodec
   | UperCodec
-with
-  member this.companionObjectName =
-    match this with
-    | BaseCodec -> "Codec"
-    | AcnCodec -> "ACN"
-    | UperCodec -> "UPER"
 
 type RuntimeType =
   | BitStream
   | CodecClass of CodecClass
-with
-  member this.companionObjectName =
-    match this with
-    | BitStream -> "BitStream"
-    | CodecClass cc -> cc.companionObjectName
 
 type IntegerType =
   | Byte
@@ -37,31 +28,11 @@ type IntegerType =
 
 type Type =
   | IntegerType of IntegerType
-  | RuntimeType of RuntimeType
-  | TypeInfo of TypeInfo
-
-type Lemma =
-  | ValidTransitiveLemma
-  | ValidReflexiveLemma
-  | ArrayBitRangesEqReflexiveLemma
-  | ArrayBitRangesEqSlicedLemma
-  | ValidateOffsetBitsIneqLemma
-  | ValidateOffsetBitsWeakeningLemma
-  | ReadPrefixLemma of TypeEncodingKind option
-
-type BitStreamMethod =
-  | ResetAt
-  | BitIndex
-  | ValidateOffsetBits
-
-type BitStreamFunction =
-  | Invariant
-
-type RTFunction =
-  | GetBitCountUnsigned
+  | RuntimeType of RuntimeType // TODO: Merge with TypeInfo
+  | TypeInfo of TypeInfo // TODO: Remove encoding info and only e,g, classes.
 
 type Var = {
-  name: string
+  name: Identifier
   tpe: Type
 }
 
@@ -71,26 +42,29 @@ type Pattern =
 
 and ADTPattern = {
   binder: Var option
-  id: string // TODO: Have something better
+  id: Identifier // TODO: Have something better
   subPatterns: Pattern list
 }
+// TODO: Have "Tree" as well
 
-type Expr =
+type Tree =
+  | ExprTree of Expr
+  | FunDefTree of FunDef
+
+and Expr =
   | Var of Var
   | Block of Expr list
   | Ghost of Expr
   | Locally of Expr
-  | AppliedLemma of AppliedLemma
   | Snapshot of Expr
   | Let of Let
   | LetGhost of Let
-  | Require of Expr
   | Assert of Expr
   | Check of Expr
   | FunctionCall of FunctionCall
   | MethodCall of MethodCall
   | TupleSelect of Expr * int
-  | FieldSelect of Expr * string
+  | FieldSelect of Expr * Identifier
   | ArraySelect of Expr * Expr
   | ArrayLength of Expr
   | IfExpr of IfExpr
@@ -101,7 +75,7 @@ type Expr =
   | Not of Expr
   | Equals of Expr * Expr
   | Mult of Expr * Expr
-  | Plus of Expr * Expr
+  | Plus of Expr list
   | Minus of Expr * Expr
   | Leq of Expr * Expr
   | IntLit of IntegerType * bigint
@@ -109,10 +83,7 @@ type Expr =
   | This // TODO: Add type
   | SelectionExpr of string // TODO: Not ideal
 
-and AppliedLemma = {
-  lemma: Lemma
-  args: Expr list
-}
+
 
 and Let = {
   bdg: Var
@@ -120,27 +91,13 @@ and Let = {
   body: Expr
 }
 and FunctionCall = {
-  prefix: string list
-  id: string
+  prefix: Identifier list
+  id: Identifier
   args: Expr list
 }
 and MethodCall = {
   recv: Expr
-  id: string
-  args: Expr list
-}
-
-and BitStreamMethodCall = {
-  method: BitStreamMethod
-  recv: Expr
-  args: Expr list
-}
-and BitStreamFunctionCall = {
-  fn: BitStreamFunction
-  args: Expr list
-}
-and RTFunctionCall = {
-  fn: RTFunction
+  id: Identifier
   args: Expr list
 }
 and IfExpr = {
@@ -156,6 +113,20 @@ and MatchCase = {
   pattern: Pattern
   rhs: Expr
 }
+and PreSpec =
+  | LetSpec of Var * Expr
+  | Precond of Expr
+  | Measure of Expr
+
+and FunDef = {
+  id: Identifier // TODO: Quid name clash???
+  prms: Var list
+  specs: PreSpec list
+  postcond: (Var * Expr) option
+  returnTpe: Type
+  body: Expr
+}
+
 
 let mkBlock (exprs: Expr list): Expr =
   if exprs.Length = 1 then exprs.Head
@@ -163,107 +134,140 @@ let mkBlock (exprs: Expr list): Expr =
     exprs |> List.collect (fun e -> match e with Block exprs -> exprs | _ -> [e])
           |> Block
 
+let bitStreamId: Identifier = "BitStream"
+let codecId: Identifier = "Codec"
+let acnId: Identifier = "ACN"
+
+let int32lit (l: bigint): Expr = IntLit (Int, l)
+
+let longlit (l: bigint): Expr = IntLit (Long, l)
+
+let ulonglit (l: bigint): Expr = IntLit (ULong, l)
+
+let plus (terms: Expr list): Expr =
+  assert (not terms.IsEmpty)
+  let litTpe = terms |> List.tryFindMap (fun e ->
+    match e with
+    | IntLit (tpe, _) -> Some tpe
+    | _ -> None
+  )
+  let cst, newTerms =
+    terms |> List.fold (fun (acc, newTerms) e ->
+      match e with
+      | IntLit (tpe, lit) ->
+        assert (Some tpe = litTpe)
+        let sz, unsigned =
+          match tpe with
+          | Byte -> 8, false
+          | Short -> 16, false
+          | Int -> 32, false
+          | Long -> 64, false
+          | UByte -> 8, true
+          | UShort -> 16, true
+          | UInt -> 32, true
+          | ULong -> 64, true
+        let min, max =
+          if unsigned then 0I, 2I ** sz
+          else -2I ** (sz - 1), 2I ** (sz - 1) - 1I
+        let nbits = max - min + 1I
+        let sum = acc + lit
+        let newAcc =
+          if unsigned then sum % nbits
+          else if min <= sum && sum <= max then sum
+          else if max < sum then -nbits + sum
+          else nbits + sum
+        newAcc, newTerms
+      | _ ->
+        acc, e :: newTerms
+    ) (0I, [])
+  let newTerms = List.rev newTerms
+  if cst = 0I then Plus newTerms
+  else Plus (newTerms @ [IntLit (litTpe.Value, cst)])
+
 let selBase (recv: Expr): Expr = FieldSelect (recv, "base")
 
 let selBitStream (recv: Expr): Expr = FieldSelect (selBase recv, "bitStream")
+
 let selBuf (recv: Expr): Expr = FieldSelect (selBase recv, "buf")
+
 let selBufLength (recv: Expr): Expr =  ArrayLength (selBuf recv)
+
 let selCurrentByte (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentByte")
+
 let selCurrentBit (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentBit")
+
 let bitIndex (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = selBitStream recv; args = [] }
+
 let resetAt (recv: Expr) (arg: Expr): Expr = MethodCall { id = "resetAt"; recv = selBitStream recv; args = [arg] }
-let invariant (recv: Expr): Expr = FunctionCall { prefix = ["BitStream"]; id = "invariant"; args = [selCurrentBit recv; selCurrentByte recv; selBufLength recv] }
+
+let invariant (recv: Expr): Expr = FunctionCall { prefix = [bitStreamId]; id = "invariant"; args = [selCurrentBit recv; selCurrentByte recv; selBufLength recv] }
+
 let getBitCountUnsigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetBitCountUnsigned"; args = [arg] }
+
 let validateOffsetBits (recv: Expr) (offset: Expr): Expr = MethodCall { id = "validate_offset_bits"; recv = selBitStream recv; args = [offset] }
+
 let callSize (recv: Expr): Expr = MethodCall { id = "size"; recv = recv; args = [] }
+
 let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; args = [arg] }
+
 let stringLength (recv: Expr): Expr = FieldSelect (recv, "nCount")
+
 let stringCapacity (recv: Expr): Expr = ArrayLength (FieldSelect (recv, "arr"))
 
 
-//////////////////////////////////////////////////////////
+let validTransitiveLemma (b1: Expr) (b2: Expr) (b3: Expr): Expr =
+  FunctionCall { prefix = [bitStreamId]; id = "validTransitiveLemma"; args = [b1; b2; b3] }
+
+let validateOffsetBitsIneqLemma (b1: Expr) (b2: Expr) (b1ValidateOffsetBits: Expr) (advancedAtMostBits: Expr): Expr =
+  FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsIneqLemma"; args = [b1; b2; b1ValidateOffsetBits; advancedAtMostBits] }
+
+let validateOffsetBitsWeakeningLemma (b: Expr) (origOffset: Expr) (newOffset: Expr): Expr =
+  FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsWeakeningLemma"; args = [b; origOffset; newOffset] }
+
+// TODO: Pas terrible, trouver une meilleure solution
+let readPrefixLemmaIdentifier (t: TypeEncodingKind option): string list * string =
+  match t with
+  | None -> failwith "TODO: Implement me"
+  | Some (AcnBooleanEncodingType None) -> [bitStreamId], "readBitPrefixLemma" // TODO: Check this
+  | Some (AcnIntegerEncodingType int) ->
+    let sign =
+      match int.signedness with
+      | Positive -> "PositiveInteger"
+      | TwosComplement -> "TwosComplement"
+    let endian, sz =
+      match int.endianness with
+      | IntegerEndianness.Byte -> None, Some "8"
+      | Unbounded -> None, None
+      | LittleEndian sz -> Some "little_endian", Some (sz.bitSize.ToString())
+      | BigEndian sz -> Some "big_endian", Some (sz.bitSize.ToString())
+    [acnId], ([Some "dec"; Some "Int"; Some sign; Some "ConstSize"; endian; sz; Some "prefixLemma"] |> List.choose id).StrJoin "_"
+  | Some (Asn1IntegerEncodingType (Some Unconstrained)) ->
+    [codecId], "decodeUnconstrainedWholeNumber_prefixLemma"
+  | Some (Asn1IntegerEncodingType (Some (FullyConstrainedPositive _))) ->
+    [codecId], "decodeConstrainedPosWholeNumber_prefixLemma"
+  | _ ->
+    [acnId], "readPrefixLemma_TODO" // TODO
 
 let runtimeCodecTypeFor (enc: Asn1Encoding): CodecClass =
   match enc with
   | UPER -> UperCodec
   | ACN -> AcnCodec
   | _ -> failwith $"Unsupported: {enc}"
-let lemmaOwner (lemma: Lemma): RuntimeType option =
-  match lemma with
-  | ValidateOffsetBitsIneqLemma
-  | ValidateOffsetBitsWeakeningLemma
-  | ValidTransitiveLemma
-  | ValidReflexiveLemma -> Some BitStream
-
-  | ArrayBitRangesEqReflexiveLemma
-  | ArrayBitRangesEqSlicedLemma -> None
-
-  | ReadPrefixLemma t ->
-    match t with
-    | Some (AcnIntegerEncodingType int) -> Some (CodecClass AcnCodec)
-    | Some (Asn1IntegerEncodingType _) -> Some (CodecClass BaseCodec)
-    | Some (AcnBooleanEncodingType None) -> Some BitStream // TODO: Check this
-    | None -> failwith "TODO: Implement me"
-    | _ ->
-      None // TODO: Rest
-
-let lemmaStr (lemma: Lemma): string =
-  let name =
-    match lemma with
-    | ValidTransitiveLemma -> "validTransitiveLemma"
-    | ValidReflexiveLemma -> "validReflexiveLemma"
-    | ValidateOffsetBitsIneqLemma -> "validateOffsetBitsIneqLemma"
-    | ValidateOffsetBitsWeakeningLemma -> "validateOffsetBitsWeakeningLemma"
-    | ArrayBitRangesEqReflexiveLemma -> "arrayBitRangesEqReflexiveLemma"
-    | ArrayBitRangesEqSlicedLemma -> "arrayBitRangesEqSlicedLemma"
-    | ReadPrefixLemma t ->
-      match t with
-      | None -> failwith "TODO: Implement me"
-      | Some (AcnBooleanEncodingType None) -> "readBitPrefixLemma" // TODO: Check this
-      | Some (AcnIntegerEncodingType int) ->
-        let sign =
-          match int.signedness with
-          | Positive -> "PositiveInteger"
-          | TwosComplement -> "TwosComplement"
-        let endian, sz =
-          match int.endianness with
-          | IntegerEndianness.Byte -> None, Some "8"
-          | Unbounded -> None, None
-          | LittleEndian sz -> Some "little_endian", Some (sz.bitSize.ToString())
-          | BigEndian sz -> Some "big_endian", Some (sz.bitSize.ToString())
-        ([Some "dec"; Some "Int"; Some sign; Some "ConstSize"; endian; sz; Some "prefixLemma"] |> List.choose id).StrJoin "_"
-      | Some (Asn1IntegerEncodingType (Some Unconstrained)) ->
-        "decodeUnconstrainedWholeNumber_prefixLemma"
-      | Some (Asn1IntegerEncodingType (Some (FullyConstrainedPositive _))) ->
-        "decodeConstrainedPosWholeNumber_prefixLemma"
-      | _ ->
-        "ACN.readPrefixLemma_TODO" // TODO
-  let owner = lemmaOwner lemma
-  ((owner |> Option.map (fun o -> o.companionObjectName) |> Option.toList) @ [name]).StrJoin "."
-
-let bsMethodCallStr (meth: BitStreamMethod): string =
-  match meth with
-  | ResetAt -> "resetAt"
-  | BitIndex -> "bitIndex"
-  | ValidateOffsetBits -> "validate_offset_bits"
-
-let rtFnCall (fn: RTFunction): string =
-  match fn with
-  | GetBitCountUnsigned -> "GetBitCountUnsigned"
-
 
 //////////////////////////////////////////////////////////
 
 type PrintCtx = {
-  curr: Expr
-  parents: Expr list
+  curr: Tree
+  parents: Tree list
   lvl: int
 } with
   member this.inc: PrintCtx = {this with lvl = this.lvl + 1}
 
   member this.parent = List.tryHead this.parents
 
-  member this.nest (e: Expr): PrintCtx = {this with curr = e; parents = this.curr :: this.parents}
+  member this.nest (t: Tree): PrintCtx = {this with curr = t; parents = this.curr :: this.parents}
+
+  member this.nestExpr (e: Expr): PrintCtx = this.nest (ExprTree e)
 
 type Line = {
   txt: string
@@ -271,26 +275,26 @@ type Line = {
 } with
   member this.inc: Line = {this with lvl = this.lvl + 1}
 
-let isSimpleExpr (e: Expr): bool =
+let isSimpleExpr (e: Tree): bool =
   match e with
-  | Let _ | LetGhost _ | Block _ | Assert _ | Require _ -> false
+  | ExprTree (Let _ | LetGhost _ | Block _ | Assert _) -> false
   | _ -> true
 
 // TODO: Match case?
-let noBracesSub (e: Expr): Expr list =
+let noBracesSub (e: Tree): Tree list =
   match e with
-  | Let l -> [l.body]
-  | LetGhost l -> [l.body]
-  | Ghost e -> [e]
-  | Locally e -> [e]
+  | ExprTree (Let l) -> [ExprTree l.body]
+  | ExprTree (LetGhost l) -> [ExprTree l.body]
+  | ExprTree (Ghost e) -> [ExprTree e]
+  | ExprTree (Locally e) -> [ExprTree e]
   | _ -> []
 
-let requiresBraces (e: Expr) (within: Expr option): bool =
+let requiresBraces (e: Tree) (within: Tree option): bool =
   match within with
   | _ when isSimpleExpr e -> false
-  | Some(Ghost _ | Locally _) -> false
-  | Some(within) when List.contains e (noBracesSub within) -> false
-  | Some(_) ->
+  | Some (ExprTree (Ghost _ | Locally _)) -> false
+  | Some within when List.contains e (noBracesSub within) -> false
+  | Some _ ->
     // TODO
     false
   | _ -> false
@@ -305,12 +309,12 @@ let precedence (e: Expr): int =
   | Mult _ -> 8
   | _ -> 9
 
-let requiresParentheses (curr: Expr) (parent: Expr option): bool =
+let requiresParentheses (curr: Tree) (parent: Tree option): bool =
   match curr, parent with
   | (_, None) -> false
-  | (_, Some (Let _ | FunctionCall _ | Require _| Assert _ | Check _ | IfExpr _ | MatchExpr _)) -> false
-  | (_, Some (MethodCall call)) -> not (List.contains curr call.args)
-  | (e1, Some (e2)) when precedence e1 > precedence e2 -> false
+  | (_, Some (ExprTree (Let _ | FunctionCall _ | Assert _ | Check _ | IfExpr _ | MatchExpr _))) -> false
+  | (_, Some (ExprTree (MethodCall call))) -> not (List.contains curr (call.args |> List.map ExprTree))
+  | (ExprTree e1, Some (ExprTree e2)) when precedence e1 > precedence e2 -> false
   | _ -> true
 
 let joined (ctx: PrintCtx) (lines: Line list) (sep: string): Line =
@@ -347,11 +351,18 @@ let rec joinN (ctx: PrintCtx) (sep: string) (liness: Line list list): Line list 
     let rest = joinN ctx sep rest
     join ctx sep fst rest
 
+let ppType (tpe: Type): string =
+  match tpe with
+  | IntegerType int -> int.ToString()
+  | _ -> failwith "TODO"
+
 // TODO: Maybe have ctx.nest here already?
-let rec pp (ctx: PrintCtx) (e: Expr): Line list =
-  if requiresBraces e ctx.parent && ctx.parent <> Some e then
-    [{txt = "{"; lvl = ctx.lvl}] @ ppBody ctx.inc e @  [{txt = "}"; lvl = ctx.lvl}]
-  else ppBody ctx e
+let rec pp (ctx: PrintCtx) (t: Tree): Line list =
+  if requiresBraces t ctx.parent && ctx.parent <> Some t then
+    [{txt = "{"; lvl = ctx.lvl}] @ ppBody ctx.inc t @  [{txt = "}"; lvl = ctx.lvl}]
+  else ppBody ctx t
+
+and ppExpr (ctx: PrintCtx) (e: Expr): Line list = pp ctx (ExprTree e)
 
 and joinCallLike (ctx: PrintCtx) (prefix: Line list) (argss: Line list list) (parameterless: bool): Line list =
   assert (not prefix.IsEmpty)
@@ -365,13 +376,14 @@ and joinCallLike (ctx: PrintCtx) (prefix: Line list) (argss: Line list list) (pa
           let last = List.last args
           (List.initial args) @ [{last with txt = last.txt + ", "}]
       )) @ (List.last argss)) |> List.map (fun l -> l.inc)
+      printf "PLOP CAS BIZARRE"
       (join ctx "(" prefix args) @ [{lvl = ctx.lvl; txt = ")"}]
     else
       join ctx "(" prefix [{lvl = ctx.lvl; txt = ((List.concat argss) |> List.map (fun l -> l.txt)).StrJoin ", " + ")"}]
 
 and ppLet (ctx: PrintCtx) (theLet: Expr) (lt: Let) (annot: string list): Line list =
-  let e2 = pp (ctx.nest theLet) lt.e
-  let body = pp (ctx.nest theLet) lt.body
+  let e2 = ppExpr (ctx.nestExpr theLet) lt.e
+  let body = ppExpr (ctx.nestExpr theLet) lt.body
   let annot = if annot.IsEmpty then "" else (annot.StrJoin " ") + " "
   let prepended = (prepend ctx $"{annot}val {lt.bdg.name} = " e2)
   prepended @ body
@@ -388,87 +400,124 @@ and ppMatchExpr (ctx: PrintCtx) (mexpr: MatchExpr): Line list =
 
   let ppMatchCase (ctx: PrintCtx) (cse: MatchCase): Line list =
     let pat = {txt = $"case {ppPattern cse.pattern} =>"; lvl = ctx.lvl}
-    pat :: pp ctx.inc cse.rhs
+    pat :: ppExpr ctx.inc cse.rhs
 
-  let ctxNested = ctx.nest (MatchExpr mexpr)
+  let ctxNested = ctx.nestExpr (MatchExpr mexpr)
   let cases = mexpr.cases |> List.collect (ppMatchCase ctxNested.inc)
-  let scrut = pp ctxNested mexpr.scrut
+  let scrut = ppExpr ctxNested mexpr.scrut
   (append ctx " match {" scrut) @ cases @ [{txt = "}"; lvl = ctx.lvl}]
 
 and ppIfExpr (ctx: PrintCtx) (ifexpr: IfExpr): Line list =
-  let ctxNested = ctx.nest (IfExpr ifexpr)
-  let cond = pp ctxNested ifexpr.cond
-  let thn = pp ctxNested.inc ifexpr.thn
-  let els = pp ctxNested.inc ifexpr.els
+  let ctxNested = ctx.nestExpr (IfExpr ifexpr)
+  let cond = ppExpr ctxNested ifexpr.cond
+  let thn = ppExpr ctxNested.inc ifexpr.thn
+  let els = ppExpr ctxNested.inc ifexpr.els
   (append ctx ") {" (prepend ctx "if (" cond)) @ thn @ [{txt = "} else {"; lvl = ctx.lvl}] @ els @ [{txt = "}"; lvl = ctx.lvl}]
+
+and ppFunDef (ctx: PrintCtx) (fd: FunDef): Line list =
+  // TODO: What about "nestExpr" ???
+  let prms =
+    if fd.prms.IsEmpty then ""
+    else
+      let prms = (fd.prms |> List.map (fun v -> $"{v.name}: {ppType v.tpe}")).StrJoin ", "
+      $"({prms})"
+  let header = [{txt = $"def {fd.id}{prms}: {ppType fd.returnTpe} = {{"; lvl = ctx.lvl}]
+  let preSpecs = fd.specs |> List.collect (fun s ->
+    match s with
+    | Precond e -> joinCallLike ctx.inc [{txt = "require"; lvl = ctx.lvl + 1}] [ppExpr ctx.inc e] false
+    | Measure e -> joinCallLike ctx.inc [{txt = "decreases"; lvl = ctx.lvl + 1}] [ppExpr ctx.inc e] false
+    | LetSpec (v, e) -> (prepend ctx.inc $"val {v.name} = " (ppExpr ctx.inc e))
+  )
+  let hasBdgInSpec = fd.specs |> List.exists (fun s -> match s with LetSpec _ -> true | _ -> false)
+
+  match fd.postcond, hasBdgInSpec with
+  | Some (resVar, postcond), true ->
+    let body = ppExpr ctx.inc.inc fd.body
+    let postcond = ppExpr ctx.inc.inc postcond
+    [{txt = "{"; lvl = ctx.lvl + 1}] @
+    preSpecs @
+    [] @
+    body @
+    [{txt = $"}}.ensuring {{ {resVar.name} => "; lvl = ctx.lvl + 1}] @
+    postcond @
+    [{txt = "}"; lvl = ctx.lvl + 1}; {txt = "}"; lvl = ctx.lvl}]
+  | Some (resVar, postcond), false ->
+    let body = ppExpr ctx.inc fd.body
+    let postcond = ppExpr ctx.inc postcond
+    header @
+    preSpecs @
+    body @
+    [{txt = $"}}.ensuring {{ {resVar.name} => "; lvl = ctx.lvl}] @
+    postcond @
+    [{txt = "}"; lvl = ctx.lvl}]
+  | None, _ ->
+    let body = ppExpr ctx.inc.inc fd.body
+    header @ preSpecs @ body @ [{txt = "}"; lvl = ctx.lvl}]
 
 and optP (ctx: PrintCtx) (ls: Line list): Line list =
   if requiresParentheses ctx.curr ctx.parent then
     prepend ctx "(" (append ctx ")" ls)
   else ls
 
-and ppBody (ctx: PrintCtx) (e: Expr): Line list =
+and ppBody (ctx: PrintCtx) (t: Tree): Line list =
+  match t with
+  | ExprTree e -> ppExprBody ctx e
+  | FunDefTree fd -> ppFunDef ctx fd
+
+and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
   let line (str: string): Line = {txt = str; lvl = ctx.lvl}
 
   match e with
   | Var v -> [line v.name]
   | Block exprs ->
-    List.collect (fun e2 -> pp (ctx.nest e2) e2) exprs
+    List.collect (fun e2 -> ppExpr (ctx.nestExpr e2) e2) exprs
 
   | Ghost e2 ->
-    [line "ghostExpr {"] @ (pp (ctx.inc.nest e2) e2) @ [line "}"]
+    [line "ghostExpr {"] @ (ppExpr (ctx.inc.nestExpr e2) e2) @ [line "}"]
 
   | Locally e2 ->
-    [line "locally {"] @ (pp (ctx.inc.nest e2) e2) @ [line "}"]
-
-  | AppliedLemma app ->
-    let args = app.args |> List.map (fun a -> pp (ctx.nest a) a)
-    joinCallLike ctx [line (lemmaStr app.lemma)] args true
+    [line "locally {"] @ (ppExpr (ctx.inc.nestExpr e2) e2) @ [line "}"]
 
   | Snapshot e2 ->
-    joinCallLike ctx [line "snapshot"] [pp (ctx.nest e2) e2] false
+    joinCallLike ctx [line "snapshot"] [ppExpr (ctx.nestExpr e2) e2] false
 
   | Let lt -> ppLet ctx e lt []
 
   | LetGhost lt -> ppLet ctx e lt ["@ghost"]
 
-  | Require pred ->
-    let pred = pp (ctx.nest pred) pred
-    joinCallLike ctx [line "require"] [pred] false
-
   | Assert pred ->
-    let pred = pp (ctx.nest pred) pred
+    let pred = ppExpr (ctx.nestExpr pred) pred
     joinCallLike ctx [line "assert"] [pred] false
 
   | Check pred ->
-    let pred = pp (ctx.nest pred) pred
+    let pred = ppExpr (ctx.nestExpr pred) pred
     joinCallLike ctx [line "check"] [pred] false
 
   | MethodCall call ->
-    let recv = pp (ctx.nest call.recv) call.recv
-    let args = call.args |> List.map (fun a -> pp (ctx.nest a) a)
+    let recv = ppExpr (ctx.nestExpr call.recv) call.recv
+    let args = call.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
     joinCallLike ctx (append ctx $".{call.id}" recv) args true
 
   | FunctionCall call ->
     let id = if call.prefix.IsEmpty then call.id else (call.prefix.StrJoin ".") + "." + call.id
-    let args = call.args |> List.map (fun a -> pp (ctx.nest a) a)
+    let args = call.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
     joinCallLike ctx [line id] args true
 
   | TupleSelect (recv, ix) ->
-    let recv = pp (ctx.nest recv) recv
+    let recv = ppExpr (ctx.nestExpr recv) recv
     append ctx $"._{ix}" recv
 
   | FieldSelect (recv, sel) ->
-    let recv = pp (ctx.nest recv) recv
+    let recv = ppExpr (ctx.nestExpr recv) recv
     append ctx $".{sel}" recv
 
   | ArraySelect (arr, ix) ->
-    let recv = pp (ctx.nest arr) arr
-    let ix = pp (ctx.nest ix) ix
+    let recv = ppExpr (ctx.nestExpr arr) arr
+    let ix = ppExpr (ctx.nestExpr ix) ix
     joinCallLike ctx recv [ix] false
 
   | ArrayLength arr ->
-    let arr = pp (ctx.nest arr) arr
+    let arr = ppExpr (ctx.nestExpr arr) arr
     append ctx $".length" arr
 
   | IntLit (tpe, i) ->
@@ -486,44 +535,43 @@ and ppBody (ctx: PrintCtx) (e: Expr): Line list =
     [line str]
 
   | Equals (lhs, rhs) ->
-    let lhs = pp (ctx.nest lhs) lhs
-    let rhs = pp (ctx.nest rhs) rhs
+    let lhs = ppExpr (ctx.nestExpr lhs) lhs
+    let rhs = ppExpr (ctx.nestExpr rhs) rhs
     optP ctx (join ctx " == " lhs rhs)
 
   | Leq (lhs, rhs) ->
-    let lhs = pp (ctx.nest lhs) lhs
-    let rhs = pp (ctx.nest rhs) rhs
+    let lhs = ppExpr (ctx.nestExpr lhs) lhs
+    let rhs = ppExpr (ctx.nestExpr rhs) rhs
     optP ctx (join ctx " <= " lhs rhs)
 
   | And conjs ->
-    let conjs = conjs |> List.map (fun c -> pp (ctx.nest c) c)
+    let conjs = conjs |> List.map (fun c -> ppExpr (ctx.nestExpr c) c)
     optP ctx (joinN ctx " && " conjs)
 
   | SplitAnd conjs ->
-    let conjs = conjs |> List.map (fun c -> pp (ctx.nest c) c)
+    let conjs = conjs |> List.map (fun c -> ppExpr (ctx.nestExpr c) c)
     optP ctx (joinN ctx " &&& " conjs)
 
   | Or disjs ->
-    let disjs = disjs |> List.map (fun d -> pp (ctx.nest d) d)
+    let disjs = disjs |> List.map (fun d -> ppExpr (ctx.nestExpr d) d)
     optP ctx (joinN ctx " || " disjs)
 
   | Not e2 ->
-    let e2 = pp (ctx.nest e2) e2
+    let e2 = ppExpr (ctx.nestExpr e2) e2
     optP ctx (prepend ctx "!" e2)
 
-  | Plus (lhs, rhs) ->
-    let lhs = pp (ctx.nest lhs) lhs
-    let rhs = pp (ctx.nest rhs) rhs
-    optP ctx (join ctx " + " lhs rhs)
+  | Plus terms ->
+    let terms = terms |> List.map (fun c -> ppExpr (ctx.nestExpr c) c)
+    optP ctx (joinN ctx " + " terms)
 
   | Minus (lhs, rhs) ->
-    let lhs = pp (ctx.nest lhs) lhs
-    let rhs = pp (ctx.nest rhs) rhs
+    let lhs = ppExpr (ctx.nestExpr lhs) lhs
+    let rhs = ppExpr (ctx.nestExpr rhs) rhs
     optP ctx (join ctx " - " lhs rhs)
 
   | Mult (lhs, rhs) ->
-    let lhs = pp (ctx.nest lhs) lhs
-    let rhs = pp (ctx.nest rhs) rhs
+    let lhs = ppExpr (ctx.nestExpr lhs) lhs
+    let rhs = ppExpr (ctx.nestExpr rhs) rhs
     optP ctx (join ctx " * " lhs rhs)
 
   | IfExpr ifexpr -> ppIfExpr ctx ifexpr
@@ -537,8 +585,9 @@ and ppBody (ctx: PrintCtx) (e: Expr): Line list =
   | EncDec stmt ->
     (stmt.Split [|'\n'|]) |> Array.toList |> List.map line
 
-let showLines (e: Expr): string list =
-  pp {curr = e; parents = []; lvl = 0} e |> List.map (fun line -> (String.replicate line.lvl "    ") + line.txt)
 
-let show (e: Expr): string =
-  (showLines e).StrJoin "\n"
+let showLines (t: Tree): string list =
+  pp {curr = t; parents = []; lvl = 0} t |> List.map (fun line -> (String.replicate line.lvl "    ") + line.txt)
+
+let show (t: Tree): string =
+  (showLines t).StrJoin "\n"

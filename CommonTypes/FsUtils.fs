@@ -379,6 +379,14 @@ module List =
         let pre, rest = List.splitAt 2  xs
         List.fold (fun acc x -> acc @ [(snd (List.last acc), x)]) [(pre.[0], pre.[1])] rest
 
+    let rec tryFindMap (f: 'a -> 'b option) (xs: 'a list): 'b option =
+        match xs with
+        | [] -> None
+        | x :: xs ->
+            match f(x) with
+            | Some(b) -> Some(b)
+            | None -> tryFindMap f xs
+
     let foldBackWith (f: 'a -> 's -> 's) (init: 'a -> 's) (xs: 'a list): 's =
         assert (not xs.IsEmpty)
         List.foldBack f xs.Tail (init xs.Head)
@@ -888,5 +896,3 @@ let TL_report () =
             let (a,b) = subsystems.[z]
             sprintf "%s nCall %d = took %A" z a b) |> StrJoin_priv "\n"
     printfn "%s" bbb
-
-
