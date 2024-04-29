@@ -321,17 +321,19 @@ type LangGeneric_scala() =
 
         // TODO: Replace with an AST when it becomes complete
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
-            let suffix, buf =
+            let suffix, buf, msg =
                 match codec with
-                | Encode -> "", "w1.base.bitStream.buf.length == w2.base.bitStream.buf.length"
-                | Decode -> "Mut", "w1.base.bitStream.buf == w2.base.bitStream.buf"
+                | Encode -> "", "w1.base.bitStream.buf.length == w2.base.bitStream.buf.length", "pVal"
+                | Decode -> "Mut", "w1.base.bitStream.buf == w2.base.bitStream.buf", "res"
+            // TODO: precise size (change <= to == as well)
+            let sz = t.maxSizeInBits enc
             let res = $"""
 res match
     case Left{suffix}(_) => true
     case Right{suffix}(res) =>
         val w1 = old(codec)
         val w2 = codec
-        {buf} && w2.base.bitStream.bitIndex <= w1.base.bitStream.bitIndex + {t.maxSizeInBits enc}"""
+        {buf} && w2.base.bitStream.bitIndex <= w1.base.bitStream.bitIndex + {sz}"""
             Some (res.TrimStart())
 
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =

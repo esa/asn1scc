@@ -376,7 +376,6 @@ and joinCallLike (ctx: PrintCtx) (prefix: Line list) (argss: Line list list) (pa
           let last = List.last args
           (List.initial args) @ [{last with txt = last.txt + ", "}]
       )) @ (List.last argss)) |> List.map (fun l -> l.inc)
-      printf "PLOP CAS BIZARRE"
       (join ctx "(" prefix args) @ [{lvl = ctx.lvl; txt = ")"}]
     else
       join ctx "(" prefix [{lvl = ctx.lvl; txt = ((List.concat argss) |> List.map (fun l -> l.txt)).StrJoin ", " + ")"}]
@@ -451,7 +450,7 @@ and ppFunDef (ctx: PrintCtx) (fd: FunDef): Line list =
     postcond @
     [{txt = "}"; lvl = ctx.lvl}]
   | None, _ ->
-    let body = ppExpr ctx.inc.inc fd.body
+    let body = ppExpr ctx.inc fd.body
     header @ preSpecs @ body @ [{txt = "}"; lvl = ctx.lvl}]
 
 and optP (ctx: PrintCtx) (ls: Line list): Line list =

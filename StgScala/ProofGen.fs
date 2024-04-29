@@ -290,6 +290,9 @@ let asn1SizeExpr (tp: DAst.Asn1TypeKind) (obj: Expr): Expr =
   | DAst.BitString bt ->
     let szProps = bt.baseInfo.acnProperties.sizeProp |> Option.map fromSizeableProps
     stringLikeSizeExpr szProps bt.baseInfo.minSize.acn bt.baseInfo.maxSize.acn 1I obj
+  | DAst.NullType nt ->
+    assert (nt.baseInfo.acnMinSizeInBits = nt.baseInfo.acnMaxSizeInBits)
+    longlit nt.baseInfo.acnMaxSizeInBits
   | _ -> callSize obj
 
 // TODO: Alignment???
@@ -319,12 +322,20 @@ let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DA
       if s.str.acnMinSizeInBits <> s.str.acnMaxSizeInBits then failwith "TODO"
       else longlit s.str.acnMaxSizeInBits
 
-
-  // TODO: +Option/presence bit...
-  let body =
-    children |> List.fold (fun (acc: Expr) child ->
-      // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
-      let childSz =
+  if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then
+    {
+      id = "size"
+      prms = []
+      specs = []
+      postcond = None
+      returnTpe = IntegerType Long
+      body = longlit sq.acnMaxSizeInBits
+    }
+  else
+    // TODO: +Option/presence bit...
+    let sizes =
+      children |> List.map (fun child ->
+        // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
         match child with
         | DAst.AcnChild acn ->
           if acn.deps.acnDependencies.IsEmpty then
@@ -343,80 +354,101 @@ let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DA
             acnTypeSizeExpr acn.Type
         | DAst.Asn1Child asn1 ->
           asn1SizeExpr asn1.Type.Kind (FieldSelect (This, asn1._scala_name))
-      plus [acc; childSz]
-    ) (longlit 0I)
-  let res = {name = "res"; tpe = IntegerType Long}
-  let postcond = And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
-  {
-    id = "size"
-    prms = []
-    specs = []
-    postcond = Some (res, postcond)
-    returnTpe = IntegerType Long
-    body = body
-  }
-
-let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): FunDef =
-  let cases = children |> List.map (fun child ->
-    let tpeId = (ToC child._present_when_name_private) + "_PRESENT"
-    let tpe = TypeInfo {
-      typeKind = Some (ReferenceEncodingType tpeId)
-      uperMaxSizeBits = child.chType.Kind.baseKind.uperMaxSizeInBits
-      acnMaxSizeBits = child.chType.Kind.baseKind.acnMaxSizeInBits
-    }
-    let binder = {Var.name = child._scala_name; tpe = tpe}
-    let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
-    let rhs = asn1SizeExpr child.chType.Kind (Var binder)
-    {MatchCase.pattern = pat; rhs = rhs}
-  )
-  let res = {name = "res"; tpe = IntegerType Long}
-  let postcond = And [Leq (longlit choice.acnMinSizeInBits, Var res); Leq (Var res, longlit choice.acnMaxSizeInBits)]
-  {
-    id = "size"
-    prms = []
-    specs = []
-    postcond = Some (res, postcond)
-    returnTpe = IntegerType Long
-    body = MatchExpr {scrut = This; cases = cases}
-  }
-
-let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1TypeKind): FunDef * FunDef =
-  let res = {name = "res"; tpe = IntegerType Long}
-  let postcond = And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
-  let count = FieldSelect (This, "nCount")
-
-  let fd1 =
-    let from = {name = "from"; tpe = IntegerType Int}
-    let tto = {name = "to"; tpe = IntegerType Int}
-    let arr = FieldSelect (This, "arr")
-    let require = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, count)]
-
-    let elem = ArraySelect (arr, Var from)
-    let reccall = MethodCall {recv = This; id = "sizeRange"; args = [plus [Var from; int32lit 1I]; Var tto]}
-    let body =
-      IfExpr {
-        cond = Equals (Var from, Var tto)
-        thn = longlit 0I
-        els = plus [asn1SizeExpr elemTpe elem; reccall]
-      }
-    {
-      id = "sizeRange"
-      prms = [from; tto]
-      specs = [Precond require]
-      postcond = Some (res, postcond)
-      returnTpe = IntegerType Long
-      body = body
-    }
-  let fd2 =
+      )
+    let res = {name = "res"; tpe = IntegerType Long}
+    let postcond = And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
     {
       id = "size"
       prms = []
       specs = []
       postcond = Some (res, postcond)
       returnTpe = IntegerType Long
-      body = MethodCall {recv = This; id = fd1.id; args = [int32lit 0I; count]}
+      body = plus sizes
     }
-  fd1, fd2
+
+let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): FunDef =
+  if choice.acnMinSizeInBits = choice.acnMaxSizeInBits then
+    {
+      id = "size"
+      prms = []
+      specs = []
+      postcond = None
+      returnTpe = IntegerType Long
+      body = longlit choice.acnMaxSizeInBits
+    }
+  else
+    let cases = children |> List.map (fun child ->
+      let tpeId = (ToC child._present_when_name_private) + "_PRESENT"
+      let tpe = TypeInfo {
+        typeKind = Some (ReferenceEncodingType tpeId)
+        uperMaxSizeBits = child.chType.Kind.baseKind.uperMaxSizeInBits
+        acnMaxSizeBits = child.chType.Kind.baseKind.acnMaxSizeInBits
+      }
+      let binder = {Var.name = child._scala_name; tpe = tpe}
+      let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
+      let rhs = asn1SizeExpr child.chType.Kind (Var binder)
+      {MatchCase.pattern = pat; rhs = rhs}
+    )
+    let res = {name = "res"; tpe = IntegerType Long}
+    let postcond = And [Leq (longlit choice.acnMinSizeInBits, Var res); Leq (Var res, longlit choice.acnMaxSizeInBits)]
+    {
+      id = "size"
+      prms = []
+      specs = []
+      postcond = Some (res, postcond)
+      returnTpe = IntegerType Long
+      body = MatchExpr {scrut = This; cases = cases}
+    }
+
+let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1TypeKind): FunDef option * FunDef =
+  if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then
+    let fd2 =
+      {
+        id = "size"
+        prms = []
+        specs = []
+        postcond = None
+        returnTpe = IntegerType Long
+        body = longlit sq.acnMaxSizeInBits
+      }
+    None, fd2
+  else
+    let res = {name = "res"; tpe = IntegerType Long}
+    let postcond = And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
+    let count = FieldSelect (This, "nCount")
+
+    let fd1 =
+      let from = {name = "from"; tpe = IntegerType Int}
+      let tto = {name = "to"; tpe = IntegerType Int}
+      let arr = FieldSelect (This, "arr")
+      let require = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, count)]
+
+      let elem = ArraySelect (arr, Var from)
+      let reccall = MethodCall {recv = This; id = "sizeRange"; args = [plus [Var from; int32lit 1I]; Var tto]}
+      let body =
+        IfExpr {
+          cond = Equals (Var from, Var tto)
+          thn = longlit 0I
+          els = plus [asn1SizeExpr elemTpe elem; reccall]
+        }
+      {
+        id = "sizeRange"
+        prms = [from; tto]
+        specs = [Precond require]
+        postcond = Some (res, postcond)
+        returnTpe = IntegerType Long
+        body = body
+      }
+    let fd2 =
+      {
+        id = "size"
+        prms = []
+        specs = []
+        postcond = Some (res, postcond)
+        returnTpe = IntegerType Long
+        body = MethodCall {recv = This; id = fd1.id; args = [int32lit 0I; count]}
+      }
+    Some fd1, fd2
 
 // TODO: Postcond avec les size
 let generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): string list =
@@ -429,4 +461,5 @@ let generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.C
 
 let generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1TypeKind): string list =
   let fd1, fd2 = seqOfSizeExpr t sqf elemTpe
-  [show (FunDefTree fd1); show (FunDefTree fd2)]
+  let fd1 = fd1 |> Option.map (fun fd -> [show (FunDefTree fd)]) |> Option.defaultValue []
+  fd1 @ [show (FunDefTree fd2)]
