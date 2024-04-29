@@ -183,13 +183,15 @@ typedef <prTd.typeName> <td.typeName>
 /***********************************       SEQUENCE OF    ************************************************************/
 
 
-Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition) ::= <<
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeDefinition) ::= <<
 
 <soChildDefinition>
 
 case class <td.typeName> (<if(!bFixedSize)>var nCount: Int, <endif>arr: Array[<sChildType>])
 {
     require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMax><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length<endif>)
+
+    <arrsSizeDefinition; separator="\n\n">
 }
 >>
 
@@ -215,21 +217,24 @@ Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 
 Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "BitStream <sName>;"
 
-Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos) ::= <<
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos, arrsSizeDefinition) ::= <<
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildrenDefinitions; separator= "\n">
 <if (arrsNullFieldsSavePos)>
 case class <td.extension_function_positions> (
     <arrsNullFieldsSavePos; separator="\n">
-)
+) {
+    <arrsSizeDefinition; separator="\n\n">
+}
 
 <endif>
 
 
 case class <td.typeName> (
-
     <arrsChildren:{ch| var <ch>}; separator=", \n">
-)
+) {
+    <arrsSizeDefinition; separator="\n\n">
+}
 
 >>
 
@@ -247,12 +252,14 @@ Define_new_choice_child(sName, sType, sPresent) ::=<<
 <sName>: <sType>
 >>
 
-Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions) ::= <<
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions, arrsSizeDefinition) ::= <<
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildrenDefinitions; separator= "\n">
 
 enum <td.typeName>:
     <arrsCombined:{ch|case <ch>}; separator="\n">
+
+    <arrsSizeDefinition; separator="\n\n">
 >>
 
 Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<

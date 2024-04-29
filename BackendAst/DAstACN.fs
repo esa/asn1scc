@@ -595,8 +595,8 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
                 let mainContent, localVariables =
                     match r.args.isEnumEfficientEnabled o.items.Length  with
                     | false ->
-                        let arrItems = 
-                            o.items |> 
+                        let arrItems =
+                            o.items |>
                             List.map(fun it ->
                                 let enumClassName = extractEnumClassName "" it.scala_name it.Name.Value
                                 Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
@@ -1617,7 +1617,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
             let isAlwaysInit (d: AcnDependency): bool =
                 match d.dependencyKind with
                 | AcnDepRefTypeArgument p ->
-                    // last item is the determinant, and the second-to-last is the field referencing the determinant
+                    // Last item is the determinant, and the second-to-last is the field referencing the determinant
                     not p.id.dropLast.lastItemIsOptional
                 | AcnDepChoiceDeterminant (_, c, isOpt) -> not isOpt
                 | _ -> true

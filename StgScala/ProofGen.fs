@@ -6,6 +6,7 @@ open CommonTypes
 open Language
 open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
+open AcnGenericTypes
 
 let generateTransitiveLemmaApp (snapshots: Var list) (codec: Var): Expr =
   assert (snapshots.Length >= 2)
@@ -37,7 +38,7 @@ let generateReadPrefixLemmaApp (snapshots: Var list) (children: TypeInfo list) (
 
   let mkLemma (bs1: Var, bs2: Var, tpe: TypeInfo): Expr =
     let var = {Var.name = $"{bs2.name}_reset"; tpe = bs2.tpe}
-    let rst = BitStreamMethodCall {method = ResetAt; recv = Var bs2; args = [Var bs1]}
+    let rst = resetAt (Var bs2) (Var bs1)
     let tpeNoOpt =
       match tpe.typeKind with
       | Some (OptionEncodingType tpe) -> Some tpe
@@ -65,7 +66,7 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc
         match encodingTpe with
         | FullyConstrainedPositive (min, max) | FullyConstrained (min, max) ->
             // TODO: The RT library does not add 1, why?
-            let call = RTFunctionCall {fn = GetBitCountUnsigned; args = [IntLit (ULong, max - min)]}
+            let call = getBitCountUnsigned (IntLit (ULong, max - min))
             // TODO: Case min = max?
             let nBits = if max = min then 0I else bigint (ceil ((log (double (max - min))) / (log 2.0)))
             let cond = Equals (call, IntLit (Int, nBits))
@@ -87,9 +88,9 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc
     let sz = child.typeInfo.maxSize enc
     //assert (thisMaxSize <= (pg.siblingMaxSize enc |> Option.defaultValue thisMaxSize)) // TODO: Somehow does not always hold with UPER?
     let relativeOffset = offsetAcc - (pg.maxOffset enc)
-    let offsetCheckOverall = Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var oldCdc)), (IntLit (Long, offsetAcc)))))
+    let offsetCheckOverall = Check (Leq (bitIndex (Var cdc), Plus ((bitIndex (Var oldCdc)), (IntLit (Long, offsetAcc)))))
     let offsetCheckNested =
-      if isNested then [Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var fstSnap)), (IntLit (Long, relativeOffset)))))]
+      if isNested then [Check (Leq (bitIndex (Var cdc), Plus ((bitIndex (Var fstSnap)), (IntLit (Long, relativeOffset)))))]
       else []
     let bufCheck =
       match codec with
@@ -100,8 +101,8 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc
       | Some siblingMaxSize when ix = nbChildren - 1 && siblingMaxSize <> thisMaxSize ->
         let diff = siblingMaxSize - thisMaxSize
         [
-          Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var oldCdc)), (IntLit (Long, offsetAcc + diff)))));
-          Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var fstSnap)), (IntLit (Long, relativeOffset + diff)))));
+          Check (Leq (bitIndex (Var cdc), Plus ((bitIndex (Var oldCdc)), (IntLit (Long, offsetAcc + diff)))));
+          Check (Leq (bitIndex (Var cdc), Plus ((bitIndex (Var fstSnap)), (IntLit (Long, relativeOffset + diff)))));
         ]
       | _ -> []
     let checks = offsetCheckOverall :: offsetCheckNested @ bufCheck @ offsetWidening
@@ -134,7 +135,7 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
     let wrappedStmts = wrapEncDecStmts enc snapshots cdc oldCdc stmts pg codec
 
     let postCondLemmas =
-      let cond = Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var snapshots.Head)), (IntLit (Long, pg.outerMaxSize enc))))
+      let cond = Leq (bitIndex (Var cdc), Plus ((bitIndex (Var snapshots.Head)), (IntLit (Long, pg.outerMaxSize enc))))
       Ghost (Check cond)
     let expr = wrappedStmts (mkBlock [postCondLemmas])
     let exprStr = show expr
@@ -201,8 +202,8 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
         Plus (Mult (elemSzExpr, Var ix), elemSzExpr)
       ))
       Check (Leq (
-        callBitIndex (Var cdc),
-        Plus (callBitIndex (Var cdcSnap), Plus (IntLit (Long, sizeInBits), Mult (elemSzExpr, ixPlusOne)))
+        bitIndex (Var cdc),
+        Plus (bitIndex (Var cdcSnap), Plus (IntLit (Long, sizeInBits), Mult (elemSzExpr, ixPlusOne)))
       ))
       AppliedLemma {
         lemma = ValidateOffsetBitsIneqLemma
@@ -213,7 +214,7 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
           elemSzExpr
         ]
       }
-      Check (callValidateOffsetBits (Var cdc) (Plus (remainingBitsExpr, Mult (elemSzExpr, Minus (nbItems, ixPlusOne)))))
+      Check (validateOffsetBits (Var cdc) (Plus (remainingBitsExpr, Mult (elemSzExpr, Minus (nbItems, ixPlusOne)))))
     ])
   let invariants =
     let bufInv =
@@ -221,19 +222,19 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
         Equals (selBufLength (Var cdc), selBufLength (Var cdcSnap))
       else
         Equals (selBuf (Var cdc), selBuf (Var cdcSnap))
-    let cdcInv = callInvariant (Var cdc)
+    let cdcInv = invariant (Var cdc)
     let boundsInv =
       if sqf.isFixedSize then []
       else [And [Leq (IntLit (Int, nbItemsMin), nbItems); Leq (nbItems, (IntLit (Int, nbItemsMax)))]]
     let bixInv = Leq (
-      callBitIndex (Var cdc),
-      Plus (callBitIndex (Var cdcSnap), Plus (IntLit (Long, sizeInBits), Mult (elemSzExpr, Var ix)))
+      bitIndex (Var cdc),
+      Plus (bitIndex (Var cdcSnap), Plus (IntLit (Long, sizeInBits), Mult (elemSzExpr, Var ix)))
     )
     let bixInvOldCdc = Leq (
-      callBitIndex (Var cdc),
-      Plus (callBitIndex (Var oldCdc), Plus (IntLit (Long, offset + sizeInBits), Mult (elemSzExpr, Var ix)))
+      bitIndex (Var cdc),
+      Plus (bitIndex (Var oldCdc), Plus (IntLit (Long, offset + sizeInBits), Mult (elemSzExpr, Var ix)))
     )
-    let offsetInv = callValidateOffsetBits (Var cdc) (Plus (remainingBitsExpr, Mult (elemSzExpr, Minus (nbItems, Var ix))))
+    let offsetInv = validateOffsetBits (Var cdc) (Plus (remainingBitsExpr, Mult (elemSzExpr, Minus (nbItems, Var ix))))
     [bufInv; cdcInv] @ boundsInv @ [bixInv; bixInvOldCdc; offsetInv]
 
   let postInc =
@@ -249,3 +250,192 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
     postInc = show postInc
     invariant = show (SplitAnd invariants)
   }
+
+type SizeProps =
+  | ExternalField
+  | BitsNullTerminated of string
+  | AsciiNullTerminated of byte list
+
+let fromAcnSizeProps (sizeProps: AcnStringSizeProperty): SizeProps =
+  match sizeProps with
+  | StrExternalField _ -> ExternalField
+  | StrNullTerminated pat -> AsciiNullTerminated pat
+
+let fromSizeableProps (sizeProps: AcnSizeableSizeProperty): SizeProps =
+  match sizeProps with
+  | SzExternalField _ -> ExternalField
+  | SzNullTerminated pat -> BitsNullTerminated pat.Value
+
+let stringLikeSizeExpr (sizeProps: SizeProps option) (minNbElems: bigint) (maxNbElems: bigint) (charSize: bigint) (obj: Expr): Expr =
+  let vleSize, nbElemsInBits =
+    if minNbElems = maxNbElems then 0I, IntLit (Long, maxNbElems * charSize)
+    else GetNumberOfBitsForNonNegativeInteger(maxNbElems - minNbElems), Mult (IntLit (Long, charSize), stringLength obj)
+  let patSize =
+    match sizeProps with
+    | Some ExternalField | None -> 0I
+    | Some (BitsNullTerminated pat) -> (bigint pat.Length) * 8I
+    | Some (AsciiNullTerminated pat) -> bigint pat.Length
+  Plus (IntLit (Long, vleSize + patSize), nbElemsInBits)
+
+// UPER?
+let stringSizeExpr (str: Asn1AcnAst.StringType) (obj: Expr): Expr =
+
+  failwith "TODO"
+  (*
+  let len = stringLength obj
+  let charSize = IntLit (Long, GetNumberOfBitsForNonNegativeInteger (bigint (str.uperCharSet.Length - 1)))
+  // TODO: Pas tout à fait
+  // The size to encode the length of the string
+  let vleSize (minSize: bigint) (maxSize: bigint): Expr =
+    let sz =
+      if minSize = maxSize then 0I
+      else GetNumberOfBitsForNonNegativeInteger(maxSize - minSize)
+    IntLit (Long, sz)
+
+  let uperVleSize = vleSize str.minSize.uper str.maxSize.uper
+  let acnVleSize = vleSize str.minSize.acn str.maxSize.acn
+
+  // TODO: ACN incomplete, check AcnEncodingClasses.GetStringEncodingClass
+  // Plus (uperVleSize, Mult (len, charSize)),
+  Plus (acnVleSize, Mult (len, charSize))
+  *)
+
+let intSizeExpr (int: Asn1AcnAst.Integer) (obj: Expr): Expr =
+  match int.acnProperties.encodingProp, int.acnProperties.sizeProp, int.acnProperties.endiannessProp with
+  | None, None, None ->
+    match int.uperRange with
+    | Full  ->
+      Plus (IntLit (Long, 1I), getLengthForEncodingSigned obj)
+    | NegInf _ | PosInf _ -> getBitCountUnsigned obj
+    | Concrete _ ->
+      assert (int.acnMinSizeInBits = int.acnMaxSizeInBits)
+      assert (int.uperMinSizeInBits = int.uperMinSizeInBits)
+      assert (int.acnMaxSizeInBits = int.uperMaxSizeInBits)
+      IntLit (Long, int.acnMaxSizeInBits)
+  | _ ->
+    assert (int.acnMinSizeInBits = int.acnMaxSizeInBits) // TODO: Not quite true, there is ASCII encoding that is variable...
+    IntLit (Long, int.acnMaxSizeInBits)
+
+let asn1SizeExpr (tp: DAst.Asn1TypeKind) (obj: Expr): Expr =
+  match tp with
+  | DAst.Integer int -> intSizeExpr int.baseInfo obj
+  | DAst.Enumerated enm ->
+    assert (enm.baseInfo.acnMinSizeInBits = enm.baseInfo.acnMaxSizeInBits)
+    IntLit (Long, enm.baseInfo.acnMaxSizeInBits)
+  | DAst.IA5String st ->
+    let szProps = st.baseInfo.acnProperties.sizeProp |> Option.map fromAcnSizeProps
+    let charSize = GetNumberOfBitsForNonNegativeInteger (bigint (st.baseInfo.uperCharSet.Length - 1))
+    stringLikeSizeExpr szProps st.baseInfo.minSize.acn st.baseInfo.maxSize.acn charSize obj
+  | DAst.OctetString ot ->
+    let szProps = ot.baseInfo.acnProperties.sizeProp |> Option.map fromSizeableProps
+    stringLikeSizeExpr szProps ot.baseInfo.minSize.acn ot.baseInfo.maxSize.acn 8I obj
+  | DAst.BitString bt ->
+    let szProps = bt.baseInfo.acnProperties.sizeProp |> Option.map fromSizeableProps
+    stringLikeSizeExpr szProps bt.baseInfo.minSize.acn bt.baseInfo.maxSize.acn 1I obj
+  | _ -> callSize obj
+
+// TODO: Alignment???
+// TODO: UPER/ACN
+let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): Expr =
+  // TODO: Alignment???
+  // TODO: Pour les int, on peut ajouter une assertion GetBitUnsignedCount(...) == resultat (ici et/ou ailleurs)
+  let acnTypeSizeExpr (acn: AcnInsertedType): Expr =
+    match acn with
+    | AcnInteger int->
+      if int.acnMinSizeInBits <> int.acnMaxSizeInBits then failwith "TODO"
+      else IntLit (Long, int.acnMaxSizeInBits)
+
+    | AcnNullType nll ->
+      assert (nll.acnMinSizeInBits = nll.acnMaxSizeInBits)
+      IntLit (Long, nll.acnMaxSizeInBits)
+
+    | AcnBoolean b ->
+      assert (b.acnMinSizeInBits = b.acnMaxSizeInBits)
+      IntLit (Long, b.acnMaxSizeInBits)
+
+    | AcnReferenceToEnumerated e ->
+      if e.enumerated.acnMinSizeInBits <> e.enumerated.acnMaxSizeInBits then failwith "TODO"
+      else IntLit (Long, e.enumerated.acnMaxSizeInBits)
+
+    | AcnReferenceToIA5String  s ->
+      if s.str.acnMinSizeInBits <> s.str.acnMaxSizeInBits then failwith "TODO"
+      else IntLit (Long, s.str.acnMaxSizeInBits)
+
+
+  // TODO: +Option/presence bit...
+  children |> List.fold (fun (acc: Expr) child ->
+    // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
+    let childSz =
+      match child with
+      | DAst.AcnChild acn ->
+        if acn.deps.acnDependencies.IsEmpty then
+          // This should not be possible, but ACN parameters are probably validated afterwards.
+          IntLit (Long, 0I)
+        else
+          // There can be multiple dependencies on an ACN field, however all must be consistent
+          // (generated code checks for that, done by MultiAcnUpdate).
+          // For our use case, we assume the message is consistent, we therefore pick
+          // an arbitrary dependency.
+          // If it is not the case, the returned value may be incorrect but we would
+          // not encode the message anyway, so this incorrect size would not be used.
+          // To do things properly, we should move this check of MultiAcnUpdate in the IsConstraintValid function
+          // of the message and add it as a precondition to the size function.
+          // TODO: variable-length size
+          acnTypeSizeExpr acn.Type
+      | DAst.Asn1Child asn1 ->
+        asn1SizeExpr asn1.Type.Kind (FieldSelect (This, asn1._scala_name))
+    Plus (acc, childSz)
+  ) (IntLit (Long, 0I))
+
+let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): Expr =
+  let cases = children |> List.map (fun child ->
+    let tpeId = (ToC child._present_when_name_private) + "_PRESENT"
+    let tpe = TypeInfo {
+      typeKind = Some (ReferenceEncodingType tpeId)
+      uperMaxSizeBits = child.chType.Kind.baseKind.uperMaxSizeInBits
+      acnMaxSizeBits = child.chType.Kind.baseKind.acnMaxSizeInBits
+    }
+    let binder = {Var.name = child._scala_name; tpe = tpe}
+    let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
+    let rhs = asn1SizeExpr child.chType.Kind (Var binder)
+    {MatchCase.pattern = pat; rhs = rhs}
+  )
+  MatchExpr {scrut = This; cases = cases}
+
+let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1TypeKind): Expr =
+  let from = {name = "from"; tpe = IntegerType Int}
+  let tto = {name = "to"; tpe = IntegerType Int}
+  let arr = FieldSelect (This, "arr")
+  let count = FieldSelect (This, "nCount")
+  let require = Require (And [Leq (IntLit (Int, 0I), Var from); Leq (Var from, Var tto); Leq (Var tto, count)])
+
+  let elem = ArraySelect (arr, Var from)
+  let reccall = MethodCall {recv = This; id = "size"; args = [Plus (Var from, IntLit (Int, 1I)); Var tto]}
+  (mkBlock [
+    require
+    IfExpr {
+      cond = Equals (Var from, Var tto)
+      thn = IntLit (Long, 0I)
+      els = Plus (asn1SizeExpr elemTpe elem, reccall)
+    }
+  ])
+
+// TODO: Postcond avec les size
+let generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): string list =
+  let e = seqSizeExpr t sq children
+  // TODO: Function as AST
+  let fn = ["def size: Long = {"] @ ((showLines e) |> List.map (fun s -> "    " + s)) @ ["}"]
+  [fn.StrJoin "\n"]
+
+let generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
+  let e = choiceSizeExpr t choice children
+  // TODO: Function as AST
+  let fn = ["def size: Long = {"] @ ((showLines e) |> List.map (fun s -> "    " + s)) @ ["}"]
+  [fn.StrJoin "\n"]
+
+let generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1TypeKind): string list =
+  let e = seqOfSizeExpr t sqf elemTpe
+  // TODO: Function as AST
+  let fn1 = ["def size(from: Int, to: Int): Long = {"] @ ((showLines e) |> List.map (fun s -> "    " + s)) @ ["}"]
+  let fn2 = "def size: Long = size(0, nCount)"
+  [fn1.StrJoin "\n"; fn2]

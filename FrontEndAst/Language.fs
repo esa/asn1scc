@@ -326,6 +326,9 @@ type ILangGeneric () =
     abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
     abstract member generateSequenceOfLikeProof: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
     abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CallerScope -> Codec -> string option
+    abstract member generateSequenceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> SeqChildInfo list -> string list
+    abstract member generateChoiceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> ChChildInfo list -> string list
+    abstract member generateSequenceOfSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.SequenceOf -> DAst.Asn1TypeKind -> string list
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
@@ -344,6 +347,9 @@ type ILangGeneric () =
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id
     default this.generateSequenceOfLikeProof _ _ _ _ = None
     default this.generateIntFullyConstraintRangeAssert _ _ _ = None
+    default this.generateSequenceSizeDefinitions _ _ _ = []
+    default this.generateChoiceSizeDefinitions _ _ _ = []
+    default this.generateSequenceOfSizeDefinitions _ _ _ = []
 
     //most programming languages are case sensitive
     default _.isCaseSensitive = true

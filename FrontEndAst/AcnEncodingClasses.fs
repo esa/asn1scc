@@ -234,18 +234,25 @@ let GetSequenceOfEncodingClass (alignment: AcnAlignment option) errLoc (p  : Siz
 
 let GetNullEncodingClass (alignment: AcnAlignment option) errLoc (p  : NullTypeAcnProperties) =
     let alignmentSize = getAlignmentSize alignment
-    match  p.encodingPattern with
-    | None                                  -> alignmentSize, alignmentSize
-    | Some (PATTERN_PROP_BITSTR_VALUE p)    -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
-    | Some (PATTERN_PROP_OCTSTR_VALUE p)    -> alignmentSize + (p.Length*8).AsBigInt, alignmentSize  + (p.Length*8).AsBigInt
+    let sz =
+        match p.encodingPattern with
+        | None -> 0I
+        | Some (PATTERN_PROP_BITSTR_VALUE p) -> p.Value.Length.AsBigInt
+        | Some (PATTERN_PROP_OCTSTR_VALUE p) -> (p.Length*8).AsBigInt
+    // TODO: This seems off, shouldn't we *round* to the next byte/word/dword instead of adding it?
+    let sz = sz + alignmentSize
+    sz, sz
 
 let GetBooleanEncodingClass (alignment: AcnAlignment option) errLoc (p  : BooleanAcnProperties) =
     let alignmentSize = getAlignmentSize alignment
-    match  p.encodingPattern with
-    | None                      -> alignmentSize + 1I, alignmentSize + 1I
-    | Some (TrueValue p)        -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
-    | Some (FalseValue p)       -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
-
+    let sz =
+        match p.encodingPattern with
+        | None -> 1I
+        | Some (TrueValue p) -> p.Value.Length.AsBigInt
+        | Some (FalseValue p) -> p.Value.Length.AsBigInt
+    // TODO: This seems off, shouldn't we *round* to the next byte/word/dword instead of adding it?
+    let sz = sz + alignmentSize
+    sz, sz
 
 
 let GetChoiceEncodingClass  (children : ChChildInfo list) (alignment: AcnAlignment option) errLoc (p  : ChoiceAcnProperties) =

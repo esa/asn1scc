@@ -84,15 +84,16 @@ type Expr =
   | Snapshot of Expr
   | Let of Let
   | LetGhost of Let
+  | Require of Expr
   | Assert of Expr
   | Check of Expr
-  | BitStreamMethodCall of BitStreamMethodCall
-  | BitStreamFunctionCall of BitStreamFunctionCall
-  | RTFunctionCall of RTFunctionCall
+  | FunctionCall of FunctionCall
+  | MethodCall of MethodCall
   | TupleSelect of Expr * int
   | FieldSelect of Expr * string
   | ArraySelect of Expr * Expr
   | ArrayLength of Expr
+  | IfExpr of IfExpr
   | MatchExpr of MatchExpr
   | And of Expr list
   | SplitAnd of Expr list
@@ -105,6 +106,7 @@ type Expr =
   | Leq of Expr * Expr
   | IntLit of IntegerType * bigint
   | EncDec of string
+  | This // TODO: Add type
   | SelectionExpr of string // TODO: Not ideal
 
 and AppliedLemma = {
@@ -116,6 +118,16 @@ and Let = {
   bdg: Var
   e: Expr
   body: Expr
+}
+and FunctionCall = {
+  prefix: string list
+  id: string
+  args: Expr list
+}
+and MethodCall = {
+  recv: Expr
+  id: string
+  args: Expr list
 }
 
 and BitStreamMethodCall = {
@@ -130,6 +142,11 @@ and BitStreamFunctionCall = {
 and RTFunctionCall = {
   fn: RTFunction
   args: Expr list
+}
+and IfExpr = {
+  cond: Expr
+  thn: Expr
+  els: Expr
 }
 and MatchExpr = {
   scrut: Expr
@@ -153,9 +170,15 @@ let selBuf (recv: Expr): Expr = FieldSelect (selBase recv, "buf")
 let selBufLength (recv: Expr): Expr =  ArrayLength (selBuf recv)
 let selCurrentByte (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentByte")
 let selCurrentBit (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentBit")
-let callBitIndex (recv: Expr): Expr = BitStreamMethodCall { method = BitIndex; recv = selBitStream recv; args = [] }
-let callInvariant (recv: Expr): Expr = BitStreamFunctionCall { fn = Invariant; args = [selCurrentBit recv; selCurrentByte recv; selBufLength recv] }
-let callValidateOffsetBits (recv: Expr) (offset: Expr): Expr = BitStreamMethodCall { method = ValidateOffsetBits; recv = selBitStream recv; args = [offset] }
+let bitIndex (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = selBitStream recv; args = [] }
+let resetAt (recv: Expr) (arg: Expr): Expr = MethodCall { id = "resetAt"; recv = selBitStream recv; args = [arg] }
+let invariant (recv: Expr): Expr = FunctionCall { prefix = ["BitStream"]; id = "invariant"; args = [selCurrentBit recv; selCurrentByte recv; selBufLength recv] }
+let getBitCountUnsigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetBitCountUnsigned"; args = [arg] }
+let validateOffsetBits (recv: Expr) (offset: Expr): Expr = MethodCall { id = "validate_offset_bits"; recv = selBitStream recv; args = [offset] }
+let callSize (recv: Expr): Expr = MethodCall { id = "size"; recv = recv; args = [] }
+let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; args = [arg] }
+let stringLength (recv: Expr): Expr = FieldSelect (recv, "nCount")
+let stringCapacity (recv: Expr): Expr = ArrayLength (FieldSelect (recv, "arr"))
 
 
 //////////////////////////////////////////////////////////
@@ -228,9 +251,6 @@ let rtFnCall (fn: RTFunction): string =
   match fn with
   | GetBitCountUnsigned -> "GetBitCountUnsigned"
 
-let bsFnCall (fn: BitStreamFunction): string =
-  match fn with
-  | Invariant -> "BitStream.invariant"
 
 //////////////////////////////////////////////////////////
 
@@ -253,7 +273,7 @@ type Line = {
 
 let isSimpleExpr (e: Expr): bool =
   match e with
-  | Let _ | LetGhost _ | Block _ | Assert _ -> false
+  | Let _ | LetGhost _ | Block _ | Assert _ | Require _ -> false
   | _ -> true
 
 // TODO: Match case?
@@ -288,8 +308,8 @@ let precedence (e: Expr): int =
 let requiresParentheses (curr: Expr) (parent: Expr option): bool =
   match curr, parent with
   | (_, None) -> false
-  | (_, Some (Let _ | BitStreamFunctionCall _ | RTFunctionCall _ | Assert _ | Check _ | MatchExpr _)) -> false
-  | (_, Some (BitStreamMethodCall call)) -> not (List.contains curr call.args)
+  | (_, Some (Let _ | FunctionCall _ | Require _| Assert _ | Check _ | IfExpr _ | MatchExpr _)) -> false
+  | (_, Some (MethodCall call)) -> not (List.contains curr call.args)
   | (e1, Some (e2)) when precedence e1 > precedence e2 -> false
   | _ -> true
 
@@ -368,12 +388,19 @@ and ppMatchExpr (ctx: PrintCtx) (mexpr: MatchExpr): Line list =
 
   let ppMatchCase (ctx: PrintCtx) (cse: MatchCase): Line list =
     let pat = {txt = $"case {ppPattern cse.pattern} =>"; lvl = ctx.lvl}
-    pat :: pp (ctx.inc) cse.rhs
+    pat :: pp ctx.inc cse.rhs
 
   let ctxNested = ctx.nest (MatchExpr mexpr)
   let cases = mexpr.cases |> List.collect (ppMatchCase ctxNested.inc)
   let scrut = pp ctxNested mexpr.scrut
   (append ctx " match {" scrut) @ cases @ [{txt = "}"; lvl = ctx.lvl}]
+
+and ppIfExpr (ctx: PrintCtx) (ifexpr: IfExpr): Line list =
+  let ctxNested = ctx.nest (IfExpr ifexpr)
+  let cond = pp ctxNested ifexpr.cond
+  let thn = pp ctxNested.inc ifexpr.thn
+  let els = pp ctxNested.inc ifexpr.els
+  (append ctx ") {" (prepend ctx "if (" cond)) @ thn @ [{txt = "} else {"; lvl = ctx.lvl}] @ els @ [{txt = "}"; lvl = ctx.lvl}]
 
 and optP (ctx: PrintCtx) (ls: Line list): Line list =
   if requiresParentheses ctx.curr ctx.parent then
@@ -405,6 +432,10 @@ and ppBody (ctx: PrintCtx) (e: Expr): Line list =
 
   | LetGhost lt -> ppLet ctx e lt ["@ghost"]
 
+  | Require pred ->
+    let pred = pp (ctx.nest pred) pred
+    joinCallLike ctx [line "require"] [pred] false
+
   | Assert pred ->
     let pred = pp (ctx.nest pred) pred
     joinCallLike ctx [line "assert"] [pred] false
@@ -413,21 +444,15 @@ and ppBody (ctx: PrintCtx) (e: Expr): Line list =
     let pred = pp (ctx.nest pred) pred
     joinCallLike ctx [line "check"] [pred] false
 
-  | BitStreamMethodCall call ->
+  | MethodCall call ->
     let recv = pp (ctx.nest call.recv) call.recv
-    let meth = bsMethodCallStr call.method
     let args = call.args |> List.map (fun a -> pp (ctx.nest a) a)
-    joinCallLike ctx (append ctx $".{meth}" recv) args true
+    joinCallLike ctx (append ctx $".{call.id}" recv) args true
 
-  | BitStreamFunctionCall call ->
-    let meth = bsFnCall call.fn
+  | FunctionCall call ->
+    let id = if call.prefix.IsEmpty then call.id else (call.prefix.StrJoin ".") + "." + call.id
     let args = call.args |> List.map (fun a -> pp (ctx.nest a) a)
-    joinCallLike ctx [line meth] args true
-
-  | RTFunctionCall call ->
-    let meth = rtFnCall call.fn
-    let args = call.args |> List.map (fun a -> pp (ctx.nest a) a)
-    joinCallLike ctx [line meth] args true
+    joinCallLike ctx [line id] args true
 
   | TupleSelect (recv, ix) ->
     let recv = pp (ctx.nest recv) recv
@@ -501,12 +526,19 @@ and ppBody (ctx: PrintCtx) (e: Expr): Line list =
     let rhs = pp (ctx.nest rhs) rhs
     optP ctx (join ctx " * " lhs rhs)
 
+  | IfExpr ifexpr -> ppIfExpr ctx ifexpr
+
   | MatchExpr mexpr -> ppMatchExpr ctx mexpr
 
   | SelectionExpr sel -> [line sel]
 
+  | This -> [line "this"]
+
   | EncDec stmt ->
     (stmt.Split [|'\n'|]) |> Array.toList |> List.map line
 
+let showLines (e: Expr): string list =
+  pp {curr = e; parents = []; lvl = 0} e |> List.map (fun line -> (String.replicate line.lvl "    ") + line.txt)
+
 let show (e: Expr): string =
-  (pp {curr = e; parents = []; lvl = 0} e |> List.map (fun line -> (String.replicate line.lvl "    ") + line.txt)).StrJoin "\n"
+  (showLines e).StrJoin "\n"

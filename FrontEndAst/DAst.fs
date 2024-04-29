@@ -782,6 +782,7 @@ and AcnChild = {
     funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
     funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement
     Comments                    : string array
+    deps                        : Asn1AcnAst.AcnInsertedFieldDependencies
     initExpression              : string
 }
 
@@ -958,7 +959,23 @@ and Asn1TypeKind =
     | Choice            of Choice
     | ReferenceType     of ReferenceType
     | TimeType          of TimeType
-
+with
+    member this.baseKind: Asn1AcnAst.Asn1TypeKind =
+        match this with
+        | Integer k -> Asn1AcnAst.Integer k.baseInfo
+        | Real k -> Asn1AcnAst.Real k.baseInfo
+        | IA5String k -> Asn1AcnAst.IA5String k.baseInfo
+        | OctetString k -> Asn1AcnAst.OctetString k.baseInfo
+        | NullType k -> Asn1AcnAst.NullType k.baseInfo
+        | BitString k -> Asn1AcnAst.BitString k.baseInfo
+        | Boolean k -> Asn1AcnAst.Boolean k.baseInfo
+        | Enumerated k -> Asn1AcnAst.Enumerated k.baseInfo
+        | ObjectIdentifier k -> Asn1AcnAst.ObjectIdentifier k.baseInfo
+        | SequenceOf k -> Asn1AcnAst.SequenceOf k.baseInfo
+        | Sequence k -> Asn1AcnAst.Sequence k.baseInfo
+        | Choice k -> Asn1AcnAst.Choice k.baseInfo
+        | ReferenceType k -> Asn1AcnAst.ReferenceType k.baseInfo
+        | TimeType k -> Asn1AcnAst.TimeType k.baseInfo
 
 
 let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) =

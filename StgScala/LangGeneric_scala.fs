@@ -345,6 +345,15 @@ res match
             | Encode -> Some $"assert({topLevelTd}_IsConstraintValid(pVal).isRight)" // TODO: HACK: When for CHOICE, `p` gets reset to the choice variant name, so we hardcode "pVal" here...
             | Decode -> None
 
+        override this.generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
+            ProofGen.generateSequenceSizeDefinitions t sq children
+
+        override this.generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
+            ProofGen.generateChoiceSizeDefinitions t choice children
+
+        override this.generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1TypeKind): string list =
+            ProofGen.generateSequenceOfSizeDefinitions t sqf elemTpe
+
         override this.uper =
             {
                 Uper_parts.createLv = (fun name -> Asn1SIntLocalVariable(name,None))

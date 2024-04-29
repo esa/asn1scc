@@ -378,8 +378,8 @@ let isCharacterAllowedByAlphabetConstrains (cons:IA5StringConstraint list) (b:by
 
 let private mergeStringType (asn1: Asn1Ast.AstRoot) (t: Asn1Ast.Asn1Type option) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons defaultCharSet isNumeric (tdarg: EnmStrGetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
-    let sizeUperRange = uPER.getSrtingSizeUperRange cons loc
-    let sizeUperAcnRange = uPER.getSrtingSizeUperRange (cons@withcons) loc
+    let sizeUperRange = uPER.getStringSizeUperRange cons loc
+    let sizeUperAcnRange = uPER.getStringSizeUperRange (cons@withcons) loc
     let uperCharSet = uPER.getSrtingAlphaUperRange cons defaultCharSet loc
     let uminSize, umaxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
     let aminSize, amaxSize = uPER.getSizeMinAndMaxValue loc sizeUperAcnRange
@@ -650,7 +650,7 @@ let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem li
 
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetEnumeratedEncodingClass asn1.args.integerSizeInBytes items alignment loc acnProperties uperSizeInBits uperSizeInBits encodeValues
-    
+
     let validItems = items |> List.filter (Asn1Fold.isValidValueGeneric cons (fun a b -> a = b.Name.Value)) |> List.sortBy(fun x -> x.definitionValue)
 
     match validItems with

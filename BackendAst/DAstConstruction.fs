@@ -81,18 +81,26 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         | Asn1AcnAst.AcnReferenceToIA5String s ->
             lm.lg.initializeString (int (s.str.maxSize.acn + 1I))
 
+    let rec dealiasDeps (dep: Asn1AcnAst.AcnDependency): Asn1AcnAst.AcnDependency =
+        match dep.dependencyKind with
+        | Asn1AcnAst.AcnDepRefTypeArgument param ->
+            let dealiased = dealiasDeps (deps.acnDependencies |> List.find (fun dep -> dep.determinant.id = param.id))
+            {dep with dependencyKind = dealiased.dependencyKind}
+        | _ -> dep
+
+    let dealiasedDeps = deps.acnDependencies |> List.filter(fun d -> d.determinant.id = ch.id) |> List.map dealiasDeps
     let ret =
         {
-
-            AcnChild.Name  = ch.Name
-            id             = ch.id
-            c_name         = c_name
-            Type           = ch.Type
+            AcnChild.Name               = ch.Name
+            id                          = ch.id
+            c_name                      = c_name
+            Type                        = ch.Type
             typeDefinitionBodyWithinSeq = tdBodyWithinSeq
-            funcBody = DAstACN.handleAlignmentForAcnTypes r lm acnAlignment newFuncBody
-            funcUpdateStatement = funcUpdateStatement
-            Comments = ch.Comments
-            initExpression = initExpression
+            funcBody                    = DAstACN.handleAlignmentForAcnTypes r lm acnAlignment newFuncBody
+            funcUpdateStatement         = funcUpdateStatement
+            Comments                    = ch.Comments
+            deps                        = { acnDependencies = dealiasedDeps }
+            initExpression              = initExpression
         }
     AcnChild ret, ns3
 
@@ -556,7 +564,7 @@ let private createTimeType (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1Ac
 
 let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (childType:Asn1Type, us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
-    let defOrRef            =  DAstTypeDefinition.createSequenceOf_u r lm t o  childType.typeDefinitionOrReference us0
+    let defOrRef            =  DAstTypeDefinition.createSequenceOf_u r lm t o childType us0
     //let typeDefinition = DAstTypeDefinition.createSequenceOf r l t o childType.typeDefinition us0
     let equalFunction       = DAstEqual.createSequenceOfEqualFunction r lm t o defOrRef childType
     let initFunction        = DAstInitialize.createSequenceOfInitFunc r lm t o defOrRef childType

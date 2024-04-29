@@ -562,14 +562,14 @@ type AcnReferenceToIA5String = {
     modName             : StringLoc
     tasName             : StringLoc
     str                 : StringType
-    acnAlignment         : AcnAlignment option
+    acnAlignment        : AcnAlignment option
 }
 
 type AcnInteger = {
     acnProperties       : IntegerAcnProperties
     cons                : IntegerTypeConstraint list
     withcons            : IntegerTypeConstraint list
-    acnAlignment         : AcnAlignment option
+    acnAlignment        : AcnAlignment option
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : IntEncodingClass
@@ -846,14 +846,14 @@ type ReferenceToEnumerated = {
 }
 
 type AcnDependencyKind =
-    | AcnDepIA5StringSizeDeterminant  of (SIZE*SIZE*StringAcnProperties)                // The asn1Type has a size dependency in IA5String etc
-    | AcnDepSizeDeterminant     of (SIZE*SIZE*SizeableAcnProperties)               // The asn1Type has a size dependency a SEQUENCE OF, BIT STRING, OCTET STRING etc
-    | AcnDepSizeDeterminant_bit_oct_str_contain     of ReferenceType             // The asn1Type has a size dependency a BIT STRING, OCTET STRING containing another type
-    | AcnDepRefTypeArgument       of AcnParameter        // string is the param name
-    | AcnDepPresenceBool                     // points to a SEQUENCE or Choice child
-    | AcnDepPresence              of (RelativePath*Choice)
-    | AcnDepPresenceStr           of (RelativePath*Choice*StringType)
-    | AcnDepChoiceDeterminant   of (ReferenceToEnumerated*Choice*bool)           // points to Enumerated type acting as CHOICE determinant; is optional
+    | AcnDepIA5StringSizeDeterminant of SIZE * SIZE * StringAcnProperties   // The asn1Type has a size dependency in IA5String etc
+    | AcnDepSizeDeterminant of SIZE * SIZE * SizeableAcnProperties          // The asn1Type has a size dependency a SEQUENCE OF, BIT STRING, OCTET STRING etc
+    | AcnDepSizeDeterminant_bit_oct_str_contain of ReferenceType            // The asn1Type has a size dependency a BIT STRING, OCTET STRING containing another type
+    | AcnDepRefTypeArgument of AcnParameter                                 // string is the param name
+    | AcnDepPresenceBool                                                    // points to a SEQUENCE or Choice child
+    | AcnDepPresence of RelativePath * Choice
+    | AcnDepPresenceStr of RelativePath * Choice * StringType
+    | AcnDepChoiceDeterminant of ReferenceToEnumerated * Choice * bool      // points to Enumerated type acting as CHOICE determinant; is optional
     with
         member this.isString =
             match this with

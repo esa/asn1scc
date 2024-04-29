@@ -159,8 +159,8 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     let IntFullyConstraint      = lm.uper.IntFullyConstraint
     let IntSemiConstraintPos    = lm.uper.IntSemiConstraintPos
     let IntSemiConstraint       = lm.uper.IntSemiConstraint
-    let IntUnconstrained         = lm.uper.IntUnconstrained
-    let IntUnconstrainedMax      = lm.uper.IntUnconstrainedMax
+    let IntUnconstrained        = lm.uper.IntUnconstrained
+    let IntUnconstrainedMax     = lm.uper.IntUnconstrainedMax
     let IntRootExt              = lm.uper.IntRootExt
     let IntRootExt2             = lm.uper.IntRootExt2
     let rootCons = cons |> List.choose(fun x -> match x with RangeRootConstraint(_, a) |RangeRootConstraint2(_, a,_) -> Some(x) |_ -> None)
@@ -319,7 +319,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
             let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
             let funcBodyContent = Enumerated_no_switch pp td errCode.errCodeName sEnumIndex nLastItemIndex  sFirstItemName codec
             {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = [enumIndexVar]; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType (Some (FullyConstrained (nMin, nMax))))}
-            
+
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p)) soSparkAnnotations [] us
 
@@ -748,20 +748,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 match codec, lm.lg.decodingKind with
                 | Decode, Copy -> Some (ToC (child._c_name + "_exist"))
                 | _ -> None
-            let presenceBit =
-                let absent, present =
-                    match ST.lang with
-                    | Scala -> "false", "true"
-                    | _ -> "0", "1"
-                // please note that in decode, macro uper_sequence_presence_bit_fix
-                // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
-                let seq_presence_bit_fix (value: string) =
-                    sequence_presence_bit_fix pp access childName existVar errCode.errCodeName value codec
-                match child.Optionality with
-                | None -> None
-                | Some Asn1AcnAst.AlwaysAbsent -> Some (seq_presence_bit_fix absent)
-                | Some Asn1AcnAst.AlwaysPresent -> Some (seq_presence_bit_fix present)
-                | Some (Asn1AcnAst.Optional opt) -> Some (sequence_presence_bit pp access childName existVar errCode.errCodeName codec)
 
             let typeInfo = {uperMaxSizeBits=child.uperMaxSizeInBits; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=childContentResult |> Option.bind (fun c -> c.typeEncodingKind)}
             let props = {sel=Some (childP.arg.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo}
