@@ -325,15 +325,15 @@ type LangGeneric_scala() =
                 match codec with
                 | Encode -> "", "w1.base.bitStream.buf.length == w2.base.bitStream.buf.length", "pVal"
                 | Decode -> "Mut", "w1.base.bitStream.buf == w2.base.bitStream.buf", "res"
-            // TODO: precise size (change <= to == as well)
-            let sz = t.maxSizeInBits enc
+            let sz = ProofGen.asn1SizeExpr t.Kind (ProofAst.SelectionExpr msg) // TODO: Use Var instead but need to transform `t` first
+            let sz = ProofAst.show (ProofAst.ExprTree sz)
             let res = $"""
 res match
     case Left{suffix}(_) => true
     case Right{suffix}(res) =>
         val w1 = old(codec)
         val w2 = codec
-        {buf} && w2.base.bitStream.bitIndex <= w1.base.bitStream.bitIndex + {sz}"""
+        {buf} && w2.base.bitStream.bitIndex == w1.base.bitStream.bitIndex + {sz}"""
             Some (res.TrimStart())
 
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =

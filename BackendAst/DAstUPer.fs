@@ -750,7 +750,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 | _ -> None
 
             let typeInfo = {uperMaxSizeBits=child.uperMaxSizeInBits; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=childContentResult |> Option.bind (fun c -> c.typeEncodingKind)}
-            let props = {sel=Some (childP.arg.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo}
+            let props = {sel=Some (childP.arg.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind = Asn1AcnTypeKind.Asn1 child.Type.Kind.baseKind}
             let newAcc = {childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
 
             match childContentResult with
@@ -782,7 +782,16 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                         | Some v ->
                             let defInit= child.Type.initFunction.initByAsn1Value childP (mapValue v).kind
                             Some (sequence_default_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef defInit codec), childContent.localVariables
-                {stmt=Some {body=childBody; lvs=child_localVariables; errCodes=childContent.errCodes}; resultExpr=childContent.resultExpr; props=props; typeEncodingKind=childContent.typeEncodingKind}, newAcc
+                {
+                    stmt = Some {
+                        body = childBody
+                        lvs = child_localVariables
+                        errCodes = childContent.errCodes
+                    }
+                    resultExpr = childContent.resultExpr
+                    props = props
+                    typeEncodingKind = childContent.typeEncodingKind
+                }, newAcc
 
         let presenceBits = nonAcnChildren |> List.map printPresenceBit
         let nbPresenceBits = presenceBits |> List.sumBy (fun s -> if s.IsSome then 1I else 0I)
@@ -791,7 +800,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
         let seqProofGen =
             let presenceBitsInfo = presenceBits |> List.mapi (fun i _ ->
                 {sel=None; uperMaxOffset = bigint i; acnMaxOffset = bigint i;
-                typeInfo = {uperMaxSizeBits = 1I; acnMaxSizeBits = 1I; typeKind = Some (AcnBooleanEncodingType None)};})
+                typeInfo = {uperMaxSizeBits = 1I; acnMaxSizeBits = 1I; typeKind = Some (AcnBooleanEncodingType None)}; typeKind = Asn1AcnTypeKind.Asn1 t.Kind})
             let children = childrenStatements00 |> List.map (fun xs -> xs.props)
             {acnOuterMaxSize = nestingScope.acnOuterMaxSize; uperOuterMaxSize = nestingScope.uperOuterMaxSize;
             nestingLevel = nestingScope.nestingLevel; nestingIx = nestingScope.nestingIx;

@@ -1952,7 +1952,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     if child.Optionality.IsSome then childTpeKind |> Option.map OptionEncodingType
                     else childTpeKind
                 let typeInfo = {uperMaxSizeBits=child.uperMaxSizeInBits; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=tpeKind}
-                let props = {sel=Some (childSel.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo}
+                let props = {sel=Some (childSel.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind=Asn1 child.Type.Kind.baseKind}
                 let res = {stmts=stmts; resultExpr=childResultExpr; existVar=existVar; props=props; typeKindEncoding=tpeKind}
                 let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
                 res, newAcc
@@ -1995,7 +1995,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
                 // Note: uperMaxSizeBits and uperAccBits here do not make sense since we are in ACN
                 let typeInfo = {uperMaxSizeBits=0I; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=childTpeKind}
-                let props = {sel=Some (childP.arg.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo}
+                let props = {sel=Some (childP.arg.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind=Acn acnChild.Type}
                 let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; typeKindEncoding=childTpeKind}
                 let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
                 res, newAcc
@@ -2011,7 +2011,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             | Some (Optional opt) -> if opt.acnPresentWhen.IsNone then 1I else 0I
             | _ -> 0I
         )
-        let childrenStatements00, scs = children |> foldMap handleChild {us=us; childIx=nbPresenceBits; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits}
+        let (childrenStatements00: SequenceChildResult list), scs = children |> foldMap handleChild {us=us; childIx=nbPresenceBits; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits}
         let ns = scs.us
         let childrenStatements0 = childrenStatements00 |> List.collect (fun xs -> xs.stmts)
 
@@ -2021,9 +2021,30 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 | Asn1Child asn1 -> printPresenceBit asn1 res.existVar
                 | AcnChild _ -> None))
         let seqProofGen =
+            let presenceBitsTpe = {
+                Asn1AcnAst.Boolean.acnProperties = {encodingPattern = None}
+                cons = []
+                withcons = []
+                uperMaxSizeInBits = 1I
+                uperMinSizeInBits = 1I
+                acnMaxSizeInBits = 1I
+                acnMinSizeInBits = 1I
+                typeDef = Map.empty
+                defaultInitVal = "false"
+            }
             let presenceBitsInfo = presenceBits |> List.mapi (fun i _ ->
-                {sel=None; uperMaxOffset = bigint i; acnMaxOffset = bigint i;
-                typeInfo = {uperMaxSizeBits = 1I; acnMaxSizeBits = 1I; typeKind = Some (AcnBooleanEncodingType None)};})
+                {
+                    sel=None
+                    uperMaxOffset = bigint i
+                    acnMaxOffset = bigint i
+                    typeInfo = {
+                        uperMaxSizeBits = 1I
+                        acnMaxSizeBits = 1I
+                        typeKind = Some (AcnBooleanEncodingType None)
+                    }
+                    typeKind = Asn1 (Asn1AcnAst.Boolean presenceBitsTpe)
+                }
+            )
             let children = childrenStatements00 |> List.map (fun xs -> xs.props)
             {acnOuterMaxSize = nestingScope.acnOuterMaxSize; uperOuterMaxSize = nestingScope.uperOuterMaxSize;
             nestingLevel = nestingScope.nestingLevel; nestingIx = nestingScope.nestingIx;

@@ -8,6 +8,72 @@ open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
 open AcnGenericTypes
 
+type SizeProps =
+  | ExternalField
+  | BitsNullTerminated of string
+  | AsciiNullTerminated of byte list
+
+
+let fromAcnSizeProps (sizeProps: AcnStringSizeProperty): SizeProps =
+  match sizeProps with
+  | StrExternalField _ -> ExternalField
+  | StrNullTerminated pat -> AsciiNullTerminated pat
+
+let fromSizeableProps (sizeProps: AcnSizeableSizeProperty): SizeProps =
+  match sizeProps with
+  | SzExternalField _ -> ExternalField
+  | SzNullTerminated pat -> BitsNullTerminated pat.Value
+
+let stringLikeSizeExpr (sizeProps: SizeProps option) (minNbElems: bigint) (maxNbElems: bigint) (charSize: bigint) (obj: Expr): Expr =
+  let vleSize, nbElemsInBits =
+    if minNbElems = maxNbElems then 0I, longlit (maxNbElems * charSize)
+    else GetNumberOfBitsForNonNegativeInteger(maxNbElems - minNbElems), Mult (longlit charSize, stringLength obj)
+  let patSize =
+    match sizeProps with
+    | Some ExternalField | None -> 0I
+    | Some (BitsNullTerminated pat) -> (bigint pat.Length) * 8I
+    | Some (AsciiNullTerminated pat) -> bigint pat.Length
+  plus [longlit (vleSize + patSize); nbElemsInBits]
+
+let intSizeExpr (int: Asn1AcnAst.Integer) (obj: Expr): Expr =
+  match int.acnProperties.encodingProp, int.acnProperties.sizeProp, int.acnProperties.endiannessProp with
+  | None, None, None ->
+    match int.uperRange with
+    | Full  ->
+      plus [longlit 1I; getLengthForEncodingSigned obj]
+    | NegInf _ | PosInf _ -> getBitCountUnsigned obj
+    | Concrete _ ->
+      assert (int.acnMinSizeInBits = int.acnMaxSizeInBits)
+      assert (int.uperMinSizeInBits = int.uperMinSizeInBits)
+      assert (int.acnMaxSizeInBits = int.uperMaxSizeInBits)
+      longlit int.acnMaxSizeInBits
+  | _ ->
+    assert (int.acnMinSizeInBits = int.acnMaxSizeInBits) // TODO: Not quite true, there is ASCII encoding that is variable...
+    longlit int.acnMaxSizeInBits
+
+let rec asn1SizeExpr (tp: Asn1AcnAst.Asn1TypeKind) (obj: Expr): Expr =
+  match tp with
+  | Asn1AcnAst.Integer int -> intSizeExpr int obj
+  | Asn1AcnAst.Enumerated enm ->
+    assert (enm.acnMinSizeInBits = enm.acnMaxSizeInBits)
+    longlit enm.acnMaxSizeInBits
+  | Asn1AcnAst.IA5String st ->
+    let szProps = st.acnProperties.sizeProp |> Option.map fromAcnSizeProps
+    let charSize = GetNumberOfBitsForNonNegativeInteger (bigint (st.uperCharSet.Length - 1))
+    stringLikeSizeExpr szProps st.minSize.acn st.maxSize.acn charSize obj
+  | Asn1AcnAst.OctetString ot ->
+    let szProps = ot.acnProperties.sizeProp |> Option.map fromSizeableProps
+    stringLikeSizeExpr szProps ot.minSize.acn ot.maxSize.acn 8I obj
+  | Asn1AcnAst.BitString bt ->
+    let szProps = bt.acnProperties.sizeProp |> Option.map fromSizeableProps
+    stringLikeSizeExpr szProps bt.minSize.acn bt.maxSize.acn 1I obj
+  | Asn1AcnAst.NullType nt ->
+    assert (nt.acnMinSizeInBits = nt.acnMaxSizeInBits)
+    longlit nt.acnMaxSizeInBits
+  | Asn1AcnAst.ReferenceType ref ->
+    asn1SizeExpr ref.resolvedType.Kind obj
+  | _ -> callSize obj
+
 let generateTransitiveLemmaApp (snapshots: Var list) (codec: Var): Expr =
   assert (snapshots.Length >= 2)
 
@@ -231,70 +297,6 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
     invariant = show (ExprTree (SplitAnd invariants))
   }
 
-type SizeProps =
-  | ExternalField
-  | BitsNullTerminated of string
-  | AsciiNullTerminated of byte list
-
-let fromAcnSizeProps (sizeProps: AcnStringSizeProperty): SizeProps =
-  match sizeProps with
-  | StrExternalField _ -> ExternalField
-  | StrNullTerminated pat -> AsciiNullTerminated pat
-
-let fromSizeableProps (sizeProps: AcnSizeableSizeProperty): SizeProps =
-  match sizeProps with
-  | SzExternalField _ -> ExternalField
-  | SzNullTerminated pat -> BitsNullTerminated pat.Value
-
-let stringLikeSizeExpr (sizeProps: SizeProps option) (minNbElems: bigint) (maxNbElems: bigint) (charSize: bigint) (obj: Expr): Expr =
-  let vleSize, nbElemsInBits =
-    if minNbElems = maxNbElems then 0I, longlit (maxNbElems * charSize)
-    else GetNumberOfBitsForNonNegativeInteger(maxNbElems - minNbElems), Mult (longlit charSize, stringLength obj)
-  let patSize =
-    match sizeProps with
-    | Some ExternalField | None -> 0I
-    | Some (BitsNullTerminated pat) -> (bigint pat.Length) * 8I
-    | Some (AsciiNullTerminated pat) -> bigint pat.Length
-  plus [longlit (vleSize + patSize); nbElemsInBits]
-
-
-let intSizeExpr (int: Asn1AcnAst.Integer) (obj: Expr): Expr =
-  match int.acnProperties.encodingProp, int.acnProperties.sizeProp, int.acnProperties.endiannessProp with
-  | None, None, None ->
-    match int.uperRange with
-    | Full  ->
-      plus [longlit 1I; getLengthForEncodingSigned obj]
-    | NegInf _ | PosInf _ -> getBitCountUnsigned obj
-    | Concrete _ ->
-      assert (int.acnMinSizeInBits = int.acnMaxSizeInBits)
-      assert (int.uperMinSizeInBits = int.uperMinSizeInBits)
-      assert (int.acnMaxSizeInBits = int.uperMaxSizeInBits)
-      longlit int.acnMaxSizeInBits
-  | _ ->
-    assert (int.acnMinSizeInBits = int.acnMaxSizeInBits) // TODO: Not quite true, there is ASCII encoding that is variable...
-    longlit int.acnMaxSizeInBits
-
-let asn1SizeExpr (tp: DAst.Asn1TypeKind) (obj: Expr): Expr =
-  match tp with
-  | DAst.Integer int -> intSizeExpr int.baseInfo obj
-  | DAst.Enumerated enm ->
-    assert (enm.baseInfo.acnMinSizeInBits = enm.baseInfo.acnMaxSizeInBits)
-    longlit enm.baseInfo.acnMaxSizeInBits
-  | DAst.IA5String st ->
-    let szProps = st.baseInfo.acnProperties.sizeProp |> Option.map fromAcnSizeProps
-    let charSize = GetNumberOfBitsForNonNegativeInteger (bigint (st.baseInfo.uperCharSet.Length - 1))
-    stringLikeSizeExpr szProps st.baseInfo.minSize.acn st.baseInfo.maxSize.acn charSize obj
-  | DAst.OctetString ot ->
-    let szProps = ot.baseInfo.acnProperties.sizeProp |> Option.map fromSizeableProps
-    stringLikeSizeExpr szProps ot.baseInfo.minSize.acn ot.baseInfo.maxSize.acn 8I obj
-  | DAst.BitString bt ->
-    let szProps = bt.baseInfo.acnProperties.sizeProp |> Option.map fromSizeableProps
-    stringLikeSizeExpr szProps bt.baseInfo.minSize.acn bt.baseInfo.maxSize.acn 1I obj
-  | DAst.NullType nt ->
-    assert (nt.baseInfo.acnMinSizeInBits = nt.baseInfo.acnMaxSizeInBits)
-    longlit nt.baseInfo.acnMaxSizeInBits
-  | _ -> callSize obj
-
 // TODO: Alignment???
 // TODO: UPER/ACN
 let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): FunDef =
@@ -353,7 +355,7 @@ let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DA
             // TODO: variable-length size
             acnTypeSizeExpr acn.Type
         | DAst.Asn1Child asn1 ->
-          asn1SizeExpr asn1.Type.Kind (FieldSelect (This, asn1._scala_name))
+          asn1SizeExpr asn1.Type.Kind.baseKind (FieldSelect (This, asn1._scala_name))
       )
     let res = {name = "res"; tpe = IntegerType Long}
     let postcond = And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
@@ -386,7 +388,7 @@ let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (childre
       }
       let binder = {Var.name = child._scala_name; tpe = tpe}
       let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
-      let rhs = asn1SizeExpr child.chType.Kind (Var binder)
+      let rhs = asn1SizeExpr child.chType.Kind.baseKind (Var binder)
       {MatchCase.pattern = pat; rhs = rhs}
     )
     let res = {name = "res"; tpe = IntegerType Long}
@@ -429,7 +431,7 @@ let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe:
         IfExpr {
           cond = Equals (Var from, Var tto)
           thn = longlit 0I
-          els = plus [asn1SizeExpr elemTpe elem; reccall]
+          els = plus [asn1SizeExpr elemTpe.baseKind elem; reccall]
         }
       {
         id = "sizeRange"
@@ -450,7 +452,6 @@ let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe:
       }
     Some fd1, fd2
 
-// TODO: Postcond avec les size
 let generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): string list =
   let fd = seqSizeExpr t sq children
   [show (FunDefTree fd)]

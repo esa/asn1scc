@@ -367,7 +367,7 @@ type Asn1IntegerEncodingType =
     | UnconstrainedMax of bigint
     | Unconstrained
 
-type TypeEncodingKind =
+type TypeEncodingKind = // TODO: Alignment???
     | Asn1IntegerEncodingType of Asn1IntegerEncodingType option // None if range min = max
     | Asn1RealEncodingType of Asn1AcnAst.RealClass
     | AcnIntegerEncodingType of AcnIntegerEncodingType

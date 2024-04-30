@@ -55,6 +55,7 @@ type UncheckedAccessKind =
     | FullAccess // unwrap all selection, including the last one
     | PartialAccess // unwrap all but the last selection
 
+// TODO: Remove?
 type TypeInfo = {
     uperMaxSizeBits: bigint
     acnMaxSizeBits: bigint
@@ -66,15 +67,19 @@ type TypeInfo = {
         | UPER -> this.uperMaxSizeBits
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
+// type TypeKind =
+//     | Asn1Tpe Asn1AcnAst.Asn1TypeKind
+//     | AcnTpe
+
 type SequenceChildProps = {
     // TODO: String not ideal, but array selection index is string anyway...
     sel: string option // None for presence bits
     // TODO: What about padding?
     uperMaxOffset: bigint
     acnMaxOffset: bigint
-    typeInfo: TypeInfo
+    typeInfo: TypeInfo // TODO: Remove?
+    typeKind: Asn1AcnAst.Asn1AcnTypeKind
 } with
-
     member this.maxOffset (enc: Asn1Encoding): bigint =
         match enc with
         | ACN -> this.acnMaxOffset
