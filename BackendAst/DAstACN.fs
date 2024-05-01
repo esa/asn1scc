@@ -264,6 +264,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
     let nMinBytesInACN = BigInteger (ceil ((double t.acnMinSizeInBits)/8.0))
     let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
+    let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
     let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
@@ -278,11 +279,11 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
         ret st errCode prms nestingScope p
 
     let funcBody = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
+    let funcBody = lm.lg.adaptAcnFuncBody funcBody isValidFuncName t codec
 
     let p : CallerScope = lm.lg.getParamType t codec
     let varName = p.arg.receiverId
     let sStar = lm.lg.getStar p.arg
-    let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
     let sInitialExp = ""
     let func, funcDef,ns2  =
             match funcNameAndtasInfo  with
@@ -344,7 +345,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
             AcnFunction.funcName       = funcNameAndtasInfo
             func                       = func
             funcDef                    = funcDef
-            funcBody                   = (fun us acnArgs p -> funcBody us errCode acnArgs p )
+            funcBody                   = fun us acnArgs p -> funcBody us errCode acnArgs p
             funcBodyAsSeqComp          = funcBodyAsSeqComp
             isTestVaseValid            = isTestVaseValid
             icd                        = icdAux

@@ -7,6 +7,8 @@ open Language
 open System.IO
 open System
 open Asn1AcnAstUtilFunctions
+open ProofGen
+open ProofAst
 
 let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind =
     match t with
@@ -316,6 +318,34 @@ type LangGeneric_scala() =
 
         override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
+        override this.adaptAcnFuncBody (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
+            let shouldWrap  =
+                match t.Kind with
+                | Asn1AcnAst.ReferenceType rt -> rt.hasExtraConstrainsOrChildrenOrAcnArgs
+                | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.SequenceOf _ -> true
+                | _ -> false
+
+            let newFuncBody (s: State)
+                            (err: ErrorCode)
+                            (prms: (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list)
+                            (nestingScope: NestingScope)
+                            (p: CallerScope): (AcnFuncBodyResult option) * State =
+                if not nestingScope.isInit && shouldWrap then
+                    let recP = {p with arg = p.arg.asLastOrSelf}
+                    let recNS = NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits
+                    let res, s = funcBody s err prms recNS recP
+                    match res with
+                    | Some res ->
+                        let fd, call = wrapAcnFuncBody isValidFuncName t res.funcBody codec p.arg recP.arg
+                        let fdStr = show (FunDefTree fd)
+                        let callStr = show (ExprTree call)
+                        let newBody = fdStr + "\n" + callStr
+                        Some {res with funcBody = newBody}, s
+                    | None -> None, s
+                else funcBody s err prms nestingScope p
+
+            newFuncBody
+
         // TODO: Replace with an AST when it becomes complete
         override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.base.bitStream.validate_offset_bits({t.maxSizeInBits enc})"]
 
@@ -325,8 +355,8 @@ type LangGeneric_scala() =
                 match codec with
                 | Encode -> "", "w1.base.bitStream.buf.length == w2.base.bitStream.buf.length", "pVal"
                 | Decode -> "Mut", "w1.base.bitStream.buf == w2.base.bitStream.buf", "res"
-            let sz = ProofGen.asn1SizeExpr t.Kind (ProofAst.SelectionExpr msg) // TODO: Use Var instead but need to transform `t` first
-            let sz = ProofAst.show (ProofAst.ExprTree sz)
+            let sz = asn1SizeExpr t.Kind (SelectionExpr msg) // TODO: Use Var instead but need to transform `t` first
+            let sz = show (ExprTree sz)
             let res = $"""
 res match
     case Left{suffix}(_) => true
@@ -337,10 +367,10 @@ res match
             Some (res.TrimStart())
 
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
-            ProofGen.generateSequenceChildProof enc stmts pg codec
+            generateSequenceChildProof enc stmts pg codec
 
         override this.generateSequenceOfLikeProof (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
-            ProofGen.generateSequenceOfLikeProof enc o pg codec
+            generateSequenceOfLikeProof enc o pg codec
 
         override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CallerScope) (codec: Codec): string option =
             match codec with
@@ -348,13 +378,13 @@ res match
             | Decode -> None
 
         override this.generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
-            ProofGen.generateSequenceSizeDefinitions t sq children
+            generateSequenceSizeDefinitions t sq children
 
         override this.generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
-            ProofGen.generateChoiceSizeDefinitions t choice children
+            generateChoiceSizeDefinitions t choice children
 
         override this.generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1TypeKind): string list =
-            ProofGen.generateSequenceOfSizeDefinitions t sqf elemTpe
+            generateSequenceOfSizeDefinitions t sqf elemTpe
 
         override this.uper =
             {

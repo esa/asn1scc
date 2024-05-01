@@ -82,6 +82,9 @@ type Selection = {
         |PointerAccess (id, _, _) -> Selection.emptyPath id Pointer
         |ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
 
+    member this.asLastOrSelf: Selection =
+        if this.path.IsEmpty then this
+        else this.asLast
 
 type UserError = {
     line : int

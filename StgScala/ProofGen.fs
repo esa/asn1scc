@@ -14,6 +14,9 @@ type SizeProps =
   | AsciiNullTerminated of byte list
 
 
+let joinedSelection (sel: Selection): string =
+  List.fold (fun str accessor -> $"{str}.") sel.receiverId sel.path
+
 let fromAcnSizeProps (sizeProps: AcnStringSizeProperty): SizeProps =
   match sizeProps with
   | StrExternalField _ -> ExternalField
@@ -70,6 +73,12 @@ let rec asn1SizeExpr (tp: Asn1AcnAst.Asn1TypeKind) (obj: Expr): Expr =
   | Asn1AcnAst.NullType nt ->
     assert (nt.acnMinSizeInBits = nt.acnMaxSizeInBits)
     longlit nt.acnMaxSizeInBits
+  | Asn1AcnAst.Boolean bt ->
+    assert (bt.acnMinSizeInBits = bt.acnMaxSizeInBits)
+    longlit bt.acnMaxSizeInBits
+  | Asn1AcnAst.Real rt ->
+    assert (rt.acnMinSizeInBits = rt.acnMaxSizeInBits)
+    longlit rt.acnMaxSizeInBits
   | Asn1AcnAst.ReferenceType ref ->
     asn1SizeExpr ref.resolvedType.Kind obj
   | _ -> callSize obj
@@ -189,9 +198,9 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
   if stmts.IsEmpty then []
   else
     let codecTpe = runtimeCodecTypeFor enc
-    let cdc = {Var.name = $"codec"; tpe = RuntimeType (CodecClass codecTpe)}
-    let oldCdc = {Var.name = $"codec_0_1"; tpe = RuntimeType (CodecClass codecTpe)}
-    let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = RuntimeType (CodecClass codecTpe)})
+    let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
+    let oldCdc = {Var.name = $"codec_0_1"; tpe = ClassType codecTpe}
+    let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = ClassType codecTpe})
 
     let wrappedStmts = wrapEncDecStmts enc snapshots cdc oldCdc stmts pg codec
 
@@ -234,12 +243,12 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
   let remainingBitsExpr = longlit remainingBits
 
   let codecTpe = runtimeCodecTypeFor enc
-  let cdc = {Var.name = $"codec"; tpe = RuntimeType (CodecClass codecTpe)}
+  let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
   // The codec snapshot before encoding/decoding the whole SequenceOf (i.e. snapshot before entering the while loop)
-  let cdcSnap = {Var.name = $"codec_{lvl}_{nestingIx}"; tpe = RuntimeType (CodecClass codecTpe)}
+  let cdcSnap = {Var.name = $"codec_{lvl}_{nestingIx}"; tpe = ClassType codecTpe}
   // The codec snapshot before encoding/decoding one item (snapshot local to the loop, taken before enc/dec one item)
-  let cdcLoopSnap = {Var.name = $"codecLoop_{lvl}_{nestingIx}"; tpe = RuntimeType (CodecClass codecTpe)}
-  let oldCdc = {Var.name = $"codec_0_1"; tpe = RuntimeType (CodecClass codecTpe)}
+  let cdcLoopSnap = {Var.name = $"codecLoop_{lvl}_{nestingIx}"; tpe = ClassType codecTpe}
+  let oldCdc = {Var.name = $"codec_0_1"; tpe = ClassType codecTpe}
   let ix = {name = pg.ixVariable; tpe = IntegerType Int}
   let ixPlusOne = plus [Var ix; int32lit 1I]
 
@@ -329,6 +338,7 @@ let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DA
       id = "size"
       prms = []
       specs = []
+      annots = []
       postcond = None
       returnTpe = IntegerType Long
       body = longlit sq.acnMaxSizeInBits
@@ -363,6 +373,7 @@ let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DA
       id = "size"
       prms = []
       specs = []
+      annots = []
       postcond = Some (res, postcond)
       returnTpe = IntegerType Long
       body = plus sizes
@@ -374,6 +385,7 @@ let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (childre
       id = "size"
       prms = []
       specs = []
+      annots = []
       postcond = None
       returnTpe = IntegerType Long
       body = longlit choice.acnMaxSizeInBits
@@ -381,11 +393,7 @@ let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (childre
   else
     let cases = children |> List.map (fun child ->
       let tpeId = (ToC child._present_when_name_private) + "_PRESENT"
-      let tpe = TypeInfo {
-        typeKind = Some (ReferenceEncodingType tpeId)
-        uperMaxSizeBits = child.chType.Kind.baseKind.uperMaxSizeInBits
-        acnMaxSizeBits = child.chType.Kind.baseKind.acnMaxSizeInBits
-      }
+      let tpe = fromAsn1TypeKind child.chType.Kind.baseKind
       let binder = {Var.name = child._scala_name; tpe = tpe}
       let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
       let rhs = asn1SizeExpr child.chType.Kind.baseKind (Var binder)
@@ -397,6 +405,7 @@ let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (childre
       id = "size"
       prms = []
       specs = []
+      annots = []
       postcond = Some (res, postcond)
       returnTpe = IntegerType Long
       body = MatchExpr {scrut = This; cases = cases}
@@ -404,15 +413,15 @@ let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (childre
 
 let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1TypeKind): FunDef option * FunDef =
   if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then
-    let fd2 =
-      {
-        id = "size"
-        prms = []
-        specs = []
-        postcond = None
-        returnTpe = IntegerType Long
-        body = longlit sq.acnMaxSizeInBits
-      }
+    let fd2 = {
+      id = "size"
+      prms = []
+      specs = []
+      postcond = None
+      annots = []
+      returnTpe = IntegerType Long
+      body = longlit sq.acnMaxSizeInBits
+    }
     None, fd2
   else
     let res = {name = "res"; tpe = IntegerType Long}
@@ -437,19 +446,20 @@ let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe:
         id = "sizeRange"
         prms = [from; tto]
         specs = [Precond require]
+        annots = []
         postcond = Some (res, postcond)
         returnTpe = IntegerType Long
         body = body
       }
-    let fd2 =
-      {
-        id = "size"
-        prms = []
-        specs = []
-        postcond = Some (res, postcond)
-        returnTpe = IntegerType Long
-        body = MethodCall {recv = This; id = fd1.id; args = [int32lit 0I; count]}
-      }
+    let fd2 = {
+      id = "size"
+      prms = []
+      specs = []
+      annots = []
+      postcond = Some (res, postcond)
+      returnTpe = IntegerType Long
+      body = MethodCall {recv = This; id = fd1.id; args = [int32lit 0I; count]}
+    }
     Some fd1, fd2
 
 let generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): string list =
@@ -464,3 +474,77 @@ let generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.
   let fd1, fd2 = seqOfSizeExpr t sqf elemTpe
   let fd1 = fd1 |> Option.map (fun fd -> [show (FunDefTree fd)]) |> Option.defaultValue []
   fd1 @ [show (FunDefTree fd2)]
+
+let wrapAcnFuncBody (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (body: string) (codec: Codec) (outerSel: Selection) (recSel: Selection): FunDef * Expr =
+  assert recSel.path.IsEmpty
+  let codecTpe = runtimeCodecTypeFor ACN
+  let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
+  let tpe = fromAsn1TypeKind t.Kind
+  let errTpe = IntegerType Int
+  let recPVal = {Var.name = recSel.receiverId; tpe = tpe}
+  // TODO: specs (require + ensuring)
+  // TODO: What about the isconstraintvalid stuff?
+  match codec with
+  | Encode ->
+    let retTpe = IntegerType Int
+    let outerPVal = SelectionExpr (joinedSelection outerSel)
+    // TODO: check is constraint valid
+    let cstrCheck =
+      isValidFuncName |> Option.map (fun validFnName ->
+        let scrut = FunctionCall {prefix = []; id = validFnName; args = [Var recPVal]}
+        let leftBdg = {Var.name = "l"; tpe = errTpe}
+        let leftBody = Return (leftExpr errTpe retTpe (Var leftBdg))
+        eitherMatchExpr scrut (Some leftBdg) leftBody None (mkBlock [])
+      ) |> Option.toList
+
+    let body = mkBlock (
+      cstrCheck @
+      [
+        EncDec body
+        ClassCtor (right errTpe retTpe (int32lit 0I))
+      ]
+    )
+
+    let fd = {
+      id = "encode"
+      prms = [cdc; recPVal]
+      specs = []
+      annots = [Opaque; InlineOnce]
+      postcond = None
+      returnTpe = ClassType (eitherTpe errTpe retTpe)
+      body = body
+    }
+    fd, FunctionCall {prefix = []; id = fd.id; args = [Var cdc; outerPVal]}
+  | Decode ->
+    let outerPVal = {Var.name = outerSel.asIdentifier; tpe = tpe}
+    let retInnerFd =
+      match isValidFuncName with
+      | Some validFnName ->
+        let scrut = FunctionCall {prefix = []; id = validFnName; args = [Var recPVal]}
+        let leftBdg = {Var.name = "l"; tpe = errTpe}
+        let leftBody = leftMutExpr errTpe tpe (Var leftBdg)
+        let rightBody = rightMutExpr errTpe tpe (Var recPVal)
+        eitherMutMatchExpr scrut (Some leftBdg) leftBody None rightBody
+      | None -> rightMutExpr errTpe tpe (Var recPVal)
+    let body = mkBlock [EncDec body; retInnerFd]
+    let fd = {
+      id = "decode"
+      prms = [cdc]
+      specs = []
+      annots = [Opaque; InlineOnce]
+      postcond = None
+      returnTpe = ClassType (eitherMutTpe errTpe tpe)
+      body = body
+    }
+    let call =
+      let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc]}
+      let leftBdg = {Var.name = "l"; tpe = errTpe}
+      // TODO: FIXME: must the right type must be the outside type!!!
+      let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
+      let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
+      let rightBdg = {Var.name = "v"; tpe = tpe}
+      let rightBody = Var rightBdg
+      eitherMutMatchExpr scrut (Some leftBdg) leftBody (Some rightBdg) rightBody
+    // The rest of the backend expects a `val outerPVal = result`
+    let ret = Let {bdg = outerPVal; e = call; body = mkBlock []}
+    fd, ret

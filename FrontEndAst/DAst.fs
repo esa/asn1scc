@@ -401,7 +401,7 @@ type NestingScope = {
 } with
     static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint): NestingScope =
         {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I; acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
-
+    member this.isInit: bool = this.nestingLevel = 0I && this.nestingIx = 0I
 
 type UPERFuncBodyResult = {
     funcBody            : string
@@ -460,6 +460,9 @@ type IcdAux = {
     typeAss        : IcdTypeAss
 }
 
+type AcnFuncBody = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> AcnFuncBodyResult option * State
+type AcnFuncBodySeqComp = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> string -> AcnFuncBodyResult option * State
+
 type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
     func                : string option               // the body of the function
@@ -467,8 +470,8 @@ type AcnFunction = {
 
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
-    funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> ((AcnFuncBodyResult option)*State)
-    funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)
+    funcBody            : AcnFuncBody
+    funcBodyAsSeqComp   : AcnFuncBodySeqComp
     isTestVaseValid     : AutomaticTestCase -> bool
     icd                 : IcdAux option (* always present in Encode, always None in Decode *)
 }

@@ -14,6 +14,10 @@ let toByte sizeInBits =
     sizeInBits/8I + (if sizeInBits % 8I = 0I then 0I else 1I)
 
 type Asn1TypeKind with
+    member this.ActualType =
+        match this with
+        | ReferenceType t -> t.resolvedType.Kind.ActualType
+        | _ -> this
 
     member this.uperMinSizeInBits =
         match this with
@@ -106,20 +110,7 @@ type Asn1Type with
     member this.ActualType =
         match this.Kind with
         | ReferenceType t-> t.resolvedType.ActualType
-        | Integer      _ -> this
-        | Real         _ -> this
-        | IA5String    _ -> this
-        | NumericString _ -> this
-        | OctetString  _ -> this
-        | NullType     _ -> this
-        | TimeType     _ -> this
-        | BitString    _ -> this
-        | Boolean      _ -> this
-        | Enumerated   _ -> this
-        | SequenceOf   _ -> this
-        | Sequence     _ -> this
-        | Choice       _ -> this
-        | ObjectIdentifier _ -> this
+        | _ -> this
 
 
     member this.isComplexType =

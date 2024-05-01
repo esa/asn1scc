@@ -4,17 +4,9 @@ open FsUtils
 open Language
 open DAst
 open CommonTypes
+open Asn1AcnAstUtilFunctions
 
 type Identifier = string // TODO: Find something better
-
-type CodecClass =
-  | BaseCodec
-  | AcnCodec
-  | UperCodec
-
-type RuntimeType =
-  | BitStream
-  | CodecClass of CodecClass
 
 type IntegerType =
   | Byte
@@ -26,10 +18,19 @@ type IntegerType =
   | UInt
   | ULong
 
+type Annot =
+  | Opaque
+  | InlineOnce
+  | GhostAnnot
+
 type Type =
   | IntegerType of IntegerType
-  | RuntimeType of RuntimeType // TODO: Merge with TypeInfo
-  | TypeInfo of TypeInfo // TODO: Remove encoding info and only e,g, classes.
+  | BooleanType
+  | ClassType of ClassType
+and ClassType = {
+  id: Identifier
+  tps: Type list
+}
 
 type Var = {
   name: Identifier
@@ -67,6 +68,8 @@ and Expr =
   | FieldSelect of Expr * Identifier
   | ArraySelect of Expr * Expr
   | ArrayLength of Expr
+  | ClassCtor of ClassCtor
+  | Return of Expr
   | IfExpr of IfExpr
   | MatchExpr of MatchExpr
   | And of Expr list
@@ -113,6 +116,10 @@ and MatchCase = {
   pattern: Pattern
   rhs: Expr
 }
+and ClassCtor = {
+  ct: ClassType
+  args: Expr list
+}
 and PreSpec =
   | LetSpec of Var * Expr
   | Precond of Expr
@@ -121,6 +128,7 @@ and PreSpec =
 and FunDef = {
   id: Identifier // TODO: Quid name clash???
   prms: Var list
+  annots: Annot list
   specs: PreSpec list
   postcond: (Var * Expr) option
   returnTpe: Type
@@ -136,7 +144,74 @@ let mkBlock (exprs: Expr list): Expr =
 
 let bitStreamId: Identifier = "BitStream"
 let codecId: Identifier = "Codec"
+let uperId: Identifier = "UPER"
 let acnId: Identifier = "ACN"
+
+let eitherId: Identifier = "Either"
+let leftId: Identifier = "Left"
+let rightId: Identifier = "Right"
+let eitherMutId: Identifier = "EitherMut"
+let leftMutId: Identifier = "LeftMut"
+let rightMutId: Identifier = "RightMut"
+
+let bitstreamClsTpe = {ClassType.id = bitStreamId; tps = []}
+let codecClsTpe = {ClassType.id = codecId; tps = []}
+let uperClsTpe = {ClassType.id = uperId; tps = []}
+let acnClsTpe = {ClassType.id = acnId; tps = []}
+
+let eitherTpe (l: Type) (r: Type): ClassType = {ClassType.id = eitherId; tps = [l; r]}
+let leftTpe (l: Type) (r: Type): ClassType = {ClassType.id = leftId; tps = [l; r]}
+let rightTpe (l: Type) (r: Type): ClassType = {ClassType.id = rightId; tps = [l; r]}
+let left (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = leftTpe l r; args = [e]}
+let leftExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (left l r e)
+let right (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightTpe l r; args = [e]}
+let rightExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (right l r e)
+
+let eitherMutTpe (l: Type) (r: Type): ClassType = {ClassType.id = eitherMutId; tps = [l; r]}
+let leftMutTpe (l: Type) (r: Type): ClassType = {ClassType.id = leftMutId; tps = [l; r]}
+let rightMutTpe (l: Type) (r: Type): ClassType = {ClassType.id = rightMutId; tps = [l; r]}
+let leftMut (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = leftMutTpe l r; args = [e]}
+let leftMutExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (leftMut l r e)
+let rightMut (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightMutTpe l r; args = [e]}
+let rightMutExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (rightMut l r e)
+
+let private eitherGenMatch (leftId: Identifier) (rightId: Identifier)
+                           (scrut: Expr)
+                           (leftBdg: Var option) (leftBody: Expr)
+                           (rightBdg: Var option) (rightBody: Expr): MatchExpr =
+  {
+    scrut = scrut
+    cases = [
+      {
+        pattern = ADTPattern {binder = None; id = leftId; subPatterns = [Wildcard leftBdg]}
+        rhs = leftBody
+      }
+      {
+        pattern = ADTPattern {binder = None; id = rightId; subPatterns = [Wildcard rightBdg]}
+        rhs = rightBody
+      }
+    ]
+  }
+
+let eitherMatch (scrut: Expr)
+                (leftBdg: Var option) (leftBody: Expr)
+                (rightBdg: Var option) (rightBody: Expr): MatchExpr =
+  eitherGenMatch leftId rightId scrut leftBdg leftBody rightBdg rightBody
+let eitherMatchExpr (scrut: Expr)
+                    (leftBdg: Var option) (leftBody: Expr)
+                    (rightBdg: Var option) (rightBody: Expr): Expr =
+  MatchExpr (eitherMatch scrut leftBdg leftBody rightBdg rightBody)
+
+let eitherMutMatch (scrut: Expr)
+                   (leftBdg: Var option) (leftBody: Expr)
+                   (rightBdg: Var option) (rightBody: Expr): MatchExpr =
+  eitherGenMatch leftMutId rightMutId scrut leftBdg leftBody rightBdg rightBody
+let eitherMutMatchExpr (scrut: Expr)
+                       (leftBdg: Var option) (leftBody: Expr)
+                       (rightBdg: Var option) (rightBody: Expr): Expr =
+  MatchExpr (eitherMutMatch scrut leftBdg leftBody rightBdg rightBody)
+
+
 
 let int32lit (l: bigint): Expr = IntLit (Int, l)
 
@@ -248,10 +323,35 @@ let readPrefixLemmaIdentifier (t: TypeEncodingKind option): string list * string
   | _ ->
     [acnId], "readPrefixLemma_TODO" // TODO
 
-let runtimeCodecTypeFor (enc: Asn1Encoding): CodecClass =
+let fromAsn1TypeKind (t: Asn1AcnAst.Asn1TypeKind): Type =
+  match t.ActualType with
+  | Asn1AcnAst.Sequence sq -> ClassType {id = sq.typeDef[Scala].typeName; tps = []}
+  | Asn1AcnAst.SequenceOf sqf -> ClassType {id = sqf.typeDef[Scala].typeName; tps = []}
+  | Asn1AcnAst.Choice ch -> ClassType {id = ch.typeDef[Scala].typeName; tps = []}
+  | Asn1AcnAst.Integer int ->
+    match int.intClass with
+    | Asn1AcnAst.ASN1SCC_Int8 _ -> IntegerType Byte
+    | Asn1AcnAst.ASN1SCC_Int16 _ -> IntegerType Short
+    | Asn1AcnAst.ASN1SCC_Int32 _ -> IntegerType Int
+    | Asn1AcnAst.ASN1SCC_Int64 _ | Asn1AcnAst.ASN1SCC_Int _ -> IntegerType Long
+    | Asn1AcnAst.ASN1SCC_UInt8 _ -> IntegerType UByte
+    | Asn1AcnAst.ASN1SCC_UInt16 _ -> IntegerType UShort
+    | Asn1AcnAst.ASN1SCC_UInt32 _ -> IntegerType UInt
+    | Asn1AcnAst.ASN1SCC_UInt64 _ | Asn1AcnAst.ASN1SCC_UInt _ -> IntegerType ULong
+  | Asn1AcnAst.Boolean _ -> BooleanType
+  | t -> failwith $"TODO {t}"
+
+let fromAcnInsertedType (t: Asn1AcnAst.AcnInsertedType): Type = failwith "TODO"
+
+let fromAsn1AcnTypeKind (t: Asn1AcnAst.Asn1AcnTypeKind): Type =
+  match t with
+  | Asn1AcnAst.Asn1AcnTypeKind.Acn t -> fromAcnInsertedType t
+  | Asn1AcnAst.Asn1AcnTypeKind.Asn1 t -> fromAsn1TypeKind t
+
+let runtimeCodecTypeFor (enc: Asn1Encoding): ClassType =
   match enc with
-  | UPER -> UperCodec
-  | ACN -> AcnCodec
+  | UPER -> uperClsTpe
+  | ACN -> acnClsTpe
   | _ -> failwith $"Unsupported: {enc}"
 
 //////////////////////////////////////////////////////////
@@ -351,10 +451,22 @@ let rec joinN (ctx: PrintCtx) (sep: string) (liness: Line list list): Line list 
     let rest = joinN ctx sep rest
     join ctx sep fst rest
 
-let ppType (tpe: Type): string =
+let rec ppType (tpe: Type): string =
   match tpe with
   | IntegerType int -> int.ToString()
-  | _ -> failwith "TODO"
+  | BooleanType -> "Boolean"
+  | ClassType ct -> ppClassType ct
+and ppClassType (ct: ClassType): string =
+  let tps =
+    if ct.tps.IsEmpty then ""
+    else "[" + ((ct.tps |> List.map ppType).StrJoin ", ") + "]"
+  ct.id + tps
+
+let ppAnnot (annot: Annot): string =
+  match annot with
+  | Opaque -> "@opaque"
+  | InlineOnce -> "@inlineOnce"
+  | GhostAnnot -> "@ghost"
 
 // TODO: Maybe have ctx.nest here already?
 let rec pp (ctx: PrintCtx) (t: Tree): Line list =
@@ -420,7 +532,10 @@ and ppFunDef (ctx: PrintCtx) (fd: FunDef): Line list =
     else
       let prms = (fd.prms |> List.map (fun v -> $"{v.name}: {ppType v.tpe}")).StrJoin ", "
       $"({prms})"
-  let header = [{txt = $"def {fd.id}{prms}: {ppType fd.returnTpe} = {{"; lvl = ctx.lvl}]
+  let annots =
+    if fd.annots.IsEmpty then []
+    else [{txt = (fd.annots |> List.map ppAnnot).StrJoin " "; lvl = ctx.lvl}]
+  let header = annots @ [{txt = $"def {fd.id}{prms}: {ppType fd.returnTpe} = {{"; lvl = ctx.lvl}]
   let preSpecs = fd.specs |> List.collect (fun s ->
     match s with
     | Precond e -> joinCallLike ctx.inc [{txt = "require"; lvl = ctx.lvl + 1}] [ppExpr ctx.inc e] false
@@ -435,7 +550,7 @@ and ppFunDef (ctx: PrintCtx) (fd: FunDef): Line list =
     let postcond = ppExpr ctx.inc.inc postcond
     [{txt = "{"; lvl = ctx.lvl + 1}] @
     preSpecs @
-    [] @
+    [{txt = ""; lvl = ctx.lvl}] @ // for Scala to avoid defining an anonymous class with bindings from above
     body @
     [{txt = $"}}.ensuring {{ {resVar.name} => "; lvl = ctx.lvl + 1}] @
     postcond @
@@ -515,9 +630,18 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
     let ix = ppExpr (ctx.nestExpr ix) ix
     joinCallLike ctx recv [ix] false
 
+  | ClassCtor cc ->
+    let ct = ppClassType cc.ct
+    let args = cc.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
+    joinCallLike ctx [line ct] args true
+
   | ArrayLength arr ->
     let arr = ppExpr (ctx.nestExpr arr) arr
     append ctx $".length" arr
+
+  | Return ret ->
+    let ret = ppExpr (ctx.nestExpr ret) ret
+    prepend ctx $"return " ret
 
   | IntLit (tpe, i) ->
     let i = i.ToString()

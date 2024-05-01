@@ -207,6 +207,8 @@ type SequenceOfLikeProofGenResult = {
     invariant: string
 }
 
+type AcnFuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> (AcnFuncBodyResult option) * State
+
 [<AbstractClass>]
 type ILangGeneric () =
     abstract member ArrayStartIndex : int
@@ -326,6 +328,7 @@ type ILangGeneric () =
     abstract member getBoardNames : Targets option -> string list
     abstract member getBoardDirs : Targets option -> string list
 
+    abstract member adaptAcnFuncBody: AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
     abstract member generatePrecond: Asn1Encoding -> t: Asn1AcnAst.Asn1Type -> string list
     abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
@@ -347,6 +350,7 @@ type ILangGeneric () =
     default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
         sourceCode
 
+    default this.adaptAcnFuncBody f _ _ _ = f
     default this.generatePrecond _ _ = []
     default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id
