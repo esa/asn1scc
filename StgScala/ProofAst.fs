@@ -26,6 +26,7 @@ type Annot =
 type Type =
   | IntegerType of IntegerType
   | BooleanType
+  | DoubleType
   | ArrayType of ArrayType
   | ClassType of ClassType
 and ClassType = {
@@ -153,9 +154,18 @@ let codecId: Identifier = "Codec"
 let uperId: Identifier = "UPER"
 let acnId: Identifier = "ACN"
 
+let optionId: Identifier = "Option"
+let someId: Identifier = "Some"
+let noneId: Identifier = "None"
+
+let optionMutId: Identifier = "OptionMut"
+let someMutId: Identifier = "SomeMut"
+let noneMutId: Identifier = "NoneMut"
+
 let eitherId: Identifier = "Either"
 let leftId: Identifier = "Left"
 let rightId: Identifier = "Right"
+
 let eitherMutId: Identifier = "EitherMut"
 let leftMutId: Identifier = "LeftMut"
 let rightMutId: Identifier = "RightMut"
@@ -164,6 +174,23 @@ let bitstreamClsTpe = {ClassType.id = bitStreamId; tps = []}
 let codecClsTpe = {ClassType.id = codecId; tps = []}
 let uperClsTpe = {ClassType.id = uperId; tps = []}
 let acnClsTpe = {ClassType.id = acnId; tps = []}
+
+let optionTpe (tpe: Type): ClassType = {ClassType.id = optionId; tps = [tpe]}
+let someTpe (tpe: Type): ClassType = {ClassType.id = someId; tps = [tpe]}
+let noneTpe (tpe: Type): ClassType = {ClassType.id = noneId; tps = [tpe]}
+let some (tpe: Type) (e: Expr): ClassCtor = {ct = someTpe tpe; args = [e]}
+let someExpr (tpe: Type) (e: Expr): Expr = ClassCtor (some tpe e)
+let none (tpe: Type): ClassCtor = {ct = noneTpe tpe; args = []}
+let noneExpr (tpe: Type): Expr = ClassCtor (none tpe)
+
+let optionMutTpe (tpe: Type): ClassType = {ClassType.id = optionMutId; tps = [tpe]}
+let someMutTpe (tpe: Type): ClassType = {ClassType.id = someMutId; tps = [tpe]}
+let noneMutTpe (tpe: Type): ClassType = {ClassType.id = noneMutId; tps = [tpe]}
+let someMut (tpe: Type) (e: Expr): ClassCtor = {ct = someMutTpe tpe; args = [e]}
+let someMutExpr (tpe: Type) (e: Expr): Expr = ClassCtor (someMut tpe e)
+let noneMut (tpe: Type): ClassCtor = {ct = noneMutTpe tpe; args = []}
+let noneMutExpr (tpe: Type): Expr = ClassCtor (noneMut tpe)
+
 
 let eitherTpe (l: Type) (r: Type): ClassType = {ClassType.id = eitherId; tps = [l; r]}
 let leftTpe (l: Type) (r: Type): ClassType = {ClassType.id = leftId; tps = [l; r]}
@@ -180,6 +207,41 @@ let leftMut (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = leftMutTpe l r; arg
 let leftMutExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (leftMut l r e)
 let rightMut (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightMutTpe l r; args = [e]}
 let rightMutExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (rightMut l r e)
+
+let optionGenMatch (someId: Identifier) (noneId: Identifier)
+                   (scrut: Expr)
+                   (someBdg: Var option) (someBody: Expr)
+                   (noneBody: Expr): MatchExpr =
+  {
+    scrut = scrut
+    cases = [
+      {
+        pattern = ADTPattern {binder = None; id = someId; subPatterns = [Wildcard someBdg]}
+        rhs = someBody
+      }
+      {
+        pattern = ADTPattern {binder = None; id = noneId; subPatterns = []}
+        rhs = noneBody
+      }
+    ]
+  }
+let optionMatch (scrut: Expr)
+                (someBdg: Var option) (someBody: Expr)
+                (noneBody: Expr): MatchExpr =
+  optionGenMatch someId noneId scrut someBdg someBody noneBody
+let optionMatchExpr (scrut: Expr)
+                    (someBdg: Var option) (someBody: Expr)
+                    (noneBody: Expr): Expr =
+  MatchExpr (optionMatch scrut someBdg someBody noneBody)
+
+let optionMutMatch (scrut: Expr)
+                (someBdg: Var option) (someBody: Expr)
+                (noneBody: Expr): MatchExpr =
+  optionGenMatch someMutId noneMutId scrut someBdg someBody noneBody
+let optionMutMatchExpr (scrut: Expr)
+                    (someBdg: Var option) (someBody: Expr)
+                    (noneBody: Expr): Expr =
+  MatchExpr (optionMutMatch scrut someBdg someBody noneBody)
 
 let eitherGenMatch (leftId: Identifier) (rightId: Identifier)
                    (scrut: Expr)
@@ -292,6 +354,7 @@ let callSize (recv: Expr): Expr = MethodCall { id = "size"; recv = recv; args = 
 let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; args = [arg] }
 
 let stringLength (recv: Expr): Expr = FieldSelect (recv, "nCount")
+let indexOfOrLength (recv: Expr) (elem: Expr): Expr = MethodCall {recv = recv; id = "indexOfOrLength"; args = [elem]}
 
 let stringCapacity (recv: Expr): Expr = ArrayLength (FieldSelect (recv, "arr"))
 
@@ -334,6 +397,7 @@ let rec fromAsn1TypeKind (t: Asn1AcnAst.Asn1TypeKind): Type =
   | Asn1AcnAst.Sequence sq -> ClassType {id = sq.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.SequenceOf sqf -> ClassType {id = sqf.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.Choice ch -> ClassType {id = ch.typeDef[Scala].typeName; tps = []}
+  | Asn1AcnAst.Enumerated enm -> ClassType {id = enm.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.Integer int ->
     match int.intClass with
     | Asn1AcnAst.ASN1SCC_Int8 _ -> IntegerType Byte
@@ -349,6 +413,7 @@ let rec fromAsn1TypeKind (t: Asn1AcnAst.Asn1TypeKind): Type =
   | Asn1AcnAst.BitString bt -> ClassType {id = bt.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.OctetString ot -> ClassType {id = ot.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.IA5String bt -> ArrayType {tpe = IntegerType UByte}
+  | Asn1AcnAst.Real _ -> DoubleType
   | t -> failwith $"TODO {t}"
 
 let fromAcnInsertedType (t: Asn1AcnAst.AcnInsertedType): Type = failwith "TODO"
@@ -465,6 +530,7 @@ let rec ppType (tpe: Type): string =
   match tpe with
   | IntegerType int -> int.ToString()
   | BooleanType -> "Boolean"
+  | DoubleType -> "Double"
   | ArrayType at -> $"Array[{ppType at.tpe}]"
   | ClassType ct -> ppClassType ct
 and ppClassType (ct: ClassType): string =
@@ -715,9 +781,9 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
     let rhs = ppExpr (ctx.nestExpr rhs) rhs
     optP ctx (join ctx " * " lhs rhs)
 
-  | IfExpr ifexpr -> ppIfExpr ctx ifexpr
+  | IfExpr ifexpr -> optP ctx (ppIfExpr ctx ifexpr)
 
-  | MatchExpr mexpr -> ppMatchExpr ctx mexpr
+  | MatchExpr mexpr -> optP ctx (ppMatchExpr ctx mexpr)
 
   | SelectionExpr sel -> [line sel]
 

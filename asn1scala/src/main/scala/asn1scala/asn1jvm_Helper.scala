@@ -52,9 +52,14 @@ extension [T](arr: Array[T]) {
          if (i == arr.length) -1
          else if (arr(i) == elem) i
          else rec(i + 1)
-      }
+      }.ensuring(res => -1 <= res && res < arr.length)
       rec(0)
-   }
+   }.ensuring(res => -1 <= res && res < arr.length)
+
+   def indexOfOrLength(elem: T): Int = {
+      val ix = indexOf(elem)
+      if (ix == -1) arr.length else ix
+   }.ensuring(res => 0 <= res && res <= arr.length)
 
    def sameElements(other: Array[T]): Boolean = arraySameElements(arr, other)
 }

@@ -27,10 +27,10 @@ let fromSizeableProps (sizeProps: AcnSizeableSizeProperty): SizeProps =
   | SzExternalField _ -> ExternalField
   | SzNullTerminated pat -> BitsNullTerminated pat.Value
 
-let stringLikeSizeExpr (sizeProps: SizeProps option) (minNbElems: bigint) (maxNbElems: bigint) (charSize: bigint) (obj: Expr): Expr =
+let stringLikeSizeExpr (sizeProps: SizeProps option) (minNbElems: bigint) (maxNbElems: bigint) (charSize: bigint) (strLength: Expr): Expr =
   let vleSize, nbElemsInBits =
     if minNbElems = maxNbElems then 0I, longlit (maxNbElems * charSize)
-    else GetNumberOfBitsForNonNegativeInteger(maxNbElems - minNbElems), Mult (longlit charSize, stringLength obj)
+    else GetNumberOfBitsForNonNegativeInteger(maxNbElems - minNbElems), Mult (longlit charSize, strLength)
   let patSize =
     match sizeProps with
     | Some ExternalField | None -> 0I
@@ -63,13 +63,13 @@ let rec asn1SizeExpr (tp: Asn1AcnAst.Asn1TypeKind) (obj: Expr): Expr =
   | Asn1AcnAst.IA5String st ->
     let szProps = st.acnProperties.sizeProp |> Option.map fromAcnSizeProps
     let charSize = GetNumberOfBitsForNonNegativeInteger (bigint (st.uperCharSet.Length - 1))
-    stringLikeSizeExpr szProps st.minSize.acn st.maxSize.acn charSize obj
+    stringLikeSizeExpr szProps st.minSize.acn st.maxSize.acn charSize (indexOfOrLength obj (IntLit (UByte, 0I)))
   | Asn1AcnAst.OctetString ot ->
     let szProps = ot.acnProperties.sizeProp |> Option.map fromSizeableProps
-    stringLikeSizeExpr szProps ot.minSize.acn ot.maxSize.acn 8I obj
+    stringLikeSizeExpr szProps ot.minSize.acn ot.maxSize.acn 8I (stringLength obj)
   | Asn1AcnAst.BitString bt ->
     let szProps = bt.acnProperties.sizeProp |> Option.map fromSizeableProps
-    stringLikeSizeExpr szProps bt.minSize.acn bt.maxSize.acn 1I obj
+    stringLikeSizeExpr szProps bt.minSize.acn bt.maxSize.acn 1I (stringLength obj)
   | Asn1AcnAst.NullType nt ->
     assert (nt.acnMinSizeInBits = nt.acnMaxSizeInBits)
     longlit nt.acnMaxSizeInBits
@@ -344,7 +344,14 @@ let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DA
       body = longlit sq.acnMaxSizeInBits
     }
   else
-    // TODO: +Option/presence bit...
+    let presenceBits = children |> List.sumBy (fun child ->
+      match child with
+        | DAst.AcnChild acn -> 0I
+        | DAst.Asn1Child asn1 ->
+          match asn1.Optionality with
+          | Some (Optional opt) when opt.acnPresentWhen.IsNone -> 1I
+          | _ -> 0I
+    )
     let sizes =
       children |> List.map (fun child ->
         // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
@@ -365,7 +372,14 @@ let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DA
             // TODO: variable-length size
             acnTypeSizeExpr acn.Type
         | DAst.Asn1Child asn1 ->
-          asn1SizeExpr asn1.Type.Kind.baseKind (FieldSelect (This, asn1._scala_name))
+          match asn1.Optionality with
+          | Some _ ->
+            let scrut = FieldSelect (This, asn1._scala_name)
+            let someBdg = {Var.name = "v"; tpe = fromAsn1TypeKind asn1.Type.Kind.baseKind}
+            let someBody = asn1SizeExpr asn1.Type.Kind.baseKind (Var someBdg)
+            optionMutMatchExpr scrut (Some someBdg) someBody (longlit 0I)
+          | None ->
+            asn1SizeExpr asn1.Type.Kind.baseKind (FieldSelect (This, asn1._scala_name))
       )
     let res = {name = "res"; tpe = IntegerType Long}
     let postcond = And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
@@ -376,7 +390,7 @@ let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DA
       annots = []
       postcond = Some (res, postcond)
       returnTpe = IntegerType Long
-      body = plus sizes
+      body = plus (longlit presenceBits :: sizes)
     }
 
 let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): FunDef =
