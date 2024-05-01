@@ -475,6 +475,31 @@ let generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.
   let fd1 = fd1 |> Option.map (fun fd -> [show (FunDefTree fd)]) |> Option.defaultValue []
   fd1 @ [show (FunDefTree fd2)]
 
+let generatePostcondExpr (t: Asn1AcnAst.Asn1Type) (pVal: Selection) (res: Var) (codec: Codec): Expr =
+  let codecTpe = runtimeCodecTypeFor ACN
+  let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
+  let w1 = {Var.name = "w1"; tpe = ClassType acnClsTpe}
+  let w2 = {Var.name = "w2"; tpe = ClassType acnClsTpe}
+  let tpe = fromAsn1TypeKind t.Kind
+  let lftId, rgtId, buf, szRecv =
+    match codec with
+    | Encode -> leftId, rightId, Equals (selBufLength (Var w1), selBufLength (Var w2)), {Var.name = pVal.asLastOrSelf.receiverId; tpe = tpe}
+    | Decode -> leftMutId, rightMutId, Equals (selBuf (Var w1), selBuf (Var w2)), res
+  let sz = asn1SizeExpr t.Kind (Var szRecv)
+  let rightBody = Let {
+    bdg = w1;
+    e = Old (Var cdc)
+    body = Let {
+      bdg = w2
+      e = Var cdc
+      body = And [
+        buf
+        Equals (bitIndex (Var w1), plus [bitIndex (Var w2); sz])
+      ]
+    }
+  }
+  MatchExpr (eitherGenMatch lftId rgtId (Var res) None (BoolLit true) (Some res) rightBody)
+
 let wrapAcnFuncBody (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (body: string) (codec: Codec) (outerSel: Selection) (recSel: Selection): FunDef * Expr =
   assert recSel.path.IsEmpty
   let codecTpe = runtimeCodecTypeFor ACN
@@ -482,6 +507,13 @@ let wrapAcnFuncBody (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (b
   let tpe = fromAsn1TypeKind t.Kind
   let errTpe = IntegerType Int
   let recPVal = {Var.name = recSel.receiverId; tpe = tpe}
+  let theEitherId, rightTpe =
+    match codec with
+    | Encode -> eitherId, IntegerType Int
+    | Decode -> eitherMutId, tpe
+  let resPostcond = {Var.name = "res"; tpe = ClassType {id = theEitherId; tps = [errTpe; rightTpe]}}
+  let precond = [Precond (validateOffsetBits (Var cdc) (longlit t.acnMaxSizeInBits))]
+  let postcondExpr = generatePostcondExpr t recSel resPostcond codec
   // TODO: specs (require + ensuring)
   // TODO: What about the isconstraintvalid stuff?
   match codec with
@@ -508,9 +540,9 @@ let wrapAcnFuncBody (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (b
     let fd = {
       id = "encode"
       prms = [cdc; recPVal]
-      specs = []
+      specs = precond
       annots = [Opaque; InlineOnce]
-      postcond = None
+      postcond = Some (resPostcond, postcondExpr)
       returnTpe = ClassType (eitherTpe errTpe retTpe)
       body = body
     }
@@ -530,9 +562,9 @@ let wrapAcnFuncBody (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (b
     let fd = {
       id = "decode"
       prms = [cdc]
-      specs = []
+      specs = precond
       annots = [Opaque; InlineOnce]
-      postcond = None
+      postcond = Some (resPostcond, postcondExpr)
       returnTpe = ClassType (eitherMutTpe errTpe tpe)
       body = body
     }

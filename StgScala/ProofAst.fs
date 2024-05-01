@@ -26,10 +26,14 @@ type Annot =
 type Type =
   | IntegerType of IntegerType
   | BooleanType
+  | ArrayType of ArrayType
   | ClassType of ClassType
 and ClassType = {
   id: Identifier
   tps: Type list
+}
+and ArrayType = {
+  tpe: Type
 }
 
 type Var = {
@@ -69,6 +73,7 @@ and Expr =
   | ArraySelect of Expr * Expr
   | ArrayLength of Expr
   | ClassCtor of ClassCtor
+  | Old of Expr
   | Return of Expr
   | IfExpr of IfExpr
   | MatchExpr of MatchExpr
@@ -81,6 +86,7 @@ and Expr =
   | Plus of Expr list
   | Minus of Expr * Expr
   | Leq of Expr * Expr
+  | BoolLit of bool
   | IntLit of IntegerType * bigint
   | EncDec of string
   | This // TODO: Add type
@@ -175,10 +181,10 @@ let leftMutExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (leftMut l r e)
 let rightMut (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightMutTpe l r; args = [e]}
 let rightMutExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (rightMut l r e)
 
-let private eitherGenMatch (leftId: Identifier) (rightId: Identifier)
-                           (scrut: Expr)
-                           (leftBdg: Var option) (leftBody: Expr)
-                           (rightBdg: Var option) (rightBody: Expr): MatchExpr =
+let eitherGenMatch (leftId: Identifier) (rightId: Identifier)
+                   (scrut: Expr)
+                   (leftBdg: Var option) (leftBody: Expr)
+                   (rightBdg: Var option) (rightBody: Expr): MatchExpr =
   {
     scrut = scrut
     cases = [
@@ -323,7 +329,7 @@ let readPrefixLemmaIdentifier (t: TypeEncodingKind option): string list * string
   | _ ->
     [acnId], "readPrefixLemma_TODO" // TODO
 
-let fromAsn1TypeKind (t: Asn1AcnAst.Asn1TypeKind): Type =
+let rec fromAsn1TypeKind (t: Asn1AcnAst.Asn1TypeKind): Type =
   match t.ActualType with
   | Asn1AcnAst.Sequence sq -> ClassType {id = sq.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.SequenceOf sqf -> ClassType {id = sqf.typeDef[Scala].typeName; tps = []}
@@ -339,6 +345,10 @@ let fromAsn1TypeKind (t: Asn1AcnAst.Asn1TypeKind): Type =
     | Asn1AcnAst.ASN1SCC_UInt32 _ -> IntegerType UInt
     | Asn1AcnAst.ASN1SCC_UInt64 _ | Asn1AcnAst.ASN1SCC_UInt _ -> IntegerType ULong
   | Asn1AcnAst.Boolean _ -> BooleanType
+  | Asn1AcnAst.NullType _ -> IntegerType Byte
+  | Asn1AcnAst.BitString bt -> ClassType {id = bt.typeDef[Scala].typeName; tps = []}
+  | Asn1AcnAst.OctetString ot -> ClassType {id = ot.typeDef[Scala].typeName; tps = []}
+  | Asn1AcnAst.IA5String bt -> ArrayType {tpe = IntegerType UByte}
   | t -> failwith $"TODO {t}"
 
 let fromAcnInsertedType (t: Asn1AcnAst.AcnInsertedType): Type = failwith "TODO"
@@ -455,6 +465,7 @@ let rec ppType (tpe: Type): string =
   match tpe with
   | IntegerType int -> int.ToString()
   | BooleanType -> "Boolean"
+  | ArrayType at -> $"Array[{ppType at.tpe}]"
   | ClassType ct -> ppClassType ct
 and ppClassType (ct: ClassType): string =
   let tps =
@@ -552,7 +563,8 @@ and ppFunDef (ctx: PrintCtx) (fd: FunDef): Line list =
     preSpecs @
     [{txt = ""; lvl = ctx.lvl}] @ // for Scala to avoid defining an anonymous class with bindings from above
     body @
-    [{txt = $"}}.ensuring {{ {resVar.name} => "; lvl = ctx.lvl + 1}] @
+    // We type-annotate the result to avoid inference failure which may occur from time to time
+    [{txt = $"}}.ensuring {{ ({resVar.name}: {ppType resVar.tpe}) => "; lvl = ctx.lvl + 1}] @
     postcond @
     [{txt = "}"; lvl = ctx.lvl + 1}; {txt = "}"; lvl = ctx.lvl}]
   | Some (resVar, postcond), false ->
@@ -561,7 +573,7 @@ and ppFunDef (ctx: PrintCtx) (fd: FunDef): Line list =
     header @
     preSpecs @
     body @
-    [{txt = $"}}.ensuring {{ {resVar.name} => "; lvl = ctx.lvl}] @
+    [{txt = $"}}.ensuring {{ ({resVar.name}: {ppType resVar.tpe}) => "; lvl = ctx.lvl}] @
     postcond @
     [{txt = "}"; lvl = ctx.lvl}]
   | None, _ ->
@@ -635,6 +647,10 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
     let args = cc.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
     joinCallLike ctx [line ct] args true
 
+  | Old e2 ->
+    let e2 = ppExpr (ctx.nestExpr e2) e2
+    joinCallLike ctx [line "old"] [e2] false
+
   | ArrayLength arr ->
     let arr = ppExpr (ctx.nestExpr arr) arr
     append ctx $".length" arr
@@ -656,6 +672,8 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
       | UInt -> $"UInt.fromRaw({i})"
       | ULong -> $"ULong.fromRaw({i}L)"
     [line str]
+
+  | BoolLit b -> [line (if b then "true" else "false")]
 
   | Equals (lhs, rhs) ->
     let lhs = ppExpr (ctx.nestExpr lhs) lhs

@@ -349,22 +349,14 @@ type LangGeneric_scala() =
         // TODO: Replace with an AST when it becomes complete
         override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.base.bitStream.validate_offset_bits({t.maxSizeInBits enc})"]
 
-        // TODO: Replace with an AST when it becomes complete
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
-            let suffix, buf, msg =
+            let theEitherId, rightTpe =
                 match codec with
-                | Encode -> "", "w1.base.bitStream.buf.length == w2.base.bitStream.buf.length", "pVal"
-                | Decode -> "Mut", "w1.base.bitStream.buf == w2.base.bitStream.buf", "res"
-            let sz = asn1SizeExpr t.Kind (SelectionExpr msg) // TODO: Use Var instead but need to transform `t` first
-            let sz = show (ExprTree sz)
-            let res = $"""
-res match
-    case Left{suffix}(_) => true
-    case Right{suffix}(res) =>
-        val w1 = old(codec)
-        val w2 = codec
-        {buf} && w2.base.bitStream.bitIndex == w1.base.bitStream.bitIndex + {sz}"""
-            Some (res.TrimStart())
+                | Encode -> eitherId, IntegerType Int
+                | Decode -> eitherMutId, fromAsn1TypeKind t.Kind
+            let resPostcond = {Var.name = "res"; tpe = ClassType {id = theEitherId; tps = [IntegerType Int; rightTpe]}}
+            let postcondExpr = generatePostcondExpr t p.arg resPostcond codec
+            Some (show (ExprTree postcondExpr))
 
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
             generateSequenceChildProof enc stmts pg codec
