@@ -177,7 +177,7 @@ let createString (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1T
     let td = lm.lg.getStrTypeDefinition o.typeDef
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
-        let completeDefinition = define_new_ia5string td (o.minSize.uper) (o.maxSize.uper) ((o.maxSize.uper + 1I)) arrnAlphaChars
+        let completeDefinition = define_new_ia5string td o.minSize.uper o.maxSize.uper (o.maxSize.uper + 1I) arrnAlphaChars
         Some completeDefinition
     | NonPrimitiveNewSubTypeDefinition subDef     ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
@@ -191,7 +191,8 @@ let createOctetString (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.
     let define_subType_octet_string    = lm.typeDef.Define_subType_octet_string
     match td.kind with
     | NonPrimitiveNewTypeDefinition ->
-        let completeDefinition = define_new_octet_string td o.minSize.uper o.maxSize.uper (o.minSize.uper = o.maxSize.uper)
+        let invariants = lm.lg.generateOctetStringInvariants t o
+        let completeDefinition = define_new_octet_string td o.minSize.uper o.maxSize.uper (o.minSize.uper = o.maxSize.uper) invariants
         Some completeDefinition
     | NonPrimitiveNewSubTypeDefinition subDef ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
@@ -220,7 +221,8 @@ let createBitString (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.As
                 let sComment = sprintf "(1 << %A)" nb.resolvedValue
                 define_named_bit td (ToC (nb.Name.Value.ToUpper())) hexValue sComment
             )
-        let completeDefinition = define_new_bit_string td o.minSize.uper o.maxSize.uper (o.minSize.uper = o.maxSize.uper) (BigInteger o.MaxOctets) nblist
+        let invariants = lm.lg.generateBitStringInvariants t o
+        let completeDefinition = define_new_bit_string td o.minSize.uper o.maxSize.uper (o.minSize.uper = o.maxSize.uper) (BigInteger o.MaxOctets) nblist invariants
         Some completeDefinition
     | NonPrimitiveNewSubTypeDefinition subDef     ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
@@ -285,8 +287,9 @@ let createSequenceOf (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: Asn1AcnAst
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition ->
+        let invariants = lm.lg.generateSequenceOfInvariants t o childType.Kind
         let sizeDefinitions = lm.lg.generateSequenceOfSizeDefinitions t o childType.Kind
-        let completeDefinition = define_new_sequence_of td o.minSize.uper o.maxSize.uper (o.minSize.uper = o.maxSize.uper) (childType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules) (getChildDefinition childType.typeDefinitionOrReference) sizeDefinitions
+        let completeDefinition = define_new_sequence_of td o.minSize.uper o.maxSize.uper (o.minSize.uper = o.maxSize.uper) (childType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules) (getChildDefinition childType.typeDefinitionOrReference) sizeDefinitions invariants
         let privateDefinition =
             match childType.typeDefinitionOrReference with
             | TypeDefinition  td -> td.privateTypeDefinition
@@ -347,8 +350,9 @@ let createSequence (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition ->
+        let invariants = lm.lg.generateSequenceInvariants t o allchildren
         let sizeDefinitions = lm.lg.generateSequenceSizeDefinitions t o allchildren
-        let completeDefinition = define_new_sequence td arrsChildren arrsOptionalChildren childrenCompleteDefinitions arrsNullFieldsSavePos sizeDefinitions
+        let completeDefinition = define_new_sequence td arrsChildren arrsOptionalChildren childrenCompleteDefinitions arrsNullFieldsSavePos sizeDefinitions invariants
         let privateDef =
             match childrenPrivatePart with
             | [] -> None

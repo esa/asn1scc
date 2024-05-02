@@ -142,14 +142,14 @@ typedef <prTd.typeName> <td.typeName>
 
 /***********************************       OCTET STRING    ************************************************************/
 
-Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize) ::= <<
+Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, arrsInvariants) ::= <<
 <if(!bFixedSize)>
 /*nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)*/
 
 <endif>
 case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
 {
-    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMax><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length<endif>)
+    <arrsInvariants; separator="\n">
 }
 >>
 
@@ -163,7 +163,7 @@ Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBit
 #define <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /*<sComment>*/
 >>
 
-Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits) ::= <<
+Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits, arrsInvariants) ::= <<
 <arrsNamedBits:{it|<it>}; separator="\n">
 
 <if(!bFixedSize)>
@@ -172,7 +172,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 <endif>
 case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
 {
-    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMaxOctets><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length.toLong * 8L<endif>)
+    <arrsInvariants; separator="\n">
 }
 >>
 
@@ -183,13 +183,13 @@ typedef <prTd.typeName> <td.typeName>
 /***********************************       SEQUENCE OF    ************************************************************/
 
 
-Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeDefinition) ::= <<
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeDefinition, arrsInvariants) ::= <<
 
 <soChildDefinition>
 
 case class <td.typeName> (<if(!bFixedSize)>var nCount: Int, <endif>arr: Array[<sChildType>])
 {
-    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMax><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length<endif>)
+    <arrsInvariants; separator="\n">
 
     <arrsSizeDefinition; separator="\n\n">
 }
@@ -217,13 +217,15 @@ Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 
 Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "BitStream <sName>;"
 
-Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos, arrsSizeDefinition) ::= <<
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos, arrsSizeDefinition, arrsInvariants) ::= <<
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildrenDefinitions; separator= "\n">
 <if (arrsNullFieldsSavePos)>
 case class <td.extension_function_positions> (
     <arrsNullFieldsSavePos; separator="\n">
 ) {
+    <arrsInvariants; separator="\n">
+
     <arrsSizeDefinition; separator="\n\n">
 }
 
@@ -233,6 +235,8 @@ case class <td.extension_function_positions> (
 case class <td.typeName> (
     <arrsChildren:{ch| var <ch>}; separator=", \n">
 ) {
+    <arrsInvariants; separator="\n">
+
     <arrsSizeDefinition; separator="\n\n">
 }
 

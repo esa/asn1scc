@@ -28,9 +28,10 @@ let fromSizeableProps (sizeProps: AcnSizeableSizeProperty): SizeProps =
   | SzNullTerminated pat -> BitsNullTerminated pat.Value
 
 let stringLikeSizeExpr (sizeProps: SizeProps option) (minNbElems: bigint) (maxNbElems: bigint) (charSize: bigint) (strLength: Expr): Expr =
+  // TODO: check if we need to consider the encoded size (determinant) or not
   let vleSize, nbElemsInBits =
     if minNbElems = maxNbElems then 0I, longlit (maxNbElems * charSize)
-    else GetNumberOfBitsForNonNegativeInteger(maxNbElems - minNbElems), Mult (longlit charSize, strLength)
+    else 0I (*GetNumberOfBitsForNonNegativeInteger(maxNbElems - minNbElems)*), Mult (longlit charSize, strLength)
   let patSize =
     match sizeProps with
     | Some ExternalField | None -> 0I
@@ -82,6 +83,57 @@ let rec asn1SizeExpr (tp: Asn1AcnAst.Asn1TypeKind) (obj: Expr): Expr =
   | Asn1AcnAst.ReferenceType ref ->
     asn1SizeExpr ref.resolvedType.Kind obj
   | _ -> callSize obj
+
+let stringInvariants (minSize: bigint) (maxSize: bigint) (recv: Expr): Expr =
+  let arrayLen = ArrayLength recv
+  let nullCharIx = indexOfOrLength recv (IntLit (UByte, 0I))
+  if minSize = maxSize then And [Leq (int32lit (maxSize + 1I), arrayLen); Equals (nullCharIx, int32lit maxSize)]
+  else
+    And [Leq (int32lit (maxSize + 1I), arrayLen); Leq (int32lit minSize, nullCharIx); Leq (nullCharIx, int32lit maxSize)]
+
+let generateOctetStringInvariants (t: Asn1AcnAst.Asn1Type) (os: Asn1AcnAst.OctetString): Expr =
+  let len = ArrayLength (FieldSelect (This, "arr"))
+  if os.minSize.acn = os.maxSize.acn then Equals (len, int32lit os.maxSize.acn)
+  else
+    let nCount = FieldSelect (This, "nCount")
+    And [Leq (len, int32lit os.maxSize.acn); Leq (int32lit os.minSize.acn, nCount); Leq (nCount, len)]
+
+let generateBitStringInvariants (t: Asn1AcnAst.Asn1Type) (bs: Asn1AcnAst.BitString): Expr =
+  let len = ArrayLength (FieldSelect (This, "arr"))
+  if bs.minSize.acn = bs.maxSize.acn then Equals (len, int32lit (bigint bs.MaxOctets))
+  else
+    let nCount = FieldSelect (This, "nCount")
+    And [Leq (len, int32lit (bigint bs.MaxOctets)); Leq (longlit bs.minSize.acn, nCount); Leq (nCount, Mult (len, longlit 8I))] // TODO: Cast en long explicite
+
+let generateSequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): Expr option =
+    let conds = children |> List.collect (fun child ->
+      match child with
+      | DAst.Asn1Child child ->
+        let field = FieldSelect (This, child._scala_name)
+        let isDefined = isDefinedMutExpr field
+        let opt =
+          match child.Optionality with
+          | Some AlwaysPresent -> [isDefined]
+          | Some AlwaysAbsent -> [Not isDefined]
+          | _ -> []
+        // StringType is a type alias and has therefore no associated class invariant; we need to explicitly add them
+        let strType =
+          match child.Type.Kind.baseKind.ActualType with
+          | IA5String st -> [stringInvariants st.minSize.acn st.maxSize.acn field]
+          | _ -> []
+        opt @ strType
+      | _ -> []
+    )
+    if conds.IsEmpty then None
+    else if conds.Tail.IsEmpty then Some conds.Head
+    else Some (And conds)
+
+let generateSequenceOfInvariants (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (tpe: DAst.Asn1TypeKind): Expr =
+    let len = ArrayLength (FieldSelect (This, "arr"))
+    if sqf.minSize.acn = sqf.maxSize.acn then Equals (len, int32lit sqf.maxSize.acn)
+    else
+      let nCount = FieldSelect (This, "nCount")
+      And [Leq (len, int32lit sqf.maxSize.acn); Leq (int32lit sqf.minSize.acn, nCount); Leq (nCount, len)]
 
 let generateTransitiveLemmaApp (snapshots: Var list) (codec: Var): Expr =
   assert (snapshots.Length >= 2)
@@ -333,148 +385,150 @@ let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DA
       if s.str.acnMinSizeInBits <> s.str.acnMaxSizeInBits then failwith "TODO"
       else longlit s.str.acnMaxSizeInBits
 
-  if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then
-    {
-      id = "size"
-      prms = []
-      specs = []
-      annots = []
-      postcond = None
-      returnTpe = IntegerType Long
-      body = longlit sq.acnMaxSizeInBits
-    }
-  else
-    let presenceBits = children |> List.sumBy (fun child ->
+  let presenceBits = children |> List.sumBy (fun child ->
+    match child with
+      | DAst.AcnChild acn -> 0I
+      | DAst.Asn1Child asn1 ->
+        match asn1.Optionality with
+        | Some (Optional opt) when opt.acnPresentWhen.IsNone -> 1I
+        | _ -> 0I
+  )
+  let sizes =
+    children |> List.map (fun child ->
+      // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
       match child with
-        | DAst.AcnChild acn -> 0I
-        | DAst.Asn1Child asn1 ->
-          match asn1.Optionality with
-          | Some (Optional opt) when opt.acnPresentWhen.IsNone -> 1I
-          | _ -> 0I
+      | DAst.AcnChild acn ->
+        if acn.deps.acnDependencies.IsEmpty then
+          // This should not be possible, but ACN parameters are probably validated afterwards.
+          longlit 0I
+        else
+          // There can be multiple dependencies on an ACN field, however all must be consistent
+          // (generated code checks for that, done by MultiAcnUpdate).
+          // For our use case, we assume the message is consistent, we therefore pick
+          // an arbitrary dependency.
+          // If it is not the case, the returned value may be incorrect but we would
+          // not encode the message anyway, so this incorrect size would not be used.
+          // To do things properly, we should move this check of MultiAcnUpdate in the IsConstraintValid function
+          // of the message and add it as a precondition to the size function.
+          // TODO: variable-length size
+          acnTypeSizeExpr acn.Type
+      | DAst.Asn1Child asn1 ->
+        match asn1.Optionality with
+        | Some _ ->
+          let scrut = FieldSelect (This, asn1._scala_name)
+          let someBdg = {Var.name = "v"; tpe = fromAsn1TypeKind asn1.Type.Kind.baseKind}
+          let someBody = asn1SizeExpr asn1.Type.Kind.baseKind (Var someBdg)
+          optionMutMatchExpr scrut (Some someBdg) someBody (longlit 0I)
+        | None ->
+          asn1SizeExpr asn1.Type.Kind.baseKind (FieldSelect (This, asn1._scala_name))
     )
-    let sizes =
-      children |> List.map (fun child ->
-        // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
-        match child with
-        | DAst.AcnChild acn ->
-          if acn.deps.acnDependencies.IsEmpty then
-            // This should not be possible, but ACN parameters are probably validated afterwards.
-            longlit 0I
-          else
-            // There can be multiple dependencies on an ACN field, however all must be consistent
-            // (generated code checks for that, done by MultiAcnUpdate).
-            // For our use case, we assume the message is consistent, we therefore pick
-            // an arbitrary dependency.
-            // If it is not the case, the returned value may be incorrect but we would
-            // not encode the message anyway, so this incorrect size would not be used.
-            // To do things properly, we should move this check of MultiAcnUpdate in the IsConstraintValid function
-            // of the message and add it as a precondition to the size function.
-            // TODO: variable-length size
-            acnTypeSizeExpr acn.Type
-        | DAst.Asn1Child asn1 ->
-          match asn1.Optionality with
-          | Some _ ->
-            let scrut = FieldSelect (This, asn1._scala_name)
-            let someBdg = {Var.name = "v"; tpe = fromAsn1TypeKind asn1.Type.Kind.baseKind}
-            let someBody = asn1SizeExpr asn1.Type.Kind.baseKind (Var someBdg)
-            optionMutMatchExpr scrut (Some someBdg) someBody (longlit 0I)
-          | None ->
-            asn1SizeExpr asn1.Type.Kind.baseKind (FieldSelect (This, asn1._scala_name))
-      )
-    let res = {name = "res"; tpe = IntegerType Long}
-    let postcond = And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
-    {
-      id = "size"
-      prms = []
-      specs = []
-      annots = []
-      postcond = Some (res, postcond)
-      returnTpe = IntegerType Long
-      body = plus (longlit presenceBits :: sizes)
-    }
+  let res = {name = "res"; tpe = IntegerType Long}
+  let postcond =
+    if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then Equals (Var res, longlit sq.acnMaxSizeInBits)
+    else And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
+  {
+    id = "size"
+    prms = []
+    specs = []
+    annots = []
+    postcond = Some (res, postcond)
+    returnTpe = IntegerType Long
+    body = plus (longlit presenceBits :: sizes)
+  }
 
 let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): FunDef =
-  if choice.acnMinSizeInBits = choice.acnMaxSizeInBits then
-    {
-      id = "size"
-      prms = []
-      specs = []
-      annots = []
-      postcond = None
-      returnTpe = IntegerType Long
-      body = longlit choice.acnMaxSizeInBits
-    }
-  else
-    let cases = children |> List.map (fun child ->
-      let tpeId = (ToC child._present_when_name_private) + "_PRESENT"
-      let tpe = fromAsn1TypeKind child.chType.Kind.baseKind
-      let binder = {Var.name = child._scala_name; tpe = tpe}
-      let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
-      let rhs = asn1SizeExpr child.chType.Kind.baseKind (Var binder)
-      {MatchCase.pattern = pat; rhs = rhs}
-    )
-    let res = {name = "res"; tpe = IntegerType Long}
-    let postcond = And [Leq (longlit choice.acnMinSizeInBits, Var res); Leq (Var res, longlit choice.acnMaxSizeInBits)]
-    {
-      id = "size"
-      prms = []
-      specs = []
-      annots = []
-      postcond = Some (res, postcond)
-      returnTpe = IntegerType Long
-      body = MatchExpr {scrut = This; cases = cases}
-    }
+  let cases = children |> List.map (fun child ->
+    let tpeId = (ToC child._present_when_name_private) + "_PRESENT"
+    let tpe = fromAsn1TypeKind child.chType.Kind.baseKind
+    let binder = {Var.name = child._scala_name; tpe = tpe}
+    let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
+    let rhs = asn1SizeExpr child.chType.Kind.baseKind (Var binder)
+    {MatchCase.pattern = pat; rhs = rhs}
+  )
+  let res = {name = "res"; tpe = IntegerType Long}
+  let postcond =
+    if choice.acnMinSizeInBits = choice.acnMaxSizeInBits then Equals (Var res, longlit choice.acnMaxSizeInBits)
+    else And [Leq (longlit choice.acnMinSizeInBits, Var res); Leq (Var res, longlit choice.acnMaxSizeInBits)]
+  {
+    id = "size"
+    prms = []
+    specs = []
+    annots = []
+    postcond = Some (res, postcond)
+    returnTpe = IntegerType Long
+    body = MatchExpr {scrut = This; cases = cases}
+  }
 
 let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1TypeKind): FunDef option * FunDef =
-  if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then
-    let fd2 = {
-      id = "size"
-      prms = []
-      specs = []
-      postcond = None
-      annots = []
-      returnTpe = IntegerType Long
-      body = longlit sq.acnMaxSizeInBits
-    }
-    None, fd2
-  else
-    let res = {name = "res"; tpe = IntegerType Long}
-    let postcond = And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
-    let count = FieldSelect (This, "nCount")
+  let res = {name = "res"; tpe = IntegerType Long}
+  let count = FieldSelect (This, "nCount")
 
-    let fd1 =
-      let from = {name = "from"; tpe = IntegerType Int}
-      let tto = {name = "to"; tpe = IntegerType Int}
-      let arr = FieldSelect (This, "arr")
-      let require = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, count)]
+  let fd1 =
+    let from = {name = "from"; tpe = IntegerType Int}
+    let tto = {name = "to"; tpe = IntegerType Int}
+    let arr = FieldSelect (This, "arr")
+    let measure = Minus (Var tto, Var from)
+    let require = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, count)]
 
-      let elem = ArraySelect (arr, Var from)
-      let reccall = MethodCall {recv = This; id = "sizeRange"; args = [plus [Var from; int32lit 1I]; Var tto]}
-      let body =
-        IfExpr {
-          cond = Equals (Var from, Var tto)
-          thn = longlit 0I
-          els = plus [asn1SizeExpr elemTpe.baseKind elem; reccall]
-        }
-      {
-        id = "sizeRange"
-        prms = [from; tto]
-        specs = [Precond require]
-        annots = []
-        postcond = Some (res, postcond)
-        returnTpe = IntegerType Long
-        body = body
+    let elem = ArraySelect (arr, Var from)
+    let reccall = MethodCall {recv = This; id = "sizeRange"; args = [plus [Var from; int32lit 1I]; Var tto]}
+    let elemSize = asn1SizeExpr elemTpe.baseKind elem
+    let elemSizeAssert =
+      if elemTpe.baseKind.acnMinSizeInBits = elemTpe.baseKind.acnMaxSizeInBits then
+        Assert (Equals (elemSize, longlit elemTpe.baseKind.acnMinSizeInBits))
+      else
+        Assert (And [
+          Leq (longlit elemTpe.baseKind.acnMinSizeInBits, elemSize)
+          Leq (elemSize, longlit elemTpe.baseKind.acnMaxSizeInBits)
+        ])
+    let body =
+      IfExpr {
+        cond = Equals (Var from, Var tto)
+        thn = longlit 0I
+        els = mkBlock [elemSizeAssert; plus [elemSize; reccall]]
       }
-    let fd2 = {
-      id = "size"
-      prms = []
-      specs = []
+    let postcondRange =
+      let nbElems = {Var.name = "nbElems"; tpe = IntegerType Int} // TODO: Add explicit cast to Long
+      let sqLowerBound = Mult (longlit elemTpe.baseKind.acnMinSizeInBits, Var nbElems)
+      let sqUpperBound = Mult (longlit elemTpe.baseKind.acnMaxSizeInBits, Var nbElems)
+      Let {
+        bdg = nbElems
+        e = Minus (Var tto, Var from) // TODO: Add explicit cast to Long
+        body = mkBlock [
+          Assert (And [Leq (int32lit 0I, Var nbElems); Leq (Var nbElems, int32lit sq.maxSize.acn)]) // To help check against multiplication overflows
+          And [
+            Leq (sqLowerBound, Var res)
+            Leq (Var res, sqUpperBound)
+          ]
+        ]
+      }
+
+    {
+      id = "sizeRange"
+      prms = [from; tto]
+      specs = [Measure measure; Precond require]
       annots = []
-      postcond = Some (res, postcond)
+      postcond = Some (res, postcondRange)
       returnTpe = IntegerType Long
-      body = MethodCall {recv = This; id = fd1.id; args = [int32lit 0I; count]}
+      body = body
     }
-    Some fd1, fd2
+  let sizeField =
+    match sq.acnEncodingClass with
+    | SZ_EC_LENGTH_EMBEDDED sz -> sz
+    | _ -> 0I // TODO: Pattern?
+  let postcond =
+    if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then Equals (Var res, longlit sq.acnMaxSizeInBits)
+    else And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
+  let fd2 = {
+    id = "size"
+    prms = []
+    specs = []
+    annots = []
+    postcond = Some (res, postcond)
+    returnTpe = IntegerType Long
+    body = plus [longlit sizeField; MethodCall {recv = This; id = fd1.id; args = [int32lit 0I; count]}]
+  }
+  Some fd1, fd2
 
 let generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): string list =
   let fd = seqSizeExpr t sq children
@@ -560,7 +614,7 @@ let wrapAcnFuncBody (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (b
       returnTpe = ClassType (eitherTpe errTpe retTpe)
       body = body
     }
-    fd, FunctionCall {prefix = []; id = fd.id; args = [Var cdc; outerPVal]}
+    fd, FunctionCall {prefix = []; id = fd.id; args = [Var cdc; FreshCopy outerPVal]} // TODO: Ideally we should not be needing a freshCopy...
   | Decode ->
     let outerPVal = {Var.name = outerSel.asIdentifier; tpe = tpe}
     let retInnerFd =

@@ -369,6 +369,23 @@ type LangGeneric_scala() =
             | Encode -> Some $"assert({topLevelTd}_IsConstraintValid(pVal).isRight)" // TODO: HACK: When for CHOICE, `p` gets reset to the choice variant name, so we hardcode "pVal" here...
             | Decode -> None
 
+        override this.generateOctetStringInvariants (t: Asn1AcnAst.Asn1Type) (os: Asn1AcnAst.OctetString): string list =
+            let inv = generateOctetStringInvariants t os
+            [$"require({show (ExprTree inv)})"]
+
+        override this.generateBitStringInvariants (t: Asn1AcnAst.Asn1Type) (bs: Asn1AcnAst.BitString): string list =
+            let inv = generateBitStringInvariants t bs
+            [$"require({show (ExprTree inv)})"]
+
+        override this.generateSequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
+            let inv = generateSequenceInvariants t sq children
+            inv |> Option.map (fun inv -> $"require({show (ExprTree inv)})") |> Option.toList
+
+        override this.generateSequenceOfInvariants (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (tpe: DAst.Asn1TypeKind): string list =
+            let inv = generateSequenceOfInvariants t sqf tpe
+            [$"require({show (ExprTree inv)})"]
+
+
         override this.generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
             generateSequenceSizeDefinitions t sq children
 

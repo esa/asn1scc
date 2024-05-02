@@ -63,6 +63,7 @@ and Expr =
   | Ghost of Expr
   | Locally of Expr
   | Snapshot of Expr
+  | FreshCopy of Expr
   | Let of Let
   | LetGhost of Let
   | Assert of Expr
@@ -191,6 +192,9 @@ let someMutExpr (tpe: Type) (e: Expr): Expr = ClassCtor (someMut tpe e)
 let noneMut (tpe: Type): ClassCtor = {ct = noneMutTpe tpe; args = []}
 let noneMutExpr (tpe: Type): Expr = ClassCtor (noneMut tpe)
 
+let isDefinedExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "isDefined"; args = []}
+let isDefinedMutExpr (recv: Expr): Expr = isDefinedExpr recv // TODO: We can't distinguish symbols right now
+
 
 let eitherTpe (l: Type) (r: Type): ClassType = {ClassType.id = eitherId; tps = [l; r]}
 let leftTpe (l: Type) (r: Type): ClassType = {ClassType.id = leftId; tps = [l; r]}
@@ -289,6 +293,13 @@ let ulonglit (l: bigint): Expr = IntLit (ULong, l)
 
 let plus (terms: Expr list): Expr =
   assert (not terms.IsEmpty)
+
+  let rec flattenAdd (e: Expr): Expr list =
+    match e with
+    | Plus terms -> terms |> List.collect flattenAdd
+    | _ -> [e]
+
+  let terms = terms |> List.collect flattenAdd
   let litTpe = terms |> List.tryFindMap (fun e ->
     match e with
     | IntLit (tpe, _) -> Some tpe
@@ -324,7 +335,9 @@ let plus (terms: Expr list): Expr =
         acc, e :: newTerms
     ) (0I, [])
   let newTerms = List.rev newTerms
-  if cst = 0I then Plus newTerms
+  if cst = 0I then
+    if newTerms.IsEmpty then IntLit (litTpe.Value, 0I)
+    else Plus newTerms
   else Plus (newTerms @ [IntLit (litTpe.Value, cst)])
 
 let selBase (recv: Expr): Expr = FieldSelect (recv, "base")
@@ -672,6 +685,9 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
 
   | Snapshot e2 ->
     joinCallLike ctx [line "snapshot"] [ppExpr (ctx.nestExpr e2) e2] false
+
+  | FreshCopy e2 ->
+    joinCallLike ctx [line "freshCopy"] [ppExpr (ctx.nestExpr e2) e2] false
 
   | Let lt -> ppLet ctx e lt []
 
