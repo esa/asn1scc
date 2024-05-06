@@ -325,7 +325,7 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
     else 0I
   let nbItems =
     if sqf.isFixedSize then int32lit nbItemsMin
-    else SelectionExpr $"{pg.sel}.nCount" // TODO: Not ideal...
+    else FieldSelect (SelectionExpr pg.sel, "nCount")
   let elemSz = sqf.maxElemSizeInBits enc
   let elemSzExpr = longlit elemSz
   let sqfMaxSizeInBits = sqf.maxSizeInBits enc
@@ -411,41 +411,48 @@ let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DA
         | Some (Optional opt) when opt.acnPresentWhen.IsNone -> 1I
         | _ -> 0I
   )
-  let sizes =
-    children |> List.map (fun child ->
+  let childSize (previousSizes: (Var * Expr) list) (ix: int, child: DAst.SeqChildInfo): (Var * Expr) list =
+      let resVar = {Var.name = $"size{ix}"; tpe = IntegerType Long}
+
       // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
-      match child with
-      | DAst.AcnChild acn ->
-        if acn.deps.acnDependencies.IsEmpty then
-          // This should not be possible, but ACN parameters are probably validated afterwards.
-          longlit 0I
-        else
-          // There can be multiple dependencies on an ACN field, however all must be consistent
-          // (generated code checks for that, done by MultiAcnUpdate).
-          // For our use case, we assume the message is consistent, we therefore pick
-          // an arbitrary dependency.
-          // If it is not the case, the returned value may be incorrect but we would
-          // not encode the message anyway, so this incorrect size would not be used.
-          // To do things properly, we should move this check of MultiAcnUpdate in the IsConstraintValid function
-          // of the message and add it as a precondition to the size function.
-          // TODO: variable-length size
-          acnTypeSizeExpr acn.Type
-      | DAst.Asn1Child asn1 ->
-        match asn1.Optionality with
-        | Some _ ->
-          let scrut = FieldSelect (This, asn1._scala_name)
-          let someBdg = {Var.name = "v"; tpe = fromAsn1TypeKind asn1.Type.Kind.baseKind}
-          let someBody = asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind.baseKind (Var someBdg)
-          optionMutMatchExpr scrut (Some someBdg) someBody (longlit 0I)
-        | None ->
-          asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind.baseKind (FieldSelect (This, asn1._scala_name))
-    )
+      let resSize =
+        match child with
+        | DAst.AcnChild acn ->
+          if acn.deps.acnDependencies.IsEmpty then
+            // This should not be possible, but ACN parameters are probably validated afterwards.
+            longlit 0I
+          else
+            // There can be multiple dependencies on an ACN field, however all must be consistent
+            // (generated code checks for that, done by MultiAcnUpdate).
+            // For our use case, we assume the message is consistent, we therefore pick
+            // an arbitrary dependency.
+            // If it is not the case, the returned value may be incorrect but we would
+            // not encode the message anyway, so this incorrect size would not be used.
+            // To do things properly, we should move this check of MultiAcnUpdate in the IsConstraintValid function
+            // of the message and add it as a precondition to the size function.
+            // TODO: variable-length size
+            acnTypeSizeExpr acn.Type
+        | DAst.Asn1Child asn1 ->
+          match asn1.Optionality with
+          | Some _ ->
+            let scrut = FieldSelect (This, asn1._scala_name)
+            let someBdg = {Var.name = "v"; tpe = fromAsn1TypeKind asn1.Type.Kind.baseKind}
+            let someBody = asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind.baseKind (Var someBdg)
+            optionMutMatchExpr scrut (Some someBdg) someBody (longlit 0I)
+          | None ->
+            asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind.baseKind (FieldSelect (This, asn1._scala_name))
+      previousSizes @ [resVar, resSize]
+
+  let sizes =
+    children |> List.indexed |> (List.fold childSize [])
+  let resultSize = sizes |> List.map (fun (v, _) -> Var v) |> plus
+  // TODO: ALIGN
+  let finalSize = plus [longlit presenceBits; letsIn sizes resultSize]
+
   let res = {name = "res"; tpe = IntegerType Long}
   let postcond =
     if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then Equals (Var res, longlit sq.acnMaxSizeInBits)
     else And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
-  // TODO: ALIGN
-  let finalSize = plus (longlit presenceBits :: sizes)
   {
     id = "size"
     prms = []

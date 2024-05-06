@@ -340,6 +340,9 @@ let plus (terms: Expr list): Expr =
     else Plus newTerms
   else Plus (newTerms @ [IntLit (litTpe.Value, cst)])
 
+let letsIn (bdgs: (Var * Expr) list) (body: Expr): Expr =
+  List.foldBack (fun (v, e) body -> Let {bdg = v; e = e; body = body}) bdgs body
+
 let selBase (recv: Expr): Expr = FieldSelect (recv, "base")
 
 let selBitStream (recv: Expr): Expr = FieldSelect (selBase recv, "bitStream")
