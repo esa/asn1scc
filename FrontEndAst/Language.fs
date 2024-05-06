@@ -342,7 +342,7 @@ type ILangGeneric () =
 
     abstract member generateSequenceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> SeqChildInfo list -> string list
     abstract member generateChoiceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> ChChildInfo list -> string list
-    abstract member generateSequenceOfSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.SequenceOf -> DAst.Asn1TypeKind -> string list
+    abstract member generateSequenceOfSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.SequenceOf -> DAst.Asn1Type -> string list
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c

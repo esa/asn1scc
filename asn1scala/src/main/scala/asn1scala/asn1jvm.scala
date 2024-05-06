@@ -249,6 +249,28 @@ def bitMSBLong(bit: Boolean, nBits: Int): Long = {
     if bit then onesMSBLong(nBits) else 0L
 }
 
+def alignedToN(alignment: Long, bits: Long): Long = {
+    require(2L <= alignment && alignment <= 64L && 0L <= bits && bits <= Long.MaxValue - alignment)
+    val rem = bits % alignment
+    if (rem != 0L) bits + (alignment - rem)
+    else bits
+}
+
+def alignedToByte(bits: Long): Long = {
+    require(0L <= bits && bits <= Long.MaxValue - 8L)
+    alignedToN(8L, bits)
+}.ensuring(res => res % 8L == 0L && bits <= res)
+
+def alignedToWord(bits: Long): Long = {
+    require(0L <= bits && bits <= Long.MaxValue - 16L)
+    alignedToN(16L, bits)
+}.ensuring(res => res % 16L == 0L && bits <= res)
+
+def alignedToDWord(bits: Long): Long = {
+    require(0L <= bits && bits <= Long.MaxValue - 32L)
+    alignedToN(32L, bits)
+}.ensuring(res => res % 32L == 0L && bits <= res)
+
 def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
     require(uintSizeInBytes >= 1 && uintSizeInBytes <= 9)
 

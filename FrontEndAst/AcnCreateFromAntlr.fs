@@ -820,7 +820,6 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
         | Asn1Ast.Integer       ->
             let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 asn1Type0)
             let uperRange    = uPER.getIntTypeConstraintUperRange cons  ts.Location
-            let alignmentSize = AcnEncodingClasses.getAlignmentSize acnAlignment
             let uperMinSizeInBits, uperMaxSizeInBits = uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
             let acnProperties = {IntegerAcnProperties.encodingProp = getIntEncodingProperty ts.Location props; sizeProp = getIntSizeProperty ts.Location props; endiannessProp = getEndiannessProperty props; mappingFunction = getMappingFunctionProperty ts.Location props}
             let isUnsigned =
@@ -1185,7 +1184,6 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let uperMinChildrenSize  = asn1Children |> List.filter(fun x -> x.Optionality.IsNone) |> List.map(fun x -> x.Type.uperMinSizeInBits) |> Seq.sum
 
             let alignment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
-            let alignmentSize = AcnEncodingClasses.getAlignmentSize alignment
             let acnBitMaskSize =
                 mergedChildren |>
                 List.filter(fun c ->
@@ -1200,8 +1198,8 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                     | Some (Optional _) -> 0I
                     | _                 -> c.acnMinSizeInBits) |> Seq.sum
             let maxChildrenSize = mergedChildren |> List.map(fun c -> c.acnMaxSizeInBits) |> Seq.sum
-            let acnMaxSizeInBits = alignmentSize + acnBitMaskSize + maxChildrenSize
-            let acnMinSizeInBits = alignmentSize + acnBitMaskSize + minChildrenSize
+            let acnMaxSizeInBits = acnBitMaskSize + maxChildrenSize + AcnEncodingClasses.getAlignmentSize alignment
+            let acnMinSizeInBits = acnBitMaskSize + minChildrenSize
             let acnProperties =
                 {
                     SequenceAcnProperties.postEncodingFunction = tryGetProp combinedProperties (fun x -> match x with POST_ENCODING_FUNCTION (md,fn) -> Some (PostEncodingFunction (md,fn)) | _ -> None);

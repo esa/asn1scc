@@ -367,10 +367,23 @@ let callSize (recv: Expr): Expr = MethodCall { id = "size"; recv = recv; args = 
 let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; args = [arg] }
 
 let stringLength (recv: Expr): Expr = FieldSelect (recv, "nCount")
+
 let indexOfOrLength (recv: Expr) (elem: Expr): Expr = MethodCall {recv = recv; id = "indexOfOrLength"; args = [elem]}
 
 let stringCapacity (recv: Expr): Expr = ArrayLength (FieldSelect (recv, "arr"))
 
+let alignedToByte (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToByte"; args = [bits]}
+
+let alignedToWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToWord"; args = [bits]}
+
+let alignedToDWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToDWord"; args = [bits]}
+
+let alignedTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr): Expr =
+  match alignment with
+  | None -> bits
+  | Some AcnGenericTypes.NextByte -> alignedToByte bits
+  | Some AcnGenericTypes.NextWord -> alignedToWord bits
+  | Some AcnGenericTypes.NextDWord -> alignedToDWord bits
 
 let validTransitiveLemma (b1: Expr) (b2: Expr) (b3: Expr): Expr =
   FunctionCall { prefix = [bitStreamId]; id = "validTransitiveLemma"; args = [b1; b2; b3] }
