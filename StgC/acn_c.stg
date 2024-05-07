@@ -570,6 +570,7 @@ ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax
 if (ret) {
     <p><sAcc>nCount = (int)<sExtFld>;
     ret = BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
+	<A(sErrCode)>
 }
 >>
 
@@ -582,6 +583,7 @@ oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, s
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     ret = BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nSizeMax>);
+	<A(sErrCode)>
 }
 >>
 
@@ -1129,6 +1131,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
 		ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, (int)<sExtField>);
+		<A(sErrCode)>
 		if (ret) {
             pBitStrm = &bitStrm;
             <soInner>

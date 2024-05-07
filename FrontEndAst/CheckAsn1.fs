@@ -485,7 +485,7 @@ let rec isConstraintValid (t:Asn1Type) (c:Asn1Constraint) ast =
                     | Some(Optional opt), MarkAbsent,false  when opt.defaultValue.IsSome-> raise(SemanticError (loc, sprintf "Component %s has default value and therefore it cannot be constraint to ABSENT" conName))
                     | None, MarkAbsent,false
                     | None, MarkPresent,false             -> raise(SemanticError (loc, sprintf "Component %s is not optional. So, it cannot be constraint to ABSENT or PRESENT" conName))
-                    | _, MarkPresent, true
+                    | _, MarkPresent, true                -> ()
                     | _, MarkOptional, true               -> raise(SemanticError (loc, sprintf "Choice alternative %s cannot be constraint to PRESENT or OPTIONAL" conName))
                     | _                                   -> ()
             namedCons |> Seq.iter checkNamedConstraint
