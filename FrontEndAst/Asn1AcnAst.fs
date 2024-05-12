@@ -713,6 +713,7 @@ and AcnChild = {
     Name                        : StringLoc
     id                          : ReferenceToType
     Type                        : AcnInsertedType
+    inserted                    : bool // Whether this child comes from an insertion in the top-most TAS, false if it is from the original (referenced) TAS
     Comments                    : string array
 }
 

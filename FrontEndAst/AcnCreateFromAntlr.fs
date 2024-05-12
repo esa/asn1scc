@@ -684,12 +684,14 @@ let rec private mergeAcnEncodingSpecs (thisType:AcnTypeEncodingSpec option) (bas
                     let e2 = baseType.children |> Seq.tryFind(fun x -> x.name = nm)
                     match e1, e2 with
                     | None, None    -> None
-                    | None, Some x  -> Some x
-                    | Some x, None  -> Some x
+                    | None, Some x  ->
+                        Some {x with inserted = false}
+                    | Some x, None  ->
+                        Some {x with inserted = true}
                     | Some thisChild, Some baseChild    ->
                         match mergeAcnEncodingSpecs (Some thisChild.childEncodingSpec) (Some baseChild.childEncodingSpec) with
-                        | Some combinedEncoingSpec  ->
-                            Some ({name = nm; childEncodingSpec = combinedEncoingSpec; asn1Type = thisChild.asn1Type; argumentList = thisChild.argumentList; comments=thisChild.comments})
+                        | Some combinedEncodingSpec  ->
+                            Some ({name = nm; childEncodingSpec = combinedEncodingSpec; asn1Type = thisChild.asn1Type; inserted = true; argumentList = thisChild.argumentList; comments=thisChild.comments})
                         | None                      -> None)
 
         Some {AcnTypeEncodingSpec.acnProperties = mergedProperties; children = mergedChildren; loc = thisType.loc; comments = thisType.comments; position=thisType.position; antlrSubTree=thisType.antlrSubTree}
@@ -1035,7 +1037,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let _, acnUperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn newChType.acnMinSizeInBits
 
             let alignment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
-            let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetSequenceOfEncodingClass alignment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn newChType.acnMinSizeInBits newChType.acnMaxSizeInBits hasNCount
+            let (acnEncodingClass: SizeableAcnEncodingClass),  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetSequenceOfEncodingClass alignment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn newChType.acnMinSizeInBits newChType.acnMaxSizeInBits hasNCount
 
             let newKind = {SequenceOf.child=newChType; acnProperties   = acnProperties; cons = cons; withcons = wcons;minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits = acnMinSizeInBits; acnMaxSizeInBits=acnMaxSizeInBits; typeDef=typeDef}
             SequenceOf newKind, us2
@@ -1144,7 +1146,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                     | Some xx  ->
                         //let tdprm = {GetTypeDefinition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = (curPath@[SEQ_CHILD c.Name.Value]); typeDefPath = (typeDefPath@[SEQ_CHILD c.Name.Value]); inheritInfo =None ; typeAssignmentInfo = None; rtlFnc = None}
                         let newType, us1 = mapAcnParamTypeToAcnAcnInsertedType asn1 acn xx cc.childEncodingSpec.acnProperties  (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) us
-                        AcnChild({AcnChild.Name = c.Name; id = ReferenceToType(curPath@[SEQ_CHILD (c.Name.Value, isOptional)]); Type = newType; Comments = cc.comments |> Seq.toArray}), us1
+                        AcnChild({AcnChild.Name = c.Name; id = ReferenceToType(curPath@[SEQ_CHILD (c.Name.Value, isOptional)]); Type = newType; inserted = cc.inserted; Comments = cc.comments |> Seq.toArray}), us1
 
             let mergedChildren, chus =
                 match acnType with
@@ -1174,7 +1176,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                                 match acnChild.asn1Type with
                                 | Some xx ->
                                     let newType, nest = mapAcnParamTypeToAcnAcnInsertedType asn1 acn xx acnChild.childEncodingSpec.acnProperties (curPath@[SEQ_CHILD (acnChild.name.Value, false)]) st
-                                    AcnChild({AcnChild.Name = acnChild.name; id = ReferenceToType(curPath@[SEQ_CHILD (acnChild.name.Value, false)]); Type = newType; Comments = acnChild.comments |> Seq.toArray}), nest
+                                    AcnChild({AcnChild.Name = acnChild.name; id = ReferenceToType(curPath@[SEQ_CHILD (acnChild.name.Value, false)]); Type = newType; inserted = false; Comments = acnChild.comments |> Seq.toArray}), nest
                                 | None ->
                                     raise(SemanticError(acnChild.name.Location, (sprintf "invalid name %s" acnChild.name.Value)))) us1
 
@@ -1359,9 +1361,8 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
         | Asn1Ast.ReferenceType rf    ->
             let acnArguments = acnArgs
             let oldBaseType  = Asn1Ast.GetBaseTypeByName rf.modName rf.tasName asn1
-            //t.Constraints@refTypeCons@withCons
-            let withCompCons = withCons//allCons  |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> Some c| Asn1Ast.WithComponentsConstraint _ -> Some c | _ -> None)
-            let restCons = t.Constraints@refTypeCons//allCons  |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> None | Asn1Ast.WithComponentsConstraint _ -> None | _ -> Some c)
+            let withCompCons = withCons
+            let restCons = t.Constraints@refTypeCons
             let acnTypeAssign = tryFindAcnTypeByName rf.modName rf.tasName acn
             let baseTypeAcnParams =
                 match acnTypeAssign with
@@ -1374,7 +1375,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 | Some x    -> Some x.typeEncodingSpec
             let mergedAcnEncSpec =
                 //if a reference type has a component constraint (i.e. it is actually a SEQUENCE, CHOICE or SEQUENCE OF) then we should not merge the ACN spec
-                //We must take the the ACN specification only from this type and not the base type. The reason is that with the WITH COMONENTS constraints you can
+                //We must take the the ACN specification only from this type and not the base type. The reason is that with the WITH COMPONENTS constraints you can
                 //change the definition of the type (i.e. make child as always absent).
                 match t.Constraints@refTypeCons |> Seq.exists(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> true | Asn1Ast.WithComponentsConstraint _ -> true | _ -> false) with
                 | true  -> acnType
@@ -1388,11 +1389,12 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 | []     -> [MD rf.modName.Value; TA rf.tasName.Value]
                 | _      -> typeDefPath
             let newEnmItemTypeDefPath = [MD rf.modName.Value; TA rf.tasName.Value]
-            //let typeDef, us1 = getReferenceTypeDefinition asn1 t {tfdArg with typeDefPath = newTypeDefPath; inheritInfo =inheritanceInfo } us
+
             let typeDef, us1 = getReferenceTypeDefinition asn1 t {tfdArg with typeDefPath = newTypeDefPath} us
             let hasChildren, hasAcnProps =
                 match acnType with
-                | None            -> false, false
+                | None            ->
+                    false, false
                 | Some acnEncSpec ->
                     let b1 = acnEncSpec.children.Length > 0
                     let b2 =acnEncSpec.acnProperties.Length>0

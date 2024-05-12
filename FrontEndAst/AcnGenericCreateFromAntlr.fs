@@ -406,7 +406,7 @@ let rec  private createTypeEncodingSpec integerSizeInBytes (allAcnFiles: CommonT
                                     return e
                             }
 
-                        return {ChildSpec.name = name; childEncodingSpec= childEncodingSpec; asn1Type=asn1Type; argumentList=argumentList; comments = comments |> Seq.toList}
+                        return {ChildSpec.name = name; childEncodingSpec= childEncodingSpec; asn1Type=asn1Type; argumentList=argumentList; inserted = false; comments = comments |> Seq.toList}
                     }
                 childrenList.Children |> List.traverseResultM createChild
             | None              -> Ok []

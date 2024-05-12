@@ -55,15 +55,18 @@ let intSizeExpr (int: Asn1AcnAst.Integer) (obj: Expr): Expr =
     assert (int.acnMinSizeInBits = int.acnMaxSizeInBits) // TODO: Not quite true, there is ASCII encoding that is variable...
     longlit int.acnMaxSizeInBits
 
+(*
 let rec collectAllAcnChildren (tpe: Asn1AcnAst.Asn1TypeKind): Asn1AcnAst.AcnChild list =
   match tpe with
   | Asn1AcnAst.Sequence sq ->
     sq.children |> List.collect (fun c ->
       match c with
-      | Asn1AcnAst.AcnChild c -> [c]
+      | Asn1AcnAst.AcnChild c ->
+        if c.inserted then [c] else []
       | Asn1AcnAst.Asn1Child c -> collectAllAcnChildren c.Type.Kind
     )
   | _ -> []
+*)
 
 // TODO: ALIGN???
 let acnTypeSizeExpr (acn: AcnInsertedType): Expr =
@@ -88,40 +91,35 @@ let acnTypeSizeExpr (acn: AcnInsertedType): Expr =
     if s.str.acnMinSizeInBits <> s.str.acnMaxSizeInBits then failwith "TODO"
     else longlit s.str.acnMaxSizeInBits
 
-// TODO: QUID ACN children???
-let asn1SizeExpr (alignment: AcnAlignment option) (tp: Asn1AcnAst.Asn1TypeKind) (obj: Expr): Expr =
-  let sz =
-    match tp.ActualType with
-    | Asn1AcnAst.Integer int -> intSizeExpr int obj
-    | Asn1AcnAst.Enumerated enm ->
-      assert (enm.acnMinSizeInBits = enm.acnMaxSizeInBits)
-      longlit enm.acnMaxSizeInBits
-    | Asn1AcnAst.IA5String st ->
-      let szProps = st.acnProperties.sizeProp |> Option.map fromAcnSizeProps
-      let charSize = GetNumberOfBitsForNonNegativeInteger (bigint (st.uperCharSet.Length - 1))
-      stringLikeSizeExpr szProps st.minSize.acn st.maxSize.acn charSize (indexOfOrLength obj (IntLit (UByte, 0I)))
-    | Asn1AcnAst.OctetString ot ->
-      let szProps = ot.acnProperties.sizeProp |> Option.map fromSizeableProps
-      stringLikeSizeExpr szProps ot.minSize.acn ot.maxSize.acn 8I (stringLength obj)
-    | Asn1AcnAst.BitString bt ->
-      let szProps = bt.acnProperties.sizeProp |> Option.map fromSizeableProps
-      stringLikeSizeExpr szProps bt.minSize.acn bt.maxSize.acn 1I (stringLength obj)
-    | Asn1AcnAst.NullType nt ->
-      assert (nt.acnMinSizeInBits = nt.acnMaxSizeInBits)
-      longlit nt.acnMaxSizeInBits
-    | Asn1AcnAst.Boolean bt ->
-      assert (bt.acnMinSizeInBits = bt.acnMaxSizeInBits)
-      longlit bt.acnMaxSizeInBits
-    | Asn1AcnAst.Real rt ->
-      assert (rt.acnMinSizeInBits = rt.acnMaxSizeInBits)
-      longlit rt.acnMaxSizeInBits
-    | Asn1AcnAst.Sequence sq ->
-      let allAcn = collectAllAcnChildren tp.ActualType
-      let allAcnSizes = allAcn |> List.map (fun c -> acnTypeSizeExpr c.Type)
-      plus (callSize obj :: allAcnSizes)
-    | _ -> callSize obj
-  // TODO: ALIGN
-  sz
+let maxAlignmentOf (aligns: AcnAlignment option list): AcnAlignment option =
+  assert (not aligns.IsEmpty)
+  aligns |> List.maxBy (fun a -> a |> Option.map (fun a -> a.nbBits) |> Option.defaultValue 0I)
+
+let rec maxAlignment (tp: Asn1AcnAst.Asn1Type): AcnAlignment option =
+  match tp.Kind.ActualType with
+  | Asn1AcnAst.Sequence sq ->
+    maxAlignmentOf (tp.acnAlignment :: (sq.children |> List.map (fun c ->
+      match c with
+      | Asn1Child c -> maxAlignment c.Type
+      | AcnChild c -> c.Type.acnAlignment
+    )))
+  | Choice ch ->
+    maxAlignmentOf (tp.acnAlignment :: (ch.children |> List.map (fun c -> maxAlignment c.Type)))
+  | SequenceOf sqf ->
+    maxAlignmentOf [tp.acnAlignment; maxAlignment sqf.child]
+  | _ -> tp.acnAlignment
+
+let sizeLemmaId(align: AcnAlignment option): string =
+  match align with
+  | None -> "sizeLemmaAnyOffset"
+  | Some NextByte -> "sizeLemmaNextByte"
+  | Some NextWord -> "sizeLemmaNextWord"
+  | Some NextDWord -> "sizeLemmaNextDWord"
+
+let sizeLemmaIdForType (tp: Asn1AcnAst.Asn1TypeKind) (align: AcnAlignment option): string option =
+  match tp.ActualType with
+  | Sequence _ | Choice _ | SequenceOf _ -> Some (sizeLemmaId align)
+  | _ -> None
 
 let stringInvariants (minSize: bigint) (maxSize: bigint) (recv: Expr): Expr =
   let arrayLen = ArrayLength recv
@@ -397,123 +395,289 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
     invariant = show (ExprTree (SplitAnd invariants))
   }
 
+let private offsetConds (offset :Var) (maxSize: bigint) =
+  And [
+    Leq (longlit 0I, Var offset)
+    Leq (Var offset, longlit (2I ** 63 - 1I - maxSize))
+  ]
+
+let private implyingAlignments (align: AcnAlignment option): AcnAlignment option list =
+  match align with
+  | None -> [None; Some NextByte; Some NextWord; Some NextDWord]
+  | Some NextByte -> [Some NextByte; Some NextWord; Some NextDWord]
+  | Some NextWord -> [Some NextWord; Some NextDWord]
+  | Some NextDWord -> [Some NextDWord]
+
+let private sizeLemmaTemplate (maxSize: bigint) (align: AcnAlignment option): FunDef  =
+  let id = sizeLemmaId align
+  let offset = {Var.name = "offset"; tpe = IntegerType Long}
+  let otherOffset = {Var.name = "otherOffset"; tpe = IntegerType Long}
+  let res = {name = "res"; tpe = UnitType}
+  let additionalPrecond, postcond =
+    match align with
+    | None -> [], Equals (callSize This (Var offset), callSize This (Var otherOffset))
+    | Some align ->
+      let modOffset = Mod (Var offset, longlit align.nbBits)
+      let modOtherOffset = Mod (Var otherOffset, longlit align.nbBits)
+      [Precond (Equals (modOffset, modOtherOffset))], Equals (callSize This (Var offset), callSize This (Var otherOffset))
+  {
+    id = id
+    prms = [offset; otherOffset]
+    specs = [Precond (offsetConds offset maxSize); Precond (offsetConds otherOffset maxSize)] @ additionalPrecond
+    annots = [GhostAnnot; Opaque; InlineOnce]
+    postcond = Some (res, postcond)
+    returnTpe = UnitType
+    body = UnitLit
+  }
+
+
 // TODO: Alignment???
 // TODO: UPER/ACN
-let seqSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): FunDef =
+
+type SizeExprRes = {
+  bdgs: (Var * Expr) list
+  resSize: Expr
+}
+
+let rec asn1SizeExpr (align: AcnAlignment option)
+                     (tp: Asn1AcnAst.Asn1TypeKind)
+                     (obj: Expr)
+                     (offset: Expr)
+                     (nestingLevel: bigint)
+                     (nestingIx: bigint): SizeExprRes =
+  let aligned (res: SizeExprRes): SizeExprRes =
+    {res with resSize = alignedSizeTo align res.resSize offset}
+
+  // TODO: ALIGN
+  match tp with
+  | Integer int ->
+    aligned {bdgs = []; resSize = intSizeExpr int obj}
+  | Enumerated enm ->
+    assert (enm.acnMinSizeInBits = enm.acnMaxSizeInBits)
+    aligned {bdgs = []; resSize = longlit enm.acnMaxSizeInBits}
+  | IA5String st ->
+    let szProps = st.acnProperties.sizeProp |> Option.map fromAcnSizeProps
+    let charSize = GetNumberOfBitsForNonNegativeInteger (bigint (st.uperCharSet.Length - 1))
+    aligned {bdgs = []; resSize = stringLikeSizeExpr szProps st.minSize.acn st.maxSize.acn charSize (indexOfOrLength obj (IntLit (UByte, 0I)))}
+  | OctetString ot ->
+    let szProps = ot.acnProperties.sizeProp |> Option.map fromSizeableProps
+    aligned {bdgs = []; resSize = stringLikeSizeExpr szProps ot.minSize.acn ot.maxSize.acn 8I (stringLength obj)}
+  | BitString bt ->
+    let szProps = bt.acnProperties.sizeProp |> Option.map fromSizeableProps
+    aligned {bdgs = []; resSize = stringLikeSizeExpr szProps bt.minSize.acn bt.maxSize.acn 1I (stringLength obj)}
+  | NullType nt ->
+    assert (nt.acnMinSizeInBits = nt.acnMaxSizeInBits)
+    aligned {bdgs = []; resSize = longlit nt.acnMaxSizeInBits}
+  | Boolean bt ->
+    assert (bt.acnMinSizeInBits = bt.acnMaxSizeInBits)
+    aligned {bdgs = []; resSize = longlit bt.acnMaxSizeInBits}
+  | Real rt ->
+    assert (rt.acnMinSizeInBits = rt.acnMaxSizeInBits)
+    aligned {bdgs = []; resSize = longlit rt.acnMaxSizeInBits}
+  | Sequence sq ->
+    // Alignment done there
+    seqSizeExpr sq align obj offset (nestingLevel + 1I) nestingIx
+  | Choice ch ->
+    // Ditto
+    choiceSizeExpr ch align obj offset (nestingLevel + 1I) nestingIx
+  | SequenceOf _ ->
+    // seqOfSizeRangeExpr sqf obj offset (nestingLevel + 1I) nestingIx
+    // TODO: dire pk
+    aligned {bdgs = []; resSize = callSize obj offset}
+  | ReferenceType rt ->
+    let isComposite =
+      match rt.resolvedType.ActualType.Kind with
+      | Sequence _ | SequenceOf _ | Choice _ -> true
+      | _ -> false
+    if rt.hasExtraConstrainsOrChildrenOrAcnArgs || not isComposite then
+      // Alignment done there
+      asn1SizeExpr align rt.resolvedType.Kind obj offset nestingLevel nestingIx
+    else
+      aligned {bdgs = []; resSize = callSize obj offset}
+  | _ -> aligned {bdgs = []; resSize = callSize obj offset}
+
+and seqSizeExpr (sq: Sequence)
+                (align: AcnAlignment option)
+                (obj: Expr)
+                (offset: Expr)
+                (nestingLevel: bigint)
+                (nestingIx: bigint): SizeExprRes =
+
+  let childSize (allPreviousSizes: (Var * Expr) list, directChildrenVars: Var list) (ix: int, child: SeqChildInfo): ((Var * Expr) list) * (Var list) =
+    let varName =
+      if nestingLevel = 0I then $"size_{nestingIx + bigint ix}"
+      else $"size_{nestingLevel}_{nestingIx + bigint ix}"
+    let resVar = {Var.name = varName; tpe = IntegerType Long}
+    let accOffset = plus (offset :: (directChildrenVars |> List.map Var))
+    // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
+    let extraBdgs, resSize =
+      match child with
+      | AcnChild acn ->
+        (*if acn.deps.acnDependencies.IsEmpty then
+          // This should not be possible, but ACN parameters are probably validated afterwards.
+          [], longlit 0I
+        else*)
+          // There can be multiple dependencies on an ACN field, however all must be consistent
+          // (generated code checks for that, done by MultiAcnUpdate).
+          // For our use case, we assume the message is consistent, we therefore pick
+          // an arbitrary dependency.
+          // If it is not the case, the returned value may be incorrect but we would
+          // not encode the message anyway, so this incorrect size would not be used.
+          // To do things properly, we should move this check of MultiAcnUpdate in the IsConstraintValid function
+          // of the message and add it as a precondition to the size function.
+          // TODO: variable-length size
+          [], acnTypeSizeExpr acn.Type
+      | Asn1Child asn1 ->
+        match asn1.Optionality with
+        | Some _ ->
+          let scrut = FieldSelect (obj, asn1._scala_name)
+          let someBdg = {Var.name = "v"; tpe = fromAsn1TypeKind asn1.Type.Kind}
+          let childRes = asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind (Var someBdg) accOffset nestingLevel (nestingIx + (bigint ix))
+          childRes.bdgs, optionMutMatchExpr scrut (Some someBdg) childRes.resSize (longlit 0I)
+        | None ->
+          let childRes = asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind (FieldSelect (obj, asn1._scala_name)) accOffset nestingLevel (nestingIx + (bigint ix))
+          childRes.bdgs, childRes.resSize
+    allPreviousSizes @ extraBdgs @ [resVar, resSize], directChildrenVars @ [resVar]
+
+  if sq.children.IsEmpty then {bdgs = []; resSize = longlit 0I}
+  else
+    let presenceBits = sq.children |> List.sumBy (fun child ->
+      match child with
+        | AcnChild acn -> 0I
+        | Asn1Child asn1 ->
+          match asn1.Optionality with
+          | Some (Optional opt) when opt.acnPresentWhen.IsNone -> 1I
+          | _ -> 0I
+    )
+    let allBindings, directChildrenVars = sq.children |> List.indexed |> (List.fold childSize ([], []))
+    let resultSize = plus [longlit presenceBits; directChildrenVars |> List.map Var |> plus]
+    let resultSize = alignedSizeTo align resultSize offset
+    {bdgs = allBindings; resSize = resultSize}
+
+and choiceSizeExpr (choice: Asn1AcnAst.Choice)
+                   (align: AcnAlignment option)
+                   (obj: Expr)
+                   (offset: Expr)
+                   (nestingLevel: bigint)
+                   (nestingIx: bigint): SizeExprRes =
+  let cases = choice.children |> List.map (fun child ->
+    let tpeId = (ToC choice.typeDef[Scala].typeName) + "." + (ToC child.present_when_name) + "_PRESENT"
+    let tpe = fromAsn1TypeKind child.Type.Kind
+    let binder = {Var.name = child._scala_name; tpe = tpe}
+    let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
+    let res = asn1SizeExpr child.Type.acnAlignment child.Type.Kind (Var binder) offset nestingLevel nestingIx
+    let resSize = alignedSizeTo align res.resSize offset
+    let res = letsIn res.bdgs resSize
+    {MatchCase.pattern = pat; rhs = res}
+  )
+  {bdgs = []; resSize = MatchExpr {scrut = obj; cases = cases}}
+
+// TODO: incorrect si on refine un element dans la sequenceOf....
+and seqOfSizeRangeExpr (sq: Asn1AcnAst.SequenceOf)
+                       (align: AcnAlignment option)
+                       (obj: Expr)
+                       (offset: Expr)
+                       (nestingLevel: bigint)
+                       (nestingIx: bigint): SizeExprRes =
+  let from = {name = "from"; tpe = IntegerType Int}
+  let tto = {name = "to"; tpe = IntegerType Int}
+  let arr = FieldSelect (obj, "arr")
+
+  let elem = ArraySelect (arr, Var from)
+  let elemSizeVar = {name = "elemSize"; tpe = IntegerType Long}
+  let elemSize = asn1SizeExpr sq.child.acnAlignment sq.child.Kind elem offset nestingLevel nestingIx
+  let elemSizeAssert =
+    if sq.child.Kind.acnMinSizeInBits = sq.child.Kind.acnMaxSizeInBits then
+      Assert (Equals (Var elemSizeVar, longlit sq.child.Kind.acnMinSizeInBits))
+    else
+      Assert (And [
+        Leq (longlit sq.child.Kind.acnMinSizeInBits, Var elemSizeVar)
+        Leq (Var elemSizeVar, longlit sq.child.Kind.acnMaxSizeInBits)
+      ])
+  let reccall = MethodCall {recv = This; id = "sizeRange"; args = [Var elemSizeVar; plus [Var from; int32lit 1I]; Var tto]}
+  let resSize = alignedSizeTo align (plus [Var elemSizeVar; reccall]) offset
+  let elseBody = letsIn (elemSize.bdgs @ [elemSizeVar, elemSize.resSize]) (mkBlock [elemSizeAssert; resSize])
+  let body =
+    IfExpr {
+      cond = Equals (Var from, Var tto)
+      thn = longlit 0I
+      els = elseBody
+    }
+  {bdgs = []; resSize = body}
+
+
+let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef list =
   // TODO: Alignment???
   // TODO: Pour les int, on peut ajouter une assertion GetBitUnsignedCount(...) == resultat (ici et/ou ailleurs)
-
-  let presenceBits = children |> List.sumBy (fun child ->
-    match child with
-      | DAst.AcnChild acn -> 0I
-      | DAst.Asn1Child asn1 ->
-        match asn1.Optionality with
-        | Some (Optional opt) when opt.acnPresentWhen.IsNone -> 1I
-        | _ -> 0I
-  )
-  let childSize (previousSizes: (Var * Expr) list) (ix: int, child: DAst.SeqChildInfo): (Var * Expr) list =
-      let resVar = {Var.name = $"size{ix}"; tpe = IntegerType Long}
-
-      // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
-      let resSize =
-        match child with
-        | DAst.AcnChild acn ->
-          if acn.deps.acnDependencies.IsEmpty then
-            // This should not be possible, but ACN parameters are probably validated afterwards.
-            longlit 0I
-          else
-            // There can be multiple dependencies on an ACN field, however all must be consistent
-            // (generated code checks for that, done by MultiAcnUpdate).
-            // For our use case, we assume the message is consistent, we therefore pick
-            // an arbitrary dependency.
-            // If it is not the case, the returned value may be incorrect but we would
-            // not encode the message anyway, so this incorrect size would not be used.
-            // To do things properly, we should move this check of MultiAcnUpdate in the IsConstraintValid function
-            // of the message and add it as a precondition to the size function.
-            // TODO: variable-length size
-            acnTypeSizeExpr acn.Type
-        | DAst.Asn1Child asn1 ->
-          match asn1.Optionality with
-          | Some _ ->
-            let scrut = FieldSelect (This, asn1._scala_name)
-            let someBdg = {Var.name = "v"; tpe = fromAsn1TypeKind asn1.Type.Kind.baseKind}
-            let someBody = asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind.baseKind (Var someBdg)
-            optionMutMatchExpr scrut (Some someBdg) someBody (longlit 0I)
-          | None ->
-            asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind.baseKind (FieldSelect (This, asn1._scala_name))
-      previousSizes @ [resVar, resSize]
-
-  let sizes =
-    children |> List.indexed |> (List.fold childSize [])
-  let resultSize = sizes |> List.map (fun (v, _) -> Var v) |> plus
-  // TODO: ALIGN
-  let finalSize = plus [longlit presenceBits; letsIn sizes resultSize]
-
+  let offset = {Var.name = "offset"; tpe = IntegerType Long}
+  let res = seqSizeExpr sq t.acnAlignment This (Var offset) 0I 0I
+  let finalSize = letsIn res.bdgs res.resSize
   let res = {name = "res"; tpe = IntegerType Long}
   let postcond =
     if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then Equals (Var res, longlit sq.acnMaxSizeInBits)
     else And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
-  {
+
+  let sizeLemmas (align: AcnAlignment option): FunDef =
+    // TODO: May need to call intermediate lemmas
+    let template = sizeLemmaTemplate sq.acnMaxSizeInBits align
+    template
+
+  let sizeFd = {
     id = "size"
-    prms = []
-    specs = []
+    prms = [offset]
+    specs = [Precond (offsetConds offset sq.acnMaxSizeInBits)]
     annots = []
     postcond = Some (res, postcond)
     returnTpe = IntegerType Long
     body = finalSize
   }
+  let maxAlign = maxAlignment t
+  let implyingAligns = implyingAlignments maxAlign
+  let lemmas = implyingAligns |> List.map sizeLemmas
+  sizeFd :: lemmas
 
-let choiceSizeExpr (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): FunDef =
-  let cases = children |> List.map (fun child ->
-    let tpeId = (ToC child._present_when_name_private) + "_PRESENT"
-    let tpe = fromAsn1TypeKind child.chType.Kind.baseKind
-    let binder = {Var.name = child._scala_name; tpe = tpe}
-    let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
-    let rhs = asn1SizeExpr child.chType.acnAlignment child.chType.Kind.baseKind (Var binder)
-    {MatchCase.pattern = pat; rhs = rhs}
-  )
+let choiceSizeFunDefs (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice): FunDef list =
+  let offset = {Var.name = "offset"; tpe = IntegerType Long}
+  let sizeRes = choiceSizeExpr choice t.acnAlignment This (Var offset) 0I 0I
+  assert sizeRes.bdgs.IsEmpty
+  let sizeLemmas (align: AcnAlignment option): FunDef =
+    // TODO: May need to call intermediate lemmas
+    let template = sizeLemmaTemplate choice.acnMaxSizeInBits align
+    template
+
   let res = {name = "res"; tpe = IntegerType Long}
   let postcond =
     if choice.acnMinSizeInBits = choice.acnMaxSizeInBits then Equals (Var res, longlit choice.acnMaxSizeInBits)
     else And [Leq (longlit choice.acnMinSizeInBits, Var res); Leq (Var res, longlit choice.acnMaxSizeInBits)]
-  {
+  let sizeFd = {
     id = "size"
-    prms = []
-    specs = []
+    prms = [offset]
+    specs = [Precond (offsetConds offset choice.acnMaxSizeInBits)]
     annots = []
     postcond = Some (res, postcond)
     returnTpe = IntegerType Long
-    body = MatchExpr {scrut = This; cases = cases}
+    body = sizeRes.resSize
   }
+  let maxAlign = maxAlignment t
+  let implyingAligns = implyingAlignments maxAlign
+  let lemmas = implyingAligns |> List.map sizeLemmas
+  sizeFd :: lemmas
 
-let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): FunDef option * FunDef =
+let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): FunDef list =
+  let offset = {Var.name = "offset"; tpe = IntegerType Long}
   let res = {name = "res"; tpe = IntegerType Long}
   let count = FieldSelect (This, "nCount")
-
-  let fd1 =
+  let sizeRangeFd =
     let from = {name = "from"; tpe = IntegerType Int}
     let tto = {name = "to"; tpe = IntegerType Int}
-    let arr = FieldSelect (This, "arr")
     let measure = Minus (Var tto, Var from)
-    let require = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, count)]
-
-    let elem = ArraySelect (arr, Var from)
-    let reccall = MethodCall {recv = This; id = "sizeRange"; args = [plus [Var from; int32lit 1I]; Var tto]}
-    let elemSize = asn1SizeExpr elemTpe.acnAlignment elemTpe.Kind.baseKind elem
-    let elemSizeAssert =
-      if elemTpe.Kind.baseKind.acnMinSizeInBits = elemTpe.Kind.baseKind.acnMaxSizeInBits then
-        Assert (Equals (elemSize, longlit elemTpe.Kind.baseKind.acnMinSizeInBits))
-      else
-        Assert (And [
-          Leq (longlit elemTpe.Kind.baseKind.acnMinSizeInBits, elemSize)
-          Leq (elemSize, longlit elemTpe.Kind.baseKind.acnMaxSizeInBits)
-        ])
-    let body =
-      IfExpr {
-        cond = Equals (Var from, Var tto)
-        thn = longlit 0I
-        els = mkBlock [elemSizeAssert; plus [elemSize; reccall]]
-      }
+    let overhead = sq.acnMaxSizeInBits - sq.maxSize.acn * elemTpe.Kind.baseKind.acnMaxSizeInBits
+    let offsetCond = And [
+      Leq (longlit 0I, Var offset)
+      Leq (Var offset, Minus (longlit (2I ** 63 - 1I - overhead), Mult (longlit elemTpe.Kind.baseKind.acnMaxSizeInBits, Minus (Var tto, Var from))))
+    ]
+    let rangeVarsConds = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, count)]
+    let sizeRes = seqOfSizeRangeExpr sq t.acnAlignment This (Var offset) 0I 0I
     let postcondRange =
       let nbElems = {Var.name = "nbElems"; tpe = IntegerType Int} // TODO: Add explicit cast to Long
       let sqLowerBound = Mult (longlit elemTpe.Kind.baseKind.acnMinSizeInBits, Var nbElems)
@@ -529,16 +693,21 @@ let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe:
           ]
         ]
       }
-
     {
       id = "sizeRange"
-      prms = [from; tto]
-      specs = [Measure measure; Precond require]
+      prms = [offset; from; tto]
+      specs = [Precond rangeVarsConds; Precond offsetCond; Measure measure]
       annots = []
       postcond = Some (res, postcondRange)
       returnTpe = IntegerType Long
-      body = body
+      body = sizeRes.resSize
     }
+
+  let sizeLemmas (align: AcnAlignment option): FunDef =
+    // TODO: Lemmas
+    let template = sizeLemmaTemplate sq.acnMaxSizeInBits align
+    template
+
   let sizeField =
     match sq.acnEncodingClass with
     | SZ_EC_LENGTH_EMBEDDED sz -> sz
@@ -547,30 +716,35 @@ let seqOfSizeExpr (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe:
     if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then Equals (Var res, longlit sq.acnMaxSizeInBits)
     else And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
   // TODO: ALIGN
-  let finalSize = plus [longlit sizeField; MethodCall {recv = This; id = fd1.id; args = [int32lit 0I; count]}]
-  let fd2 = {
+  // TODO: ALIGN
+  // TODO: ALIGN
+  let finalSize = plus [longlit sizeField; MethodCall {recv = This; id = sizeRangeFd.id; args = [Var offset; int32lit 0I; count]}]
+  let sizeFd = {
     id = "size"
-    prms = []
-    specs = []
+    prms = [offset]
+    specs = [Precond (offsetConds offset sq.acnMaxSizeInBits)]
     annots = []
     postcond = Some (res, postcond)
     returnTpe = IntegerType Long
     body = finalSize
   }
-  Some fd1, fd2
+  let maxAlign = maxAlignment t
+  let implyingAligns = implyingAlignments maxAlign
+  let lemmas = implyingAligns |> List.map sizeLemmas
+  sizeRangeFd :: sizeFd :: lemmas
+
 
 let generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): string list =
-  let fd = seqSizeExpr t sq children
-  [show (FunDefTree fd)]
+  let fds = seqSizeFunDefs t sq
+  fds |> List.map (fun fd -> show (FunDefTree fd))
 
 let generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
-  let fd = choiceSizeExpr t choice children
-  [show (FunDefTree fd)]
+  let fds = choiceSizeFunDefs t choice
+  fds |> List.map (fun fd -> show (FunDefTree fd))
 
 let generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): string list =
-  let fd1, fd2 = seqOfSizeExpr t sqf elemTpe
-  let fd1 = fd1 |> Option.map (fun fd -> [show (FunDefTree fd)]) |> Option.defaultValue []
-  fd1 @ [show (FunDefTree fd2)]
+  let fds = seqOfSizeFunDefs t sqf elemTpe
+  fds |> List.map (fun fd -> show (FunDefTree fd))
 
 let generatePostcondExpr (t: Asn1AcnAst.Asn1Type) (pVal: Selection) (res: Var) (codec: Codec): Expr =
   let codecTpe = runtimeCodecTypeFor ACN
@@ -582,19 +756,12 @@ let generatePostcondExpr (t: Asn1AcnAst.Asn1Type) (pVal: Selection) (res: Var) (
     match codec with
     | Encode -> leftId, rightId, Equals (selBufLength (Var w1), selBufLength (Var w2)), {Var.name = pVal.asLastOrSelf.receiverId; tpe = tpe}
     | Decode -> leftMutId, rightMutId, Equals (selBuf (Var w1), selBuf (Var w2)), res
-  let sz = asn1SizeExpr t.acnAlignment t.Kind (Var szRecv)
-  let rightBody = Let {
-    bdg = w1;
-    e = Old (Var cdc)
-    body = Let {
-      bdg = w2
-      e = Var cdc
-      body = And [
-        buf
-        Equals (bitIndex (Var w1), plus [bitIndex (Var w2); sz])
-      ]
-    }
-  }
+  let sz = asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndex (Var w1)) 0I 0I
+  let rightBody = And [
+    buf
+    Equals (bitIndex (Var w1), plus [bitIndex (Var w2); sz.resSize])
+  ]
+  let rightBody = letsIn ([w1, Old (Var cdc); w2, Var cdc] @ sz.bdgs) rightBody
   MatchExpr (eitherGenMatch lftId rgtId (Var res) None (BoolLit true) (Some res) rightBody)
 
 let wrapAcnFuncBody (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (body: string) (codec: Codec) (outerSel: Selection) (recSel: Selection): FunDef * Expr =
@@ -668,7 +835,7 @@ let wrapAcnFuncBody (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (b
     let call =
       let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc]}
       let leftBdg = {Var.name = "l"; tpe = errTpe}
-      // TODO: FIXME: must the right type must be the outside type!!!
+      // TODO: FIXME: the right type must be the outside type!!!
       let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
       let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
       let rightBdg = {Var.name = "v"; tpe = tpe}

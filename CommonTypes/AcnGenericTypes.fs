@@ -25,6 +25,12 @@ type AcnAlignment =
     | NextByte
     | NextWord
     | NextDWord
+with
+    member this.nbBits: bigint =
+        match this with
+        | NextByte -> 8I
+        | NextWord -> 16I
+        | NextDWord -> 32I
 
 
 
@@ -419,12 +425,12 @@ with
     member this.c_name = ToC this.name
 
 
-type  GenericAcnPresentWhenCondition =
+type GenericAcnPresentWhenCondition =
     | GP_PresenceBool  of RelativePath
     | GP_PresenceInt   of RelativePath*IntLoc
     | GP_PresenceStr   of RelativePath*StringLoc
 
-type  GenAcnEncodingProp =
+type GenAcnEncodingProp =
     | GP_PosInt
     | GP_TwosComplement
     | GP_Ascii
@@ -432,14 +438,14 @@ type  GenAcnEncodingProp =
     | GP_IEEE754_32
     | GP_IEEE754_64
 
-type  GenSizeProperty =
+type GenSizeProperty =
     | GP_Fixed                 of IntLoc
     | GP_NullTerminated
     | GP_SizeDeterminant       of RelativePath
 
 
 
-type  GenericAcnProperty =
+type GenericAcnProperty =
     | ENCODING          of GenAcnEncodingProp
     | SIZE              of GenSizeProperty
     | ALIGNTONEXT       of AcnAlignment
@@ -461,24 +467,25 @@ type  GenericAcnProperty =
 
 
 
-type  AcnTypeEncodingSpec = {
+type AcnTypeEncodingSpec = {
     acnProperties   : GenericAcnProperty list
     children        : ChildSpec list
     loc             : SrcLoc
     comments        : string list
-    position         : SrcLoc*SrcLoc   //start pos, end pos
+    position        : SrcLoc*SrcLoc   //start pos, end pos
     antlrSubTree    :ITree option
 }
 
-and  ChildSpec = {
+and ChildSpec = {
     name            : StringLoc
     childEncodingSpec : AcnTypeEncodingSpec
     asn1Type        : AcnParamType option    // if present then it indicates an ACN inserted type
+    inserted        : bool // For ACN inserted types, whether this child comes from an insertion in the current TAS, false if it is from the original TAS
     argumentList    : RelativePath list
     comments        : string list
 }
 
-type  AcnTypeAssignment = {
+type AcnTypeAssignment = {
     name            : StringLoc
     acnParameters   : AcnParameter list
     typeEncodingSpec: AcnTypeEncodingSpec
@@ -486,18 +493,18 @@ type  AcnTypeAssignment = {
     position        : RangeWithinFile
 }
 
-type  AcnModule = {
+type AcnModule = {
     name            : StringLoc
     typeAssignments : AcnTypeAssignment list
 }
 
 
-type  AcnFile = {
+type AcnFile = {
     antlrResult : CommonTypes.AntlrParserResult
     modules     : AcnModule list
 }
 
-type  AcnAst = {
+type AcnAst = {
     files : AcnFile list
     acnConstants : Map<string, BigInteger>
 }

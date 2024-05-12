@@ -26,6 +26,7 @@ type Annot =
 type Type =
   | IntegerType of IntegerType
   | BooleanType
+  | UnitType
   | DoubleType
   | ArrayType of ArrayType
   | ClassType of ClassType
@@ -85,9 +86,11 @@ and Expr =
   | Not of Expr
   | Equals of Expr * Expr
   | Mult of Expr * Expr
+  | Mod of Expr * Expr
   | Plus of Expr list
   | Minus of Expr * Expr
   | Leq of Expr * Expr
+  | UnitLit
   | BoolLit of bool
   | IntLit of IntegerType * bigint
   | EncDec of string
@@ -365,7 +368,7 @@ let getBitCountUnsigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "Ge
 
 let validateOffsetBits (recv: Expr) (offset: Expr): Expr = MethodCall { id = "validate_offset_bits"; recv = selBitStream recv; args = [offset] }
 
-let callSize (recv: Expr): Expr = MethodCall { id = "size"; recv = recv; args = [] }
+let callSize (recv: Expr) (offset: Expr): Expr = MethodCall { id = "size"; recv = recv; args = [offset] }
 
 let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; args = [arg] }
 
@@ -387,6 +390,19 @@ let alignedTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr): Exp
   | Some AcnGenericTypes.NextByte -> alignedToByte bits
   | Some AcnGenericTypes.NextWord -> alignedToWord bits
   | Some AcnGenericTypes.NextDWord -> alignedToDWord bits
+
+let alignedSizeToByte (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToByte"; args = [bits; offset]}
+
+let alignedSizeToWord (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToWord"; args = [bits; offset]}
+
+let alignedSizeToDWord (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToDWord"; args = [bits; offset]}
+
+let alignedSizeTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr) (offset: Expr): Expr =
+  match alignment with
+  | None -> bits
+  | Some AcnGenericTypes.NextByte -> alignedSizeToByte bits offset
+  | Some AcnGenericTypes.NextWord -> alignedSizeToWord bits offset
+  | Some AcnGenericTypes.NextDWord -> alignedSizeToDWord bits offset
 
 let validTransitiveLemma (b1: Expr) (b2: Expr) (b3: Expr): Expr =
   FunctionCall { prefix = [bitStreamId]; id = "validTransitiveLemma"; args = [b1; b2; b3] }
@@ -491,6 +507,9 @@ let noBracesSub (e: Tree): Tree list =
   | ExprTree (LetGhost l) -> [ExprTree l.body]
   | ExprTree (Ghost e) -> [ExprTree e]
   | ExprTree (Locally e) -> [ExprTree e]
+  | ExprTree (IfExpr ite) -> [ExprTree ite.els; ExprTree ite.thn]
+  // TODO: match case and not matchexpr...
+  | ExprTree (MatchExpr m) -> m.cases |> List.map (fun c -> ExprTree c.rhs)
   | _ -> []
 
 let requiresBraces (e: Tree) (within: Tree option): bool =
@@ -505,6 +524,7 @@ let requiresBraces (e: Tree) (within: Tree option): bool =
 
 let precedence (e: Expr): int =
   match e with
+  | Mod _ -> 0
   | Or _ -> 1
   | And _ | SplitAnd _ -> 3
   | Leq _ -> 4
@@ -518,6 +538,7 @@ let requiresParentheses (curr: Tree) (parent: Tree option): bool =
   | (_, None) -> false
   | (_, Some (ExprTree (Let _ | FunctionCall _ | Assert _ | Check _ | IfExpr _ | MatchExpr _))) -> false
   | (_, Some (ExprTree (MethodCall call))) -> not (List.contains curr (call.args |> List.map ExprTree))
+  | (ExprTree (IfExpr _ | MatchExpr _), _)  -> true
   | (ExprTree e1, Some (ExprTree e2)) when precedence e1 > precedence e2 -> false
   | _ -> true
 
@@ -559,6 +580,7 @@ let rec ppType (tpe: Type): string =
   match tpe with
   | IntegerType int -> int.ToString()
   | BooleanType -> "Boolean"
+  | UnitType -> "Unit"
   | DoubleType -> "Double"
   | ArrayType at -> $"Array[{ppType at.tpe}]"
   | ClassType ct -> ppClassType ct
@@ -773,6 +795,8 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
 
   | BoolLit b -> [line (if b then "true" else "false")]
 
+  | UnitLit -> [line "()"]
+  // TODO: optP nestExpr?
   | Equals (lhs, rhs) ->
     let lhs = ppExpr (ctx.nestExpr lhs) lhs
     let rhs = ppExpr (ctx.nestExpr rhs) rhs
@@ -812,6 +836,11 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
     let lhs = ppExpr (ctx.nestExpr lhs) lhs
     let rhs = ppExpr (ctx.nestExpr rhs) rhs
     optP ctx (join ctx " * " lhs rhs)
+
+  | Mod (lhs, rhs) ->
+    let lhs = ppExpr (ctx.nestExpr lhs) lhs
+    let rhs = ppExpr (ctx.nestExpr rhs) rhs
+    optP ctx (join ctx " % " lhs rhs)
 
   | IfExpr ifexpr -> optP ctx (ppIfExpr ctx ifexpr)
 
