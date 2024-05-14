@@ -370,19 +370,19 @@ type LangGeneric_scala() =
             | Decode -> None
 
         override this.generateOctetStringInvariants (t: Asn1AcnAst.Asn1Type) (os: Asn1AcnAst.OctetString): string list =
-            let inv = generateOctetStringInvariants t os
+            let inv = octetStringInvariants t os This
             [$"require({show (ExprTree inv)})"]
 
         override this.generateBitStringInvariants (t: Asn1AcnAst.Asn1Type) (bs: Asn1AcnAst.BitString): string list =
-            let inv = generateBitStringInvariants t bs
+            let inv = bitStringInvariants t bs This
             [$"require({show (ExprTree inv)})"]
 
         override this.generateSequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
-            let inv = generateSequenceInvariants t sq children
+            let inv = sequenceInvariants t sq children This
             inv |> Option.map (fun inv -> $"require({show (ExprTree inv)})") |> Option.toList
 
         override this.generateSequenceOfInvariants (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (tpe: DAst.Asn1TypeKind): string list =
-            let inv = generateSequenceOfInvariants t sqf tpe
+            let inv = sequenceOfInvariants sqf This
             [$"require({show (ExprTree inv)})"]
 
 

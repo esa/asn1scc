@@ -46,6 +46,12 @@ type Var = {
 type Pattern =
   | Wildcard of Var option
   | ADTPattern of ADTPattern
+with
+  member this.allBindings: Var list =
+    match this with
+    | Wildcard bdg -> bdg |> Option.toList
+    | ADTPattern pat ->
+      (pat.binder |> Option.toList) @ (pat.subPatterns |> List.collect (fun subpat -> subpat.allBindings))
 
 and ADTPattern = {
   binder: Var option
@@ -57,6 +63,7 @@ and ADTPattern = {
 type Tree =
   | ExprTree of Expr
   | FunDefTree of FunDef
+  | LocalFunDefTree of LocalFunDef
 
 and Expr =
   | Var of Var
@@ -67,9 +74,11 @@ and Expr =
   | FreshCopy of Expr
   | Let of Let
   | LetGhost of Let
+  | LetRec of LetRec
   | Assert of Expr
   | Check of Expr
   | FunctionCall of FunctionCall
+  | ApplyLetRec of ApplyLetRec
   | MethodCall of MethodCall
   | TupleSelect of Expr * int
   | FieldSelect of Expr * Identifier
@@ -104,8 +113,16 @@ and Let = {
   e: Expr
   body: Expr
 }
+and LetRec = {
+  fds: LocalFunDef list
+  body: Expr
+}
 and FunctionCall = {
   prefix: Identifier list
+  id: Identifier
+  args: Expr list
+}
+and ApplyLetRec = {
   id: Identifier
   args: Expr list
 }
@@ -136,7 +153,7 @@ and PreSpec =
   | Precond of Expr
   | Measure of Expr
 
-and FunDef = {
+and FunDefLike = {
   id: Identifier // TODO: Quid name clash???
   prms: Var list
   annots: Annot list
@@ -145,6 +162,8 @@ and FunDef = {
   returnTpe: Type
   body: Expr
 }
+and FunDef = FunDefLike
+and LocalFunDef = FunDefLike
 
 
 let mkBlock (exprs: Expr list): Expr =
@@ -152,6 +171,68 @@ let mkBlock (exprs: Expr list): Expr =
   else
     exprs |> List.collect (fun e -> match e with Block exprs -> exprs | _ -> [e])
           |> Block
+
+let rec substVars (vs: (Var * Expr) list) (inExpr: Expr): Expr =
+  let rec loop (inExpr: Expr): Expr =
+    let substInLet (lt: Let): Let =
+      let newE = loop lt.e
+      let newVs = vs |> List.filter (fun (v, _) -> v <> lt.bdg)
+      let newBody = substVars newVs lt.body
+      {lt with e = newE; body = newBody}
+    let substFd (fd: FunDefLike): FunDefLike =
+      let newVs = vs |> List.filter (fun (v, _) -> not (fd.prms |> List.contains v))
+      {fd with body = substVars newVs fd.body}
+
+    match inExpr with
+    | Var v2 ->
+      vs |> List.tryFind (fun (v, _) -> v = v2)
+         |> Option.map (fun (_, e) -> e)
+         |> Option.defaultValue inExpr
+    | Block stmts ->
+      mkBlock (stmts |> List.map loop)
+    | Ghost inExpr -> Ghost (loop inExpr)
+    | Locally inExpr -> Ghost (loop inExpr)
+    | Snapshot inExpr -> Ghost (loop inExpr)
+    | FreshCopy inExpr -> Ghost (loop inExpr)
+    | Let lt -> Let (substInLet lt)
+    | LetGhost lt -> LetGhost (substInLet lt)
+    | LetRec lrec ->
+      LetRec {fds = lrec.fds |> List.map substFd; body = loop lrec.body}
+    | Assert inExpr -> Assert (loop inExpr)
+    | Check inExpr -> Check (loop inExpr)
+    | FunctionCall call ->
+      FunctionCall {call with args = call.args |> List.map loop}
+    | ApplyLetRec call ->
+      ApplyLetRec {call with args = call.args |> List.map loop}
+    | MethodCall call ->
+      MethodCall {call with recv = loop call.recv; args = call.args |> List.map loop}
+    | TupleSelect (recv, ix) -> TupleSelect (loop recv, ix)
+    | FieldSelect (recv, id) -> FieldSelect (loop recv, id)
+    | ArraySelect (arr, ix) -> ArraySelect (loop arr, loop ix)
+    | ArrayLength arr -> ArrayLength (loop arr)
+    | ClassCtor ct -> ClassCtor {ct with args = ct.args |> List.map loop}
+    | Old inExpr -> Old (loop inExpr)
+    | Return inExpr -> Return (loop inExpr)
+    | IfExpr ifExpr -> IfExpr {cond = loop ifExpr.cond; thn = loop ifExpr.thn; els = loop ifExpr.els}
+    | MatchExpr mtch ->
+      let cases = mtch.cases |> List.map (fun cse ->
+        let allBdgs = cse.pattern.allBindings
+        let newVs = vs |> List.filter (fun (v, _) -> not (allBdgs |> List.contains v))
+        {cse with rhs = substVars newVs cse.rhs}
+      )
+      MatchExpr {scrut = loop mtch.scrut; cases = cases}
+    | And conjs -> And (conjs |> List.map loop)
+    | SplitAnd conjs -> SplitAnd (conjs |> List.map loop)
+    | Or disjs -> Or (disjs |> List.map loop)
+    | Not inExpr -> Not (loop inExpr)
+    | Equals (lhs, rhs) -> Equals (loop lhs, loop rhs)
+    | Mult (lhs, rhs) -> Mult (loop lhs, loop rhs)
+    | Mod (lhs, rhs) -> Mod (loop lhs, loop rhs)
+    | Plus terms -> Plus (terms |> List.map loop)
+    | Minus (lhs, rhs) -> Minus (loop lhs, loop rhs)
+    | Leq (lhs, rhs) -> Leq (loop lhs, loop rhs)
+    | BoolLit _ | UnitLit | IntLit _ | EncDec _ | This | SelectionExpr _ -> inExpr
+  if vs.IsEmpty then inExpr else loop inExpr
 
 let bitStreamId: Identifier = "BitStream"
 let codecId: Identifier = "Codec"
@@ -370,6 +451,8 @@ let validateOffsetBits (recv: Expr) (offset: Expr): Expr = MethodCall { id = "va
 
 let callSize (recv: Expr) (offset: Expr): Expr = MethodCall { id = "size"; recv = recv; args = [offset] }
 
+let sizeRange (recv: Expr) (offset: Expr) (from: Expr) (tto: Expr): Expr = MethodCall { id = "sizeRange"; recv = recv; args = [offset; from; tto] }
+
 let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; args = [arg] }
 
 let stringLength (recv: Expr): Expr = FieldSelect (recv, "nCount")
@@ -497,7 +580,7 @@ type Line = {
 
 let isSimpleExpr (e: Tree): bool =
   match e with
-  | ExprTree (Let _ | LetGhost _ | Block _ | Assert _) -> false
+  | ExprTree (Let _ | LetGhost _ | Block _ | Assert _ | LetRec _) -> false
   | _ -> true
 
 // TODO: Match case?
@@ -508,19 +591,21 @@ let noBracesSub (e: Tree): Tree list =
   | ExprTree (Ghost e) -> [ExprTree e]
   | ExprTree (Locally e) -> [ExprTree e]
   | ExprTree (IfExpr ite) -> [ExprTree ite.els; ExprTree ite.thn]
+  | ExprTree (LetRec lr) -> [ExprTree lr.body]
   // TODO: match case and not matchexpr...
   | ExprTree (MatchExpr m) -> m.cases |> List.map (fun c -> ExprTree c.rhs)
   | _ -> []
 
 let requiresBraces (e: Tree) (within: Tree option): bool =
-  match within with
-  | _ when isSimpleExpr e -> false
-  | Some (ExprTree (Ghost _ | Locally _)) -> false
-  | Some within when List.contains e (noBracesSub within) -> false
-  | Some _ ->
+  match e, within with
+  | _, _ when isSimpleExpr e -> false
+  | _, Some (ExprTree (Ghost _ | Locally _)) -> false
+  | _, Some within when List.contains e (noBracesSub within) -> false
+  | ExprTree (LetRec _), Some (ExprTree (LetRec _)) -> false
+  | _, Some _ ->
     // TODO
     false
-  | _ -> false
+  | _, _ -> false
 
 let precedence (e: Expr): int =
   match e with
@@ -535,11 +620,12 @@ let precedence (e: Expr): int =
 
 let requiresParentheses (curr: Tree) (parent: Tree option): bool =
   match curr, parent with
-  | (_, None) -> false
-  | (_, Some (ExprTree (Let _ | FunctionCall _ | Assert _ | Check _ | IfExpr _ | MatchExpr _))) -> false
-  | (_, Some (ExprTree (MethodCall call))) -> not (List.contains curr (call.args |> List.map ExprTree))
-  | (ExprTree (IfExpr _ | MatchExpr _), _)  -> true
-  | (ExprTree e1, Some (ExprTree e2)) when precedence e1 > precedence e2 -> false
+  | _, None -> false
+  | _, Some (ExprTree (Let _ | FunctionCall _ | Assert _ | Check _ | IfExpr _ | MatchExpr _)) -> false
+  | _, Some (ExprTree (MethodCall call)) -> not (List.contains curr (call.args |> List.map ExprTree))
+  | ExprTree (IfExpr _ | MatchExpr _), _  -> true
+  | ExprTree e1, Some (ExprTree e2) when precedence e1 > precedence e2 -> false
+  | _, Some (ExprTree (LetRec _)) -> false
   | _ -> true
 
 let joined (ctx: PrintCtx) (lines: Line list) (sep: string): Line =
@@ -604,6 +690,7 @@ let rec pp (ctx: PrintCtx) (t: Tree): Line list =
 
 and ppExpr (ctx: PrintCtx) (e: Expr): Line list = pp ctx (ExprTree e)
 
+// `prefix`(arg1, arg2, ..., argn)
 and joinCallLike (ctx: PrintCtx) (prefix: Line list) (argss: Line list list) (parameterless: bool): Line list =
   assert (not prefix.IsEmpty)
   if argss.IsEmpty && parameterless then
@@ -619,6 +706,14 @@ and joinCallLike (ctx: PrintCtx) (prefix: Line list) (argss: Line list list) (pa
       (join ctx "(" prefix args) @ [{lvl = ctx.lvl; txt = ")"}]
     else
       join ctx "(" prefix [{lvl = ctx.lvl; txt = ((List.concat argss) |> List.map (fun l -> l.txt)).StrJoin ", " + ")"}]
+
+// `prefix` {
+//   stmts
+// }
+and joinBraces (ctx: PrintCtx) (prefix: string) (stmts: Line list): Line list =
+  [{lvl = ctx.lvl; txt = $"{prefix} {{"}] @
+  (stmts |> List.map (fun l -> l.inc)) @
+  [{lvl = ctx.lvl; txt = $"}}"}]
 
 and ppLet (ctx: PrintCtx) (theLet: Expr) (lt: Let) (annot: string list): Line list =
   let e2 = ppExpr (ctx.nestExpr theLet) lt.e
@@ -653,7 +748,7 @@ and ppIfExpr (ctx: PrintCtx) (ifexpr: IfExpr): Line list =
   let els = ppExpr ctxNested.inc ifexpr.els
   (append ctx ") {" (prepend ctx "if (" cond)) @ thn @ [{txt = "} else {"; lvl = ctx.lvl}] @ els @ [{txt = "}"; lvl = ctx.lvl}]
 
-and ppFunDef (ctx: PrintCtx) (fd: FunDef): Line list =
+and ppFunDefLike (ctx: PrintCtx) (fd: FunDefLike): Line list =
   // TODO: What about "nestExpr" ???
   let prms =
     if fd.prms.IsEmpty then ""
@@ -666,8 +761,14 @@ and ppFunDef (ctx: PrintCtx) (fd: FunDef): Line list =
   let header = annots @ [{txt = $"def {fd.id}{prms}: {ppType fd.returnTpe} = {{"; lvl = ctx.lvl}]
   let preSpecs = fd.specs |> List.collect (fun s ->
     match s with
-    | Precond e -> joinCallLike ctx.inc [{txt = "require"; lvl = ctx.lvl + 1}] [ppExpr ctx.inc e] false
-    | Measure e -> joinCallLike ctx.inc [{txt = "decreases"; lvl = ctx.lvl + 1}] [ppExpr ctx.inc e] false
+    | Precond (Block stmts) ->
+      joinBraces ctx.inc "require" (stmts |> List.collect (fun s -> ppExpr ctx.inc s))
+    | Precond e ->
+      joinCallLike ctx.inc [{txt = "require"; lvl = ctx.lvl + 1}] [ppExpr ctx.inc e] false
+    | Measure (Block stmts) ->
+      joinBraces ctx.inc "decreases" (stmts |> List.collect (fun s -> ppExpr ctx.inc s))
+    | Measure e ->
+      joinCallLike ctx.inc [{txt = "decreases"; lvl = ctx.lvl + 1}] [ppExpr ctx.inc e] false
     | LetSpec (v, e) -> (prepend ctx.inc $"val {v.name} = " (ppExpr ctx.inc e))
   )
   let hasBdgInSpec = fd.specs |> List.exists (fun s -> match s with LetSpec _ -> true | _ -> false)
@@ -705,7 +806,8 @@ and optP (ctx: PrintCtx) (ls: Line list): Line list =
 and ppBody (ctx: PrintCtx) (t: Tree): Line list =
   match t with
   | ExprTree e -> ppExprBody ctx e
-  | FunDefTree fd -> ppFunDef ctx fd
+  | FunDefTree fd -> ppFunDefLike ctx fd
+  | LocalFunDefTree fd -> ppFunDefLike ctx fd
 
 and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
   let line (str: string): Line = {txt = str; lvl = ctx.lvl}
@@ -748,6 +850,15 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
     let id = if call.prefix.IsEmpty then call.id else (call.prefix.StrJoin ".") + "." + call.id
     let args = call.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
     joinCallLike ctx [line id] args true
+
+  | LetRec lr ->
+    let fds = lr.fds |> List.collect (fun fd -> ppFunDefLike (ctx.nest (LocalFunDefTree fd)) fd)
+    let body = ppExpr (ctx.nestExpr lr.body) lr.body
+    fds @ body
+
+  | ApplyLetRec call ->
+    let args = call.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
+    joinCallLike ctx [line call.id] args true
 
   | TupleSelect (recv, ix) ->
     let recv = ppExpr (ctx.nestExpr recv) recv
