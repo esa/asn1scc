@@ -645,9 +645,7 @@ let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef li
       let mapping = List.zip allVars (renamedVars |> List.map Var)
       let renamedVarFor (old: Var): Var =
         renamedVars.[allVars |> List.findIndex (fun v -> v = old)]
-
       let subst (res: SeqSizeExprChildRes): SeqSizeExprChildRes =
-
         {
           extraBdgs = res.extraBdgs |> List.map (fun (v, e) -> renamedVarFor v, substVars mapping e)
           childVar = renamedVarFor res.childVar
@@ -679,7 +677,7 @@ let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef li
         | Some _ ->
           let scrut = FieldSelect (This, child._scala_name)
           let someBdg = {Var.name = "v"; tpe = fromAsn1TypeKind child.Type.Kind}
-          let lemmaCall = sizeLemmaCall child.Type.Kind align scrut (plus accOffset) (plus accOtherOffset)
+          let lemmaCall = sizeLemmaCall child.Type.Kind align (Var someBdg) (plus accOffset) (plus accOtherOffset)
           let mtchExpr = lemmaCall |> Option.map (fun call -> optionMutMatchExpr scrut (Some someBdg) call UnitLit)
           withBindingsPlugged mtchExpr
         | None ->
@@ -824,25 +822,28 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemT
         sizeRange This (Var otherOffset) (Var from) (Var tto)
       )
     let elemSel = ArraySelect (FieldSelect (This, "arr"), Var from)
-    let elemSizeOff = {Var.name = "elemSizeOff"; tpe = IntegerType Long}
-    let elemSizeOtherOff = {Var.name = "elemSizeOtherOff"; tpe = IntegerType Long}
-    let elemSizesBdgs = [
-      (elemSizeOff, callSize elemSel (Var offset))
-      (elemSizeOtherOff, callSize elemSel (Var otherOffset))
-    ]
+    let elemSizeOffVar = {Var.name = "elemSizeOff"; tpe = IntegerType Long}
+    let elemSizeOtherOffVar = {Var.name = "elemSizeOtherOff"; tpe = IntegerType Long}
+    let elemSizeOffRes = asn1SizeExpr align sq.child.Kind elemSel (Var offset) 0I 0I
+    let elemSizeOtherOffRes = asn1SizeExpr align sq.child.Kind elemSel (Var otherOffset) 0I 0I
+    let elemSizesBdgs =
+      elemSizeOffRes.bdgs @
+      [(elemSizeOffVar, elemSizeOffRes.resSize)] @
+      elemSizeOtherOffRes.bdgs @
+      [(elemSizeOtherOffVar, elemSizeOtherOffRes.resSize)]
     let elemLemmaCall = sizeLemmaCall sq.child.Kind align elemSel (Var offset) (Var otherOffset)
     let inductiveStep = ApplyLetRec {
       id = proofId
       args = [
-        plus [Var offset; Var elemSizeOff]
-        plus [Var otherOffset; Var elemSizeOtherOff]
+        plus [Var offset; Var elemSizeOffVar]
+        plus [Var otherOffset; Var elemSizeOtherOffVar]
         plus [Var from; int32lit 1I]
         Var tto
       ]
     }
     let proofElsePart = mkBlock ([
-      elemSizeAssert elemSizeOff
-      elemSizeAssert elemSizeOtherOff
+      elemSizeAssert elemSizeOffVar
+      elemSizeAssert elemSizeOtherOffVar
       Assert inv
     ] @ (elemLemmaCall |> Option.toList) @ [inductiveStep])
     let proofElsePart = letsIn elemSizesBdgs proofElsePart
@@ -915,7 +916,13 @@ let generatePostcondExpr (t: Asn1AcnAst.Asn1Type) (pVal: Selection) (res: Var) (
     match codec with
     | Encode -> leftId, rightId, Equals (selBufLength (Var w1), selBufLength (Var w2)), {Var.name = pVal.asLastOrSelf.receiverId; tpe = tpe}
     | Decode -> leftMutId, rightMutId, Equals (selBuf (Var w1), selBuf (Var w2)), res
-  let sz = asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndex (Var w1)) 0I 0I
+  let sz =
+    match t.Kind with
+    | Choice _ | Sequence _ | SequenceOf _ ->
+      // Note that we don't have a "ReferenceType" in such cases, so we have to explicitly call `size` and not rely on asn1SizeExpr...
+      // TODO: Quid wrapAcnFuncBody?
+      {bdgs = []; resSize = callSize (Var szRecv) (bitIndex (Var w1))}
+    | _ -> asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndex (Var w1)) 0I 0I
   let rightBody = And [
     buf
     Equals (bitIndex (Var w1), plus [bitIndex (Var w2); sz.resSize])
