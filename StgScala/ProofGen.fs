@@ -218,186 +218,6 @@ let generateReadPrefixLemmaApp (snapshots: Var list) (children: TypeInfo list) (
 
   List.zip3 (List.skipLast 1 snapshots) snapshots.Tail (List.skipLast 1 children) |> List.map mkLemma |> Block
 
-let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc: Var) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (rest: Expr): Expr =
-  let nbChildren = pg.children.Length
-  assert (snapshots.Length = nbChildren)
-  assert (stmts.Length = nbChildren)
-
-  let rec assertionsConditions (tpe: TypeEncodingKind option): Expr option =
-    match tpe with
-    | Some (OptionEncodingType tpe) -> assertionsConditions (Some tpe)
-    | Some (Asn1IntegerEncodingType (Some encodingTpe)) ->
-        match encodingTpe with
-        | FullyConstrainedPositive (min, max) | FullyConstrained (min, max) ->
-            // TODO: The RT library does not add 1, why?
-            let call = getBitCountUnsigned (ulonglit (max - min))
-            // TODO: Case min = max?
-            let nBits = if max = min then 0I else bigint (ceil ((log (double (max - min))) / (log 2.0)))
-            let cond = Equals (call, int32lit nBits)
-            Some cond
-        | _ -> None
-      | _ -> None
-
-  let addAssert (tpe: TypeEncodingKind option): Expr =
-    assertionsConditions tpe |> Option.map (fun cond -> Assert cond)
-                             |> Option.defaultValue (mkBlock [])
-
-  let outerMaxSize = pg.outerMaxSize enc
-  let thisMaxSize = pg.maxSize enc
-  let fstSnap = snapshots.Head
-  let isNested = pg.nestingLevel > 0I
-  assert (isNested || fstSnap = oldCdc)
-
-  let wrap (ix: int, (snap: Var, child: SequenceChildProps, stmt: string option)) (offsetAcc: bigint, rest: Expr): bigint * Expr =
-    let sz = child.typeInfo.maxSize enc
-    //assert (thisMaxSize <= (pg.siblingMaxSize enc |> Option.defaultValue thisMaxSize)) // TODO: Somehow does not always hold with UPER?
-    let relativeOffset = offsetAcc - (pg.maxOffset enc)
-    let offsetCheckOverall = Check (Leq (bitIndex (Var cdc), plus [bitIndex (Var oldCdc); (longlit offsetAcc)]))
-    let offsetCheckNested =
-      if isNested then [Check (Leq (bitIndex (Var cdc), plus [bitIndex (Var fstSnap); longlit relativeOffset]))]
-      else []
-    let bufCheck =
-      match codec with
-       | Encode -> []
-       | Decode -> [Check ((Equals (selBuf (Var cdc), selBuf (Var oldCdc))))]
-    let offsetWidening =
-      match pg.siblingMaxSize enc with
-      | Some siblingMaxSize when ix = nbChildren - 1 && siblingMaxSize <> thisMaxSize ->
-        let diff = siblingMaxSize - thisMaxSize
-        [
-          Check (Leq (bitIndex (Var cdc), plus [bitIndex (Var oldCdc); longlit (offsetAcc + diff)]));
-          Check (Leq (bitIndex (Var cdc), plus [bitIndex (Var fstSnap); longlit (relativeOffset + diff)]));
-        ]
-      | _ -> []
-    let checks = offsetCheckOverall :: offsetCheckNested @ bufCheck @ offsetWidening
-    let body =
-      match stmt with
-      | Some stmt when true || ix < nbChildren - 1 ->
-        let lemma = validateOffsetBitsIneqLemma (selBitStream (Var snap)) (selBitStream (Var cdc)) (longlit (outerMaxSize - offsetAcc + sz)) (longlit sz)
-        mkBlock ((addAssert child.typeInfo.typeKind) :: [EncDec stmt; Ghost (mkBlock (lemma :: checks)); rest])
-
-      | Some stmt ->
-        mkBlock ((addAssert child.typeInfo.typeKind) :: ([EncDec stmt; Ghost (mkBlock checks); rest]))
-
-      | _ -> mkBlock [Ghost (mkBlock checks); rest]
-
-    (offsetAcc - sz, LetGhost {bdg = snap; e = Snapshot (Var cdc); body = body})
-
-  let stmts = List.zip3 snapshots pg.children stmts |> List.indexed
-  List.foldBack wrap stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd
-
-let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
-  if stmts.IsEmpty then []
-  else
-    let codecTpe = runtimeCodecTypeFor enc
-    let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
-    let oldCdc = {Var.name = $"codec_0_1"; tpe = ClassType codecTpe}
-    let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = ClassType codecTpe})
-
-    let wrappedStmts = wrapEncDecStmts enc snapshots cdc oldCdc stmts pg codec
-
-    let postCondLemmas =
-      let cond = Leq (bitIndex (Var cdc), plus [bitIndex (Var snapshots.Head); longlit (pg.outerMaxSize enc)])
-      Ghost (Check cond)
-    let expr = wrappedStmts (mkBlock [postCondLemmas])
-    let exprStr = show (ExprTree expr)
-    [exprStr]
-
-let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
-  let lvl = max 0I (pg.nestingLevel - 1I)
-  let nestingIx = pg.nestingIx + 1I
-
-  let nbItemsMin, nbItemsMax = sqf.nbElems enc
-
-  let accountForSize =
-    match enc, sqf with
-    | UPER, _ -> true
-    | ACN, SqOf sqf ->
-      match sqf.acnEncodingClass with
-      | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ -> not sqf.isFixedSize // TODO: Check if we can have SZ_EC_FIXED_SIZE with not sqf.isFixedSize (copying logic from DAstACN)
-      | SZ_EC_ExternalField _ -> false // The external field is encoded/decoded as an ACN field, it therefore has the bitstream index offset already taken care of
-      | _ -> true
-    | ACN, StrType str ->
-      true // TODO
-    | _ -> failwith $"Unexpected encoding: {enc}"
-
-  let sizeInBits =
-    if accountForSize then GetNumberOfBitsForNonNegativeInteger (nbItemsMax - nbItemsMin)
-    else 0I
-  let nbItems =
-    if sqf.isFixedSize then int32lit nbItemsMin
-    else FieldSelect (SelectionExpr pg.sel, "nCount")
-  let elemSz = sqf.maxElemSizeInBits enc
-  let elemSzExpr = longlit elemSz
-  let sqfMaxSizeInBits = sqf.maxSizeInBits enc
-  let offset = pg.maxOffset enc
-  let remainingBits = pg.outerMaxSize enc - sqfMaxSizeInBits - offset
-  let remainingBitsExpr = longlit remainingBits
-
-  let codecTpe = runtimeCodecTypeFor enc
-  let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
-  // The codec snapshot before encoding/decoding the whole SequenceOf (i.e. snapshot before entering the while loop)
-  let cdcSnap = {Var.name = $"codec_{lvl}_{nestingIx}"; tpe = ClassType codecTpe}
-  // The codec snapshot before encoding/decoding one item (snapshot local to the loop, taken before enc/dec one item)
-  let cdcLoopSnap = {Var.name = $"codecLoop_{lvl}_{nestingIx}"; tpe = ClassType codecTpe}
-  let oldCdc = {Var.name = $"codec_0_1"; tpe = ClassType codecTpe}
-  let ix = {name = pg.ixVariable; tpe = IntegerType Int}
-  let ixPlusOne = plus [Var ix; int32lit 1I]
-
-  let preSerde =
-    LetGhost ({
-      bdg = cdcLoopSnap
-      e = Snapshot (Var cdc)
-      body = Ghost (validateOffsetBitsWeakeningLemma (selBitStream (Var cdc)) (plus [remainingBitsExpr; Mult (elemSzExpr, Minus (nbItems, Var ix))]) elemSzExpr)
-    })
-  let postSerde =
-    Ghost (mkBlock [
-      Check (Equals (
-        Mult (elemSzExpr, plus [Var ix; int32lit 1I]),
-        plus [Mult (elemSzExpr, Var ix); elemSzExpr]
-      ))
-      Check (Leq (
-        bitIndex (Var cdc),
-        plus [bitIndex (Var cdcSnap); longlit sizeInBits; Mult (elemSzExpr, ixPlusOne)]
-      ))
-      validateOffsetBitsIneqLemma (selBitStream (Var cdcLoopSnap)) (selBitStream (Var cdc)) (plus [remainingBitsExpr; Mult (elemSzExpr, Minus (nbItems, Var ix))]) elemSzExpr
-      Check (validateOffsetBits (Var cdc) (plus [remainingBitsExpr; Mult (elemSzExpr, Minus (nbItems, ixPlusOne))]))
-    ])
-  let invariants =
-    let bufInv =
-      if codec = Encode then
-        Equals (selBufLength (Var cdc), selBufLength (Var cdcSnap))
-      else
-        Equals (selBuf (Var cdc), selBuf (Var cdcSnap))
-    let cdcInv = invariant (Var cdc)
-    let boundsInv =
-      if sqf.isFixedSize then []
-      else [And [Leq (int32lit nbItemsMin, nbItems); Leq (nbItems, int32lit nbItemsMax)]]
-    let bixInv = Leq (
-      bitIndex (Var cdc),
-      plus [bitIndex (Var cdcSnap); longlit sizeInBits; Mult (elemSzExpr, Var ix)]
-    )
-    let bixInvOldCdc = Leq (
-      bitIndex (Var cdc),
-      plus [bitIndex (Var oldCdc); longlit (offset + sizeInBits); Mult (elemSzExpr, Var ix)]
-    )
-    let offsetInv = validateOffsetBits (Var cdc) (plus [remainingBitsExpr; Mult (elemSzExpr, Minus (nbItems, Var ix))])
-    [bufInv; cdcInv] @ boundsInv @ [bixInv; bixInvOldCdc; offsetInv]
-
-  let postInc =
-    Ghost (mkBlock (
-      Check (And [
-        Leq (int32lit 0I, Var ix)
-        Leq (Var ix, nbItems)
-      ]) :: (invariants |> List.map Check)))
-
-  Some {
-    preSerde = show (ExprTree preSerde)
-    postSerde = show (ExprTree postSerde)
-    postInc = show (ExprTree postInc)
-    invariant = show (ExprTree (SplitAnd invariants))
-  }
-
 let private offsetConds (offset :Var) (maxSize: bigint) =
   And [
     Leq (longlit 0I, Var offset)
@@ -449,6 +269,20 @@ type SeqSizeExprChildRes = {
 with
   member this.allBindings: (Var * Expr) list = this.extraBdgs @ [this.childVar, this.childSize]
   member this.allVariables: Var list = this.allBindings |> List.map (fun (v, _) -> v)
+
+let renameBindings (res: SeqSizeExprChildRes list) (suffix: string): SeqSizeExprChildRes list =
+  let allVars = res |> List.collect (fun res -> res.allVariables)
+  let renamedVars = allVars |> List.map (fun v -> {v with name = $"{v.name}{suffix}"})
+  let mapping = List.zip allVars (renamedVars |> List.map Var)
+  let renamedVarFor (old: Var): Var =
+    renamedVars.[allVars |> List.findIndex (fun v -> v = old)]
+  let subst (res: SeqSizeExprChildRes): SeqSizeExprChildRes =
+    {
+      extraBdgs = res.extraBdgs |> List.map (fun (v, e) -> renamedVarFor v, substVars mapping e)
+      childVar = renamedVarFor res.childVar
+      childSize = substVars mapping res.childSize
+    }
+  res |> List.map subst
 
 let rec asn1SizeExpr (align: AcnAlignment option)
                      (tp: Asn1AcnAst.Asn1TypeKind)
@@ -638,20 +472,6 @@ let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef li
     let template = sizeLemmaTemplate sq.acnMaxSizeInBits align
     let offset = template.prms.[0]
     let otherOffset = template.prms.[1]
-
-    let renameBindings (res: SeqSizeExprChildRes list) (suffix: string): SeqSizeExprChildRes list =
-      let allVars = res |> List.collect (fun res -> res.allVariables)
-      let renamedVars = allVars |> List.map (fun v -> {v with name = $"{v.name}{suffix}"})
-      let mapping = List.zip allVars (renamedVars |> List.map Var)
-      let renamedVarFor (old: Var): Var =
-        renamedVars.[allVars |> List.findIndex (fun v -> v = old)]
-      let subst (res: SeqSizeExprChildRes): SeqSizeExprChildRes =
-        {
-          extraBdgs = res.extraBdgs |> List.map (fun (v, e) -> renamedVarFor v, substVars mapping e)
-          childVar = renamedVarFor res.childVar
-          childSize = substVars mapping res.childSize
-        }
-      res |> List.map subst
 
     let allResWithOffset = seqSizeExprHelper sq This (Var offset) 0I 0I
     let allResWithOffset = renameBindings allResWithOffset "_offset"
@@ -920,7 +740,6 @@ let generatePostcondExpr (t: Asn1AcnAst.Asn1Type) (pVal: Selection) (res: Var) (
     match t.Kind with
     | Choice _ | Sequence _ | SequenceOf _ ->
       // Note that we don't have a "ReferenceType" in such cases, so we have to explicitly call `size` and not rely on asn1SizeExpr...
-      // TODO: Quid wrapAcnFuncBody?
       {bdgs = []; resSize = callSize (Var szRecv) (bitIndex (Var w1))}
     | _ -> asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndex (Var w1)) 0I 0I
   let rightBody = And [
@@ -944,13 +763,10 @@ let wrapAcnFuncBody (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (b
   let resPostcond = {Var.name = "res"; tpe = ClassType {id = theEitherId; tps = [errTpe; rightTpe]}}
   let precond = [Precond (validateOffsetBits (Var cdc) (longlit t.acnMaxSizeInBits))]
   let postcondExpr = generatePostcondExpr t recSel resPostcond codec
-  // TODO: specs (require + ensuring)
-  // TODO: What about the isconstraintvalid stuff?
   match codec with
   | Encode ->
     let retTpe = IntegerType Int
     let outerPVal = SelectionExpr (joinedSelection outerSel)
-    // TODO: check is constraint valid
     let cstrCheck =
       isValidFuncName |> Option.map (fun validFnName ->
         let scrut = FunctionCall {prefix = []; id = validFnName; args = [Var recPVal]}
@@ -1010,3 +826,204 @@ let wrapAcnFuncBody (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (b
     // The rest of the backend expects a `val outerPVal = result`
     let ret = Let {bdg = outerPVal; e = call; body = mkBlock []}
     fd, ret
+
+
+let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc: Var) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (rest: Expr): Expr =
+  let nbChildren = pg.children.Length
+  assert (snapshots.Length = nbChildren)
+  assert (stmts.Length = nbChildren)
+
+  let rec assertionsConditions (tpe: TypeEncodingKind option): Expr option =
+    match tpe with
+    | Some (OptionEncodingType tpe) -> assertionsConditions (Some tpe)
+    | Some (Asn1IntegerEncodingType (Some encodingTpe)) ->
+        match encodingTpe with
+        | FullyConstrainedPositive (min, max) | FullyConstrained (min, max) ->
+            // TODO: The RT library does not add 1, why?
+            let call = getBitCountUnsigned (ulonglit (max - min))
+            // TODO: Case min = max?
+            let nBits = if max = min then 0I else bigint (ceil ((log (double (max - min))) / (log 2.0)))
+            let cond = Equals (call, int32lit nBits)
+            Some cond
+        | _ -> None
+      | _ -> None
+
+  let addAssert (tpe: TypeEncodingKind option): Expr =
+    assertionsConditions tpe |> Option.map (fun cond -> Assert cond)
+                             |> Option.defaultValue (mkBlock [])
+
+  let outerMaxSize = pg.outerMaxSize enc
+  let thisMaxSize = pg.maxSize enc
+  let fstSnap = snapshots.Head
+  let isNested = pg.nestingLevel > 0I
+  assert (isNested || fstSnap = oldCdc)
+
+  // TODO
+  (*
+  let annotatePostPreciseSize (ix: int) (snap: Var) (child: SequenceChildProps): Expr list =
+    let sizeRes =
+      let sizeVarName = {Var.name = "size"; tpe = IntegerType Long} // NOTE: this is the name before being renamed by `renameBindings`
+      match child.sel with
+      | None -> {extraBdgs = []; childVar = sizeVarName; childSize = longlit 1I} // presence bits
+      | Some sel ->
+        match child.typeKind with
+        | Acn child -> {extraBdgs = []; childVar = sizeVarName; childSize = acnTypeSizeExpr child}
+        | Asn1 child ->
+          let sizeRes = asn1SizeExpr None child (SelectionExpr sel) (bitIndex (Var snap)) pg.nestingLevel (pg.nestingIx + (bigint ix))
+          {extraBdgs = sizeRes.bdgs; childVar = sizeVarName; childSize = sizeRes.resSize}
+    let sizeRes = renameBindings [sizeRes] $"_{pg.nestingLevel}_{pg.nestingIx + bigint ix}"
+    let sizeRes = sizeRes.Head
+  *)
+
+  let annotatePost (ix: int) (snap: Var) (child: SequenceChildProps) (stmt: string option) (offsetAcc: bigint): Expr list =
+    let sz = child.typeInfo.maxSize enc
+    let relativeOffset = offsetAcc - (pg.maxOffset enc)
+    let offsetCheckOverall = Check (Leq (bitIndex (Var cdc), plus [bitIndex (Var oldCdc); (longlit offsetAcc)]))
+    let offsetCheckNested =
+      if isNested then [Check (Leq (bitIndex (Var cdc), plus [bitIndex (Var fstSnap); longlit relativeOffset]))]
+      else []
+    let bufCheck =
+      match codec with
+       | Encode -> [Check ((Equals (selBufLength (Var cdc), selBufLength (Var oldCdc))))]
+       | Decode -> [Check ((Equals (selBuf (Var cdc), selBuf (Var oldCdc))))]
+    let offsetWidening =
+      match pg.siblingMaxSize enc with
+      | Some siblingMaxSize when ix = nbChildren - 1 && siblingMaxSize <> thisMaxSize ->
+        let diff = siblingMaxSize - thisMaxSize
+        [
+          Check (Leq (bitIndex (Var cdc), plus [bitIndex (Var oldCdc); longlit (offsetAcc + diff)]))
+          Check (Leq (bitIndex (Var cdc), plus [bitIndex (Var fstSnap); longlit (relativeOffset + diff)]))
+        ]
+      | _ -> []
+    let checks = offsetCheckOverall :: offsetCheckNested @ bufCheck @ offsetWidening
+    let lemma  =
+      if stmt.IsSome && ix < nbChildren - 1 then
+        [validateOffsetBitsIneqLemma (selBitStream (Var snap)) (selBitStream (Var cdc)) (longlit (outerMaxSize - offsetAcc + sz)) (longlit sz)]
+      else []
+    lemma @ checks
+
+  let annotate (ix: int, (snap: Var, child: SequenceChildProps, stmt: string option)) (offsetAcc: bigint, rest: Expr): bigint * Expr =
+    let sz = child.typeInfo.maxSize enc
+    //assert (thisMaxSize <= (pg.siblingMaxSize enc |> Option.defaultValue thisMaxSize)) // TODO: Somehow does not always hold with UPER?
+    let preAnnots =
+      if stmt.IsSome then [addAssert child.typeInfo.typeKind]
+      else []
+    let postAnnots = annotatePost ix snap child stmt offsetAcc
+    let encDec = stmt |> Option.map EncDec |> Option.toList
+    let body = mkBlock (preAnnots @ encDec @ [Ghost (mkBlock postAnnots); rest])
+    (offsetAcc - sz, LetGhost {bdg = snap; e = Snapshot (Var cdc); body = body})
+
+  let stmts = List.zip3 snapshots pg.children stmts |> List.indexed
+  List.foldBack annotate stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd
+
+let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
+  if stmts.IsEmpty then []
+  else
+    let codecTpe = runtimeCodecTypeFor enc
+    let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
+    let oldCdc = {Var.name = $"codec_0_1"; tpe = ClassType codecTpe}
+    let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = ClassType codecTpe})
+
+    let wrappedStmts = annotateSequenceChildStmt enc snapshots cdc oldCdc stmts pg codec
+
+    let postCondLemmas =
+      let cond = Leq (bitIndex (Var cdc), plus [bitIndex (Var snapshots.Head); longlit (pg.outerMaxSize enc)])
+      Ghost (Check cond)
+    let expr = wrappedStmts (mkBlock [postCondLemmas])
+    let exprStr = show (ExprTree expr)
+    [exprStr]
+
+let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
+  let lvl = max 0I (pg.nestingLevel - 1I)
+  let nestingIx = pg.nestingIx + 1I
+
+  let nbItemsMin, nbItemsMax = sqf.nbElems enc
+
+  let accountForSize =
+    match enc, sqf with
+    | UPER, _ -> true
+    | ACN, SqOf sqf ->
+      match sqf.acnEncodingClass with
+      | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ -> not sqf.isFixedSize // TODO: Check if we can have SZ_EC_FIXED_SIZE with not sqf.isFixedSize (copying logic from DAstACN)
+      | SZ_EC_ExternalField _ -> false // The external field is encoded/decoded as an ACN field, it therefore has the bitstream index offset already taken care of
+      | _ -> true
+    | ACN, StrType str ->
+      true // TODO
+    | _ -> failwith $"Unexpected encoding: {enc}"
+
+  let sizeInBits =
+    if accountForSize then GetNumberOfBitsForNonNegativeInteger (nbItemsMax - nbItemsMin)
+    else 0I
+  let nbItems =
+    if sqf.isFixedSize then int32lit nbItemsMin
+    else FieldSelect (SelectionExpr pg.sel, "nCount")
+  let elemSz = sqf.maxElemSizeInBits enc
+  let elemSzExpr = longlit elemSz
+  let sqfMaxSizeInBits = sqf.maxSizeInBits enc
+  let offset = pg.maxOffset enc
+  let remainingBits = pg.outerMaxSize enc - sqfMaxSizeInBits - offset
+  let remainingBitsExpr = longlit remainingBits
+
+  let codecTpe = runtimeCodecTypeFor enc
+  let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
+  // The codec snapshot before encoding/decoding the whole SequenceOf (i.e. snapshot before entering the while loop)
+  let cdcSnap = {Var.name = $"codec_{lvl}_{nestingIx}"; tpe = ClassType codecTpe}
+  // The codec snapshot before encoding/decoding one item (snapshot local to the loop, taken before enc/dec one item)
+  let cdcLoopSnap = {Var.name = $"codecLoop_{lvl}_{nestingIx}"; tpe = ClassType codecTpe}
+  let oldCdc = {Var.name = $"codec_0_1"; tpe = ClassType codecTpe}
+  let ix = {name = pg.ixVariable; tpe = IntegerType Int}
+  let ixPlusOne = plus [Var ix; int32lit 1I]
+
+  let preSerde =
+    LetGhost ({
+      bdg = cdcLoopSnap
+      e = Snapshot (Var cdc)
+      body = Ghost (validateOffsetBitsWeakeningLemma (selBitStream (Var cdc)) (plus [remainingBitsExpr; Mult (elemSzExpr, Minus (nbItems, Var ix))]) elemSzExpr)
+    })
+  let postSerde =
+    Ghost (mkBlock [
+      Check (Equals (
+        Mult (elemSzExpr, plus [Var ix; int32lit 1I]),
+        plus [Mult (elemSzExpr, Var ix); elemSzExpr]
+      ))
+      Check (Leq (
+        bitIndex (Var cdc),
+        plus [bitIndex (Var cdcSnap); longlit sizeInBits; Mult (elemSzExpr, ixPlusOne)]
+      ))
+      validateOffsetBitsIneqLemma (selBitStream (Var cdcLoopSnap)) (selBitStream (Var cdc)) (plus [remainingBitsExpr; Mult (elemSzExpr, Minus (nbItems, Var ix))]) elemSzExpr
+      Check (validateOffsetBits (Var cdc) (plus [remainingBitsExpr; Mult (elemSzExpr, Minus (nbItems, ixPlusOne))]))
+    ])
+  let invariants =
+    let bufInv =
+      if codec = Encode then
+        Equals (selBufLength (Var cdc), selBufLength (Var cdcSnap))
+      else
+        Equals (selBuf (Var cdc), selBuf (Var cdcSnap))
+    let cdcInv = invariant (Var cdc)
+    let boundsInv =
+      if sqf.isFixedSize then []
+      else [And [Leq (int32lit nbItemsMin, nbItems); Leq (nbItems, int32lit nbItemsMax)]]
+    let bixInv = Leq (
+      bitIndex (Var cdc),
+      plus [bitIndex (Var cdcSnap); longlit sizeInBits; Mult (elemSzExpr, Var ix)]
+    )
+    let bixInvOldCdc = Leq (
+      bitIndex (Var cdc),
+      plus [bitIndex (Var oldCdc); longlit (offset + sizeInBits); Mult (elemSzExpr, Var ix)]
+    )
+    let offsetInv = validateOffsetBits (Var cdc) (plus [remainingBitsExpr; Mult (elemSzExpr, Minus (nbItems, Var ix))])
+    [bufInv; cdcInv] @ boundsInv @ [bixInv; bixInvOldCdc; offsetInv]
+
+  let postInc =
+    Ghost (mkBlock (
+      Check (And [
+        Leq (int32lit 0I, Var ix)
+        Leq (Var ix, nbItems)
+      ]) :: (invariants |> List.map Check)))
+
+  Some {
+    preSerde = show (ExprTree preSerde)
+    postSerde = show (ExprTree postSerde)
+    postInc = show (ExprTree postInc)
+    invariant = show (ExprTree (SplitAnd invariants))
+  }
