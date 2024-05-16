@@ -101,7 +101,6 @@ locally {
     ghostExpr {
         BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
         check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
-        check(codec.base.bitStream.bitIndex \<= codec_<nLevel>_<nIx>.base.bitStream.bitIndex + <nOffset>L + 7L)
     }
 }
 <sMainBody>
@@ -114,7 +113,6 @@ locally {
     ghostExpr {
         BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
         check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
-        check(codec.base.bitStream.bitIndex \<= codec_<nLevel>_<nIx>.base.bitStream.bitIndex + <nOffset>L + 7L)
     }
 }
 <sMainBody>

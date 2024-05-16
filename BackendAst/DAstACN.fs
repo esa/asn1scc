@@ -276,6 +276,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                           (c_name: string): ((AcnFuncBodyResult option)*State) =
         let funcBody = handleSavePosition funcBody t.SaveBitStreamPosition c_name t.id lm codec
         let ret = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
+        let ret = lm.lg.adaptAcnFuncBody ret isValidFuncName t codec
         ret st errCode prms nestingScope p
 
     let funcBody = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody

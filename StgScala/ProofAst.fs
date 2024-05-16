@@ -30,6 +30,7 @@ type Type =
   | DoubleType
   | ArrayType of ArrayType
   | ClassType of ClassType
+  | TupleType of Type list
 and ClassType = {
   id: Identifier
   tps: Type list
@@ -46,16 +47,23 @@ type Var = {
 type Pattern =
   | Wildcard of Var option
   | ADTPattern of ADTPattern
+  | TuplePattern of TuplePattern
 with
   member this.allBindings: Var list =
     match this with
     | Wildcard bdg -> bdg |> Option.toList
     | ADTPattern pat ->
       (pat.binder |> Option.toList) @ (pat.subPatterns |> List.collect (fun subpat -> subpat.allBindings))
+    | TuplePattern pat ->
+      (pat.binder |> Option.toList) @ (pat.subPatterns |> List.collect (fun subpat -> subpat.allBindings))
 
 and ADTPattern = {
   binder: Var option
   id: Identifier // TODO: Have something better
+  subPatterns: Pattern list
+}
+and TuplePattern = {
+  binder: Var option
   subPatterns: Pattern list
 }
 // TODO: Have "Tree" as well
@@ -74,12 +82,14 @@ and Expr =
   | FreshCopy of Expr
   | Let of Let
   | LetGhost of Let
+  | LetTuple of LetTuple
   | LetRec of LetRec
   | Assert of Expr
   | Check of Expr
   | FunctionCall of FunctionCall
   | ApplyLetRec of ApplyLetRec
   | MethodCall of MethodCall
+  | Tuple of Expr list
   | TupleSelect of Expr * int
   | FieldSelect of Expr * Identifier
   | ArraySelect of Expr * Expr
@@ -110,6 +120,11 @@ and Expr =
 
 and Let = {
   bdg: Var
+  e: Expr
+  body: Expr
+}
+and LetTuple = {
+  bdgs: Var list
   e: Expr
   body: Expr
 }
@@ -172,13 +187,28 @@ let mkBlock (exprs: Expr list): Expr =
     exprs |> List.collect (fun e -> match e with Block exprs -> exprs | _ -> [e])
           |> Block
 
+let mkTuple (exprs: Expr list): Expr =
+  assert (not exprs.IsEmpty)
+  if exprs.Length = 1 then exprs.Head
+  else Tuple exprs
+
+let tupleType (tps: Type list): Type =
+  assert (not tps.IsEmpty)
+  if tps.Length = 1 then tps.Head
+  else TupleType tps
+
 let rec substVars (vs: (Var * Expr) list) (inExpr: Expr): Expr =
   let rec loop (inExpr: Expr): Expr =
+    let substInLetGeneric (bdgs: Var list) (e: Expr) (body: Expr): Expr * Expr =
+      let newE = loop e
+      let newVs = vs |> List.filter (fun (v, _) -> not (bdgs |> List.contains v))
+      let newBody = substVars newVs body
+      (newE, newBody)
+
     let substInLet (lt: Let): Let =
-      let newE = loop lt.e
-      let newVs = vs |> List.filter (fun (v, _) -> v <> lt.bdg)
-      let newBody = substVars newVs lt.body
+      let newE, newBody = substInLetGeneric [lt.bdg] lt.e lt.body
       {lt with e = newE; body = newBody}
+
     let substFd (fd: FunDefLike): FunDefLike =
       let newVs = vs |> List.filter (fun (v, _) -> not (fd.prms |> List.contains v))
       {fd with body = substVars newVs fd.body}
@@ -196,6 +226,9 @@ let rec substVars (vs: (Var * Expr) list) (inExpr: Expr): Expr =
     | FreshCopy inExpr -> Ghost (loop inExpr)
     | Let lt -> Let (substInLet lt)
     | LetGhost lt -> LetGhost (substInLet lt)
+    | LetTuple lt ->
+      let newE, newBody = substInLetGeneric lt.bdgs lt.e lt.body
+      LetTuple {lt with e = newE; body = newBody}
     | LetRec lrec ->
       LetRec {fds = lrec.fds |> List.map substFd; body = loop lrec.body}
     | Assert inExpr -> Assert (loop inExpr)
@@ -206,6 +239,7 @@ let rec substVars (vs: (Var * Expr) list) (inExpr: Expr): Expr =
       ApplyLetRec {call with args = call.args |> List.map loop}
     | MethodCall call ->
       MethodCall {call with recv = loop call.recv; args = call.args |> List.map loop}
+    | Tuple tpls -> Tuple (tpls |> List.map loop)
     | TupleSelect (recv, ix) -> TupleSelect (loop recv, ix)
     | FieldSelect (recv, id) -> FieldSelect (loop recv, id)
     | ArraySelect (arr, ix) -> ArraySelect (loop arr, loop ix)
@@ -424,6 +458,11 @@ let plus (terms: Expr list): Expr =
     else Plus newTerms
   else Plus (newTerms @ [IntLit (litTpe.Value, cst)])
 
+let letTuple (bdgs: Var list) (e: Expr) (body: Expr): Expr =
+  assert (not bdgs.IsEmpty)
+  if bdgs.Length = 1 then Let {bdg = bdgs.Head; e = e; body = body}
+  else LetTuple {bdgs = bdgs; e = e; body = body}
+
 let letsIn (bdgs: (Var * Expr) list) (body: Expr): Expr =
   List.foldBack (fun (v, e) body -> Let {bdg = v; e = e; body = body}) bdgs body
 
@@ -520,22 +559,24 @@ let readPrefixLemmaIdentifier (t: TypeEncodingKind option): string list * string
   | _ ->
     [acnId], "readPrefixLemma_TODO" // TODO
 
+let fromIntClass (cls: Asn1AcnAst.IntegerClass): IntegerType =
+  match cls with
+  | Asn1AcnAst.ASN1SCC_Int8 _ -> Byte
+  | Asn1AcnAst.ASN1SCC_Int16 _ -> Short
+  | Asn1AcnAst.ASN1SCC_Int32 _ -> Int
+  | Asn1AcnAst.ASN1SCC_Int64 _ | Asn1AcnAst.ASN1SCC_Int _ -> Long
+  | Asn1AcnAst.ASN1SCC_UInt8 _ -> UByte
+  | Asn1AcnAst.ASN1SCC_UInt16 _ -> UShort
+  | Asn1AcnAst.ASN1SCC_UInt32 _ -> UInt
+  | Asn1AcnAst.ASN1SCC_UInt64 _ | Asn1AcnAst.ASN1SCC_UInt _ -> ULong
+
 let rec fromAsn1TypeKind (t: Asn1AcnAst.Asn1TypeKind): Type =
   match t.ActualType with
   | Asn1AcnAst.Sequence sq -> ClassType {id = sq.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.SequenceOf sqf -> ClassType {id = sqf.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.Choice ch -> ClassType {id = ch.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.Enumerated enm -> ClassType {id = enm.typeDef[Scala].typeName; tps = []}
-  | Asn1AcnAst.Integer int ->
-    match int.intClass with
-    | Asn1AcnAst.ASN1SCC_Int8 _ -> IntegerType Byte
-    | Asn1AcnAst.ASN1SCC_Int16 _ -> IntegerType Short
-    | Asn1AcnAst.ASN1SCC_Int32 _ -> IntegerType Int
-    | Asn1AcnAst.ASN1SCC_Int64 _ | Asn1AcnAst.ASN1SCC_Int _ -> IntegerType Long
-    | Asn1AcnAst.ASN1SCC_UInt8 _ -> IntegerType UByte
-    | Asn1AcnAst.ASN1SCC_UInt16 _ -> IntegerType UShort
-    | Asn1AcnAst.ASN1SCC_UInt32 _ -> IntegerType UInt
-    | Asn1AcnAst.ASN1SCC_UInt64 _ | Asn1AcnAst.ASN1SCC_UInt _ -> IntegerType ULong
+  | Asn1AcnAst.Integer int -> IntegerType (fromIntClass int.intClass)
   | Asn1AcnAst.Boolean _ -> BooleanType
   | Asn1AcnAst.NullType _ -> IntegerType Byte
   | Asn1AcnAst.BitString bt -> ClassType {id = bt.typeDef[Scala].typeName; tps = []}
@@ -544,7 +585,12 @@ let rec fromAsn1TypeKind (t: Asn1AcnAst.Asn1TypeKind): Type =
   | Asn1AcnAst.Real _ -> DoubleType
   | t -> failwith $"TODO {t}"
 
-let fromAcnInsertedType (t: Asn1AcnAst.AcnInsertedType): Type = failwith "TODO"
+let fromAcnInsertedType (t: Asn1AcnAst.AcnInsertedType): Type =
+  match t with
+  | Asn1AcnAst.AcnInsertedType.AcnInteger int -> IntegerType (fromIntClass int.intClass)
+  | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> BooleanType
+  | Asn1AcnAst.AcnInsertedType.AcnNullType _ -> IntegerType Byte
+  | t -> failwith $"TODO {t}"
 
 let fromAsn1AcnTypeKind (t: Asn1AcnAst.Asn1AcnTypeKind): Type =
   match t with
@@ -580,7 +626,7 @@ type Line = {
 
 let isSimpleExpr (e: Tree): bool =
   match e with
-  | ExprTree (Let _ | LetGhost _ | Block _ | Assert _ | LetRec _) -> false
+  | ExprTree (Let _ | LetGhost _ | LetTuple _ | Block _ | Assert _ | LetRec _) -> false
   | _ -> true
 
 // TODO: Match case?
@@ -588,6 +634,7 @@ let noBracesSub (e: Tree): Tree list =
   match e with
   | ExprTree (Let l) -> [ExprTree l.body]
   | ExprTree (LetGhost l) -> [ExprTree l.body]
+  | ExprTree (LetTuple l) -> [ExprTree l.body]
   | ExprTree (Ghost e) -> [ExprTree e]
   | ExprTree (Locally e) -> [ExprTree e]
   | ExprTree (IfExpr ite) -> [ExprTree ite.els; ExprTree ite.thn]
@@ -621,7 +668,7 @@ let precedence (e: Expr): int =
 let requiresParentheses (curr: Tree) (parent: Tree option): bool =
   match curr, parent with
   | _, None -> false
-  | _, Some (ExprTree (Let _ | FunctionCall _ | Assert _ | Check _ | IfExpr _ | MatchExpr _)) -> false
+  | _, Some (ExprTree (Let _ | LetGhost _ | LetTuple _ | FunctionCall _ | Assert _ | Check _ | IfExpr _ | MatchExpr _)) -> false
   | _, Some (ExprTree (MethodCall call)) -> not (List.contains curr (call.args |> List.map ExprTree))
   | ExprTree (IfExpr _ | MatchExpr _), _  -> true
   | ExprTree e1, Some (ExprTree e2) when precedence e1 > precedence e2 -> false
@@ -670,6 +717,8 @@ let rec ppType (tpe: Type): string =
   | DoubleType -> "Double"
   | ArrayType at -> $"Array[{ppType at.tpe}]"
   | ClassType ct -> ppClassType ct
+  | TupleType tps -> "(" + ((tps |> List.map ppType).StrJoin ", ") + ")"
+
 and ppClassType (ct: ClassType): string =
   let tps =
     if ct.tps.IsEmpty then ""
@@ -715,12 +764,17 @@ and joinBraces (ctx: PrintCtx) (prefix: string) (stmts: Line list): Line list =
   (stmts |> List.map (fun l -> l.inc)) @
   [{lvl = ctx.lvl; txt = $"}}"}]
 
-and ppLet (ctx: PrintCtx) (theLet: Expr) (lt: Let) (annot: string list): Line list =
-  let e2 = ppExpr (ctx.nestExpr theLet) lt.e
-  let body = ppExpr (ctx.nestExpr theLet) lt.body
+and ppLetGeneric (ctx: PrintCtx) (theLet: Expr) (ltBdgs: Var list) (ltE: Expr) (ltBody: Expr) (annot: string list): Line list =
+  let e2 = ppExpr (ctx.nestExpr theLet) ltE
+  let body = ppExpr (ctx.nestExpr theLet) ltBody
   let annot = if annot.IsEmpty then "" else (annot.StrJoin " ") + " "
-  let prepended = (prepend ctx $"{annot}val {lt.bdg.name} = " e2)
+  let bdgs =
+    if ltBdgs.Length = 1 then ltBdgs.Head.name
+    else "(" + ((ltBdgs |> List.map (fun v -> v.name)).StrJoin ", ") + ")"
+  let prepended = (prepend ctx $"{annot}val {bdgs} = " e2)
   prepended @ body
+and ppLet (ctx: PrintCtx) (theLet: Expr) (lt: Let) (annot: string list): Line list =
+  ppLetGeneric ctx theLet [lt.bdg] lt.e lt.body annot
 
 and ppMatchExpr (ctx: PrintCtx) (mexpr: MatchExpr): Line list =
   let rec ppPattern (pat: Pattern): string =
@@ -731,6 +785,10 @@ and ppMatchExpr (ctx: PrintCtx) (mexpr: MatchExpr): Line list =
       let bdg = pat.binder |> Option.map (fun bdg -> $"${bdg.name} @ ") |> Option.defaultValue ""
       let subpats = (pat.subPatterns |> List.map ppPattern).StrJoin ", "
       $"{bdg}{pat.id}({subpats})"
+    | TuplePattern pat ->
+      let bdg = pat.binder |> Option.map (fun bdg -> $"${bdg.name} @ ") |> Option.defaultValue ""
+      let subpats = (pat.subPatterns |> List.map ppPattern).StrJoin ", "
+      $"{bdg}({subpats})"
 
   let ppMatchCase (ctx: PrintCtx) (cse: MatchCase): Line list =
     let pat = {txt = $"case {ppPattern cse.pattern} =>"; lvl = ctx.lvl}
@@ -833,6 +891,8 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
 
   | LetGhost lt -> ppLet ctx e lt ["@ghost"]
 
+  | LetTuple lt -> ppLetGeneric ctx e lt.bdgs lt.e lt.body []
+
   | Assert pred ->
     let pred = ppExpr (ctx.nestExpr pred) pred
     joinCallLike ctx [line "assert"] [pred] false
@@ -859,6 +919,10 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
   | ApplyLetRec call ->
     let args = call.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
     joinCallLike ctx [line call.id] args true
+
+  | Tuple args ->
+    let args = args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
+    joinCallLike ctx [line ""] args false
 
   | TupleSelect (recv, ix) ->
     let recv = ppExpr (ctx.nestExpr recv) recv

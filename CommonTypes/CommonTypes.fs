@@ -54,6 +54,7 @@ type Selection = {
     member this.appendSelection (selectionId: string) (selTpe: SelectionType) (selOpt: bool): Selection =
         let currTpe = this.selectionType
         assert (currTpe = Value || currTpe = Pointer)
+        assert (selectionId.Trim() <> "")
         this.append (if currTpe = Value then ValueAccess (selectionId, selTpe, selOpt) else PointerAccess (selectionId, selTpe, selOpt))
 
     member this.selectionType: SelectionType =
