@@ -1853,7 +1853,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 | _ ->  localVariables, None, None, None
 
 
-        let handleChild (s: SequenceChildState) (child: SeqChildInfo): SequenceChildResult * SequenceChildState =
+        let handleChild (s: SequenceChildState) (childInfo: SeqChildInfo): SequenceChildResult * SequenceChildState =
             // This binding is suspect, isn't it
             let us = s.us
             let soSaveBitStrmPosStatement = None
@@ -1866,7 +1866,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     acnRelativeOffset = s.acnAccBits
                     acnOffset = nestingScope.acnOffset + s.acnAccBits}
 
-            match child with
+            match childInfo with
             | Asn1Child child   ->
                 let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
                 let childName = lm.lg.getAsn1ChildBackendName child
@@ -1954,7 +1954,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     if child.Optionality.IsSome then childTpeKind |> Option.map OptionEncodingType
                     else childTpeKind
                 let typeInfo = {uperMaxSizeBits=child.uperMaxSizeInBits; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=tpeKind}
-                let props = {sel=Some (childSel.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind=Asn1 child.Type.Kind.baseKind}
+                let props = {info=Some childInfo.toAsn1AcnAst; sel=Some childSel; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind=Asn1 child.Type.Kind.baseKind}
                 let res = {stmts=stmts; resultExpr=childResultExpr; existVar=existVar; props=props; typeKindEncoding=tpeKind}
                 let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
                 res, newAcc
@@ -1996,8 +1996,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             Some {acnStatement=AcnChildEncodeStatement; body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes}, childContent.typeEncodingKind, ns1
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
                 // Note: uperMaxSizeBits and uperAccBits here do not make sense since we are in ACN
-                let typeInfo = {uperMaxSizeBits=0I; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=childTpeKind}
-                let props = {sel=Some (childP.arg.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind=Acn acnChild.Type}
+                let typeInfo = {uperMaxSizeBits=0I; acnMaxSizeBits=childInfo.acnMaxSizeInBits; typeKind=childTpeKind}
+                let props = {info = Some childInfo.toAsn1AcnAst; sel=Some childP.arg; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind=Acn acnChild.Type}
                 let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; typeKindEncoding=childTpeKind}
                 let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
                 res, newAcc
@@ -2036,6 +2036,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             }
             let presenceBitsInfo = presenceBits |> List.mapi (fun i _ ->
                 {
+                    info = None
                     sel=None
                     uperMaxOffset = bigint i
                     acnMaxOffset = bigint i
@@ -2048,7 +2049,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 }
             )
             let children = childrenStatements00 |> List.map (fun xs -> xs.props)
-            {acnOuterMaxSize = nestingScope.acnOuterMaxSize; uperOuterMaxSize = nestingScope.uperOuterMaxSize;
+            {t = t; acnOuterMaxSize = nestingScope.acnOuterMaxSize; uperOuterMaxSize = nestingScope.uperOuterMaxSize;
             nestingLevel = nestingScope.nestingLevel; nestingIx = nestingScope.nestingIx;
             uperMaxOffset = nestingScope.uperOffset; acnMaxOffset = nestingScope.acnOffset;
             acnSiblingMaxSize = nestingScope.acnSiblingMaxSize; uperSiblingMaxSize = nestingScope.uperSiblingMaxSize;

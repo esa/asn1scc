@@ -787,12 +787,24 @@ and AcnChild = {
     Comments                    : string array
     deps                        : Asn1AcnAst.AcnInsertedFieldDependencies
     initExpression              : string
-}
+} with
+    member this.toAsn1AcnAst: Asn1AcnAst.AcnChild =
+        {
+            Name = this.Name
+            id = this.id
+            Type = this.Type
+            inserted = false
+            Comments = this.Comments
+        }
 
 and SeqChildInfo =
     | Asn1Child of Asn1Child
     | AcnChild  of AcnChild
-
+with
+    member this.toAsn1AcnAst: Asn1AcnAst.SeqChildInfo =
+        match this with
+        | Asn1Child child -> Asn1AcnAst.Asn1Child child.toAsn1AcnAst
+        | AcnChild child -> Asn1AcnAst.AcnChild child.toAsn1AcnAst
 
 and Asn1Child = {
     Name                        : StringLoc
@@ -803,7 +815,19 @@ and Asn1Child = {
     Type                        : Asn1Type
     Optionality                 : Asn1AcnAst.Asn1Optionality option
     Comments                    : string array
-}
+} with
+    member this.toAsn1AcnAst: Asn1AcnAst.Asn1Child =
+        {
+            Name = this.Name
+            _c_name = this._c_name
+            _scala_name = this._scala_name
+            _ada_name = this._ada_name
+            Type = this.Type.toAsn1AcnAst
+            Optionality = this.Optionality
+            asn1Comments = this.Comments |> Array.toList
+            acnComments = []
+        }
+
 
 
 
@@ -926,8 +950,14 @@ and DastAcnParameter = {
     loc         : SrcLoc
     id          : ReferenceToType
     typeDefinitionBodyWithinSeq : string
-}
-
+} with
+    member this.toAcnGeneric: AcnGenericTypes.AcnParameter =
+        {
+            name = this.name
+            asn1Type = this.asn1Type
+            loc = this.loc
+            id = this.id
+        }
 
 
 and Asn1Type = {
@@ -945,7 +975,24 @@ and Asn1Type = {
 
     Kind            : Asn1TypeKind
     unitsOfMeasure  : string option
-}
+} with
+    member this.toAsn1AcnAst: Asn1AcnAst.Asn1Type =
+        {
+            id = this.id
+            parameterizedTypeInstance = false
+            Kind = this.Kind.baseKind
+            acnAlignment = this.acnAlignment
+            acnParameters = this.acnParameters |> List.map (fun p -> p.toAcnGeneric)
+            Location = this.Location
+            moduleName = this.moduleName
+            acnLocation = None
+            inheritInfo = this.inheritInfo
+            typeAssignmentInfo = this.typeAssignmentInfo
+            acnEncSpecPosition = None
+            acnEncSpecAntlrSubTree = None
+            unitsOfMeasure = this.unitsOfMeasure
+        }
+
 
 and Asn1TypeKind =
     | Integer           of Integer

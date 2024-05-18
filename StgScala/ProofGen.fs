@@ -282,7 +282,16 @@ with
   member this.allBindings: (Var * Expr) list = this.extraBdgs @ [this.childVar, this.childSize]
   member this.allVariables: Var list = this.allBindings |> List.map (fun (v, _) -> v)
 
-let renameBindings (res: SeqSizeExprChildRes list) (suffix: string): SeqSizeExprChildRes list =
+let renameBindings (bdgs: (Var * Expr) list) (suffix: string): (Var * Expr) list =
+  let allVars = bdgs |> List.map fst
+  let renamedVars = allVars |> List.map (fun v -> {v with name = $"{v.name}{suffix}"})
+  let mapping = List.zip allVars (renamedVars |> List.map Var)
+  let renamedVarFor (old: Var): Var =
+    renamedVars.[allVars |> List.findIndex (fun v -> v = old)]
+  bdgs |> List.map (fun (v, e) -> renamedVarFor v, substVars mapping e)
+
+
+let renameBindingsSizeRes (res: SeqSizeExprChildRes list) (suffix: string): SeqSizeExprChildRes list =
   let allVars = res |> List.collect (fun res -> res.allVariables)
   let renamedVars = allVars |> List.map (fun v -> {v with name = $"{v.name}{suffix}"})
   let mapping = List.zip allVars (renamedVars |> List.map Var)
@@ -352,6 +361,39 @@ let rec asn1SizeExpr (align: AcnAlignment option)
       aligned {bdgs = []; resSize = callSize obj offset}
   | _ -> aligned {bdgs = []; resSize = callSize obj offset}
 
+and seqSizeExprHelperChild (child: SeqChildInfo)
+                           (ix: bigint)
+                           (recv: Expr option)
+                           (offset: Expr)
+                           (nestingLevel: bigint)
+                           (nestingIx: bigint): SizeExprRes =
+  // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
+  match child with
+  | AcnChild acn ->
+    (*if acn.deps.acnDependencies.IsEmpty then
+      // This should not be possible, but ACN parameters are probably validated afterwards.
+      [], longlit 0I
+    else*)
+      // There can be multiple dependencies on an ACN field, however all must be consistent
+      // (generated code checks for that, done by MultiAcnUpdate).
+      // For our use case, we assume the message is consistent, we therefore pick
+      // an arbitrary dependency.
+      // If it is not the case, the returned value may be incorrect but we would
+      // not encode the message anyway, so this incorrect size would not be used.
+      // To do things properly, we should move this check of MultiAcnUpdate in the IsConstraintValid function
+      // of the message and add it as a precondition to the size function.
+      // TODO: variable-length size
+      {bdgs = []; resSize = acnTypeSizeExpr acn.Type}
+  | Asn1Child asn1 ->
+    match asn1.Optionality with
+    | Some _ ->
+      let someBdg = {Var.name = "v"; tpe = fromAsn1TypeKind asn1.Type.Kind}
+      let childRes = asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind (Var someBdg) offset nestingLevel (nestingIx + ix)
+      let resSize = optionMutMatchExpr recv.Value (Some someBdg) childRes.resSize (longlit 0I)
+      {bdgs = childRes.bdgs; resSize = resSize}
+    | None ->
+      asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind recv.Value offset nestingLevel (nestingIx + ix)
+
 and seqSizeExprHelper (sq: Sequence)
                       (obj: Expr)
                       (offset: Expr)
@@ -363,35 +405,12 @@ and seqSizeExprHelper (sq: Sequence)
       else $"size_{nestingLevel}_{nestingIx + bigint ix}"
     let resVar = {Var.name = varName; tpe = IntegerType Long}
     let accOffset = plus (offset :: (acc |> List.map (fun res -> Var res.childVar)))
-    // functionArgument qui est paramétrisé (choice) indiqué par asn1Type; determinant = function-ID (dans PerformAFunction)
-    let extraBdgs, resSize =
+    let recv =
       match child with
-      | AcnChild acn ->
-        (*if acn.deps.acnDependencies.IsEmpty then
-          // This should not be possible, but ACN parameters are probably validated afterwards.
-          [], longlit 0I
-        else*)
-          // There can be multiple dependencies on an ACN field, however all must be consistent
-          // (generated code checks for that, done by MultiAcnUpdate).
-          // For our use case, we assume the message is consistent, we therefore pick
-          // an arbitrary dependency.
-          // If it is not the case, the returned value may be incorrect but we would
-          // not encode the message anyway, so this incorrect size would not be used.
-          // To do things properly, we should move this check of MultiAcnUpdate in the IsConstraintValid function
-          // of the message and add it as a precondition to the size function.
-          // TODO: variable-length size
-          [], acnTypeSizeExpr acn.Type
-      | Asn1Child asn1 ->
-        match asn1.Optionality with
-        | Some _ ->
-          let scrut = FieldSelect (obj, asn1._scala_name)
-          let someBdg = {Var.name = "v"; tpe = fromAsn1TypeKind asn1.Type.Kind}
-          let childRes = asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind (Var someBdg) accOffset nestingLevel (nestingIx + (bigint ix))
-          childRes.bdgs, optionMutMatchExpr scrut (Some someBdg) childRes.resSize (longlit 0I)
-        | None ->
-          let childRes = asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind (FieldSelect (obj, asn1._scala_name)) accOffset nestingLevel (nestingIx + (bigint ix))
-          childRes.bdgs, childRes.resSize
-    acc @ [{extraBdgs = extraBdgs; childVar = resVar; childSize = resSize}]
+      | AcnChild _ -> None
+      | Asn1Child child -> Some (FieldSelect (obj, child._scala_name))
+    let childResSize = seqSizeExprHelperChild child (bigint ix) recv accOffset nestingLevel nestingIx
+    acc @ [{extraBdgs = childResSize.bdgs; childVar = resVar; childSize = childResSize.resSize}]
   sq.children |> List.indexed |> (List.fold childSize [])
 
 and seqSizeExpr (sq: Sequence)
@@ -486,9 +505,9 @@ let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef li
     let otherOffset = template.prms.[1]
 
     let allResWithOffset = seqSizeExprHelper sq This (Var offset) 0I 0I
-    let allResWithOffset = renameBindings allResWithOffset "_offset"
+    let allResWithOffset = renameBindingsSizeRes allResWithOffset "_offset"
     let allResWithOtherOffset = seqSizeExprHelper sq This (Var otherOffset) 0I 0I
-    let allResWithOtherOffset = renameBindings allResWithOtherOffset "_otherOffset"
+    let allResWithOtherOffset = renameBindingsSizeRes allResWithOtherOffset "_otherOffset"
 
     let proofSubcase (ix: int, (resWithOffset: SeqSizeExprChildRes, resWithOtherOffset: SeqSizeExprChildRes, child: SeqChildInfo)) (rest: Expr): Expr =
       let withBindingsPlugged (expr: Expr option): Expr =
@@ -914,24 +933,52 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
   let isNested = pg.nestingLevel > 0I
   assert (isNested || fstSnap = oldCdc)
 
-  // TODO
-  (*
-  let annotatePostPreciseSize (ix: int) (snap: Var) (child: SequenceChildProps): Expr list =
-    let sizeRes =
-      let sizeVarName = {Var.name = "size"; tpe = IntegerType Long} // NOTE: this is the name before being renamed by `renameBindings`
+  //let sizeResVars = [0 .. pg.children.Length - 1] |> List.map (fun i -> {Var.name = $"size_{pg.nestingIx + bigint i}"; tpe = IntegerType Long})
+  let sizeRess =
+    pg.children |>
+    List.indexed |>
+    List.fold (fun acc (ix, c) ->
+      let childVar = {Var.name = $"size_{pg.nestingIx + bigint ix}"; tpe = IntegerType Long}
+      match c.info with
+      | Some info ->
+        let previousSizes = acc |> List.map (fun res -> Var res.childVar)
+        let overallOffset = plus (bitIndex (Var snapshots.[ix]) :: previousSizes)
+        let recv =
+          match codec with
+          | Encode -> SelectionExpr (joinedSelection c.sel.Value)
+          | Decode -> SelectionExpr c.sel.Value.asIdentifier
+        let resSize = seqSizeExprHelperChild info (bigint ix) (Some recv) overallOffset pg.nestingLevel pg.nestingIx
+        acc @ [{extraBdgs = resSize.bdgs; childVar = childVar; childSize = resSize.resSize}]
+      | None ->
+        // presence bits
+        acc @ [{extraBdgs = []; childVar = childVar; childSize = longlit 1I}]
+    ) []
+
+  let annotatePostPreciseSize (ix: int) (snap: Var) (child: SequenceChildProps): Expr =
+    (*let previousSizes = sizeResVars |> List.take ix |> List.map Var
+    let sizeVar = sizeResVars.[ix]
+    let extraBdgs, sizeRes =
       match child.sel with
-      | None -> {extraBdgs = []; childVar = sizeVarName; childSize = longlit 1I} // presence bits
+      | None -> [], longlit 1I // presence bits
       | Some sel ->
         match child.typeKind with
-        | Acn child -> {extraBdgs = []; childVar = sizeVarName; childSize = acnTypeSizeExpr child}
+        | Acn child -> [], acnTypeSizeExpr child
         | Asn1 child ->
-          let sizeRes = asn1SizeExpr None child (SelectionExpr sel) (bitIndex (Var snap)) pg.nestingLevel (pg.nestingIx + (bigint ix))
-          {extraBdgs = sizeRes.bdgs; childVar = sizeVarName; childSize = sizeRes.resSize}
-    let sizeRes = renameBindings [sizeRes] $"_{pg.nestingLevel}_{pg.nestingIx + bigint ix}"
-    let sizeRes = sizeRes.Head
-  *)
+          let recv =
+            match codec with
+            | Encode -> SelectionExpr (joinedSelection sel)
+            | Decode -> SelectionExpr sel.asIdentifier
+          let overallOffset = plus (bitIndex (Var snap) :: previousSizes)
+          let sizeRes = asn1SizeExpr None child recv overallOffset pg.nestingLevel (pg.nestingIx + (bigint ix))
+          sizeRes.bdgs, sizeRes.resSize
+    let extraBdgs = renameBindings extraBdgs $"_{pg.nestingIx + bigint ix}"
+    *)
+    let previousSizes = sizeRess |> List.take ix |> List.map (fun res -> Var res.childVar)
+    let sizeRes = sizeRess.[ix]
+    let chk = Check (Equals (bitIndex (Var cdc), plus (bitIndex (Var oldCdc) :: previousSizes @ [Var sizeRes.childVar])))
+    letsGhostIn sizeRes.allBindings (Ghost chk)
 
-  let annotatePost (ix: int) (snap: Var) (child: SequenceChildProps) (stmt: string option) (offsetAcc: bigint): Expr list =
+  let annotatePost (ix: int) (snap: Var) (child: SequenceChildProps) (stmt: string option) (offsetAcc: bigint): Expr =
     let sz = child.typeInfo.maxSize enc
     let relativeOffset = offsetAcc - (pg.maxOffset enc)
     let offsetCheckOverall = Check (Leq (bitIndex (Var cdc), plus [bitIndex (Var oldCdc); (longlit offsetAcc)]))
@@ -952,11 +999,12 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
         ]
       | _ -> []
     let checks = offsetCheckOverall :: offsetCheckNested @ bufCheck @ offsetWidening
-    let lemma  =
+    let validateOffsetLemma  =
       if stmt.IsSome && ix < nbChildren - 1 then
         [validateOffsetBitsIneqLemma (selBitStream (Var snap)) (selBitStream (Var cdc)) (longlit (outerMaxSize - offsetAcc + sz)) (longlit sz)]
       else []
-    lemma @ checks
+    let preciseSize = annotatePostPreciseSize ix snap child
+    mkBlock [Ghost (mkBlock (validateOffsetLemma @ checks)); preciseSize]
 
   let annotate (ix: int, (snap: Var, child: SequenceChildProps, stmt: string option)) (offsetAcc: bigint, rest: Expr): bigint * Expr =
     let sz = child.typeInfo.maxSize enc
@@ -966,8 +1014,8 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
       else []
     let postAnnots = annotatePost ix snap child stmt offsetAcc
     let encDec = stmt |> Option.map EncDec |> Option.toList
-    let body = mkBlock (preAnnots @ encDec @ [Ghost (mkBlock postAnnots); rest])
-    (offsetAcc - sz, LetGhost {bdg = snap; e = Snapshot (Var cdc); body = body})
+    let body = mkBlock (preAnnots @ encDec @ [postAnnots; rest])
+    offsetAcc - sz, LetGhost {bdg = snap; e = Snapshot (Var cdc); body = body}
 
   let stmts = List.zip3 snapshots pg.children stmts |> List.indexed
   List.foldBack annotate stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd

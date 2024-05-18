@@ -750,7 +750,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 | _ -> None
 
             let typeInfo = {uperMaxSizeBits=child.uperMaxSizeInBits; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=childContentResult |> Option.bind (fun c -> c.typeEncodingKind)}
-            let props = {sel=Some (childP.arg.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind = Asn1AcnTypeKind.Asn1 child.Type.Kind.baseKind}
+            let props = {info = Some (Asn1Child child).toAsn1AcnAst; sel=Some childP.arg; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind = Asn1AcnTypeKind.Asn1 child.Type.Kind.baseKind}
             let newAcc = {childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
 
             match childContentResult with
@@ -799,10 +799,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
         let seqProofGen =
             let presenceBitsInfo = presenceBits |> List.mapi (fun i _ ->
-                {sel=None; uperMaxOffset = bigint i; acnMaxOffset = bigint i;
+                {info = None; sel=None; uperMaxOffset = bigint i; acnMaxOffset = bigint i;
                 typeInfo = {uperMaxSizeBits = 1I; acnMaxSizeBits = 1I; typeKind = Some (AcnBooleanEncodingType None)}; typeKind = Asn1AcnTypeKind.Asn1 t.Kind})
             let children = childrenStatements00 |> List.map (fun xs -> xs.props)
-            {acnOuterMaxSize = nestingScope.acnOuterMaxSize; uperOuterMaxSize = nestingScope.uperOuterMaxSize;
+            {t = t; acnOuterMaxSize = nestingScope.acnOuterMaxSize; uperOuterMaxSize = nestingScope.uperOuterMaxSize;
             nestingLevel = nestingScope.nestingLevel; nestingIx = nestingScope.nestingIx;
             uperMaxOffset = nestingScope.uperOffset; acnMaxOffset = nestingScope.acnOffset;
             acnSiblingMaxSize = nestingScope.acnSiblingMaxSize; uperSiblingMaxSize = nestingScope.uperSiblingMaxSize;

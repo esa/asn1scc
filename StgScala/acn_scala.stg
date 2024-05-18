@@ -66,7 +66,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN): Ei
 }.ensuring { (res : EitherMut[ErrorCode, <sTypeDefName>]) =>
     <soPostcond>
 }
-
+/*
 @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>_pure(codec: ACN): (ACN, EitherMut[ErrorCode, <sTypeDefName>]) =
 {
@@ -75,6 +75,7 @@ def <sFuncName>_pure(codec: ACN): (ACN, EitherMut[ErrorCode, <sTypeDefName>]) =
     val res = <sFuncName>(cpy)
     (cpy, res)
 }
+*/
 >>
 
 A(sErrCode) /*nogen*/ ::= ""

@@ -8,7 +8,6 @@ call_base_type_func_encode(p, sFuncName) ::= <<
     case Left(err) => return Left(err)
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
-// uper call_base_type_func_decode
 val <p> = <sFuncName>(codec) match // uper:13
     case RightMut(decData) => decData
     case LeftMut(err) => return LeftMut(err)
@@ -72,7 +71,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER): E
 }.ensuring { (res : EitherMut[ErrorCode, <sTypeDefName>]) =>
     <soPostcond>
 }
-
+/*
 @ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>_pure(codec: UPER): (UPER, EitherMut[ErrorCode, <sTypeDefName>]) =
 {
@@ -81,6 +80,7 @@ def <sFuncName>_pure(codec: UPER): (UPER, EitherMut[ErrorCode, <sTypeDefName>]) 
     val res = <sFuncName>(cpy)
     (cpy, res)
 }
+*/
 >>
 
 InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<

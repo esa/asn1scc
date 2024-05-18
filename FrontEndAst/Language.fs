@@ -72,9 +72,8 @@ type TypeInfo = {
 //     | AcnTpe
 
 type SequenceChildProps = {
-    // TODO: String not ideal, but array selection index is string anyway...
-    sel: string option // None for presence bits
-    // TODO: What about padding?
+    info: Asn1AcnAst.SeqChildInfo option // None for presence bits
+    sel: Selection option // None for presence bits
     uperMaxOffset: bigint
     acnMaxOffset: bigint
     typeInfo: TypeInfo // TODO: Remove?
@@ -87,6 +86,7 @@ type SequenceChildProps = {
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
 type SequenceProofGen = {
+    t: Asn1AcnAst.Asn1Type
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
     nestingLevel: bigint
