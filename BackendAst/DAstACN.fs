@@ -114,7 +114,7 @@ let handleSavePosition (funcBody: FuncBody)
                     Some {bodyResult with funcBody  = funcBodyStr}
                 | None              ->
                     let funcBodyStr = savePositionStatement
-                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; typeEncodingKind = None}
+                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; typeEncodingKind = None; auxiliaries = []}
             newContent, ns1a
         newFuncBody
 
@@ -150,7 +150,7 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
                     Some {bodyResult with funcBody  = funcBodyStr}
                 | None              ->
                     let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
-                    Some {funcBody = funcBodyStr; errCodes =[errCode]; localVariables = []; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; typeEncodingKind = None}
+                    Some {funcBody = funcBodyStr; errCodes =[errCode]; localVariables = []; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; typeEncodingKind = None; auxiliaries = []}
             newContent, ns1a
         newFuncBody
 
@@ -176,7 +176,7 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
                     Some {bodyResult with funcBody  = funcBodyStr}
                 | None              ->
                     let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
-                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; typeEncodingKind = None}
+                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; typeEncodingKind = None; auxiliaries = []}
             newContent
         newFuncBody
 
@@ -286,20 +286,20 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let varName = p.arg.receiverId
     let sStar = lm.lg.getStar p.arg
     let sInitialExp = ""
-    let func, funcDef,ns2  =
+    let func, funcDef, auxiliaries, ns2  =
             match funcNameAndtasInfo  with
-            | None -> None, None, ns
+            | None -> None, None, [], ns
             | Some funcName ->
                 let precondAnnots = lm.lg.generatePrecond ACN t
                 let postcondAnnots = lm.lg.generatePostcond ACN funcNameBase p t codec
                 let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits) p
-                let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced =
+                let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, auxiliaries =
                     match content with
                     | None ->
                         let emptyStatement = lm.lg.emptyStatement
-                        emptyStatement, [], [], true, isValidFuncName.IsNone
+                        emptyStatement, [], [], true, isValidFuncName.IsNone, []
                     | Some bodyResult ->
-                        bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced
+                        bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.auxiliaries
 
                 let handleAcnParameter (p:AcnGenericTypes.AcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
@@ -326,7 +326,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
 
                 let errCodStr = errCodes |> List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment) |> List.distinct
                 let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName2 lm.lg.hasModules) errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
-                func, funcDef,ns1a
+                func, funcDef, auxiliaries, ns1a
 
     let icdAux, ns3 =
         match codec with
@@ -346,6 +346,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
             AcnFunction.funcName       = funcNameAndtasInfo
             func                       = func
             funcDef                    = funcDef
+            auxiliaries                = auxiliaries
             funcBody                   = fun us acnArgs p -> funcBody us errCode acnArgs p
             funcBodyAsSeqComp          = funcBodyAsSeqComp
             isTestVaseValid            = isTestVaseValid
@@ -481,7 +482,7 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, bValIsUnReferenced, bBsIsUnReferenced, typeEncodingKind ) ->
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= bValIsUnReferenced; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr = resultExpr; typeEncodingKind = typeEncodingKind})
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= bValIsUnReferenced; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr = resultExpr; typeEncodingKind = typeEncodingKind; auxiliaries = []})
     funcBody
 
 let getMappingFunctionModule (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (soMapFuncName:string option) =
@@ -586,14 +587,14 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
                         lm.lg.generateIntFullyConstraintRangeAssert (ToC (r.args.TypePrefix + tasInfo.tasName)) p codec
                     | None -> None
                 let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max nbits sSsuffix errCode.errCodeName rangeAssert codec
-                Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType (Some (FullyConstrainedPositive (min, max))))})
+                Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType (Some (FullyConstrainedPositive (min, max)))); auxiliaries=[]})
             createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass uperInt (None, None)
         let funcBodyContent =
             match intFuncBody errCode acnArgs nestingScope pVal with
             | None -> None
             | Some intAcnFuncBdResult ->
-                let resultExpr, errCodes, typeEncodingKind =
-                    intAcnFuncBdResult.resultExpr, intAcnFuncBdResult.errCodes, intAcnFuncBdResult.typeEncodingKind
+                let resultExpr, errCodes, typeEncodingKind, auxiliaries =
+                    intAcnFuncBdResult.resultExpr, intAcnFuncBdResult.errCodes, intAcnFuncBdResult.typeEncodingKind, intAcnFuncBdResult.auxiliaries
                 let mainContent, localVariables =
                     match r.args.isEnumEfficientEnabled o.items.Length  with
                     | false ->
@@ -607,12 +608,12 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
                         let sEnumIndex = "nEnumIndex"
                         let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
                         Enumerated_no_switch (lm.lg.getValue p.arg) td intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName  intVal   sEnumIndex nLastItemIndex o.encodeValues   codec, enumIndexVar::localVar@intAcnFuncBdResult.localVariables
-                Some (mainContent, resultExpr, errCodes, localVariables, typeEncodingKind)
+                Some (mainContent, resultExpr, errCodes, localVariables, typeEncodingKind, auxiliaries)
 
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent, resultExpr, errCodes, localVariables, typeEncodingKind) ->
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind})
+        | Some (funcBodyContent, resultExpr, errCodes, localVariables, typeEncodingKind, auxiliaries) ->
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=auxiliaries})
     funcBody
 
 let enumComment stgFileName (o:Asn1AcnAst.Enumerated) =
@@ -668,14 +669,14 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
 
         let funcBodyContent =
             match o.acnEncodingClass with
-            | Real_IEEE754_32_big_endian            -> Some (Real_32_big_endian castPp sSuffix errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType BigEndian32))
-            | Real_IEEE754_64_big_endian            -> Some (Real_64_big_endian pp errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType BigEndian64))
-            | Real_IEEE754_32_little_endian         -> Some (Real_32_little_endian castPp sSuffix errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType LittleEndian32))
-            | Real_IEEE754_64_little_endian         -> Some (Real_64_little_endian pp errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType LittleEndian64))
-            | Real_uPER                             -> uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.typeEncodingKind)
+            | Real_IEEE754_32_big_endian            -> Some (Real_32_big_endian castPp sSuffix errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType BigEndian32), [])
+            | Real_IEEE754_64_big_endian            -> Some (Real_64_big_endian pp errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType BigEndian64), [])
+            | Real_IEEE754_32_little_endian         -> Some (Real_32_little_endian castPp sSuffix errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType LittleEndian32), [])
+            | Real_IEEE754_64_little_endian         -> Some (Real_64_little_endian pp errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType LittleEndian64), [])
+            | Real_uPER                             -> uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.typeEncodingKind, x.auxiliaries)
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent,errCodes, typeEncodingKind) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind})
+        | Some (funcBodyContent,errCodes, typeEncodingKind, auxiliaries) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=auxiliaries})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     let icdFnc fieldName sPresent comments =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
@@ -690,10 +691,10 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let funcBodyContent =
-            uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.resultExpr, x.typeEncodingKind)
+            uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.resultExpr, x.typeEncodingKind, x.auxiliaries)
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent,errCodes, resultExpr, typeEncodingKind) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind})
+        | Some (funcBodyContent,errCodes, resultExpr, typeEncodingKind, auxiliaries) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=auxiliaries})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     let icdFnc fieldName sPresent comments  =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
@@ -704,10 +705,10 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (c
 let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let funcBodyContent =
-            uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.resultExpr, x.typeEncodingKind)
+            uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.resultExpr, x.typeEncodingKind, x.auxiliaries)
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent,errCodes, resultExpr, typeEncodingKind) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind})
+        | Some (funcBodyContent,errCodes, resultExpr, typeEncodingKind, auxiliaries) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=auxiliaries})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     let icdFnc fieldName sPresent comments =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
@@ -728,7 +729,7 @@ let createAcnBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         let Boolean         = lm.uper.Boolean
         let funcBodyContent =
             Boolean pp errCode.errCodeName codec
-        Some {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnBooleanEncodingType None)}
+        Some {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnBooleanEncodingType None); auxiliaries=[]}
     (funcBody errCode), ns
 
 let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : AcnFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
@@ -754,7 +755,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
                 let nSize = pattern.bitVal.Value.Length
                 acnBoolean pvalue ptr pattern.isTrue (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName codec, resultExpr, AcnBooleanEncodingType (Some pattern)
 
-        {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some typeEncodingKind}
+        {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some typeEncodingKind; auxiliaries=[]}
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     let icdFnc fieldName sPresent comments =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
@@ -786,7 +787,7 @@ let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
                     let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                     arrsBits,arrBytes,(BigInteger bitStringPattern.Length)
             let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName o.acnProperties.savePosition codec
-            Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnNullEncodingType (Some encPattern))})
+            Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnNullEncodingType (Some encPattern)); auxiliaries=[]})
     (funcBody errCode), ns
 
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (us:State)  =
@@ -799,7 +800,7 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             match codec, lm.lg.decodingKind with
             | Decode, Copy ->
                 // Copy-decoding backend expect all values to be declared even if they are "dummies"
-                Some ({AcnFuncBodyResult.funcBody = lm.acn.Null_declare pp; errCodes = []; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=Some pp; typeEncodingKind = Some (AcnNullEncodingType None)})
+                Some ({AcnFuncBodyResult.funcBody = lm.acn.Null_declare pp; errCodes = []; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=Some pp; typeEncodingKind = Some (AcnNullEncodingType None); auxiliaries=[]})
             | _ -> None
         | Some encPattern   ->
             let arrsBits, arrBytes, nBitsSize =
@@ -814,7 +815,7 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                     let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                     arrsBits,arrBytes,(BigInteger bitStringPattern.Length)
             let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName o.acnProperties.savePosition codec
-            Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= lm.lg.acn.null_valIsUnReferenced; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnNullEncodingType (Some encPattern))})
+            Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= lm.lg.acn.null_valIsUnReferenced; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnNullEncodingType (Some encPattern)); auxiliaries=[]})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     let icdFnc fieldName sPresent comments =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
@@ -904,18 +905,18 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let funcBodyContent, ns =
             match o.acnEncodingClass with
             | Acn_Enc_String_uPER  _ ->
-                uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables), us // TODO: Placeholder (uper) ou bien?
+                uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables, x.auxiliaries), us
             | Acn_Enc_String_uPER_Ascii _ ->
                 match o.maxSize.uper = o.minSize.uper with
-                | true      ->  Some (Acn_String_Ascii_FixSize pp errCode.errCodeName ( o.maxSize.uper) codec, [errCode], []), us
+                | true      ->  Some (Acn_String_Ascii_FixSize pp errCode.errCodeName ( o.maxSize.uper) codec, [errCode], [], []), us
                 | false     ->
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.acn - o.minSize.acn))
-                    Some (Acn_String_Ascii_Internal_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) ( o.minSize.acn) nSizeInBits codec , [errCode], []), us
+                    Some (Acn_String_Ascii_Internal_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) ( o.minSize.acn) nSizeInBits codec, [errCode], [], []), us
             | Acn_Enc_String_Ascii_Null_Terminated (_,nullChars) ->
-                Some (Acn_String_Ascii_Null_Terminated pp errCode.errCodeName ( o.maxSize.acn) nullChars codec, [errCode], []), us
+                Some (Acn_String_Ascii_Null_Terminated pp errCode.errCodeName ( o.maxSize.acn) nullChars codec, [errCode], [], []), us
             | Acn_Enc_String_Ascii_External_Field_Determinant _ ->
                 let extField = getExternalField r deps t.id
-                Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) extField codec, [errCode], []), us
+                Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) extField codec, [errCode], [], []), us
             | Acn_Enc_String_CharIndex_External_Field_Determinant _ ->
                 let extField = getExternalField r deps t.id
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
@@ -925,11 +926,11 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
                         Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) arrAsciiCodes (BigInteger o.uperCharSet.Length) extField td nBits codec
                     | true -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName o.maxSize.acn extField td nBits (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) codec
-                Some(encDecStatement, [errCode], []), us
+                Some(encDecStatement, [errCode], [], []), us
         match funcBodyContent with
         | None -> None, ns
-        | Some (funcBodyContent,errCodes, localVars) ->
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVars; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnStringEncodingType o.acnEncodingClass)}), ns
+        | Some (funcBodyContent,errCodes, localVars, auxiliaries) ->
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVars; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnStringEncodingType o.acnEncodingClass); auxiliaries=auxiliaries}), ns
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     let icdFnc fieldName sPresent comments  =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
@@ -1018,7 +1019,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let funcBodyContent,localVariables = DAstUPer.handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem nBits false true
                 funcBodyContent,charIndex@localVariables
 
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (AcnStringEncodingType o.acnEncodingClass)}
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (AcnStringEncodingType o.acnEncodingClass); auxiliaries=[]}
 
 
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
@@ -1028,14 +1029,14 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match t.str.acnEncodingClass with
             | Acn_Enc_String_uPER_Ascii    _                                    ->
                 match t.str.maxSize.uper = t.str.minSize.uper with
-                | true      ->  Some (Acn_String_Ascii_FixSize pp errCode.errCodeName ( t.str.maxSize.uper) codec, [], [])
+                | true      ->  Some (Acn_String_Ascii_FixSize pp errCode.errCodeName ( t.str.maxSize.uper) codec, [], [], [])
                 | false     ->
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.acn - o.minSize.acn))
-                    Some (Acn_String_Ascii_Internal_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) ( t.str.minSize.acn) nSizeInBits codec , [], [])
-            | Acn_Enc_String_Ascii_Null_Terminated                  (_, nullChars)   -> Some (Acn_String_Ascii_Null_Terminated pp errCode.errCodeName ( t.str.maxSize.acn) nullChars codec, [], [])
+                    Some (Acn_String_Ascii_Internal_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) ( t.str.minSize.acn) nSizeInBits codec , [], [], [])
+            | Acn_Enc_String_Ascii_Null_Terminated (_, nullChars)   -> Some (Acn_String_Ascii_Null_Terminated pp errCode.errCodeName ( t.str.maxSize.acn) nullChars codec, [], [], [])
             | Acn_Enc_String_Ascii_External_Field_Determinant       _    ->
                 let extField = getExternalField r deps typeId
-                Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) extField codec, [], [])
+                Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) extField codec, [], [], [])
             | Acn_Enc_String_CharIndex_External_Field_Determinant   _    ->
                 let extField = getExternalField r deps typeId
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (t.str.uperCharSet.Length-1))
@@ -1045,14 +1046,14 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                         let arrAsciiCodes = t.str.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
                         Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) arrAsciiCodes (BigInteger t.str.uperCharSet.Length) extField td nBits codec
                     | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName t.str.maxSize.acn extField td nBits (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) codec
-                Some(encDecStatement, [], [])
+                Some(encDecStatement, [], [], [])
             | Acn_Enc_String_uPER    _                                         ->
                 let x = uper_funcBody errCode nestingScope p
-                Some(x.funcBody, x.errCodes, x.localVariables)
+                Some(x.funcBody, x.errCodes, x.localVariables, x.auxiliaries)
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent,errCodes, lvs) ->
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::errCodes |> List.distinct ; localVariables = lvs; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnStringEncodingType o.acnEncodingClass)})
+        | Some (funcBodyContent,errCodes, lvs, auxiliaries) ->
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::errCodes |> List.distinct ; localVariables = lvs; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnStringEncodingType o.acnEncodingClass); auxiliaries=auxiliaries})
 
 
     (funcBody errCode), ns
@@ -1112,17 +1113,16 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | _            -> []
                 Some(fncBody, [errCode],lv::lv2)
 
-
-
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) ->
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnOctetStringEncodingType o.acnEncodingClass)})
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnOctetStringEncodingType o.acnEncodingClass); auxiliaries=[]})
     let soSparkAnnotations = Some (sparkAnnotations lm td codec)
     let icdFnc fieldName sPresent comments  =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
     createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations [] us
+
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let nAlignSize = 0I;
     let bitString_FixSize = lm.uper.bitString_FixSize
@@ -1165,7 +1165,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) ->
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (AcnBitStringEncodingType o.acnEncodingClass)})
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (AcnBitStringEncodingType o.acnEncodingClass); auxiliaries=[]})
     let soSparkAnnotations = Some(sparkAnnotations lm td codec)
     let icdFnc fieldName sPresent comments  =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]
@@ -1249,7 +1249,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         | true  -> None
                         | false ->
                             let funcBody = varSize pp access td i "" o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap preSerde postSerde postInc invariant codec
-                            Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=None})
+                            Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=None; auxiliaries=[]})
 
                     | Some internalItem ->
                         let childErrCodes =  internalItem.errCodes
@@ -1258,7 +1258,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | true -> fixedSize pp td i internalItem.funcBody o.minSize.acn child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr codec, nStringLength
                             | false -> varSize pp access td i internalItem.funcBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap preSerde postSerde postInc invariant codec, nStringLength
                         let typeEncodingKind = internalItem.typeEncodingKind |> Option.map (fun tpe -> TypeEncodingKind.SequenceOfEncodingType (tpe, o.acnEncodingClass))
-                        Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(internalItem.localVariables@localVariables); bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind})
+                        Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(internalItem.localVariables@localVariables); bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=internalItem.auxiliaries})
 
                 | SZ_EC_ExternalField _ ->
                     match internalItem with
@@ -1286,7 +1286,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | true  -> oct_sqf_external_field_fix_size td pp access i internalItemBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr introSnap preSerde postSerde postInc invariant codec
                             | false -> external_field td pp access i internalItemBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr introSnap preSerde postSerde postInc invariant codec
                         let typeEncodingKind = internalItem.typeEncodingKind |> Option.map (fun tpe -> TypeEncodingKind.SequenceOfEncodingType (tpe, o.acnEncodingClass))
-                        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind})
+                        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=internalItem.auxiliaries})
                 | SZ_EC_TerminationPattern bitPattern ->
                     match internalItem with
                     | None -> None
@@ -1313,7 +1313,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | _ -> []
 
                         let typeEncodingKind = internalItem.typeEncodingKind |> Option.map (fun tpe -> TypeEncodingKind.SequenceOfEncodingType (tpe, o.acnEncodingClass))
-                        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv2@lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; typeEncodingKind=typeEncodingKind})
+                        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv2@lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; typeEncodingKind=typeEncodingKind; auxiliaries=internalItem.auxiliaries})
             ret,ns
     let soSparkAnnotations = Some(sparkAnnotations lm td codec)
 
@@ -1347,8 +1347,6 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
         | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _             -> if o.maxSize.acn <2I then "The array contains a single element." else ""
         | Asn1AcnAst.SZ_EC_ExternalField relPath         ->  $"Length is determined by the external field: %s{relPath.AsString}"
         | Asn1AcnAst.SZ_EC_TerminationPattern bitPattern ->  $"Length is determined by the stop marker '%s{bitPattern.Value}'"
-
-
 
     let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[sExtraComment]; scope="type"; name= None}
     createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) icd soSparkAnnotations [] us
@@ -1692,6 +1690,7 @@ type private SequenceChildResult = {
     existVar: string option
     props: SequenceChildProps
     typeKindEncoding: TypeEncodingKind option
+    auxiliaries: string list
 } with
     member this.joinedBodies (lm:LanguageMacros) (codec:CommonTypes.Codec): string option =
         this.stmts |> List.choose (fun s -> s.body) |> nestChildItems lm codec
@@ -1920,7 +1919,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         | _ -> None, [], [], None, ns1
                     {acnStatement=AcnPresenceStatement; body=acnPresenceStatement; lvs=lvs; errCodes=errCodes}, existVar, ns1b
 
-                let childEncDecStatement, childResultExpr, childTpeKind, ns3 =
+                let childEncDecStatement, childResultExpr, childTpeKind, auxiliaries, ns3 =
                     match childContentResult with
                     | None ->
                         // Copy-decoding expects to have a result expression (even if unused), so we pick the initExpression
@@ -1931,8 +1930,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         match child.Optionality with
                         | Some Asn1AcnAst.AlwaysPresent     ->
                             let childBody = Some(sequence_always_present_child (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) childName None childResultExpr soSaveBitStrmPosStatement codec)
-                            Some {acnStatement=Asn1ChildEncodeStatement; body=childBody; lvs=[]; errCodes=[]}, childResultExpr, None, ns2
-                        | _ -> None, childResultExpr, None, ns2
+                            Some {acnStatement=Asn1ChildEncodeStatement; body=childBody; lvs=[]; errCodes=[]}, childResultExpr, None, [], ns2
+                        | _ -> None, childResultExpr, None, [], ns2
                     | Some childContent ->
                         let childBody, chLocalVars =
                             match child.Optionality with
@@ -1948,14 +1947,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 | Some v ->
                                     let defInit= child.Type.initFunction.initByAsn1Value childP (mapValue v).kind
                                     Some(sequence_default_child pp (lm.lg.getAccess p.arg) childName childContent.funcBody defInit existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement codec), childContent.localVariables
-                        Some {acnStatement=Asn1ChildEncodeStatement; body=childBody; lvs=chLocalVars; errCodes=childContent.errCodes}, childContent.resultExpr, childContent.typeEncodingKind, ns2
+                        Some {acnStatement=Asn1ChildEncodeStatement; body=childBody; lvs=chLocalVars; errCodes=childContent.errCodes}, childContent.resultExpr, childContent.typeEncodingKind, childContent.auxiliaries, ns2
                 let stmts = [present_when_statements]@(childEncDecStatement |> Option.toList)
                 let tpeKind =
                     if child.Optionality.IsSome then childTpeKind |> Option.map OptionEncodingType
                     else childTpeKind
                 let typeInfo = {uperMaxSizeBits=child.uperMaxSizeInBits; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=tpeKind}
                 let props = {info=Some childInfo.toAsn1AcnAst; sel=Some childSel; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind=Asn1 child.Type.Kind.baseKind}
-                let res = {stmts=stmts; resultExpr=childResultExpr; existVar=existVar; props=props; typeKindEncoding=tpeKind}
+                let res = {stmts=stmts; resultExpr=childResultExpr; existVar=existVar; props=props; typeKindEncoding=tpeKind; auxiliaries=auxiliaries}
                 let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
                 res, newAcc
             | AcnChild acnChild ->
@@ -1974,31 +1973,31 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     | Decode -> None, us
 
                 //acn child encode/decode
-                let childEncDecStatement, childTpeKind, ns2 =
+                let childEncDecStatement, childTpeKind, auxiliaries, ns2 =
                     let chFunc = acnChild.funcBody codec
                     let childContentResult = chFunc [] childNestingScope childP
                     match childContentResult with
-                    | None              -> None, None, ns1
+                    | None              -> None, None, [], ns1
                     | Some childContent ->
                         match codec with
                         | Encode   ->
                             match acnChild.Type with
                             | Asn1AcnAst.AcnNullType _   ->
                                 let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement codec)
-                                Some {acnStatement=AcnChildEncodeStatement; body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes}, childContent.typeEncodingKind, ns1
+                                Some {acnStatement=AcnChildEncodeStatement; body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes}, childContent.typeEncodingKind, childContent.auxiliaries, ns1
                             | _             ->
                                 let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_UNINITIALIZED")
                                 let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
                                 let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement codec)
-                                Some {acnStatement=AcnChildEncodeStatement; body=childBody; lvs=childContent.localVariables; errCodes=errCode::childContent.errCodes}, childContent.typeEncodingKind, ns1a
+                                Some {acnStatement=AcnChildEncodeStatement; body=childBody; lvs=childContent.localVariables; errCodes=errCode::childContent.errCodes}, childContent.typeEncodingKind, childContent.auxiliaries, ns1a
                         | Decode    ->
                             let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement codec)
-                            Some {acnStatement=AcnChildEncodeStatement; body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes}, childContent.typeEncodingKind, ns1
+                            Some {acnStatement=AcnChildEncodeStatement; body=childBody; lvs=childContent.localVariables; errCodes=childContent.errCodes}, childContent.typeEncodingKind, childContent.auxiliaries, ns1
                 let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
                 // Note: uperMaxSizeBits and uperAccBits here do not make sense since we are in ACN
                 let typeInfo = {uperMaxSizeBits=0I; acnMaxSizeBits=childInfo.acnMaxSizeInBits; typeKind=childTpeKind}
                 let props = {info = Some childInfo.toAsn1AcnAst; sel=Some childP.arg; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo; typeKind=Acn acnChild.Type}
-                let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; typeKindEncoding=childTpeKind}
+                let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; typeKindEncoding=childTpeKind; auxiliaries=auxiliaries}
                 let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
                 res, newAcc
         // find acn inserted fields, which are not NULL types and which have no dependency.
@@ -2065,6 +2064,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let childrenResultExpr = childrenStatements00 |> List.choose(fun res -> res.resultExpr)
         let childrenErrCodes = childrenStatements0 |> List.collect(fun s -> s.errCodes)
         let childrenTypeKindEncoding = childrenStatements00 |> List.map (fun s -> s.typeKindEncoding)
+        let childrenAuxiliaries = childrenStatements00 |> List.collect (fun s -> s.auxiliaries)
 
         let resultExpr, seqBuild=
             match codec, lm.lg.decodingKind with
@@ -2093,9 +2093,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     match lm.lg.decodeEmptySeq (p.arg.joined lm.lg) with
                     | None -> None, ns
                     | Some decodeEmptySeq ->
-                        Some ({AcnFuncBodyResult.funcBody = decodeEmptySeq; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=true; resultExpr=Some decodeEmptySeq; typeEncodingKind=Some (SequenceEncodingType childrenTypeKindEncoding)}), ns
+                        Some ({AcnFuncBodyResult.funcBody = decodeEmptySeq; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=true; resultExpr=Some decodeEmptySeq; typeEncodingKind=Some (SequenceEncodingType childrenTypeKindEncoding); auxiliaries=childrenAuxiliaries}), ns
             | Some ret ->
-                Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I); resultExpr=resultExpr; typeEncodingKind=Some (SequenceEncodingType childrenTypeKindEncoding)}), ns
+                Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I); resultExpr=resultExpr; typeEncodingKind=Some (SequenceEncodingType childrenTypeKindEncoding); auxiliaries=childrenAuxiliaries}), ns
 
         | errChild::_      ->
             let determinantUsage =
@@ -2237,11 +2237,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     chFunc.funcBody us [] childNestingScope childP
                 | None -> None, us
 
-            let childContent_funcBody, childContent_localVariables, childContent_errCodes =
+            let childContent_funcBody, childContent_localVariables, childContent_errCodes, auxiliaries =
                 match childContentResult with
                 | None              ->
                     match codec with
-                    | Encode -> lm.lg.emptyStatement, [], []
+                    | Encode -> lm.lg.emptyStatement, [], [], []
                     | Decode ->
                         let childp =
                             match lm.lg.acn.choice_requires_tmp_decoding with
@@ -2253,11 +2253,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                             | Sequence _    -> lm.lg.decodeEmptySeq (childp.arg.joined lm.lg)
                             | _             -> None
                         match decStatement with
-                        | None -> lm.lg.emptyStatement,[], []
+                        | None -> lm.lg.emptyStatement,[], [], []
                         | Some ret ->
-                            ret ,[],[]
+                            ret ,[],[],[]
 
-                | Some childContent -> childContent.funcBody,  childContent.localVariables, childContent.errCodes
+                | Some childContent -> childContent.funcBody,  childContent.localVariables, childContent.errCodes, childContent.auxiliaries
 
             let childBody =
                 let sChildName = (lm.lg.getAsn1ChChildBackendName child)
@@ -2310,14 +2310,15 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         let conds = child.acnPresentWhenConditions |>List.map handPresenceCond
                         let pp, _ = joinedOrAsIdentifier lm codec p
                         Some (choiceChild_preWhen pp (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
-            [(childBody, childContent_localVariables, childContent_errCodes, childContentResult |> Option.bind (fun ch -> ch.typeEncodingKind))], ns1
+            [(childBody, childContent_localVariables, childContent_errCodes, childContentResult |> Option.bind (fun ch -> ch.typeEncodingKind), auxiliaries)], ns1
 
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us
         let childrenStatements0 = childrenStatements00 |> List.collect id
-        let childrenStatements = childrenStatements0 |> List.choose(fun (s,_,_,_) -> s)
-        let childrenLocalvars = childrenStatements0 |> List.collect(fun (_,s,_,_) -> s)
-        let childrenErrCodes = childrenStatements0 |> List.collect(fun (_,_,s,_) -> s)
-        let childrenTypeKindEncoding = childrenStatements0 |> List.map(fun (_,_,_,s) -> s)
+        let childrenStatements = childrenStatements0 |> List.choose(fun (s,_,_,_,_) -> s)
+        let childrenLocalvars = childrenStatements0 |> List.collect(fun (_,s,_,_,_) -> s)
+        let childrenErrCodes = childrenStatements0 |> List.collect(fun (_,_,s,_,_) -> s)
+        let childrenTypeKindEncoding = childrenStatements0 |> List.map(fun (_,_,_,s, _) -> s)
+        let childrenAuxiliaries = childrenStatements0 |> List.collect(fun (_,_,_,_,a) -> a)
 
         let choiceContent, resultExpr =
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
@@ -2329,7 +2330,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 let extField = getExternalField r deps t.id
                 choice_Enum pp access childrenStatements extField errCode.errCodeName codec, resultExpr
             | CEC_presWhen    -> choice_preWhen pp  access childrenStatements errCode.errCodeName codec, resultExpr
-        Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (ChoiceEncodingType childrenTypeKindEncoding)}), ns
+        Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (ChoiceEncodingType childrenTypeKindEncoding); auxiliaries=childrenAuxiliaries}), ns
 
 
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
@@ -2458,7 +2459,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                         toc, Some toc
                     | _ -> str, None
                 let funcBodyContent = callBaseTypeFunc lm pp baseFncName codec
-                Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (ReferenceEncodingType baseTypeDefinitionName)}), us
+                Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (ReferenceEncodingType baseTypeDefinitionName); auxiliaries=[]}), us
 
 
             let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
@@ -2528,7 +2529,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     let fncBody = bit_string_containing_func pp baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false codec
                     fncBody, [errCode],[]
                 | SZ_EC_TerminationPattern nullVal  ,  _                    ->  raise(SemanticError (loc, "Invalid type for parameter4"))
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (ReferenceEncodingType baseTypeDefinitionName)})
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (ReferenceEncodingType baseTypeDefinitionName); auxiliaries=[]})
 
         let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
         let a,b = createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) icd soSparkAnnotations [] us

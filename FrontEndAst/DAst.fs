@@ -411,6 +411,7 @@ type UPERFuncBodyResult = {
     bBsIsUnReferenced   : bool
     resultExpr          : string option
     typeEncodingKind    : TypeEncodingKind option
+    auxiliaries         : string list
 }
 type UPerFunction = {
     funcName            : string option               // the name of the function
@@ -418,6 +419,7 @@ type UPerFunction = {
     funcDef             : string option               // function definition in header file
     funcBody            : NestingScope -> CallerScope -> (UPERFuncBodyResult option)            // returns a list of validations statements
     funcBody_e          : ErrorCode -> NestingScope -> CallerScope -> (UPERFuncBodyResult option)
+    auxiliaries         : string list
 }
 
 type AcnFuncBodyResult = {
@@ -428,6 +430,7 @@ type AcnFuncBodyResult = {
     bBsIsUnReferenced   : bool
     resultExpr          : string option
     typeEncodingKind    : TypeEncodingKind option
+    auxiliaries         : string list
 }
 
 type XERFuncBodyResult = {
@@ -467,7 +470,7 @@ type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
     func                : string option               // the body of the function
     funcDef             : string option               // function definition
-
+    auxiliaries         : string list
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
     funcBody            : AcnFuncBody
