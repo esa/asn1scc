@@ -292,6 +292,27 @@ object BitStream {
       }
    }
 
+   @ghost @pure @opaque @inlineOnce
+   def lemmaReadNBitsLSBFirstsLoopIsCorrect(bs: BitStream, nBits: Int, i: Int, acc: Long): Unit = {
+      require(0 <= i && i < nBits && nBits <= 64)
+      require(BitStream.validate_offset_bits(bs.buf.length.toLong, bs.currentByte.toLong, bs.currentBit.toLong, nBits - i))
+      require((acc & onesMSBLong(64 - i)) == 0L) //  The 64 - i MSBs must be 0
+      require((acc & onesMSBLong(64)) == acc)
+      decreases(nBits - i)
+      val (bsFinal, vGot1) = bs.readNBitsLSBFirstsLoopPure(nBits, i, acc)
+      val readBit = bs.readBitPure()._2
+      val bs2 = bs.withMovedBitIndex(1)
+      val newAcc = acc | (if readBit then 1L << i else 0)
+      val (bs2Final, vGot2) = bs2.readNBitsLSBFirstsLoopPure(nBits, i + 1, newAcc)
+
+      {
+         ()
+      }.ensuring { _ =>
+         vGot1 == vGot2 && bsFinal == bs2Final
+      }
+   }
+
+
    // TODO: "loopPrefixLemma" is a bad name, it's not the same "prefix lemma" as the others!!!
    @ghost @pure @opaque @inlineOnce
    def readNLeastSignificantBitsLoopPrefixLemma(bs: BitStream, nBits: Int, i: Int, acc: Long): Unit = {
@@ -1081,7 +1102,6 @@ case class BitStream private [asn1scala](
       
       )
 
-   @opaque @inlineOnce
    def appendBitsLSBFirst(v: Long, nBits: Int): Unit = {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
@@ -1099,12 +1119,12 @@ case class BitStream private [asn1scala](
       && w1.buf.length == w2.buf.length 
       && BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) == BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) + nBits 
       && w1.isPrefixOf(w2) 
-      // && {
-      //    val (r1, r2) = reader(w1, w2)
-      //    validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits)
-      //    val (r2Got, bGot) = r1.checkBitsLoopPure(nBits, true, 0)
-      //    bGot && r2Got == r2
-      // }
+      && {
+         val (r1, r2) = reader(w1, w2)
+         validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits)
+         val (r2Got, vGot) = r1.readNBitsLSBFirstPure(nBits)
+         vGot == (v & onesLSBLong(nBits)) && r2Got == r2
+      }
       
       )
 
@@ -1149,6 +1169,30 @@ case class BitStream private [asn1scala](
 
          assert(oldThis2.isPrefixOf(this))
          assert(oldThis.isPrefixOf(oldThis2))
+
+         ghostExpr({
+            readBitPrefixLemma(oldThis2.resetAt(oldThis), this)
+
+            val (r1_13, r3_13) = reader(oldThis, this)
+            val (r2_23, r3_23) = reader(oldThis2, this)
+            val (_, bitGot) = r1_13.readBitPure()
+            check(bitGot == b)
+
+            val zeroed = v & onesLSBLong(i)
+            validateOffsetBitsContentIrrelevancyLemma(oldThis, this.buf, nBits - i)
+            val (r3Got_13, resGot_13) = r1_13.readNBitsLSBFirstsLoopPure(nBits, i, zeroed)
+
+            val upd = zeroed | (if bitGot then 1L << i else 0)
+            validateOffsetBitsContentIrrelevancyLemma(oldThis2, this.buf, nBits - i - 1)
+            val (r3Got_23, resGot_23) = r2_23.readNBitsLSBFirstsLoopPure(nBits, i + 1, upd)
+
+            assert(r3Got_23 == r3_23)
+
+            lemmaReadNBitsLSBFirstsLoopIsCorrect(r1_13, nBits, i, zeroed)
+            // assert(r2_23 == r1_13.withMovedBitIndex(1))
+            check(resGot_13 == resGot_23)
+            check(r3Got_13 == r3_13)
+         })
          res
       }
    }.ensuring(_ => 
@@ -1158,12 +1202,13 @@ case class BitStream private [asn1scala](
       && w1.buf.length == w2.buf.length 
       && BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) == BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) + nBits - i 
       && w1.isPrefixOf(w2) 
-      // && {
-      //    val (r1, r2) = reader(w1, w2)
-      //    validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits)
-      //    val (r2Got, bGot) = r1.checkBitsLoopPure(nBits, true, 0)
-      //    bGot && r2Got == r2
-      // }
+      && {
+         val (r1, r2) = reader(w1, w2)
+         val zeroed = v & onesLSBLong(i)
+         validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits - i)
+         val (r2Got, vGot) = r1.readNBitsLSBFirstsLoopPure(nBits, i, zeroed)
+         vGot == (v & onesLSBLong(nBits)) && r2Got == r2
+      }
    )
 
    /**
