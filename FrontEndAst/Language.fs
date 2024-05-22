@@ -176,7 +176,7 @@ with
         | SqOf sqf -> sqf.isFixedSize
         | StrType st -> st.isFixedSize
 
-
+// TODO: rename
 type SequenceOfLikeProofGen = {
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
@@ -185,7 +185,10 @@ type SequenceOfLikeProofGen = {
     acnMaxOffset: bigint
     uperMaxOffset: bigint
     typeInfo: TypeInfo
-    sel: string
+    nestingScope: NestingScope
+    cs: CallerScope
+    encDec: string option
+    elemDecodeFn: string option
     ixVariable: string
 } with
     member this.outerMaxSize (enc: Asn1Encoding): bigint =
@@ -329,6 +332,7 @@ type ILangGeneric () =
     abstract member getBoardDirs : Targets option -> string list
 
     abstract member adaptAcnFuncBody: AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
+    abstract member generateSequenceOfLikeAuxiliaries: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
     abstract member generatePrecond: Asn1Encoding -> t: Asn1AcnAst.Asn1Type -> string list
     abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
@@ -357,6 +361,7 @@ type ILangGeneric () =
         sourceCode
 
     default this.adaptAcnFuncBody f _ _ _ = f
+    default this.generateSequenceOfLikeAuxiliaries _ _ _ _ = [], None
     default this.generatePrecond _ _ = []
     default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id

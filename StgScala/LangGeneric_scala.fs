@@ -318,6 +318,10 @@ type LangGeneric_scala() =
 
         override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
+        override this.generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list * string option =
+            let fds, call = generateSequenceOfLikeAuxiliaries enc o pg codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""]), Some (show (ExprTree call))
+
         override this.adaptAcnFuncBody (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
             let shouldWrap  =
                 match t.Kind with
@@ -332,15 +336,21 @@ type LangGeneric_scala() =
                             (p: CallerScope): (AcnFuncBodyResult option) * State =
                 if not nestingScope.isInit && shouldWrap then
                     let recP = {p with arg = p.arg.asLastOrSelf}
-                    let recNS = NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits
+                    let recNS = NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits ((p, t) :: nestingScope.parents)
                     let res, s = funcBody s err prms recNS recP
                     match res with
                     | Some res ->
-                        let fd, call = wrapAcnFuncBody isValidFuncName t res.funcBody codec p.arg recP.arg
+                        let fd, call = wrapAcnFuncBody isValidFuncName t res.funcBody codec nestingScope p recP
                         let fdStr = show (FunDefTree fd)
                         let callStr = show (ExprTree call)
                         let newBody = fdStr + "\n" + callStr
-                        Some {res with funcBody = newBody}, s
+                        // TODO: Hack
+                        let resultExpr =
+                            match res.resultExpr with
+                            | Some res when res = recP.arg.asIdentifier -> Some p.arg.asIdentifier
+                            | Some res -> Some res
+                            | None -> None
+                        Some {res with funcBody = newBody; resultExpr = resultExpr}, s
                     | None -> None, s
                 else funcBody s err prms nestingScope p
 

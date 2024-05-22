@@ -93,6 +93,7 @@ and Expr =
   | TupleSelect of Expr * int
   | FieldSelect of Expr * Identifier
   | ArraySelect of Expr * Expr
+  | ArrayUpdate of Expr * Expr * Expr
   | ArrayLength of Expr
   | ClassCtor of ClassCtor
   | Old of Expr
@@ -243,6 +244,7 @@ let rec substVars (vs: (Var * Expr) list) (inExpr: Expr): Expr =
     | TupleSelect (recv, ix) -> TupleSelect (loop recv, ix)
     | FieldSelect (recv, id) -> FieldSelect (loop recv, id)
     | ArraySelect (arr, ix) -> ArraySelect (loop arr, loop ix)
+    | ArrayUpdate (arr, ix, newVal) -> ArrayUpdate (loop arr, loop ix, loop newVal)
     | ArrayLength arr -> ArrayLength (loop arr)
     | ClassCtor ct -> ClassCtor {ct with args = ct.args |> List.map loop}
     | Old inExpr -> Old (loop inExpr)
@@ -538,6 +540,25 @@ let validateOffsetBitsIneqLemma (b1: Expr) (b2: Expr) (b1ValidateOffsetBits: Exp
 let validateOffsetBitsWeakeningLemma (b: Expr) (origOffset: Expr) (newOffset: Expr): Expr =
   FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsWeakeningLemma"; args = [b; origOffset; newOffset] }
 
+let arrayRangesEqReflexiveLemma (arr: Expr): Expr =
+  FunctionCall { prefix = []; id = "arrayRangesEqReflexiveLemma"; args = [arr] }
+
+let arrayRangesEqSlicedLemma (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr) (fromSlice: Expr) (toSlice: Expr): Expr =
+  FunctionCall { prefix = []; id = "arrayRangesEqSlicedLemma"; args = [a1; a2; from; tto; fromSlice; toSlice] }
+
+let arrayUpdatedAtPrefixLemma (arr: Expr) (at: Expr) (v: Expr): Expr =
+  FunctionCall { prefix = []; id = "arrayUpdatedAtPrefixLemma"; args = [arr; at; v] }
+
+let arrayRangesEqTransitive (a1: Expr) (a2: Expr) (a3: Expr) (from: Expr) (mid: Expr) (tto: Expr): Expr =
+  FunctionCall { prefix = []; id = "arrayRangesEqTransitive"; args = [a1; a2; a3; from; mid; tto] }
+
+let arrayRangesEqImpliesEq (a1: Expr) (a2: Expr) (from: Expr) (at: Expr) (tto: Expr): Expr =
+  FunctionCall { prefix = []; id = "arrayRangesEqImpliesEq"; args = [a1; a2; from; at; tto] }
+
+let arrayRangesEq (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr): Expr =
+  FunctionCall { prefix = []; id = "arrayRangesEq"; args = [a1; a2; from; tto] }
+
+
 // TODO: Pas terrible, trouver une meilleure solution
 let readPrefixLemmaIdentifier (t: TypeEncodingKind option): string list * string =
   match t with
@@ -599,6 +620,16 @@ let fromAsn1AcnTypeKind (t: Asn1AcnAst.Asn1AcnTypeKind): Type =
   match t with
   | Asn1AcnAst.Asn1AcnTypeKind.Acn t -> fromAcnInsertedType t
   | Asn1AcnAst.Asn1AcnTypeKind.Asn1 t -> fromAsn1TypeKind t
+
+let fromSequenceOfLike (t: SequenceOfLike): Type =
+  match t with
+  | SqOf t -> fromAsn1TypeKind (Asn1AcnAst.SequenceOf t)
+  | StrType t -> fromAsn1TypeKind (Asn1AcnAst.IA5String t)
+
+let fromSequenceOfLikeElemTpe (t: SequenceOfLike): Type =
+  match t with
+  | SqOf t -> fromAsn1TypeKind t.child.Kind
+  | StrType t -> IntegerType UByte
 
 let runtimeCodecTypeFor (enc: Asn1Encoding): ClassType =
   match enc with
@@ -939,6 +970,13 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
     let recv = ppExpr (ctx.nestExpr arr) arr
     let ix = ppExpr (ctx.nestExpr ix) ix
     joinCallLike ctx recv [ix] false
+
+  | ArrayUpdate (arr, ix, newVal) ->
+    let recv = ppExpr (ctx.nestExpr arr) arr
+    let ix = ppExpr (ctx.nestExpr ix) ix
+    let newVal = ppExpr (ctx.nestExpr newVal) newVal
+    let sel = joinCallLike ctx recv [ix] false
+    join ctx " = " sel newVal
 
   | ClassCtor cc ->
     let ct = ppClassType cc.ct

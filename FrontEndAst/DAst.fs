@@ -398,9 +398,12 @@ type NestingScope = {
     uperRelativeOffset: bigint
     acnSiblingMaxSize: bigint option
     uperSiblingMaxSize: bigint option
+    parents: (CallerScope * Asn1AcnAst.Asn1Type) list
 } with
-    static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint): NestingScope =
-        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I; acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
+    static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint) (parents: (CallerScope * Asn1AcnAst.Asn1Type) list): NestingScope =
+        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I;
+        acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None;
+        parents = parents}
     member this.isInit: bool = this.nestingLevel = 0I && this.nestingIx = 0I
 
 type UPERFuncBodyResult = {

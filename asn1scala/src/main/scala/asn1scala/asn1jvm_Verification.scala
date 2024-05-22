@@ -10,11 +10,11 @@ import StaticChecks.*
 
 @pure
 @inlineOnce
-def arraySameElements[T](a1: Array[T], a2: Array[T]): Boolean =
+def arraySameElements[@mutable T](a1: Array[T], a2: Array[T]): Boolean =
   a1.length == a2.length && arrayRangesEqOffset(a1, a2, 0, a1.length, 0)
 
 @pure
-def arrayRangesEqOffset[T](a1: Array[T], a2: Array[T], fromA1: Int, toA1: Int, fromA2: Int): Boolean = {
+def arrayRangesEqOffset[@mutable T](a1: Array[T], a2: Array[T], fromA1: Int, toA1: Int, fromA2: Int): Boolean = {
   require(0 <= fromA1 && fromA1 <= toA1)
   require(toA1 <= a1.length)
   require(0 <= fromA2 && fromA2 <= a2.length - (toA1 - fromA1))
@@ -73,7 +73,7 @@ def bitAt(arr: Array[Byte], at: Long): Boolean = {
 }
 
 @pure
-def arrayRangesEq[T](a1: Array[T], a2: Array[T], from: Int, to: Int): Boolean = {
+def arrayRangesEq[@mutable T](a1: Array[T], a2: Array[T], from: Int, to: Int): Boolean = {
   require(0 <= from && from <= to)
   require(a1.length <= a2.length)
   require(to <= a1.length)
@@ -83,7 +83,7 @@ def arrayRangesEq[T](a1: Array[T], a2: Array[T], from: Int, to: Int): Boolean = 
 }
 
 @pure @opaque @inlineOnce @ghost
-def arrayRangesEqReflexiveLemma[T](a: Array[T]) = {
+def arrayRangesEqReflexiveLemma[@mutable T](a: Array[T]) = {
   def rec(i: Int): Unit = {
     require(0 <= i && i <= a.length)
     require(arrayRangesEq(a, snapshot(a), i, a.length))
@@ -95,7 +95,7 @@ def arrayRangesEqReflexiveLemma[T](a: Array[T]) = {
 }.ensuring(_ => arrayRangesEq(a, snapshot(a), 0, a.length))
 
 @pure @opaque @inlineOnce @ghost
-def arrayRangesEqSymmetricLemma[T](a1: Array[T], a2: Array[T], from: Int, to: Int) = {
+def arrayRangesEqSymmetricLemma[@mutable T](a1: Array[T], a2: Array[T], from: Int, to: Int) = {
   require(0 <= from && from <= to && to <= a1.length)
   require(a1.length == a2.length)
   require(arrayRangesEq(a1, a2, from, to))
@@ -115,27 +115,27 @@ def arrayRangesEqSymmetricLemma[T](a1: Array[T], a2: Array[T], from: Int, to: In
 }.ensuring(_ => arrayRangesEq(a2, a1, from, to))
 
 @pure @opaque @inlineOnce @ghost
-def arrayUpdatedAtPrefixLemma[T](a: Array[T], at: Int, v: T): Unit = {
+def arrayUpdatedAtPrefixLemma[@mutable T](a: Array[T], at: Int, v: T): Unit = {
   require(0 <= at && at < a.length)
 
   @opaque @inlineOnce @ghost
   def rec(i: Int): Unit = {
     require(0 <= i && i <= at)
-    require(arrayRangesEq(a, snapshot(a).updated(at, v), i, at))
+    require(arrayRangesEq(a, snapshot(a).updated(at, snapshot(v)), i, at))
     decreases(i)
     if (i == 0) ()
     else rec(i - 1)
   }.ensuring { _ =>
-    arrayRangesEq(a, snapshot(a).updated(at, v), 0, at)
+    arrayRangesEq(a, snapshot(a).updated(at, snapshot(v)), 0, at)
   }
 
   rec(at)
 }.ensuring { _ =>
-  arrayRangesEq(a, snapshot(a).updated(at, v), 0, at)
+  arrayRangesEq(a, snapshot(a).updated(at, snapshot(v)), 0, at)
 }
 
 @ghost @pure @opaque @inlineOnce
-def arrayRangesEqSlicedLemma[T](a1: Array[T], a2: Array[T], from: Int, to: Int, fromSlice: Int, toSlice: Int): Unit = {
+def arrayRangesEqSlicedLemma[@mutable T](a1: Array[T], a2: Array[T], from: Int, to: Int, fromSlice: Int, toSlice: Int): Unit = {
   require(0 <= from && from <= to)
   require(a1.length <= a2.length)
   require(to <= a1.length)
@@ -159,7 +159,7 @@ def arrayRangesEqSlicedLemma[T](a1: Array[T], a2: Array[T], from: Int, to: Int, 
 }.ensuring(_ => arrayRangesEq(a1, a2, fromSlice, toSlice))
 
 @pure @opaque @inlineOnce @ghost
-def arrayRangesEqImpliesEq[T](a1: Array[T], a2: Array[T], from: Int, at: Int, to: Int): Unit = {
+def arrayRangesEqImpliesEq[@mutable T](a1: Array[T], a2: Array[T], from: Int, at: Int, to: Int): Unit = {
   require(0 <= from && from <= to)
   require(a1.length <= a2.length)
   require(to <= a1.length)
@@ -181,7 +181,7 @@ def arrayRangesEqImpliesEq[T](a1: Array[T], a2: Array[T], from: Int, at: Int, to
 }.ensuring(_ => a1(at) == a2(at))
 
 @pure @opaque @inlineOnce @ghost
-def arrayRangesEqAppend[T](a1: Array[T], a2: Array[T], from: Int, to: Int) = {
+def arrayRangesEqAppend[@mutable T](a1: Array[T], a2: Array[T], from: Int, to: Int) = {
   require(0 <= from && from <= to)
   require(a1.length <= a2.length)
   require(to < a1.length)
@@ -206,7 +206,7 @@ def arrayRangesEqAppend[T](a1: Array[T], a2: Array[T], from: Int, to: Int) = {
 }.ensuring(_ => arrayRangesEq(a1, a2, from, to + 1))
 
 @pure @opaque @inlineOnce @ghost
-def arrayRangesEqTransitive[T](a1: Array[T], a2: Array[T], a3: Array[T], from: Int, mid: Int, to: Int): Unit = {
+def arrayRangesEqTransitive[@mutable T](a1: Array[T], a2: Array[T], a3: Array[T], from: Int, mid: Int, to: Int): Unit = {
   require(0 <= from && from <= mid && mid <= to)
   require(a1.length <= a2.length && a2.length <= a3.length)
   require(mid <= a1.length && to <= a2.length)

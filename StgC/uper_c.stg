@@ -486,12 +486,12 @@ seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSiz
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap) ::= <<
 BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>);
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeMax>);
 *pErrCode = ret ? 0 : <sErrCode>;
 <p><sAcc>nCount = (long)nCount;

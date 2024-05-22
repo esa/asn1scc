@@ -224,8 +224,8 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
             let uperEncDec =
                 if requiresUPER then
-                    ((t.Type.uperEncFunction.func |> Option.toList) @ t.Type.uperEncFunction.auxiliaries) @
-                    ((t.Type.uperDecFunction.func |> Option.toList) @ t.Type.uperDecFunction.auxiliaries)
+                    ((t.Type.uperEncFunction.func |> Option.toList |> List.collect (fun f -> f :: t.Type.uperEncFunction.auxiliaries))) @
+                    ((t.Type.uperDecFunction.func |> Option.toList |> List.collect (fun f ->  f :: t.Type.uperDecFunction.auxiliaries)))
                 else []
 
             let xerEncDec =

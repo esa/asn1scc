@@ -292,7 +292,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
             | Some funcName ->
                 let precondAnnots = lm.lg.generatePrecond ACN t
                 let postcondAnnots = lm.lg.generatePostcond ACN funcNameBase p t codec
-                let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits) p
+                let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, auxiliaries =
                     match content with
                     | None ->
@@ -999,7 +999,10 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 acnMaxSizeBits = o.acnEncodingClass.charSizeInBits
                 typeKind = Some (AcnStringEncodingType o.acnEncodingClass)
             }
-            sel = pp
+            nestingScope = nestingScope
+            cs = p
+            encDec = Some internalItem
+            elemDecodeFn = None
             ixVariable = i
         }
         let sqfProofGenRes = lm.lg.generateSequenceOfLikeProof ACN (SequenceOfLike.StrType o) sqfProofGen codec
@@ -1201,8 +1204,12 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
         match child.getAcnFunction codec with
         | None -> None, us
         | Some chFunc  ->
-            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1I}
-            let internalItem, ns = chFunc.funcBody us acnArgs childNestingScope ({p with arg = lm.lg.getArrayItem p.arg i child.isIA5String})
+            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1I; parents = (p, t) :: nestingScope.parents}
+            let ixVarName =
+                match ST.lang with
+                | Scala -> "from"
+                | _ -> i
+            let internalItem, ns = chFunc.funcBody us acnArgs childNestingScope ({p with arg = lm.lg.getArrayItem p.arg ixVarName child.isIA5String})
 
             let sqfProofGen = {
                 SequenceOfLikeProofGen.acnOuterMaxSize = nestingScope.acnOuterMaxSize
@@ -1216,14 +1223,13 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                     acnMaxSizeBits = child.acnMaxSizeInBits
                     typeKind = internalItem |> Option.bind (fun i -> i.typeEncodingKind)
                 }
-                sel = pp
+                nestingScope = nestingScope
+                cs = p
+                encDec = internalItem |> Option.map (fun i -> i.funcBody)
+                elemDecodeFn = None // TODO: elemDecodeFn
                 ixVariable = i
             }
-            let sqfProofGenRes = lm.lg.generateSequenceOfLikeProof ACN (SqOf o) sqfProofGen codec
-            let preSerde = sqfProofGenRes |> Option.map (fun r -> r.preSerde)
-            let postSerde = sqfProofGenRes |> Option.map (fun r -> r.postSerde)
-            let postInc = sqfProofGenRes |> Option.map (fun r -> r.postInc)
-            let invariant = sqfProofGenRes |> Option.map (fun r -> r.invariant)
+            let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries ACN (SqOf o) sqfProofGen codec
 
             let ret =
                 match o.acnEncodingClass with
@@ -1248,17 +1254,17 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         match o.isFixedSize with
                         | true  -> None
                         | false ->
-                            let funcBody = varSize pp access td i "" o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap preSerde postSerde postInc invariant codec
-                            Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=None; auxiliaries=[]})
+                            let funcBody = varSize pp access td i "" o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap codec
+                            Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=None; auxiliaries=auxiliaries})
 
                     | Some internalItem ->
                         let childErrCodes =  internalItem.errCodes
                         let ret, localVariables =
                             match o.isFixedSize with
                             | true -> fixedSize pp td i internalItem.funcBody o.minSize.acn child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr codec, nStringLength
-                            | false -> varSize pp access td i internalItem.funcBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap preSerde postSerde postInc invariant codec, nStringLength
+                            | false -> varSize pp access td i internalItem.funcBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap codec, nStringLength
                         let typeEncodingKind = internalItem.typeEncodingKind |> Option.map (fun tpe -> TypeEncodingKind.SequenceOfEncodingType (tpe, o.acnEncodingClass))
-                        Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(internalItem.localVariables@localVariables); bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=internalItem.auxiliaries})
+                        Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(internalItem.localVariables@localVariables); bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=internalItem.auxiliaries @ auxiliaries})
 
                 | SZ_EC_ExternalField _ ->
                     match internalItem with
@@ -1274,19 +1280,13 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | Some (AcnInsertedType.AcnInteger int) -> int.isUnsigned
                             | Some (AcnInsertedType.AcnNullType _) -> true
                             | _ -> false
-                        let internalItemBody =
-                            match codec, lm.lg.decodingKind with
-                            | Decode, Copy ->
-                                assert internalItem.resultExpr.IsSome
-                                internalItemBody + "\n" + (lm.uper.update_array_item pp i internalItem.resultExpr.Value)
-                            | _ -> internalItemBody
                         let introSnap = nestingScope.nestingLevel = 0I
                         let funcBodyContent =
                             match o.isFixedSize with
-                            | true  -> oct_sqf_external_field_fix_size td pp access i internalItemBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr introSnap preSerde postSerde postInc invariant codec
-                            | false -> external_field td pp access i internalItemBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr introSnap preSerde postSerde postInc invariant codec
+                            | true  -> oct_sqf_external_field_fix_size td pp access i internalItem.funcBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr introSnap callAux codec
+                            | false -> external_field td pp access i internalItem.funcBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr introSnap callAux codec
                         let typeEncodingKind = internalItem.typeEncodingKind |> Option.map (fun tpe -> TypeEncodingKind.SequenceOfEncodingType (tpe, o.acnEncodingClass))
-                        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=internalItem.auxiliaries})
+                        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=internalItem.auxiliaries @ auxiliaries})
                 | SZ_EC_TerminationPattern bitPattern ->
                     match internalItem with
                     | None -> None
@@ -1419,7 +1419,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let errCodes0, localVariables0, ns =
             match asn1TypeD.acnEncFunction with
             | Some f  ->
-                let fncBdRes, ns = f.funcBody us [] (NestingScope.init asn1TypeD.acnMaxSizeInBits asn1TypeD.uperMaxSizeInBits) {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
+                let fncBdRes, ns = f.funcBody us [] (NestingScope.init asn1TypeD.acnMaxSizeInBits asn1TypeD.uperMaxSizeInBits []) {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
                 match fncBdRes with
                 | Some x -> x.errCodes, x.localVariables, ns
                 | None   -> [], [], us
@@ -1863,7 +1863,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     uperRelativeOffset = s.uperAccBits
                     uperOffset = nestingScope.uperOffset + s.uperAccBits
                     acnRelativeOffset = s.acnAccBits
-                    acnOffset = nestingScope.acnOffset + s.acnAccBits}
+                    acnOffset = nestingScope.acnOffset + s.acnAccBits
+                    parents = (p, t) :: nestingScope.parents}
 
             match childInfo with
             | Asn1Child child   ->
@@ -1929,7 +1930,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             | _ -> None
                         match child.Optionality with
                         | Some Asn1AcnAst.AlwaysPresent     ->
-                            let childBody = Some(sequence_always_present_child (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) childName None childResultExpr soSaveBitStrmPosStatement codec)
+                            let childBody = Some(sequence_always_present_child (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) childName None childResultExpr childTypeDef soSaveBitStrmPosStatement codec)
                             Some {acnStatement=Asn1ChildEncodeStatement; body=childBody; lvs=[]; errCodes=[]}, childResultExpr, None, [], ns2
                         | _ -> None, childResultExpr, None, [], ns2
                     | Some childContent ->
@@ -1937,7 +1938,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             match child.Optionality with
                             | None                             -> Some (sequence_mandatory_child childName childContent.funcBody soSaveBitStrmPosStatement codec), childContent.localVariables
                             | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_always_absent_child (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) childName childContent.funcBody childTypeDef soSaveBitStrmPosStatement codec), []
-                            | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_always_present_child (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) childName (Some childContent.funcBody) childContent.resultExpr soSaveBitStrmPosStatement codec), childContent.localVariables
+                            | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_always_present_child (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) childName (Some childContent.funcBody) childContent.resultExpr childTypeDef soSaveBitStrmPosStatement codec), childContent.localVariables
                             | Some (Asn1AcnAst.Optional opt)   ->
                                 assert (codec = Encode || existVar.IsSome)
                                 let pp, _ = joinedOrAsIdentifier lm codec p
@@ -2226,7 +2227,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let handleChild (us:State) (idx:int) (child:ChChildInfo) =
             let chFunc = child.chType.getAcnFunction codec
             let sChildInitExpr = child.chType.initFunction.initExpression
-            let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1I; uperSiblingMaxSize = Some uperSiblingMaxSize; acnSiblingMaxSize = Some acnSiblingMaxSize}
+            let childNestingScope =
+                {nestingScope with
+                    nestingLevel = nestingScope.nestingLevel + 1I
+                    uperSiblingMaxSize = Some uperSiblingMaxSize
+                    acnSiblingMaxSize = Some acnSiblingMaxSize
+                    parents = (p, t) :: nestingScope.parents}
             let childContentResult, ns1 =
                 match chFunc with
                 | Some chFunc ->

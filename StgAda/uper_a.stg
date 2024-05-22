@@ -603,7 +603,7 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap) ::= <<
 result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
 result.errorCode := <sErrCode>;
 <i> := 1;
@@ -613,7 +613,7 @@ if result.Success then
 end if;
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap) ::= <<
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
 result.errorCode := <sErrCode>;
 <i> := 1;
