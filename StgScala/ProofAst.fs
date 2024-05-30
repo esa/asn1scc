@@ -479,19 +479,21 @@ let selBuf (recv: Expr): Expr = FieldSelect (selBase recv, "buf")
 
 let selBufLength (recv: Expr): Expr =  ArrayLength (selBuf recv)
 
-let selCurrentByte (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentByte")
+let selCurrentByteACN (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentByte")
 
-let selCurrentBit (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentBit")
+let selCurrentBitACN (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentBit")
 
-let bitIndex (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = selBitStream recv; args = [] }
+let bitIndexACN (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = selBitStream recv; args = [] }
 
-let resetAt (recv: Expr) (arg: Expr): Expr = MethodCall { id = "resetAt"; recv = selBitStream recv; args = [arg] }
+let resetAtACN (recv: Expr) (arg: Expr): Expr = MethodCall { id = "resetAt"; recv = recv; args = [arg] }
 
-let invariant (recv: Expr): Expr = FunctionCall { prefix = [bitStreamId]; id = "invariant"; args = [selCurrentBit recv; selCurrentByte recv; selBufLength recv] }
+let invariant (recv: Expr): Expr = FunctionCall { prefix = [bitStreamId]; id = "invariant"; args = [selCurrentBitACN recv; selCurrentByteACN recv; selBufLength recv] }
 
 let getBitCountUnsigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetBitCountUnsigned"; args = [arg] }
 
-let validateOffsetBits (recv: Expr) (offset: Expr): Expr = MethodCall { id = "validate_offset_bits"; recv = selBitStream recv; args = [offset] }
+let validateOffsetBitsACN (recv: Expr) (offset: Expr): Expr = MethodCall { id = "validate_offset_bits"; recv = selBitStream recv; args = [offset] }
+
+let isPrefixOfACN (recv: Expr) (other: Expr): Expr = MethodCall { id = "isPrefixOf"; recv = selBitStream recv; args = [selBitStream other] }
 
 let callSize (recv: Expr) (offset: Expr): Expr = MethodCall { id = "size"; recv = recv; args = [offset] }
 
@@ -531,14 +533,20 @@ let alignedSizeTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr) 
   | Some AcnGenericTypes.NextWord -> alignedSizeToWord bits offset
   | Some AcnGenericTypes.NextDWord -> alignedSizeToDWord bits offset
 
+let validReflexiveLemma (b: Expr): Expr =
+  FunctionCall { prefix = [bitStreamId]; id = "validReflexiveLemma"; args = [selBitStream b] }
+
 let validTransitiveLemma (b1: Expr) (b2: Expr) (b3: Expr): Expr =
-  FunctionCall { prefix = [bitStreamId]; id = "validTransitiveLemma"; args = [b1; b2; b3] }
+  FunctionCall { prefix = [bitStreamId]; id = "validTransitiveLemma"; args = [selBitStream b1; selBitStream b2; selBitStream b3] }
 
 let validateOffsetBitsIneqLemma (b1: Expr) (b2: Expr) (b1ValidateOffsetBits: Expr) (advancedAtMostBits: Expr): Expr =
   FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsIneqLemma"; args = [b1; b2; b1ValidateOffsetBits; advancedAtMostBits] }
 
 let validateOffsetBitsWeakeningLemma (b: Expr) (origOffset: Expr) (newOffset: Expr): Expr =
   FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsWeakeningLemma"; args = [b; origOffset; newOffset] }
+
+let validateOffsetBitsContentIrrelevancyLemma (b1: Expr) (buf: Expr) (bits: Expr): Expr =
+  FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsContentIrrelevancyLemma"; args = [b1; buf; bits] }
 
 let arrayRangesEqReflexiveLemma (arr: Expr): Expr =
   FunctionCall { prefix = []; id = "arrayRangesEqReflexiveLemma"; args = [arr] }
@@ -558,30 +566,6 @@ let arrayRangesEqImpliesEq (a1: Expr) (a2: Expr) (from: Expr) (at: Expr) (tto: E
 let arrayRangesEq (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr): Expr =
   FunctionCall { prefix = []; id = "arrayRangesEq"; args = [a1; a2; from; tto] }
 
-
-// TODO: Pas terrible, trouver une meilleure solution
-let readPrefixLemmaIdentifier (t: TypeEncodingKind option): string list * string =
-  match t with
-  | None -> failwith "TODO: Implement me"
-  | Some (AcnBooleanEncodingType None) -> [bitStreamId], "readBitPrefixLemma" // TODO: Check this
-  | Some (AcnIntegerEncodingType int) ->
-    let sign =
-      match int.signedness with
-      | Positive -> "PositiveInteger"
-      | TwosComplement -> "TwosComplement"
-    let endian, sz =
-      match int.endianness with
-      | IntegerEndianness.Byte -> None, Some "8"
-      | Unbounded -> None, None
-      | LittleEndian sz -> Some "little_endian", Some (sz.bitSize.ToString())
-      | BigEndian sz -> Some "big_endian", Some (sz.bitSize.ToString())
-    [acnId], ([Some "dec"; Some "Int"; Some sign; Some "ConstSize"; endian; sz; Some "prefixLemma"] |> List.choose id).StrJoin "_"
-  | Some (Asn1IntegerEncodingType (Some Unconstrained)) ->
-    [codecId], "decodeUnconstrainedWholeNumber_prefixLemma"
-  | Some (Asn1IntegerEncodingType (Some (FullyConstrainedPositive _))) ->
-    [codecId], "decodeConstrainedPosWholeNumber_prefixLemma"
-  | _ ->
-    [acnId], "readPrefixLemma_TODO" // TODO
 
 let fromIntClass (cls: Asn1AcnAst.IntegerClass): IntegerType =
   match cls with
@@ -620,6 +604,11 @@ let fromAsn1AcnTypeKind (t: Asn1AcnAst.Asn1AcnTypeKind): Type =
   match t with
   | Asn1AcnAst.Asn1AcnTypeKind.Acn t -> fromAcnInsertedType t
   | Asn1AcnAst.Asn1AcnTypeKind.Asn1 t -> fromAsn1TypeKind t
+
+let fromAsn1AcnChildInfo (t: Asn1AcnAst.SeqChildInfo): Type =
+  match t with
+  | Asn1AcnAst.SeqChildInfo.AcnChild t -> fromAcnInsertedType t.Type
+  | Asn1AcnAst.SeqChildInfo.Asn1Child t -> fromAsn1TypeKind t.Type.Kind
 
 let fromSequenceOfLike (t: SequenceOfLike): Type =
   match t with
@@ -683,6 +672,7 @@ let requiresBraces (e: Tree) (within: Tree option): bool =
   | _, Some (ExprTree (Ghost _ | Locally _)) -> false
   | _, Some within when List.contains e (noBracesSub within) -> false
   | ExprTree (LetRec _), Some (ExprTree (LetRec _)) -> false
+  | ExprTree (Block _), Some (ExprTree (Or _ | Not _ | And _)) -> true
   | _, Some _ ->
     // TODO
     false

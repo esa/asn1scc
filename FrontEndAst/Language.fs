@@ -336,6 +336,7 @@ type ILangGeneric () =
     abstract member generatePrecond: Asn1Encoding -> t: Asn1AcnAst.Asn1Type -> string list
     abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
+    abstract member generateSequenceProof: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> Selection -> Codec -> string list
     abstract member generateSequenceOfLikeProof: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
     abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CallerScope -> Codec -> string option
 
@@ -365,6 +366,7 @@ type ILangGeneric () =
     default this.generatePrecond _ _ = []
     default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id
+    default this.generateSequenceProof _ _ _ _ _ = []
     default this.generateSequenceOfLikeProof _ _ _ _ = None
     default this.generateIntFullyConstraintRangeAssert _ _ _ = None
 

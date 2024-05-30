@@ -294,6 +294,12 @@ sealed trait OptionMut[@mutable A] {
 case class NoneMut[@mutable A]() extends OptionMut[A]
 case class SomeMut[@mutable A](v: A) extends OptionMut[A]
 
-sealed trait EitherMut[@mutable A, @mutable B]
+sealed trait EitherMut[@mutable A, @mutable B] {
+   def isRight: Boolean = this match {
+      case RightMut(_) => true
+      case LeftMut(_) => false
+   }
+   def isLeft: Boolean = !isRight
+}
 case class LeftMut[@mutable A, @mutable B](a: A) extends EitherMut[A, B]
 case class RightMut[@mutable A, @mutable B](b: B) extends EitherMut[A, B]

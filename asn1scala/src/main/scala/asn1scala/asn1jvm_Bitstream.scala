@@ -33,7 +33,7 @@ object BitStream {
       require(bufLength <= Int.MaxValue && currentByte <= Int.MaxValue && currentBit <= Int.MaxValue)
       require(bufLength >= 0 && currentByte >= 0 && currentBit >= 0)
       require(invariant(currentBit.toInt, currentByte.toInt, bufLength.toInt))
-      BitStream.remainingBits(bufLength, currentByte, currentBit) >= 1
+      validate_offset_bits(bufLength, currentByte, currentBit, 1)
    }
 
    @pure
@@ -292,7 +292,7 @@ object BitStream {
    @ghost @pure @opaque @inlineOnce
    def readBitPrefixLemma(bs1: BitStream, bs2: BitStream): Unit = {
       require(bs1.buf.length == bs2.buf.length)
-      require(BitStream.validate_offset_bit(bs1.buf.length.toLong, bs1.currentByte.toLong, bs1.currentBit.toLong))
+      require(bs1.validate_offset_bits(1))
       require(arrayBitRangesEq(
          bs1.buf,
          bs2.buf,
@@ -1959,7 +1959,7 @@ case class BitStream private [asn1scala](
     *
     */
    def readBit(): Boolean = {
-      require(BitStream.validate_offset_bit(buf.length.toLong, currentByte.toLong, currentBit.toLong))
+      require(validate_offset_bits(1))
       val ret = (buf(currentByte) & BitAccessMasks(currentBit)) != 0
       increaseBitIndex()
       ret
@@ -1967,7 +1967,7 @@ case class BitStream private [asn1scala](
 
    @ghost @pure
    def readBitPure(): (BitStream, Boolean) = {
-      require(BitStream.validate_offset_bit(buf.length.toLong, currentByte.toLong, currentBit.toLong))
+      require(validate_offset_bits(1))
       val cpy = snapshot(this)
       val b = cpy.readBit()
       (cpy, b)

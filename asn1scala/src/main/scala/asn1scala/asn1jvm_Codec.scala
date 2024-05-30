@@ -69,8 +69,6 @@ object Codec {
       (Codec(r1), Codec(r2))
    }
 
-   // For showing invertibility of encoding - not fully integrated yet
-   /*
    @ghost @pure
    def decodeUnconstrainedWholeNumber_prefixLemma_helper(c1: Codec, c2: Codec): (Codec, Codec, Long, Codec, Long) = {
       require(c1.bufLength() == c2.bufLength())
@@ -142,7 +140,6 @@ object Codec {
          l1 == l2 && BitStream.bitIndex(c1Res.bitStream.buf.length, c1Res.bitStream.currentByte, c1Res.bitStream.currentBit) == BitStream.bitIndex(c2Res.bitStream.buf.length, c2Res.bitStream.currentByte, c2Res.bitStream.currentBit)
       }
    }
-   */
 }
 
 /**
@@ -151,7 +148,7 @@ object Codec {
  * @param count represents the number of bytes in the internal buffer
  *
  */
-case class Codec private [asn1scala](bitStream: BitStream) {
+case class Codec(bitStream: BitStream) {
    import Codec.*
    import BitStream.{reader => _, *}
    export bitStream.{resetAt => _, withMovedByteIndex => _, withMovedBitIndex => _, isPrefixOf => _, *}
@@ -266,24 +263,23 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          val encVal = v - min
 
          @ghost val nEncValBits = GetBitCountUnsigned(encVal)
-         // assert(nRangeBits >= nEncValBits) // TODO: T.O
 
          appendNLeastSignificantBits(encVal, nRangeBits)
-      // else
-      //    ghostExpr {
-      //       validReflexiveLemma(bitStream)
-      //    }
+      else
+         ghostExpr {
+            validReflexiveLemma(bitStream)
+         }
    }.ensuring { _ =>
       val w1 = old(this)
       val w2 = this
       val range = max - min
       val nBits = GetBitCountUnsigned(range)
-      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits /*&& w1.isPrefixOf(w2) && {
+      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
          val (r2Got, vGot) = r1.decodeConstrainedPosWholeNumberPure(min, max)
          vGot == v && r2Got == r2
-      }*/
+      }
    }
 
    /**

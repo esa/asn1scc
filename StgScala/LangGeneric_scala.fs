@@ -371,6 +371,10 @@ type LangGeneric_scala() =
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
             generateSequenceChildProof enc stmts pg codec
 
+        override this.generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (sel: Selection) (codec: Codec): string list =
+            let proof = generateSequenceProof enc t sq sel codec
+            proof |> Option.map (fun p -> show (ExprTree p)) |> Option.toList
+
         override this.generateSequenceOfLikeProof (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
             generateSequenceOfLikeProof enc o pg codec
 
