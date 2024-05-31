@@ -322,6 +322,10 @@ type LangGeneric_scala() =
             let fds, call = generateSequenceOfLikeAuxiliaries enc o pg codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""]), Some (show (ExprTree call))
 
+        override this.generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild) (codec: Codec): string list * string =
+            let fds, call = generateOptionalAuxiliaries enc soc codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""]), show (ExprTree call)
+
         override this.adaptAcnFuncBody (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
             let shouldWrap  =
                 match t.Kind with
@@ -360,12 +364,16 @@ type LangGeneric_scala() =
         override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.base.bitStream.validate_offset_bits({t.maxSizeInBits enc})"]
 
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
-            let theEitherId, rightTpe =
+            let errTpe = IntegerType Int
+            let postcondExpr =
                 match codec with
-                | Encode -> eitherId, IntegerType Int
-                | Decode -> eitherMutId, fromAsn1TypeKind t.Kind
-            let resPostcond = {Var.name = "res"; tpe = ClassType {id = theEitherId; tps = [IntegerType Int; rightTpe]}}
-            let postcondExpr = generatePostcondExpr t p.arg resPostcond codec
+                | Encode ->
+                    let resPostcond = {Var.name = "res"; tpe = ClassType (eitherTpe errTpe (IntegerType Int))}
+                    let decodePureId = $"{t.FT_TypeDefinition.[Scala].typeName}_ACN_Decode_pure"
+                    generateEncodePostcondExpr t p.arg resPostcond decodePureId
+                | Decode ->
+                    let resPostcond = {Var.name = "res"; tpe = ClassType (eitherMutTpe errTpe (fromAsn1TypeKind t.Kind))}
+                    generateDecodePostcondExpr t resPostcond
             Some (show (ExprTree postcondExpr))
 
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
@@ -379,10 +387,13 @@ type LangGeneric_scala() =
             generateSequenceOfLikeProof enc o pg codec
 
         override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CallerScope) (codec: Codec): string option =
+            None
+            // TODO: Need something better than that
+            (*
             match codec with
             | Encode -> Some $"assert({topLevelTd}_IsConstraintValid(pVal).isRight)" // TODO: HACK: When for CHOICE, `p` gets reset to the choice variant name, so we hardcode "pVal" here...
             | Decode -> None
-
+            *)
         override this.generateOctetStringInvariants (t: Asn1AcnAst.Asn1Type) (os: Asn1AcnAst.OctetString): string list =
             let inv = octetStringInvariants t os This
             [$"require({show (ExprTree inv)})"]

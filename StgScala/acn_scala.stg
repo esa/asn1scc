@@ -718,7 +718,7 @@ sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatemen
 sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /* Encode <sChName> */
 /* marked as ALWAYS PRESENT, so it must be Some */
-<p><sAcc><sChName> match
+<p> match
     case SomeMut(<sChName>) =>
         <soSaveBitStrmPosStatement>
         <soChildContent>
@@ -729,7 +729,7 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildEx
 /* Decode <sChName> */
 /* marked as ALWAYS PRESENT */
 <soSaveBitStrmPosStatement>
-val <p>_<sChName>: OptionMut[<sChildTypedef>] =
+val <p>: OptionMut[<sChildTypedef>] =
     <soChildContent>
     SomeMut(<soChildExpr>)
 >>
@@ -743,13 +743,13 @@ sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTyped
 /* Decode <sChName> */
 /* marked as ALWAYS ABSENT, so do not decode anything */
 <soSaveBitStrmPosStatement>
-val <p>_<sChName>: OptionMut[<sChildTypedef>] = NoneMut[<sChildTypedef>]()
+val <p>: OptionMut[<sChildTypedef>] = NoneMut[<sChildTypedef>]()
 >>
 
 sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /* Encode <sChName> */
 <soSaveBitStrmPosStatement>
-<p><sAcc><sChName> match
+<p> match
     case SomeMut(<sChName>) =>
         <sChildContent>
     case NoneMut() =>
@@ -758,7 +758,7 @@ sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soCh
 sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
-val <p>_<sChName>: OptionMut[<sChildTypedef>] =
+val <p>: OptionMut[<sChildTypedef>] =
     if <soExistVar> then
         <sChildContent>
         SomeMut(<soChildExpr>)

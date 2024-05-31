@@ -210,6 +210,16 @@ type SequenceOfLikeProofGenResult = {
     invariant: string
 }
 
+type SequenceOptionalChild = {
+    t: Asn1AcnAst.Asn1Type
+    sq: Asn1AcnAst.Sequence
+    child: Asn1Child
+    existVar: string option
+    p: CallerScope
+    nestingScope: NestingScope
+    childBody: CallerScope -> string option -> string
+}
+
 type AcnFuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> (AcnFuncBodyResult option) * State
 
 [<AbstractClass>]
@@ -333,6 +343,8 @@ type ILangGeneric () =
 
     abstract member adaptAcnFuncBody: AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
     abstract member generateSequenceOfLikeAuxiliaries: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
+    // TODO: Bad name
+    abstract member generateOptionalAuxiliaries: Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
     abstract member generatePrecond: Asn1Encoding -> t: Asn1AcnAst.Asn1Type -> string list
     abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
@@ -363,6 +375,7 @@ type ILangGeneric () =
 
     default this.adaptAcnFuncBody f _ _ _ = f
     default this.generateSequenceOfLikeAuxiliaries _ _ _ _ = [], None
+    default this.generateOptionalAuxiliaries _ soc _ = [], soc.childBody soc.p soc.existVar
     default this.generatePrecond _ _ = []
     default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id

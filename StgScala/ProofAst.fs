@@ -22,6 +22,7 @@ type Annot =
   | Opaque
   | InlineOnce
   | GhostAnnot
+  | Pure
 
 type Type =
   | IntegerType of IntegerType
@@ -315,6 +316,9 @@ let noneMutExpr (tpe: Type): Expr = ClassCtor (noneMut tpe)
 let isDefinedExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "isDefined"; args = []}
 let isDefinedMutExpr (recv: Expr): Expr = isDefinedExpr recv // TODO: We can't distinguish symbols right now
 
+let getMutExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "get"; args = []}
+let getExpr (recv: Expr): Expr = getMutExpr recv // TODO: We can't distinguish symbols right now
+
 
 let eitherTpe (l: Type) (r: Type): ClassType = {ClassType.id = eitherId; tps = [l; r]}
 let leftTpe (l: Type) (r: Type): ClassType = {ClassType.id = leftId; tps = [l; r]}
@@ -323,6 +327,9 @@ let left (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = leftTpe l r; args = [e
 let leftExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (left l r e)
 let right (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightTpe l r; args = [e]}
 let rightExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (right l r e)
+let isRightExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "isRight"; args = []}
+let isRightMutExpr (recv: Expr): Expr = isRightExpr recv // TODO: We can't distinguish symbols right now
+
 
 let eitherMutTpe (l: Type) (r: Type): ClassType = {ClassType.id = eitherMutId; tps = [l; r]}
 let leftMutTpe (l: Type) (r: Type): ClassType = {ClassType.id = leftMutId; tps = [l; r]}
@@ -754,6 +761,7 @@ let ppAnnot (annot: Annot): string =
   | Opaque -> "@opaque"
   | InlineOnce -> "@inlineOnce"
   | GhostAnnot -> "@ghost"
+  | Pure -> "@pure"
 
 // TODO: Maybe have ctx.nest here already?
 let rec pp (ctx: PrintCtx) (t: Tree): Line list =

@@ -1032,7 +1032,22 @@ with
         | Choice k -> Asn1AcnAst.Choice k.baseInfo
         | ReferenceType k -> Asn1AcnAst.ReferenceType k.baseInfo
         | TimeType k -> Asn1AcnAst.TimeType k.baseInfo
-
+    member this.isValidFunction: IsValidFunction option =
+        match this with
+        | Integer k -> k.isValidFunction
+        | Real k -> k.isValidFunction
+        | IA5String k -> k.isValidFunction
+        | OctetString k -> k.isValidFunction
+        | NullType k -> None
+        | BitString k -> k.isValidFunction
+        | Boolean k -> k.isValidFunction
+        | Enumerated k -> k.isValidFunction
+        | ObjectIdentifier k -> k.isValidFunction
+        | SequenceOf k -> k.isValidFunction
+        | Sequence k -> k.isValidFunction
+        | Choice k -> k.isValidFunction
+        | ReferenceType k -> k.isValidFunction
+        | TimeType k -> k.isValidFunction
 
 let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) =
     let rec getErrorCode (errCodeName:string) =
