@@ -847,11 +847,23 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
 let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (typeDefinition:TypeDefinitionOrReference) (defOrRef:TypeDefinitionOrReference) (children:ChChildInfo list) (baseTypeValFunc : IsValidFunction option) (us:State)  =
     let choice_OptionalChild              = l.isvalid.Choice_OptionalChild
     let callBaseTypeFunc                  = l.isvalid.call_base_type_func
+    let choice_child                      = l.isvalid.choice_child   
+    let choice_check_children             = l.isvalid.choice
+    let always_true_statement             = l.isvalid.always_true_statement
+    let always_false_statement            = l.isvalid.always_false_statement
+
+
     let handleChild (child:ChChildInfo) (us:State) =
         let c_name = l.lg.getAsn1ChChildBackendName child
         let presentWhenName = l.lg.presentWhenName (Some defOrRef) child
         match child.chType.isValidFunction with
-        | None                      -> None, us
+        | None                      -> 
+            let childFnc =
+                let newFunc =
+                    (fun (p:CallerScope) -> 
+                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false, []))
+                newFunc
+            Some(IsValidEmbedded {|isValidStatement = childFnc; localVars = []; alphaFuncs = []; childErrCodes = [] |}), us
         | Some (isValidFunction)    ->
             let func =
                 (*alternative's is validation statement. If the alternative has a separate function then make a call otherwise embed the code*)
@@ -870,9 +882,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                             | Scala -> child._scala_name
                             | _ -> ""
                         match func p with
-                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
-                        | ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
-                        | ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv) )
+                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true, lv) 
+                        | ValidationStatementFalse   (st,lv)  
+                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false, lv) )
+                        //| ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
+                        //| ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
+                        //| ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv) )
                 newFunc
             (*return new local variables, errorcodes or alphaFuncs*)
             match isValidFunction.funcName with
@@ -890,21 +905,26 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
     let valToStrFunc (p:CallerScope) (v:Asn1AcnAst.ChValue) = VCBTrue
     let vcbs, ns2 =  o.cons |> Asn1Fold.foldMap(fun cs c -> choiceConstraint2ValidationCodeBlock r l t.id children valToStrFunc defOrRef  c cs) ns1
     let funBody (errCode: ErrorCode) (p:CallerScope) =
-        let childrenChecks, lv1 =
-            let aaa, lv1 =
+        let choice_switch_check, lv1 =
+            let childrenChecks, lv1 =
                 childrenContent |>
                 List.choose(fun z ->
                     let isValidStatement = match z with IsValidEmbedded c -> c.isValidStatement | IsValidProcCall c -> c.isValidStatement
                     match isValidStatement p with
-                    | ValidationStatementTrue _ -> None
+                    | ValidationStatementTrue st
                     | ValidationStatementFalse  st
                     | ValidationStatement       st -> Some st) |>
                 List.unzip
-            aaa |> DAstUtilFunctions.nestItems_ret l  |> Option.toList, (lv1|> List.collect id)
+            //aaa |> DAstUtilFunctions.nestItems_ret l  |> Option.toList, (lv1|> List.collect id)
+            let choice_switch_check = 
+                choice_check_children (p.arg.joined l.lg) (l.lg.getAccess p.arg) childrenChecks errCode.errCodeName
+                
+            [choice_switch_check],(lv1|> List.collect id)
+
         let with_component_check, lv2 =
             let a, b = convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |> List.unzip
             a, (b |> List.collect id)
-        match (with_component_check@childrenChecks) |> DAstUtilFunctions.nestItems_ret l  with
+        match (with_component_check@choice_switch_check) |> DAstUtilFunctions.nestItems_ret l  with
         | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
         | Some s ->ValidationStatement (s, lv1@lv2)
 
