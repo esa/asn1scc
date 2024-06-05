@@ -5,31 +5,48 @@ src/main/scala/asn1scala/asn1jvm_Bitstream.scala \
 src/main/scala/asn1scala/asn1jvm_Codec.scala \
 src/main/scala/asn1scala/asn1jvm_Codec_ACN.scala \
 --config-file=stainless.conf \
--D-parallel=10 \
+-D-parallel=5 \
 --watch \
 --functions=\
-BitStream.appendBit,\
-readerFrom,\
-appendBitOne,\
-appendBitZero,\
-appendNBits,\
-appendNBitsLoop,\
-remainingBitsBitIndexLemma,validateOffsetBitsDifferenceLemma,validateOffsetBitsIneqLemma,validateOffsetBitsWeakeningLemma,validateOffsetBytesFromBitIndexLemma,validateOffsetBitsContentIrrelevancyLemma,readBitPrefixLemma,checkBitsLoopPrefixLemma,lemmaIsPrefixRefl,lemmaIsPrefixTransitive,checkBitsLoop,checkBitsLoopPure,\
-appendNOneBits,\
-appendNZeroBits,\
-appendBitFromByte,\
-appendBitsLSBFirst,\
-appendBitsLSBFirstWhile,\
-appendBitsLSBFirstLoopTR,\
-readNLeastSignificantBitsLoop,\
-appendNLeastSignificantBits,\
-appendNLeastSignificantBitsLoop,\
-readNLeastSignificantBitsLoopPrefixLemma,\
-readBits,\
-readBitsLoop,\
-readNBitsLSBFirst,\
-readNBitsLSBFirstPure,\
-readNBitsLSBFirstsLoop,\
-readNBitsLSBFirstsLoopPure,\
-lemmaReadNBitsLSBFirstsLoopIsCorrect,\
+byteArrayBitContentToList,\
+appendBitsMSBFirstLoop,\
+#lemmaSameBitContentWhenReadingFromOneBitEarlier,\
+#appendBitFromByte,\
+#checkByteArrayBitContent,\
+#appendBitsMSBFirst,\
+#BitStream.appendBit,\
+#readerFrom,\
+#appendBitOne,\
+#appendBitZero,\
+#appendNBits,\
+#appendNBitsLoop,\
+#remainingBitsBitIndexLemma,\
+#validateOffsetBitsDifferenceLemma,\
+#validateOffsetBitsIneqLemma,\
+#validateOffsetBitsWeakeningLemma,\
+#validateOffsetBytesFromBitIndexLemma,\
+#validateOffsetBitsContentIrrelevancyLemma,\
+#readBitPrefixLemma,\
+#checkBitsLoopPrefixLemma,\
+#lemmaIsPrefixRefl,\
+#lemmaIsPrefixTransitive,\
+#checkBitsLoop,\
+#checkBitsLoopPure,\
+#appendNOneBits,\
+#appendNZeroBits,\
+#appendBitFromByte,\
+#appendBitsLSBFirst,\
+#appendBitsLSBFirstWhile,\
+#appendBitsLSBFirstLoopTR,\
+#readNLeastSignificantBitsLoop,\
+#appendNLeastSignificantBits,\
+#appendNLeastSignificantBitsLoop,\
+#readNLeastSignificantBitsLoopPrefixLemma,\
+#readBit,\
+#readBitsLoop,\
+#readNBitsLSBFirst,\
+#readNBitsLSBFirstPure,\
+#readNBitsLSBFirstsLoop,\
+#readNBitsLSBFirstsLoopPure,\
+#lemmaReadNBitsLSBFirstsLoopIsCorrect,\
 $1
