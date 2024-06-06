@@ -324,7 +324,9 @@ type LangGeneric_scala() =
 
         override this.generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild) (codec: Codec): string list * string =
             let fds, call = generateOptionalAuxiliaries enc soc codec
-            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""]), show (ExprTree call)
+            // TODO: needs to have ACN dependencies parameterized to be able to hoist
+            let innerFns = fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
+            [], innerFns.StrJoin "\n" + "\n\n" + show (ExprTree call)
 
         override this.adaptAcnFuncBody (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
             let shouldWrap  =

@@ -16,6 +16,7 @@ import asn1scala._
 import stainless.lang._
 import stainless.annotation._
 import stainless.proof._
+import StaticChecks._
 
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
 

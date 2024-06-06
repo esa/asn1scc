@@ -1180,7 +1180,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let oct_sqf_external_field_fix_size = lm.acn.sqf_external_field_fix_size
     let external_field          = lm.acn.sqf_external_field
     let fixedSize               = lm.uper.seqOf_FixedSize
-    let varSize                 = lm.uper.seqOf_VarSize
+    let varSize                 = lm.acn.seqOf_VarSize
 
     let ii = t.id.SequenceOfLevel + 1
 
@@ -1254,7 +1254,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         match o.isFixedSize with
                         | true  -> None
                         | false ->
-                            let funcBody = varSize pp access td i "" o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap codec
+                            let funcBody = varSize pp access td i "" o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux codec
                             Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=None; auxiliaries=auxiliaries})
 
                     | Some internalItem ->
@@ -1262,7 +1262,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let ret, localVariables =
                             match o.isFixedSize with
                             | true -> fixedSize pp td i internalItem.funcBody o.minSize.acn child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr codec, nStringLength
-                            | false -> varSize pp access td i internalItem.funcBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap codec, nStringLength
+                            | false -> varSize pp access td i internalItem.funcBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux codec, nStringLength
                         let typeEncodingKind = internalItem.typeEncodingKind |> Option.map (fun tpe -> TypeEncodingKind.SequenceOfEncodingType (tpe, o.acnEncodingClass))
                         Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(internalItem.localVariables@localVariables); bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=internalItem.auxiliaries @ auxiliaries})
 
@@ -1944,7 +1944,11 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 | Some v ->
                                     let defInit= child.Type.initFunction.initByAsn1Value childP (mapValue v).kind
                                     sequence_default_child pp (lm.lg.getAccess p.arg) childName childContent.funcBody defInit existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement codec
-                        Some childBody, childContent.localVariables, childContent.errCodes, childContent.resultExpr, childContent.typeEncodingKind, childContent.auxiliaries, ns2
+                        let lvs =
+                            match child.Optionality with
+                            | Some Asn1AcnAst.AlwaysAbsent -> []
+                            | _ -> childContent.localVariables
+                        Some childBody, lvs, childContent.errCodes, childContent.resultExpr, childContent.typeEncodingKind, childContent.auxiliaries, ns2
 
                 let optAux, theCombinedBody =
                     if presentWhenStmts.IsNone && childBody.IsNone then [], None

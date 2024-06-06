@@ -480,7 +480,6 @@ and ChildSpec = {
     name            : StringLoc
     childEncodingSpec : AcnTypeEncodingSpec
     asn1Type        : AcnParamType option    // if present then it indicates an ACN inserted type
-    inserted        : bool // For ACN inserted types, whether this child comes from an insertion in the current TAS, false if it is from the original TAS
     argumentList    : RelativePath list
     comments        : string list
 }

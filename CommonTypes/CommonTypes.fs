@@ -61,6 +61,10 @@ type Selection = {
         if this.path.IsEmpty then this.receiverType
         else (List.last this.path).selectionType
 
+    member this.dropLast: Selection =
+        if this.path.IsEmpty then this
+        else {this with path = List.initial this.path}
+
     member this.isOptional: bool =
         (not this.path.IsEmpty) &&
         match List.last this.path with

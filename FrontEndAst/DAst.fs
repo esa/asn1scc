@@ -799,7 +799,6 @@ and AcnChild = {
             Name = this.Name
             id = this.id
             Type = this.Type
-            inserted = false
             Comments = this.Comments
         }
 

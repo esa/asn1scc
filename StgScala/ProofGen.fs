@@ -341,7 +341,8 @@ let rec asn1SizeExpr (align: AcnAlignment option)
     assert (bt.acnMinSizeInBits = bt.acnMaxSizeInBits)
     aligned {bdgs = []; resSize = longlit bt.acnMaxSizeInBits}
   | Real rt ->
-    assert (rt.acnMinSizeInBits = rt.acnMaxSizeInBits)
+    // TODO: We don't support these anyway
+    // assert (rt.acnMinSizeInBits = rt.acnMaxSizeInBits)
     aligned {bdgs = []; resSize = longlit rt.acnMaxSizeInBits}
   | Sequence sq ->
     // Alignment done there
@@ -1071,21 +1072,25 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
   List.foldBack annotate stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd
 
 let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
-  if stmts.IsEmpty then []
+  if stmts.IsEmpty then stmts |> List.choose id
   else
     let codecTpe = runtimeCodecTypeFor enc
     let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
     let oldCdc = {Var.name = $"codec_0_1"; tpe = ClassType codecTpe}
-    let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = ClassType codecTpe})
-    let wrappedStmts = annotateSequenceChildStmt enc snapshots cdc oldCdc stmts pg codec
-
-    let postCondLemmas =
-      let cond = Leq (bitIndexACN (Var cdc), plus [bitIndexACN (Var snapshots.Head); longlit (pg.outerMaxSize enc)])
-      Ghost (Check cond)
-    let expr = wrappedStmts (mkBlock [postCondLemmas])
-    let exprStr = show (ExprTree expr)
-    [exprStr]
-
+    if enc = ACN then
+      let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = ClassType codecTpe})
+      let wrappedStmts = annotateSequenceChildStmt enc snapshots cdc oldCdc stmts pg codec
+      let postCondLemmas =
+        let cond = Leq (bitIndexACN (Var cdc), plus [bitIndexACN (Var snapshots.Head); longlit (pg.outerMaxSize enc)])
+        Ghost (Check cond)
+      let expr = wrappedStmts (mkBlock [postCondLemmas])
+      let exprStr = show (ExprTree expr)
+      [exprStr]
+    else
+      let bdgs = if pg.nestingIx = 0I && pg.nestingLevel = 0I then [oldCdc, Snapshot (Var cdc)] else []
+      let expr = letsIn bdgs (mkBlock (stmts |> List.choose id |> List.map EncDec))
+      let exprStr = show (ExprTree expr)
+      [exprStr]
 
 (*
 let generateReadPrefixLemmaApp (snapshots: Var list) (children: TypeInfo list) (codec: Var) : Expr =

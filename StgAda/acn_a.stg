@@ -802,7 +802,21 @@ end loop;
 
 
 
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
+result.errorCode := <sErrCode>;
+if result.Success then
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+    <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+end if;
+>>
 
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
+result.errorCode := <sErrCode>;
+<p>.Length := nStringLength;
+<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+>>
 
 sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>

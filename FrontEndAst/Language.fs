@@ -375,7 +375,9 @@ type ILangGeneric () =
 
     default this.adaptAcnFuncBody f _ _ _ = f
     default this.generateSequenceOfLikeAuxiliaries _ _ _ _ = [], None
-    default this.generateOptionalAuxiliaries _ soc _ = [], soc.childBody soc.p soc.existVar
+    default this.generateOptionalAuxiliaries _ soc _ =
+        // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves
+        [], soc.childBody {soc.p with arg = soc.p.arg.dropLast} soc.existVar
     default this.generatePrecond _ _ = []
     default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id

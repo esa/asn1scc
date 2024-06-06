@@ -75,7 +75,6 @@ def <sFuncName>_pure(codec: ACN): (ACN, EitherMut[ErrorCode, <sTypeDefName>]) =
     val res = <sFuncName>(cpy)
     (cpy, res)
 }
-
 >>
 
 A(sErrCode) /*nogen*/ ::= ""
@@ -518,6 +517,49 @@ val <p> =
     else return LeftMut(<sErrCode>)
 >>
 
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+<if(bIntroSnap)>
+@ghost val codec_0_1 = snapshot(codec)
+<endif>
+
+locally {
+    @ghost val oldCodec = snapshot(codec)
+    codec.base.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
+    ghostExpr {
+        @opaque @inlineOnce
+        def bitCountLemma(): Unit = ().ensuring(_ => GetBitCountUnsigned(ULong.fromRaw(<nSizeMax>) - ULong.fromRaw(<nSizeMin>)) == <nSizeInBits>)
+        bitCountLemma()
+        assert(codec.base.bitStream.bitIndex \<= oldCodec.base.bitStream.bitIndex + <nSizeInBits>L)
+        BitStream.validateOffsetBitsIneqLemma(oldCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, <nSizeInBits>L)
+        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + <nSizeInBits>L)
+        //check(codec.base.bitStream.bitIndex \<= codec_<nLevel>_<nIx>.base.bitStream.bitIndex + <nOffset>L + <nSizeInBits>L)
+    }
+}
+<soCallAux>
+>>
+
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+<if(bIntroSnap)>
+@ghost val codec_0_1 = snapshot(codec)
+<endif>
+
+val <p>_nCount = locally {
+    @ghost val oldCodec = snapshot(codec)
+    val <p>_nCount = codec.base.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>).toInt
+    ghostExpr {
+        @opaque @inlineOnce
+        def bitCountLemma(): Unit = ().ensuring(_ => GetBitCountUnsigned(ULong.fromRaw(<nSizeMax>) - ULong.fromRaw(<nSizeMin>)) == <nSizeInBits>)
+        bitCountLemma()
+        assert(codec.base.bitStream.bitIndex \<= oldCodec.base.bitStream.bitIndex + <nSizeInBits>L)
+        BitStream.validateOffsetBitsIneqLemma(oldCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, <nSizeInBits>L)
+        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + <nSizeInBits>L)
+        //check(codec.base.bitStream.bitIndex \<= codec_<nLevel>_<nIx>.base.bitStream.bitIndex + <nOffset>L + <nSizeInBits>L)
+    }
+    <p>_nCount
+}
+val <p> = <sTasName>(<p>_nCount.toInt, Array.fill(<p>_nCount.toInt)(<sChildInitExpr>))
+<soCallAux>
+>>
 
 sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 <if(bIntroSnap)>
@@ -562,16 +604,6 @@ val <p> =
         <p>
     else return LeftMut(<sErrCode>)
 >>
-/*
-(while(<i> \< <nSizeMax>.toInt) {
-decreases(<nSizeMax>.toInt - <i>)
-<soPreSerde>
-<sInternalItem>
-<soPostSerde>
-<i> += 1
-<soPostInc>
-}).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <nSizeMax>.toInt && <p>_snap.arr.length == <p>.arr.length<if(soInvariant)> && <soInvariant><endif>)
-*/
 
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
