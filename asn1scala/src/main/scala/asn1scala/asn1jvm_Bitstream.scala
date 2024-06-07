@@ -91,8 +91,22 @@ object BitStream {
       require(w1.isPrefixOf(w2))
       val r1 = BitStream(snapshot(w2.buf), w1.currentByte, w1.currentBit)
       val r2 = BitStream(snapshot(w2.buf), w2.currentByte, w2.currentBit)
+      lemmaIsPrefixRefl(w1)
+      lemmaIsPrefixRefl(r1)
+      lemmaIsPrefixRefl(w2)
+      lemmaIsPrefixRefl(r2)
+
+      // Asserts are here as documentation for the proof
+      assert((w1.buf.length != 0) ==> arrayBitRangesEq(w1.buf, w2.buf, 0, BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit)))
+      if(w1.buf.length != 0) then
+         arrayBitRangesEqSymmetric(w1.buf, w2.buf, 0 , BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit ))
+      assert((w1.buf.length != 0) ==> arrayBitRangesEq(w2.buf, w1.buf, 0, BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit)))
+
+      assert(r1.isPrefixOf(w1))
+      lemmaIsPrefixTransitive(r1, w1, w2)
+      lemmaIsPrefixTransitive(r1, w2, r2)
       (r1, r2)
-   }
+   } ensuring(res => res._1.isPrefixOf(res._2) && res._1.isPrefixOf(w1) && res._2.isPrefixOf(w2))
 
    // @ghost @pure @opaque @inlineOnce
    // def resetAndThenMovedLemma(b1: BitStream, b2: BitStream, moveInBits: Long): Unit = {
@@ -1322,99 +1336,90 @@ case class BitStream private [asn1scala](
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, to - i))
       decreases(to - i)
 
-      @ghost val oldThis = snapshot(this)
+      @ghost val beforeAppend = snapshot(this)
       @ghost val oldSrcBuffer = snapshot(srcBuffer)
+      @ghost val bitIndexBeforeAppend = BitStream.bitIndex(buf.length, currentByte, currentBit)
       ghostExpr(BitStream.lemmaIsPrefixRefl(this))
       if i < to then
          appendBitFromByte(srcBuffer((i / NO_OF_BITS_IN_BYTE).toInt).toRaw, (i % NO_OF_BITS_IN_BYTE).toInt)
-         @ghost val oldThis2 = snapshot(this)
+         @ghost val afterAppend = snapshot(this)
          ghostExpr {
-            BitStream.validateOffsetBitsIneqLemma(oldThis, this, to - i, 1)
+            BitStream.validateOffsetBitsIneqLemma(beforeAppend, this, to - i, 1)
          }
 
-         assert(oldThis.isPrefixOf(this))
-         assert(oldThis.isPrefixOf(oldThis2))
+         assert(beforeAppend.isPrefixOf(this))
+         assert(beforeAppend.isPrefixOf(afterAppend))
 
          ghostExpr({
-            val (r1, r2) = reader(oldThis, this)
-            validateOffsetBitsContentIrrelevancyLemma(oldThis, this.buf, 1)
-            val vGot = r1.readBits(1)
+            val (readerFromStartBeforeLoop, _) = reader(beforeAppend, this)
+            validateOffsetBitsContentIrrelevancyLemma(beforeAppend, this.buf, 1)
 
-            val byteIndex1 = i / 8
-            val bitIndex1 = i % 8
-            val mask1 = BitAccessMasks(bitIndex1.toInt)
-            val b1 = (srcBuffer(byteIndex1.toInt).toRaw & mask1) != 0
-
-            val byteIndex2 = 0
-            val bitIndex2 = 0
-            val mask2 = BitAccessMasks(bitIndex2.toInt)
-            val b2 = (vGot(0).toRaw & mask2) != 0
-
-            check(b2 == b1)
+            val listOfBitsFromStartBeforeLoop = bitStreamReadBitsIntoList(readerFromStartBeforeLoop, 1)
+            val srcListFromI = byteArrayBitContentToList(srcBuffer, i, 1)
+            check(srcListFromI.head == listOfBitsFromStartBeforeLoop.head)
          })
 
          appendBitsMSBFirstLoop(srcBuffer, i + 1, to)
 
-         ghostExpr(BitStream.lemmaIsPrefixTransitive(oldThis, oldThis2, this))
-         assert(oldThis2.isPrefixOf(this))
-         assert(oldThis.isPrefixOf(this))
+         ghostExpr(BitStream.lemmaIsPrefixTransitive(beforeAppend, afterAppend, this))
+         assert(afterAppend.isPrefixOf(this))
+         assert(beforeAppend.isPrefixOf(this))
          
          ghostExpr({
-            assert(BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(oldThis.buf.length, oldThis.currentByte, oldThis.currentBit ) + to - i)
+            val snapThis = snapshot(this)
+            assert(BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(beforeAppend.buf.length, beforeAppend.currentByte, beforeAppend.currentBit ) + to - i)
             assert(BitStream.invariant(currentBit, currentByte, buf.length) )
-            assert(oldThis.buf.length == this.buf.length)
-            assert(oldThis.isPrefixOf(this) ) 
-            check(buf.length == oldThis.buf.length)
-            check(BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(oldThis.buf.length, oldThis.currentByte, oldThis.currentBit ) + to - i)
-            check(BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(oldThis2.buf.length, oldThis2.currentByte, oldThis2.currentBit ) + to - i - 1)
-            val (r1, r2) = reader(oldThis, this)
-            validateOffsetBitsContentIrrelevancyLemma(oldThis, this.buf, to - i)
-            val vGot = r1.readBits(to - i)
+            assert(beforeAppend.buf.length == this.buf.length)
+            assert(beforeAppend.isPrefixOf(this) ) 
+            check(buf.length == beforeAppend.buf.length)
+            check(BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(beforeAppend.buf.length, beforeAppend.currentByte, beforeAppend.currentBit ) + to - i)
+            check(BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(afterAppend.buf.length, afterAppend.currentByte, afterAppend.currentBit ) + to - i - 1)
+            assert(afterAppend.buf.length == this.buf.length)
+            assert(BitStream.invariant(afterAppend.currentBit, afterAppend.currentByte, afterAppend.buf.length) )
+            assert(BitStream.invariant(afterAppend.currentBit, afterAppend.currentByte, this.buf.length) )
             
-            assert(oldThis2.buf.length == this.buf.length)
-            assert(BitStream.invariant(oldThis2.currentBit, oldThis2.currentByte, oldThis2.buf.length) )
-            assert(BitStream.invariant(oldThis2.currentBit, oldThis2.currentByte, this.buf.length) )
+            val (readerFromStart, _) = reader(beforeAppend, this)
+            validateOffsetBitsContentIrrelevancyLemma(beforeAppend, this.buf, to - i)
             
-            val (rr1, rr2) = reader(oldThis2, this)
-            validateOffsetBitsContentIrrelevancyLemma(oldThis2, this.buf, to - i - 1)
-            val vvGot = rr1.readBits(to - i - 1)
-            check(checkByteArrayBitContent(srcBuffer, vvGot, i + 1, 0, to - i - 1)) 
+            val (readerFromAfterAppend, _) = reader(afterAppend, this)
+            
+            validateOffsetBitsContentIrrelevancyLemma(afterAppend, this.buf, to - i - 1)
 
-            val byteIndex1 = i / 8
-            val bitIndex1 = i % 8
-            val mask1 = BitAccessMasks(bitIndex1.toInt)
-            val b1 = (srcBuffer(byteIndex1.toInt).toRaw & mask1) != 0
+            val srcListFromI = byteArrayBitContentToList(srcBuffer, i, to - i)
+            val srcListFromIPlusOne = byteArrayBitContentToList(srcBuffer, i + 1, to - i - 1)
 
-            val byteIndex2 = 0
-            val bitIndex2 = 0
-            val mask2 = BitAccessMasks(bitIndex2.toInt)
-            val b2 = (vGot(0).toRaw & mask2) != 0
+            val listOfBitsFromStart = bitStreamReadBitsIntoList(readerFromStart, to - i)
+            val listOfBitsFromAfterAppend = bitStreamReadBitsIntoList(readerFromAfterAppend,  to - i - 1)
 
-            check(BitStream.bitIndex(oldThis.buf.length, oldThis.currentByte, oldThis.currentBit) + 1 == BitStream.bitIndex(oldThis2.buf.length, oldThis2.currentByte, oldThis2.currentBit))
+            assert(to - i != 0)
+            assert(listOfBitsFromStart.length > 0)
+            lemmaBitStreamReadBitsIntoListFromBitIndexPlusOneIsTail(snapThis, readerFromStart, readerFromAfterAppend, to - i, listOfBitsFromStart)
+            assert(listOfBitsFromStart.tail == listOfBitsFromAfterAppend) 
 
-            assert(b2 == b1) // TODO
+            assert(bitAt(readerFromStart.buf, bitIndexBeforeAppend) == bitAt(readerFromAfterAppend.buf, bitIndexBeforeAppend))
+            assert(listOfBitsFromStart.head == bitAt(readerFromStart.buf, bitIndexBeforeAppend))
+            assert(srcListFromI.head == bitAt(srcBuffer.toArrayRaws, i))
+            assert(bitAt(afterAppend.buf, bitIndexBeforeAppend) == bitAt(srcBuffer.toArrayRaws, i))
 
+            assert(afterAppend.isPrefixOf(this))
+            assert(BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(afterAppend.buf.length, afterAppend.currentByte, afterAppend.currentBit ) + to - i - 1)
+            arrayBitRangesEqImpliesEq(afterAppend.buf, this.buf, 0, bitIndexBeforeAppend, BitStream.bitIndex(afterAppend.buf.length, afterAppend.currentByte, afterAppend.currentBit))
+            assert(bitAt(afterAppend.buf, bitIndexBeforeAppend) == bitAt(this.buf, bitIndexBeforeAppend)) 
+            
+            assert(bitAt(this.buf, bitIndexBeforeAppend) == bitAt(srcBuffer.toArrayRaws, i)) 
+            assert(readerFromStart.readBitPure()._2 == bitAt(srcBuffer.toArrayRaws, i)) 
 
-            val srcListBits = byteArrayBitContentToList(srcBuffer, i, to - i)
-            val vGotListBits = byteArrayBitContentToList(vGot, 0, to - i)
-            val vvGotListBits = byteArrayBitContentToList(vvGot, 0, to - i - 1)
-            assert(vGotListBits.tail == vvGotListBits)
-
-
-            check(checkByteArrayBitContent(srcBuffer, vvGot, i + 1, 0, to - i - 1))
-            lemmaSameBitContentWhenReadingFromOneBitEarlier(srcBuffer, snapshot(this) , oldThis, oldThis2, i + 1, to - i - 1)
-            assert(checkByteArrayBitContent(srcBuffer, vGot, i + 1, 1, to - i - 1))  // TODO
-            assert(checkByteArrayBitContent(srcBuffer, vGot, i, 0, to - i)) 
+            assert(listOfBitsFromStart.head == srcListFromI.head)
 
          })
       else
          ghostExpr({
-            assert(BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(oldThis.buf.length, oldThis.currentByte, oldThis.currentBit ) + to - i)
+            assert(BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(beforeAppend.buf.length, beforeAppend.currentByte, beforeAppend.currentBit ) + to - i)
             assert(BitStream.invariant(currentBit, currentByte, buf.length) )
-            assert(oldThis.buf.length == this.buf.length )
-            assert(oldThis.isPrefixOf(this) )
-            check(buf.length == oldThis.buf.length)
-            val (r1, r2) = reader(oldThis, this)
+            assert(beforeAppend.buf.length == this.buf.length )
+            assert(beforeAppend.isPrefixOf(this) )
+            check(buf.length == beforeAppend.buf.length)
+            val (r1, r2) = reader(beforeAppend, this)
             val vGot = r1.readBits(to - i)
             assert(to - i == 0)
             check(checkByteArrayBitContent(srcBuffer, vGot, i, 0, to - i))
@@ -1432,8 +1437,9 @@ case class BitStream private [asn1scala](
             {
                val (r1, r2) = reader(old(this), this)
                validateOffsetBitsContentIrrelevancyLemma(old(this), this.buf, to - i)
-               val vGot = r1.readBits(to - i)
-               checkByteArrayBitContent(srcBuffer, vGot, i, 0, to - i) 
+               val listBits = bitStreamReadBitsIntoList(r1, to - i)
+               val srcList = byteArrayBitContentToList(srcBuffer, i, to - i)
+               listBits == srcList
             }
          )
       )
@@ -1466,11 +1472,20 @@ case class BitStream private [asn1scala](
          assert(w1.buf.length == w2.buf.length )
          assert(BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) == BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) + nBits)
          assert(w1.isPrefixOf(w2) )
+
          
-         val (r1, r2) = reader(w1, w2)
+         val (r1, _) = reader(w1, w2)
          validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits)
          val vGot = r1.readBits(nBits)
-         assert(checkByteArrayBitContent(srcBuffer, vGot, from, 0, nBits))
+         val (readerr, _) = reader(w1, w2)
+         // lemmaReadBitsThenGetListIsSameAsGetList(vGot, readerr, nBits)
+         assert(byteArrayBitContentToList(vGot, 0, nBits) == bitStreamReadBitsIntoList(readerr, nBits))
+
+         val (readerrr, _) = reader(w1, w2)
+         assert(bitStreamReadBitsIntoList(readerrr, nBits) == byteArrayBitContentToList(srcBuffer, from, nBits)) // Should work
+         
+         lemmaSameBitContentListThenCheckByteArrayBitContent(srcBuffer, vGot, from, 0, nBits)
+         assert(checkByteArrayBitContent(srcBuffer, vGot, from, 0, nBits) )
       })
 
    }.ensuring(_ => 
@@ -1494,36 +1509,56 @@ case class BitStream private [asn1scala](
     /**
      * Transforms an array of UByte, for example resulting from a readBits call, into a list of bits, for specification purposes
      *
-     * @param arr1
-     * @param arr2
-     * @param from
-     * @param to
      */
    @ghost
    @pure
-   def bitStreamReadBitsIntoList(bitStream: BitStream, from: Long, nBits: Long): List[Boolean] = {
-      require(from >= 0)
+   def bitStreamReadBitsIntoList(bitStream: BitStream, nBits: Long): List[Boolean] = {
       require(nBits >= 0)
-      require(from < Long.MaxValue - nBits)
-      require(from + nBits <= bitStream.buf.length.toLong * 8L)
       require(BitStream.validate_offset_bits(bitStream.buf.length.toLong, bitStream.currentByte.toLong, bitStream.currentBit.toLong, nBits))
 
       decreases(nBits)
+      val bitStreamSnap = snapshot(bitStream)
       if(nBits == 0) then
          Nil()
       else
-         val bit = bitStream.readBit()
-         Cons(bit, bitStreamReadBitsIntoList(bitStream, from + 1, nBits - 1))
-   }
+         val bit = bitStreamSnap.readBit()
+         Cons(bit, bitStreamReadBitsIntoList(bitStreamSnap, nBits - 1))
+   } ensuring( res => if(nBits == 0) then res.isEmpty else res.length > 0 ) // we'd like to prove res.length == nBits but it's not possible because of type mismatch
+
+   @ghost
+   @opaque
+   @inlineOnce
+   def lemmaBitStreamReadBitsIntoListFromBitIndexPlusOneIsTail(base: BitStream, bitStream1: BitStream, bitStream2: BitStream, nBits: Long, listBits: List[Boolean]): Unit = {
+      require(nBits > 0)
+      require(listBits.length > 0)
+      require(bitStream1.isPrefixOf(base))
+      require(bitStream2.isPrefixOf(base))
+      require(bitStream1.isPrefixOf(bitStream2))
+      require(bitStream1.buf == bitStream2.buf)
+      require(bitStream1.buf == base.buf)
+      require(BitStream.bitIndex(base.buf.length, base.currentByte, base.currentBit) < Long.MaxValue - nBits)
+      require(BitStream.bitIndex(bitStream1.buf.length, bitStream1.currentByte, bitStream1.currentBit) + 1 == BitStream.bitIndex(bitStream2.buf.length, bitStream2.currentByte, bitStream2.currentBit))
+      require(BitStream.validate_offset_bits(bitStream1.buf.length.toLong, bitStream1.currentByte.toLong, bitStream1.currentBit.toLong, nBits))
+      require(BitStream.validate_offset_bits(bitStream2.buf.length.toLong, bitStream2.currentByte.toLong, bitStream2.currentBit.toLong, nBits - 1))
+      require(listBits == bitStreamReadBitsIntoList(bitStream1, nBits))
+
+      if nBits == 1 then
+         ()
+      else
+         val bitStream1Snap = snapshot(bitStream1)
+         assert(bitStream1.readBitPure()._2 == listBits.head)
+         ()
+   } ensuring(_ => 
+      bitStreamReadBitsIntoList(bitStream2, nBits - 1) == listBits.tail
+   )
 
 
    /**
      * Transforms an array of UByte, for example resulting from a readBits call, into a list of bits, for specification purposes
      *
-     * @param arr1
-     * @param arr2
+     * @param arr
      * @param from
-     * @param to
+     * @param nBits
      */
    @ghost
    @pure
@@ -1549,8 +1584,9 @@ case class BitStream private [asn1scala](
      *
      * @param arr1
      * @param arr2
-     * @param from
-     * @param to
+     * @param from1
+     * @param from2
+     * @param nBits
      */
    @ghost
    @pure
@@ -1578,68 +1614,28 @@ case class BitStream private [asn1scala](
             false
          else
             checkByteArrayBitContent(arr1, arr2, from1 + 1, from2 + 1, nBits - 1)
-   }
+   } 
 
-   @opaque 
-   @inlineOnce
-   @pure
+   @opaque
    @ghost
-   def lemmaSameBitContentWhenReadingFromOneBitEarlier(
-      srcBuffer: Array[UByte], 
-      wAfter: BitStream, // this in the appendBitsMSBFirst fct
-      w1: BitStream, // oldThis in the appendBitsMSBFirst fct
-      w2: BitStream, // oldThis2 in the appendBitsMSBFirst fct
-      fromSrc: Long,
-      nBits: Long
-      ): Unit = {
-         require(fromSrc >= 0)
-         require(nBits >= 0)
-         // require(0 <= nBitsCompared && nBitsCompared <= nBits)
-         require(fromSrc < Long.MaxValue - nBits)
-         require(fromSrc + nBits <= srcBuffer.length.toLong * 8L)
-         require(wAfter.buf.length == w1.buf.length)
-         require(wAfter.buf.length == w2.buf.length)
-         require(w1.isPrefixOf(wAfter))
-         require(w2.isPrefixOf(wAfter))
-         require(BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) < Long.MaxValue - nBits - 1)
-         require(BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) < Long.MaxValue - nBits )
-         require(BitStream.bitIndex(wAfter.buf.length, wAfter.currentByte, wAfter.currentBit) == BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) + nBits + 1)
-         require(BitStream.bitIndex(wAfter.buf.length, wAfter.currentByte, wAfter.currentBit) == BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) + nBits)
-         require(BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) + 1 == BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit))
-         require({
-            val (r2, _) = reader(w2, wAfter)
-            validateOffsetBitsContentIrrelevancyLemma(w2, wAfter.buf, nBits)
-            val vGot = r2.readBits(nBits)
-            checkByteArrayBitContent(srcBuffer, vGot, fromSrc, 0, nBits)
-         }) 
+   @pure
+   def lemmaSameBitContentListThenCheckByteArrayBitContent(arr1: Array[UByte], arr2: Array[UByte], fromArr1: Long, fromArr2: Long, nBits: Long): Unit = {
+      require(fromArr1 >= 0)
+      require(fromArr2 >= 0)
+      require(nBits >= 0)
+      require(fromArr1 < Long.MaxValue - nBits)
+      require(fromArr2 < Long.MaxValue - nBits)
+      require(fromArr1 + nBits <= arr1.length.toLong * 8L)
+      require(fromArr2 + nBits <= arr2.length.toLong * 8L)
+      require(byteArrayBitContentToList(arr2, fromArr2, nBits) == byteArrayBitContentToList(arr1, fromArr1, nBits))
+      decreases(nBits)
 
-          val (r2, _) = reader(w2, wAfter)
-         validateOffsetBitsContentIrrelevancyLemma(w2, wAfter.buf, nBits)
-         val vGot2 = r2.readBits(nBits)
-
-         val (r1, _) = reader(w1, wAfter)
-         validateOffsetBitsContentIrrelevancyLemma(w1, wAfter.buf, nBits + 1)
-         val vGot1 = r1.readBits(nBits + 1)
-
-         val byteIndex1 = 0 / 8
-         val bitIndex1 = 0 % 8
-         val byteIndex2 = 0 / 8
-         val bitIndex2 = 1 % 8
-         val mask1 = BitAccessMasks(bitIndex1.toInt)
-         val mask2 = BitAccessMasks(bitIndex2.toInt)
-         val b1 = (vGot1(byteIndex1.toInt).toRaw & mask1) != 0
-         val b2 = (vGot2(byteIndex2.toInt).toRaw & mask2) != 0
-
-         assert(b1 == b2)
+      if nBits > 0 then
+         lemmaSameBitContentListThenCheckByteArrayBitContent(arr1, arr2, fromArr1 + 1, fromArr2 + 1, nBits - 1)
+   } ensuring(_ => checkByteArrayBitContent(arr1, arr2, fromArr1, fromArr2, nBits))
 
 
-         // TODO Prove this, probably using an external lemma doing the induction
-      } ensuring(_ => {
-          val (r1, _) = reader(w1, wAfter)
-            validateOffsetBitsContentIrrelevancyLemma(w1, wAfter.buf, nBits + 1)
-            val vGot = r1.readBits(nBits + 1)
-            checkByteArrayBitContent(srcBuffer, vGot, fromSrc , 1, nBits )
-      })
+
    // ****************** Append Byte Functions **********************
 
    /**
@@ -1959,10 +1955,12 @@ case class BitStream private [asn1scala](
       UByte.fromArrayRaws(arr)
    } ensuring(res =>
       buf == old(this).buf 
-      && BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) 
-      && BitStream.invariant(this.currentBit, this.currentByte, this.buf.length) 
-      && res.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
-      && old(this).currentByte <= this.currentByte)
+      &&& BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) 
+      &&& BitStream.invariant(this.currentBit, this.currentByte, this.buf.length) 
+      &&& res.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
+      &&& old(this).currentByte <= this.currentByte
+      &&& byteArrayBitContentToList(res, 0, nBits) == bitStreamReadBitsIntoList(old(this), nBits)
+      )
 
 
    def readBitsLoop(nBits: Long, arr: Array[Byte], from: Long, to: Long): Unit = {
@@ -2009,11 +2007,12 @@ case class BitStream private [asn1scala](
       }
    }.ensuring { _ =>
       BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) + to - from == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit ) &&
-      old(this).buf == this.buf &&
-      old(arr).length == arr.length 
-      && arrayBitRangesEq(old(arr), arr, 0, from) 
-      && (if (from < to) then (bitAt(arr, from) == old(this).readBitPure()._2) else true)
-      && BitStream.invariant(this.currentBit, this.currentByte, this.buf.length)
+      old(this).buf == this.buf
+      &&& old(arr).length == arr.length 
+      &&& arrayBitRangesEq(old(arr), arr, 0, from) 
+      &&& (if (from < to) then (bitAt(arr, from) == old(this).readBitPure()._2) else true)
+      &&& BitStream.invariant(this.currentBit, this.currentByte, this.buf.length)
+      &&& byteArrayBitContentToList(UByte.fromArrayRaws(arr), from, to - from) == bitStreamReadBitsIntoList(old(this), to - from)
    }
 
    

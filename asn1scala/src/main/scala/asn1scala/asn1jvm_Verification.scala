@@ -263,6 +263,39 @@ def arrayBitRangesEqReflexiveLemma(a: Array[Byte]) = {
 }.ensuring(_ => arrayBitRangesEq(a, snapshot(a), 0, a.length.toLong * 8L))
 
 @pure @opaque @inlineOnce @ghost
+def arrayBitRangesEqSymmetric(a1: Array[Byte], a2: Array[Byte], from: Long, to: Long) = {
+  require(0 <= from && from <= to)
+  require(a1.length == a2.length)
+  require(to <= a1.length.toLong * 8L)
+  require(arrayBitRangesEq(a1, a2, from, to))
+
+   if (from < to) {
+      val (arrPrefixStart, arrPrefixEnd, fromBitIx, toBitIx) = arrayBitIndices(from, to)
+      val restFrom = (from % 8).toInt
+      val restTo = (to % 8).toInt
+      if(arrPrefixStart < arrPrefixEnd) {
+        check(arrayRangesEq(a1, a2, arrPrefixStart, arrPrefixEnd))
+        arrayRangesEqSymmetricLemma(a1, a2, arrPrefixStart, arrPrefixEnd)
+        check(arrayRangesEq(a2, a1, arrPrefixStart, arrPrefixEnd))
+      } 
+      if (fromBitIx == toBitIx) {
+        check(byteRangesEq(a1(fromBitIx), a2(fromBitIx), restFrom, restTo))
+        check(byteRangesEq(a2(fromBitIx), a1(fromBitIx), restFrom, restTo))
+      } else {
+        check(byteRangesEq(a1(fromBitIx), a2(fromBitIx), restFrom, 8))
+        check(byteRangesEq(a2(fromBitIx), a1(fromBitIx), restFrom, 8))
+        if (restTo != 0){
+          check(byteRangesEq(a1(toBitIx), a2(toBitIx), 0, restTo))
+          check(byteRangesEq(a2(toBitIx), a1(toBitIx), 0, restTo))
+        }
+      }
+    }
+  
+  
+
+}.ensuring(_ => arrayBitRangesEq(a2, a1, from, to))
+
+@pure @opaque @inlineOnce @ghost
 def arrayBitRangesEqPrepend(a1: Array[Byte], a2: Array[Byte], from: Long, to: Long) = {
   require(0 < from && from <= to)
   require(a1.length == a2.length)

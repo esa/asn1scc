@@ -8,13 +8,18 @@ src/main/scala/asn1scala/asn1jvm_Codec_ACN.scala \
 -D-parallel=5 \
 --watch \
 --functions=\
-byteArrayBitContentToList,\
-appendBitsMSBFirstLoop,\
-#lemmaSameBitContentWhenReadingFromOneBitEarlier,\
-#appendBitFromByte,\
-#checkByteArrayBitContent,\
-#appendBitsMSBFirst,\
-#BitStream.appendBit,\
+lemmaReadBitsThenGetListIsSameAsGetList,\
+lemmaBitStreamReadBitsIntoListFromBitIndexPlusOneIsTail,\
+lemmaSameBitContentListThenCheckByteArrayBitContent,\
+appendBitsMSBFirst,\
+readBits,\
+readBitsLoop,\
+##reader,\
+##byteArrayBitContentToList,\
+##appendBitsMSBFirstLoop,\
+##appendBitFromByte,\
+##checkByteArrayBitContent,\
+##BitStream.appendBit,\
 #readerFrom,\
 #appendBitOne,\
 #appendBitZero,\
