@@ -8,8 +8,9 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 END
 
 
---TCLS     MyPDU[]
-----TCLS     MyPDU[true-value '001'B]
-----TCLS     MyPDU[false-value '1001'B]
-----TCLS     MyPDU[false-value '00000000000000000000000000000000'B]
-----TCLS     MyPDU[true-value '00000000000000000000000000000001'B]
+--TCLS     MyPDU[true-value '001'B, false-value '000'B]
+--TCLFC    MyPDU[false-value ''B] $$$ sample1.acn:4:6: error: The length of the 'false-value' property must be greater than 0
+--TCLFC    MyPDU[true-value ''B] $$$ sample1.acn:4:6: error: The length of the 'true-value' property must be greater than 0
+--TCLFC    MyPDU[true-value ''B, false-value ''B] $$$ sample1.acn:4:6: error: The length of the 'true-value' and 'false-value' properties must be greater than 0
+--TCLFC    MyPDU[true-value '001'B, false-value '000000'B] $$$ sample1.acn:4:6: error: The length of the 'true-value' and 'false-value' properties must be the same
+--TCLFC    MyPDU[true-value '001'B, false-value '001'B] $$$ sample1.acn:4:6: error: The 'true-value' and 'false-value' properties must have different values

@@ -613,6 +613,15 @@ adaasn1rtl.encoding.acn.Acn_Dec_Boolean_false_pattern(bs, <p>, BitArray'(<arrsBi
 result.ErrorCode := <sErrCode>;
 >>
 
+BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<
+adaasn1rtl.encoding.acn.Acn_Enc_Boolean_true_false_pattern(bs, <p>, BitArray'(<arrsTrueBits; separator=",">), BitArray'(<arrsFalseBits; separator=",">));
+>>
+
+BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
+adaasn1rtl.encoding.acn.Acn_Dec_Boolean_true_false_pattern(bs, <p>, BitArray'(<arrsTrueBits; separator=",">), BitArray'(<arrsFalseBits; separator=",">), result);
+result.ErrorCode := <sErrCode>;
+>>
+
 Null_declare(p) ::= ""
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
