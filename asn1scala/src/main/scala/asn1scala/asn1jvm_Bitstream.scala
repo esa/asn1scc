@@ -2063,7 +2063,9 @@ case class BitStream private [asn1scala](
       require(nBits >= 0 && nBits <= 64)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
       readNBitsLSBFirstsLoop(nBits, 0, 0L)
-   }.ensuring(_ => buf == old(this).buf && BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) == BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits)
+   }.ensuring(_ => 
+         buf == old(this).buf 
+         && BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) == BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits)
 
    @ghost @pure
    def readNBitsLSBFirstPure(nBits: Int): (BitStream, Long) = {
@@ -2172,19 +2174,21 @@ case class BitStream private [asn1scala](
     * First bit read from bitstream is the return bytes MSB
     *
     */
-   @opaque @inlineOnce
    def readByte(): UByte = {
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, 8))
 
-      val cb = currentBit.toByte
+      val cb = this.currentBit.toByte
       val ncb = (8 - cb).toByte
-      var v = wrappingExpr { (buf(currentByte) << cb).toByte }
-      currentByte += 1
+      var v = wrappingExpr { (this.buf(this.currentByte) << cb).toByte }
+      this.currentByte += 1
 
       if cb > 0 then
-         v = wrappingExpr { (v | (buf(currentByte) & 0xFF) >>> ncb).toByte }
+         v = wrappingExpr { (v | (this.buf(this.currentByte) & 0xFF) >>> ncb).toByte }
       UByte.fromRaw(v)
-   }.ensuring(_ => buf == old(this).buf && BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) + 8)
+   }.ensuring(_ => 
+      buf == old(this).buf 
+      && BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) + 8
+      )
 
    @ghost @pure
    def readBytePure(): (BitStream, UByte) = {
@@ -2203,29 +2207,29 @@ case class BitStream private [asn1scala](
       arr
    }
 
-   @opaque @inlineOnce
    def readByteArrayLoop(arr: Array[UByte], i: Int, to: Int): Unit = {
       require(0 <= i && i <= to && to <= arr.length)
       require(BitStream.validate_offset_bytes(buf.length.toLong, currentByte.toLong, currentBit.toLong, to - i))
       decreases(to - i)
-      if (i < to) {
-         // @ghost val arr1 = snapshot(arr)
-         @ghost val oldThis1 = snapshot(this)
 
+      @ghost val oldThis1 =snapshot(this)
+      if (i < to) {
+         @ghost val arr1 = snapshot(arr)
          val b = readByte()
          arr(i) = b
-
-         // @ghost val arr2 = snapshot(arr)
+         
+         @ghost val arr2 = snapshot(arr)
+         @ghost val oldThis2 = snapshot(this)
          ghostExpr {
             validateOffsetBytesFromBitIndexLemma(oldThis1, this, 8, to - i)
          }
          readByteArrayLoop(arr, i + 1, to)
-
-         /*ghostExpr {
-            check {
-               BitStream.bitIndex(oldThis1.buf.length, oldThis1.currentByte, oldThis1.currentBit ) + (to - i).toLong * 8L == BitStream.bitIndex(buf.length, currentByte, currentBit) &&
-               oldThis1.buf == buf && arr1.length == arr.length
-            }
+         
+         ghostExpr {
+            check(BitStream.bitIndex(oldThis2.buf.length, oldThis2.currentByte, oldThis2.currentBit ) == BitStream.bitIndex(oldThis1.buf.length, oldThis1.currentByte, oldThis1.currentBit) + 8L) 
+            check(BitStream.bitIndex(oldThis2.buf.length, oldThis2.currentByte, oldThis2.currentBit ) + (to - i - 1) * 8L == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit))
+            check(BitStream.bitIndex(oldThis1.buf.length, oldThis1.currentByte, oldThis1.currentBit ) + (to - i) * 8L == BitStream.bitIndex(buf.length, currentByte, currentBit))
+            check(oldThis1.buf == buf && arr1.length == arr.length) 
 
             arrayUpdatedAtPrefixLemma(arr1, i, b)
             arrayRangesEqTransitive(arr1, arr2, arr, 0, i, i + 1)
@@ -2233,19 +2237,20 @@ case class BitStream private [asn1scala](
 
             arrayRangesEqImpliesEq(arr2, arr, 0, i, i + 1)
             check(arr(i) == b)
-         }*/
-      } /*else {
+         }
+      } else {
          ghostExpr {
+            check(BitStream.bitIndex(oldThis1.buf.length, oldThis1.currentByte, oldThis1.currentBit ) == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit))
             arrayRangesEqReflexiveLemma(arr)
             arrayRangesEqSlicedLemma(arr, snapshot(arr), 0, arr.length, 0, i)
          }
-      }*/
-   }.ensuring { _ =>
-      BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) + (to - i).toLong * 8L == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit ) &&
-      old(this).buf == this.buf &&
-      old(arr).length == arr.length /*&&
-      arrayRangesEq(old(arr), arr, 0, i) &&
-      (i < to) ==> (arr(i) == old(this).readBytePure()._2)*/
+      }
+   }.ensuring { _ => 
+      BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + (to - i) * 8L == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit)
+      && old(this).buf == this.buf 
+      && old(arr).length == arr.length 
+      && arrayRangesEq(old(arr), arr, 0, i)
+      (i < to) ==> (arr(i) == old(this).readBytePure()._2)
    }
 
    @ghost @pure
@@ -2289,7 +2294,6 @@ case class BitStream private [asn1scala](
     * and written into v
     *
     */
-   @opaque @inlineOnce
    def readPartialByte(nBits: Int): UByte = {
       require(nBits >= 1 && nBits < NO_OF_BITS_IN_BYTE)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
@@ -2309,7 +2313,9 @@ case class BitStream private [asn1scala](
          v = wrappingExpr { (v & MASK_B(nBits)).toByte }
          currentBit = totalBitsForNextByte
       UByte.fromRaw(v)
-   }.ensuring(_ => buf == old(this).buf && BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits)
+   }.ensuring(_ => 
+      buf == old(this).buf 
+      && BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits)
 
    @pure @ghost
    def readPartialBytePure(nBits: Int): (BitStream, UByte) = {
@@ -2320,7 +2326,6 @@ case class BitStream private [asn1scala](
       (cpy, b)
    }
 
-   @opaque @inlineOnce
    def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], nBits: Long): Boolean = {
       require(nBits >= 0)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
