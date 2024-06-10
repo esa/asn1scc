@@ -487,6 +487,19 @@ type ReferenceToType with
                 match path with
                 | (MD modName)::_    -> modName
                 | _                               -> raise(BugErrorException "Did not find module at the beginning of the scope path")
+        member this.fieldPath =
+            let select (xs: ScopeNode list): string list =
+                xs |> List.map (fun s ->
+                    match s with
+                    | SEQ_CHILD (fld, _) -> fld
+                    | CH_CHILD (fld, _, _) -> fld
+                    | _ -> raise (BugErrorException $"ReferenceToType.fieldPath expects a selection of either Sequence or Choice fields (got {s})"))
+            match this with
+            | ReferenceToType path ->
+                match path with
+                | (MD _) :: (TA _) :: path    -> select path
+                | _ -> select path
+
         member this.tasInfo =
             match this with
             | ReferenceToType path ->
@@ -550,6 +563,11 @@ type ReferenceToType with
             match this with
             | ReferenceToType path ->
                 ReferenceToType (List.removeAt ((List.length path) - 1) path)
+
+        member this.dropModule =
+            match this with
+            | ReferenceToType (MD _ :: rest) -> ReferenceToType rest
+            | _ -> this
 
         member this.parentTypeId =
             match this with

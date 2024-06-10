@@ -367,6 +367,16 @@ module List =
 
     let last lst =  lst |> List.rev |> List.head
 
+    let rec isPrefixOf (lhs: 'a list) (rhs: 'a list): bool =
+        match lhs, rhs with
+        | [], _ -> true
+        | _, [] -> false
+        | l :: lhs, r :: rhs ->
+            l = r && isPrefixOf lhs rhs
+
+    let rec endsWith (xs: 'a list) (suffix: 'a list): bool =
+        isPrefixOf (List.rev suffix) (List.rev xs)
+
     let rec initial (xs: 'a list): 'a list =
         match xs with
         | [] -> failwith "init of an empty list"

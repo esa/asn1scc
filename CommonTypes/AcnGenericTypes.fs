@@ -15,6 +15,24 @@ with
         match this with  RelativePath p -> p |> Seq.StrJoin "."
     member this.location =
         match this with  RelativePath p -> p |> List.map(fun z -> z.Location) |> List.head
+    member this.isPrefixOf (other: RelativePath) =
+        match this, other with
+            RelativePath this, RelativePath other ->
+                List.isPrefixOf this other
+
+    member this.isPrefixOf2 (other: string list) =
+        match this with
+            RelativePath this ->
+                List.isPrefixOf (this |> List.map (fun s -> s.Value)) other
+    member this.asStringList =
+        match this with
+        | RelativePath path -> path |> List.map (fun s -> s.Value)
+
+    member this.concat (other: RelativePath): RelativePath =
+        match this, other with
+            RelativePath this, RelativePath other ->
+                RelativePath (this @ other)
+
     override this.ToString() = this.AsString
 
 type AcnEndianness =
@@ -366,11 +384,11 @@ with
         | FalseValue _ -> false
 
 type BooleanAcnProperties = {
-    encodingPattern     : AcnBooleanEncoding    option
+    encodingPattern: AcnBooleanEncoding option
 }
 
 type ChoiceAcnProperties = {
-    enumDeterminant     : RelativePath              option
+    enumDeterminant: RelativePath option
 }
 
 type SequenceAcnProperties = {

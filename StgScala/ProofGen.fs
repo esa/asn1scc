@@ -67,16 +67,37 @@ let intSizeExpr (int: Asn1AcnAst.Integer) (obj: Expr): Expr =
     assert (int.acnMinSizeInBits = int.acnMaxSizeInBits) // TODO: Not quite true, there is ASCII encoding that is variable...
     longlit int.acnMaxSizeInBits
 
-// TODO: Bad name (ne considère que les sequence, pas les ACN de sequence dans choice)
+// TODO: Expliquer ce que cela fait et diff avec les autre
+let acnChildren (tpe: Asn1AcnAst.Asn1TypeKind): Asn1AcnAst.AcnChild list =
+  match tpe.ActualType with
+  | Sequence sq ->
+    sq.children |> List.collect (fun c ->
+      match c with
+      | AcnChild c -> [c]
+      | Asn1Child _ -> []
+    )
+  | _ -> []
+
+let rec collectNestedAcnChildren (tpe: Asn1AcnAst.Asn1TypeKind): Asn1AcnAst.AcnChild list =
+  match tpe.ActualType with
+  | Sequence sq ->
+    sq.children |> List.collect (fun c ->
+      match c with
+      | AcnChild c -> [c]
+      | Asn1Child c -> collectNestedAcnChildren c.Type.Kind
+    )
+  | _ -> []
+
 let rec collectAllAcnChildren (tpe: Asn1AcnAst.Asn1TypeKind): Asn1AcnAst.AcnChild list =
   match tpe.ActualType with
   | Sequence sq ->
     sq.children |> List.collect (fun c ->
       match c with
       | AcnChild c -> [c]
-        // if c.inserted then [c] else []
       | Asn1Child c -> collectAllAcnChildren c.Type.Kind
     )
+  | Choice ch -> ch.children |> List.collect (fun c -> collectAllAcnChildren c.Type.Kind)
+  | SequenceOf sqf -> collectAllAcnChildren sqf.child.Kind
   | _ -> []
 
 
@@ -892,7 +913,31 @@ let wrapAcnFuncBody (isValidFuncName: string option)
       eitherMatchExpr scrut (Some leftBdg) leftBody None UnitLit
     fd, call
   | Decode ->
-    let acns = collectAllAcnChildren t.Kind
+    // Computing external ACN dependencies
+    // Note: the parents must be ordered s.t. the head is a descendant of the second one and so on
+    let rec tryFindFirstParentACNDependency (parents: Asn1AcnAst.Asn1Type list) (dep: RelativePath): (Asn1AcnAst.Asn1Type * Asn1AcnAst.AcnChild) option =
+      match parents with
+      | [] -> None
+      | parent :: rest ->
+        match parent.ActualType.Kind with
+        | Sequence _ ->
+          let directAcns = collectNestedAcnChildren parent.Kind
+          directAcns |> List.tryFind (fun acn -> List.endsWith acn.id.fieldPath dep.asStringList) |>
+            Option.map (fun acn -> parent, acn) |>
+            Option.orElse (tryFindFirstParentACNDependency rest dep)
+        | _ -> tryFindFirstParentACNDependency rest dep
+
+    let paramsAcn = t.externalDependencies |> List.map (fun dep ->
+      let acnDep = tryFindFirstParentACNDependency (nestingScope.parents |> List.map snd) dep
+      assert acnDep.IsSome
+      let _, acnParam = acnDep.Value
+      let nme = ToC (acnParam.id.dropModule.AcnAbsPath.StrJoin "_")
+      let tpe = fromAcnInsertedType acnParam.Type
+      {Var.name = nme; tpe = tpe}
+    )
+
+    // All ACN fields present in this SEQUENCE, including nested ones
+    let acns = collectNestedAcnChildren t.Kind
     let acnsVars = acns |> List.map (fun c -> {Var.name = getAcnDeterminantName c.id; tpe = fromAcnInsertedType c.Type})
     let acnTps = acnsVars |> List.map (fun v -> v.tpe)
     let retTpe = tupleType (tpe :: acnTps)
@@ -947,7 +992,7 @@ let wrapAcnFuncBody (isValidFuncName: string option)
 
     let fd = {
       id = $"decode_{outerSel.arg.asIdentifier}"
-      prms = [cdc]
+      prms = [cdc] @ paramsAcn
       specs = precond
       annots = [Opaque; InlineOnce]
       postcond = Some (resPostcond, postcondExpr)
@@ -955,7 +1000,12 @@ let wrapAcnFuncBody (isValidFuncName: string option)
       body = body
     }
     let call =
-      let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc]}
+      // Note: we must provide all ACN dependencies to the newly created function, which can come from two sources:
+      // * From the current function (not the one we create but the one where we "stand") parameter list (forwarded dependency)
+      // * In case this is a Sequence, the corresponding decoded ACN inserted field, stored in a local variable
+      // In both cases, the variable names are the same, so we can (ab)use this fact and not worry from where
+      // we got the ACN dependency.
+      let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc] @ (paramsAcn |> List.map Var)}
       let leftBdg = {Var.name = "l"; tpe = errTpe}
       // TODO: FIXME: the right type must be the outside type!!!
       let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}

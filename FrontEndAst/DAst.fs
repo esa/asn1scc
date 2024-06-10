@@ -398,6 +398,7 @@ type NestingScope = {
     uperRelativeOffset: bigint
     acnSiblingMaxSize: bigint option
     uperSiblingMaxSize: bigint option
+    // The parents are ordered in ascendant (i.e. the head is a child of the second parent etc.)
     parents: (CallerScope * Asn1AcnAst.Asn1Type) list
 } with
     static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint) (parents: (CallerScope * Asn1AcnAst.Asn1Type) list): NestingScope =
@@ -819,6 +820,7 @@ and Asn1Child = {
     isEqualBodyStats            : CallerScope -> CallerScope -> (string*(LocalVariable list)) option
     Type                        : Asn1Type
     Optionality                 : Asn1AcnAst.Asn1Optionality option
+    // acnArgs                     : RelativePath list
     Comments                    : string array
 } with
     member this.toAsn1AcnAst: Asn1AcnAst.Asn1Child =
@@ -829,6 +831,7 @@ and Asn1Child = {
             _ada_name = this._ada_name
             Type = this.Type.toAsn1AcnAst
             Optionality = this.Optionality
+            // acnArgs = this.acnArgs
             asn1Comments = this.Comments |> Array.toList
             acnComments = []
         }

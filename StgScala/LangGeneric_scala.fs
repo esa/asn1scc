@@ -335,6 +335,16 @@ type LangGeneric_scala() =
                 | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.SequenceOf _ -> true
                 | _ -> false
 
+            let rec collectAllAcnChildren (tpe: Asn1AcnAst.Asn1TypeKind): Asn1AcnAst.AcnChild list =
+                match tpe.ActualType with
+                | Asn1AcnAst.Sequence sq ->
+                    sq.children |> List.collect (fun c ->
+                    match c with
+                    | Asn1AcnAst.AcnChild c -> [c]
+                    | Asn1AcnAst.Asn1Child c -> collectAllAcnChildren c.Type.Kind
+                    )
+                | _ -> []
+
             let newFuncBody (s: State)
                             (err: ErrorCode)
                             (prms: (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list)
@@ -346,7 +356,17 @@ type LangGeneric_scala() =
                     let res, s = funcBody s err prms recNS recP
                     match res with
                     | Some res ->
+                        assert (not nestingScope.parents.IsEmpty)
                         let fd, call = wrapAcnFuncBody isValidFuncName t res.funcBody codec nestingScope p recP
+
+                        // let deps = t.externalDependencies
+                        // printfn "FOR %A WE HAVE:" t.id.AcnAbsPath
+                        // printfn $"    {deps}"
+                        // let topMost = snd (List.last nestingScope.parents)
+                        // let allAcns = collectAllAcnChildren topMost.Kind
+                        // let paramsAcn = deps |> List.map (fun dep -> allAcns |> List.tryFind (fun acn -> acn.id.fieldPath = dep.asStringList))
+                        // printfn "    %A" (paramsAcn |> List.map (fun p -> p |> Option.map (fun p -> p.id.AcnAbsPath)))
+
                         let fdStr = show (FunDefTree fd)
                         let callStr = show (ExprTree call)
                         let newBody = fdStr + "\n" + callStr

@@ -615,9 +615,9 @@ let private createAsn1Child (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1A
             _ada_name          = ch._ada_name
             Type               = newChildType
             Optionality        = ch.Optionality
+            // acnArgs            = ch.acnArgs
             Comments           = ch.Comments |> Seq.toArray
             isEqualBodyStats   = DAstEqual.isEqualBodySequenceChild lm ch newChildType
-            //isValidBodyStats    = DAstValidate.isValidSequenceChild l ch newChildType
         }
     Asn1Child ret, us
 

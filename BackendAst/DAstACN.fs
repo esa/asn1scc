@@ -1658,12 +1658,6 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
         let ret = Some(({AcnChildUpdateResult.updateAcnChildFnc = multiUpdateFunc; errCodes=errCode::restErrCodes ; testCaseFnc = testCaseFnc; localVariables = restLocalVariables}))
         ret, ns
 
-type private SequenceOptionalChildResult = {
-    us: State
-    body: string option
-    existVar: string option
-    auxiliaries: string list
-}
 type private SequenceChildStmt = {
     body: string option
     lvs: LocalVariable list
@@ -1690,7 +1684,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     (*
         1. all Acn inserted children are declared as local variables in the encoded and decode functions (declaration step)
         2. all Acn inserted children must be initialized appropriately in the encoding phase
-        3.
     *)
     // stg macros
     let sequence_presence_optChild                      = lm.acn.sequence_presence_optChild

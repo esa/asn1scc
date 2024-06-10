@@ -659,7 +659,31 @@ type Asn1Type = {
     acnEncSpecAntlrSubTree      : ITree option
     unitsOfMeasure : string option
 }
+ with
+    member this.externalDependencies: RelativePath list =
+        match this.Kind with
+        | ReferenceType tp -> tp.resolvedType.externalDependencies
+        | Sequence sq ->
+            let prefixes = sq.children |> List.map (fun c ->
+                match c with
+                | Asn1Child c -> c.Name.Value
+                | AcnChild c -> c.id.lastItem
+            )
+            this.allDependencies |> List.filter (fun dep ->
+                prefixes |> List.forall (fun prefix -> not (List.isPrefixOf [prefix] dep.asStringList)))
+        | _ -> this.allDependencies
 
+    member this.allDependencies: RelativePath list =
+        match this.Kind with
+        | ReferenceType tp -> tp.resolvedType.allDependencies
+        | Sequence sq ->
+            sq.children |> List.collect (fun c ->
+                match c with
+                | Asn1Child c -> c.Type.allDependencies
+                | AcnChild _ -> []
+            )
+        | Choice ch -> ch.acnArgs
+        | _ -> []
 
 and Asn1TypeKind =
     | Integer           of Integer
@@ -677,7 +701,6 @@ and Asn1TypeKind =
     | Choice            of Choice
     | ObjectIdentifier  of ObjectIdentifier
     | ReferenceType     of ReferenceType
-
 
 and SequenceOf = {
     child           : Asn1Type
@@ -728,6 +751,7 @@ and Asn1Child = {
     _ada_name                   : string
     Type                        : Asn1Type
     Optionality                 : Asn1Optionality option
+    // acnArgs                     : RelativePath list // TODO: RM?
     asn1Comments                : string list
     acnComments                 : string list
 }
@@ -747,6 +771,8 @@ and Choice = {
 
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
+    acnParameters       : AcnParameter list
+    acnArgs             : RelativePath list
     acnLoc              : SrcLoc option
     typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
 }
