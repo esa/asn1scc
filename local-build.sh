@@ -20,5 +20,5 @@ cd v4Tests || exit 1
 ../regression/bin/Debug/net7.0/regression -l Ada -ws 8 -s true -p 48 || exit 1
 
 #scala tests
-#cd ../PUSCScalaTest || exit 1
-#dotnet test || exit 1
+cd ../PUSCScalaTest || exit 1
+dotnet test || exit 1

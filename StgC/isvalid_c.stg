@@ -308,7 +308,7 @@ Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
 <p><sAcc>kind != <sChPresent>
 >>
 
-choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
+choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
 case <sChPresent> : <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
     <sChildBody>
     break;          <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>

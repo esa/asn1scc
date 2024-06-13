@@ -352,9 +352,22 @@ val <p> = {
 >>
 
 BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<
+locally {
+    val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
+    val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
+    codec.base.bitStream.appendBitsMSBFirst(if <p> then true_data else false_data, <nSize>)
+}
 >>
 
 BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
+val <p> = locally {
+    val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
+    val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
+    codec.BitStream_DecodeTrueFalseBoolean(true_data, false_data, <nSize>) match {
+        case Some(b) => b
+        case None() => return LeftMut(<sErrCode>)
+    }
+}
 >>
 
 

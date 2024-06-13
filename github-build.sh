@@ -14,4 +14,4 @@ cd v4Tests || exit 1
 
 #scala tests
 cd ../PUSCScalaTest || exit 1
-#dotnet test || exit 1
+dotnet test || exit 1
