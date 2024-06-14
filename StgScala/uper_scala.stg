@@ -38,6 +38,7 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
         <soIValidFuncName>(<sVarName>) match
             case Left(l) => return Left(l)
             case Right(_) =>
+    @ghost val oldCdc = snapshot(codec)
     <sContent>
     <else>
     <sContent>
@@ -59,6 +60,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER): E
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
+    @ghost val oldCdc = snapshot(codec)
     <sContent>
 
     <if(soIValidFuncName)>

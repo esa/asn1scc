@@ -33,6 +33,7 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
     <soIValidFuncName>(<sVarName>) match
         case Left(l) => return Left(l)
         case Right(_) =>
+    @ghost val oldCdc = snapshot(codec)
     <sContent>
     <else>
     <sContent>
@@ -54,6 +55,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN): Ei
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
+    @ghost val oldCdc = snapshot(codec)
     <sContent>
 
     <if(soIValidFuncName)>
@@ -100,7 +102,7 @@ locally {
     codec.base.bitStream.alignTo<sAlignmentValue>()
     ghostExpr {
         BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
-        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
+        check(codec.base.bitStream.bitIndex \<= oldCdc.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
     }
 }
 <sMainBody>
@@ -112,7 +114,7 @@ locally {
     codec.base.bitStream.alignTo<sAlignmentValue>()
     ghostExpr {
         BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
-        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
+        check(codec.base.bitStream.bitIndex \<= oldCdc.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
     }
 }
 <sMainBody>

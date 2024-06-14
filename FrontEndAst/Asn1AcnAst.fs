@@ -677,12 +677,13 @@ type Asn1Type = {
         match this.Kind with
         | ReferenceType tp -> tp.resolvedType.allDependencies
         | Sequence sq ->
-            sq.children |> List.collect (fun c ->
+            sq.acnArgs @ (sq.children |> List.collect (fun c ->
                 match c with
                 | Asn1Child c -> c.Type.allDependencies
                 | AcnChild _ -> []
-            )
+            ))
         | Choice ch -> ch.acnArgs
+        | SequenceOf sqf -> sqf.acnArgs
         | _ -> []
 
 and Asn1TypeKind =
@@ -715,6 +716,7 @@ and SequenceOf = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
+    acnArgs             : RelativePath list
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
 
 }
@@ -726,9 +728,9 @@ and Sequence = {
     withcons                : SeqConstraint list
     uperMaxSizeInBits       : BigInteger
     uperMinSizeInBits       : BigInteger
-
     acnMaxSizeInBits        : BigInteger
     acnMinSizeInBits        : BigInteger
+    acnArgs                 : RelativePath list
     typeDef                 : Map<ProgrammingLanguage, FE_SequenceTypeDefinition>
 }
 

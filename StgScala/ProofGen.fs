@@ -860,6 +860,102 @@ let generateDecodePostcondExpr (t: Asn1AcnAst.Asn1Type) (resPostcond: Var): Expr
     | _ -> asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndexACN oldCdc) 0I 0I
   generateDecodePostcondExprCommon resPostcond szRecv sz
 
+let rec tryFindFirstParentACNDependency (parents: Asn1AcnAst.Asn1Type list) (dep: RelativePath): (Asn1AcnAst.Asn1Type * Asn1AcnAst.AcnChild) option =
+  match parents with
+  | [] -> None
+  | parent :: rest ->
+    match parent.ActualType.Kind with
+    | Sequence _ ->
+      let directAcns = collectNestedAcnChildren parent.Kind
+      directAcns |> List.tryFind (fun acn -> List.endsWith acn.id.fieldPath dep.asStringList) |>
+        Option.map (fun acn -> parent, acn) |>
+        Option.orElse (tryFindFirstParentACNDependency rest dep)
+    | _ -> tryFindFirstParentACNDependency rest dep
+
+let rec firstOutermostSeqParent (parents: Asn1AcnAst.Asn1Type list): Asn1AcnAst.Asn1Type option =
+  match parents with
+  | [] -> None
+  | parent :: rest ->
+    match parent.ActualType.Kind with
+    | Sequence _ -> firstOutermostSeqParent rest |> Option.orElse (Some parent)
+    | _ -> None
+// We must provide all ACN dependencies to auxiliary decoding functions, which can come from two sources:
+// * From the current function (not the one we create but the one where we "stand") parameter list (forwarded dependency)
+// * In case this is a Sequence, the corresponding decoded ACN inserted field, stored in a local variable
+// In both cases, the variable names are the same, so we can (ab)use this fact and not worry from where
+// we got the ACN dependency.
+let acnExternDependenciesVariableDecode (t: Asn1AcnAst.Asn1Type) (nestingScope: NestingScope): Var list =
+  t.externalDependencies |> List.map (fun dep ->
+    let acnDep = tryFindFirstParentACNDependency (nestingScope.parents |> List.map snd) dep
+    assert acnDep.IsSome
+    let _, acnParam = acnDep.Value
+    let nme = ToC (acnParam.id.dropModule.AcnAbsPath.StrJoin "_")
+    let tpe = fromAcnInsertedType acnParam.Type
+    {Var.name = nme; tpe = tpe}
+  )
+
+// For auxiliary encoding function, we sometimes need to encode bytes that depend on the determinant
+// of a field that is outside of the current encoding function. We therefore need to somehow refer to it.
+// We can do so in two ways:
+// * Add the dependency as a parameter and forward it as needed.
+// * Refer to it from the outermost "pVal" (always in the function parameter) when possible
+// The second way is preferred but not always possible (e.g. if there is a Choice in the path),
+// we cannot access the field pass the choice since we need to pattern match).
+let acnExternDependenciesVariableEncode (t: Asn1AcnAst.Asn1Type) (nestingScope: NestingScope): Var option =
+  let rec allDependenciesExcept (t: Asn1AcnAst.Asn1Type) (avoid: ReferenceToType): RelativePath list =
+    if t.id = avoid then []
+    else
+      match t.Kind with
+      | ReferenceType tp -> allDependenciesExcept tp.resolvedType avoid
+      | Sequence sq ->
+          sq.acnArgs @ (sq.children |> List.collect (fun c ->
+              match c with
+              | Asn1Child c -> allDependenciesExcept c.Type avoid
+              | AcnChild _ -> []
+          ))
+      | Choice ch -> ch.acnArgs
+      | SequenceOf sqf -> sqf.acnArgs
+      | _ -> []
+  // TODO: Il faudrait un "acn field used as dependency" within top most parent?
+  match firstOutermostSeqParent (nestingScope.parents |> List.map snd) with
+  | None -> None
+  | Some seqParent ->
+    match seqParent.id.ToScopeNodeList with
+    | MD _ :: TA _ :: [] ->
+      // This is the outermost parent, the "pVal" that we always include in auxiliary encoding functions from `wrapAcnFuncBody`
+      None
+    | _ ->
+      let acnChildren = collectNestedAcnChildren t.Kind |> List.map (fun acn ->
+        assert List.isPrefixOf seqParent.id.fieldPath acn.id.fieldPath
+        acn.id.fieldPath |> List.skip seqParent.id.fieldPath.Length
+      )
+      // We check whether this `t` is an external dependency to a child of the parent (other than itself, hence the "except")
+      let allDeps = allDependenciesExcept seqParent t.id
+      let isAnExternalDependency = allDeps |> List.exists (fun dep ->
+        acnChildren |> List.exists (fun acn -> List.isPrefixOf acn dep.asStringList)
+      )
+      if not isAnExternalDependency then None
+      else
+        let tpe = fromAsn1TypeKind seqParent.Kind
+        let nme = seqParent.id.lastItem
+        Some {Var.name = nme; tpe = tpe}
+  (*
+  t.allDependencies |> List.collect (fun dep ->
+    let acnDep = tryFindFirstParentACNDependency (nestingScope.parents |> List.map snd) dep
+    assert acnDep.IsSome
+    let acnParent, acnParam = acnDep.Value
+    // assert List.isPrefixOf acnParent.id.fieldPath t.id.fieldPath
+    let isAccessibleFromOutermost = acnParent.id.ToScopeNodeList |> List.forall (fun n ->
+      match n with
+      | SQF | CH_CHILD _ -> false
+      | _ -> true
+    )
+    if isAccessibleFromOutermost then []
+    else
+      let tpe = fromAsn1TypeKind acnParent.Kind
+      [{Var.name = acnParent.id.lastItem; tpe = tpe}]
+  ) |> List.distinct
+  *)
 let wrapAcnFuncBody (isValidFuncName: string option)
                     (t: Asn1AcnAst.Asn1Type)
                     (body: string)
@@ -870,6 +966,7 @@ let wrapAcnFuncBody (isValidFuncName: string option)
   assert recSel.arg.path.IsEmpty
   let codecTpe = runtimeCodecTypeFor ACN
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
+  let oldCdc = {Var.name = "oldCdc"; tpe = ClassType codecTpe}
   let tpe = fromAsn1TypeKind t.Kind
   let errTpe = IntegerType Int
   let recPVal = {Var.name = recSel.arg.receiverId; tpe = tpe}
@@ -886,55 +983,38 @@ let wrapAcnFuncBody (isValidFuncName: string option)
         eitherMatchExpr scrut (Some leftBdg) leftBody None (mkBlock [])
       ) |> Option.toList
 
-    let body = mkBlock (
+    let body = letsGhostIn [oldCdc, Snapshot (Var cdc)] (mkBlock (
       cstrCheck @
       [
         EncDec body
         ClassCtor (right errTpe retTpe (int32lit 0I))
       ]
-    )
+    ))
 
+    let outermostPVal = {Var.name = "pVal"; tpe = fromAsn1TypeKind (nestingScope.parents |> List.last |> snd).Kind}
+    let acnVars = acnExternDependenciesVariableEncode t nestingScope |> Option.toList
     let resPostcond = {Var.name = "res"; tpe = ClassType {id = eitherId; tps = [errTpe; IntegerType Int]}}
     let decodePureId = $"{t.FT_TypeDefinition.[Scala].typeName}_ACN_Decode_pure"
     let postcondExpr = generateEncodePostcondExpr t recSel.arg resPostcond decodePureId
     let fd = {
-      id = $"encode_{outerSel.arg.asIdentifier}"
-      prms = [cdc; recPVal]
+      id = $"{ToC t.id.dropModule.AsString}_ACN_Encode"
+      prms = [cdc; outermostPVal] @ acnVars @ [recPVal]
       specs = precond
       annots = [Opaque; InlineOnce]
       postcond = Some (resPostcond, postcondExpr)
       returnTpe = ClassType (eitherTpe errTpe retTpe)
       body = body
     }
+
     let call =
-      let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc; FreshCopy outerPVal]} // TODO: Ideally we should not be needing a freshCopy...
+      let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc; Var outermostPVal] @ (acnVars |> List.map (fun v -> Var v)) @ [FreshCopy outerPVal]} // TODO: Ideally we should not be needing a freshCopy...
       let leftBdg = {Var.name = "l"; tpe = errTpe}
       let leftBody = Return (leftExpr errTpe (IntegerType Int) (Var leftBdg))
       eitherMatchExpr scrut (Some leftBdg) leftBody None UnitLit
     fd, call
   | Decode ->
     // Computing external ACN dependencies
-    // Note: the parents must be ordered s.t. the head is a descendant of the second one and so on
-    let rec tryFindFirstParentACNDependency (parents: Asn1AcnAst.Asn1Type list) (dep: RelativePath): (Asn1AcnAst.Asn1Type * Asn1AcnAst.AcnChild) option =
-      match parents with
-      | [] -> None
-      | parent :: rest ->
-        match parent.ActualType.Kind with
-        | Sequence _ ->
-          let directAcns = collectNestedAcnChildren parent.Kind
-          directAcns |> List.tryFind (fun acn -> List.endsWith acn.id.fieldPath dep.asStringList) |>
-            Option.map (fun acn -> parent, acn) |>
-            Option.orElse (tryFindFirstParentACNDependency rest dep)
-        | _ -> tryFindFirstParentACNDependency rest dep
-
-    let paramsAcn = t.externalDependencies |> List.map (fun dep ->
-      let acnDep = tryFindFirstParentACNDependency (nestingScope.parents |> List.map snd) dep
-      assert acnDep.IsSome
-      let _, acnParam = acnDep.Value
-      let nme = ToC (acnParam.id.dropModule.AcnAbsPath.StrJoin "_")
-      let tpe = fromAcnInsertedType acnParam.Type
-      {Var.name = nme; tpe = tpe}
-    )
+    let paramsAcn = acnExternDependenciesVariableDecode t nestingScope
 
     // All ACN fields present in this SEQUENCE, including nested ones
     let acns = collectNestedAcnChildren t.Kind
@@ -952,7 +1032,7 @@ let wrapAcnFuncBody (isValidFuncName: string option)
         let rightBody = rightMutExpr errTpe retTpe retVal
         eitherMatchExpr scrut (Some leftBdg) leftBody None rightBody
       | None -> rightMutExpr errTpe retTpe retVal
-    let body = mkBlock [EncDec body; retInnerFd]
+    let body = letsGhostIn [oldCdc, Snapshot (Var cdc)] (mkBlock [EncDec body; retInnerFd])
 
     let resPostcond = {Var.name = "res"; tpe = ClassType {id = eitherMutId; tps = [errTpe; retTpe]}}
     let postcondExpr =
@@ -991,7 +1071,7 @@ let wrapAcnFuncBody (isValidFuncName: string option)
         }
 
     let fd = {
-      id = $"decode_{outerSel.arg.asIdentifier}"
+      id = $"{ToC t.id.dropModule.AsString}_ACN_Decode"
       prms = [cdc] @ paramsAcn
       specs = precond
       annots = [Opaque; InlineOnce]
@@ -999,12 +1079,8 @@ let wrapAcnFuncBody (isValidFuncName: string option)
       returnTpe = ClassType (eitherMutTpe errTpe retTpe)
       body = body
     }
+
     let call =
-      // Note: we must provide all ACN dependencies to the newly created function, which can come from two sources:
-      // * From the current function (not the one we create but the one where we "stand") parameter list (forwarded dependency)
-      // * In case this is a Sequence, the corresponding decoded ACN inserted field, stored in a local variable
-      // In both cases, the variable names are the same, so we can (ab)use this fact and not worry from where
-      // we got the ACN dependency.
       let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc] @ (paramsAcn |> List.map Var)}
       let leftBdg = {Var.name = "l"; tpe = errTpe}
       // TODO: FIXME: the right type must be the outside type!!!
@@ -1052,7 +1128,6 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
   let thisMaxSize = pg.maxSize enc
   let fstSnap = snapshots.Head
   let isNested = pg.nestingLevel > 0I
-  assert (isNested || fstSnap = oldCdc)
 
   let sizeRess =
     pg.children |>
@@ -1126,7 +1201,7 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
   else
     let codecTpe = runtimeCodecTypeFor enc
     let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
-    let oldCdc = {Var.name = $"codec_0_1"; tpe = ClassType codecTpe}
+    let oldCdc = {Var.name = $"oldCdc"; tpe = ClassType codecTpe}
     if enc = ACN then
       let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = ClassType codecTpe})
       let wrappedStmts = annotateSequenceChildStmt enc snapshots cdc oldCdc stmts pg codec
@@ -1236,6 +1311,12 @@ let readPrefixLemmaExtraArgs (t: Asn1AcnAst.Asn1AcnTypeKind): Expr list =
       | Unconstrained -> []
   | _ -> [] // TODO: Rest
   *)
+// let generateChoiceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (stmt: string) (sel: Selection) (codec: Codec): Expr =
+//   let codecTpe = runtimeCodecTypeFor enc
+//   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
+//   let oldCdc = {Var.name = "codec_0_1"; tpe = ClassType codecTpe}
+//   letsGhostIn [oldCdc, Snapshot (Var cdc)] (EncDec stmt)
+
 let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (sel: Selection) (codec: Codec): Expr option =
   if codec = Decode then None
   else
@@ -1307,7 +1388,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
   let sqfTpe = fromSequenceOfLike sqf
   let codecTpe = runtimeCodecTypeFor enc
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
-  let fstCdc = {Var.name = "codec_0_1"; tpe = ClassType codecTpe}
+  let oldCdc = {Var.name = "oldCdc"; tpe = ClassType codecTpe}
   let cdcBeforeLoop = {Var.name = "codecBeforeLoop"; tpe = ClassType codecTpe}
   let cdcSnap1 = {Var.name = "codecSnap1"; tpe = ClassType codecTpe}
   let from = {Var.name = "from"; tpe = IntegerType Int}
@@ -1349,7 +1430,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     ])
   let reccall = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; plus [Var from; int32lit 1I]]}
   // TODO: ALIGNMENT
-  let sizeLemmaCall = MethodCall {recv = Var sqfVar; id = sizeLemmaId None; args = [bitIndexACN (Var cdcBeforeLoop); bitIndexACN (Var fstCdc)]}
+  let sizeLemmaCall = MethodCall {recv = Var sqfVar; id = sizeLemmaId None; args = [bitIndexACN (Var cdcBeforeLoop); bitIndexACN (Var oldCdc)]}
 
   match codec with
   | Encode ->
@@ -1497,7 +1578,7 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
     //assert (codec = Encode || soc.existVar.IsSome)
     let codecTpe = runtimeCodecTypeFor enc
     let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
-    let oldCdc = {Var.name = $"codec_0_1"; tpe = ClassType codecTpe}
+    let oldCdc = {Var.name = $"oldCdc"; tpe = ClassType codecTpe}
     let childAsn1Tpe = soc.child.Type.toAsn1AcnAst
     let childTpe = fromAsn1TypeKind soc.child.Type.Kind.baseKind
     let optChildTpe = ClassType (optionMutTpe childTpe)
@@ -1506,9 +1587,9 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
       let prefix = soc.nestingScope.parents |> List.tryHead |> Option.map (fun (cs, _) -> $"{cs.arg.asIdentifier}_") |> Option.defaultValue ""
       let fnId =
         match codec with
-        | Encode -> $"{ToC soc.p.modName}_{td}_{prefix}{soc.p.arg.lastId}_Encode"
-        | Decode -> $"{ToC soc.p.modName}_{td}_{prefix}{soc.p.arg.lastId}_Decode"
-      fnId, $"{ToC soc.p.modName}_{td}_{prefix}{soc.p.arg.lastId}_Decode_pure"
+        | Encode -> $"{td}_{prefix}{soc.p.arg.lastId}_Encode"
+        | Decode -> $"{td}_{prefix}{soc.p.arg.lastId}_Decode"
+      fnId, $"{td}_{prefix}{soc.p.arg.lastId}_Decode_pure"
     let errTpe = IntegerType Int
     let validateOffsetBitCond = [Precond (validateOffsetBitsACN (Var cdc) (longlit childAsn1Tpe.acnMaxSizeInBits))]
     let isValidFuncName = soc.child.Type.Kind.isValidFunction |> Option.bind (fun vf -> vf.funcName)
@@ -1540,6 +1621,7 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
       let encDec = EncDec (soc.childBody {soc.p with arg = soc.p.arg.asLastOrSelf} None)
       let resPostcond = {Var.name = "res"; tpe = fnRetTpe}
 
+      let outermostPVal = {Var.name = "pVal"; tpe = fromAsn1TypeKind (soc.nestingScope.parents |> List.last |> snd).Kind}
       let outerPVal = SelectionExpr (joinedSelection soc.p.arg)
       let sz = sizeExprOf (Var childVar)
       let isDefined =
@@ -1550,15 +1632,16 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
       let body = letsGhostIn [(oldCdc, Snapshot (Var cdc))] (mkBlock (cstrCheck @ [encDec; rightExpr errTpe rightTpe (int32lit 0I)]))
       let fd = {
         FunDef.id = fnid
-        prms = [cdc; childVar]
+        prms = [cdc; outermostPVal; childVar]
         annots = [Opaque; InlineOnce]
         specs = validateOffsetBitCond
         postcond = Some (resPostcond, postcondExpr)
         returnTpe = fnRetTpe
         body = body
       }
-      let call = FunctionCall {prefix = []; id = fd.id; args = [Var cdc; outerPVal]}
+      let call = FunctionCall {prefix = []; id = fd.id; args = [Var cdc; Var outermostPVal; outerPVal]}
       [fd], call
+      // [], LetRec {fds = [fd]; body = ApplyLetRec {id = fd.id; args = [Var cdc; outerPVal]}}
     | Decode ->
       //assert soc.existVar.IsSome
       // The `existVar` does not exist for always present/absent
@@ -1586,18 +1669,20 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
       let sz = sizeExprOf (Var resvalVar)
       let postcondExpr = generateDecodePostcondExprCommon resPostcond resvalVar sz
       let body = letsGhostIn [(oldCdc, Snapshot (Var cdc))] (mkBlock [encDec; retInnerFd])
+      let acnParams = acnExternDependenciesVariableDecode soc.child.Type.toAsn1AcnAst soc.nestingScope
 
       let fd = {
         FunDef.id = fnid
-        prms = [cdc] @ (existVar |> Option.toList)
+        prms = [cdc] @ (existVar |> Option.toList) @ acnParams
         annots = [Opaque; InlineOnce]
         specs = validateOffsetBitCond
         postcond = Some (resPostcond, postcondExpr)
         returnTpe = fnRetTpe
         body = body
       }
+
       let call =
-        let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc] @ (existVar |> Option.map Var |> Option.toList)}
+        let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc] @ (existVar |> Option.map Var |> Option.toList) @ (acnParams |> List.map Var)}
         let leftBdg = {Var.name = "l"; tpe = errTpe}
         // TODO: FIXME: the right type must be the outside type!!!
         let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
@@ -1612,11 +1697,11 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
         let varRes = {Var.name = "res"; tpe = fnRetTpe}
         let pureBody = (letsIn
           [varCpy, Snapshot (Var cdc);
-          varRes, FunctionCall {prefix = []; id = fd.id; args = [Var varCpy] @ (existVar |> Option.map Var |> Option.toList)}]
+          varRes, FunctionCall {prefix = []; id = fd.id; args = [Var varCpy] @ (existVar |> Option.map Var |> Option.toList) @ (acnParams |> List.map Var)}]
           (mkTuple [Var varCpy; Var varRes]))
         {
           FunDef.id = fnIdPure
-          prms = [cdc] @ (existVar |> Option.toList)
+          prms = [cdc] @ (existVar |> Option.toList) @ acnParams
           annots = [GhostAnnot; Pure]
           specs = validateOffsetBitCond
           postcond = None
