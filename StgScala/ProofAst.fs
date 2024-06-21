@@ -81,6 +81,7 @@ and Expr =
   | Locally of Expr
   | Snapshot of Expr
   | FreshCopy of Expr
+  | Unfold of Expr
   | Let of Let
   | LetGhost of Let
   | LetTuple of LetTuple
@@ -226,6 +227,7 @@ let rec substVars (vs: (Var * Expr) list) (inExpr: Expr): Expr =
     | Locally inExpr -> Ghost (loop inExpr)
     | Snapshot inExpr -> Ghost (loop inExpr)
     | FreshCopy inExpr -> Ghost (loop inExpr)
+    | Unfold inExpr -> Ghost (loop inExpr)
     | Let lt -> Let (substInLet lt)
     | LetGhost lt -> LetGhost (substInLet lt)
     | LetTuple lt ->
@@ -573,6 +575,9 @@ let arrayRangesEqImpliesEq (a1: Expr) (a2: Expr) (from: Expr) (at: Expr) (tto: E
 let arrayRangesEq (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr): Expr =
   FunctionCall { prefix = []; id = "arrayRangesEq"; args = [a1; a2; from; tto] }
 
+let arrayBitRangesEq (a1: Expr) (a2: Expr) (fromBit: Expr) (toBit: Expr): Expr =
+  FunctionCall { prefix = []; id = "arrayBitRangesEq"; args = [a1; a2; fromBit; toBit] }
+
 
 let fromIntClass (cls: Asn1AcnAst.IntegerClass): IntegerType =
   match cls with
@@ -868,9 +873,10 @@ and ppFunDefLike (ctx: PrintCtx) (fd: FunDefLike): Line list =
   | Some (resVar, postcond), true ->
     let body = ppExpr ctx.inc.inc fd.body
     let postcond = ppExpr ctx.inc.inc postcond
-    [{txt = "{"; lvl = ctx.lvl + 1}] @
+    header @
     preSpecs @
     [{txt = ""; lvl = ctx.lvl}] @ // for Scala to avoid defining an anonymous class with bindings from above
+    [{txt = "{"; lvl = ctx.lvl + 1}] @
     body @
     // We type-annotate the result to avoid inference failure which may occur from time to time
     [{txt = $"}}.ensuring {{ ({resVar.name}: {ppType resVar.tpe}) => "; lvl = ctx.lvl + 1}] @
@@ -919,6 +925,9 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
 
   | FreshCopy e2 ->
     joinCallLike ctx [line "freshCopy"] [ppExpr (ctx.nestExpr e2) e2] false
+
+  | Unfold e2 ->
+    joinCallLike ctx [line "unfold"] [ppExpr (ctx.nestExpr e2) e2] false
 
   | Let lt -> ppLet ctx e lt []
 

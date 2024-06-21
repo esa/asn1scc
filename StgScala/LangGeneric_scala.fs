@@ -356,7 +356,7 @@ type LangGeneric_scala() =
                     match res with
                     | Some res ->
                         assert (not nestingScope.parents.IsEmpty)
-                        let fd, call = wrapAcnFuncBody isValidFuncName t res.funcBody codec nestingScope p recP
+                        let fd, call = wrapAcnFuncBody t res.funcBody codec nestingScope p recP
 
                         // let deps = t.externalDependencies
                         // printfn "FOR %A WE HAVE:" t.id.AcnAbsPath
