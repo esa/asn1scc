@@ -694,18 +694,18 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnA
 let createEfficientEnumValidation (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (o:Asn1AcnAst.Enumerated)   (us:State)  =
     let getEnumIndexByName = l.isvalid.GetEnumIndexByName
     let td = (l.lg.getEnumTypeDefinition o.typeDef)
-    let bSorted = 
+    let bSorted =
         let sortedItems = o.validItems |> List.map(fun x -> x.definitionValue) |> List.sort
         let items = o.validItems |> List.map(fun x -> x.definitionValue)
         sortedItems = items
-    let optimizedValidation (p:CallerScope) = 
+    let optimizedValidation (p:CallerScope) =
         let ret = getEnumIndexByName td.values_array td.values_array_count (l.lg.getValue p.arg) bSorted
         VCBExpression (ret)
     [optimizedValidation], us
 
 
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefinitionOrReference)  (us:State)  =
-    let fncs, ns = 
+    let fncs, ns =
         match r.args.isEnumEfficientEnabled o.items.Length with
         | false -> o.cons |> Asn1Fold.foldMap (fun us c -> enumeratedConstraint2ValidationCodeBlock  l  o typeDefinition c us) us
         | true  -> createEfficientEnumValidation r l o us
@@ -847,7 +847,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
 let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (typeDefinition:TypeDefinitionOrReference) (defOrRef:TypeDefinitionOrReference) (children:ChChildInfo list) (baseTypeValFunc : IsValidFunction option) (us:State)  =
     let choice_OptionalChild              = l.isvalid.Choice_OptionalChild
     let callBaseTypeFunc                  = l.isvalid.call_base_type_func
-    let choice_child                      = l.isvalid.choice_child   
+    let choice_child                      = l.isvalid.choice_child
     let choice_check_children             = l.isvalid.choice
     let always_true_statement             = l.isvalid.always_true_statement
     let always_false_statement            = l.isvalid.always_false_statement
@@ -857,11 +857,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
         let c_name = l.lg.getAsn1ChChildBackendName child
         let presentWhenName = l.lg.presentWhenName (Some defOrRef) child
         match child.chType.isValidFunction with
-        | None                      -> 
+        | None                      ->
             let childFnc =
                 let newFunc =
-                    (fun (p:CallerScope) -> 
-                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false, []))
+                    (fun (p:CallerScope) ->
+                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name, []))
                 newFunc
             Some(IsValidEmbedded {|isValidStatement = childFnc; localVars = []; alphaFuncs = []; childErrCodes = [] |}), us
         | Some (isValidFunction)    ->
@@ -882,9 +882,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                             | Scala -> child._scala_name
                             | _ -> ""
                         match func p with
-                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true, lv) 
-                        | ValidationStatementFalse   (st,lv)  
-                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false, lv) )
+                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name, lv)
+                        | ValidationStatementFalse   (st,lv)
+                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false c_name, lv) )
                         //| ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv) )
@@ -916,9 +916,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                     | ValidationStatement       st -> Some st) |>
                 List.unzip
             //aaa |> DAstUtilFunctions.nestItems_ret l  |> Option.toList, (lv1|> List.collect id)
-            let choice_switch_check = 
+            let choice_switch_check =
                 choice_check_children (p.arg.joined l.lg) (l.lg.getAccess p.arg) childrenChecks errCode.errCodeName
-                
+
             [choice_switch_check],(lv1|> List.collect id)
 
         let with_component_check, lv2 =
@@ -1036,4 +1036,3 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
     let errorCodeComment = o.refCons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
 
     createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment) us
-
