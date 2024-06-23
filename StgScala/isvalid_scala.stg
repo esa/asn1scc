@@ -252,7 +252,7 @@ Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
 ret = <p><sAcc><sChName>.isDefined == <sPresOrAbs>
-ret = <sErrCode>;
+ret = Left(<sErrCode>);
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
@@ -279,16 +279,14 @@ Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
 <p> != <sChPresent>
 >>
 
-choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
-case <sChPresent> =>
+choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
+case <sChPresent>(<sChildName>) =>
     <sChildBody>
 >>
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 <p> match
     <arrsChildren; separator="\n">
-    case _ =>
-        ret = <sErrCodeForInvalidCase>
 >>
 
 /* CHOICE end*/

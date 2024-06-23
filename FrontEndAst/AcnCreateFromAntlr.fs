@@ -504,6 +504,36 @@ let private mergeNullType (args: CommandLineSettings) (acnErrLoc: SrcLoc option)
         acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;
         typeDef=typeDef; defaultInitVal="0"}, us1
 
+let createAcnBooleanProperties (props: GenericAcnProperty list) (acnErrLoc: SrcLoc option) =
+    match acnErrLoc with
+    | Some acnErrLoc    ->
+        let trueValue = tryGetProp props (fun x -> match x with TRUE_VALUE e -> Some e | _ -> None)
+        let falseValue = tryGetProp props (fun x -> match x with FALSE_VALUE e -> Some e | _ -> None)
+        match trueValue, falseValue with
+        | Some tv, Some fv  -> 
+            //if both true and false values are defined, then the length of the values must be the same and greater than 0
+            if tv.Value.Length = 0 || fv.Value.Length = 0 then
+                raise(SemanticError(acnErrLoc, "The length of the 'true-value' and 'false-value' properties must be greater than 0"))
+            else if tv.Value.Length <> fv.Value.Length then
+                raise(SemanticError(acnErrLoc, "The length of the 'true-value' and 'false-value' properties must be the same"))
+            else if tv.Value = fv.Value then
+                raise(SemanticError(acnErrLoc, "The 'true-value' and 'false-value' properties must have different values"))
+            else
+                {BooleanAcnProperties.encodingPattern  = Some( TrueFalseValueEncoding(tv, fv))}
+        | Some tv, None    ->  
+            if tv.Value.Length = 0 then
+                raise(SemanticError(acnErrLoc, "The length of the 'true-value' property must be greater than 0"))
+            else
+                {BooleanAcnProperties.encodingPattern = Some( TrueValueEncoding(tv))}
+        | None, Some fv    ->  
+            if fv.Value.Length = 0 then
+                raise(SemanticError(acnErrLoc, "The length of the 'false-value' property must be greater than 0"))
+            else
+                {BooleanAcnProperties.encodingPattern = Some( FalseValueEncoding(fv))}
+        | None, None        -> {BooleanAcnProperties.encodingPattern = None }
+        | _                 -> raise(SemanticError(acnErrLoc, "Both 'true-value' and 'false-value' properties must be defined"))
+    | None              -> {BooleanAcnProperties.encodingPattern = None }
+
 let private mergeBooleanType (args: CommandLineSettings) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState)=
     let getRtlTypeName  (l:ProgrammingLanguage) = (args.getBasicLang l).getBoolRtlTypeName
     let size =
@@ -525,17 +555,7 @@ let private mergeBooleanType (args: CommandLineSettings) (acnErrLoc: SrcLoc opti
             let errMsg = sprintf "The size of the pattern '%s' is greater than the encoding size (%d)" bitVal.Value (int sz)
             raise(SemanticError(bitVal.Location ,errMsg))
 
-    let acnProperties =
-        match acnErrLoc with
-        | Some acnErrLoc    ->
-            match tryGetProp props (fun x -> match x with TRUE_VALUE e -> Some e | _ -> None) with
-            | Some tv   ->
-                {BooleanAcnProperties.encodingPattern  = Some (TrueValue (alignWithZeros tv))}
-            | None      ->
-                match tryGetProp props (fun x -> match x with FALSE_VALUE e -> Some e | _ -> None) with
-                | Some tv   ->  {BooleanAcnProperties.encodingPattern  = Some (FalseValue (alignWithZeros tv))}
-                | None      ->  {BooleanAcnProperties.encodingPattern  = None}
-        | None              -> {BooleanAcnProperties.encodingPattern = None }
+    let acnProperties = createAcnBooleanProperties props acnErrLoc
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBooleanEncodingClass alignment loc acnProperties
     let typeDef, us1 = getPrimitiveTypeDefinition {tdarg with rtlFnc = Some getRtlTypeName} us
@@ -779,13 +799,8 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
             uperRange= uperRange; intClass=intClass; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=None; defaultValue="0"}), us
 
     | AcnPrmBoolean  acnErrLoc ->
-        let acnProperties =
-            match tryGetProp props (fun x -> match x with TRUE_VALUE e -> Some e | _ -> None) with
-            | Some tv   ->  {BooleanAcnProperties.encodingPattern  = Some (TrueValue tv)}
-            | None      ->
-                match tryGetProp props (fun x -> match x with FALSE_VALUE e -> Some e | _ -> None) with
-                | Some tv   ->  {BooleanAcnProperties.encodingPattern  = Some (FalseValue tv)}
-                | None      ->  {BooleanAcnProperties.encodingPattern  = None}
+        let acnProperties = createAcnBooleanProperties props (Some acnErrLoc)
+
         let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBooleanEncodingClass acnAlignment acnErrLoc acnProperties
         AcnBoolean ({AcnBoolean.acnProperties=acnProperties; acnAlignment=acnAlignment; Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; defaultValue="false"}), us
     | AcnPrmNullType acnErrLoc ->

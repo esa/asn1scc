@@ -309,8 +309,9 @@ let exprtRefTypeArgument ((RelativePath path): RelativePath) =
 let exportAcnBooleanEncoding (a:AcnBooleanEncoding option) =
     match a with
     | None                     -> []
-    | Some (TrueValue  pat)    -> [XAttribute(xname "true-value", pat.Value )]
-    | Some (FalseValue pat)    -> [XAttribute(xname "false-value", pat.Value )]
+    | Some (TrueFalseValueEncoding(tv, fv))    -> [XAttribute(xname "true-value", tv.Value ); XAttribute(xname "false-value", fv.Value )]
+    | Some (TrueValueEncoding tv)              -> [XAttribute(xname "true-value", tv.Value )]
+    | Some (FalseValueEncoding fv)             -> [XAttribute(xname "false-value", fv.Value )]
 
 let exportAcnNullType (a:PATTERN_PROP_VALUE option) =
     match a with

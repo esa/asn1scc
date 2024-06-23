@@ -733,26 +733,40 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let Boolean         = lm.uper.Boolean
         let acnBoolean      = lm.acn.Boolean
-        let funcBodyContent, resultExpr, typeEncodingKind =
+        let BooleanTrueFalse = lm.acn.BooleanTrueFalse
+
+        let funcBodyContent, resultExpr=
+            let pvalue, ptr, resultExpr =
+                match codec, lm.lg.decodingKind with
+                | Decode, Copy ->
+                    let resExpr = p.arg.asIdentifier
+                    resExpr, resExpr, Some resExpr
+                | _ -> lm.lg.getValue p.arg, lm.lg.getPointer p.arg, None
             match o.acnProperties.encodingPattern with
             | None ->
                 let pp, resultExpr = adaptArgument lm codec p
-                Boolean pp errCode.errCodeName codec, resultExpr, AcnBooleanEncodingType None
-            | Some pattern  ->
-                let pvalue, ptr, resultExpr =
-                    match codec, lm.lg.decodingKind with
-                    | Decode, Copy ->
-                        let resExpr = p.arg.asIdentifier
-                        resExpr, resExpr, Some resExpr
-                    | _ -> lm.lg.getValue p.arg, lm.lg.getPointer p.arg, None
-                let arrBits = pattern.bitVal.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-                let arrBytes = bitStringValueToByteArray pattern.bitVal
-                let arrTrueValueAsByteArray = arrBytes |> Array.map (~~~)
-                let arrFalseValueAsByteArray = arrBytes
-                let nSize = pattern.bitVal.Value.Length
-                acnBoolean pvalue ptr pattern.isTrue (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName codec, resultExpr, AcnBooleanEncodingType (Some pattern)
+                Boolean pp errCode.errCodeName codec, resultExpr
+            | Some (TrueValueEncoding pattern)  ->
+                let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+                let arrTrueValueAsByteArray = bitStringValueToByteArray pattern
+                let arrFalseValueAsByteArray = arrTrueValueAsByteArray |> Array.map (~~~)
+                let nSize = pattern.Value.Length
+                acnBoolean pvalue ptr true (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName codec, resultExpr
+            | Some (FalseValueEncoding pattern) ->
+                let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+                let arrFalseValueAsByteArray = bitStringValueToByteArray pattern
+                let arrTrueValueAsByteArray = arrFalseValueAsByteArray |> Array.map (~~~)
+                let nSize = pattern.Value.Length
+                acnBoolean pvalue ptr false (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName codec, resultExpr
+            | Some (TrueFalseValueEncoding(trPattern, fvPatten)) ->
+                let arrTrueBits = trPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+                let arrFalseBits = fvPatten.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+                let arrTrueValueAsByteArray = bitStringValueToByteArray trPattern
+                let arrFalseValueAsByteArray = bitStringValueToByteArray fvPatten
+                let nSize = trPattern.Value.Length
+                BooleanTrueFalse pvalue ptr (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrTrueBits arrFalseBits errCode.errCodeName codec, resultExpr
 
-        {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some typeEncodingKind}
+        {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnBooleanEncodingType o.acnProperties.encodingPattern)}
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     let icdFnc fieldName sPresent comments =
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}]

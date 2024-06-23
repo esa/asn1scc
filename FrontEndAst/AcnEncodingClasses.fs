@@ -243,8 +243,7 @@ let GetBooleanEncodingClass (alignment: AcnAlignment option) errLoc (p  : Boolea
     let alignmentSize = getAlignmentSize alignment
     match  p.encodingPattern with
     | None                      -> alignmentSize + 1I, alignmentSize + 1I
-    | Some (TrueValue p)        -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
-    | Some (FalseValue p)       -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
+    | Some (p)        -> alignmentSize + p.bitValLength.AsBigInt, alignmentSize  + p.bitValLength.AsBigInt
 
 
 
