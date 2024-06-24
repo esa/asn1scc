@@ -775,14 +775,14 @@ let generateEncodePostcondExprCommon (tpe: Type)
   let rightBody = letsIn sz.bdgs rightBody
   eitherMatchExpr (Var resPostcond) None (BoolLit true) None rightBody
 
-let generateDecodePostcondExprCommon (resPostcond: Var) (resRightMut: Var) (sz: SizeExprRes) (extraCondsPre: Expr list): Expr =
+let generateDecodePostcondExprCommon (resPostcond: Var) (resRightMut: Var) (sz: SizeExprRes) (extraCondsPre: Expr list) (extraCondsPost: Expr list): Expr =
   let codecTpe = runtimeCodecTypeFor ACN
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
   let oldCdc = Old (Var cdc)
   let rightBody = And (extraCondsPre @ [
     Equals (selBuf oldCdc, selBuf (Var cdc))
     Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz.resSize])
-  ])
+  ] @ extraCondsPost)
   let rightBody = letsIn sz.bdgs rightBody
   eitherMutMatchExpr (Var resPostcond) None (BoolLit true) (Some resRightMut) rightBody
 
@@ -812,7 +812,13 @@ let generateDecodePostcondExpr (t: Asn1AcnAst.Asn1Type) (resPostcond: Var): Expr
       // Note that we don't have a "ReferenceType" in such cases, so we have to explicitly call `size` and not rely on asn1SizeExpr...
       {bdgs = []; resSize = callSize (Var szRecv) (bitIndexACN oldCdc)}
     | _ -> asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndexACN oldCdc) 0I 0I
-  generateDecodePostcondExprCommon resPostcond szRecv sz []
+  let cstrIsValid =
+    match t.ActualType.Kind with
+    | NullType _ -> []
+    | _ ->
+      let isValidFuncName = $"{t.FT_TypeDefinition.[Scala].typeName}_IsConstraintValid"
+      [isRightExpr (FunctionCall {prefix = []; id = isValidFuncName; args = [Var szRecv]})]
+  generateDecodePostcondExprCommon resPostcond szRecv sz [] cstrIsValid
 
 let rec tryFindFirstParentACNDependency (parents: Asn1AcnAst.Asn1Type list) (dep: RelativePath): (Asn1AcnAst.Asn1Type * Asn1AcnAst.AcnChild) option =
   match parents with
@@ -985,9 +991,10 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
         // If we do, we must "inline" the size definition which will contain the size of these extra ACN fields and if not, we can just call size
         // We always inline here since it is ok even if we don't have extra ACN fields
         asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndexACN (Old (Var cdc))) 0I 0I
+    let cstrIsValid = isRightExpr (FunctionCall {prefix = []; id = isValidFuncName; args = [Var szRecv]})
     let postcondExpr =
       if acns.IsEmpty then
-        generateDecodePostcondExprCommon resPostcond szRecv sz []
+        generateDecodePostcondExprCommon resPostcond szRecv sz [] [cstrIsValid]
       else
         assert (match t.Kind with Sequence _ -> true | _ -> false)
         let codecTpe = runtimeCodecTypeFor ACN
@@ -996,6 +1003,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
         let rightBody = letsIn sz.bdgs (And [
           Equals (selBuf oldCdc, selBuf (Var cdc))
           Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz.resSize])
+          cstrIsValid
         ])
         MatchExpr {
           scrut = Var resPostcond
@@ -1215,6 +1223,49 @@ let selectCodecReadPrefixLemma (prefixLemmaInfo: PrefixLemmaInfo) (cdcSnap: Expr
   if prefixLemmaInfo.prefix = [bitStreamId] then selBitStream cdcSnap, selBitStream cdc
   else if prefixLemmaInfo.prefix = [codecId] then selBase cdcSnap, selBase cdc
   else cdcSnap, cdc
+
+let generateSequencePrefixLemma (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef =
+  let codecTpe = runtimeCodecTypeFor enc
+  let c1 = {Var.name = "c1"; tpe = ClassType codecTpe}
+  let c2 = {Var.name = "c2"; tpe = ClassType codecTpe}
+  let tpe = fromAsn1TypeKind t.Kind
+  let sizeExpr = longlit t.Kind.acnMaxSizeInBits
+  let preconds = [
+    Precond (Equals (selBufLength (Var c1), selBufLength (Var c2)))
+    Precond (validateOffsetBitsACN (Var c1) sizeExpr)
+    Precond (arrayBitRangesEq
+      (selBuf (Var c1))
+      (selBuf (Var c2))
+      (longlit 0I)
+      (plus [bitIndexACN (Var c1); sizeExpr])
+    )
+  ]
+
+  let decodeId = $"{ToC t.id.dropModule.AsString}_ACN_Decode"
+  let decodePureId = $"{decodeId}_pure"
+  let c2Reset = {Var.name = "c2Reset"; tpe = ClassType codecTpe}
+  let c1Res = {Var.name = "c1Res"; tpe = ClassType codecTpe}
+  let v1 = {Var.name = "v1"; tpe = tpe}
+  let dec1 = {Var.name = "dec1"; tpe = TupleType [c1Res.tpe; v1.tpe]}
+  let call1 = FunctionCall {prefix = []; id = decodePureId; args = [Var c1]}
+  let c2Res = {Var.name = "c2Res"; tpe = ClassType codecTpe}
+  let v2 = {Var.name = "v2"; tpe = tpe}
+  let dec2 = {Var.name = "dec2"; tpe = TupleType [c2Res.tpe; v2.tpe]}
+  let call2 = FunctionCall {prefix = []; id = decodePureId; args = [Var c2Reset]}
+
+  let preSpecs =
+    preconds @ [
+      LetSpec (c2Reset, resetAtACN (Var c2) (Var c1))
+      LetSpec (dec1, call1)
+      LetSpec (c1Res, TupleSelect (Var dec1, 1))
+      LetSpec (v1, TupleSelect (Var dec1, 2))
+      LetSpec (dec2, call2)
+      LetSpec (c2Res, TupleSelect (Var dec2, 1))
+      LetSpec (v2, TupleSelect (Var dec2, 2))
+    ]
+  let postcond = And [Equals (bitIndexACN (Var c1Res), bitIndexACN (Var c2Res)); Equals (Var v1, Var v2)]
+
+  failwith "TODO"
 
 let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (sel: Selection) (codec: Codec): Expr option =
   None
@@ -1667,7 +1718,11 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
         | Some AlwaysAbsent -> [Not (isDefinedMutExpr (Var resvalVar))]
         | _ -> []
       let sz = sizeExprOf (Var resvalVar)
-      let postcondExpr = generateDecodePostcondExprCommon resPostcond resvalVar sz alwaysAbsentOrPresent
+      let cstrIsValid = isValidFuncName |> Option.map (fun isValid ->
+        let someBdg = {Var.name = "v"; tpe = childTpe}
+        let isRight = isRightExpr (FunctionCall {prefix = []; id = isValid; args = [Var someBdg]})
+        optionMutMatchExpr (Var resvalVar) (Some someBdg) isRight (BoolLit true)) |> Option.toList
+      let postcondExpr = generateDecodePostcondExprCommon resPostcond resvalVar sz alwaysAbsentOrPresent cstrIsValid
       let body = letsGhostIn [(oldCdc, Snapshot (Var cdc))] (mkBlock [encDec; retInnerFd])
       let acnParams = acnExternDependenciesVariableDecode soc.child.Type.toAsn1AcnAst soc.nestingScope
 

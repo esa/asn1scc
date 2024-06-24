@@ -830,7 +830,7 @@ and ppMatchExpr (ctx: PrintCtx) (mexpr: MatchExpr): Line list =
 
   let ppMatchCase (ctx: PrintCtx) (cse: MatchCase): Line list =
     let pat = {txt = $"case {ppPattern cse.pattern} =>"; lvl = ctx.lvl}
-    pat :: ppExpr ctx.inc cse.rhs
+    pat :: ppExpr (ctx.inc.nestExpr cse.rhs) cse.rhs
 
   let ctxNested = ctx.nestExpr (MatchExpr mexpr)
   let cases = mexpr.cases |> List.collect (ppMatchCase ctxNested.inc)
@@ -839,9 +839,9 @@ and ppMatchExpr (ctx: PrintCtx) (mexpr: MatchExpr): Line list =
 
 and ppIfExpr (ctx: PrintCtx) (ifexpr: IfExpr): Line list =
   let ctxNested = ctx.nestExpr (IfExpr ifexpr)
-  let cond = ppExpr ctxNested ifexpr.cond
-  let thn = ppExpr ctxNested.inc ifexpr.thn
-  let els = ppExpr ctxNested.inc ifexpr.els
+  let cond = ppExpr (ctxNested.nestExpr ifexpr.cond) ifexpr.cond
+  let thn = ppExpr (ctxNested.inc.nestExpr ifexpr.thn) ifexpr.thn
+  let els = ppExpr (ctxNested.inc.nestExpr ifexpr.els) ifexpr.els
   (append ctx ") {" (prepend ctx "if (" cond)) @ thn @ [{txt = "} else {"; lvl = ctx.lvl}] @ els @ [{txt = "}"; lvl = ctx.lvl}]
 
 and ppFunDefLike (ctx: PrintCtx) (fd: FunDefLike): Line list =
