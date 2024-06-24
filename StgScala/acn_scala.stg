@@ -957,7 +957,7 @@ case _: <sChildNamePresent> =>
 
 ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
 case _: <sChildNamePresent> =>
-    Array(<arruChildRetValBytes:{b|0x<b;format="X2">.toByte}; separator=", ">)
+    Array(<arruChildRetValBytes:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">)
 >>
 
 ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<

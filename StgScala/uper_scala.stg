@@ -105,10 +105,12 @@ InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*
 val charIndex: Int = GetCharIndex(<p>(<i>), UByte.fromArrayRaws(allowedCharSet))
 codec.base.encodeConstrainedWholeNumber(charIndex, 0, <nLastItemIndex>)
 >>
+
 InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 
-<p>(<i>) = allowedCharSet(codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>).toInt).toRawUByte
+val <p>_arr_<i>_ = allowedCharSet(codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>).toInt).toRawUByte
+<p>(<i>) = <p>_arr_<i>_
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
@@ -116,7 +118,8 @@ codec.base.encodeConstrainedWholeNumber(<p>(<i>).toRaw, 0, 127)
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-<p>(<i>) = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 127)) // uper:109
+val <p>_arr_<i>_ = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 127)) // uper:109
+<p>(<i>) = <p>_arr_<i>_
 >>
 
 /* INTEGER START*/
@@ -405,41 +408,24 @@ loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
 
 /* IA5String & Numeric String */
 
-str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
-@ghost val <p>_snap = snapshot(<p>)
-<i> = 0
-(while(<i> \< <nFixedSize>.toInt) {
-    decreases(<nFixedSize>.toInt - <i>)
-    <soPreSerde>
-    <sInternalItem>
-    <soPostSerde>
-    <i> += 1
-    <soPostInc>
-}).opaque.inline.invariant(0 \<= <i> && <i> \<= <nFixedSize>.toInt && <p>_snap.length == <p>.length<if(soInvariant)> && <soInvariant><endif>)
+<soCallAux>
 >>
 
-str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
 val <p> = <soInitExpr>
-@ghost val <p>_snap = snapshot(<p>)
-<i> = 0
-(while(<i> \< <nFixedSize>.toInt) {
-    decreases(<nFixedSize>.toInt - <i>)
-    <soPreSerde>
-    <sInternalItem>
-    <soPostSerde>
-    <i> += 1
-    <soPostInc>
-}).opaque.inline.invariant(0 \<= <i> && <i> \<= <nFixedSize>.toInt && <p>_snap.length == <p>.length<if(soInvariant)> && <soInvariant><endif>)
+<soCallAux>
 <p>(<nFixedSize>) = UByte.fromRaw(0x0)
 >>
+
 
 str_VarSize_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr) ::= <<
 nStringLength = <p>.indexOf(0x00.toRawUByte)

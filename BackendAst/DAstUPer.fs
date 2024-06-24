@@ -421,6 +421,10 @@ let handleFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:CommonTypes.C
 let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefinitionOrReference)   (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let ii = t.id.SequenceOfLevel + 1
     let i = sprintf "i%d" ii
+    let ixVarName =
+        match ST.lang with
+        | Scala -> "from"
+        | _ -> i
     let lv = SequenceOfIndex (ii, None)
     let charIndex =
         match lm.lg.uper.requires_charIndex with
@@ -442,11 +446,11 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
         let internalItem =
             match o.uperCharSet.Length = 128 with
-            | true  -> InternalItem_string_no_alpha (p.arg.joined lm.lg) errCode.errCodeName i  codec
+            | true  -> InternalItem_string_no_alpha (p.arg.joined lm.lg) errCode.errCodeName ixVarName codec
             | false ->
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
                 let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
-                InternalItem_string_with_alpha (p.arg.joined lm.lg) errCode.errCodeName td i (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
+                InternalItem_string_with_alpha (p.arg.joined lm.lg) errCode.errCodeName td ixVarName (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
         let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.uper - o.minSize.uper))
         let initExpr =
             match codec, lm.lg.decodingKind with
@@ -470,26 +474,23 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
             cs = p
             encDec = Some internalItem
             elemDecodeFn = None
-            ixVariable = i
+            ixVariable = ixVarName
         }
-        let sqfProofGenRes = lm.lg.generateSequenceOfLikeProof ACN (SequenceOfLike.StrType o) sqfProofGen codec
-        let preSerde = sqfProofGenRes |> Option.map (fun r -> r.preSerde)
-        let postSerde = sqfProofGenRes |> Option.map (fun r -> r.postSerde)
-        let postInc = sqfProofGenRes |> Option.map (fun r -> r.postInc)
-        let invariant = sqfProofGenRes |> Option.map (fun r -> r.invariant)
         let introSnap = nestingScope.nestingLevel = 0I
+        let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries ACN (StrType o) sqfProofGen codec
+
         let funcBodyContent,localVariables =
             match o.minSize with
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper ->
-                str_FixedSize pp typeDefinitionName i internalItem o.minSize.uper nBits nBits 0I initExpr introSnap preSerde postSerde postInc invariant codec, lv::charIndex@nStringLength
+                str_FixedSize pp typeDefinitionName ixVarName internalItem o.minSize.uper nBits nBits 0I initExpr introSnap callAux codec, lv::charIndex@nStringLength
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper ->
-                str_VarSize pp typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr codec, lv::charIndex@nStringLength
+                str_VarSize pp typeDefinitionName ixVarName internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr codec, lv::charIndex@nStringLength
             | _ ->
                 let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true
                 let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || o.maxSize.uper<>o.minSize.uper) lv
                 funcBodyContent, charIndex@localVariables
 
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (AcnStringEncodingType o.acnEncodingClass); auxiliaries = []}
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (AcnStringEncodingType o.acnEncodingClass); auxiliaries = auxiliaries}
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p)) soSparkAnnotations  [] us

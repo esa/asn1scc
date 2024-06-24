@@ -158,11 +158,16 @@ let sizeLemmaCall (tp: Asn1AcnAst.Asn1TypeKind) (align: AcnAlignment option) (re
   sizeLemmaIdForType tp align |> Option.map (fun id -> MethodCall {recv = recv; id = id; args = [offset; otherOffset]})
 
 let stringInvariants (minSize: bigint) (maxSize: bigint) (recv: Expr): Expr =
+  // TODO: If minSize = maxSize, we can still have '\0' before `maxSize`, right?
+  // TODO: Can we have an `\0` before `minSize` as well?
   let arrayLen = ArrayLength recv
   let nullCharIx = indexOfOrLength recv (IntLit (UByte, 0I))
+  And [Leq (int32lit (maxSize + 1I), arrayLen); Leq (nullCharIx, int32lit maxSize)]
+  (*
   if minSize = maxSize then And [Leq (int32lit (maxSize + 1I), arrayLen); Equals (nullCharIx, int32lit maxSize)]
   else
     And [Leq (int32lit (maxSize + 1I), arrayLen); Leq (int32lit minSize, nullCharIx); Leq (nullCharIx, int32lit maxSize)]
+  *)
 
 let octetStringInvariants (t: Asn1AcnAst.Asn1Type) (os: Asn1AcnAst.OctetString) (recv: Expr): Expr =
   let len = ArrayLength (FieldSelect (recv, "arr"))
@@ -1348,7 +1353,7 @@ let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1
 let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
   None
 
-// TODO: Also for strings...
+
 let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): FunDef list * Expr =
   let sqfTpe = fromSequenceOfLike sqf
   let codecTpe = runtimeCodecTypeFor enc
@@ -1357,7 +1362,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
   let cdcBeforeLoop = {Var.name = "codecBeforeLoop"; tpe = ClassType codecTpe}
   let cdcSnap1 = {Var.name = "codecSnap1"; tpe = ClassType codecTpe}
   let from = {Var.name = "from"; tpe = IntegerType Int}
-  let sqfVar = {Var.name = pg.cs.arg.lastId; tpe = sqfTpe}
+  let sqfVar = {Var.name = pg.cs.arg.lastIdOrArr; tpe = sqfTpe}
   let td =
     match sqf with
     | SqOf sqf -> sqf.typeDef.[Scala].typeName
@@ -1365,8 +1370,8 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
   let fnid =
     let prefix = pg.nestingScope.parents |> List.tryHead |> Option.map (fun (cs, _) -> $"{cs.arg.asIdentifier}_") |> Option.defaultValue ""
     match codec with
-    | Encode -> $"{ToC pg.cs.modName}_{td}_{prefix}{pg.cs.arg.lastId}_Encode_loop"
-    | Decode -> $"{ToC pg.cs.modName}_{td}_{prefix}{pg.cs.arg.lastId}_Decode_loop"
+    | Encode -> $"{ToC pg.cs.modName}_{td}_{prefix}{pg.cs.arg.lastIdOrArr}_Encode_loop"
+    | Decode -> $"{ToC pg.cs.modName}_{td}_{prefix}{pg.cs.arg.lastIdOrArr}_Decode_loop"
   let nbItemsMin, nbItemsMax = sqf.nbElems enc
   let nbItems =
     if sqf.isFixedSize then int32lit nbItemsMin
@@ -1374,9 +1379,6 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
   let maxElemSz = sqf.maxElemSizeInBits enc
 
   let fromBounds = And [Leq (int32lit 0I, Var from); Leq (Var from, nbItems)]
-  // let nbItemsBounds =
-  //   if sqf.isFixedSize then None
-  //   else Some (And [Leq (int32lit nbItemsMin, Var from); Leq (Var from, int32lit nbItemsMax)])
   let validateOffset =
     validateOffsetBitsACN (Var cdc) (Mult (longlit maxElemSz, Minus (nbItems, Var from)))
   let decreasesExpr = Minus (nbItems, Var from)
@@ -1395,7 +1397,10 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     ])
   let reccall = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; plus [Var from; int32lit 1I]]}
   // TODO: ALIGNMENT
-  let sizeLemmaCall = MethodCall {recv = Var sqfVar; id = sizeLemmaId None; args = [bitIndexACN (Var cdcBeforeLoop); bitIndexACN (Var oldCdc)]}
+  let sizeLemmaCall =
+    match sqf with
+    | SqOf _ -> Some (MethodCall {recv = Var sqfVar; id = sizeLemmaId None; args = [bitIndexACN (Var cdcBeforeLoop); bitIndexACN (Var oldCdc)]})
+    | StrType _ -> None
 
   match codec with
   | Encode ->
@@ -1417,7 +1422,10 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     let postcondRes = {Var.name = "res"; tpe = fnRetTpe}
     let postcond =
       let oldCdc = Old (Var cdc)
-      let sz = sizeRange (Var sqfVar) (bitIndexACN oldCdc) (Var from) nbItems
+      let sz =
+        match sqf with
+        | SqOf _ -> sizeRange (Var sqfVar) (bitIndexACN oldCdc) (Var from) nbItems
+        | StrType _ -> Mult (longlit maxElemSz, Var from)
       let rightBody = And [
         Equals (selBufLength oldCdc, selBufLength (Var cdc))
         Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz])
@@ -1427,7 +1435,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       FunDef.id = fnid
       prms = [cdc; sqfVar; from]
       annots = [Opaque; InlineOnce]
-      specs = Precond fromBounds :: (*(nbItemsBounds |> Option.map Precond |> Option.toList) @*) [Precond validateOffset; Measure decreasesExpr]
+      specs = [Precond fromBounds; Precond validateOffset; Measure decreasesExpr]
       postcond = Some (postcondRes, postcond)
       returnTpe = fnRetTpe
       body = body
@@ -1437,7 +1445,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       let scrut = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; int32lit 0I]}
       let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
       let leftBody = Return (leftExpr (IntegerType Int) (IntegerType Int) (Var leftBdg))
-      let rightBody = Ghost (sizeLemmaCall)
+      let rightBody = sizeLemmaCall |> Option.map Ghost |> Option.defaultValue UnitLit
       eitherMatchExpr scrut (Some leftBdg) leftBody None rightBody
     let call = letsGhostIn [cdcBeforeLoop, Snapshot (Var cdc)] call
     [fd], call
@@ -1448,13 +1456,15 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     let arr1 = {Var.name = "arr1"; tpe = ArrayType {tpe = elemTpe}}
     let arr2 = {Var.name = "arr2"; tpe = ArrayType {tpe = elemTpe}}
 
-    let sqfSelArr = FieldSelect (Var sqfVar, "arr")
-    let oldSqfSelArr = FieldSelect (Old (Var sqfVar), "arr")
+    let sqfSelArr, oldSqfSelArr, sqfSelSnap =
+      match sqf with
+      | SqOf _ -> FieldSelect (Var sqfVar, "arr"), FieldSelect (Old (Var sqfVar), "arr"), FieldSelect (Snapshot (Var sqfVar), "arr")
+      | StrType _ -> Var sqfVar, Old (Var sqfVar), Snapshot (Var sqfVar)
 
     let thnCase = mkBlock [
       Ghost (mkBlock [
         arrayRangesEqReflexiveLemma sqfSelArr
-        arrayRangesEqSlicedLemma sqfSelArr (FieldSelect (Snapshot (Var sqfVar), "arr")) (int32lit 0I) (ArrayLength sqfSelArr) (int32lit 0I) (Var from)
+        arrayRangesEqSlicedLemma sqfSelArr sqfSelSnap (int32lit 0I) (ArrayLength sqfSelArr) (int32lit 0I) (Var from)
       ])
       rightMutExpr (IntegerType Int) UnitType UnitLit
     ]
@@ -1463,21 +1473,27 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       let reccallRes = {Var.name = "res"; tpe = fnRetTpe}
       // TODO: Hack
       let decodedElemVar = {Var.name = $"{pg.cs.arg.asIdentifier}_arr_from_"; tpe = elemTpe}
-      let updateArr =
-        if encDec.IsEmpty then []
-        else [ArrayUpdate (sqfSelArr, Var from, FreshCopy (Var decodedElemVar))]
-      let postrecProofSuccess = mkBlock [
+      let sizeConds =
+        match sqf with
+        | SqOf _ ->
+          // TODO: ALIGNMENT
+          [
+            MethodCall {recv = Var sqfVar; id = sizeLemmaId None; args = [bitIndexACN (Var cdcSnap1); bitIndexACN (Var cdcSnap2)]}
+            Check (Equals (bitIndexACN (Var cdc), plus [bitIndexACN (Var cdcSnap1); sizeRange (Var sqfVar) (bitIndexACN (Var cdcSnap1)) (Var from) nbItems]))
+          ]
+        | StrType _ ->
+          [
+            Check (Equals (bitIndexACN (Var cdc), plus [bitIndexACN (Var cdcSnap1); Mult (longlit maxElemSz, Var from)]))
+          ]
+      let postrecProofSuccess = mkBlock ([
         arrayUpdatedAtPrefixLemma (Var arr1) (Var from) (Var decodedElemVar)
         arrayRangesEqTransitive (Var arr1) (Var arr2) sqfSelArr (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
         Check (arrayRangesEq (Var arr1) sqfSelArr (int32lit 0I) (Var from))
         arrayRangesEqImpliesEq (Var arr2) sqfSelArr (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
-        // TODO: ALIGNMENT
-        MethodCall {recv = Var sqfVar; id = sizeLemmaId None; args = [bitIndexACN (Var cdcSnap1); bitIndexACN (Var cdcSnap2)]}
-        Check (Equals (bitIndexACN (Var cdc), plus [bitIndexACN (Var cdcSnap1); sizeRange (Var sqfVar) (bitIndexACN (Var cdcSnap1)) (Var from) nbItems]))
-      ]
+      ] @ sizeConds)
       let postrecProof = Ghost (eitherMutMatchExpr (Var reccallRes) None UnitLit None postrecProofSuccess)
       (letsGhostIn [arr1, Snapshot sqfSelArr] (
-      mkBlock ((preSerde :: encDec @ updateArr) @ [
+      mkBlock ((preSerde :: encDec) @ [
       letsGhostIn [cdcSnap2, Snapshot (Var cdc); arr2, Snapshot sqfSelArr] (
       mkBlock [
           postSerde
@@ -1494,7 +1510,10 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     let postcondRes = {Var.name = "res"; tpe = fnRetTpe}
     let postcond =
       let oldCdc = Old (Var cdc)
-      let sz = sizeRange (Var sqfVar) (bitIndexACN oldCdc) (Var from) nbItems
+      let sz =
+        match sqf with
+        | SqOf _ -> sizeRange (Var sqfVar) (bitIndexACN oldCdc) (Var from) nbItems
+        | StrType _ -> Mult (longlit maxElemSz, Var from)
       let ncountCond =
         if sqf.isFixedSize then []
         else [Equals (FieldSelect (Old (Var sqfVar), "nCount"), nbItems)]
@@ -1523,7 +1542,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       FunDef.id = fnid
       prms = [cdc; sqfVar; from]
       annots = [Opaque; InlineOnce]
-      specs = Precond fromBounds :: (*(nbItemsBounds |> Option.map Precond |> Option.toList) @*) [Precond validateOffset; Measure decreasesExpr]
+      specs = [Precond fromBounds; Precond validateOffset; Measure decreasesExpr]
       postcond = Some (postcondRes, postcond)
       returnTpe = fnRetTpe
       body = body
@@ -1531,8 +1550,10 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     let call =
       let scrut = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; int32lit 0I]}
       let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
-      let leftBody = Return (leftMutExpr (IntegerType Int) sqfTpe (Var leftBdg))
-      let rightBody = Ghost (sizeLemmaCall)
+      // TODO: FIXME: the right type must be the outside type!!!
+      let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
+      let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
+      let rightBody = sizeLemmaCall |> Option.map Ghost |> Option.defaultValue UnitLit
       eitherMutMatchExpr scrut (Some leftBdg) leftBody None rightBody
     let call = letsGhostIn [cdcBeforeLoop, Snapshot (Var cdc)] call
     [fd], call

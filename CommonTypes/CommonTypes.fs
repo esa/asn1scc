@@ -68,24 +68,32 @@ type Selection = {
     member this.isOptional: bool =
         (not this.path.IsEmpty) &&
         match List.last this.path with
-        |ValueAccess (_exist, _, isOptional) -> isOptional
-        |PointerAccess (_, _, isOptional) -> isOptional
-        |ArrayAccess _ -> false
+        | ValueAccess (_exist, _, isOptional) -> isOptional
+        | PointerAccess (_, _, isOptional) -> isOptional
+        | ArrayAccess _ -> false
 
     member this.lastId: string =
         if this.path.IsEmpty then this.receiverId
         else
             match List.last this.path with
-            |ValueAccess (id, _, _) -> id
-            |PointerAccess (id, _, _) -> id
-            |ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
+            | ValueAccess (id, _, _) -> id
+            | PointerAccess (id, _, _) -> id
+            | ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
+
+    member this.lastIdOrArr: string =
+        if this.path.IsEmpty then this.receiverId
+        else
+            match List.last this.path with
+            | ValueAccess (id, _, _) -> id
+            | PointerAccess (id, _, _) -> id
+            | ArrayAccess _ -> "arr"
 
     member this.asLast: Selection =
         assert (not this.path.IsEmpty)
         match List.last this.path with
-        |ValueAccess (id, _, _) -> Selection.emptyPath id Value
-        |PointerAccess (id, _, _) -> Selection.emptyPath id Pointer
-        |ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
+        | ValueAccess (id, _, _) -> Selection.emptyPath id Value
+        | PointerAccess (id, _, _) -> Selection.emptyPath id Pointer
+        | ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
 
     member this.asLastOrSelf: Selection =
         if this.path.IsEmpty then this
