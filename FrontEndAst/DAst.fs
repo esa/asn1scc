@@ -239,6 +239,7 @@ Generates initialization statement(s) that initialize the type with the given As
 *)
 type InitFunctionResult = {
     funcBody            : string
+    resultVar           : string
     localVariables      : LocalVariable list
 }
 

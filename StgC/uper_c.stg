@@ -437,7 +437,7 @@ if (<p><sAcc>exist.<sChName>) {
 }
 >>
 
-sequence_build(p, sTypeDefName, arrsChildren) ::= ""
+sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= ""
 
 
 /* SEQUENCE END */

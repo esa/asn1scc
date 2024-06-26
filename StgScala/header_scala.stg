@@ -149,7 +149,7 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 /*nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)*/
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
+case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Array[UByte])
 {
     <arrsInvariants; separator="\n">
 }
@@ -172,7 +172,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 /*nCount equals to Number of bits in the array. Max value is : <nMax> */
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
+case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Array[UByte])
 {
     <arrsInvariants; separator="\n">
 }
@@ -189,7 +189,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 
 <soChildDefinition>
 
-case class <td.typeName> (<if(!bFixedSize)>var nCount: Int, <endif>arr: Array[<sChildType>])
+case class <td.typeName> (<if(!bFixedSize)>nCount: Int, <endif>arr: Array[<sChildType>])
 {
     <arrsInvariants; separator="\n">
 
@@ -235,7 +235,7 @@ case class <td.extension_function_positions> (
 
 
 case class <td.typeName> (
-    <arrsChildren:{ch| var <ch>}; separator=", \n">
+    <arrsChildren:{ch|<ch>}; separator=", \n">
 ) {
     <arrsInvariants; separator="\n">
 
@@ -246,6 +246,7 @@ case class <td.typeName> (
 
 Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
 type <td.typeName> = <prTd.typeName>
+val <td.typeName> = <prTd.typeName> // For companion object
 <if (arrsNullFieldsSavePos)>
 type <td.extension_function_positions> = <prTd.extension_function_positions>
 <endif>

@@ -389,8 +389,12 @@ val <p>_<sChName> =
         <sInitWithDefaultValue>
 >>
 
-sequence_build(p, sTypeDefName, arrsChildren) ::= <<
+sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= <<
+<if(!bIsOptional)>
 val <p> = <sTypeDefName>(<arrsChildren; separator=", ">)
+<else>
+val <p>: OptionMut[<sTypeDefName>] = SomeMut(<sTypeDefName>(<arrsChildren; separator=", ">))
+<endif>
 >>
 
 

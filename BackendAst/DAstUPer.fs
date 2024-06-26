@@ -809,7 +809,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
         // If we are Decoding with Copy decoding kind, then all children `resultExpr` must be defined as well (i.e. we must have the same number of `resultExpr` as children)
         assert (resultExpr.IsNone || childrenResultExpr.Length = nonAcnChildren.Length)
-        let seqBuild = resultExpr |> Option.map (fun res -> sequence_build res td childrenResultExpr) |> Option.toList
+        let seqBuild = resultExpr |> Option.map (fun res -> sequence_build res td p.arg.isOptional childrenResultExpr) |> Option.toList
         let seqContent =  (childrenStatements@seqBuild) |> nestChildItems lm codec
         match seqContent with
         | None  -> None

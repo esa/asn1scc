@@ -74,7 +74,7 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
         match ST.lang with
         | Scala ->
             match resolveReferenceType v.Type.Kind with
-             | Integer v -> "tc_data = " + initStatement
+             | Integer v -> "val tc_data = " + initStatement
              | Real v -> initStatement
              | IA5String v -> initStatement
              | OctetString v -> initStatement
@@ -287,4 +287,3 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
 
     arrsSrcTstFiles, arrsHdrTstFiles
-

@@ -391,7 +391,7 @@ end if;
 
 update_array_item(p, sI, sExpr) ::= ""
 
-sequence_build(p, sTypeDefName, arrsChildren) ::= ""
+sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= ""
 
 /* SEQUENCE end */
 

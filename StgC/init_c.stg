@@ -20,9 +20,9 @@ void <sFuncName>(<sTypeDefName><sPtrSuffix> <sVarName>)
 >>
 
 
-initInteger(sVal, sValue, bIsOptional) ::= "<sVal> = <sValue>;"
-initReal(sVal, dValue, bIsOptional) ::= "<sVal> = <dValue>;"
-initBoolean(sVal, bValue, bIsOptional) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
+initInteger(sVal, sValue, bIsOptional, sResVar) ::= "<sVal> = <sValue>;"
+initReal(sVal, dValue, bIsOptional, sResVar) ::= "<sVal> = <dValue>;"
+initBoolean(sVal, bValue, bIsOptional, sResVar) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
 
 initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
@@ -80,11 +80,11 @@ assignAny(p, sValue, sTypeDecl) ::= "<p> = (<sTypeDecl>)<sValue>;"
 assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
-initIA5String(sPtr, sValue, bIsOptional) ::= "strcpy(<sPtr>,<sValue>);"
-initEnumerated(sVal, sValue, bIsOptional) ::= "<sVal> = <sValue>;"
-initNull(sVal, bIsOptional) ::= "<sVal> = 0;"
+initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= "strcpy(<sPtr>,<sValue>);"
+initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= "<sVal> = <sValue>;"
+initNull(sVal, bIsOptional, sResVar) ::= "<sVal> = 0;"
 
-initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar) ::= <<
 <if(bZero)>
 memset(<p>, 0x0, <nMaxSizePlusOne>);
 
@@ -121,7 +121,7 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray) ::= <<
+initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray, sResVar) ::= <<
 <if(bZero)>
 memset(<p><sAcc>arr, 0x0, <nSize>);
 
@@ -137,7 +137,7 @@ while (<i>\< <nSize>) {
 
 >>
 
-initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize, bIsOptionalField) ::= <<
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize, bIsOptionalField, sResVar) ::= <<
 <if(bZero)>
 memset(<p><sAcc>arr, 0x0, <nSizeCeiled>/8);
 
@@ -172,12 +172,12 @@ initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
 >>
 
 
-initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen) ::= <<
+initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen, sResVar) ::= <<
 <if(!bLastItem)><if(bFirst)>if<else>else if<endif> (<i> % <nCaseLen> == <nCaseIdx>)  {<else>else {<endif>
     <sChildCaseInit>
 }>>
 
-initTestCaseSizeSequenceOf(p, sAcc, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
+initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i, sResVar) ::= <<
 <i> = 0;
 while (<i>\< <nSize>) {
     <arrsInnerItems; separator="\n">
@@ -206,7 +206,7 @@ initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExp
 <if(bOptional)><p><sAcc>exist.<sChName> = 1;<endif>
 <sChildContent>
 >>
-initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
+initTestCase_sequence_child_opt(p, sAcc, sChName, sChildTypedef, sResVar) ::= <<
 <p><sAcc>exist.<sChName> = 0;
 >>
 
@@ -217,7 +217,7 @@ initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoice
 >>
 
 
-initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional) ::= <<
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional, sResVar) ::= <<
 /*set <sChildName>*/
 <p><sAcc>kind = <sChildID>;
 <sChildContent>
