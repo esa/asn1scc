@@ -69,7 +69,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                                 (typeDefinition:TypeDefinitionOrReference)
                                 (baseTypeUperFunc : UPerFunction option)
                                 (isValidFunc: IsValidFunction option)
-                                (funcBody_e: ErrorCode -> NestingScope -> CallerScope -> UPERFuncBodyResult option)
+                                (funcBody_e: ErrorCode -> NestingScope -> CallerScope -> bool -> UPERFuncBodyResult option)
                                 soSparkAnnotations
                                 (funcDefAnnots: string list)
                                 (us:State)  =
@@ -92,7 +92,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
             match funcName  with
             | None              -> None, None, []
             | Some funcName     ->
-                let content = funcBody (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
+                let content = funcBody (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p false
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, auxiliaries =
                     match content with
                     | None              ->
@@ -210,7 +210,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         getIntfuncBodyByCons r lm codec o.uperRange t.Location o.intClass o.cons o.AllCons t.id errCode nestingScope p
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> funcBody e p) soSparkAnnotations [] us
@@ -218,14 +218,14 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
 
 let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
 
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         let pp, resultExpr = adaptArgument lm codec p
         let Boolean         = lm.uper.Boolean
         let funcBodyContent = Boolean pp errCode.errCodeName codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (AcnBooleanEncodingType None); auxiliaries = []}
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
 
-    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p)) soSparkAnnotations [] us
+    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations [] us
 
 let castRPp  = DAstEqual.castRPp
 
@@ -237,7 +237,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
         | ASN1SCC_FP32   -> "_fp32"
         | ASN1SCC_FP64   -> ""
 
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         let pp, resultExpr = adaptArgument lm codec p
         let castPp = castRPp lm codec (o.getClass r.args) pp
         let Real         = lm.uper.Real
@@ -248,10 +248,10 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
         match ST.lang with
         | Scala -> ["extern"]
         | _ -> []
-    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p)) soSparkAnnotations annots us
+    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations annots us
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         let pp, resultExpr = adaptArgumentPtr lm codec p
         let ObjectIdentifier         =
             if o.relativeObjectId then
@@ -261,7 +261,7 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (
         let funcBodyContent = ObjectIdentifier pp errCode.errCodeName codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some Placeholder; auxiliaries = []} // TODO: Placeholder
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
-    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p)) soSparkAnnotations [] us
+    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations [] us
 
 let getTimeSubTypeByClass (tc) =
     match tc with
@@ -275,16 +275,16 @@ let getTimeSubTypeByClass (tc) =
 
 
 let createTimeTypeFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         let pp, resultExpr = adaptArgumentPtr lm codec p
         let TimeType         =  lm.uper.Time
         let funcBodyContent = TimeType pp (getTimeSubTypeByClass o.timeClass) errCode.errCodeName codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some Placeholder; auxiliaries = []} // TODO: Placeholder
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
-    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p)) soSparkAnnotations [] us
+    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations [] us
 
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         let pp, _ = adaptArgument lm codec p
         match codec, lm.lg.decodingKind with
         | Decode, Copy ->
@@ -300,7 +300,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let Enumerated_no_switch = lm.uper.Enumerated_no_switch
 
 
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         let nMax = BigInteger(Seq.length o.items) - 1I
         let nLastItemIndex      = nMax
         let typeDef0 = lm.lg.getEnumTypeDefinition o.typeDef
@@ -322,7 +322,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
             {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = [enumIndexVar]; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (Asn1IntegerEncodingType (Some (FullyConstrained (nMin, nMax)))); auxiliaries = []}
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
-    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p)) soSparkAnnotations [] us
+    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations [] us
 
 let C64K = BigInteger 0x10000
 let C48K = BigInteger 0xC000
@@ -421,10 +421,6 @@ let handleFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:CommonTypes.C
 let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefinitionOrReference)   (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let ii = t.id.SequenceOfLevel + 1
     let i = sprintf "i%d" ii
-    let ixVarName =
-        match ST.lang with
-        | Scala -> "from"
-        | _ -> i
     let lv = SequenceOfIndex (ii, None)
     let charIndex =
         match lm.lg.uper.requires_charIndex with
@@ -434,7 +430,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         match o.minSize.uper = o.maxSize.uper with
         | true  -> []
         | false -> [lm.lg.uper.createLv "nStringLength"]
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         let td0 = lm.lg.getStrTypeDefinition o.typeDef
         let td = td0.longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let InternalItem_string_no_alpha   = lm.uper.InternalItem_string_no_alpha
@@ -446,11 +442,11 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
         let internalItem =
             match o.uperCharSet.Length = 128 with
-            | true  -> InternalItem_string_no_alpha (p.arg.joined lm.lg) errCode.errCodeName ixVarName codec
+            | true  -> InternalItem_string_no_alpha (p.arg.joined lm.lg) errCode.errCodeName i codec
             | false ->
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
                 let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
-                InternalItem_string_with_alpha (p.arg.joined lm.lg) errCode.errCodeName td ixVarName (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
+                InternalItem_string_with_alpha (p.arg.joined lm.lg) errCode.errCodeName td i (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
         let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.uper - o.minSize.uper))
         let initExpr =
             match codec, lm.lg.decodingKind with
@@ -474,17 +470,17 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
             cs = p
             encDec = Some internalItem
             elemDecodeFn = None
-            ixVariable = ixVarName
+            ixVariable = i
         }
         let introSnap = nestingScope.nestingLevel = 0I
-        let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries ACN (StrType o) sqfProofGen codec
+        let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries (if fromACN then ACN else UPER) (StrType o) sqfProofGen codec
 
         let funcBodyContent,localVariables =
             match o.minSize with
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper ->
-                str_FixedSize pp typeDefinitionName ixVarName internalItem o.minSize.uper nBits nBits 0I initExpr introSnap callAux codec, lv::charIndex@nStringLength
+                str_FixedSize pp typeDefinitionName i internalItem o.minSize.uper nBits nBits 0I initExpr introSnap callAux codec, lv::charIndex@nStringLength
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper ->
-                str_VarSize pp typeDefinitionName ixVarName internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr codec, lv::charIndex@nStringLength
+                str_VarSize pp typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr codec, lv::charIndex@nStringLength
             | _ ->
                 let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true
                 let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || o.maxSize.uper<>o.minSize.uper) lv
@@ -493,7 +489,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (AcnStringEncodingType o.acnEncodingClass); auxiliaries = auxiliaries}
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
-    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p)) soSparkAnnotations  [] us
+    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations  [] us
 
 
 let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefinitionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (o:Asn1AcnAst.OctetString) (errCode:ErrorCode) (p:CallerScope) =
@@ -533,11 +529,11 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefinitionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
 
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         createOctetStringFunction_funcBody r lm codec t.id  typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper o (errCode:ErrorCode) (p:CallerScope)
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
-    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p)) soSparkAnnotations  [] us
+    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations  [] us
 
 
 
@@ -578,11 +574,11 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefinitionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
 
-    let funcBody  (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody  (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         createBitStringFunction_funcBody r lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper o (errCode:ErrorCode) (p:CallerScope)
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
-    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p -> Some (funcBody e ns p))  soSparkAnnotations  [] us
+    createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b))  soSparkAnnotations  [] us
 
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefinitionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (child:Asn1Type) (us:State)  =
@@ -593,7 +589,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let nIntItemMaxSize = ( child.uperMaxSizeInBits)
 
     let baseFuncName =  match baseTypeUperFunc  with None -> None | Some baseFunc -> baseFunc.funcName
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
 
         match baseFuncName with
         | None ->
@@ -616,7 +612,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
 
             let chFunc = child.getUperFunction codec
             let internalItem =
-                chFunc.funcBody childNestingScope ({p with arg = lm.lg.getArrayItem p.arg i child.isIA5String})
+                chFunc.funcBody childNestingScope ({p with arg = lm.lg.getArrayItem p.arg i child.isIA5String}) fromACN
 
             let absOffset = nestingScope.uperOffset
             let remBits = nestingScope.uperOuterMaxSize - nestingScope.uperOffset
@@ -686,7 +682,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
     let td = typeDefinition.longTypedefName2 lm.lg.hasModules
 
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         let nonAcnChildren = children |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
         let localVariables =
             match nonAcnChildren |> Seq.exists(fun x -> x.Optionality.IsSome) with
@@ -730,7 +726,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let childP =
                 let newArg = if lm.lg.usesWrappedOptional && childSel.isOptional && codec = Encode then childSel.asLast else childSel
                 {p with arg = newArg}
-            let childContentResult = chFunc.funcBody childNestingScope childP
+            let childContentResult = chFunc.funcBody childNestingScope childP fromACN
             let existVar =
                 match codec, lm.lg.decodingKind with
                 | Decode, Copy -> Some (ToC (child._c_name + "_exist"))
@@ -834,7 +830,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
     let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
 
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         let td0 = lm.lg.getChoiceTypeDefinition o.typeDef
         let td = td0.longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let acnSiblingMaxSize = children |> List.map (fun c -> c.chType.acnMaxSizeInBits) |> List.max
@@ -850,9 +846,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let chFunc = child.chType.getUperFunction codec
             let uperChildRes =
                 match lm.lg.uper.catd with
-                | false   -> chFunc.funcBody childNestingScope ({p with arg =  lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
-                | true when codec = CommonTypes.Decode -> chFunc.funcBody childNestingScope {p with arg = Selection.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")}
-                | true -> chFunc.funcBody childNestingScope ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
+                | false   -> chFunc.funcBody childNestingScope ({p with arg =  lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) fromACN
+                | true when codec = CommonTypes.Decode -> chFunc.funcBody childNestingScope {p with arg = Selection.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")} fromACN
+                | true -> chFunc.funcBody childNestingScope ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) fromACN
             let sChildName = (lm.lg.getAsn1ChChildBackendName child)
             let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
             let isSequence = match child.chType.Kind with | Sequence _ -> true | _ -> false
@@ -913,8 +909,8 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
         match TypesEquivalence.uperEquivalence t1 t1WithExtensions with
         | true  ->
             let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
-            let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
-                match (baseType.getUperFunction codec).funcBody nestingScope p with
+            let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
+                match (baseType.getUperFunction codec).funcBody nestingScope p fromACN with
                 | Some _ ->
                     let pp, resultExpr =
                         let str = lm.lg.getParamValue t p.arg codec
@@ -933,8 +929,8 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
         let octet_string_containing_func  = lm.uper.octet_string_containing_func
         let bit_string_containing_func  = lm.uper.bit_string_containing_func
         let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
-        let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
-            match (baseType.getUperFunction codec).funcBody nestingScope p with
+        let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
+            match (baseType.getUperFunction codec).funcBody nestingScope p fromACN with
             | Some _ ->
                 let pp, resultExpr =
                     let str = lm.lg.getParamValue t p.arg codec

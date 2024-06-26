@@ -340,9 +340,9 @@ case class Codec(bitStream: BitStream) {
     */
    @opaque @inlineOnce
    def encodeConstrainedWholeNumber(v: Long, min: Long, max: Long): Unit = {
-      require(min <= max)
-      require(min <= v && v <= max)
-      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong))) // SAM There was a bug here, we checked for N bytes even though the number returned by teh function is bits
+      staticRequire(min <= max)
+      staticRequire(min <= v && v <= max)
+      staticRequire(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, GetBitCountUnsigned(stainless.math.wrapping(max - min).toRawULong))) // SAM There was a bug here, we checked for N bytes even though the number returned by teh function is bits
       val range: Long = stainless.math.wrapping(max - min)
       // get number of bits that get written
       val nRangeBits: Int = GetBitCountUnsigned(range.toRawULong)

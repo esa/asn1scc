@@ -1174,8 +1174,7 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
       let exprStr = show (ExprTree expr)
       [exprStr]
     else
-      let bdgs = if pg.nestingIx = 0I && pg.nestingLevel = 0I then [oldCdc, Snapshot (Var cdc)] else []
-      let expr = letsIn bdgs (mkBlock (stmts |> List.choose id |> List.map EncDec))
+      let expr = mkBlock (stmts |> List.choose id |> List.map EncDec)
       let exprStr = show (ExprTree expr)
       [exprStr]
 
@@ -1361,7 +1360,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
   let oldCdc = {Var.name = "oldCdc"; tpe = ClassType codecTpe}
   let cdcBeforeLoop = {Var.name = "codecBeforeLoop"; tpe = ClassType codecTpe}
   let cdcSnap1 = {Var.name = "codecSnap1"; tpe = ClassType codecTpe}
-  let from = {Var.name = "from"; tpe = IntegerType Int}
+  let from = {Var.name = pg.ixVariable; tpe = IntegerType Int}
   let sqfVar = {Var.name = pg.cs.arg.lastIdOrArr; tpe = sqfTpe}
   let td =
     match sqf with
@@ -1375,7 +1374,10 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
   let nbItemsMin, nbItemsMax = sqf.nbElems enc
   let nbItems =
     if sqf.isFixedSize then int32lit nbItemsMin
-    else FieldSelect (Var sqfVar, "nCount")
+    else
+      match sqf with
+      | StrType _ when enc = UPER -> ArrayLength (Var sqfVar)
+      | _ -> FieldSelect (Var sqfVar, "nCount")
   let maxElemSz = sqf.maxElemSizeInBits enc
 
   let fromBounds = And [Leq (int32lit 0I, Var from); Leq (Var from, nbItems)]
@@ -1435,8 +1437,8 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       FunDef.id = fnid
       prms = [cdc; sqfVar; from]
       annots = [Opaque; InlineOnce]
-      specs = [Precond fromBounds; Precond validateOffset; Measure decreasesExpr]
-      postcond = Some (postcondRes, postcond)
+      specs = if enc = ACN then [Precond fromBounds; Precond validateOffset; Measure decreasesExpr] else []
+      postcond = if enc = ACN then Some (postcondRes, postcond) else None
       returnTpe = fnRetTpe
       body = body
     }
@@ -1472,7 +1474,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     let elseCase =
       let reccallRes = {Var.name = "res"; tpe = fnRetTpe}
       // TODO: Hack
-      let decodedElemVar = {Var.name = $"{pg.cs.arg.asIdentifier}_arr_from_"; tpe = elemTpe}
+      let decodedElemVar = {Var.name = $"{pg.cs.arg.asIdentifier}_arr_{pg.ixVariable}_"; tpe = elemTpe}
       let sizeConds =
         match sqf with
         | SqOf _ ->
@@ -1542,8 +1544,8 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       FunDef.id = fnid
       prms = [cdc; sqfVar; from]
       annots = [Opaque; InlineOnce]
-      specs = [Precond fromBounds; Precond validateOffset; Measure decreasesExpr]
-      postcond = Some (postcondRes, postcond)
+      specs = if enc = ACN then [Precond fromBounds; Precond validateOffset; Measure decreasesExpr] else []
+      postcond = if enc = ACN then Some (postcondRes, postcond) else None
       returnTpe = fnRetTpe
       body = body
     }

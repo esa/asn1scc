@@ -119,9 +119,9 @@ val <sResVar> = Array.fill(<nMaxSizePlusOne>)(UByte.fromRaw(0))
 <else>
 <if(bAlpha)>
 val allowedCharSet: Array[UByte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">.toRawUByte}; wrap, anchor, separator=",">)
-val <sResVar> = Array.tabulate(<nMaxSizePlusOne>)(i => allowedCharSet(<i> % <nAlphabetLength>))
+val <sResVar> = Array.tabulate(<nMaxSizePlusOne>)(<i> => if <i> == <nMaxSizePlusOne> - 1 then 0.toByte else allowedCharSet(<i> % <nAlphabetLength>))
 <else>
-val <sResVar> = Array.tabulate(<nMaxSizePlusOne>)(i => UByte.fromRaw(if <i> % 128 == 0 then 'A'.toByte else (<i> % 128).toByte))
+val <sResVar> = Array.tabulate(<nMaxSizePlusOne>)(<i> => UByte.fromRaw(if <i> == <nMaxSizePlusOne> - 1 then 0.toByte else if <i> % 128 == 0 then 'A'.toByte else (<i> % 128).toByte))
 <endif>
 <endif>
 >>
@@ -144,7 +144,7 @@ initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero
 <if(bZero)>
 val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSize>)(0.toRawUByte))
 <else>
-val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>Array.tabulate(<nSize>)(i => UByte.fromRaw((i % 256).toByte)))
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>Array.tabulate(<nSize>)(<i> => UByte.fromRaw((<i> % 256).toByte)))
 <endif>
 >>
 

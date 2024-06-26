@@ -422,8 +422,8 @@ type UPerFunction = {
     funcName            : string option               // the name of the function
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
-    funcBody            : NestingScope -> CallerScope -> (UPERFuncBodyResult option)            // returns a list of validations statements
-    funcBody_e          : ErrorCode -> NestingScope -> CallerScope -> (UPERFuncBodyResult option)
+    funcBody            : NestingScope -> CallerScope -> bool -> UPERFuncBodyResult option            // returns a list of validations statements. The bool indicates whether this was called from ACN context
+    funcBody_e          : ErrorCode -> NestingScope -> CallerScope -> bool -> UPERFuncBodyResult option // bool: whether called from ACN context
     auxiliaries         : string list
 }
 

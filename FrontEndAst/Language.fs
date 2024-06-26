@@ -169,8 +169,6 @@ with
     member this.maxElemSizeInBits (enc: Asn1Encoding): bigint =
         snd (this.elemSizeInBits enc)
 
-
-
     member this.isFixedSize: bool =
         match this with
         | SqOf sqf -> sqf.isFixedSize

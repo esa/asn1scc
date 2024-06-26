@@ -362,7 +362,7 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
                                              (uperRange : BigIntegerUperRange)
                                              (intClass:Asn1AcnAst.IntegerClass)
                                              (acnEncodingClass: IntEncodingClass)
-                                             (uperfuncBody : ErrorCode -> NestingScope -> CallerScope -> (UPERFuncBodyResult option))
+                                             (uperfuncBody : ErrorCode -> NestingScope -> CallerScope -> bool -> (UPERFuncBodyResult option))
                                              (soMF:string option, soMFM:string option): AcnIntegerFuncBody =
     let PositiveInteger_ConstSize_8                  = lm.acn.PositiveInteger_ConstSize_8
     let PositiveInteger_ConstSize_big_endian_16      = lm.acn.PositiveInteger_ConstSize_big_endian_16
@@ -415,7 +415,7 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
         let funcBodyContent  =
             match acnEncodingClass with
             |Asn1AcnAst.Integer_uPER ->
-                uperfuncBody errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.bValIsUnReferenced, x.bBsIsUnReferenced, x.typeEncodingKind)
+                uperfuncBody errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.bValIsUnReferenced, x.bBsIsUnReferenced, x.typeEncodingKind)
             |Asn1AcnAst.PositiveInteger_ConstSize_8 ->
                 let typeEncodingKind = AcnIntegerEncodingType {signedness = Positive; endianness = Byte}
                 Some(PositiveInteger_ConstSize_8 (castPp 8) sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 8)  codec, [errCode], false, false, Some typeEncodingKind)
@@ -501,7 +501,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName None
 
-    let uperFuncBody (errCode) (nestingScope: NestingScope) (p:CallerScope) =
+    let uperFuncBody (errCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
         DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId errCode nestingScope p
     let soMapFunMod, soMapFunc  =
         match t.acnProperties.mappingFunction with
@@ -575,7 +575,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
             lv, varName
         let pVal = {CallerScope.modName = typeId.ModName; arg = Selection.valueEmptyPath intVal}
         let intFuncBody =
-            let uperInt (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) =
+            let uperInt (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
                 let pp, resultExpr = adaptArgument lm codec p
                 let castPp  = DAstUPer.castPp r lm codec pp intTypeClass
                 let sSsuffix = DAstUPer.getIntDecFuncSuffix intTypeClass
@@ -673,7 +673,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
             | Real_IEEE754_64_big_endian            -> Some (Real_64_big_endian pp errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType BigEndian64), [])
             | Real_IEEE754_32_little_endian         -> Some (Real_32_little_endian castPp sSuffix errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType LittleEndian32), [])
             | Real_IEEE754_64_little_endian         -> Some (Real_64_little_endian pp errCode.errCodeName codec, [errCode], Some (AcnRealEncodingType LittleEndian64), [])
-            | Real_uPER                             -> uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.typeEncodingKind, x.auxiliaries)
+            | Real_uPER                             -> uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.typeEncodingKind, x.auxiliaries)
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, typeEncodingKind, auxiliaries) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=auxiliaries})
@@ -691,7 +691,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let funcBodyContent =
-            uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.resultExpr, x.typeEncodingKind, x.auxiliaries)
+            uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.resultExpr, x.typeEncodingKind, x.auxiliaries)
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, resultExpr, typeEncodingKind, auxiliaries) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=auxiliaries})
@@ -705,7 +705,7 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (c
 let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let funcBodyContent =
-            uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.resultExpr, x.typeEncodingKind, x.auxiliaries)
+            uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.resultExpr, x.typeEncodingKind, x.auxiliaries)
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, resultExpr, typeEncodingKind, auxiliaries) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=auxiliaries})
@@ -905,7 +905,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let funcBodyContent, ns =
             match o.acnEncodingClass with
             | Acn_Enc_String_uPER  _ ->
-                uperFunc.funcBody_e errCode nestingScope p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables, x.auxiliaries), us
+                uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables, x.auxiliaries), us
             | Acn_Enc_String_uPER_Ascii _ ->
                 match o.maxSize.uper = o.minSize.uper with
                 | true      ->  Some (Acn_String_Ascii_FixSize pp errCode.errCodeName ( o.maxSize.uper) codec, [errCode], [], []), us
@@ -960,10 +960,6 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             | _                           -> raise(SemanticError(t.tasName.Location, (sprintf "Type assignment %s.%s does not point to a string type" t.modName.Value t.modName.Value)))
         let ii = typeId.SequenceOfLevel + 1
         let i = sprintf "i%d" ii
-        let ixVarName =
-            match ST.lang with
-            | Scala -> "from"
-            | _ -> i
         let lv = SequenceOfIndex (typeId.SequenceOfLevel + 1, None)
         let charIndex =
             match lm.lg.uper.requires_charIndex with
@@ -985,11 +981,11 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
         let internalItem =
             match o.uperCharSet.Length = 128 with
-            | true  -> InternalItem_string_no_alpha pp errCode.errCodeName ixVarName codec
+            | true  -> InternalItem_string_no_alpha pp errCode.errCodeName i codec
             | false ->
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
                 let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
-                InternalItem_string_with_alpha pp errCode.errCodeName td ixVarName (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
+                InternalItem_string_with_alpha pp errCode.errCodeName td i (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
         let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (o.maxSize.uper - o.minSize.uper)
         let sqfProofGen = {
             SequenceOfLikeProofGen.acnOuterMaxSize = nestingScope.acnOuterMaxSize
@@ -1007,7 +1003,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             cs = p
             encDec = Some internalItem
             elemDecodeFn = None
-            ixVariable = ixVarName
+            ixVariable = i
         }
         let introSnap = nestingScope.nestingLevel = 0I
         let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries ACN (StrType o) sqfProofGen codec
@@ -1015,9 +1011,9 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let funcBodyContent, localVariables =
             match o.minSize with
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper  ->
-                str_FixedSize pp typeDefinitionName ixVarName internalItem o.minSize.uper nBits nBits 0I initExpr introSnap callAux codec, charIndex@nStringLength
+                str_FixedSize pp typeDefinitionName i internalItem o.minSize.uper nBits nBits 0I initExpr introSnap callAux codec, charIndex@nStringLength
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper  ->
-                str_VarSize pp typeDefinitionName ixVarName internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr codec, charIndex@nStringLength
+                str_VarSize pp typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr codec, charIndex@nStringLength
             | _                                                ->
                 let funcBodyContent,localVariables = DAstUPer.handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true
                 funcBodyContent,charIndex@localVariables
@@ -1205,16 +1201,12 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
         | None -> None, us
         | Some chFunc  ->
             let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1I; parents = (p, t) :: nestingScope.parents}
-            let ixVarName =
-                match ST.lang with
-                | Scala -> "from"
-                | _ -> i
-            let internalItem, ns = chFunc.funcBody us acnArgs childNestingScope ({p with arg = lm.lg.getArrayItem p.arg ixVarName child.isIA5String})
+            let internalItem, ns = chFunc.funcBody us acnArgs childNestingScope ({p with arg = lm.lg.getArrayItem p.arg i child.isIA5String})
             let internalItemBody = internalItem |> Option.map (fun internalItem ->
                 match codec, lm.lg.decodingKind with
                 | Decode, Copy ->
                     assert internalItem.resultExpr.IsSome
-                    internalItem.funcBody + "\n" + (lm.uper.update_array_item pp ixVarName internalItem.resultExpr.Value)
+                    internalItem.funcBody + "\n" + (lm.uper.update_array_item pp i internalItem.resultExpr.Value)
                 | _ -> internalItem.funcBody)
             let sqfProofGen = {
                 SequenceOfLikeProofGen.acnOuterMaxSize = nestingScope.acnOuterMaxSize
