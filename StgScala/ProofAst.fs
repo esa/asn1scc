@@ -278,6 +278,10 @@ let codecId: Identifier = "Codec"
 let uperId: Identifier = "UPER"
 let acnId: Identifier = "ACN"
 
+let listId: Identifier = "List"
+let consId: Identifier = "Cons"
+let nilId: Identifier = "Nil"
+
 let optionId: Identifier = "Option"
 let someId: Identifier = "Some"
 let noneId: Identifier = "None"
@@ -298,6 +302,19 @@ let bitstreamClsTpe = {ClassType.id = bitStreamId; tps = []}
 let codecClsTpe = {ClassType.id = codecId; tps = []}
 let uperClsTpe = {ClassType.id = uperId; tps = []}
 let acnClsTpe = {ClassType.id = acnId; tps = []}
+
+let listTpe (tpe: Type): ClassType = {ClassType.id = listId; tps = [tpe]}
+let consTpe (tpe: Type): ClassType = {ClassType.id = consId; tps = [tpe]}
+let nilTpe (tpe: Type): ClassType = {ClassType.id = nilId; tps = [tpe]}
+let cons (tpe: Type) (head: Expr) (tail: Expr): ClassCtor = {ct = consTpe tpe; args = [head; tail]}
+let consExpr (tpe: Type) (head: Expr) (tail: Expr): Expr = ClassCtor (cons tpe head tail)
+let nil (tpe: Type): ClassCtor = {ct = nilTpe tpe; args = []}
+let nilExpr (tpe: Type): Expr = ClassCtor (nil tpe)
+let reverse (list: Expr): Expr = MethodCall {recv = list; id = "reverse"; args = []}
+let isize (list: Expr): Expr = MethodCall {recv = list; id = "isize"; args = []}
+let iupdated (list: Expr) (ix: Expr) (v: Expr): Expr = MethodCall {recv = list; id = "iupdated"; args = [ix; v]}
+
+let iapply (list: Expr) (ix: Expr): Expr = MethodCall {recv = list; id = "iapply"; args = [ix]}
 
 let optionTpe (tpe: Type): ClassType = {ClassType.id = optionId; tps = [tpe]}
 let someTpe (tpe: Type): ClassType = {ClassType.id = someId; tps = [tpe]}
@@ -341,6 +358,27 @@ let leftMutExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (leftMut l r e)
 let rightMut (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightMutTpe l r; args = [e]}
 let rightMutExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (rightMut l r e)
 
+let listMatch (scrut: Expr)
+              (hdBdg: Var option) (tailBdg: Var option) (consBody: Expr)
+              (nilBody: Expr): MatchExpr =
+  {
+    scrut = scrut
+    cases = [
+      {
+        pattern = ADTPattern {binder = None; id = consId; subPatterns = [Wildcard hdBdg; Wildcard tailBdg]}
+        rhs = consBody
+      }
+      {
+        pattern = ADTPattern {binder = None; id = nilId; subPatterns = []}
+        rhs = nilBody
+      }
+    ]
+  }
+
+let listMatchExpr (scrut: Expr)
+                  (hdBdg: Var option) (tailBdg: Var option) (consBody: Expr)
+                  (nilBody: Expr): Expr =
+  MatchExpr (listMatch scrut hdBdg tailBdg consBody nilBody)
 let optionGenMatch (someId: Identifier) (noneId: Identifier)
                    (scrut: Expr)
                    (someBdg: Var option) (someBody: Expr)
@@ -506,7 +544,7 @@ let isPrefixOfACN (recv: Expr) (other: Expr): Expr = MethodCall { id = "isPrefix
 
 let callSize (recv: Expr) (offset: Expr): Expr = MethodCall { id = "size"; recv = recv; args = [offset] }
 
-let sizeRange (recv: Expr) (offset: Expr) (from: Expr) (tto: Expr): Expr = MethodCall { id = "sizeRange"; recv = recv; args = [offset; from; tto] }
+// let sizeRange (recv: Expr) (offset: Expr) (from: Expr) (tto: Expr): Expr = MethodCall { id = "sizeRange"; recv = recv; args = [offset; from; tto] }
 
 let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; args = [arg] }
 
@@ -521,6 +559,8 @@ let alignedToByte (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedT
 let alignedToWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToWord"; args = [bits]}
 
 let alignedToDWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToDWord"; args = [bits]}
+
+
 
 let alignedTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr): Expr =
   match alignment with
@@ -577,6 +617,30 @@ let arrayRangesEq (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr): Expr =
 
 let arrayBitRangesEq (a1: Expr) (a2: Expr) (fromBit: Expr) (toBit: Expr): Expr =
   FunctionCall { prefix = []; id = "arrayBitRangesEq"; args = [a1; a2; fromBit; toBit] }
+
+let listRangesEqReflexiveLemma (arr: Expr): Expr =
+  FunctionCall { prefix = []; id = "listRangesEqReflexiveLemma"; args = [arr] }
+
+let listRangesEqSlicedLemma (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr) (fromSlice: Expr) (toSlice: Expr): Expr =
+  FunctionCall { prefix = []; id = "listRangesEqSlicedLemma"; args = [a1; a2; from; tto; fromSlice; toSlice] }
+
+let listUpdatedAtPrefixLemma (arr: Expr) (at: Expr) (v: Expr): Expr =
+  FunctionCall { prefix = []; id = "listUpdatedAtPrefixLemma"; args = [arr; at; v] }
+
+let listRangesEqTransitive (a1: Expr) (a2: Expr) (a3: Expr) (from: Expr) (mid: Expr) (tto: Expr): Expr =
+  FunctionCall { prefix = []; id = "listRangesEqTransitive"; args = [a1; a2; a3; from; mid; tto] }
+
+let listRangesEqImpliesEq (a1: Expr) (a2: Expr) (from: Expr) (at: Expr) (tto: Expr): Expr =
+  FunctionCall { prefix = []; id = "listRangesEqImpliesEq"; args = [a1; a2; from; at; tto] }
+
+let listRangesEq (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr): Expr =
+  FunctionCall { prefix = []; id = "listRangesEq"; args = [a1; a2; from; tto] }
+
+let listRangesAppendDropEq (a1: Expr) (a2: Expr) (v: Expr) (from: Expr) (tto: Expr): Expr =
+  FunctionCall { prefix = []; id = "listRangesAppendDropEq"; args = [a1; a2; v; from; tto] }
+
+let isnocIndex (ls: Expr) (v: Expr) (i: Expr): Expr =
+  FunctionCall { prefix = ["ListSpecs"]; id = "isnocIndex"; args = [ls; v; i] }
 
 
 let fromIntClass (cls: Asn1AcnAst.IntegerClass): IntegerType =
@@ -989,7 +1053,7 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
   | ClassCtor cc ->
     let ct = ppClassType cc.ct
     let args = cc.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
-    joinCallLike ctx [line ct] args true
+    joinCallLike ctx [line ct] args false
 
   | Old e2 ->
     let e2 = ppExpr (ctx.nestExpr e2) e2

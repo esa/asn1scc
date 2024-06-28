@@ -216,7 +216,7 @@ typedef <prTd.typeName> <td.typeName>;
 /***********************************       SEQUENCE OF    ************************************************************/
 
 
-Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeDefinition, arrsInvariants) ::= <<
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeClassDefinition, arrsSizeObjDefinition, arrsInvariants) ::= <<
 
 <soChildDefinition>
 

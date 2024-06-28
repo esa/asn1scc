@@ -494,3 +494,211 @@ def arrayBitRangesEqSlicedLemma(a1: Array[Byte], a2: Array[Byte], fromBit: Long,
     }
   }
 }.ensuring(_ => arrayBitRangesEq(a1, a2, fromSlice, toSlice))
+
+////////////////////////////////////7
+
+@pure
+def listRangesEq[T](a1: List[T], a2: List[T], from: Int, to: Int): Boolean = {
+  require(0 <= from && from <= to)
+  require(a1.isize <= a2.isize)
+  require(to <= a1.isize)
+  decreases(to - from)
+  if (from == to) true
+  else a1.iapply(from) == a2.iapply(from) && listRangesEq(a1, a2, from + 1, to)
+}
+
+@pure @opaque @inlineOnce @ghost
+def listRangesEqReflexiveLemma[T](a: List[T]) = {
+  def rec(i: Int): Unit = {
+    require(0 <= i && i <= a.isize)
+    require(listRangesEq(a, a, i, a.isize))
+    decreases(i)
+    if (i == 0) ()
+    else rec(i - 1)
+  }.ensuring(_ => listRangesEq(a, a, 0, a.isize))
+  rec(a.isize)
+}.ensuring(_ => listRangesEq(a, a, 0, a.isize))
+
+@pure @opaque @inlineOnce @ghost
+def listRangesEqSymmetricLemma[T](a1: List[T], a2: List[T], from: Int, to: Int) = {
+  require(0 <= from && from <= to && to <= a1.isize)
+  require(a1.isize == a2.isize)
+  require(listRangesEq(a1, a2, from, to))
+
+  def rec(i: Int): Unit = {
+    require(from <= i && i <= to)
+    require(listRangesEq(a2, a1, i, to))
+    decreases(i)
+    if (i == from) ()
+    else {
+      listRangesEqImpliesEq(a1, a2, from, i - 1, to)
+      rec(i - 1)
+    }
+  }.ensuring(_ => listRangesEq(a2, a1, from, to))
+
+  rec(to)
+}.ensuring(_ => listRangesEq(a2, a1, from, to))
+
+
+@ghost @pure @opaque @inlineOnce
+def listRangesEqSlicedLemma[T](a1: List[T], a2: List[T], from: Int, to: Int, fromSlice: Int, toSlice: Int): Unit = {
+  require(0 <= from && from <= to)
+  require(a1.isize <= a2.isize)
+  require(to <= a1.isize)
+  require(from <= fromSlice && fromSlice <= toSlice && toSlice <= to)
+  require(listRangesEq(a1, a2, from, to))
+
+  @opaque @inlineOnce
+  def rec(i: Int): Unit = {
+    require(fromSlice <= i && i <= to)
+    require(listRangesEq(a1, a2, i, to)) // the original predicate we are unfolding
+    require((i <= toSlice) ==> listRangesEq(a1, a2, i, toSlice)) // the resulting predicate we are folding
+    decreases(i)
+    if (i == fromSlice) ()
+    else {
+      listRangesEqImpliesEq(a1, a2, from, i - 1, to)
+      rec(i - 1)
+    }
+  }.ensuring(_ => listRangesEq(a1, a2, fromSlice, toSlice))
+
+  rec(to)
+}.ensuring(_ => listRangesEq(a1, a2, fromSlice, toSlice))
+
+@pure @opaque @inlineOnce @ghost
+def listRangesEqImpliesEq[T](a1: List[T], a2: List[T], from: Int, at: Int, to: Int): Unit = {
+  require(0 <= from && from <= to)
+  require(a1.isize <= a2.isize)
+  require(to <= a1.isize)
+  require(from <= at && at < to)
+  require(listRangesEq(a1, a2, from, to))
+
+  @opaque @inlineOnce @ghost
+  def rec(i: Int): Unit = {
+    require(from <= i && i <= at)
+    require(listRangesEq(a1, a2, i, to))
+    decreases(to - i)
+    if (i == at) ()
+    else rec(i + 1)
+  }.ensuring { _ =>
+    a1.iapply(at) == a2.iapply(at)
+  }
+
+  rec(from)
+}.ensuring(_ => a1.iapply(at) == a2.iapply(at))
+
+@pure @opaque @inlineOnce @ghost
+def listRangesEqAppend[T](a1: List[T], a2: List[T], from: Int, to: Int) = {
+  require(0 <= from && from <= to)
+  require(a1.isize <= a2.isize)
+  require(to < a1.isize)
+  require(listRangesEq(a1, a2, from, to))
+  require(a1.iapply(to) == a2.iapply(to))
+
+  @opaque @inlineOnce
+  def rec(i: Int): Unit = {
+    require(from <= i && i <= to)
+    require(listRangesEq(a1, a2, i, to + 1))
+    decreases(i)
+    if (i == from) ()
+    else {
+      listRangesEqImpliesEq(a1, a2, from, i - 1, to)
+      rec(i - 1)
+    }
+  }.ensuring { _ =>
+    listRangesEq(a1, a2, from, to + 1)
+  }
+
+  rec(to)
+}.ensuring(_ => listRangesEq(a1, a2, from, to + 1))
+
+@pure @opaque @inlineOnce @ghost
+def listRangesEqTransitive[T](a1: List[T], a2: List[T], a3: List[T], from: Int, mid: Int, to: Int): Unit = {
+  require(0 <= from && from <= mid && mid <= to)
+  require(a1.isize <= a2.isize && a2.isize <= a3.isize)
+  require(mid <= a1.isize && to <= a2.isize)
+  require(listRangesEq(a1, a2, from, mid))
+  require(listRangesEq(a2, a3, from, to))
+
+  @opaque @inlineOnce @ghost
+  def rec(i: Int): Unit = {
+    require(from <= i && i <= mid)
+    require(listRangesEq(a1, a2, i, mid))
+    require(listRangesEq(a2, a3, i, to))
+    require(listRangesEq(a1, a3, from, i))
+    decreases(to - i)
+    if (i == mid) ()
+    else {
+      listRangesEqAppend(a1, a3, from, i)
+      rec(i + 1)
+    }
+  }.ensuring { _ =>
+    listRangesEq(a1, a3, from, mid)
+  }
+  rec(from)
+}.ensuring(_ => listRangesEq(a1, a3, from, mid))
+
+@opaque @inlineOnce @ghost
+def listUpdatedAtUnchangedLemma[T](a: List[T], updatedAt: Int, ix: Int, v: T): Unit = {
+  require(0 <= updatedAt && updatedAt < a.isize)
+  require(0 <= ix && ix < a.isize)
+  require(ix != updatedAt)
+  decreases(a)
+  (a: @unchecked) match {
+    case Cons(hd, tail) =>
+      if (ix == 0 || updatedAt == 0) ()
+      else listUpdatedAtUnchangedLemma(tail, updatedAt - 1, ix - 1, v)
+  }
+}.ensuring {_ =>
+  a.iapply(ix) == a.iupdated(updatedAt, v).iapply(ix)
+}
+
+@pure @opaque @inlineOnce @ghost
+def listUpdatedAtPrefixLemma[T](a: List[T], at: Int, v: T): Unit = {
+  require(0 <= at && at < a.isize)
+
+  @opaque @inlineOnce @ghost
+  def rec(i: Int): Unit = {
+    require(0 <= i && i <= at)
+    require(listRangesEq(a, a.iupdated(at, v), i, at))
+    decreases(i)
+    if (i == 0) ()
+    else {
+      listUpdatedAtUnchangedLemma(a, at, i - 1, v)
+      rec(i - 1)
+    }
+  }.ensuring { _ =>
+    listRangesEq(a, a.iupdated(at, v), 0, at)
+  }
+
+  rec(at)
+}.ensuring { _ =>
+  listRangesEq(a, a.iupdated(at, v), 0, at)
+}
+
+@pure @opaque @inlineOnce @ghost
+def listRangesAppendDropEq[T](a1: List[T], a2: List[T], v: T, from: Int, to: Int): Unit = {
+  require(0 <= from && from <= to)
+  require(a1.isize < a2.isize)
+  require(to <= a1.isize)
+  require(listRangesEq(a1 :+ v, a2, from, to + 1))
+  decreases(a1)
+
+  @opaque @inlineOnce @ghost
+  def rec(i: Int): Unit = {
+    require(from <= i && i <= to)
+    require(listRangesEq(a1, a2, from, i))
+    decreases(to - i)
+    if (i == to) ()
+    else {
+      ListSpecs.isnocIndex(a1, v, i)
+      listRangesEqImpliesEq(a1 :+ v, a2, from, i, to + 1)
+      listRangesEqAppend(a1, a2, from, i)
+      rec(i + 1)
+    }
+  }.ensuring { _ =>
+    listRangesEq(a1, a2, from, to)
+  }
+  rec(from)
+}.ensuring { _ =>
+  listRangesEq(a1, a2, from, to)
+}

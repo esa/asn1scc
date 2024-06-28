@@ -1202,12 +1202,6 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
         | Some chFunc  ->
             let childNestingScope = {nestingScope with nestingLevel = nestingScope.nestingLevel + 1I; parents = (p, t) :: nestingScope.parents}
             let internalItem, ns = chFunc.funcBody us acnArgs childNestingScope ({p with arg = lm.lg.getArrayItem p.arg i child.isIA5String})
-            let internalItemBody = internalItem |> Option.map (fun internalItem ->
-                match codec, lm.lg.decodingKind with
-                | Decode, Copy ->
-                    assert internalItem.resultExpr.IsSome
-                    internalItem.funcBody + "\n" + (lm.uper.update_array_item pp i internalItem.resultExpr.Value)
-                | _ -> internalItem.funcBody)
             let sqfProofGen = {
                 SequenceOfLikeProofGen.acnOuterMaxSize = nestingScope.acnOuterMaxSize
                 uperOuterMaxSize = nestingScope.uperOuterMaxSize
@@ -1222,7 +1216,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                 }
                 nestingScope = nestingScope
                 cs = p
-                encDec = internalItemBody
+                encDec = internalItem |> Option.map (fun ii -> ii.funcBody)
                 elemDecodeFn = None // TODO: elemDecodeFn
                 ixVariable = i
             }
@@ -1258,8 +1252,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let childErrCodes =  internalItem.errCodes
                         let ret, localVariables =
                             match o.isFixedSize with
-                            | true -> fixedSize pp td i internalItemBody.Value o.minSize.acn child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr codec, nStringLength
-                            | false -> varSize pp access td i internalItemBody.Value o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux codec, nStringLength
+                            | true -> fixedSize pp td i internalItem.funcBody o.minSize.acn child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux codec, nStringLength
+                            | false -> varSize pp access td i internalItem.funcBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux codec, nStringLength
                         let typeEncodingKind = internalItem.typeEncodingKind |> Option.map (fun tpe -> TypeEncodingKind.SequenceOfEncodingType (tpe, o.acnEncodingClass))
                         Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(internalItem.localVariables@localVariables); bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=internalItem.auxiliaries @ auxiliaries})
 
@@ -1279,8 +1273,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let introSnap = nestingScope.nestingLevel = 0I
                         let funcBodyContent =
                             match o.isFixedSize with
-                            | true  -> oct_sqf_external_field_fix_size td pp access i internalItemBody.Value (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr introSnap callAux codec
-                            | false -> external_field td pp access i internalItemBody.Value (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr introSnap callAux codec
+                            | true  -> oct_sqf_external_field_fix_size td pp access i internalItem.funcBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr introSnap callAux codec
+                            | false -> external_field td pp access i internalItem.funcBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr introSnap callAux codec
                         let typeEncodingKind = internalItem.typeEncodingKind |> Option.map (fun tpe -> TypeEncodingKind.SequenceOfEncodingType (tpe, o.acnEncodingClass))
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=typeEncodingKind; auxiliaries=internalItem.auxiliaries @ auxiliaries})
                 | SZ_EC_TerminationPattern bitPattern ->
@@ -1293,8 +1287,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                         let localVariables  = internalItem.localVariables
                         let childErrCodes   = internalItem.errCodes
-                        let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
-                        let funcBodyContent = oct_sqf_null_terminated pp access i internalItemBody.Value noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits codec
+                        let noSizeMin = if o.minSize.acn=0I then None else Some o.minSize.acn
+                        let funcBodyContent = oct_sqf_null_terminated pp access i internalItem.funcBody noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits codec
 
                         let lv2 =
                             match codec, lm.lg.acn.checkBitPatternPresentResult with

@@ -65,7 +65,7 @@ let getAccess2_scala (acc: Accessor) =
     match acc with
     | ValueAccess (sel, _, _) -> $".{sel}"
     | PointerAccess (sel, _, _) -> $".{sel}"
-    | ArrayAccess (ix, _) -> $"({ix})"
+    | ArrayAccess (ix, _) -> $".iapply({ix})"
 
 #if false
 let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefinitionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErrorCode) (p:CallerScope) =
@@ -442,7 +442,7 @@ type LangGeneric_scala() =
         override this.generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
             generateChoiceSizeDefinitions t choice children
 
-        override this.generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): string list =
+        override this.generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): string list * string list =
             generateSequenceOfSizeDefinitions t sqf elemTpe
 
         override this.uper =

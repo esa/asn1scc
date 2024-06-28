@@ -187,10 +187,10 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
 }>>
 
 initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i, sResVar) ::= <<
-val <sResVar>_arr = Array.tabulate(<nSize>) { <i> =>
+val <sResVar>_list = scala.List.tabulate(<nSize>) { <i> =>
     <arrsInnerItems; separator="\n">
 }
-val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif><sResVar>_arr)
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif>List.fromScala(<sResVar>_list))
 >>
 
 
@@ -260,8 +260,8 @@ initVarSizeOctetString(sTypeDefName, nMin, nMax) ::= "<sTypeDefName>(<nMin>, Arr
 initFixSizeBitString(sTypeDefName, nMax, nMaxOctets) ::= "<sTypeDefName>(Array.fill(<nMaxOctets>)(0.toRawUByte))"
 initVarSizeBitString(sTypeDefName, nMin, nMax, nMaxOctets) ::= "<sTypeDefName>(<nMin>, Array.fill(<nMaxOctets>)(0.toRawUByte))"
 
-initFixSizeSequenceOfExpr(sTypeDefName, nMax, sChildExp) ::= "<sTypeDefName>(Array.fill(<nMax>)(<sChildExp>))"
-initVarSizeSequenceOfExpr(sTypeDefName, nMin, nMax, sChildExp) ::= "<sTypeDefName>(<nMin>, Array.fill(<nMax>)(<sChildExp>))"
+initFixSizeSequenceOfExpr(sTypeDefName, nMax, sChildExp) ::= "<sTypeDefName>(List.ifill(<nMax>)(<sChildExp>))"
+initVarSizeSequenceOfExpr(sTypeDefName, nMin, nMax, sChildExp) ::= "<sTypeDefName>(<nMin>, List.ifill(<nMax>)(<sChildExp>))"
 
 
 initObjectIdentifierAsExpr() ::= <<

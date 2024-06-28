@@ -288,8 +288,8 @@ let createSequenceOf (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: Asn1AcnAst
     match td.kind with
     | NonPrimitiveNewTypeDefinition ->
         let invariants = lm.lg.generateSequenceOfInvariants t o childType.Kind
-        let sizeDefinitions = lm.lg.generateSequenceOfSizeDefinitions t o childType
-        let completeDefinition = define_new_sequence_of td o.minSize.uper o.maxSize.uper (o.minSize.uper = o.maxSize.uper) (childType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules) (getChildDefinition childType.typeDefinitionOrReference) sizeDefinitions invariants
+        let sizeClsDefinitions, sizeObjDefinitions = lm.lg.generateSequenceOfSizeDefinitions t o childType
+        let completeDefinition = define_new_sequence_of td o.minSize.uper o.maxSize.uper (o.minSize.uper = o.maxSize.uper) (childType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules) (getChildDefinition childType.typeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
         let privateDefinition =
             match childType.typeDefinitionOrReference with
             | TypeDefinition  td -> td.privateTypeDefinition

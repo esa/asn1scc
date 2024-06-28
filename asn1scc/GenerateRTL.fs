@@ -116,8 +116,8 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
     // TODO: Scala
     | ProgrammingLanguage.Scala ->
         File.WriteAllBytes(
-            Path.Combine(rootDir, "lib", "stainless-library_2.13-0.9.8.2.jar"),
-            getResourceAsByteArray "stainless-library_2.13-0.9.8.2.jar"
+            Path.Combine(rootDir, "lib", "stainless-library_3-0.9.8.7.jar"),
+            getResourceAsByteArray "stainless-library_3-0.9.8.7.jar"
         )
         writeTextFile (Path.Combine(rootDir, "build.sbt")) (getResourceAsString "build.sbt")
 

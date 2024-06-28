@@ -15,6 +15,7 @@ package asn1src
 import asn1scala._
 import stainless.lang._
 import stainless.annotation._
+import stainless.collection._
 import stainless.proof._
 import StaticChecks._
 
@@ -185,15 +186,18 @@ typedef <prTd.typeName> <td.typeName>
 /***********************************       SEQUENCE OF    ************************************************************/
 
 
-Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeDefinition, arrsInvariants) ::= <<
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeClassDefinition, arrsSizeObjDefinition, arrsInvariants) ::= <<
 
 <soChildDefinition>
 
-case class <td.typeName> (<if(!bFixedSize)>nCount: Int, <endif>arr: Array[<sChildType>])
+case class <td.typeName> (<if(!bFixedSize)>nCount: Int, <endif>arr: List[<sChildType>])
 {
     <arrsInvariants; separator="\n">
 
-    <arrsSizeDefinition; separator="\n\n">
+    <arrsSizeClassDefinition; separator="\n\n">
+}
+object <td.typeName> {
+    <arrsSizeObjDefinition; separator="\n\n">
 }
 >>
 

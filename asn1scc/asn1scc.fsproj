@@ -23,8 +23,8 @@
       <EmbeddedResource Include="..\asn1scala\build.sbt">
       <Link>build.sbt</Link>
     </EmbeddedResource>
-      <EmbeddedResource Include="..\asn1scala\lib\stainless-library_2.13-0.9.8.2.jar">
-      <Link>stainless-library_2.13-0.9.8.2.jar</Link>
+      <EmbeddedResource Include="..\asn1scala\lib\stainless-library_3-0.9.8.7.jar">
+      <Link>stainless-library_3-0.9.8.7.jar</Link>
     </EmbeddedResource>
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
 

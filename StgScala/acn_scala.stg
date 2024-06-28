@@ -559,7 +559,6 @@ val <p>_nCount = locally {
     }
     <p>_nCount
 }
-val <p> = <sTasName>(<p>_nCount.toInt, Array.fill(<p>_nCount.toInt)(<sChildInitExpr>))
 <soCallAux>
 >>
 
@@ -578,8 +577,7 @@ sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nS
 
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
-        val <p> = <sTypeDefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, Array.fill(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>)(<sChildInitExpr>))
-        @ghost val <p>_snap = snapshot(<p>)
+        val <p>_nCount = <if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>
         <soCallAux>
         <p>
     else return LeftMut(<sErrCode>)
@@ -600,8 +598,6 @@ sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSi
 
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
-        val <p> = <sTypeDefName>(Array.fill(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>)(<sChildInitExpr>))
-        @ghost val <p>_snap = snapshot(<p>)
         <soCallAux>
         <p>
     else return LeftMut(<sErrCode>)

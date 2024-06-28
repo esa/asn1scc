@@ -478,20 +478,20 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nStringLength, <nSizeMin>
 
 
 /* SEQUENCE OF & OCTET STRING*/
-seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr) ::= <<
+seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
 >>
 
-seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr) ::= <<
+seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
 BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>);
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeMax>);
 *pErrCode = ret ? 0 : <sErrCode>;
 <p><sAcc>nCount = (long)nCount;

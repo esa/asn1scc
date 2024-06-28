@@ -207,7 +207,7 @@ let sequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (child
     else Some (And conds)
 
 let sequenceOfInvariants (sqf: Asn1AcnAst.SequenceOf) (recv: Expr): Expr =
-    let len = ArrayLength (FieldSelect (recv, "arr"))
+    let len = isize (FieldSelect (recv, "arr"))
     if sqf.minSize.acn = sqf.maxSize.acn then Equals (len, int32lit sqf.maxSize.acn)
     else
       let nCount = FieldSelect (recv, "nCount")
@@ -438,39 +438,6 @@ and choiceSizeExpr (choice: Asn1AcnAst.Choice)
   )
   {bdgs = []; resSize = MatchExpr {scrut = obj; cases = cases}}
 
-// TODO: incorrect si on refine un element dans la sequenceOf....
-and seqOfSizeRangeExpr (sq: Asn1AcnAst.SequenceOf)
-                       (align: AcnAlignment option)
-                       (obj: Expr)
-                       (offset: Expr)
-                       (nestingLevel: bigint)
-                       (nestingIx: bigint): SizeExprRes =
-  let from = {name = "from"; tpe = IntegerType Int}
-  let tto = {name = "to"; tpe = IntegerType Int}
-  let arr = FieldSelect (obj, "arr")
-
-  let elem = ArraySelect (arr, Var from)
-  let elemSizeVar = {name = "elemSize"; tpe = IntegerType Long}
-  let elemSize = asn1SizeExpr sq.child.acnAlignment sq.child.Kind elem offset nestingLevel nestingIx
-  let elemSizeAssert =
-    if sq.child.Kind.acnMinSizeInBits = sq.child.Kind.acnMaxSizeInBits then
-      Assert (Equals (Var elemSizeVar, longlit sq.child.Kind.acnMinSizeInBits))
-    else
-      Assert (And [
-        Leq (longlit sq.child.Kind.acnMinSizeInBits, Var elemSizeVar)
-        Leq (Var elemSizeVar, longlit sq.child.Kind.acnMaxSizeInBits)
-      ])
-  let invAssert = Assert (sequenceOfInvariants sq obj)
-  let reccall = sizeRange This (plus [offset; Var elemSizeVar]) (plus [Var from; int32lit 1I]) (Var tto)
-  let resSize = alignedSizeTo align (plus [Var elemSizeVar; reccall]) offset
-  let elseBody = letsIn (elemSize.bdgs @ [elemSizeVar, elemSize.resSize]) (mkBlock [elemSizeAssert; invAssert; resSize])
-  let body =
-    IfExpr {
-      cond = Equals (Var from, Var tto)
-      thn = longlit 0I
-      els = elseBody
-    }
-  {bdgs = []; resSize = body}
 
 
 let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef list =
@@ -577,55 +544,78 @@ let choiceSizeFunDefs (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice): FunD
   let lemmas = implyingAligns |> List.map sizeLemmas
   sizeFd :: lemmas
 
-let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): FunDef list =
-  let offset = {Var.name = "offset"; tpe = IntegerType Long}
+let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDef list * FunDef list =
+  let td = sq.typeDef.[Scala].typeName
+  let elemTpe = fromAsn1TypeKind sq.child.Kind
+  let lsTpe = ClassType (listTpe elemTpe)
   let res = {name = "res"; tpe = IntegerType Long}
-  let count = FieldSelect (This, "nCount")
-  let inv = sequenceOfInvariants sq This
-  let offsetCondHelper (offset: Var) (from: Var) (tto: Var): Expr =
-    let overhead = sq.acnMaxSizeInBits - sq.maxSize.acn * elemTpe.Kind.baseKind.acnMaxSizeInBits
-    mkBlock [
-      Assert inv
-      And [
-        Leq (longlit 0I, Var offset)
-        Leq (Var offset, Minus (longlit (2I ** 63 - 1I - overhead), Mult (longlit elemTpe.Kind.baseKind.acnMaxSizeInBits, Minus (Var tto, Var from))))
-      ]
-    ]
-  let rangeVarsCondHelper (from: Var) (tto: Var): Expr = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, count)]
 
-  let sizeRangeFd =
+  let callSizeRangeObj (ls: Expr) (offset: Expr) (from: Expr) (tto: Expr): Expr =
+    FunctionCall {
+      prefix = [td]
+      id = "sizeRange"
+      args = [ls; offset; from; tto]
+    }
+
+  let offsetCondHelper (offset: Var) (from: Var) (tto: Var): Expr =
+    let overhead = sq.acnMaxSizeInBits - sq.maxSize.acn * sq.child.Kind.acnMaxSizeInBits
+    And [
+      Leq (longlit 0I, Var offset)
+      Leq (Var offset, Minus (longlit (2I ** 63 - 1I - overhead), Mult (longlit sq.child.Kind.acnMaxSizeInBits, Minus (Var tto, Var from))))
+    ]
+  let rangeVarsCondHelper (ls: Var) (from: Var) (tto: Var): Expr = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, isize (Var ls)); Leq (isize (Var ls), int32lit sq.maxSize.acn)]
+
+  let sizeRangeObjFd =
+    let ls = {name = "ls"; tpe = lsTpe}
+    let offset = {Var.name = "offset"; tpe = IntegerType Long}
     let from = {name = "from"; tpe = IntegerType Int}
     let tto = {name = "to"; tpe = IntegerType Int}
     let measure = Minus (Var tto, Var from)
     let offsetCond = offsetCondHelper offset from tto
-    let rangeVarsConds = rangeVarsCondHelper from tto
-    let sizeRes = seqOfSizeRangeExpr sq t.acnAlignment This (Var offset) 0I 0I
+    let rangeVarsConds = rangeVarsCondHelper ls from tto
+    let elem = iapply (Var ls) (Var from)
+    let elemSizeVar = {name = "elemSize"; tpe = IntegerType Long}
+    let elemSize = asn1SizeExpr sq.child.acnAlignment sq.child.Kind elem (Var offset) 0I 0I
+    let elemSizeAssert =
+      if sq.child.Kind.acnMinSizeInBits = sq.child.Kind.acnMaxSizeInBits then
+        Assert (Equals (Var elemSizeVar, longlit sq.child.Kind.acnMinSizeInBits))
+      else
+        Assert (And [
+          Leq (longlit sq.child.Kind.acnMinSizeInBits, Var elemSizeVar)
+          Leq (Var elemSizeVar, longlit sq.child.Kind.acnMaxSizeInBits)
+        ])
+    let reccall = callSizeRangeObj (Var ls) (plus [Var offset; Var elemSizeVar]) (plus [Var from; int32lit 1I]) (Var tto)
+    let resSize = alignedSizeTo t.acnAlignment (plus [Var elemSizeVar; reccall]) (Var offset)
+    let elseBody = letsIn (elemSize.bdgs @ [elemSizeVar, elemSize.resSize]) (mkBlock [elemSizeAssert; resSize])
+    let body =
+      IfExpr {
+        cond = Equals (Var from, Var tto)
+        thn = longlit 0I
+        els = elseBody
+      }
+
     let postcondRange =
       let nbElems = {Var.name = "nbElems"; tpe = IntegerType Int} // TODO: Add explicit cast to Long
-      let sqLowerBound = Mult (longlit elemTpe.Kind.baseKind.acnMinSizeInBits, Var nbElems)
-      let sqUpperBound = Mult (longlit elemTpe.Kind.baseKind.acnMaxSizeInBits, Var nbElems)
+      let sqUpperBound = Mult (longlit sq.child.Kind.acnMaxSizeInBits, Var nbElems)
       Let {
         bdg = nbElems
         e = Minus (Var tto, Var from) // TODO: Add explicit cast to Long
-        body = mkBlock [
-          Assert (And [Leq (int32lit 0I, Var nbElems); Leq (Var nbElems, int32lit sq.maxSize.acn)]) // To help check against multiplication overflows
-          And [
-            Leq (sqLowerBound, Var res)
-            Leq (Var res, sqUpperBound)
-          ]
+        body = And [
+          Leq (longlit 0I, Var res)
+          Leq (Var res, sqUpperBound)
         ]
       }
     {
       id = "sizeRange"
-      prms = [offset; from; tto]
+      prms = [ls; offset; from; tto]
       specs = [Precond rangeVarsConds; Precond offsetCond; Measure measure]
       annots = []
       postcond = Some (res, postcondRange)
       returnTpe = IntegerType Long
-      body = sizeRes.resSize
+      body = body
     }
 
-  let sizeLemmas (align: AcnAlignment option): FunDef =
+  let sizeLemmas (align: AcnAlignment option): FunDef * FunDef =
     let elemSizeAssert (elemSizeVar: Var): Expr =
       if sq.child.Kind.acnMinSizeInBits = sq.child.Kind.acnMaxSizeInBits then
         Assert (Equals (Var elemSizeVar, longlit sq.child.Kind.acnMinSizeInBits))
@@ -636,12 +626,9 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemT
         ])
 
     let template = sizeLemmaTemplate sq.acnMaxSizeInBits align
-    let tmplOffset = template.prms.[0]
-    let tmplOtherOffset = template.prms.[1]
-    // All related to the inner recursive proof function
-    let proofId = "proof"
-    let offset = {Var.name = "offset"; tpe = IntegerType Long}
-    let otherOffset = {Var.name = "otherOffset"; tpe = IntegerType Long}
+    let offset = template.prms.[0]
+    let otherOffset = template.prms.[1]
+    let ls = {name = "ls"; tpe = lsTpe}
     let from = {name = "from"; tpe = IntegerType Int}
     let tto = {name = "to"; tpe = IntegerType Int}
     let additionalPrecond =
@@ -653,10 +640,10 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemT
         [Precond (Equals (modOffset, modOtherOffset))]
     let postcond =
       Equals (
-        sizeRange This (Var offset) (Var from) (Var tto),
-        sizeRange This (Var otherOffset) (Var from) (Var tto)
+        callSizeRangeObj (Var ls) (Var offset) (Var from) (Var tto),
+        callSizeRangeObj (Var ls) (Var otherOffset) (Var from) (Var tto)
       )
-    let elemSel = ArraySelect (FieldSelect (This, "arr"), Var from)
+    let elemSel = iapply (Var ls) (Var from)
     let elemSizeOffVar = {Var.name = "elemSizeOff"; tpe = IntegerType Long}
     let elemSizeOtherOffVar = {Var.name = "elemSizeOtherOff"; tpe = IntegerType Long}
     let elemSizeOffRes = asn1SizeExpr align sq.child.Kind elemSel (Var offset) 0I 0I
@@ -667,9 +654,11 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemT
       elemSizeOtherOffRes.bdgs @
       [(elemSizeOtherOffVar, elemSizeOtherOffRes.resSize)]
     let elemLemmaCall = sizeLemmaCall sq.child.Kind align elemSel (Var offset) (Var otherOffset)
-    let inductiveStep = ApplyLetRec {
-      id = proofId
+    let inductiveStep = FunctionCall {
+      prefix = [td]
+      id = template.id
       args = [
+        Var ls
         plus [Var offset; Var elemSizeOffVar]
         plus [Var otherOffset; Var elemSizeOtherOffVar]
         plus [Var from; int32lit 1I]
@@ -679,7 +668,6 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemT
     let proofElsePart = mkBlock ([
       elemSizeAssert elemSizeOffVar
       elemSizeAssert elemSizeOtherOffVar
-      Assert inv
     ] @ (elemLemmaCall |> Option.toList) @ [inductiveStep])
     let proofElsePart = letsIn elemSizesBdgs proofElsePart
     let proofBody =
@@ -690,43 +678,50 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf) (elemT
       }
     let proofSpecs =
       [
-        Precond (rangeVarsCondHelper from tto)
+        Precond (rangeVarsCondHelper ls from tto)
         Precond (offsetCondHelper offset from tto)
         Precond (offsetCondHelper otherOffset from tto)
       ] @ additionalPrecond @ [Measure (Minus (Var tto, Var from))]
-    let proofFd = {
-      id = proofId
-      prms = [offset; otherOffset; from; tto]
+    let objFd = {
+      id = template.id
+      prms = [ls; offset; otherOffset; from; tto]
       annots = [GhostAnnot; Opaque; InlineOnce]
       specs = proofSpecs
       postcond = Some ({name = "_"; tpe = UnitType}, postcond)
       returnTpe = UnitType
       body = proofBody
     }
-    let proofCall = ApplyLetRec {id = proofId; args = [Var tmplOffset; Var tmplOtherOffset; int32lit 0I; count]}
-    {template with body = LetRec {fds = [proofFd]; body = proofCall}}
+    let objCall = FunctionCall {prefix = [td]; id = objFd.id; args = [FieldSelect (This, "arr"); Var offset; Var otherOffset; int32lit 0I; FieldSelect (This, "nCount")]}
+    let clsFd = {template with body = objCall}
+    clsFd, objFd
 
-  let sizeField =
-    match sq.acnEncodingClass with
-    | SZ_EC_LENGTH_EMBEDDED sz -> sz
-    | _ -> 0I // TODO: Pattern?
-  let postcond =
-    if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then Equals (Var res, longlit sq.acnMaxSizeInBits)
-    else And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
-  let finalSize = plus [longlit sizeField; sizeRange This (Var offset) (int32lit 0I) count]
-  let sizeFd = {
-    id = "size"
-    prms = [offset]
-    specs = [Precond (offsetConds offset sq.acnMaxSizeInBits)]
-    annots = []
-    postcond = Some (res, postcond)
-    returnTpe = IntegerType Long
-    body = finalSize
-  }
+  let sizeClsFd =
+    let offset = {Var.name = "offset"; tpe = IntegerType Long}
+    let sizeField =
+      match sq.acnEncodingClass with
+      | SZ_EC_LENGTH_EMBEDDED sz -> sz
+      | _ -> 0I // TODO: Pattern?
+    let postcond =
+      if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then Equals (Var res, longlit sq.acnMaxSizeInBits)
+      else And [Leq (longlit 0I, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
+    let finalSize = (plus [
+      longlit sizeField
+      callSizeRangeObj (FieldSelect (This, "arr")) (Var offset) (int32lit 0I) (FieldSelect (This, "nCount"))
+    ])
+    {
+      id = "size"
+      prms = [offset]
+      specs = [Precond (offsetConds offset sq.acnMaxSizeInBits)]
+      annots = []
+      postcond = Some (res, postcond)
+      returnTpe = IntegerType Long
+      body = finalSize
+    }
+
   let maxAlign = maxAlignment t
   let implyingAligns = implyingAlignments maxAlign
-  let lemmas = implyingAligns |> List.map sizeLemmas
-  sizeRangeFd :: sizeFd :: lemmas
+  let clsLemmas, objLemmas = implyingAligns |> List.map sizeLemmas |> List.unzip
+  sizeClsFd :: clsLemmas, sizeRangeObjFd :: objLemmas
 
 
 let generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): string list =
@@ -737,9 +732,9 @@ let generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.C
   let fds = choiceSizeFunDefs t choice
   fds |> List.map (fun fd -> show (FunDefTree fd))
 
-let generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): string list =
-  let fds = seqOfSizeFunDefs t sqf elemTpe
-  fds |> List.map (fun fd -> show (FunDefTree fd))
+let generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): string list * string list =
+  let fdsCls, fdsObj = seqOfSizeFunDefs t sqf
+  fdsCls |> List.map (fun fd -> show (FunDefTree fd)), fdsObj |> List.map (fun fd -> show (FunDefTree fd))
 
 let generateEncodePostcondExprCommon (tpe: Type)
                                      (maxSize: bigint)
@@ -1358,14 +1353,26 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
   let codecTpe = runtimeCodecTypeFor enc
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
   let oldCdc = {Var.name = "oldCdc"; tpe = ClassType codecTpe}
-  let cdcBeforeLoop = {Var.name = "codecBeforeLoop"; tpe = ClassType codecTpe}
+  let cdcBeforeLoop = {Var.name = $"codecBeforeLoop_{pg.nestingIx}"; tpe = ClassType codecTpe}
   let cdcSnap1 = {Var.name = "codecSnap1"; tpe = ClassType codecTpe}
   let from = {Var.name = pg.ixVariable; tpe = IntegerType Int}
-  let sqfVar = {Var.name = pg.cs.arg.lastIdOrArr; tpe = sqfTpe}
+  let sqfVar = {Var.name = pg.cs.arg.asIdentifier; tpe = sqfTpe}
+  let count = {Var.name = "nCount"; tpe = IntegerType Int}
+  let outerSqf =
+    if enc = ACN || codec = Decode then Var sqfVar
+    else SelectionExpr (joinedSelection pg.cs.arg)
   let td =
     match sqf with
     | SqOf sqf -> sqf.typeDef.[Scala].typeName
     | StrType str -> str.typeDef.[Scala].typeName
+
+  let callSizeRangeObj (ls: Expr) (offset: Expr) (from: Expr) (tto: Expr): Expr =
+    FunctionCall {
+      prefix = [td]
+      id = "sizeRange"
+      args = [ls; offset; from; tto]
+    }
+
   let fnid =
     let prefix = pg.nestingScope.parents |> List.tryHead |> Option.map (fun (cs, _) -> $"{cs.arg.asIdentifier}_") |> Option.defaultValue ""
     match codec with
@@ -1377,7 +1384,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     else
       match sqf with
       | StrType _ when enc = UPER -> ArrayLength (Var sqfVar)
-      | _ -> FieldSelect (Var sqfVar, "nCount")
+      | _ -> if codec = Encode then FieldSelect (Var sqfVar, "nCount") else Var count
   let maxElemSz = sqf.maxElemSizeInBits enc
 
   let fromBounds = And [Leq (int32lit 0I, Var from); Leq (Var from, nbItems)]
@@ -1397,16 +1404,56 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       validateOffsetBitsIneqLemma (selBitStream (Var cdcSnap1)) (selBitStream (Var cdc)) (Mult (longlit maxElemSz, Minus (nbItems, Var from))) (longlit maxElemSz)
       Check (validateOffsetBitsACN (Var cdc) (Mult (longlit maxElemSz, Minus (nbItems, plus [Var from; int32lit 1I]))))
     ])
-  let reccall = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; plus [Var from; int32lit 1I]]}
   // TODO: ALIGNMENT
   let sizeLemmaCall =
     match sqf with
-    | SqOf _ -> Some (MethodCall {recv = Var sqfVar; id = sizeLemmaId None; args = [bitIndexACN (Var cdcBeforeLoop); bitIndexACN (Var oldCdc)]})
+    | SqOf _ -> Some (MethodCall {recv = outerSqf; id = sizeLemmaId None; args = [bitIndexACN (Var cdcBeforeLoop); bitIndexACN (Var oldCdc)]})
     | StrType _ -> None
+
+  let getLength (arr: Expr): Expr =
+    match sqf with
+    | SqOf _ -> isize arr
+    | StrType _ -> ArrayLength arr
+
+  let select (arr: Expr) (ix: Expr): Expr =
+    match sqf with
+    | SqOf _ -> iapply arr ix
+    | StrType _ -> ArraySelect (arr, ix)
+
+  let rangesEq =
+    match sqf with
+    | SqOf _ -> listRangesEq
+    | StrType _ -> arrayRangesEq
+
+  let rangesEqReflexiveLemma =
+    match sqf with
+    | SqOf _ -> listRangesEqReflexiveLemma
+    | StrType _ -> arrayRangesEqReflexiveLemma
+
+  let rangesEqSlicedLemma =
+    match sqf with
+    | SqOf _ -> listRangesEqSlicedLemma
+    | StrType _ -> arrayRangesEqSlicedLemma
+
+  let updatedAtPrefixLemma =
+    match sqf with
+    | SqOf _ -> listUpdatedAtPrefixLemma
+    | StrType _ -> arrayUpdatedAtPrefixLemma
+
+  let rangesEqTransitive =
+    match sqf with
+    | SqOf _ -> listRangesEqTransitive
+    | StrType _ -> arrayRangesEqTransitive
+
+  let rangesEqImpliesEq =
+    match sqf with
+    | SqOf _ -> listRangesEqImpliesEq
+    | StrType _ -> arrayRangesEqImpliesEq
 
   match codec with
   | Encode ->
     let fnRetTpe = ClassType (eitherTpe (IntegerType Int) (IntegerType Int))
+    let reccall = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; plus [Var from; int32lit 1I]]}
     let elseBody = LetGhost {
       bdg = cdcSnap1
       e = Snapshot (Var cdc)
@@ -1426,7 +1473,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       let oldCdc = Old (Var cdc)
       let sz =
         match sqf with
-        | SqOf _ -> sizeRange (Var sqfVar) (bitIndexACN oldCdc) (Var from) nbItems
+        | SqOf _ -> callSizeRangeObj (FieldSelect (Var sqfVar, "arr")) (bitIndexACN oldCdc) (Var from) nbItems
         | StrType _ -> Mult (longlit maxElemSz, Var from)
       let rightBody = And [
         Equals (selBufLength oldCdc, selBufLength (Var cdc))
@@ -1444,7 +1491,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     }
 
     let call =
-      let scrut = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; int32lit 0I]}
+      let scrut = FunctionCall {prefix = []; id = fnid; args = [Var cdc; outerSqf; int32lit 0I]}
       let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
       let leftBody = Return (leftExpr (IntegerType Int) (IntegerType Int) (Var leftBdg))
       let rightBody = sizeLemmaCall |> Option.map Ghost |> Option.defaultValue UnitLit
@@ -1452,47 +1499,124 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     let call = letsGhostIn [cdcBeforeLoop, Snapshot (Var cdc)] call
     [fd], call
   | Decode ->
+    let elemTpe = fromSequenceOfLikeElemTpe sqf
+    let cdcSnap2 = {Var.name = "codecSnap2"; tpe = ClassType codecTpe}
+    match sqf with
+    | SqOf sq ->
+      let countParam = if sqf.isFixedSize then [] else [count]
+      let collTpe = ClassType (listTpe elemTpe)
+      let fnRetTpe = ClassType (eitherMutTpe (IntegerType Int) collTpe)
+      let sqfListVar = {Var.name = pg.cs.arg.asIdentifier + "_list"; tpe = collTpe}
+      let reversed = reverse (Var sqfListVar)
+      let thnCase =
+        mkBlock [
+          Ghost (mkBlock [
+            rangesEqReflexiveLemma reversed
+            rangesEqSlicedLemma reversed reversed (int32lit 0I) (getLength reversed) (int32lit 0I) (Var from)
+          ])
+          rightMutExpr (IntegerType Int) collTpe reversed
+        ]
+      let elseCase =
+        let reccallRes = {Var.name = "res"; tpe = fnRetTpe}
+        let newList = {Var.name = "newList"; tpe = collTpe}
+        let decodedElemVar = {Var.name = $"{pg.cs.arg.asIdentifier}_arr_iapply_{pg.ixVariable}_"; tpe = elemTpe}
+        let postrecProofSuccess = mkBlock ([
+          listRangesAppendDropEq reversed (Var newList) (Var decodedElemVar) (int32lit 0I) (Var from)
+          listRangesEqImpliesEq (reverse (consExpr elemTpe (Var decodedElemVar) (Var sqfListVar))) (Var newList) (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
+          isnocIndex reversed (Var decodedElemVar) (Var from)
+        ])
+        let updated = consExpr elemTpe (Var decodedElemVar) (Var sqfListVar)
+        let reccall = FunctionCall {prefix = []; id = fnid; args = [Var cdc] @ (countParam |> List.map Var) @ [updated; plus [Var from; int32lit 1I]]}
+        let postrecProof = Ghost (eitherMutMatchExpr (Var reccallRes) None UnitLit (Some newList) postrecProofSuccess)
+        mkBlock ((preSerde :: encDec) @ [
+        letsGhostIn [cdcSnap2, Snapshot (Var cdc)] (
+        mkBlock [
+            postSerde
+            letsIn [reccallRes, reccall] (mkBlock [postrecProof; Var reccallRes])
+        ])])
+      let ite = IfExpr {
+        cond = Equals (Var from, nbItems)
+        thn = thnCase
+        els = elseCase
+      }
+      let body = letsGhostIn [cdcSnap1, Snapshot (Var cdc)] ite
+      let postcondRes = {Var.name = "res"; tpe = fnRetTpe}
+      let postcond =
+        let newList = {Var.name = "newList"; tpe = collTpe}
+        let oldCdc = Old (Var cdc)
+        let sz = callSizeRangeObj (Var newList) (bitIndexACN oldCdc) (Var from) nbItems
+        // let decodeIntoArrayCond =
+        //   match pg.elemDecodeFn with
+        //   | None -> []
+        //   | Some decodeFn ->
+        //     let decodePure = TupleSelect (FunctionCall {prefix = []; id = $"{decodeFn}_pure"; args = [oldCdc]}, 2)
+        //     [Or [
+        //       Equals (Var from, nbItems)
+        //       Equals (
+        //         rightMutExpr (IntegerType Int) UnitType (select (Var sqfVar) (Var from)),
+        //         decodePure
+        //       )
+        //     ]]
+        let rightBody = And ([
+          Equals (selBuf oldCdc, selBuf (Var cdc))
+          Equals (isize (Var newList), nbItems)
+          listRangesEq reversed (Var newList) (int32lit 0I) (Var from)
+          Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz])
+        ])
+        eitherMutMatchExpr (Var postcondRes) None (BoolLit true) (Some newList) rightBody
+      let countPrecond =
+        if sqf.isFixedSize then []
+        else [Precond (And [Leq (int32lit sq.minSize.acn, Var count); Leq (Var count, int32lit sq.maxSize.acn)])]
+      let fd = {
+        FunDef.id = fnid
+        prms = [cdc] @ countParam @ [sqfListVar; from]
+        annots = [Opaque; InlineOnce]
+        specs = if enc = ACN then countPrecond @ [Precond fromBounds; Precond (Equals (isize (Var sqfListVar), (Var from))); Precond validateOffset; Measure decreasesExpr] else []
+        postcond = if enc = ACN then Some (postcondRes, postcond) else None
+        returnTpe = fnRetTpe
+        body = body
+      }
+      let call =
+        let count =
+          if sqf.isFixedSize then []
+          else [Var {Var.name = pg.cs.arg.asIdentifier + "_nCount"; tpe = IntegerType Int}]
+        let scrut = FunctionCall {prefix = []; id = fnid; args = [Var cdc] @ count @ [nilExpr elemTpe; int32lit 0I]}
+        let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
+        // TODO: FIXME: the right type must be the outside type!!!
+        let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
+        let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
+        let rightBody =
+          let ctor = ClassCtor {ct = {id = td; tps = []}; args = count @ [Var sqfListVar]}
+          letsIn [sqfVar, ctor] (mkBlock ((sizeLemmaCall |> Option.map Ghost |> Option.toList) @ [Var sqfVar]))
+        letsIn [sqfVar, eitherMutMatchExpr scrut (Some leftBdg) leftBody (Some sqfListVar) rightBody] (mkBlock [])
+      let call = letsGhostIn [cdcBeforeLoop, Snapshot (Var cdc)] call
+      [fd], call
+    | StrType _ ->
     let fnRetTpe = ClassType (eitherMutTpe (IntegerType Int) UnitType)
     let cdcSnap2 = {Var.name = "codecSnap2"; tpe = ClassType codecTpe}
     let elemTpe = fromSequenceOfLikeElemTpe sqf
     let arr1 = {Var.name = "arr1"; tpe = ArrayType {tpe = elemTpe}}
     let arr2 = {Var.name = "arr2"; tpe = ArrayType {tpe = elemTpe}}
-
-    let sqfSelArr, oldSqfSelArr, sqfSelSnap =
-      match sqf with
-      | SqOf _ -> FieldSelect (Var sqfVar, "arr"), FieldSelect (Old (Var sqfVar), "arr"), FieldSelect (Snapshot (Var sqfVar), "arr")
-      | StrType _ -> Var sqfVar, Old (Var sqfVar), Snapshot (Var sqfVar)
-
+    let sqfSelArr, oldSqfSelArr, sqfSelSnap = Var sqfVar, Old (Var sqfVar), Snapshot (Var sqfVar)
     let thnCase = mkBlock [
       Ghost (mkBlock [
-        arrayRangesEqReflexiveLemma sqfSelArr
-        arrayRangesEqSlicedLemma sqfSelArr sqfSelSnap (int32lit 0I) (ArrayLength sqfSelArr) (int32lit 0I) (Var from)
+        rangesEqReflexiveLemma sqfSelArr
+        rangesEqSlicedLemma sqfSelArr sqfSelSnap (int32lit 0I) (getLength sqfSelArr) (int32lit 0I) (Var from)
       ])
       rightMutExpr (IntegerType Int) UnitType UnitLit
     ]
 
     let elseCase =
       let reccallRes = {Var.name = "res"; tpe = fnRetTpe}
-      // TODO: Hack
-      let decodedElemVar = {Var.name = $"{pg.cs.arg.asIdentifier}_arr_{pg.ixVariable}_"; tpe = elemTpe}
-      let sizeConds =
-        match sqf with
-        | SqOf _ ->
-          // TODO: ALIGNMENT
-          [
-            MethodCall {recv = Var sqfVar; id = sizeLemmaId None; args = [bitIndexACN (Var cdcSnap1); bitIndexACN (Var cdcSnap2)]}
-            Check (Equals (bitIndexACN (Var cdc), plus [bitIndexACN (Var cdcSnap1); sizeRange (Var sqfVar) (bitIndexACN (Var cdcSnap1)) (Var from) nbItems]))
-          ]
-        | StrType _ ->
-          [
-            Check (Equals (bitIndexACN (Var cdc), plus [bitIndexACN (Var cdcSnap1); Mult (longlit maxElemSz, Var from)]))
-          ]
+      let decodedElemVar = {Var.name = $"{pg.cs.arg.asIdentifier}_arr_iapply_{pg.ixVariable}_"; tpe = elemTpe}
+      let sizeConds = [Check (Equals (bitIndexACN (Var cdc), plus [bitIndexACN (Var cdcSnap1); Mult (longlit maxElemSz, Var from)]))]
       let postrecProofSuccess = mkBlock ([
-        arrayUpdatedAtPrefixLemma (Var arr1) (Var from) (Var decodedElemVar)
-        arrayRangesEqTransitive (Var arr1) (Var arr2) sqfSelArr (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
-        Check (arrayRangesEq (Var arr1) sqfSelArr (int32lit 0I) (Var from))
-        arrayRangesEqImpliesEq (Var arr2) sqfSelArr (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
+        updatedAtPrefixLemma (Var arr1) (Var from) (Var decodedElemVar)
+        rangesEqTransitive (Var arr1) (Var arr2) sqfSelArr (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
+        Check (rangesEq (Var arr1) sqfSelArr (int32lit 0I) (Var from))
+        rangesEqImpliesEq (Var arr2) sqfSelArr (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
       ] @ sizeConds)
+      let reccall = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; plus [Var from; int32lit 1I]]}
       let postrecProof = Ghost (eitherMutMatchExpr (Var reccallRes) None UnitLit None postrecProofSuccess)
       (letsGhostIn [arr1, Snapshot sqfSelArr] (
       mkBlock ((preSerde :: encDec) @ [
@@ -1514,7 +1638,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       let oldCdc = Old (Var cdc)
       let sz =
         match sqf with
-        | SqOf _ -> sizeRange (Var sqfVar) (bitIndexACN oldCdc) (Var from) nbItems
+        | SqOf _ -> callSizeRangeObj (FieldSelect (Var sqfVar, "arr")) (bitIndexACN oldCdc) (Var from) nbItems
         | StrType _ -> Mult (longlit maxElemSz, Var from)
       let ncountCond =
         if sqf.isFixedSize then []
@@ -1527,15 +1651,15 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
           [Or [
             Equals (Var from, nbItems)
             Equals (
-              rightMutExpr (IntegerType Int) UnitType (ArraySelect ((Var sqfVar), Var from)),
+              rightMutExpr (IntegerType Int) UnitType (select (Var sqfVar) (Var from)),
               decodePure
             )
           ]]
       let rightBody = And ([
         Equals (selBuf oldCdc, selBuf (Var cdc))
-        Equals (ArrayLength oldSqfSelArr, ArrayLength sqfSelArr)
+        Equals (getLength oldSqfSelArr, getLength sqfSelArr)
       ] @ ncountCond @
-        [arrayRangesEq oldSqfSelArr sqfSelArr (int32lit 0I) (Var from)] @
+        [rangesEq oldSqfSelArr sqfSelArr (int32lit 0I) (Var from)] @
         decodeIntoArrayCond @
         [Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz])])
       eitherMutMatchExpr (Var postcondRes) None (BoolLit true) None rightBody

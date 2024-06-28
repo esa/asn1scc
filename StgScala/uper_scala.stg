@@ -109,8 +109,8 @@ codec.base.encodeConstrainedWholeNumber(charIndex, 0, <nLastItemIndex>)
 InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 
-val <p>_arr_<i>_ = allowedCharSet(codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>).toInt).toRawUByte
-<p>(<i>) = <p>_arr_<i>_
+val <p>_arr_iapply_<i>_ = allowedCharSet(codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>).toInt).toRawUByte
+<p>(<i>) = <p>_arr_iapply_<i>_
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
@@ -118,8 +118,8 @@ codec.base.encodeConstrainedWholeNumber(<p>(<i>).toRaw, 0, 127)
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-val <p>_arr_<i>_ = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 127)) // uper:109
-<p>(<i>) = <p>_arr_<i>_
+val <p>_arr_iapply_<i>_ = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 127)) // uper:109
+<p>(<i>) = <p>_arr_iapply_<i>_
 >>
 
 /* INTEGER START*/
@@ -448,16 +448,15 @@ nStringLength = codec.base.decodeConstrainedWholeNumberInt(<nSizeMin>, <nSizeMax
 >>
 
 /* SEQUENCE OF & OCTET STRING*/
-seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr) ::= <<
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
+seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
+<soCallAux>
 >>
 
-seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr) ::= <<
-val <p> = <sTasName>(<nFixedSize>, Array.fill(<nFixedSize>)(<sChildInitExpr>))
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
+seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
+<soCallAux>
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -475,16 +474,10 @@ locally {
         //check(codec.base.bitStream.bitIndex \<= codec_<nLevel>_<nIx>.base.bitStream.bitIndex + <nOffset>L + <nSizeInBits>L)
     }
 }
-
-<i> = 0
-while(<i> \< <p>.nCount.toInt) {
-    decreases(<p>.nCount.toInt - <i>)
-    <sInternalItem>
-    <i> += 1
-}
+<soCallAux>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -503,14 +496,7 @@ val <p>_nCount = locally {
     }
     <p>_nCount
 }
-val <p> = <sTasName>(<p>_nCount.toInt, Array.fill(<p>_nCount.toInt)(<sChildInitExpr>))
-@ghost val <p>_snap = snapshot(<p>)
-<i> = 0
-while(<i> \< <p>_nCount.toInt) {
-    decreases(<p>_nCount.toInt - <i>)
-    <sInternalItem>
-    <i> += 1
-}
+<soCallAux>
 >>
 
 octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<

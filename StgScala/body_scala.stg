@@ -11,6 +11,7 @@ package asn1src
 import asn1scala._
 import stainless.lang.{ghost => ghostExpr, _}
 import stainless.annotation._
+import stainless.collection._
 import stainless.proof._
 import StaticChecks._
 
