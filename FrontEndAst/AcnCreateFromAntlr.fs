@@ -531,7 +531,6 @@ let createAcnBooleanProperties (props: GenericAcnProperty list) (acnErrLoc: SrcL
             else
                 {BooleanAcnProperties.encodingPattern = Some( FalseValueEncoding(fv))}
         | None, None        -> {BooleanAcnProperties.encodingPattern = None }
-        | _                 -> raise(SemanticError(acnErrLoc, "Both 'true-value' and 'false-value' properties must be defined"))
     | None              -> {BooleanAcnProperties.encodingPattern = None }
 
 let private mergeBooleanType (args: CommandLineSettings) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState)=

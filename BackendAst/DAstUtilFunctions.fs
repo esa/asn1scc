@@ -580,22 +580,22 @@ with
         | ReferenceType ref -> ref.resolvedType.MappingFunctionsModules
         | TimeType _        -> []
 
-    member this.icdFunction =
+    member this.icdTas =
         match this.Kind with
-        | Integer           t -> t.acnEncFunction.icd.Value
-        | Real              t -> t.acnEncFunction.icd.Value
-        | IA5String         t -> t.acnEncFunction.icd.Value
-        | OctetString       t -> t.acnEncFunction.icd.Value
-        | NullType          t -> t.acnEncFunction.icd.Value
-        | BitString         t -> t.acnEncFunction.icd.Value
-        | Boolean           t -> t.acnEncFunction.icd.Value
-        | Enumerated        t -> t.acnEncFunction.icd.Value
-        | SequenceOf        t -> t.acnEncFunction.icd.Value
-        | Sequence          t -> t.acnEncFunction.icd.Value
-        | Choice            t -> t.acnEncFunction.icd.Value
-        | ReferenceType     t -> t.acnEncFunction.icd.Value
-        | ObjectIdentifier  t -> t.acnEncFunction.icd.Value
-        | TimeType          t -> t.acnEncFunction.icd.Value
+        | Integer           t -> t.acnEncFunction.icdTas
+        | Real              t -> t.acnEncFunction.icdTas
+        | IA5String         t -> t.acnEncFunction.icdTas
+        | OctetString       t -> t.acnEncFunction.icdTas
+        | NullType          t -> t.acnEncFunction.icdTas
+        | BitString         t -> t.acnEncFunction.icdTas
+        | Boolean           t -> t.acnEncFunction.icdTas
+        | Enumerated        t -> t.acnEncFunction.icdTas
+        | SequenceOf        t -> t.acnEncFunction.icdTas
+        | Sequence          t -> t.acnEncFunction.icdTas
+        | Choice            t -> t.acnEncFunction.icdTas
+        | ReferenceType     t -> t.acnEncFunction.icdTas
+        | ObjectIdentifier  t -> t.acnEncFunction.icdTas
+        | TimeType          t -> t.acnEncFunction.icdTas
 
     member this.acnEncFunction : AcnFunction option =
         match this.Kind with
