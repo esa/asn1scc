@@ -109,8 +109,8 @@ codec.base.encodeConstrainedWholeNumber(charIndex, 0, <nLastItemIndex>)
 InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 
-val <p>_arr_iapply_<i>_ = allowedCharSet(codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>).toInt).toRawUByte
-<p>(<i>) = <p>_arr_iapply_<i>_
+val <p>_arr_<i>_ = allowedCharSet(codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>).toInt).toRawUByte
+<p>(<i>) = <p>_arr_<i>_
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
@@ -118,8 +118,8 @@ codec.base.encodeConstrainedWholeNumber(<p>(<i>).toRaw, 0, 127)
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-val <p>_arr_iapply_<i>_ = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 127)) // uper:109
-<p>(<i>) = <p>_arr_iapply_<i>_
+val <p>_arr_<i>_ = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 127)) // uper:109
+<p>(<i>) = <p>_arr_<i>_
 >>
 
 /* INTEGER START*/

@@ -207,7 +207,7 @@ let sequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (child
     else Some (And conds)
 
 let sequenceOfInvariants (sqf: Asn1AcnAst.SequenceOf) (recv: Expr): Expr =
-    let len = isize (FieldSelect (recv, "arr"))
+    let len = vecSize (FieldSelect (recv, "arr"))
     if sqf.minSize.acn = sqf.maxSize.acn then Equals (len, int32lit sqf.maxSize.acn)
     else
       let nCount = FieldSelect (recv, "nCount")
@@ -547,13 +547,14 @@ let choiceSizeFunDefs (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice): FunD
 let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDef list * FunDef list =
   let td = sq.typeDef.[Scala].typeName
   let elemTpe = fromAsn1TypeKind sq.child.Kind
-  let lsTpe = ClassType (listTpe elemTpe)
+  let lsTpe = ClassType (vecTpe elemTpe)
   let res = {name = "res"; tpe = IntegerType Long}
 
   let callSizeRangeObj (ls: Expr) (offset: Expr) (from: Expr) (tto: Expr): Expr =
     FunctionCall {
       prefix = [td]
       id = "sizeRange"
+      tps = []
       args = [ls; offset; from; tto]
     }
 
@@ -563,7 +564,7 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
       Leq (longlit 0I, Var offset)
       Leq (Var offset, Minus (longlit (2I ** 63 - 1I - overhead), Mult (longlit sq.child.Kind.acnMaxSizeInBits, Minus (Var tto, Var from))))
     ]
-  let rangeVarsCondHelper (ls: Var) (from: Var) (tto: Var): Expr = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, isize (Var ls)); Leq (isize (Var ls), int32lit sq.maxSize.acn)]
+  let rangeVarsCondHelper (ls: Var) (from: Var) (tto: Var): Expr = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, vecSize (Var ls)); Leq (vecSize (Var ls), int32lit sq.maxSize.acn)]
 
   let sizeRangeObjFd =
     let ls = {name = "ls"; tpe = lsTpe}
@@ -573,7 +574,7 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
     let measure = Minus (Var tto, Var from)
     let offsetCond = offsetCondHelper offset from tto
     let rangeVarsConds = rangeVarsCondHelper ls from tto
-    let elem = iapply (Var ls) (Var from)
+    let elem = vecApply (Var ls) (Var from)
     let elemSizeVar = {name = "elemSize"; tpe = IntegerType Long}
     let elemSize = asn1SizeExpr sq.child.acnAlignment sq.child.Kind elem (Var offset) 0I 0I
     let elemSizeAssert =
@@ -643,7 +644,7 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
         callSizeRangeObj (Var ls) (Var offset) (Var from) (Var tto),
         callSizeRangeObj (Var ls) (Var otherOffset) (Var from) (Var tto)
       )
-    let elemSel = iapply (Var ls) (Var from)
+    let elemSel = vecApply (Var ls) (Var from)
     let elemSizeOffVar = {Var.name = "elemSizeOff"; tpe = IntegerType Long}
     let elemSizeOtherOffVar = {Var.name = "elemSizeOtherOff"; tpe = IntegerType Long}
     let elemSizeOffRes = asn1SizeExpr align sq.child.Kind elemSel (Var offset) 0I 0I
@@ -657,6 +658,7 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
     let inductiveStep = FunctionCall {
       prefix = [td]
       id = template.id
+      tps = []
       args = [
         Var ls
         plus [Var offset; Var elemSizeOffVar]
@@ -691,7 +693,7 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
       returnTpe = UnitType
       body = proofBody
     }
-    let objCall = FunctionCall {prefix = [td]; id = objFd.id; args = [FieldSelect (This, "arr"); Var offset; Var otherOffset; int32lit 0I; FieldSelect (This, "nCount")]}
+    let objCall = FunctionCall {prefix = [td]; id = objFd.id; tps = []; args = [FieldSelect (This, "arr"); Var offset; Var otherOffset; int32lit 0I; FieldSelect (This, "nCount")]}
     let clsFd = {template with body = objCall}
     clsFd, objFd
 
@@ -755,7 +757,7 @@ let generateEncodePostcondExprCommon (tpe: Type)
     let lemmaCall = validateOffsetBitsContentIrrelevancyLemma (selBitStream oldCdc) (selBuf (Var cdc)) (longlit maxSize)
     let r2Got = {Var.name = "r2Got"; tpe = ClassType codecTpe}
     let resGot = {Var.name = "resGot"; tpe = tpe}
-    let decodePure = FunctionCall {prefix = []; id = decodePureId; args = r1 :: decodeExtraArgs}
+    let decodePure = FunctionCall {prefix = []; id = decodePureId; tps = []; args = r1 :: decodeExtraArgs}
     let eq = And [Equals (Var resGot, rightMutExpr (IntegerType Int) tpe (Var szRecv)); Equals (Var r2Got, Var cdc)]
     let block = Locally (mkBlock [
       lemmaCall
@@ -817,7 +819,7 @@ let generateDecodePostcondExpr (t: Asn1AcnAst.Asn1Type) (resPostcond: Var): Expr
     | NullType _ -> []
     | _ ->
       let isValidFuncName = $"{t.FT_TypeDefinition.[Scala].typeName}_IsConstraintValid"
-      [isRightExpr (FunctionCall {prefix = []; id = isValidFuncName; args = [Var szRecv]})]
+      [isRightExpr (FunctionCall {prefix = []; id = isValidFuncName; tps = []; args = [Var szRecv]})]
   generateDecodePostcondExprCommon resPostcond szRecv sz [] cstrIsValid
 
 let rec tryFindFirstParentACNDependency (parents: Asn1AcnAst.Asn1Type list) (dep: RelativePath): (Asn1AcnAst.Asn1Type * Asn1AcnAst.AcnChild) option =
@@ -920,7 +922,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
     let retTpe = IntegerType Int
     let outerPVal = SelectionExpr (joinedSelection outerSel.arg)
     let cstrCheck =
-      let scrut = FunctionCall {prefix = []; id = isValidFuncName; args = [Var recPVal]}
+      let scrut = FunctionCall {prefix = []; id = isValidFuncName; tps = []; args = [Var recPVal]}
       let leftBdg = {Var.name = "l"; tpe = errTpe}
       let leftBody = Return (leftExpr errTpe retTpe (Var leftBdg))
       eitherMatchExpr scrut (Some leftBdg) leftBody None (mkBlock [])
@@ -956,7 +958,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
     }
 
     let call =
-      let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc; Var outermostPVal] @ (acnVars |> List.map (fun v -> Var v)) @ [FreshCopy outerPVal]} // TODO: Ideally we should not be needing a freshCopy...
+      let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc; Var outermostPVal] @ (acnVars |> List.map (fun v -> Var v)) @ [FreshCopy outerPVal]} // TODO: Ideally we should not be needing a freshCopy...
       let leftBdg = {Var.name = "l"; tpe = errTpe}
       let leftBody = Return (leftExpr errTpe (IntegerType Int) (Var leftBdg))
       eitherMatchExpr scrut (Some leftBdg) leftBody None UnitLit
@@ -974,7 +976,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
     let outerPVal = {Var.name = outerSel.arg.asIdentifier; tpe = tpe}
     let retInnerFd =
       let retVal = mkTuple (Var recPVal :: (acnsVars |> List.map Var))
-      let scrut = FunctionCall {prefix = []; id = isValidFuncName; args = [Var recPVal]}
+      let scrut = FunctionCall {prefix = []; id = isValidFuncName; tps = []; args = [Var recPVal]}
       let leftBdg = {Var.name = "l"; tpe = errTpe}
       let leftBody = leftMutExpr errTpe retTpe (Var leftBdg)
       let rightBody = rightMutExpr errTpe retTpe retVal
@@ -991,7 +993,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
         // If we do, we must "inline" the size definition which will contain the size of these extra ACN fields and if not, we can just call size
         // We always inline here since it is ok even if we don't have extra ACN fields
         asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndexACN (Old (Var cdc))) 0I 0I
-    let cstrIsValid = isRightExpr (FunctionCall {prefix = []; id = isValidFuncName; args = [Var szRecv]})
+    let cstrIsValid = isRightExpr (FunctionCall {prefix = []; id = isValidFuncName; tps = []; args = [Var szRecv]})
     let postcondExpr =
       if acns.IsEmpty then
         generateDecodePostcondExprCommon resPostcond szRecv sz [] [cstrIsValid]
@@ -1037,7 +1039,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
     }
 
     let call =
-      let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc] @ (paramsAcn |> List.map Var)}
+      let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc] @ (paramsAcn |> List.map Var)}
       let leftBdg = {Var.name = "l"; tpe = errTpe}
       // TODO: FIXME: the right type must be the outside type!!!
       let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
@@ -1246,11 +1248,11 @@ let generateSequencePrefixLemma (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq
   let c1Res = {Var.name = "c1Res"; tpe = ClassType codecTpe}
   let v1 = {Var.name = "v1"; tpe = tpe}
   let dec1 = {Var.name = "dec1"; tpe = TupleType [c1Res.tpe; v1.tpe]}
-  let call1 = FunctionCall {prefix = []; id = decodePureId; args = [Var c1]}
+  let call1 = FunctionCall {prefix = []; id = decodePureId; tps = []; args = [Var c1]}
   let c2Res = {Var.name = "c2Res"; tpe = ClassType codecTpe}
   let v2 = {Var.name = "v2"; tpe = tpe}
   let dec2 = {Var.name = "dec2"; tpe = TupleType [c2Res.tpe; v2.tpe]}
-  let call2 = FunctionCall {prefix = []; id = decodePureId; args = [Var c2Reset]}
+  let call2 = FunctionCall {prefix = []; id = decodePureId; tps = []; args = [Var c2Reset]}
 
   let preSpecs =
     preconds @ [
@@ -1370,6 +1372,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     FunctionCall {
       prefix = [td]
       id = "sizeRange"
+      tps = []
       args = [ls; offset; from; tto]
     }
 
@@ -1412,12 +1415,12 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
 
   let getLength (arr: Expr): Expr =
     match sqf with
-    | SqOf _ -> isize arr
+    | SqOf _ -> vecSize arr
     | StrType _ -> ArrayLength arr
 
   let select (arr: Expr) (ix: Expr): Expr =
     match sqf with
-    | SqOf _ -> iapply arr ix
+    | SqOf _ -> vecApply arr ix
     | StrType _ -> ArraySelect (arr, ix)
 
   let rangesEq =
@@ -1453,7 +1456,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
   match codec with
   | Encode ->
     let fnRetTpe = ClassType (eitherTpe (IntegerType Int) (IntegerType Int))
-    let reccall = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; plus [Var from; int32lit 1I]]}
+    let reccall = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc; Var sqfVar; plus [Var from; int32lit 1I]]}
     let elseBody = LetGhost {
       bdg = cdcSnap1
       e = Snapshot (Var cdc)
@@ -1491,7 +1494,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     }
 
     let call =
-      let scrut = FunctionCall {prefix = []; id = fnid; args = [Var cdc; outerSqf; int32lit 0I]}
+      let scrut = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc; outerSqf; int32lit 0I]}
       let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
       let leftBody = Return (leftExpr (IntegerType Int) (IntegerType Int) (Var leftBdg))
       let rightBody = sizeLemmaCall |> Option.map Ghost |> Option.defaultValue UnitLit
@@ -1504,30 +1507,31 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     match sqf with
     | SqOf sq ->
       let countParam = if sqf.isFixedSize then [] else [count]
-      let collTpe = ClassType (listTpe elemTpe)
+      let collTpe = ClassType (vecTpe elemTpe)
       let fnRetTpe = ClassType (eitherMutTpe (IntegerType Int) collTpe)
-      let sqfListVar = {Var.name = pg.cs.arg.asIdentifier + "_list"; tpe = collTpe}
-      let reversed = reverse (Var sqfListVar)
+      let sqfVecVar = {Var.name = pg.cs.arg.asIdentifier + "_vec"; tpe = collTpe}
       let thnCase =
         mkBlock [
           Ghost (mkBlock [
-            rangesEqReflexiveLemma reversed
-            rangesEqSlicedLemma reversed reversed (int32lit 0I) (getLength reversed) (int32lit 0I) (Var from)
+            vecRangesEqReflexiveLemma (Var sqfVecVar)
+            vecRangesEqSlicedLemma (Var sqfVecVar) (Var sqfVecVar) (int32lit 0I) (getLength (Var sqfVecVar)) (int32lit 0I) (Var from)
           ])
-          rightMutExpr (IntegerType Int) collTpe reversed
+          rightMutExpr (IntegerType Int) collTpe (Var sqfVecVar)
         ]
       let elseCase =
         let reccallRes = {Var.name = "res"; tpe = fnRetTpe}
-        let newList = {Var.name = "newList"; tpe = collTpe}
-        let decodedElemVar = {Var.name = $"{pg.cs.arg.asIdentifier}_arr_iapply_{pg.ixVariable}_"; tpe = elemTpe}
+        let newVec = {Var.name = "newVec"; tpe = collTpe}
+        let decodedElemVar = {Var.name = $"{pg.cs.arg.asIdentifier}_arr_{pg.ixVariable}_"; tpe = elemTpe}
+        let appended = vecAppend (Var sqfVecVar) (Var decodedElemVar)
         let postrecProofSuccess = mkBlock ([
-          listRangesAppendDropEq reversed (Var newList) (Var decodedElemVar) (int32lit 0I) (Var from)
-          listRangesEqImpliesEq (reverse (consExpr elemTpe (Var decodedElemVar) (Var sqfListVar))) (Var newList) (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
-          isnocIndex reversed (Var decodedElemVar) (Var from)
+          vecRangesAppendDropEq (Var sqfVecVar) (Var newVec) (Var decodedElemVar) (int32lit 0I) (Var from)
+          vecRangesEqImpliesEq appended (Var newVec) (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
+          isnocIndex (vecList (Var sqfVecVar)) (Var decodedElemVar) (Var from)
+          listApplyEqVecApply appended (Var from)
+          Assert (Equals (Var decodedElemVar, vecApply (Var newVec) (Var from)))
         ])
-        let updated = consExpr elemTpe (Var decodedElemVar) (Var sqfListVar)
-        let reccall = FunctionCall {prefix = []; id = fnid; args = [Var cdc] @ (countParam |> List.map Var) @ [updated; plus [Var from; int32lit 1I]]}
-        let postrecProof = Ghost (eitherMutMatchExpr (Var reccallRes) None UnitLit (Some newList) postrecProofSuccess)
+        let reccall = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc] @ (countParam |> List.map Var) @ [appended; plus [Var from; int32lit 1I]]}
+        let postrecProof = Ghost (eitherMutMatchExpr (Var reccallRes) None UnitLit (Some newVec) postrecProofSuccess)
         mkBlock ((preSerde :: encDec) @ [
         letsGhostIn [cdcSnap2, Snapshot (Var cdc)] (
         mkBlock [
@@ -1542,36 +1546,24 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       let body = letsGhostIn [cdcSnap1, Snapshot (Var cdc)] ite
       let postcondRes = {Var.name = "res"; tpe = fnRetTpe}
       let postcond =
-        let newList = {Var.name = "newList"; tpe = collTpe}
+        let newVec = {Var.name = "newVec"; tpe = collTpe}
         let oldCdc = Old (Var cdc)
-        let sz = callSizeRangeObj (Var newList) (bitIndexACN oldCdc) (Var from) nbItems
-        // let decodeIntoArrayCond =
-        //   match pg.elemDecodeFn with
-        //   | None -> []
-        //   | Some decodeFn ->
-        //     let decodePure = TupleSelect (FunctionCall {prefix = []; id = $"{decodeFn}_pure"; args = [oldCdc]}, 2)
-        //     [Or [
-        //       Equals (Var from, nbItems)
-        //       Equals (
-        //         rightMutExpr (IntegerType Int) UnitType (select (Var sqfVar) (Var from)),
-        //         decodePure
-        //       )
-        //     ]]
+        let sz = callSizeRangeObj (Var newVec) (bitIndexACN oldCdc) (Var from) nbItems
         let rightBody = And ([
           Equals (selBuf oldCdc, selBuf (Var cdc))
-          Equals (isize (Var newList), nbItems)
-          listRangesEq reversed (Var newList) (int32lit 0I) (Var from)
+          Equals (vecSize (Var newVec), nbItems)
+          vecRangesEq (Var sqfVecVar) (Var newVec) (int32lit 0I) (Var from)
           Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz])
         ])
-        eitherMutMatchExpr (Var postcondRes) None (BoolLit true) (Some newList) rightBody
+        eitherMutMatchExpr (Var postcondRes) None (BoolLit true) (Some newVec) rightBody
       let countPrecond =
         if sqf.isFixedSize then []
         else [Precond (And [Leq (int32lit sq.minSize.acn, Var count); Leq (Var count, int32lit sq.maxSize.acn)])]
       let fd = {
         FunDef.id = fnid
-        prms = [cdc] @ countParam @ [sqfListVar; from]
+        prms = [cdc] @ countParam @ [sqfVecVar; from]
         annots = [Opaque; InlineOnce]
-        specs = if enc = ACN then countPrecond @ [Precond fromBounds; Precond (Equals (isize (Var sqfListVar), (Var from))); Precond validateOffset; Measure decreasesExpr] else []
+        specs = if enc = ACN then countPrecond @ [Precond fromBounds; Precond (Equals (vecSize (Var sqfVecVar), (Var from))); Precond validateOffset; Measure decreasesExpr] else []
         postcond = if enc = ACN then Some (postcondRes, postcond) else None
         returnTpe = fnRetTpe
         body = body
@@ -1580,109 +1572,109 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
         let count =
           if sqf.isFixedSize then []
           else [Var {Var.name = pg.cs.arg.asIdentifier + "_nCount"; tpe = IntegerType Int}]
-        let scrut = FunctionCall {prefix = []; id = fnid; args = [Var cdc] @ count @ [nilExpr elemTpe; int32lit 0I]}
+        let scrut = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc] @ count @ [vecEmpty elemTpe; int32lit 0I]}
         let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
         // TODO: FIXME: the right type must be the outside type!!!
         let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
         let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
         let rightBody =
-          let ctor = ClassCtor {ct = {id = td; tps = []}; args = count @ [Var sqfListVar]}
+          let ctor = ClassCtor {ct = {id = td; tps = []}; args = count @ [Var sqfVecVar]}
           letsIn [sqfVar, ctor] (mkBlock ((sizeLemmaCall |> Option.map Ghost |> Option.toList) @ [Var sqfVar]))
-        letsIn [sqfVar, eitherMutMatchExpr scrut (Some leftBdg) leftBody (Some sqfListVar) rightBody] (mkBlock [])
+        letsIn [sqfVar, eitherMutMatchExpr scrut (Some leftBdg) leftBody (Some sqfVecVar) rightBody] (mkBlock [])
       let call = letsGhostIn [cdcBeforeLoop, Snapshot (Var cdc)] call
       [fd], call
     | StrType _ ->
-    let fnRetTpe = ClassType (eitherMutTpe (IntegerType Int) UnitType)
-    let cdcSnap2 = {Var.name = "codecSnap2"; tpe = ClassType codecTpe}
-    let elemTpe = fromSequenceOfLikeElemTpe sqf
-    let arr1 = {Var.name = "arr1"; tpe = ArrayType {tpe = elemTpe}}
-    let arr2 = {Var.name = "arr2"; tpe = ArrayType {tpe = elemTpe}}
-    let sqfSelArr, oldSqfSelArr, sqfSelSnap = Var sqfVar, Old (Var sqfVar), Snapshot (Var sqfVar)
-    let thnCase = mkBlock [
-      Ghost (mkBlock [
-        rangesEqReflexiveLemma sqfSelArr
-        rangesEqSlicedLemma sqfSelArr sqfSelSnap (int32lit 0I) (getLength sqfSelArr) (int32lit 0I) (Var from)
-      ])
-      rightMutExpr (IntegerType Int) UnitType UnitLit
-    ]
+      let fnRetTpe = ClassType (eitherMutTpe (IntegerType Int) UnitType)
+      let cdcSnap2 = {Var.name = "codecSnap2"; tpe = ClassType codecTpe}
+      let elemTpe = fromSequenceOfLikeElemTpe sqf
+      let arr1 = {Var.name = "arr1"; tpe = ArrayType {tpe = elemTpe}}
+      let arr2 = {Var.name = "arr2"; tpe = ArrayType {tpe = elemTpe}}
+      let sqfSelArr, oldSqfSelArr, sqfSelSnap = Var sqfVar, Old (Var sqfVar), Snapshot (Var sqfVar)
+      let thnCase = mkBlock [
+        Ghost (mkBlock [
+          rangesEqReflexiveLemma sqfSelArr
+          rangesEqSlicedLemma sqfSelArr sqfSelSnap (int32lit 0I) (getLength sqfSelArr) (int32lit 0I) (Var from)
+        ])
+        rightMutExpr (IntegerType Int) UnitType UnitLit
+      ]
 
-    let elseCase =
-      let reccallRes = {Var.name = "res"; tpe = fnRetTpe}
-      let decodedElemVar = {Var.name = $"{pg.cs.arg.asIdentifier}_arr_iapply_{pg.ixVariable}_"; tpe = elemTpe}
-      let sizeConds = [Check (Equals (bitIndexACN (Var cdc), plus [bitIndexACN (Var cdcSnap1); Mult (longlit maxElemSz, Var from)]))]
-      let postrecProofSuccess = mkBlock ([
-        updatedAtPrefixLemma (Var arr1) (Var from) (Var decodedElemVar)
-        rangesEqTransitive (Var arr1) (Var arr2) sqfSelArr (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
-        Check (rangesEq (Var arr1) sqfSelArr (int32lit 0I) (Var from))
-        rangesEqImpliesEq (Var arr2) sqfSelArr (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
-      ] @ sizeConds)
-      let reccall = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; plus [Var from; int32lit 1I]]}
-      let postrecProof = Ghost (eitherMutMatchExpr (Var reccallRes) None UnitLit None postrecProofSuccess)
-      (letsGhostIn [arr1, Snapshot sqfSelArr] (
-      mkBlock ((preSerde :: encDec) @ [
-      letsGhostIn [cdcSnap2, Snapshot (Var cdc); arr2, Snapshot sqfSelArr] (
-      mkBlock [
-          postSerde
-          letsIn [reccallRes, reccall] (mkBlock [postrecProof; Var reccallRes])
-      ])])))
+      let elseCase =
+        let reccallRes = {Var.name = "res"; tpe = fnRetTpe}
+        let decodedElemVar = {Var.name = $"{pg.cs.arg.asIdentifier}_arr_{pg.ixVariable}_"; tpe = elemTpe}
+        let sizeConds = [Check (Equals (bitIndexACN (Var cdc), plus [bitIndexACN (Var cdcSnap1); Mult (longlit maxElemSz, Var from)]))]
+        let postrecProofSuccess = mkBlock ([
+          updatedAtPrefixLemma (Var arr1) (Var from) (Var decodedElemVar)
+          rangesEqTransitive (Var arr1) (Var arr2) sqfSelArr (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
+          Check (rangesEq (Var arr1) sqfSelArr (int32lit 0I) (Var from))
+          rangesEqImpliesEq (Var arr2) sqfSelArr (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
+        ] @ sizeConds)
+        let reccall = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc; Var sqfVar; plus [Var from; int32lit 1I]]}
+        let postrecProof = Ghost (eitherMutMatchExpr (Var reccallRes) None UnitLit None postrecProofSuccess)
+        (letsGhostIn [arr1, Snapshot sqfSelArr] (
+        mkBlock ((preSerde :: encDec) @ [
+        letsGhostIn [cdcSnap2, Snapshot (Var cdc); arr2, Snapshot sqfSelArr] (
+        mkBlock [
+            postSerde
+            letsIn [reccallRes, reccall] (mkBlock [postrecProof; Var reccallRes])
+        ])])))
 
-    let ite = IfExpr {
-      cond = Equals (Var from, nbItems)
-      thn = thnCase
-      els = elseCase
-    }
-    let body = letsGhostIn [cdcSnap1, Snapshot (Var cdc)] ite
+      let ite = IfExpr {
+        cond = Equals (Var from, nbItems)
+        thn = thnCase
+        els = elseCase
+      }
+      let body = letsGhostIn [cdcSnap1, Snapshot (Var cdc)] ite
 
-    let postcondRes = {Var.name = "res"; tpe = fnRetTpe}
-    let postcond =
-      let oldCdc = Old (Var cdc)
-      let sz =
-        match sqf with
-        | SqOf _ -> callSizeRangeObj (FieldSelect (Var sqfVar, "arr")) (bitIndexACN oldCdc) (Var from) nbItems
-        | StrType _ -> Mult (longlit maxElemSz, Var from)
-      let ncountCond =
-        if sqf.isFixedSize then []
-        else [Equals (FieldSelect (Old (Var sqfVar), "nCount"), nbItems)]
-      let decodeIntoArrayCond =
-        match pg.elemDecodeFn with
-        | None -> []
-        | Some decodeFn ->
-          let decodePure = TupleSelect (FunctionCall {prefix = []; id = $"{decodeFn}_pure"; args = [oldCdc]}, 2)
-          [Or [
-            Equals (Var from, nbItems)
-            Equals (
-              rightMutExpr (IntegerType Int) UnitType (select (Var sqfVar) (Var from)),
-              decodePure
-            )
-          ]]
-      let rightBody = And ([
-        Equals (selBuf oldCdc, selBuf (Var cdc))
-        Equals (getLength oldSqfSelArr, getLength sqfSelArr)
-      ] @ ncountCond @
-        [rangesEq oldSqfSelArr sqfSelArr (int32lit 0I) (Var from)] @
-        decodeIntoArrayCond @
-        [Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz])])
-      eitherMutMatchExpr (Var postcondRes) None (BoolLit true) None rightBody
+      let postcondRes = {Var.name = "res"; tpe = fnRetTpe}
+      let postcond =
+        let oldCdc = Old (Var cdc)
+        let sz =
+          match sqf with
+          | SqOf _ -> callSizeRangeObj (FieldSelect (Var sqfVar, "arr")) (bitIndexACN oldCdc) (Var from) nbItems
+          | StrType _ -> Mult (longlit maxElemSz, Var from)
+        let ncountCond =
+          if sqf.isFixedSize then []
+          else [Equals (FieldSelect (Old (Var sqfVar), "nCount"), nbItems)]
+        let decodeIntoArrayCond =
+          match pg.elemDecodeFn with
+          | None -> []
+          | Some decodeFn ->
+            let decodePure = TupleSelect (FunctionCall {prefix = []; id = $"{decodeFn}_pure"; tps = []; args = [oldCdc]}, 2)
+            [Or [
+              Equals (Var from, nbItems)
+              Equals (
+                rightMutExpr (IntegerType Int) UnitType (select (Var sqfVar) (Var from)),
+                decodePure
+              )
+            ]]
+        let rightBody = And ([
+          Equals (selBuf oldCdc, selBuf (Var cdc))
+          Equals (getLength oldSqfSelArr, getLength sqfSelArr)
+        ] @ ncountCond @
+          [rangesEq oldSqfSelArr sqfSelArr (int32lit 0I) (Var from)] @
+          decodeIntoArrayCond @
+          [Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz])])
+        eitherMutMatchExpr (Var postcondRes) None (BoolLit true) None rightBody
 
-    let fd = {
-      FunDef.id = fnid
-      prms = [cdc; sqfVar; from]
-      annots = [Opaque; InlineOnce]
-      specs = if enc = ACN then [Precond fromBounds; Precond validateOffset; Measure decreasesExpr] else []
-      postcond = if enc = ACN then Some (postcondRes, postcond) else None
-      returnTpe = fnRetTpe
-      body = body
-    }
-    let call =
-      let scrut = FunctionCall {prefix = []; id = fnid; args = [Var cdc; Var sqfVar; int32lit 0I]}
-      let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
-      // TODO: FIXME: the right type must be the outside type!!!
-      let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
-      let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
-      let rightBody = sizeLemmaCall |> Option.map Ghost |> Option.defaultValue UnitLit
-      eitherMutMatchExpr scrut (Some leftBdg) leftBody None rightBody
-    let call = letsGhostIn [cdcBeforeLoop, Snapshot (Var cdc)] call
-    [fd], call
+      let fd = {
+        FunDef.id = fnid
+        prms = [cdc; sqfVar; from]
+        annots = [Opaque; InlineOnce]
+        specs = if enc = ACN then [Precond fromBounds; Precond validateOffset; Measure decreasesExpr] else []
+        postcond = if enc = ACN then Some (postcondRes, postcond) else None
+        returnTpe = fnRetTpe
+        body = body
+      }
+      let call =
+        let scrut = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc; Var sqfVar; int32lit 0I]}
+        let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
+        // TODO: FIXME: the right type must be the outside type!!!
+        let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
+        let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
+        let rightBody = sizeLemmaCall |> Option.map Ghost |> Option.defaultValue UnitLit
+        eitherMutMatchExpr scrut (Some leftBdg) leftBody None rightBody
+      let call = letsGhostIn [cdcBeforeLoop, Snapshot (Var cdc)] call
+      [fd], call
 
 let generateOptionalPrefixLemma (enc: Asn1Encoding) (soc: SequenceOptionalChild): FunDef =
   let codecTpe = runtimeCodecTypeFor enc
@@ -1714,11 +1706,11 @@ let generateOptionalPrefixLemma (enc: Asn1Encoding) (soc: SequenceOptionalChild)
   let c1Res = {Var.name = "c1Res"; tpe = ClassType codecTpe}
   let v1 = {Var.name = "v1"; tpe = elemTpe}
   let dec1 = {Var.name = "dec1"; tpe = TupleType [c1Res.tpe; v1.tpe]}
-  let call1 = FunctionCall {prefix = []; id = decodePureId; args = [Var c1] @ existExprArg}
+  let call1 = FunctionCall {prefix = []; id = decodePureId; tps = []; args = [Var c1] @ existExprArg}
   let c2Res = {Var.name = "c2Res"; tpe = ClassType codecTpe}
   let v2 = {Var.name = "v2"; tpe = elemTpe}
   let dec2 = {Var.name = "dec2"; tpe = TupleType [c2Res.tpe; v2.tpe]}
-  let call2 = FunctionCall {prefix = []; id = decodePureId; args = [Var c2Reset] @ existExprArg}
+  let call2 = FunctionCall {prefix = []; id = decodePureId; tps = []; args = [Var c2Reset] @ existExprArg}
 
   let preSpecs =
     preconds @ [
@@ -1736,13 +1728,13 @@ let generateOptionalPrefixLemma (enc: Asn1Encoding) (soc: SequenceOptionalChild)
   let c2ResetCpy = {Var.name = "c2ResetCpy"; tpe = ClassType codecTpe}
   let underlyingPrefixLemma = readPrefixLemmaIdentifier (Asn1 soc.child.Type.Kind.baseKind) soc.child.Type.id false
   let c1Recv, c2Recv = selectCodecReadPrefixLemma underlyingPrefixLemma (Var c1) (Var c2)
-  let underlyingPrefixLemmaCall = FunctionCall {prefix = underlyingPrefixLemma.prefix; id = underlyingPrefixLemma.id; args = [c1Recv; c2Recv] @ underlyingPrefixLemma.extraArgs}
+  let underlyingPrefixLemmaCall = FunctionCall {prefix = underlyingPrefixLemma.prefix; id = underlyingPrefixLemma.id; tps = []; args = [c1Recv; c2Recv] @ underlyingPrefixLemma.extraArgs}
   let body = (letsIn [
     (c1Cpy, Snapshot (Var c1))
     (c2ResetCpy, Snapshot (Var c2Reset))
   ] (mkBlock [
-    Unfold (FunctionCall {prefix = []; id = decodeId; args = [Var c1Cpy] @ existExprArg})
-    Unfold (FunctionCall {prefix = []; id = decodeId; args = [Var c2ResetCpy] @ existExprArg})
+    Unfold (FunctionCall {prefix = []; id = decodeId; tps = []; args = [Var c1Cpy] @ existExprArg})
+    Unfold (FunctionCall {prefix = []; id = decodeId; tps = []; args = [Var c2ResetCpy] @ existExprArg})
     existVar |>
       Option.map (fun exist -> IfExpr {cond = Var exist; thn = underlyingPrefixLemmaCall; els = UnitLit}) |>
       Option.defaultValue underlyingPrefixLemmaCall
@@ -1800,7 +1792,7 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
         isValidFuncName |> Option.map (fun validFnName ->
           let bdg = {Var.name = "v"; tpe = childTpe}
           let validCall =
-            let scrut = FunctionCall {prefix = []; id = validFnName; args = [Var bdg]}
+            let scrut = FunctionCall {prefix = []; id = validFnName; tps = []; args = [Var bdg]}
             let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
             let leftBody = Return (leftExpr errTpe rightTpe (Var leftBdg))
             eitherMatchExpr scrut (Some leftBdg) leftBody None (mkBlock [])
@@ -1829,7 +1821,7 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
         body = body
       }
       let call =
-        let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc; Var outermostPVal; outerPVal]}
+        let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc; Var outermostPVal; outerPVal]}
         let leftBdg = {Var.name = "l"; tpe = errTpe}
         // TODO: FIXME: the right type must be the outside type!!!
         let leftHACK = ClassCtor {ct = {id = leftId; tps = []}; args = [Var leftBdg]}
@@ -1850,7 +1842,7 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
         | Some validFnName ->
           let someBdg = {Var.name = "v"; tpe = childTpe}
           let eitherPatmat =
-            let scrut = FunctionCall {prefix = []; id = validFnName; args = [Var someBdg]}
+            let scrut = FunctionCall {prefix = []; id = validFnName; tps = []; args = [Var someBdg]}
             let leftBdg = {Var.name = "l"; tpe = errTpe}
             let leftBody = leftMutExpr errTpe rightTpe (Var leftBdg)
             eitherMatchExpr scrut (Some leftBdg) leftBody None rightRet
@@ -1867,7 +1859,7 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
       let sz = sizeExprOf (Var resvalVar)
       let cstrIsValid = isValidFuncName |> Option.map (fun isValid ->
         let someBdg = {Var.name = "v"; tpe = childTpe}
-        let isRight = isRightExpr (FunctionCall {prefix = []; id = isValid; args = [Var someBdg]})
+        let isRight = isRightExpr (FunctionCall {prefix = []; id = isValid; tps = []; args = [Var someBdg]})
         optionMutMatchExpr (Var resvalVar) (Some someBdg) isRight (BoolLit true)) |> Option.toList
       let postcondExpr = generateDecodePostcondExprCommon resPostcond resvalVar sz alwaysAbsentOrPresent cstrIsValid
       let body = letsGhostIn [(oldCdc, Snapshot (Var cdc))] (mkBlock [encDec; retInnerFd])
@@ -1884,7 +1876,7 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
       }
 
       let call =
-        let scrut = FunctionCall {prefix = []; id = fd.id; args = [Var cdc] @ (existVar |> Option.map Var |> Option.toList) @ (acnParams |> List.map Var)}
+        let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc] @ (existVar |> Option.map Var |> Option.toList) @ (acnParams |> List.map Var)}
         let leftBdg = {Var.name = "l"; tpe = errTpe}
         // TODO: FIXME: the right type must be the outside type!!!
         let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
@@ -1899,7 +1891,7 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
         let varRes = {Var.name = "res"; tpe = fnRetTpe}
         let pureBody = (letsIn
           [varCpy, Snapshot (Var cdc);
-          varRes, FunctionCall {prefix = []; id = fd.id; args = [Var varCpy] @ (existVar |> Option.map Var |> Option.toList) @ (acnParams |> List.map Var)}]
+          varRes, FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var varCpy] @ (existVar |> Option.map Var |> Option.toList) @ (acnParams |> List.map Var)}]
           (mkTuple [Var varCpy; Var varRes]))
         {
           FunDef.id = fnIdPure

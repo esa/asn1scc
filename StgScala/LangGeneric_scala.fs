@@ -65,7 +65,7 @@ let getAccess2_scala (acc: Accessor) =
     match acc with
     | ValueAccess (sel, _, _) -> $".{sel}"
     | PointerAccess (sel, _, _) -> $".{sel}"
-    | ArrayAccess (ix, _) -> $".iapply({ix})"
+    | ArrayAccess (ix, _) -> $"({ix})"
 
 #if false
 let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefinitionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErrorCode) (p:CallerScope) =

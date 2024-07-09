@@ -135,6 +135,7 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
             writeResource di "asn1jvm_Codec_PER.scala" None
             writeResource di "asn1jvm_Helper.scala" None
             writeResource di "asn1jvm_Verification.scala" None
+            writeResource di "asn1jvm_Vector.scala" None
 
             if hasUper || hasAcn then
                 writeResource di "asn1jvm_Codec_UPER.scala" None

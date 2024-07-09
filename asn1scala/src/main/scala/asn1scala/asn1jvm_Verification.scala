@@ -702,3 +702,121 @@ def listRangesAppendDropEq[T](a1: List[T], a2: List[T], v: T, from: Int, to: Int
 }.ensuring { _ =>
   listRangesEq(a1, a2, from, to)
 }
+
+////////////////////////////////////7
+
+@pure
+def vecRangesEq[T](v1: Vector[T], v2: Vector[T], from: Int, to: Int): Boolean = {
+  require(0 <= from && from <= to)
+  require(v1.size <= v2.size)
+  require(to <= v1.size)
+  decreases(to - from)
+  if (from == to) true
+  else v1(from) == v2(from) && vecRangesEq(v1, v2, from + 1, to)
+}
+
+@pure @opaque @inlineOnce @ghost
+def listRangesEqImpliesVecRangesEq[T](v1: Vector[T], v2: Vector[T], from: Int, to: Int): Unit = {
+  require(0 <= from && from <= to)
+  require(v1.size <= v2.size)
+  require(to <= v1.size)
+  require(listRangesEq(v1.list, v2.list, from, to))
+  decreases(to - from)
+  if (from == to) ()
+  else listRangesEqImpliesVecRangesEq(v1, v2, from + 1, to)
+}.ensuring(_ => vecRangesEq(v1, v2, from, to))
+
+@pure @opaque @inlineOnce @ghost
+def vecRangesEqImpliesListRangesEq[T](v1: Vector[T], v2: Vector[T], from: Int, to: Int): Unit = {
+  require(0 <= from && from <= to)
+  require(v1.size <= v2.size)
+  require(to <= v1.size)
+  require(vecRangesEq(v1, v2, from, to))
+  decreases(to - from)
+  if (from == to) ()
+  else vecRangesEqImpliesListRangesEq(v1, v2, from + 1, to)
+}.ensuring(_ => listRangesEq(v1.list, v2.list, from, to))
+
+@pure @opaque @inlineOnce @ghost
+def vecRangesEqReflexiveLemma[T](v: Vector[T]) = {
+  listRangesEqReflexiveLemma(v.list)
+  listRangesEqImpliesVecRangesEq(v, v, 0, v.size)
+}.ensuring(_ => vecRangesEq(v, v, 0, v.size))
+
+@pure @opaque @inlineOnce @ghost
+def vecRangesEqImpliesEq[T](v1: Vector[T], v2: Vector[T], from: Int, at: Int, to: Int): Unit = {
+  require(0 <= from && from <= to)
+  require(v1.size <= v2.size)
+  require(to <= v1.size)
+  require(from <= at && at < to)
+  require(vecRangesEq(v1, v2, from, to))
+
+  vecRangesEqImpliesListRangesEq(v1, v2, from, to)
+  listRangesEqImpliesEq(v1.list, v2.list, from, at, to)
+  Vector.listApplyEqVecApply(v1, at)
+}.ensuring(_ => v1(at) == v2(at))
+
+@pure @opaque @inlineOnce @ghost
+def vecRangesEqSymmetricLemma[T](v1: Vector[T], v2: Vector[T], from: Int, to: Int) = {
+  require(0 <= from && from <= to && to <= v1.size)
+  require(v1.size == v2.size)
+  require(vecRangesEq(v1, v2, from, to))
+
+  vecRangesEqImpliesListRangesEq(v1, v2, from, to)
+  listRangesEqSymmetricLemma(v1.list, v2.list, from, to)
+  listRangesEqImpliesVecRangesEq(v2, v1, from, to)
+}.ensuring(_ => vecRangesEq(v2, v1, from, to))
+
+@ghost @pure @opaque @inlineOnce
+def vecRangesEqSlicedLemma[T](v1: Vector[T], v2: Vector[T], from: Int, to: Int, fromSlice: Int, toSlice: Int): Unit = {
+  require(0 <= from && from <= to)
+  require(v1.size <= v2.size)
+  require(to <= v1.size)
+  require(from <= fromSlice && fromSlice <= toSlice && toSlice <= to)
+  require(vecRangesEq(v1, v2, from, to))
+
+  vecRangesEqImpliesListRangesEq(v1, v2, from, to)
+  listRangesEqSlicedLemma(v1.list, v2.list, from, to, fromSlice, toSlice)
+  listRangesEqImpliesVecRangesEq(v1, v2, fromSlice, toSlice)
+}.ensuring(_ => vecRangesEq(v1, v2, fromSlice, toSlice))
+
+@pure @opaque @inlineOnce @ghost
+def vecRangesEqAppend[T](v1: Vector[T], v2: Vector[T], from: Int, to: Int) = {
+  require(0 <= from && from <= to)
+  require(v1.size <= v2.size)
+  require(to < v1.size)
+  require(vecRangesEq(v1, v2, from, to))
+  require(v1(to) == v2(to))
+
+  vecRangesEqImpliesListRangesEq(v1, v2, from, to)
+  listRangesEqAppend(v1.list, v2.list, from, to)
+  listRangesEqImpliesVecRangesEq(v1, v2, from, to + 1)
+}.ensuring(_ => vecRangesEq(v1, v2, from, to + 1))
+
+@pure @opaque @inlineOnce @ghost
+def vecRangesEqTransitive[T](v1: Vector[T], v2: Vector[T], v3: Vector[T], from: Int, mid: Int, to: Int): Unit = {
+  require(0 <= from && from <= mid && mid <= to)
+  require(v1.size <= v2.size && v2.size <= v3.size)
+  require(mid <= v1.size && to <= v2.size)
+  require(vecRangesEq(v1, v2, from, mid))
+  require(vecRangesEq(v2, v3, from, to))
+
+  vecRangesEqImpliesListRangesEq(v1, v2, from, mid)
+  vecRangesEqImpliesListRangesEq(v2, v3, from, to)
+  listRangesEqTransitive(v1.list, v2.list, v3.list, from, mid, to)
+  listRangesEqImpliesVecRangesEq(v1, v3, from, mid)
+}.ensuring(_ => vecRangesEq(v1, v3, from, mid))
+
+@pure @opaque @inlineOnce @ghost
+def vecRangesAppendDropEq[T](v1: Vector[T], v2: Vector[T], v: T, from: Int, to: Int): Unit = {
+  require(0 <= from && from <= to)
+  require(v1.size < v2.size)
+  require(to <= v1.size)
+  require(vecRangesEq(v1 :+ v, v2, from, to + 1))
+
+  vecRangesEqImpliesListRangesEq(v1 :+ v, v2, from, to + 1)
+  listRangesAppendDropEq(v1.list, v2.list, v, from, to)
+  listRangesEqImpliesVecRangesEq(v1, v2, from, to)
+}.ensuring { _ =>
+  vecRangesEq(v1, v2, from, to)
+}

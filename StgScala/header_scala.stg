@@ -190,7 +190,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 
 <soChildDefinition>
 
-case class <td.typeName> (<if(!bFixedSize)>nCount: Int, <endif>arr: List[<sChildType>])
+case class <td.typeName> (<if(!bFixedSize)>nCount: Int, <endif>arr: Vector[<sChildType>])
 {
     <arrsInvariants; separator="\n">
 
