@@ -136,7 +136,7 @@ Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
-type <td.typeName> = Array[UByte]
+type <td.typeName> = Vector[UByte]
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
@@ -150,7 +150,7 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 /*nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)*/
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Array[UByte])
+case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Vector[UByte])
 {
     <arrsInvariants; separator="\n">
 }
@@ -173,7 +173,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 /*nCount equals to Number of bits in the array. Max value is : <nMax> */
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Array[UByte])
+case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Vector[UByte])
 {
     <arrsInvariants; separator="\n">
 }

@@ -1503,6 +1503,12 @@ case class ACN(base: Codec) {
       ()
    }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
+   @extern
+   def enc_IA5String_CharIndex_External_Field_DeterminantVec(max: Long, strVal: Vector[ASCIIChar]): Unit = {
+      require(max < Int.MaxValue && max >= 0)
+      enc_IA5String_CharIndex_External_Field_Determinant(max, strVal.toScala.toArray)
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
+
    @opaque @inlineOnce
    def enc_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long, strVal: Array[ASCIIChar]): Unit = {
       val allowedCharSet: Array[Byte] = Array(
@@ -1524,6 +1530,11 @@ case class ACN(base: Codec) {
       encodeConstrainedWholeNumber(if strLen <= max then strLen else max, min, max)
       enc_String_CharIndex_private(max, UByte.fromArrayRaws(allowedCharSet), strVal)
       ()
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
+
+   @extern
+   def enc_IA5String_CharIndex_Internal_Field_DeterminantVec(max: Long, min: Long, strVal: Vector[ASCIIChar]): Unit = {
+      enc_IA5String_CharIndex_Internal_Field_Determinant(max, min, strVal.toScala.toArray)
    }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
 
@@ -1674,6 +1685,15 @@ case class ACN(base: Codec) {
       dec_String_CharIndex_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max, UByte.fromArrayRaws(allowedCharSet))
    }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
 
+   @extern
+   def dec_IA5String_CharIndex_External_Field_DeterminantVec(max: Long, extSizeDeterminantFld: Long): Vector[ASCIIChar] = {
+      require(max < Int.MaxValue)
+      require(extSizeDeterminantFld >= 0)
+      require(max >= 0)
+      val arr = dec_IA5String_CharIndex_External_Field_Determinant(max, extSizeDeterminantFld)
+      Vector.fromScala(arr.toVector)
+   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
+
    def dec_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long): Array[ASCIIChar] = {
       require(min <= max)
       require(max < Int.MaxValue)
@@ -1700,6 +1720,16 @@ case class ACN(base: Codec) {
       val charToDecode = if nCount <= max then nCount else max
       assert(charToDecode >= 0 && charToDecode <= max)
       dec_String_CharIndex_private(max, charToDecode, UByte.fromArrayRaws(allowedCharSet))
+   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
+
+   @extern
+   def dec_IA5String_CharIndex_Internal_Field_DeterminantVec(max: Long, min: Long): Vector[ASCIIChar] = {
+      require(min <= max)
+      require(max < Int.MaxValue)
+      require(max >= 0)
+      require(min >= 0) // SAM Check whether this is correct, otherwise transform it into a runtime check
+      val arr = dec_IA5String_CharIndex_Internal_Field_Determinant(max, min)
+      Vector.fromScala(arr.toVector)
    }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
 
 

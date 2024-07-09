@@ -110,7 +110,6 @@ InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 
 val <p>_arr_<i>_ = allowedCharSet(codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>).toInt).toRawUByte
-<p>(<i>) = <p>_arr_<i>_
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
@@ -119,7 +118,6 @@ codec.base.encodeConstrainedWholeNumber(<p>(<i>).toRaw, 0, 127)
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
 val <p>_arr_<i>_ = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 127)) // uper:109
-<p>(<i>) = <p>_arr_<i>_
 >>
 
 /* INTEGER START*/
@@ -425,26 +423,22 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
-val <p> = <soInitExpr>
 <soCallAux>
-<p>(<nFixedSize>) = UByte.fromRaw(0x0)
 >>
 
 
-str_VarSize_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
 nStringLength = <p>.indexOf(0x00.toRawUByte)
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
 codec.base.encodeConstrainedWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
-
+val <sPIden>_nCount = nStringLength
+<soCallAux>
 >>
 
-str_VarSize_decode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr) ::= <<
-val <p> = <soInitExpr>
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
 nStringLength = codec.base.decodeConstrainedWholeNumberInt(<nSizeMin>, <nSizeMax>)
-<p>(nStringLength) = UByte.fromRaw(0)
-
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
+val <p>_nCount = nStringLength
+<soCallAux>
 >>
 
 /* SEQUENCE OF & OCTET STRING*/
@@ -500,34 +494,34 @@ val <p>_nCount = locally {
 >>
 
 octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
-codec.base.encodeOctetString_no_length(<p><sAcc>arr, <nFixedSize>.toInt)
+codec.base.encodeOctetString_no_length_vec(<p><sAcc>arr, <nFixedSize>.toInt)
 >>
 
 octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
-val <p> = <sTypeDefName>(codec.base.decodeOctetString_no_length(<nFixedSize>))
+val <p> = <sTypeDefName>(codec.base.decodeOctetString_no_length_vec(<nFixedSize>))
 >>
 
 octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 codec.base.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
-codec.base.encodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.toInt)
+codec.base.encodeOctetString_no_length_vec(<p><sAcc>arr, <p><sAcc>nCount.toInt)
 >>
 
 octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 // decode length
 val <p>_nCount = codec.base.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>)
 // decode payload
-val <p>_arr = codec.base.decodeOctetString_no_length(<p>_nCount.toInt)
+val <p>_arr = codec.base.decodeOctetString_no_length_vec(<p>_nCount.toInt)
 val <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
 >>
 
 /* BIT STRING*/
 bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 assert(<nFixedSize>.toInt >= 0) // overflow may happen during cast
-codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <nFixedSize>.toInt)
+codec.base.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <nFixedSize>.toInt)
 
 >>
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
-val <p> = <sTypeDefName>(codec.base.bitStream.readBits(<nFixedSize>.toInt))
+val <p> = <sTypeDefName>(codec.base.bitStream.readBitsVec(<nFixedSize>.toInt))
 >>
 
 bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
@@ -537,7 +531,7 @@ codec.base.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 
 bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
 val <p>_nCount = codec.base.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>)
-val <p>_arr = codec.base.bitStream.readBits(<p>_nCount.toInt)
+val <p>_arr = codec.base.bitStream.readBitsVec(<p>_nCount.toInt)
 val <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
 >>
 

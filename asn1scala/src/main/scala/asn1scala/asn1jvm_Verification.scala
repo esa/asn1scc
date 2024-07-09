@@ -495,7 +495,7 @@ def arrayBitRangesEqSlicedLemma(a1: Array[Byte], a2: Array[Byte], fromBit: Long,
   }
 }.ensuring(_ => arrayBitRangesEq(a1, a2, fromSlice, toSlice))
 
-////////////////////////////////////7
+////////////////////////////////////
 
 @pure
 def listRangesEq[T](a1: List[T], a2: List[T], from: Int, to: Int): Boolean = {
@@ -703,7 +703,11 @@ def listRangesAppendDropEq[T](a1: List[T], a2: List[T], v: T, from: Int, to: Int
   listRangesEq(a1, a2, from, to)
 }
 
-////////////////////////////////////7
+////////////////////////////////////
+
+@pure
+def vecSameElements[T](v1: Vector[T], v2: Vector[T]): Boolean =
+  v1.length == v2.length && vecRangesEq(v1, v2, 0, v1.length)
 
 @pure
 def vecRangesEq[T](v1: Vector[T], v2: Vector[T], from: Int, to: Int): Boolean = {

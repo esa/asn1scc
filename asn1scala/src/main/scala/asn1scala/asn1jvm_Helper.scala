@@ -64,6 +64,10 @@ extension [T](arr: Array[T]) {
    def sameElements(other: Array[T]): Boolean = arraySameElements(arr, other)
 }
 
+extension [T](vec: Vector[T]) {
+   def sameElements(other: Vector[T]): Boolean = vecSameElements(vec, other)
+}
+
 // TODO: FIXME: To get around aliasing restriction, ideally we should do things differently
 @extern @pure
 def freshCopyHack[@mutable T](t: T): T = t.ensuring(_ == t)

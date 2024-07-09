@@ -1674,6 +1674,16 @@ case class BitStream private [asn1scala](
 
 
 
+   @extern
+   def appendBitsMSBFirstVec(srcBuffer: Vector[UByte], nBits: Long, from: Long = 0): Unit = {
+      require(nBits >= 0)
+      require(from >= 0)
+      require(from < Long.MaxValue - nBits)
+      require(nBits + from <= srcBuffer.length.toLong * 8L)
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
+      appendBitsMSBFirst(srcBuffer.toScala.toArray, nBits, from)
+   }.ensuring(_ => srcBuffer == old(srcBuffer) && buf.length == old(this).buf.length && BitStream.bitIndex(buf.length, currentByte, currentBit) == BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) + nBits)
+
    // ****************** Append Byte Functions **********************
 
    /**
@@ -1936,6 +1946,18 @@ case class BitStream private [asn1scala](
       }
    }
 
+   @extern
+   def appendByteVec(arr: Vector[UByte], noOfBytes: Int): Unit = {
+      require(0 <= noOfBytes && noOfBytes <= arr.length)
+      require(BitStream.validate_offset_bytes(buf.length.toLong, currentByte.toLong, currentBit.toLong, noOfBytes))
+
+      appendByteArray(arr.toScala.toArray, noOfBytes)
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.buf.length == w3.buf.length && BitStream.bitIndex(w3.buf.length, w3.currentByte, w3.currentBit) == BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) + noOfBytes.toLong * 8L
+   }
+
    // ****************** Peak Functions **********************
 
    /**
@@ -2071,7 +2093,19 @@ case class BitStream private [asn1scala](
       &&& byteArrayBitContentToList(UByte.fromArrayRaws(arr), from, to - from) == bitStreamReadBitsIntoList(old(this), to - from)
    }
 
+   @extern
+   def readBitsVec(nBits: Long): Vector[UByte] = {
+      require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
+      val arr = readBits(nBits)
+      Vector.fromScala(arr.toVector)
+   } ensuring(res =>
+      buf == old(this).buf && BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) &&
+      BitStream.invariant(this.currentBit, this.currentByte, this.buf.length) &&
+      res.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
+   )
 
+   @opaque @inlineOnce
    def checkBitsLoop(nBits: Long, expected: Boolean, from: Long): Boolean = {
       require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
       require(0 <= from && from <= nBits)
@@ -2318,6 +2352,19 @@ case class BitStream private [asn1scala](
       val arrCpy = snapshot(arr)
       cpy.readByteArrayLoop(arrCpy, i, to)
       (cpy, arrCpy)
+   }
+
+   @extern
+   def readByteVec(nBytes: Int): Vector[UByte] = {
+      require(nBytes >= 0)
+      require(BitStream.validate_offset_bytes(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBytes))
+
+      val arr = readByteArray(nBytes)
+      Vector.fromScala(arr.toVector)
+   }.ensuring { res =>
+      BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit ) + nBytes.toLong * 8L == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit ) &&
+      old(this).buf == this.buf &&
+      res.length == nBytes
    }
 
    /**

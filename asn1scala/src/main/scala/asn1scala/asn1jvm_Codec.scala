@@ -1068,6 +1068,18 @@ case class Codec(bitStream: BitStream) {
       readByteArray(nCount)
    }
 
+   def encodeOctetString_no_length_vec(arr: Vector[UByte], nCount: Int): Unit = {
+      require(nCount >= 0 && nCount <= arr.length)
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount))
+      appendByteVec(arr, nCount)
+   }
+
+   def decodeOctetString_no_length_vec(nCount: Int): Vector[UByte] = {
+      require(nCount >= 0 && nCount <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount))
+      readByteVec(nCount)
+   }
+
    def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int) = {
       require(nCount >= 0 && nCount <= arr.length)
       require(nCount < Int.MaxValue / 8 - 2 - (nCount / 0x4000) ) // To avoid overflow of the available length checks

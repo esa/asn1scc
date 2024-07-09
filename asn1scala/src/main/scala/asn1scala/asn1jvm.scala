@@ -31,6 +31,7 @@ opaque type UByte = Byte
 object UByte {
     @inline def fromRaw(u: Byte): UByte = u
     @inline @pure def fromArrayRaws(arr: Array[Byte]): Array[UByte] = arr
+    @inline @pure def fromVectorRaws(arr: Vector[Byte]): Vector[UByte] = arr
 }
 extension (l: UByte) {
     @inline def toRaw: Byte = l
@@ -59,6 +60,10 @@ extension (l: UByte) {
 }
 extension (arr: Array[UByte]) {
     @inline def toArrayRaws: Array[Byte] = arr
+}
+
+extension (vec: Vector[UByte]) {
+    @inline def toVectorRaws: Vector[Byte] = vec
 }
 
 opaque type UShort = Short

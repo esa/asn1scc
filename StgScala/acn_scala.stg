@@ -478,7 +478,7 @@ val <p> = codec.dec_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allo
 Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
 locally {
     val bix = codec.base.bitStream.bitIndex
-    codec.enc_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <p>)
+    codec.enc_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <p>)
     if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L  then
         return Left(461)
 }
@@ -489,7 +489,7 @@ val <p> = locally {
     val bix = codec.base.bitStream.bitIndex
     if <sExtFld>.toRaw \< 0L then
         return LeftMut(464)
-    val <p> = codec.dec_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <sExtFld>.toRaw)
+    val <p> = codec.dec_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <sExtFld>.toRaw)
     if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L  then
         return LeftMut(470)
     <p>
@@ -498,24 +498,24 @@ val <p> = locally {
 
 
 oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
-codec.base.encodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.toInt)
+codec.base.encodeOctetString_no_length_vec(<p><sAcc>arr, <p><sAcc>nCount.toInt)
 >>
 
 oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
-        <sTypedefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, codec.base.decodeOctetString_no_length(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>))
+        <sTypedefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, codec.base.decodeOctetString_no_length_vec(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>))
     else return LeftMut(<sErrCode>)
 >>
 
 oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
-codec.base.encodeOctetString_no_length(<p><sAcc>arr, <nSizeMax>)
+codec.base.encodeOctetString_no_length_vec(<p><sAcc>arr, <nSizeMax>)
 >>
 
 oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
-        <sTypedefName>(codec.base.decodeOctetString_no_length(<nSizeMax>))
+        <sTypedefName>(codec.base.decodeOctetString_no_length_vec(<nSizeMax>))
     else return LeftMut(<sErrCode>)
 >>
 
@@ -868,7 +868,7 @@ case <sChildID>(<sChildName>) =>
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> == <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
-(<sExtFld>.sameElements(Array[UByte](<arruVal:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">)))
+(<sExtFld>.sameElements(Vector.fromList(List[UByte](<arruVal:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))))
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
@@ -953,7 +953,7 @@ case _: <sChildNamePresent> =>
 
 ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
 case _: <sChildNamePresent> =>
-    Array(<arruChildRetValBytes:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">)
+    Vector.fromList(List(<arruChildRetValBytes:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))
 >>
 
 ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
@@ -1034,7 +1034,7 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
 >>
 
 octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
-codec.base.encodeOctetString_no_length(arr, <sExtField>.toInt)
+codec.base.encodeOctetString_no_length_vec(arr, <sExtField>.toInt)
 >>
 
 octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
@@ -1045,7 +1045,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
     val bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
 
     if <sExtField>.toInt \<= <sReqBytesForUperEncoding> then
-        codec.base.decodeOctetString_no_length(<sExtField>.toInt) match
+        codec.base.decodeOctetString_no_length_vec(<sExtField>.toInt) match
             case NoneMut() =>
                 return LeftMut(<pErrCode>)
             case SomeMut(arr) =>

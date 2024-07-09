@@ -699,7 +699,7 @@ let rec fromAsn1TypeKind (t: Asn1AcnAst.Asn1TypeKind): Type =
   | Asn1AcnAst.NullType _ -> IntegerType Byte
   | Asn1AcnAst.BitString bt -> ClassType {id = bt.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.OctetString ot -> ClassType {id = ot.typeDef[Scala].typeName; tps = []}
-  | Asn1AcnAst.IA5String _ -> ArrayType {tpe = IntegerType UByte}
+  | Asn1AcnAst.IA5String _ -> ClassType (vecTpe (IntegerType UByte))
   | Asn1AcnAst.Real _ -> DoubleType
   | t -> failwith $"TODO {t}"
 
@@ -709,7 +709,7 @@ let fromAcnInsertedType (t: Asn1AcnAst.AcnInsertedType): Type =
   | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> BooleanType
   | Asn1AcnAst.AcnInsertedType.AcnNullType _ -> IntegerType Byte
   | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm -> ClassType {id = enm.enumerated.typeDef[Scala].typeName; tps = []}
-  | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> ArrayType {tpe = IntegerType UByte}
+  | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> ClassType (vecTpe (IntegerType UByte))
 
 let fromAsn1AcnTypeKind (t: Asn1AcnAst.Asn1AcnTypeKind): Type =
   match t with
