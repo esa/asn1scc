@@ -1374,6 +1374,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
   let oldCdc = {Var.name = "oldCdc"; tpe = ClassType codecTpe}
   let cdcBeforeLoop = {Var.name = $"codecBeforeLoop_{pg.nestingIx}"; tpe = ClassType codecTpe}
   let cdcSnap1 = {Var.name = "codecSnap1"; tpe = ClassType codecTpe}
+  let cdcSnap2 = {Var.name = "codecSnap2"; tpe = ClassType codecTpe}
   let from = {Var.name = pg.ixVariable; tpe = IntegerType Int}
   let sqfVar = {Var.name = pg.cs.arg.asIdentifier; tpe = sqfTpe}
   let count = {Var.name = "nCount"; tpe = IntegerType Int}
@@ -1452,16 +1453,40 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
           }
         ]
       | SqOf _ -> []
-    let elseBody = LetGhost {
-      bdg = cdcSnap1
-      e = Snapshot (Var cdc)
-      body = mkBlock (
+    let elseBody =
+      let reccallRes = {Var.name = "res"; tpe = fnRetTpe}
+      let sizeRangeProof =
+        match sqf with
+        | StrType _ -> []
+        | SqOf sq ->
+          let selArr = FieldSelect (Var sqfVar, "arr")
+          let cIx = bitIndexACN (Var cdc)
+          let c1Ix = bitIndexACN (Var cdcSnap1)
+          let c2Ix = bitIndexACN (Var cdcSnap2)
+          let elemSz = asn1SizeExpr sq.child.acnAlignment sq.child.Kind (vecApply selArr (Var from)) c1Ix 0I 0I
+          let szRangeRec = callSizeRangeObj selArr c2Ix (plus [Var from; int32lit 1I]) nbItems
+          let szRangePost = callSizeRangeObj selArr c1Ix (Var from) nbItems
+          let proof =
+            letsIn elemSz.bdgs (mkBlock [
+              Assert (Equals (cIx, plus [c2Ix; szRangeRec]))
+              Assert (Equals (c2Ix, plus [c1Ix; elemSz.resSize]))
+              Assert (Equals (szRangePost, plus [elemSz.resSize; szRangeRec]))
+              Check (Equals (cIx, plus [c1Ix; szRangePost]))
+            ])
+          [Ghost (eitherMatchExpr (Var reccallRes) None UnitLit None proof)]
+      letsGhostIn [cdcSnap1, Snapshot (Var cdc)] (
+      mkBlock (
         checkRange @
         preSerde ::
         encDec @
-        [postSerde; reccall]
-      )
-    }
+        [letsGhostIn [cdcSnap2, Snapshot (Var cdc)] (
+        mkBlock [
+          postSerde
+          letsIn [reccallRes, reccall] (mkBlock (
+            sizeRangeProof @ [Var reccallRes]
+          ))
+        ])]
+      ))
     let body = IfExpr {
       cond = Equals (Var from, nbItems)
       thn = rightExpr (IntegerType Int) (IntegerType Int) (int32lit 0I)
@@ -1479,6 +1504,13 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
         Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz])
       ]
       eitherMatchExpr (Var postcondRes) None (BoolLit true) (Some postcondRes) rightBody
+    let invPrecond =
+      match sqf with
+      | SqOf sq when not sqf.isFixedSize ->
+        // These preconds are trivial since they come from the class invariant, it however helps the solver since it does not need to unfold the class invariant
+        let selArrSize = vecSize (FieldSelect (Var sqfVar, "arr"))
+        [Precond (And [Leq (int32lit sq.minSize.acn, nbItems); Leq (nbItems, selArrSize); Leq (selArrSize, int32lit sq.maxSize.acn)])]
+      | _ -> []
     let sizePrecond =
       match sqf with
       | StrType _ -> [Precond (Equals (vecSize (Var sqfVar), plus [nbItems; int32lit 1I]))] // +1 for the null terminator
@@ -1487,7 +1519,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       FunDef.id = fnid
       prms = [cdc] @ countParam @ [sqfVar; from]
       annots = [Opaque; InlineOnce]
-      specs = if enc = ACN then [Precond fromBounds] @ sizePrecond @ [Precond validateOffset; Measure decreasesExpr] else []
+      specs = if enc = ACN then [Precond fromBounds] @ invPrecond @ sizePrecond @ [Precond validateOffset; Measure decreasesExpr] else []
       postcond = if enc = ACN then Some (postcondRes, postcond) else None
       returnTpe = fnRetTpe
       body = body
@@ -1506,7 +1538,6 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     let call = letsGhostIn [cdcBeforeLoop, Snapshot (Var cdc)] call
     [fd], call
   | Decode ->
-    let cdcSnap2 = {Var.name = "codecSnap2"; tpe = ClassType codecTpe}
     let countParam = if sqf.isFixedSize then [] else [count]
     let collTpe = ClassType (vecTpe elemTpe)
     let fnRetTpe = ClassType (eitherMutTpe (IntegerType Int) collTpe)
@@ -1533,7 +1564,7 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
         vecRangesEqImpliesEq appended (Var newVec) (int32lit 0I) (Var from) (plus [Var from; int32lit 1I])
         isnocIndex (vecList (Var sqfVecVar)) (Var decodedElemVar) (Var from)
         listApplyEqVecApply appended (Var from)
-        Assert (Equals (Var decodedElemVar, vecApply (Var newVec) (Var from)))
+        Check (Equals (Var decodedElemVar, vecApply (Var newVec) (Var from)))
       ])
       let reccall = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc] @ (countParam |> List.map Var) @ [appended; plus [Var from; int32lit 1I]]}
       let postrecProof = Ghost (eitherMutMatchExpr (Var reccallRes) None UnitLit (Some newVec) postrecProofSuccess)
