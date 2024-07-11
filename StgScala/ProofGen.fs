@@ -447,7 +447,7 @@ let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef li
   let res = {name = "res"; tpe = IntegerType Long}
   let postcond =
     if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then Equals (Var res, longlit sq.acnMaxSizeInBits)
-    else And [Leq (longlit sq.acnMinSizeInBits, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
+    else And [Leq (longlit 0I, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
 
   let sizeLemmas (align: AcnAlignment option): FunDef =
     let template = sizeLemmaTemplate sq.acnMaxSizeInBits align
@@ -528,7 +528,7 @@ let choiceSizeFunDefs (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice): FunD
   let res = {name = "res"; tpe = IntegerType Long}
   let postcond =
     if choice.acnMinSizeInBits = choice.acnMaxSizeInBits then Equals (Var res, longlit choice.acnMaxSizeInBits)
-    else And [Leq (longlit choice.acnMinSizeInBits, Var res); Leq (Var res, longlit choice.acnMaxSizeInBits)]
+    else And [Leq (longlit 0I, Var res); Leq (Var res, longlit choice.acnMaxSizeInBits)]
   let sizeFd = {
     id = "size"
     prms = [offset]
@@ -581,7 +581,7 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
         Assert (Equals (Var elemSizeVar, longlit sq.child.Kind.acnMinSizeInBits))
       else
         Assert (And [
-          Leq (longlit sq.child.Kind.acnMinSizeInBits, Var elemSizeVar)
+          Leq (longlit 0I, Var elemSizeVar)
           Leq (Var elemSizeVar, longlit sq.child.Kind.acnMaxSizeInBits)
         ])
     let reccall = callSizeRangeObj (Var ls) (plus [Var offset; Var elemSizeVar]) (plus [Var from; int32lit 1I]) (Var tto)
@@ -621,7 +621,7 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
         Assert (Equals (Var elemSizeVar, longlit sq.child.Kind.acnMinSizeInBits))
       else
         Assert (And [
-          Leq (longlit sq.child.Kind.acnMinSizeInBits, Var elemSizeVar)
+          Leq (longlit 0I, Var elemSizeVar)
           Leq (Var elemSizeVar, longlit sq.child.Kind.acnMaxSizeInBits)
         ])
 
@@ -1756,12 +1756,11 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
       let outermostPVal = {Var.name = "pVal"; tpe = fromAsn1TypeKind (soc.nestingScope.parents |> List.last |> snd).Kind}
       let outerPVal = SelectionExpr (joinedSelection soc.p.arg)
       let sz = sizeExprOf (Var childVar)
-      let isDefined, alwaysAbsentOrPresent =
+      let isDefined =
         match soc.child.Optionality with
-        | Some AlwaysPresent -> [], [isDefinedMutExpr (Var childVar)]
-        | Some AlwaysAbsent -> [], [Not (isDefinedMutExpr (Var childVar))]
-        | _ -> [isDefinedMutExpr (Var childVar)], []
-      let postcondExpr = generateEncodePostcondExprCommon optChildTpe childAsn1Tpe.acnMaxSizeInBits soc.p.arg resPostcond sz alwaysAbsentOrPresent fnIdPure isDefined
+        | Some (AlwaysPresent | AlwaysAbsent) -> []
+        | _ -> [isDefinedMutExpr (Var childVar)]
+      let postcondExpr = generateEncodePostcondExprCommon optChildTpe childAsn1Tpe.acnMaxSizeInBits soc.p.arg resPostcond sz [] fnIdPure isDefined
       let body = letsGhostIn [(oldCdc, Snapshot (Var cdc))] (mkBlock (cstrCheck @ [encDec; rightExpr errTpe rightTpe (int32lit 0I)]))
       let fd = {
         FunDef.id = fnid
