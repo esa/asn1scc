@@ -267,7 +267,7 @@ case class Codec(bitStream: BitStream) {
          appendNLeastSignificantBits(encVal, nRangeBits)
       else
          ghostExpr {
-            validReflexiveLemma(bitStream)
+            lemmaIsPrefixRefl(bitStream)
          }
    }.ensuring { _ =>
       val w1 = old(this)
@@ -358,7 +358,7 @@ case class Codec(bitStream: BitStream) {
          appendNLeastSignificantBits(encVal, nRangeBits)
       // else
       //    ghostExpr {
-      //       validReflexiveLemma(bitStream)
+      //       lemmaIsPrefixRefl(bitStream)
       //    }
    }.ensuring { _ =>
       val w1 = old(this)
