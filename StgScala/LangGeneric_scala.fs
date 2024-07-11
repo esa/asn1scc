@@ -428,13 +428,12 @@ type LangGeneric_scala() =
             [$"require({show (ExprTree inv)})"]
 
         override this.generateSequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
-            let inv = sequenceInvariants t sq children This
+            let inv = sequenceInvariants t sq (children |> List.choose (fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)) This
             inv |> Option.map (fun inv -> $"require({show (ExprTree inv)})") |> Option.toList
 
         override this.generateSequenceOfInvariants (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (tpe: DAst.Asn1TypeKind): string list =
             let inv = sequenceOfInvariants sqf This
             [$"require({show (ExprTree inv)})"]
-
 
         override this.generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
             generateSequenceSizeDefinitions t sq children
@@ -444,6 +443,9 @@ type LangGeneric_scala() =
 
         override this.generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): string list * string list =
             generateSequenceOfSizeDefinitions t sqf elemTpe
+
+        override this.generateSequenceSubtypeDefinitions (dealiased: string) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: Asn1Child list): string list =
+            generateSequenceSubtypeDefinitions dealiased t sq children
 
         override this.uper =
             {

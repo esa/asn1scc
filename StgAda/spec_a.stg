@@ -343,7 +343,7 @@ end record;
 <endif>
 >>
 
-Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
+Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
 <define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
 <if(arrsOptionalChildren)>
 <define_subtype(thisType=td.exist, parentType=prTd.exist, soParentTypePackage=soParentTypePackage)>

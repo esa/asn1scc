@@ -461,6 +461,8 @@ let eitherMutMatchExpr (scrut: Expr)
 
 
 
+let ubytelit (l: bigint): Expr = IntLit (UByte, l)
+
 let int32lit (l: bigint): Expr = IntLit (Int, l)
 
 let longlit (l: bigint): Expr = IntLit (Long, l)

@@ -271,7 +271,7 @@ typedef struct {
 } <td.typeName>;
 >>
 
-Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
+Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
 typedef <prTd.typeName> <td.typeName>;
 <if (arrsNullFieldsSavePos)>
 typedef <prTd.extension_function_positions> <td.extension_function_positions>;

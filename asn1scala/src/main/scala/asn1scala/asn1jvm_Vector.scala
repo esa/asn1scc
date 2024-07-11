@@ -26,12 +26,12 @@ case class Vector[T](@pure @extern underlying: scala.collection.immutable.Vector
   @pure @extern
   def :+(t: T): Vector[T] = {
     Vector(underlying :+ t)
-  }.ensuring(_.list == list :+ t)
+  }.ensuring(res => res.list == list :+ t && res.size == (if (size == Int.MaxValue) Int.MaxValue else size + 1))
 
   @pure @extern
   def +:(t: T): Vector[T] = {
     Vector(t +: underlying)
-  }.ensuring(_.list == t :: list)
+  }.ensuring(res => res.list == t :: list && res.size == (if (size == Int.MaxValue) Int.MaxValue else size + 1))
 
   def append(t: T): Vector[T] = this :+ t
 

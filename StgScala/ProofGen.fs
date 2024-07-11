@@ -183,28 +183,27 @@ let bitStringInvariants (t: Asn1AcnAst.Asn1Type) (bs: Asn1AcnAst.BitString) (rec
     let nCount = FieldSelect (recv, "nCount")
     And [Leq (len, int32lit (bigint bs.MaxOctets)); Leq (longlit bs.minSize.acn, nCount); Leq (nCount, Mult (len, longlit 8I))] // TODO: Cast en long explicite
 
-let sequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list) (recv: Expr): Expr option =
-    let conds = children |> List.collect (fun child ->
-      match child with
-      | DAst.Asn1Child child ->
-        let field = FieldSelect (recv, child._scala_name)
-        let isDefined = isDefinedMutExpr field
-        let opt =
-          match child.Optionality with
-          | Some AlwaysPresent -> [isDefined]
-          | Some AlwaysAbsent -> [Not isDefined]
-          | _ -> []
-        // StringType is a type alias and has therefore no associated class invariant; we need to explicitly add them
-        let strType =
-          match child.Type.Kind.baseKind.ActualType with
-          | IA5String st -> [stringInvariants st.minSize.acn st.maxSize.acn field]
-          | _ -> []
-        opt @ strType
+let sequenceInvariantsCommon (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: (DAst.Asn1Child * Expr) list): Expr option =
+  let conds = children |> List.collect (fun (child, field) ->
+    let isDefined = isDefinedMutExpr field
+    let opt =
+      match child.Optionality with
+      | Some AlwaysPresent -> [isDefined]
+      | Some AlwaysAbsent -> [Not isDefined]
       | _ -> []
-    )
-    if conds.IsEmpty then None
-    else if conds.Tail.IsEmpty then Some conds.Head
-    else Some (And conds)
+    // StringType is a type alias and has therefore no associated class invariant; we need to explicitly add them
+    let strType =
+      match child.Type.Kind.baseKind.ActualType with
+      | IA5String st -> [stringInvariants st.minSize.acn st.maxSize.acn field]
+      | _ -> []
+    opt @ strType
+  )
+  if conds.IsEmpty then None
+  else if conds.Tail.IsEmpty then Some conds.Head
+  else Some (And conds)
+
+let sequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.Asn1Child list) (recv: Expr): Expr option =
+  sequenceInvariantsCommon t sq (children |> List.map (fun c -> c, FieldSelect (recv, c._scala_name)))
 
 let sequenceOfInvariants (sqf: Asn1AcnAst.SequenceOf) (recv: Expr): Expr =
     let len = vecSize (FieldSelect (recv, "arr"))
@@ -737,6 +736,23 @@ let generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.C
 let generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): string list * string list =
   let fdsCls, fdsObj = seqOfSizeFunDefs t sqf
   fdsCls |> List.map (fun fd -> show (FunDefTree fd)), fdsObj |> List.map (fun fd -> show (FunDefTree fd))
+
+let generateSequenceSubtypeDefinitions (dealiased: string) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.Asn1Child list): string list =
+  let retTpe = fromAsn1TypeKind t.Kind
+  let prms = children |> List.map (fun c -> {Var.name = c.Name.Value; tpe = fromAsn1TypeKind c.Type.Kind.baseKind})
+  let body = ClassCtor {ct = {id = dealiased; tps = []}; args = prms |> List.map Var}
+  let reqs = sequenceInvariantsCommon t sq (List.zip children (prms |> List.map Var))
+  let fd = {
+    FunDef.id = "apply"
+    prms = prms
+    annots = []
+    specs = reqs |> Option.map Precond |> Option.toList
+    postcond = None
+    returnTpe = retTpe
+    body = body
+  }
+  [show (FunDefTree fd)]
+
 
 let generateEncodePostcondExprCommon (tpe: Type)
                                      (maxSize: bigint)
@@ -1352,6 +1368,7 @@ let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: S
 
 let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): FunDef list * Expr =
   let sqfTpe = fromSequenceOfLike sqf
+  let elemTpe = fromSequenceOfLikeElemTpe sqf
   let codecTpe = runtimeCodecTypeFor enc
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
   let oldCdc = {Var.name = "oldCdc"; tpe = ClassType codecTpe}
@@ -1423,10 +1440,23 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       | _ -> []
     let fnRetTpe = ClassType (eitherTpe (IntegerType Int) (IntegerType Int))
     let reccall = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc] @ (countParam |> List.map Var) @ [Var sqfVar; plus [Var from; int32lit 1I]]}
+    let checkRange =
+      match sqf with
+      | StrType _ ->
+        let elem = vecApply (Var sqfVar) (Var from)
+        [
+          IfExpr {
+            cond = Not (And [Leq (ubytelit 0I, elem); Leq (elem, ubytelit 127I)])
+            thn = Return (leftExpr (IntegerType Int) (IntegerType Int) (int32lit 1I))
+            els = UnitLit
+          }
+        ]
+      | SqOf _ -> []
     let elseBody = LetGhost {
       bdg = cdcSnap1
       e = Snapshot (Var cdc)
       body = mkBlock (
+        checkRange @
         preSerde ::
         encDec @
         [postSerde; reccall]
@@ -1443,17 +1473,21 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
       let sz =
         match sqf with
         | SqOf _ -> callSizeRangeObj (FieldSelect (Var sqfVar, "arr")) (bitIndexACN oldCdc) (Var from) nbItems
-        | StrType _ -> Mult (longlit maxElemSz, Var from)
+        | StrType _ -> Mult (longlit maxElemSz, Minus (nbItems, Var from))
       let rightBody = And [
         Equals (selBufLength oldCdc, selBufLength (Var cdc))
         Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz])
       ]
       eitherMatchExpr (Var postcondRes) None (BoolLit true) (Some postcondRes) rightBody
+    let sizePrecond =
+      match sqf with
+      | StrType _ -> [Precond (Equals (vecSize (Var sqfVar), plus [nbItems; int32lit 1I]))] // +1 for the null terminator
+      | SqOf _ -> []
     let fd = {
       FunDef.id = fnid
       prms = [cdc] @ countParam @ [sqfVar; from]
       annots = [Opaque; InlineOnce]
-      specs = if enc = ACN then [Precond fromBounds; Precond validateOffset; Measure decreasesExpr] else []
+      specs = if enc = ACN then [Precond fromBounds] @ sizePrecond @ [Precond validateOffset; Measure decreasesExpr] else []
       postcond = if enc = ACN then Some (postcondRes, postcond) else None
       returnTpe = fnRetTpe
       body = body
@@ -1472,7 +1506,6 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     let call = letsGhostIn [cdcBeforeLoop, Snapshot (Var cdc)] call
     [fd], call
   | Decode ->
-    let elemTpe = fromSequenceOfLikeElemTpe sqf
     let cdcSnap2 = {Var.name = "codecSnap2"; tpe = ClassType codecTpe}
     let countParam = if sqf.isFixedSize then [] else [count]
     let collTpe = ClassType (vecTpe elemTpe)
@@ -1520,13 +1553,13 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
     let postcond =
       let newVec = {Var.name = "newVec"; tpe = collTpe}
       let oldCdc = Old (Var cdc)
-      let sz =
+      let sz, nbEffectiveElems =
         match sqf with
-        | SqOf _ -> callSizeRangeObj (Var newVec) (bitIndexACN oldCdc) (Var from) nbItems
-        | StrType _ -> Mult (longlit maxElemSz, Var from)
+        | SqOf _ -> callSizeRangeObj (Var newVec) (bitIndexACN oldCdc) (Var from) nbItems, nbItems
+        | StrType _ -> Mult (longlit maxElemSz, Minus (nbItems, Var from)), plus [nbItems; int32lit 1I] // +1 for the null terminator
       let rightBody = And ([
         Equals (selBuf oldCdc, selBuf (Var cdc))
-        Equals (vecSize (Var newVec), nbItems)
+        Equals (vecSize (Var newVec), nbEffectiveElems)
         vecRangesEq (Var sqfVecVar) (Var newVec) (int32lit 0I) (Var from)
         Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz])
       ])

@@ -360,7 +360,8 @@ let createSequence (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1
         Some (completeDefinition, privateDef)
     | NonPrimitiveNewSubTypeDefinition subDef ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let completeDefinition = define_subType_sequence td subDef otherProgramUnit  arrsOptionalChildren
+        let extraDefs = lm.lg.generateSequenceSubtypeDefinitions subDef.typeName t o children
+        let completeDefinition = define_subType_sequence td subDef otherProgramUnit arrsOptionalChildren extraDefs
         Some (completeDefinition, None)
     | NonPrimitiveReference2OtherType -> None
 
