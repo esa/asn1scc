@@ -162,7 +162,7 @@ let stringInvariants (minSize: bigint) (maxSize: bigint) (recv: Expr): Expr =
   // TODO: Can we have an `\0` before `minSize` as well?
   let arrayLen = ArrayLength recv
   let nullCharIx = indexOfOrLength recv (IntLit (UByte, 0I))
-  And [Leq (int32lit (maxSize + 1I), arrayLen); Leq (nullCharIx, int32lit maxSize)]
+  And [Equals (int32lit (maxSize + 1I), arrayLen); Leq (nullCharIx, int32lit maxSize)]
   (*
   if minSize = maxSize then And [Leq (int32lit (maxSize + 1I), arrayLen); Equals (nullCharIx, int32lit maxSize)]
   else
@@ -793,6 +793,16 @@ let generateEncodePostcondExprCommon (tpe: Type)
   let rightBody = letsIn sz.bdgs rightBody
   eitherMatchExpr (Var resPostcond) None (BoolLit true) None rightBody
 
+let generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec): Expr =
+  let codecTpe = runtimeCodecTypeFor ACN
+  let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
+  let common = validateOffsetBitsACN (Var cdc) (longlit (t.maxSizeInBits enc))
+  match t.ActualType.Kind, codec with
+  | IA5String str, Encode ->
+    let pval = {Var.name = "pVal"; tpe = ClassType (vecTpe (IntegerType UByte))}
+    And [common; Equals (vecSize (Var pval), int32lit (str.maxSize.acn + 1I))] // +1 for the null terminator
+  | _ -> common
+
 let generateDecodePostcondExprCommon (resPostcond: Var) (resRightMut: Var) (sz: SizeExprRes) (extraCondsPre: Expr list) (extraCondsPost: Expr list): Expr =
   let codecTpe = runtimeCodecTypeFor ACN
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
@@ -830,13 +840,17 @@ let generateDecodePostcondExpr (t: Asn1AcnAst.Asn1Type) (resPostcond: Var): Expr
       // Note that we don't have a "ReferenceType" in such cases, so we have to explicitly call `size` and not rely on asn1SizeExpr...
       {bdgs = []; resSize = callSize (Var szRecv) (bitIndexACN oldCdc)}
     | _ -> asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndexACN oldCdc) 0I 0I
+  let strSize =
+    match t.ActualType.Kind with
+    | IA5String str -> [Equals (vecSize (Var szRecv), int32lit (str.maxSize.acn + 1I))] // +1 for the null terminator
+    | _ -> []
   let cstrIsValid =
     match t.ActualType.Kind with
     | NullType _ -> []
     | _ ->
       let isValidFuncName = $"{t.FT_TypeDefinition.[Scala].typeName}_IsConstraintValid"
       [isRightExpr (FunctionCall {prefix = []; id = isValidFuncName; tps = []; args = [Var szRecv]})]
-  generateDecodePostcondExprCommon resPostcond szRecv sz [] cstrIsValid
+  generateDecodePostcondExprCommon resPostcond szRecv sz [] (strSize @ cstrIsValid)
 
 let rec tryFindFirstParentACNDependency (parents: Asn1AcnAst.Asn1Type list) (dep: RelativePath): (Asn1AcnAst.Asn1Type * Asn1AcnAst.AcnChild) option =
   match parents with

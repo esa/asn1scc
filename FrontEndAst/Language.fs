@@ -343,7 +343,7 @@ type ILangGeneric () =
     abstract member generateSequenceOfLikeAuxiliaries: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
     // TODO: Bad name
     abstract member generateOptionalAuxiliaries: Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
-    abstract member generatePrecond: Asn1Encoding -> t: Asn1AcnAst.Asn1Type -> string list
+    abstract member generatePrecond: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
     abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
     abstract member generateSequenceProof: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> Selection -> Codec -> string list
@@ -378,7 +378,7 @@ type ILangGeneric () =
     default this.generateOptionalAuxiliaries _ soc _ =
         // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves
         [], soc.childBody {soc.p with arg = soc.p.arg.dropLast} soc.existVar
-    default this.generatePrecond _ _ = []
+    default this.generatePrecond _ _ _ = []
     default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id
     default this.generateSequenceProof _ _ _ _ _ = []

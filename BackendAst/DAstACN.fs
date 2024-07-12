@@ -290,7 +290,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
             match funcNameAndtasInfo  with
             | None -> None, None, [], ns
             | Some funcName ->
-                let precondAnnots = lm.lg.generatePrecond ACN t
+                let precondAnnots = lm.lg.generatePrecond ACN t codec
                 let postcondAnnots = lm.lg.generatePostcond ACN funcNameBase p t codec
                 let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, auxiliaries =

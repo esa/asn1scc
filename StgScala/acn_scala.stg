@@ -479,7 +479,7 @@ Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max,
 locally {
     val bix = codec.base.bitStream.bitIndex
     codec.enc_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <p>)
-    if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L  then
+    if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L || codec.base.bitStream.bitIndex != bix + 7L * <p>.indexOfOrLength(UByte.fromRaw(0.toByte)) then
         return Left(461)
 }
 >>
@@ -490,7 +490,7 @@ val <p> = locally {
     if <sExtFld>.toRaw \< 0L then
         return LeftMut(464)
     val <p> = codec.dec_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <sExtFld>.toRaw)
-    if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L  then
+    if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L || codec.base.bitStream.bitIndex != bix + 7L * <p>.indexOfOrLength(UByte.fromRaw(0.toByte)) then
         return LeftMut(470)
     <p>
 }

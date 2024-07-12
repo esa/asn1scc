@@ -100,7 +100,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                         emptyStatement, [], [], true, isValidFuncName.IsNone, []
                     | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.auxiliaries
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let precondAnnots = lm.lg.generatePrecond UPER t
+                let precondAnnots = lm.lg.generatePrecond UPER t codec
                 let postcondAnnots = lm.lg.generatePostcond UPER typeDef.typeName p t codec
                 let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 

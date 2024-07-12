@@ -381,8 +381,9 @@ type LangGeneric_scala() =
 
             newFuncBody
 
-        // TODO: Replace with an AST when it becomes complete
-        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.base.bitStream.validate_offset_bits({t.maxSizeInBits enc})"]
+        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec): string list =
+            let precond = generatePrecond enc t codec
+            [show (ExprTree precond)]
 
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
             let errTpe = IntegerType Int

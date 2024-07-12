@@ -1013,7 +1013,7 @@ case class BitStream private [asn1scala](
     *
     */
 
-   inline def appendNOneBits(nBits: Long): Unit = {
+   def appendNOneBits(nBits: Long): Unit = {
       require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
       appendNBits(nBits, true)
@@ -1037,7 +1037,7 @@ case class BitStream private [asn1scala](
     * @param nBits number of bits
     *
     */
-   inline def appendNZeroBits(nBits: Long): Unit = {
+   def appendNZeroBits(nBits: Long): Unit = {
       require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
       appendNBits(nBits, false)
