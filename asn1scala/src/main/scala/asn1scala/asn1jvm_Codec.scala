@@ -676,13 +676,23 @@ case class Codec(bitStream: BitStream) {
          //SAM assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBytes))
          //SAM assert(0 <= nBytes && nBytes <= 8)
          val read = readNLeastSignificantBits(nBits)
-         if (read == 0 || nBits == 0 || nBits == 64 || (read & (1L << (nBits - 1))) == 0L) Some(read)
-         else Some(onesMSBLong(64 - nBits) | read) // Sign extension
+         val res =
+            if (read == 0 || nBits == 0 || nBits == 64 || (read & (1L << (nBits - 1))) == 0L) read
+            else onesMSBLong(64 - nBits) | read // Sign extension
+         // A trick to make the postcondition be true and have this function be the inverse of the encoding function
+         // Note that if this doesn't hold, then the number was probably not properly encoded
+         if (GetLengthForEncodingSigned(res) != nBytes) None[Long]()
+         else Some(res)
    }.ensuring { res =>
       val (c2, nBytes0) = old(this).bitStream.readBytePure()
-      val nBytes = nBytes0.toRaw
-      (0 <= nBytes && nBytes <= 8 && c2.validate_offset_bytes(nBytes)) == res.isDefined &&
-      res.isDefined ==> (bitStream.buf == old(this).bitStream.buf && bitIndex == old(this).bitStream.bitIndex + 8L + 8L * nBytes.toLong)
+      val nBytes = nBytes0.unsignedToInt
+      res match {
+         case None() => true
+         case Some(res) =>
+            0 <= nBytes && nBytes <= 8 && c2.validate_offset_bytes(nBytes) && bitStream.buf == old(this).bitStream.buf &&
+            bitIndex == old(this).bitStream.bitIndex + 8L + 8L * nBytes.toLong &&
+            GetLengthForEncodingSigned(res) == nBytes
+      }
    }
 
    @ghost @pure
