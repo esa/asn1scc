@@ -158,7 +158,10 @@ val <p> = codec.base.decodeConstrainedPosWholeNumber<sSsuffix>(ULong.fromRaw(<nM
 /*case: A :: = INTEGER */
 IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= "codec.base.encodeUnconstrainedWholeNumber(<p>)"
 IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= <<
-val <p> = codec.base.decodeUnconstrainedWholeNumber() // uper:145
+val <p> = codec.base.decodeUnconstrainedWholeNumber() match {
+    case None() => return LeftMut(<sErrCode>)
+    case Some(v) => v
+}
 >>
 
 /*case: A :: = INTEGER(MIN..5) */

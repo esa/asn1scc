@@ -6,7 +6,7 @@ import stainless.annotation._
 import StaticChecks._
 
 case class Vector[T](@pure @extern underlying: scala.collection.immutable.Vector[T]) {
-  @pure @extern
+  @ghost @pure @extern
   def list: List[T] = List.fromScala(underlying.toList)
 
   @pure @extern

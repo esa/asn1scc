@@ -55,8 +55,8 @@ let intSizeExpr (int: Asn1AcnAst.Integer) (obj: Expr): Expr =
   match int.acnProperties.encodingProp, int.acnProperties.sizeProp, int.acnProperties.endiannessProp with
   | None, None, None ->
     match int.uperRange with
-    | Full  ->
-      plus [longlit 1I; getLengthForEncodingSigned obj]
+    | Full ->
+      plus [longlit 8I; Mult (longlit 8I, getLengthForEncodingSigned obj)]
     | NegInf _ | PosInf _ -> getBitCountUnsigned obj
     | Concrete _ ->
       assert (int.acnMinSizeInBits = int.acnMaxSizeInBits)

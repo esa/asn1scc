@@ -830,6 +830,12 @@ case class BitStream private [asn1scala](
       BitStream.validate_offset_bits(buf.length, currentByte, currentBit, bits)
    }
 
+   @pure @inline
+   def validate_offset_bytes(bytes: Int): Boolean = {
+      require(bytes >= 0)
+      BitStream.validate_offset_bytes(buf.length, currentByte, currentBit, bytes)
+   }
+
    @ghost @pure @inline
    def resetAt(b: BitStream): BitStream = {
       require(b.buf.length == buf.length)

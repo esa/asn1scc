@@ -70,7 +70,7 @@ object Codec {
    }
 
    @ghost @pure
-   def decodeUnconstrainedWholeNumber_prefixLemma_helper(c1: Codec, c2: Codec): (Codec, Codec, Long, Codec, Long) = {
+   def decodeUnconstrainedWholeNumber_prefixLemma_helper(c1: Codec, c2: Codec): (Codec, Codec, Option[Long], Codec, Option[Long]) = {
       require(c1.bufLength() == c2.bufLength())
       require(BitStream.validate_offset_bytes(c1.bitStream.buf.length.toLong, c1.bitStream.currentByte.toLong, c1.bitStream.currentBit.toLong,1))
       val nBytes = c1.bitStream.readBytePure()._2.unsignedToInt
@@ -663,27 +663,30 @@ case class Codec(bitStream: BitStream) {
     * @return decoded number
     */
    @opaque @inlineOnce
-   def decodeUnconstrainedWholeNumber(): Long = {
+   def decodeUnconstrainedWholeNumber(): Option[Long] = {
       require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
 
       // get length
       val nBytes = readByte().unsignedToInt
       if (!(0 <= nBytes && nBytes <= 8 && BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nBytes)))
-         0L
+         None[Long]()
       else
          val nBits = nBytes * NO_OF_BITS_IN_BYTE
          // check bitstream precondition
          //SAM assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBytes))
          //SAM assert(0 <= nBytes && nBytes <= 8)
-         // read value
          val read = readNLeastSignificantBits(nBits)
-         // TODO: This was added (sign extension)
-         if (read == 0 || nBits == 0 || nBits == 64 || (read & (1L << (nBits - 1))) == 0L) read
-         else onesMSBLong(64 - nBits) | read
-   }.ensuring(_ => bitStream.buf == old(this).bitStream.buf && bitIndex <= old(this).bitIndex + 72L)
+         if (read == 0 || nBits == 0 || nBits == 64 || (read & (1L << (nBits - 1))) == 0L) Some(read)
+         else Some(onesMSBLong(64 - nBits) | read) // Sign extension
+   }.ensuring { res =>
+      val (c2, nBytes0) = old(this).bitStream.readBytePure()
+      val nBytes = nBytes0.toRaw
+      (0 <= nBytes && nBytes <= 8 && c2.validate_offset_bytes(nBytes)) == res.isDefined &&
+      res.isDefined ==> (bitStream.buf == old(this).bitStream.buf && bitIndex == old(this).bitStream.bitIndex + 8L + 8L * nBytes.toLong)
+   }
 
    @ghost @pure
-   def decodeUnconstrainedWholeNumberPure(): (Codec, Long) = {
+   def decodeUnconstrainedWholeNumberPure(): (Codec, Option[Long]) = {
       require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
       staticRequire {
          val nBytes = bitStream.readBytePure()._2.unsignedToInt
