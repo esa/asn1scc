@@ -87,6 +87,7 @@ type SequenceChildProps = {
 
 type SequenceProofGen = {
     t: Asn1AcnAst.Asn1Type
+    sel: Selection
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
     nestingLevel: bigint

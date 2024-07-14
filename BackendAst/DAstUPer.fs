@@ -807,7 +807,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 {info = None; sel=None; uperMaxOffset = bigint i; acnMaxOffset = bigint i;
                 typeInfo = {uperMaxSizeBits = 1I; acnMaxSizeBits = 1I; typeKind = Some (AcnBooleanEncodingType None)}; typeKind = Asn1AcnTypeKind.Asn1 t.Kind})
             let children = childrenStatements00 |> List.map (fun xs -> xs.props)
-            {t = t; acnOuterMaxSize = nestingScope.acnOuterMaxSize; uperOuterMaxSize = nestingScope.uperOuterMaxSize;
+            {t = t; sel = p.arg; acnOuterMaxSize = nestingScope.acnOuterMaxSize; uperOuterMaxSize = nestingScope.uperOuterMaxSize;
             nestingLevel = nestingScope.nestingLevel; nestingIx = nestingScope.nestingIx;
             uperMaxOffset = nestingScope.uperOffset; acnMaxOffset = nestingScope.acnOffset;
             acnSiblingMaxSize = nestingScope.acnSiblingMaxSize; uperSiblingMaxSize = nestingScope.uperSiblingMaxSize;
