@@ -1265,6 +1265,93 @@ case class ACN(base: Codec) {
       pBoolValue
    }.ensuring(_ => buf == old(this).base.bitStream.buf && BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(old(this).base.bitStream.buf.length, old(this).base.bitStream.currentByte, old(this).base.bitStream.currentBit) + nBitsToRead)
 
+   @opaque @inlineOnce
+   def BitStream_DecodeTrueFalseBoolean(truePattern: Array[UByte], falsePattern: Array[UByte], nBitsToRead: Int): Option[Boolean] = {
+      require(nBitsToRead < Int.MaxValue - 8)
+      require(nBitsToRead > 0)
+      require(truePattern.length == falsePattern.length)
+      require(truePattern != falsePattern)
+      require(truePattern.length >=  nBitsToRead / 8 + (if (nBitsToRead % 8 == 0) then 0 else 1))
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, nBitsToRead))
+      val nBytesToRead: Int = nBitsToRead / 8
+      val nRemainingBitsToRead: Int = nBitsToRead % 8
+      val neededBytes = nBytesToRead + (if (nRemainingBitsToRead == 0) then 0 else 1)
+
+      @ghost val oldThis = snapshot(this)
+      var result = true
+      var i: Int = 0
+
+      assert(i >= 0)
+      assert(i <= nBytesToRead)
+      assert(nBitsToRead < Int.MaxValue)
+      assert(neededBytes <= truePattern.length)
+      assert(neededBytes == nBytesToRead || neededBytes == nBytesToRead + 1)
+      assert(nBytesToRead <= Int.MaxValue / 8)
+      assert(neededBytes <= Int.MaxValue / 8)
+
+      (while i < nBytesToRead do
+         decreases(nBytesToRead - i)
+         @ghost val oldThisLoop = snapshot(this)
+         @ghost val oldBufLen = base.bitStream.buf.length
+         @ghost val oldCurrentByte = base.bitStream.currentByte
+         @ghost val oldCurrentBit = base.bitStream.currentBit
+         @ghost val oldBitIndex = BitStream.bitIndex(oldBufLen, oldCurrentByte, oldCurrentBit)
+         val read = {
+            val remaining = BitStream.remainingBits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit)
+            if (remaining < 8) readPartialByte(remaining.toInt)
+            else readByte()
+         }
+         if (read != truePattern(i) && read != falsePattern(i)) return None()
+         if (i == 0) {
+            result = (read == truePattern(i))
+         } else {
+            if (read == truePattern(i) && !result) return None()
+         }
+
+         ghostExpr {
+            assert(BitStream.bitIndex(oldBufLen, oldCurrentByte, oldCurrentBit) + 8 >= BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
+            @ghost val bitIndex = BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit)
+            assert(bitIndex == oldBitIndex + 8)
+            BitStream.validateOffsetBitsIneqLemma(oldThisLoop.base.bitStream, base.bitStream, nBitsToRead - i * 8L, 8L)
+         }
+         i += 1
+      ).opaque.inline.noReturnInvariant(
+         i >= 0 &&&
+         i <= nBytesToRead &&&
+         nBitsToRead < Int.MaxValue &&&
+         neededBytes <= truePattern.length &&&
+         neededBytes >= nBytesToRead &&&
+         neededBytes <= Int.MaxValue / 8 &&&
+         nBytesToRead <= Int.MaxValue / 8 &&&
+         base.bitStream.buf == oldThis.base.bitStream.buf && base.bitStream.currentByte >= 0 && base.bitStream.currentBit >= 0 &&&
+         BitStream.invariant(base.bitStream) &&&
+         BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) <= BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + i * 8L &&&
+         BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, nBitsToRead - i * 8L)
+      )
+
+      if nRemainingBitsToRead > 0 then
+         val read = readPartialByte(nRemainingBitsToRead.toByte).toRaw
+         val truePartialPattern = (truePattern(nBytesToRead).toRaw & 0xFF) >>> (8 - nRemainingBitsToRead)
+         val falsePartialPattern = (falsePattern(nBytesToRead).toRaw & 0xFF) >>> (8 - nRemainingBitsToRead)
+         if (read != truePartialPattern && read != falsePartialPattern) return None()
+         if (nBytesToRead == 0) {
+            result = (read == truePartialPattern)
+         } else {
+            if (read == truePartialPattern && !result) return None()
+         }
+         assert(nBytesToRead.toLong * 8L + nRemainingBitsToRead.toLong == nBitsToRead)
+         ghostExpr { check(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) <= BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBitsToRead) }
+
+      assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) <= BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBitsToRead)
+      Some(result)
+   }.ensuring { (res: Option[Boolean]) =>
+      res match {
+         case None() => true
+         case Some(_) =>
+            buf == old(this).base.bitStream.buf && BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) <= BitStream.bitIndex(old(this).base.bitStream.buf.length, old(this).base.bitStream.currentByte, old(this).base.bitStream.currentBit) + nBitsToRead
+      }
+   }
+
    // TODO move to codec?
    def BitStream_ReadBitPattern_ignore_value(nBitsToRead: Int): Unit = {
       // TODO replace implementation with readBits(nBitsToRead)?

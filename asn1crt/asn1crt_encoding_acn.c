@@ -908,7 +908,19 @@ flag Acn_Dec_SInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint*
 
 /* Boolean Decode */
 
-flag BitStream_ReadBitPattern(BitStream* pBitStrm, const byte* patternToRead, int nBitsToRead, flag* pBoolValue)
+/**
+ * Reads nBitsToRead bits from the BitStream and compares them with the bitPattern to determine the boolean value.
+ * If the read bits match the bitPattern, the function returns TRUE and sets the pBoolValue to TRUE.
+ * If the read bits do not match the bitPattern, the function returns TRUE but sets the pBoolValue to FALSE.
+ * If the are not enough bits in the BitStream to read nBitsToRead, the function returns FALSE.
+ * 
+ * @param pBitStrm The BitStream from which to read the bits.
+ * @param bitPattern The pattern to compare the read bits with.
+ * @param nBitsToRead The number of bits to read from the BitStream.
+ * @param pBoolValue A pointer to the variable where the decoded boolean value will be stored.
+ */
+
+flag BitStream_ReadBitPattern(BitStream* pBitStrm, const byte* bitPattern, int nBitsToRead, flag* pBoolValue)
 {
 	int nBytesToRead = nBitsToRead / 8;
 	int nRemainingBitsToRead = nBitsToRead % 8;
@@ -919,15 +931,13 @@ flag BitStream_ReadBitPattern(BitStream* pBitStrm, const byte* patternToRead, in
 	for (i = 0; i<nBytesToRead; i++) {
 		if (!BitStream_ReadByte(pBitStrm, &curByte))
 			return FALSE;
-		if (curByte != patternToRead[i])
-			*pBoolValue = FALSE;
+        *pBoolValue = *pBoolValue && (curByte == bitPattern[i]);
 	}
 
 	if (nRemainingBitsToRead > 0) {
 		if (!BitStream_ReadPartialByte(pBitStrm, &curByte, (byte)nRemainingBitsToRead))
 			return FALSE;
-		if (curByte != patternToRead[nBytesToRead] >> (8 - nRemainingBitsToRead))
-			*pBoolValue = FALSE;
+        *pBoolValue = *pBoolValue && (curByte == bitPattern[nBytesToRead] >> (8 - nRemainingBitsToRead));
 	}
 
 	return TRUE;
@@ -953,6 +963,56 @@ flag BitStream_ReadBitPattern_ignore_value(BitStream* pBitStrm, int nBitsToRead)
 	return TRUE;
 
 }
+
+/**
+ * Decodes a boolean value from a BitStream using the ACN encoding when both true and false bit patterns are provided.
+ * The function reads nBitsToRead bits from the BitStream and compares them with the truePattern and falsePattern to determine the boolean value.
+ * If the read bits match the truePattern, the function returns TRUE and sets the pBoolValue to TRUE.
+ * If the read bits match the falsePattern, the function returns TRUE and sets the pBoolValue to FALSE.
+ * If the read bits do not match either pattern, the function returns FALSE and sets the pBoolValue to FALSE.
+ *
+ * @param pBitStrm The BitStream from which to decode the boolean value.
+ * @param truePattern The pattern representing the true value in the ACN encoding.
+ * @param falsePattern The pattern representing the false value in the ACN encoding.
+ * @param nBitsToRead The number of bits to read from the BitStream.
+ * @param pBoolValue A pointer to the variable where the decoded boolean value will be stored.
+ * @return Returns TRUE if the boolean value was successfully decoded, FALSE otherwise.
+ */
+flag BitStream_DecodeTrueFalseBoolean(BitStream* pBitStrm, const byte* truePattern, const byte* falsePattern, int nBitsToRead, flag* pBoolValue) 
+{
+	int nBytesToRead = nBitsToRead / 8;
+	int nRemainingBitsToRead = nBitsToRead % 8;
+	byte curByte;
+	int i = 0;
+    flag isTrue = TRUE;
+    flag isFalse = TRUE;
+
+	for (i = 0; i<nBytesToRead; i++) {
+		if (!BitStream_ReadByte(pBitStrm, &curByte))
+			return FALSE;
+        isTrue = isTrue && (curByte == truePattern[i]);
+        isFalse = isFalse && (curByte == falsePattern[i]);
+	}
+
+	if (nRemainingBitsToRead > 0) {
+		if (!BitStream_ReadPartialByte(pBitStrm, &curByte, (byte)nRemainingBitsToRead))
+			return FALSE;
+        isTrue = isTrue && (curByte == truePattern[nBytesToRead] >> (8 - nRemainingBitsToRead));
+        isFalse = isFalse && (curByte == falsePattern[nBytesToRead] >> (8 - nRemainingBitsToRead));
+	}
+    
+    if (isTrue) {
+        *pBoolValue = TRUE;
+        return TRUE;
+    } else if (isFalse) {
+        *pBoolValue = FALSE;
+        return TRUE;
+    } else {
+        *pBoolValue = FALSE;
+        return FALSE;
+    }
+}
+
 
 /*Real encoding functions*/
 typedef union _float_tag

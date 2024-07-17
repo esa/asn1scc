@@ -255,8 +255,7 @@ let GetBooleanEncodingClass (alignment: AcnAlignment option) errLoc (p  : Boolea
     let sz =
         match p.encodingPattern with
         | None -> 1I
-        | Some (TrueValue p) -> p.Value.Length.AsBigInt
-        | Some (FalseValue p) -> p.Value.Length.AsBigInt
+        | Some p -> p.bitValLength.AsBigInt
     sz, sz + getAlignmentSize alignment
 
 

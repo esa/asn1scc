@@ -244,6 +244,7 @@ flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32(BitStream* pBitStrm, uint32
 /* Boolean Decode */
 
 flag BitStream_ReadBitPattern(BitStream* pBitStrm, const byte* patternToRead, int nBitsToRead, flag* pBoolValue);
+flag BitStream_DecodeTrueFalseBoolean(BitStream* pBitStrm, const byte* truePattern, const byte* falsePattern, int nBitsToRead, flag* pBoolValue);
 
 /* NULL Type functions*/
 flag BitStream_ReadBitPattern_ignore_value(BitStream* pBitStrm, int nBitsToRead);

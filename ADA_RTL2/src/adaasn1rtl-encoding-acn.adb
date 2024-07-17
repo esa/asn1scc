@@ -1345,6 +1345,59 @@ is
       BoolVal := not BoolVal;
    end Acn_Dec_Boolean_false_pattern;
 
+   procedure Acn_Enc_Boolean_true_false_pattern
+     (bs : in out Bitstream; BoolVal : Asn1Boolean; true_pattern : BitArray;
+      false_pattern : BitArray)
+   is
+   begin
+      for I in Integer range true_pattern'Range loop
+         pragma Loop_Invariant
+           (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry +
+                   (I - true_pattern'First));
+         pragma Loop_Invariant
+           (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry +
+                   (I - false_pattern'First));
+         BitStream_AppendBit
+           (bs, (if BoolVal then true_pattern (I) else false_pattern (I)));
+      end loop;
+   end Acn_Enc_Boolean_true_false_pattern;
+
+   procedure Acn_Dec_Boolean_true_false_pattern
+     (bs     : in out Bitstream; BoolVal : out Asn1Boolean;
+      true_pattern : BitArray;
+      false_pattern : BitArray;
+      Result :    out ASN1_RESULT)
+   is
+      bit_val : BIT;
+      true_value : Asn1Boolean := True;
+      false_value : Asn1Boolean := True;
+
+   begin
+      for I in Integer range true_pattern'Range loop
+         pragma Loop_Invariant
+           (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry +
+                    (I - true_pattern'First));
+         pragma Loop_Invariant
+           (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry +
+                    (I - false_pattern'First));
+         BitStream_ReadBit (bs, bit_val, Result.Success);
+         true_value := Result.Success and true_value and
+            bit_val = true_pattern (I);
+         false_value := Result.Success and false_value and
+            bit_val = false_pattern (I);
+      end loop;
+      BoolVal := (
+                   if true_value and not false_value then True
+                elsif false_value and not true_value then False
+                else False);
+
+      Result :=
+          ASN1_RESULT'(Success =>
+            (true_value and not false_value) or
+            (false_value and not true_value),
+                ErrorCode => 0);
+   end Acn_Dec_Boolean_true_false_pattern;
+
    procedure Acn_Enc_NullType_pattern
      (bs : in out Bitstream; encVal : Asn1NullType; pattern : BitArray)
    is

@@ -811,6 +811,40 @@ is
       bs.Current_Bit_Pos =
         bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
+   procedure Acn_Enc_Boolean_true_false_pattern
+     (bs : in out Bitstream; BoolVal : Asn1Boolean; true_pattern :
+      BitArray; false_pattern : BitArray) with
+      Depends => (bs => (bs, BoolVal, true_pattern, false_pattern)),
+      Pre     => true_pattern'Last >= true_pattern'First
+      and then true_pattern'First = false_pattern'First
+      and then true_pattern'Last = false_pattern'Last
+      and then true_pattern'Last - true_pattern'First < Natural'Last
+      and then bs.Current_Bit_Pos <
+        Natural'Last - (true_pattern'Last - true_pattern'First + 1)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <=
+        bs.Size_In_Bytes * 8 - (true_pattern'Last - true_pattern'First + 1),
+      Post => bs.Current_Bit_Pos =
+       bs'Old.Current_Bit_Pos + (true_pattern'Last - true_pattern'First + 1);
+
+   procedure Acn_Dec_Boolean_true_false_pattern
+     (bs     : in out Bitstream; BoolVal : out Asn1Boolean;
+      true_pattern : BitArray;
+      false_pattern : BitArray;
+      Result :    out ASN1_RESULT) with
+      Pre => true_pattern'Last >= true_pattern'First
+      and then true_pattern'First = false_pattern'First
+      and then true_pattern'Last = false_pattern'Last
+      and then true_pattern'Last - true_pattern'First < Natural'Last
+      and then bs.Current_Bit_Pos <
+        Natural'Last - (true_pattern'Last - true_pattern'First + 1)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <=
+        bs.Size_In_Bytes * 8 - (true_pattern'Last - true_pattern'First + 1),
+      Post =>
+      bs.Current_Bit_Pos =
+        bs'Old.Current_Bit_Pos + (true_pattern'Last - true_pattern'First + 1);
+
    procedure Acn_Enc_NullType_pattern
      (bs : in out Bitstream; encVal : Asn1NullType; pattern : BitArray) with
       Pre => pattern'Last >= pattern'First

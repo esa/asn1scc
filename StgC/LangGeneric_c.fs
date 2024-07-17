@@ -575,6 +575,7 @@ type LangGeneric_c() =
                 "Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32"
                 "BitStream_ReadBitPattern"
                 "BitStream_ReadBitPattern_ignore_value"
+                "BitStream_DecodeTrueFalseBoolean"
                 "Acn_Enc_Real_IEEE754_32_big_endian"
                 "Acn_Enc_Real_IEEE754_64_big_endian"
                 "Acn_Enc_Real_IEEE754_32_little_endian"

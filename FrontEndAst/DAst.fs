@@ -57,8 +57,17 @@ type IcdRow = {
     sUnits      : string option
     rowType     : IcdRowType
 }
+//The following function provides the content of the inner table of an ICD table for a given type.
+//The function takes as input the field name (when embedded in a sequence or choice), the presence textual description and any comments linked with this type
+// Primitive types such as INTEGER, BOOLEAN will return a sinle IcdRow and an empty list of IcdTypeAss
+// An Octet string may return multiple IcdRow (e.g. one for length determinant and one for the body content) and an empty list of IcdTypeAss
+// A composite type such as SEQUENCE will return multiple IcdRow one for each asn1/acn child.
+// if the child can be embedded in the parent type then the rows of the child are returned as rows of the parent type.
+// if the child cannot be embedded in the parent type then a single IcdRow is returned for this child (of type ReferenceToCompositeTypeRow) and
+// the child IcdTypeAss is included in the list of the returned IcdTypeAss
+type IcdInnerTableFunc = string-> string -> string list -> ((IcdRow list)*(IcdTypeAss list))
 
-type IcdTypeAss = {
+and IcdTypeAss = {
     linkId  : ReferenceToType
     tasInfo : TypeAssignmentInfo option
     asn1Link : string option
@@ -67,11 +76,15 @@ type IcdTypeAss = {
     kind : string
     comments : string list
     rows : IcdRow list
-    //compositeChildren : IcdTypeAss list
+    compositeChildren : IcdTypeAss list
     minLengthInBytes : BigInteger
     maxLengthInBytes : BigInteger
     hash            : string
+    canBeEmbedded  : bool
+    createRowsFunc : IcdInnerTableFunc
 }
+
+
 type State = {
     currErrorCode   : int
     curErrCodeNames : Set<String>
@@ -427,6 +440,15 @@ type UPerFunction = {
     auxiliaries         : string list
 }
 
+type IcdArgAux = {
+    canBeEmbedded  : bool
+    baseAsn1Kind   : string
+    rowsFunc : IcdInnerTableFunc
+    commentsForTas : string list
+    scope : string
+    name  : string option
+}
+
 type AcnFuncBodyResult = {
     funcBody            : string
     errCodes            : ErrorCode list
@@ -436,6 +458,7 @@ type AcnFuncBodyResult = {
     resultExpr          : string option
     typeEncodingKind    : TypeEncodingKind option
     auxiliaries         : string list
+    icdResult           : IcdArgAux option
 }
 
 type XERFuncBodyResult = {
@@ -462,11 +485,9 @@ type XerFunction =
     | XerFunction of XerFunctionRec
     | XerFunctionDummy
 
-type IcdAux = {
-    canBeEmbedded  : bool
-    createRowsFunc : string->string->string list ->IcdRow list
-    typeAss        : IcdTypeAss
-}
+
+
+
 
 type AcnFuncBody = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> AcnFuncBodyResult option * State
 type AcnFuncBodySeqComp = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> string -> AcnFuncBodyResult option * State
@@ -481,7 +502,7 @@ type AcnFunction = {
     funcBody            : AcnFuncBody
     funcBodyAsSeqComp   : AcnFuncBodySeqComp
     isTestVaseValid     : AutomaticTestCase -> bool
-    icd                 : IcdAux option (* always present in Encode, always None in Decode *)
+    icdTas              : IcdTypeAss option (* always present in Encode, always None in Decode *)
 }
 
 type EncodeDecodeTestFunc = {
@@ -941,6 +962,7 @@ and ReferenceType = {
 }
 
 and AcnChildUpdateResult = {
+    icdComments              : string list
     updateAcnChildFnc        : AcnChild -> NestingScope -> CallerScope -> CallerScope -> string
     //Given an automatic test case (which includes a map with the IDs of the involved types), this function
     //checks if the automatic test case contains a type which depends on this acn Child. If this is true

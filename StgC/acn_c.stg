@@ -367,6 +367,24 @@ Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 >>
 
 
+BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<
+{
+    static byte true_data[] = {<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
+    static byte false_data[] = {<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
+    byte* tmp = <p> ? true_data : false_data;
+    BitStream_AppendBits(pBitStrm, tmp, <nSize>);
+}
+>>
+
+BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
+{
+    static byte true_data[] = {<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
+    static byte false_data[] = {<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
+    ret = BitStream_DecodeTrueFalseBoolean(pBitStrm, true_data, false_data, <nSize>, <ptr>);
+    <A(sErrCode)>
+}
+>>
+
 
 Null_declare(p) ::= ""
 

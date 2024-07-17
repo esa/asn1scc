@@ -370,18 +370,17 @@ type ObjectIdTypeAcnProperties = {
 }
 
 
-type AcnBooleanEncoding =
-    | TrueValue    of StringLoc
-    | FalseValue   of StringLoc
+type AcnBooleanEncoding = 
+    | TrueValueEncoding of StringLoc //the user specifies only the true value. All other values are considered false
+    | FalseValueEncoding of StringLoc //the user specifies only the false value. All other values are considered true
+    | TrueFalseValueEncoding of StringLoc*StringLoc //the user specifies both true and false values
+
 with
-    member this.bitVal =
+    member this.bitValLength = 
         match this with
-        | TrueValue bv -> bv
-        | FalseValue bv -> bv
-    member this.isTrue =
-        match this with
-        | TrueValue _ -> true
-        | FalseValue _ -> false
+        | TrueValueEncoding tv -> tv.Value.Length
+        | FalseValueEncoding fv -> fv.Value.Length
+        | TrueFalseValueEncoding (tv,_) -> tv.Value.Length
 
 type BooleanAcnProperties = {
     encodingPattern: AcnBooleanEncoding option
