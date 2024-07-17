@@ -284,16 +284,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let sInitialExp = ""
     let func, funcDef, auxiliaries, icdResult, ns2  =
             match funcNameAndtasInfo  with
-            | None ->
-                let precondAnnots = lm.lg.generatePrecond ACN t
-                let postcondAnnots = lm.lg.generatePostcond ACN funcNameBase p t codec
-                let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
-                let icdResult =
-                    match content with
-                    | None -> None
-                    | Some bodyResult -> bodyResult.icdResult
-
-                None, None, [], icdResult, ns1a
+            | None -> None, None, [], None, ns
             | Some funcName ->
                 let precondAnnots = lm.lg.generatePrecond ACN t codec
                 let postcondAnnots = lm.lg.generatePostcond ACN funcNameBase p t codec
