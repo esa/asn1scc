@@ -401,8 +401,8 @@ type LangGeneric_scala() =
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
             generateSequenceChildProof enc stmts pg codec
 
-        override this.generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (sel: Selection) (codec: Codec): string list =
-            let proof = generateSequenceProof enc t sq sel codec
+        override this.generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let proof = generateSequenceProof enc t sq nestingScope sel codec
             proof |> Option.map (fun p -> show (ExprTree p)) |> Option.toList
 
         // override this.generateChoiceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (stmt: string) (sel: Selection) (codec: Codec): string =

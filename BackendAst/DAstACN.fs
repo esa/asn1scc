@@ -2069,7 +2069,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let resultExpr = p.arg.asIdentifier
                 Some resultExpr, [lm.uper.sequence_build resultExpr (typeDefinition.longTypedefName2 lm.lg.hasModules) p.arg.isOptional (existSeq@childrenResultExpr)]
             | _ -> None, []
-        let proof = lm.lg.generateSequenceProof ACN t o p.arg codec
+        let proof = lm.lg.generateSequenceProof ACN t o nestingScope p.arg codec
         let seqContent =  (saveInitialBitStrmStatements@childrenStatements@(post_encoding_function |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
 
         match existsAcnChildWithNoUpdates with

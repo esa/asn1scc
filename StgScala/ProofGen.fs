@@ -795,12 +795,7 @@ let generateEncodePostcondExprCommon (tpe: Type)
 let generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec): Expr =
   let codecTpe = runtimeCodecTypeFor ACN
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
-  let common = validateOffsetBitsACN (Var cdc) (longlit (t.maxSizeInBits enc))
-  match t.ActualType.Kind, codec with
-  | IA5String str, Encode ->
-    let pval = {Var.name = "pVal"; tpe = ClassType (vecTpe (IntegerType UByte))}
-    And [common; Equals (vecSize (Var pval), int32lit (str.maxSize.acn + 1I))] // +1 for the null terminator
-  | _ -> common
+  validateOffsetBitsACN (Var cdc) (longlit (t.maxSizeInBits enc))
 
 let generateDecodePostcondExprCommon (resPostcond: Var) (resRightMut: Var) (sz: SizeExprRes) (extraCondsPre: Expr list) (extraCondsPost: Expr list): Expr =
   let codecTpe = runtimeCodecTypeFor ACN
@@ -1182,7 +1177,6 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
   let stmts = List.zip3 snapshots pg.children stmts |> List.indexed
   List.foldBack annotate stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd
 
-
 let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
   if stmts.IsEmpty then stmts |> List.choose id
   else
@@ -1296,7 +1290,7 @@ let generateSequencePrefixLemma (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq
 
   failwith "TODO"
 
-let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (sel: Selection) (codec: Codec): Expr option =
+let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): Expr option =
   if sq.children.IsEmpty then None
   else
     let codecTpe = runtimeCodecTypeFor enc
@@ -1305,12 +1299,18 @@ let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1
       match codec with
       | Encode -> SelectionExpr (joinedSelection sel)
       | Decode -> SelectionExpr sel.asIdentifier
-    let recvSz = callSize recv (bitIndexACN (Var oldCdc))
-    let childrenSz =
-      let nbPresenceBits = countNbPresenceBits sq
-      let szs = [0 .. nbPresenceBits + sq.children.Length - 1] |> List.map (fun i -> Var {name = $"size_{i}"; tpe = IntegerType Long})
-      plus szs
-    Some (Ghost (Check (Equals (recvSz, childrenSz))))
+
+    // For "nested sequences", we always inline the size definition instead of calling the corresponding `size` function
+    // since we do not know whether we have extra ACN fields or not. See the TODO in `wrapAcnFuncBody`
+    // Therefore, in such case, we should not assert that the size of the current Sequence is equal to the sum of the size of its children
+    if not nestingScope.parents.IsEmpty then None
+    else
+      let recvSz = callSize recv (bitIndexACN (Var oldCdc))
+      let childrenSz =
+        let nbPresenceBits = countNbPresenceBits sq
+        let szs = [0 .. nbPresenceBits + sq.children.Length - 1] |> List.map (fun i -> Var {name = $"size_{i}"; tpe = IntegerType Long})
+        plus szs
+      Some (Ghost (Check (Equals (recvSz, childrenSz))))
   (*
   if codec = Decode || sq.children.IsEmpty then None
   else
