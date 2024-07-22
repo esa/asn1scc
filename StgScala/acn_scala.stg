@@ -1,6 +1,6 @@
 group scala_acn;
 
-getStringSize(p) ::= "ULong.fromRaw(<p>.indexOf(0x00.toRawUByte))"
+getStringSize(p) ::= "ULong.fromRaw(<p>.indexOfOrLength(0x00.toRawUByte))"
 
 getSizeableSize(p, sAcc, bIsUnsigned) ::= <<
 <if(bIsUnsigned)>
@@ -450,11 +450,11 @@ val <p> = codec.dec_String_Ascii_FixSize(<nAsn1Max>)
 >>
 
 Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-codec.enc_String_Ascii_Null_Terminated_mult(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>, <p>)
+codec.enc_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>, <p>)
 >>
 
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-val <p> = codec.dec_String_Ascii_Null_Terminated_mult(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>)
+val <p> = codec.dec_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>)
 >>
 
 Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "codec.enc_String_Ascii_External_Field_Determinant(<nAsn1Max>, <p>)"
@@ -625,7 +625,7 @@ val <p> =
 
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
-codec.base.bitStream.appendBitsMSBFirst(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
+codec.base.bitStream.appendBitsMSBFirstVec(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
 oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
@@ -648,7 +648,7 @@ else if checkBitPatternPresentResult.get then
 >>
 
 bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
-codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <p><sAcc>nCount)
+codec.base.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <p><sAcc>nCount)
 >>
 
 bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -659,7 +659,7 @@ val <p> =
 >>
 
 bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
-codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <nSizeMax>)
+codec.base.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <nSizeMax>)
 >>
 
 bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -670,7 +670,7 @@ val <p> =
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
-codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <p><sAcc>arr.length*8) // TODO: re-introduce nCount?  -> codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <p><sAcc>nCount)
+codec.base.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <p><sAcc>arr.length*8) // TODO: re-introduce nCount?  -> codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <p><sAcc>nCount)
 codec.base.bitStream.appendBitsMSBFirst(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
@@ -1078,7 +1078,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
-codec.base.bitStream.appendBitsMSBFirst(arr, <sExtField>.toInt)
+codec.base.bitStream.appendBitsMSBFirstVec(arr, <sExtField>.toInt)
 >>
 
 bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<

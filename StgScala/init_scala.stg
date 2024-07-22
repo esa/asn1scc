@@ -119,11 +119,11 @@ val <sResVar> = Vector.fill(<nMaxSizePlusOne>)(UByte.fromRaw(0))
 <else>
 <if(bAlpha)>
 val allowedCharSet: Array[UByte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">.toRawUByte}; wrap, anchor, separator=",">)
-val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nMaxSizePlusOne>)(<i> => if <i> == <nMaxSizePlusOne> - 1 then 0.toByte else allowedCharSet(<i> % <nAlphabetLength>))
-val <sResVar> = Vector.fromScala(<sResVar>_tmp)
+val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => if <i> == <nMaxSizePlusOne> - 1 then UByte.fromRaw(0) else allowedCharSet(<i> % <nAlphabetLength>))
+val <sResVar> = Vector.fromScala(<sResVar>_tmp :+ UByte.fromRaw(0))
 <else>
-val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nMaxSizePlusOne>)(<i> => UByte.fromRaw(if <i> == <nMaxSizePlusOne> - 1 then 0.toByte else if <i> % 128 == 0 then 'A'.toByte else (<i> % 128).toByte))
-val <sResVar> = Vector.fromScala(<sResVar>_tmp)
+val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => UByte.fromRaw(if <i> == <nMaxSizePlusOne> - 1 then 0.toByte else if <i> % 128 == 0 then 'A'.toByte else (<i> % 128).toByte))
+val <sResVar> = Vector.fromScala(<sResVar>_tmp :+ UByte.fromRaw(0))
 <endif>
 <endif>
 >>

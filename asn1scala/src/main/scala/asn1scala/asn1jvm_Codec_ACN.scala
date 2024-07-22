@@ -1505,6 +1505,10 @@ case class ACN(base: Codec) {
          i += 1
    }
 
+   def enc_String_Ascii_Null_Terminated_multVec(max: Long, null_character: Array[Byte], null_character_size: Int, strVal: Vector[ASCIIChar]): Unit = {
+      enc_String_Ascii_Null_Terminated_mult(max, null_character, null_character_size, strVal.toScala.toArray)
+   }
+
 
    def enc_String_Ascii_External_Field_Determinant(max: Long, strVal: Array[ASCIIChar]): Unit = {
       enc_String_Ascii_private(max, strVal)
@@ -1690,6 +1694,10 @@ case class ACN(base: Codec) {
       strVal
    }
 
+   def dec_String_Ascii_Null_Terminated_multVec(max: Long, null_character: Array[ASCIIChar], null_character_size: Int): Vector[ASCIIChar] = {
+      val res = dec_String_Ascii_Null_Terminated_mult(max, null_character, null_character_size)
+      Vector.fromScala(res.toVector)
+   }
 
    @opaque @inlineOnce
    def dec_String_Ascii_External_Field_Determinant(max: Long, extSizeDeterminantFld: Long): Array[ASCIIChar] = {

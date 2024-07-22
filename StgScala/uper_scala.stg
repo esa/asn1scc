@@ -431,7 +431,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 
 
 str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
-nStringLength = <p>.indexOf(0x00.toRawUByte)
+nStringLength = <p>.indexOfOrLength(0x00.toRawUByte)
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
 codec.base.encodeConstrainedWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
 val <sPIden>_nCount = nStringLength
