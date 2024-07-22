@@ -559,6 +559,8 @@ let callSize (recv: Expr) (offset: Expr): Expr = MethodCall { id = "size"; recv 
 
 let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; tps = []; args = [arg] }
 
+let acnReader (oldCdc: Expr) (cdc: Expr): Expr = FunctionCall { prefix = [acnId]; id = "reader"; tps = []; args = [oldCdc; cdc] }
+
 let stringLength (recv: Expr): Expr = FieldSelect (recv, "nCount")
 
 let indexOfOrLength (recv: Expr) (elem: Expr): Expr = MethodCall {recv = recv; id = "indexOfOrLength"; args = [elem]}

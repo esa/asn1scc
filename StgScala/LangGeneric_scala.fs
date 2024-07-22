@@ -356,26 +356,16 @@ type LangGeneric_scala() =
                     match res with
                     | Some res ->
                         assert (not nestingScope.parents.IsEmpty)
-                        let fd, call = wrapAcnFuncBody t res.funcBody codec nestingScope p recP
-
-                        // let deps = t.externalDependencies
-                        // printfn "FOR %A WE HAVE:" t.id.AcnAbsPath
-                        // printfn $"    {deps}"
-                        // let topMost = snd (List.last nestingScope.parents)
-                        // let allAcns = collectAllAcnChildren topMost.Kind
-                        // let paramsAcn = deps |> List.map (fun dep -> allAcns |> List.tryFind (fun acn -> acn.id.fieldPath = dep.asStringList))
-                        // printfn "    %A" (paramsAcn |> List.map (fun p -> p |> Option.map (fun p -> p.id.AcnAbsPath)))
-
-                        let fdStr = show (FunDefTree fd)
+                        let fds, call = wrapAcnFuncBody t res.funcBody codec nestingScope p recP
+                        let fdsStr = fds |> List.map (fun fd -> show (FunDefTree fd))
                         let callStr = show (ExprTree call)
-                        // let newBody = fdStr + "\n" + callStr
                         // TODO: Hack to determine how to change the "result variable"
                         let resultExpr =
                             match res.resultExpr with
                             | Some res when res = recP.arg.asIdentifier -> Some p.arg.asIdentifier
                             | Some res -> Some res
                             | None -> None
-                        Some {res with funcBody = callStr; resultExpr = resultExpr; auxiliaries = res.auxiliaries @ [fdStr]}, s
+                        Some {res with funcBody = callStr; resultExpr = resultExpr; auxiliaries = res.auxiliaries @ fdsStr}, s
                     | None -> None, s
                 else funcBody s err prms nestingScope p
 

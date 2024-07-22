@@ -769,30 +769,58 @@ let generateEncodePostcondExprCommon (tpe: Type)
 
   let acnVarsPatBdg = acnTps |> List.indexed |> List.map (fun (ix, tpe) -> {Var.name = $"acn{ix + 1}"; tpe = tpe})
 
-  // TODO: Invertibility for ACN parameters as well
   let invertibility =
     let prefix = isPrefixOfACN oldCdc (Var cdc)
-    let r1 = resetAtACN (Var cdc) oldCdc
+    let r1 = {Var.name = "r1"; tpe = ClassType codecTpe}
+    let r2 = {Var.name = "r2"; tpe = ClassType codecTpe}
+    let readerCall = acnReader oldCdc (Var cdc)
     let lemmaCall = validateOffsetBitsContentIrrelevancyLemma (selBitStream oldCdc) (selBuf (Var cdc)) (longlit maxSize)
+    let decodePureCall = FunctionCall {prefix = []; id = decodePureId; tps = []; args = (Var r1) :: decodeExtraArgs}
     let r2Got = {Var.name = "r2Got"; tpe = ClassType codecTpe}
+    let decodingRes = {Var.name = "decodingRes"; tpe = ClassType (eitherMutTpe (IntegerType Int) tpe)}
     let resGot = {Var.name = "resGot"; tpe = tpe}
-    let decodePure = FunctionCall {prefix = []; id = decodePureId; tps = []; args = r1 :: decodeExtraArgs}
-    let eq = And [Equals (Var resGot, rightMutExpr (IntegerType Int) tpe (Var szRecv)); Equals (Var r2Got, Var cdc)]
-    let block = Locally (mkBlock [
-      lemmaCall
-      LetTuple {
-        bdgs = [r2Got; resGot]
-        e = decodePure
-        body = eq
+    let acnVarsGotBdg = acnTps |> List.indexed |> List.map (fun (ix, tpe) -> {Var.name = $"acnGot{ix + 1}"; tpe = tpe})
+    let acnEq = List.zip acnVarsGotBdg acnVarsPatBdg |> List.map (fun (acnGot, acn) -> Equals (Var acnGot, Var acn))
+    let eq = And ([
+      Equals (Var resGot, Var szRecv)
+      Equals (Var r2Got, Var cdc)
+    ] @ acnEq)
+    let decodeResPatmat =
+      let rightPat =
+        let subpat =
+          if acnTps.IsEmpty then Wildcard (Some resGot)
+          else TuplePattern {binder = None; subPatterns = Wildcard (Some resGot) :: (acnVarsGotBdg |> List.map (fun v -> Wildcard (Some v)))}
+        ADTPattern {
+          binder = None
+          id = rightMutId
+          subPatterns = [subpat]
+        }
+      MatchExpr {
+        scrut = Var decodingRes
+        cases = [
+          {
+            pattern = ADTPattern {binder = None; id = leftMutId; subPatterns = [Wildcard None]}
+            rhs = BoolLit false
+          }
+          {
+            pattern = rightPat
+            rhs = eq
+          }
+        ]
       }
-    ])
-    [prefix; block]
+    let boundCall =
+      letTuple [r1; r2] readerCall (
+        mkBlock [
+          lemmaCall
+          letTuple [r2Got; decodingRes] decodePureCall decodeResPatmat
+        ]
+      )
+    [prefix; Locally boundCall]
 
-  // TODO: Put back invertibility
   let rightBody = And (extraCondsPre @ [
     Equals (selBufLength oldCdc, selBufLength (Var cdc))
     Equals (bitIndexACN (Var cdc), plus [bitIndexACN oldCdc; sz.resSize])
-  ] (*@ invertibility*))
+  ] @ invertibility)
   let rightBody = letsIn sz.bdgs rightBody
   if acnTps.IsEmpty then
     eitherMatchExpr (Var resPostcond) None (BoolLit true) None rightBody
@@ -950,7 +978,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
                     (codec: Codec)
                     (nestingScope: NestingScope)
                     (outerSel: CallerScope)
-                    (recSel: CallerScope): FunDef * Expr =
+                    (recSel: CallerScope): FunDef list * Expr =
   assert recSel.arg.path.IsEmpty
   let codecTpe = runtimeCodecTypeFor ACN
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
@@ -990,7 +1018,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
     let outermostPVal = {Var.name = "pVal"; tpe = fromAsn1TypeKind (nestingScope.parents |> List.last |> snd).Kind}
     let acnExtVars = acnExternDependenciesVariableEncode t nestingScope |> Option.toList
     let resPostcond = {Var.name = "res"; tpe = ClassType (eitherTpe errTpe retTpe)}
-    let decodePureId = $"{t.FT_TypeDefinition.[Scala].typeName}_ACN_Decode_pure"
+    let decodePureId = $"{ToC t.id.dropModule.AsString}_ACN_Decode_pure"
     let szRecv = {Var.name = recSel.arg.asLastOrSelf.receiverId; tpe = tpe}
     let sz =
       match t.Kind with
@@ -1000,7 +1028,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
         // If we do, we must "inline" the size definition which will contain the size of these extra ACN fields and if not, we can just call size
         // We always inline here since it is ok even if we don't have extra ACN fields
         asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndexACN (Old (Var cdc))) 0I 0I
-    let postcondExpr = generateEncodePostcondExprCommon tpe t.acnMaxSizeInBits recSel.arg resPostcond acnTps sz [] decodePureId []
+    let postcondExpr = generateEncodePostcondExprCommon tpe t.acnMaxSizeInBits recSel.arg resPostcond acnTps sz [] decodePureId (paramsAcn |> List.map Var)
     let fd = {
       id = $"{ToC t.id.dropModule.AsString}_ACN_Encode"
       prms = [cdc; outermostPVal] @ acnExtVars @ paramsAcn @ [recPVal]
@@ -1012,7 +1040,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
     }
 
     let call =
-      let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc; Var outermostPVal] @ ((acnExtVars @ paramsAcn) |> List.map (fun v -> Var v)) @ [outerPVal]}
+      let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc; Var outermostPVal] @ ((acnExtVars @ paramsAcn) |> List.map Var) @ [outerPVal]}
       let leftBdg = {Var.name = "l"; tpe = errTpe}
       // TODO: FIXME: the right type must be the outside type!!!
       let leftHACK = ClassCtor {ct = {id = leftId; tps = []}; args = [Var leftBdg]}
@@ -1043,9 +1071,10 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
           else acnsVars |> List.indexed |> List.map (fun (ix, v) -> (v, TupleSelect (Var resVar, ix + 1)))
         letsIn ((resVar, call) :: acnVarsBdg) (mkBlock [])
 
-    fd, call
+    [fd], call
   | Decode ->
     let retTpe = tupleType (tpe :: acnTps)
+    let fnRetTpe = ClassType (eitherMutTpe errTpe retTpe)
     let outerPVal = {Var.name = outerSel.arg.asIdentifier; tpe = tpe}
     let retInnerFd =
       let retVal = mkTuple (Var recPVal :: (acnsVars |> List.map Var))
@@ -1056,7 +1085,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
       eitherMatchExpr scrut (Some leftBdg) leftBody None rightBody
     let body = letsGhostIn [oldCdc, Snapshot (Var cdc)] (mkBlock [EncDec body; retInnerFd])
 
-    let resPostcond = {Var.name = "res"; tpe = ClassType {id = eitherMutId; tps = [errTpe; retTpe]}}
+    let resPostcond = {Var.name = "res"; tpe = fnRetTpe}
     let szRecv = {Var.name = "resVal"; tpe = tpe}
     let sz =
       match t.Kind with
@@ -1105,7 +1134,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
       specs = precond
       annots = [Opaque; InlineOnce]
       postcond = Some (resPostcond, postcondExpr)
-      returnTpe = ClassType (eitherMutTpe errTpe retTpe)
+      returnTpe = fnRetTpe
       body = body
     }
 
@@ -1126,7 +1155,25 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
         let tplVar = {Var.name = outerPVal.name + "_tuple"; tpe = retTpe}
         let bdgs = (tplVar, call) :: ((outerPVal :: acnsVars) |> List.mapi (fun i v -> v, TupleSelect (Var tplVar, i + 1)))
         letsIn bdgs (mkBlock [])
-    fd, ret
+
+    let fdPure =
+      let varCpy = {Var.name = "cpy"; tpe = ClassType codecTpe}
+      let varRes = {Var.name = "res"; tpe = fnRetTpe}
+      let pureBody = (letsIn
+        [varCpy, Snapshot (Var cdc);
+        varRes, FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var varCpy] @ (paramsAcn |> List.map Var)}]
+        (mkTuple [Var varCpy; Var varRes]))
+      {
+        FunDef.id = $"{ToC t.id.dropModule.AsString}_ACN_Decode_pure"
+        prms = [cdc] @ paramsAcn
+        annots = [GhostAnnot; Pure]
+        specs = precond
+        postcond = None
+        returnTpe = tupleType [ClassType codecTpe; fnRetTpe]
+        body = pureBody
+      }
+
+    [fd; fdPure], ret
 
 
 let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc: Var) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (rest: Expr): Expr =
@@ -1835,7 +1882,7 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
         match soc.child.Optionality with
         | Some (AlwaysPresent | AlwaysAbsent) -> []
         | _ -> [isDefinedMutExpr (Var childVar)]
-      let postcondExpr = generateEncodePostcondExprCommon optChildTpe childAsn1Tpe.acnMaxSizeInBits soc.p.arg resPostcond [] sz [] fnIdPure isDefined
+      let postcondExpr = generateEncodePostcondExprCommon optChildTpe childAsn1Tpe.acnMaxSizeInBits soc.p.arg resPostcond [] sz [] fnIdPure (isDefined @ (paramsAcn |> List.map Var))
       let retRes = rightExpr errTpe rightTpe (int32lit 0I)
       let body = letsGhostIn [(oldCdc, Snapshot (Var cdc))] (mkBlock (cstrCheck @ [encDec; retRes]))
       let fd = {
@@ -1848,7 +1895,7 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
         body = body
       }
       let call =
-        let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc; Var outermostPVal] @ ((acnExtVars @ paramsAcn) |> List.map (fun v -> Var v)) @ [outerPVal]}
+        let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc; Var outermostPVal] @ ((acnExtVars @ paramsAcn) |> List.map Var) @ [outerPVal]}
         let leftBdg = {Var.name = "l"; tpe = errTpe}
         // TODO: FIXME: the right type must be the outside type!!!
         let leftHACK = ClassCtor {ct = {id = leftId; tps = []}; args = [Var leftBdg]}
