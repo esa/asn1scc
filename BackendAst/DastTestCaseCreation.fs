@@ -195,7 +195,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                         let encDecTestFunc = t.Type.getEncDecTestFunc e
                         match encDecTestFunc with
                         | Some _    ->
-                            let hasEncodeFunc = e <> Asn1Encoding.ACN ||  hasAcnEncodeFunction t.Type.acnEncFunction t.Type.acnParameters
+                            let hasEncodeFunc = e <> Asn1Encoding.ACN ||  hasAcnEncodeFunction t.Type.acnEncFunction t.Type.acnParameters t.Type.id.tasInfo
                             if hasEncodeFunc   then
                                 let isTestCaseValid atc =
                                     match t.Type.acnEncFunction with
