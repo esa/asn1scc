@@ -341,6 +341,7 @@ type ILangGeneric () =
     abstract member getBoardDirs : Targets option -> string list
 
     abstract member adaptAcnFuncBody: AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
+    abstract member generateSequenceAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
     abstract member generateSequenceOfLikeAuxiliaries: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
     // TODO: Bad name
     abstract member generateOptionalAuxiliaries: Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
@@ -375,6 +376,7 @@ type ILangGeneric () =
         sourceCode
 
     default this.adaptAcnFuncBody f _ _ _ = f
+    default this.generateSequenceAuxiliaries _ _ _ _ _ _ = []
     default this.generateSequenceOfLikeAuxiliaries _ _ _ _ = [], None
     default this.generateOptionalAuxiliaries _ soc _ =
         // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves

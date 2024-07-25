@@ -840,7 +840,7 @@ case class BitStream private [asn1scala](
    def resetAt(b: BitStream): BitStream = {
       require(b.buf.length == buf.length)
       BitStream(snapshot(buf), b.currentByte, b.currentBit)
-   }.ensuring(res => invariant(res))
+   }.ensuring(res => res.buf == this.buf && res.currentByte == b.currentByte && res.currentBit == b.currentBit)
 
    // ****************** Append Bit Functions **********************
 
@@ -1544,7 +1544,7 @@ case class BitStream private [asn1scala](
       srcBuffer == old(srcBuffer)
       &&& BitStream.invariant(currentBit, currentByte, buf.length)
       &&& w1.buf.length == w2.buf.length
-      &&& BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) == 
+      &&& BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) ==
             BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) + nBits
       &&& w1.isPrefixOf(w2)
       &&&

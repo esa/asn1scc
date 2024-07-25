@@ -973,6 +973,142 @@ let acnExternDependenciesVariableEncode (t: Asn1AcnAst.Asn1Type) (nestingScope: 
         let nme = seqParent.id.lastItem
         Some {Var.name = nme; tpe = tpe}
 
+let generateSequencePrefixLemma (enc: Asn1Encoding)
+                                (t: Asn1AcnAst.Asn1Type)
+                                (nestingScope: NestingScope)
+                                (sq: Asn1AcnAst.Sequence): FunDef =
+  let codecTpe = runtimeCodecTypeFor enc
+  let c1 = {Var.name = "c1"; tpe = ClassType codecTpe}
+  let c2 = {Var.name = "c2"; tpe = ClassType codecTpe}
+  let sz = {Var.name = "sz"; tpe = IntegerType Long}
+  let tpe = fromAsn1TypeKind t.Kind
+  let maxSizeExpr = longlit t.Kind.acnMaxSizeInBits
+  let preconds = [
+    Precond (Equals (selBufLength (Var c1), selBufLength (Var c2)))
+    Precond (validateOffsetBitsACN (Var c1) maxSizeExpr)
+    Precond (And [Leq (longlit 0I, Var sz); Leq (Var sz, maxSizeExpr)])
+    Precond (arrayBitRangesEq
+      (selBuf (Var c1))
+      (selBuf (Var c2))
+      (longlit 0I)
+      (plus [bitIndexACN (Var c1); Var sz])
+    )
+  ]
+  let isTopLevel = nestingScope.parents.IsEmpty
+  let paramsAcn, acnTps =
+    if isTopLevel then [], []
+    else
+      let paramsAcn = acnExternDependenciesVariableDecode t nestingScope
+      let acns = collectNestedAcnChildren t.Kind
+      let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
+      paramsAcn, acnTps
+  let baseId =
+    if isTopLevel then t.FT_TypeDefinition.[Scala].typeName
+    else ToC t.id.dropModule.AsString
+  let decodeId = $"{baseId}_ACN_Decode"
+  let decodePureId = $"{decodeId}_pure"
+  let c2Reset = {Var.name = "c2Reset"; tpe = ClassType codecTpe}
+  let c1Res = {Var.name = "c1Res"; tpe = ClassType codecTpe}
+  let decodingRes1 = {Var.name = "decodingRes1"; tpe = tpe}
+  let dec1 = {Var.name = "dec1"; tpe = TupleType [c1Res.tpe; decodingRes1.tpe]}
+  let call1 = FunctionCall {prefix = []; id = decodePureId; tps = []; args = Var c1 :: (paramsAcn |> List.map Var)}
+  let c2Res = {Var.name = "c2Res"; tpe = ClassType codecTpe}
+  let decodingRes2 = {Var.name = "decodingRes2"; tpe = tpe}
+  let dec2 = {Var.name = "dec2"; tpe = TupleType [c2Res.tpe; decodingRes2.tpe]}
+  let call2 = FunctionCall {prefix = []; id = decodePureId; tps = []; args = Var c2Reset :: (paramsAcn |> List.map Var)}
+
+  let preSpecs =
+    preconds @ [
+      LetSpec (c2Reset, resetAtACN (Var c2) (Var c1))
+      LetSpec (dec1, call1)
+      LetSpec (c1Res, TupleSelect (Var dec1, 1))
+      LetSpec (decodingRes1, TupleSelect (Var dec1, 2))
+      LetSpec (dec2, call2)
+      LetSpec (c2Res, TupleSelect (Var dec2, 1))
+      LetSpec (decodingRes2, TupleSelect (Var dec2, 2))
+    ]
+
+  let postcond =
+    let v1 = {Var.name = "v1"; tpe = tpe}
+    let v2 = {Var.name = "v2"; tpe = tpe}
+    let decodedAcn1 = acnTps |> List.indexed |> List.map (fun (i, tpe) -> {Var.name = $"acn1_{i + 1}"; tpe = tpe})
+    let decodedAcn2 = acnTps |> List.indexed |> List.map (fun (i, tpe) -> {Var.name = $"acn2_{i + 1}"; tpe = tpe})
+
+    let subPat1, subPat2 =
+      if acnTps.IsEmpty then
+        Wildcard (Some v1), Wildcard (Some v2)
+      else
+        let subPat1 = TuplePattern {
+          binder = None
+          subPatterns = Wildcard (Some v1) :: (decodedAcn1 |> List.map (fun v -> Wildcard (Some v)))
+        }
+        let subPat2 = TuplePattern {
+          binder = None
+          subPatterns = Wildcard (Some v2) :: (decodedAcn2 |> List.map (fun v -> Wildcard (Some v)))
+        }
+        subPat1, subPat2
+
+    let acnsEq = List.zip decodedAcn1 decodedAcn2 |> List.map (fun (acn1, acn2) -> Equals (Var acn1, Var acn2))
+    let v1SizeExpr = asn1SizeExpr t.acnAlignment t.Kind (Var v1) (bitIndexACN (Var c1)) 0I 0I
+    let v1SizeVar = {Var.name = "v1Size"; tpe = IntegerType Long}
+    let prop =
+      Or [
+        Not (Equals (Var v1SizeVar, Var sz))
+        And ([Equals (bitIndexACN (Var c1Res), bitIndexACN (Var c2Res)); Equals (Var v1, Var v2)] @ acnsEq)
+      ]
+    let boundProp = letsIn (v1SizeExpr.bdgs @ [v1SizeVar, v1SizeExpr.resSize]) prop
+    MatchExpr {
+      scrut = mkTuple [Var decodingRes1; Var decodingRes2]
+      cases = [
+        {
+          pattern = TuplePattern {
+            binder = None
+            subPatterns = [
+              ADTPattern {
+                binder = None
+                id = rightMutId
+                subPatterns = [subPat1]
+              }
+              ADTPattern {
+                binder = None
+                id = rightMutId
+                subPatterns = [subPat2]
+              }
+            ]
+          }
+          rhs = boundProp
+        }
+        {
+          pattern = TuplePattern {
+            binder = None
+            subPatterns =  [
+              ADTPattern {
+                binder = None
+                id = leftMutId
+                subPatterns = [Wildcard None]
+              }
+              Wildcard None
+            ]
+          }
+          rhs = BoolLit true
+        }
+        {
+          pattern = Wildcard None
+          rhs = BoolLit false
+        }
+      ]
+    }
+
+  {
+    FunDef.id = $"{baseId}_prefixLemma"
+    prms = [c1; c2; sz] @ paramsAcn
+    annots = [GhostAnnot; Opaque; InlineOnce]
+    specs = preSpecs
+    postcond = Some ({Var.name = "_"; tpe = UnitType}, postcond)
+    returnTpe = UnitType
+    body = UnitLit
+  }
+
 let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
                     (body: string)
                     (codec: Codec)
@@ -1341,49 +1477,6 @@ let selectCodecReadPrefixLemma (prefixLemmaInfo: PrefixLemmaInfo) (cdcSnap: Expr
   else if prefixLemmaInfo.prefix = [codecId] then selBase cdcSnap, selBase cdc
   else cdcSnap, cdc
 
-let generateSequencePrefixLemma (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef =
-  let codecTpe = runtimeCodecTypeFor enc
-  let c1 = {Var.name = "c1"; tpe = ClassType codecTpe}
-  let c2 = {Var.name = "c2"; tpe = ClassType codecTpe}
-  let tpe = fromAsn1TypeKind t.Kind
-  let sizeExpr = longlit t.Kind.acnMaxSizeInBits
-  let preconds = [
-    Precond (Equals (selBufLength (Var c1), selBufLength (Var c2)))
-    Precond (validateOffsetBitsACN (Var c1) sizeExpr)
-    Precond (arrayBitRangesEq
-      (selBuf (Var c1))
-      (selBuf (Var c2))
-      (longlit 0I)
-      (plus [bitIndexACN (Var c1); sizeExpr])
-    )
-  ]
-
-  let decodeId = $"{ToC t.id.dropModule.AsString}_ACN_Decode"
-  let decodePureId = $"{decodeId}_pure"
-  let c2Reset = {Var.name = "c2Reset"; tpe = ClassType codecTpe}
-  let c1Res = {Var.name = "c1Res"; tpe = ClassType codecTpe}
-  let v1 = {Var.name = "v1"; tpe = tpe}
-  let dec1 = {Var.name = "dec1"; tpe = TupleType [c1Res.tpe; v1.tpe]}
-  let call1 = FunctionCall {prefix = []; id = decodePureId; tps = []; args = [Var c1]}
-  let c2Res = {Var.name = "c2Res"; tpe = ClassType codecTpe}
-  let v2 = {Var.name = "v2"; tpe = tpe}
-  let dec2 = {Var.name = "dec2"; tpe = TupleType [c2Res.tpe; v2.tpe]}
-  let call2 = FunctionCall {prefix = []; id = decodePureId; tps = []; args = [Var c2Reset]}
-
-  let preSpecs =
-    preconds @ [
-      LetSpec (c2Reset, resetAtACN (Var c2) (Var c1))
-      LetSpec (dec1, call1)
-      LetSpec (c1Res, TupleSelect (Var dec1, 1))
-      LetSpec (v1, TupleSelect (Var dec1, 2))
-      LetSpec (dec2, call2)
-      LetSpec (c2Res, TupleSelect (Var dec2, 1))
-      LetSpec (v2, TupleSelect (Var dec2, 2))
-    ]
-  let postcond = And [Equals (bitIndexACN (Var c1Res), bitIndexACN (Var c2Res)); Equals (Var v1, Var v2)]
-
-  failwith "TODO"
-
 let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): Expr option =
   if sq.children.IsEmpty then None
   else
@@ -1481,9 +1574,13 @@ let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1
         ])
     Some (Ghost (mkBlock (transitiveLemmas @ presenceBitsPrefixLemmaApps @ childrenPrefixLemmaApps @ [proof])))
   *)
+
+let generateSequenceAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+  if enc = ACN && codec = Decode then [generateSequencePrefixLemma enc t nestingScope sq]
+  else []
+
 let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
   None
-
 
 let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): FunDef list * Expr =
   let sqfTpe = fromSequenceOfLike sqf
