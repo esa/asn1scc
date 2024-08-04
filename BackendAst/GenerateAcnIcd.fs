@@ -690,7 +690,25 @@ let PrintTasses2 stgFileName (r:AstRoot) : string list =
         | None -> None) |>
     Seq.toList
 
-
+let printTasses3 stgFileName (r:DAst.AstRoot) : string list =
+    let pdus = r.args.icdPdus |> Option.map Set.ofList
+    seq {
+        for f in r.Files do
+            for m in f.Modules do
+                for tas in m.TypeAssignments do
+                    match pdus.IsNone || pdus.Value.Contains tas.Name.Value with
+                    | true  -> 
+                        match tas.Type.icdTas with
+                        | Some icdTas -> 
+                            let icdTassesHash = getMySelfAndChildren r icdTas
+                            yield! icdTassesHash
+                        | None -> ()
+                    | false -> ()
+    } |> Seq.distinct 
+    |> Seq.choose(fun hash ->
+        match r.icdHashes.TryFind hash with
+        | Some chIcdTas -> Some (emitTas2 stgFileName r (fun _ -> []) (selectTypeWithSameHash chIcdTas))
+        | None -> None) |> Seq.toList
 
 let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (f:Asn1File) =
     //let tryCreateRefType = CreateAsn1AstFromAntlrTree.CreateRefTypeContent
@@ -769,7 +787,7 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (f:Asn1File) =
 
 let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string) (asn1HtmlStgFileMacros:string option)   outFileName =
     let files1 = r.Files |> Seq.map (fun f -> PrintTasses stgFileName f r )
-    let files1b = PrintTasses2 stgFileName r
+    let files1b = printTasses3 stgFileName r
     let bAcnParamsMustBeExplained = true
     let asn1HtmlMacros =
         match asn1HtmlStgFileMacros with

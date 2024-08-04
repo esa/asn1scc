@@ -1745,7 +1745,8 @@ type private SequenceChildResult = {
     existVar: string option
     props: SequenceChildProps
     typeKindEncoding: TypeEncodingKind option
-    icdComments : string list
+    //icdComments : string list
+    icdResult : ((IcdRow list) * (IcdTypeAss list))
 } with
     member this.joinedBodies (lm:LanguageMacros) (codec:CommonTypes.Codec): string option =
         this.stmts |> List.choose (fun s -> s.body) |> nestChildItems lm codec
@@ -1846,47 +1847,40 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         | true -> []
         | false ->
             [{IcdRow.fieldName = "Presence Mask"; comments = [$"Presence bit mask"]; sPresent="always";sType=IcdPlainType "bit mask"; sConstraint=None; minLengthInBits = sPresenceBitIndexMap.Count.AsBigInt ;maxLengthInBits=sPresenceBitIndexMap.Count.AsBigInt;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
-    let icdFnc fieldName sPresent comments  =
-        let chRows0, compositeChildren0 =
-            children |>
-            List.map(fun c ->
-                match c with
-                | Asn1Child c ->
-                    let optionality =
-                        match c.Optionality with
-                        | None                -> "always"
-                        | Some(AlwaysAbsent ) -> "never"
-                        | Some(AlwaysPresent) -> "always"
-                        | Some(Optional  opt) ->
-                            match opt.acnPresentWhen with
-                            | None                                      -> $"when bit %d{sPresenceBitIndexMap[c.Name.Value]} is set in the uPER bit mask"
-                            | Some(PresenceWhenBool relPath)            -> $"when %s{relPath.AsString} is true"
-                            | Some(PresenceWhenBoolExpression acnExp)   ->
-                                let dummyScope = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
-                                let retExp = acnExpressionToBackendExpression o dummyScope acnExp
-                                $"when %s{retExp}"
-                    let comments = c.Comments |> Seq.toList
-                    let childIcdTas = c.Type.icdTas
-                    //let isRef = match c.Type.Kind with ReferenceType _ -> true | _ -> false
-                    match c.Type.icdTas with
-                    | Some childIcdTas ->
-                        match childIcdTas.canBeEmbedded   with
-                        | true  ->
-                            let chRows, _ = childIcdTas.createRowsFunc c.Name.Value optionality comments
-                            chRows, []
-                        | false ->
-                            let sType = TypeHash childIcdTas.hash
-                            [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=None; minLengthInBits = c.Type.acnMinSizeInBits; maxLengthInBits=c.Type.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}], [childIcdTas]
-                    | None ->
-                        [], []
-                | AcnChild  c ->
-                    let icdRow = createAcnChildIcdFunction c c.Name.Value (c.Comments |> Seq.toList)
-                    [icdRow], []) |>
-                List.unzip
-        let chRows = chRows0 |> List.collect id
-        let compositeChildren = compositeChildren0 |> List.collect id
-        uperPresenceMask@chRows |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)}), compositeChildren
-    let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
+
+    let icd_asn1_child (c:Asn1Child) (extra_comments:string list) : ((IcdRow list) * (IcdTypeAss list)) =
+        let optionality =
+            match c.Optionality with
+            | None                -> "always"
+            | Some(AlwaysAbsent ) -> "never"
+            | Some(AlwaysPresent) -> "always"
+            | Some(Optional  opt) ->
+                match opt.acnPresentWhen with
+                | None                                      -> $"when bit %d{sPresenceBitIndexMap[c.Name.Value]} is set in the uPER bit mask"
+                | Some(PresenceWhenBool relPath)            -> $"when %s{relPath.AsString} is true"
+                | Some(PresenceWhenBoolExpression acnExp)   ->
+                    let dummyScope = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
+                    let retExp = acnExpressionToBackendExpression o dummyScope acnExp
+                    $"when %s{retExp}"
+        let comments = (c.Comments |> Seq.toList)@extra_comments
+        let childIcdTas = c.Type.icdTas
+        //let isRef = match c.Type.Kind with ReferenceType _ -> true | _ -> false
+        match c.Type.icdTas with
+        | Some childIcdTas ->
+            match childIcdTas.canBeEmbedded   with
+            | true  ->
+                let chRows, _ = childIcdTas.createRowsFunc c.Name.Value optionality comments
+                chRows, []
+            | false ->
+                let sType = TypeHash childIcdTas.hash
+                [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=None; minLengthInBits = c.Type.acnMinSizeInBits; maxLengthInBits=c.Type.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}], [childIcdTas]
+        | None ->
+            [], []
+
+    let icd_acn_child (c:AcnChild) (extra_comments:string list) : ((IcdRow list) * (IcdTypeAss list))=
+        let icdRow = createAcnChildIcdFunction c c.Name.Value ((c.Comments |> Seq.toList)@extra_comments)
+        [icdRow], []
+
 
 
     let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
@@ -2064,13 +2058,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     else childTpeKind
                 let typeInfo = {uperMaxSizeBits=child.uperMaxSizeInBits; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=tpeKind}
                 let props = {sel=Some (childSel.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo}
-                let res = {stmts=stmts; resultExpr=childResultExpr; existVar=existVar; props=props; typeKindEncoding=tpeKind;icdComments=icdComments}
+                let icdResult = icd_asn1_child child icdComments
+                let res = {stmts=stmts; resultExpr=childResultExpr; existVar=existVar; props=props; typeKindEncoding=tpeKind;icdResult=icdResult}
                 let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
                 res, newAcc
             | AcnChild acnChild ->
                 //handle updates
                 let childP = {CallerScope.modName = p.modName; arg= Selection.valueEmptyPath (getAcnDeterminantName acnChild.id)}
-
+                
                 let updateStatement, ns1 =
                     match codec with
                     | Encode ->
@@ -2108,7 +2103,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 // Note: uperMaxSizeBits and uperAccBits here do not make sense since we are in ACN
                 let typeInfo = {uperMaxSizeBits=0I; acnMaxSizeBits=child.acnMaxSizeInBits; typeKind=childTpeKind}
                 let props = {sel=Some (childP.arg.joined lm.lg); uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits; typeInfo=typeInfo}
-                let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; typeKindEncoding=childTpeKind; icdComments=icdComments}
+                let icdResult = icd_acn_child acnChild icdComments
+                let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; typeKindEncoding=childTpeKind; icdResult=icdResult}
                 let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
                 res, newAcc
         // find acn inserted fields, which are not NULL types and which have no dependency.
@@ -2169,6 +2165,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let resultExpr = p.arg.asIdentifier
                 Some resultExpr, [lm.uper.sequence_build resultExpr (typeDefinition.longTypedefName2 lm.lg.hasModules) (existSeq@childrenResultExpr)]
             | _ -> None, []
+        
+        let icdFnc fieldName sPresent comments  =
+            let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip
+            let chRows = chRows0 |> List.collect id
+            let compositeChildren = compositeChildren0 |> List.collect id
+            uperPresenceMask@chRows |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)}), compositeChildren
+        let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
 
         let seqContent =  (saveInitialBitStrmStatements@childrenStatements@(post_encoding_function |> Option.toList)@seqBuild) |> nestChildItems lm codec
         match existsAcnChildWithNoUpdates with
@@ -2443,12 +2446,15 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
   
   let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
   let getNewSType (r:IcdRow) =
+    (*
     let newType =
         match r.sType with
         | TypeHash hash   -> TypeHash hash
         | IcdPlainType plainType when r.rowType = FieldRow -> IcdPlainType (td.asn1Name + "(" + plainType + ")")
         | IcdPlainType plainType -> IcdPlainType plainType
     {r with sType = newType}
+    *)
+    r
 
   let icdFnc,extraComment, name  =
     match o.encodingOptions with
