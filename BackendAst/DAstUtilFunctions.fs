@@ -926,7 +926,7 @@ let hasAcnEncodeFunction (encFunc : AcnFunction option) acnParameters  =
         match acnParameters with
         | [] ->
             let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
-            let ret,_ = fnc.funcBody emptyState [] (NestingScope.init 0I 0I) p
+            let ret,_ = fnc.funcBody emptyState [] (NestingScope.init 0I 0I []) p
             match ret with
             | None   -> false
             | Some _ -> true
@@ -937,7 +937,7 @@ let hasUperEncodeFunction (encFunc : UPerFunction option)  =
     | None  -> false
     | Some fnc ->
             let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
-            match fnc.funcBody (NestingScope.init 0I 0I) p with
+            match fnc.funcBody (NestingScope.init 0I 0I []) p false with
             | None   -> false
             | Some _ -> true
 

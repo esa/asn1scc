@@ -1209,10 +1209,9 @@ case class ACN(base: Codec) {
       var pBoolValue: Boolean = true
       var i: Int = 0
 
-
-      assert(i >= 0 )
-      assert(i <= nBytesToRead )
-      assert(nBitsToRead < Int.MaxValue )
+      assert(i >= 0)
+      assert(i <= nBytesToRead)
+      assert(nBitsToRead < Int.MaxValue)
       assert(neededBytes <= patternToRead.length)
       assert(neededBytes == nBytesToRead || neededBytes == nBytesToRead + 1)
       assert(nBytesToRead <= Int.MaxValue / 8)
@@ -1250,7 +1249,7 @@ case class ACN(base: Codec) {
          nBytesToRead <= Int.MaxValue / 8 &&&
          base.bitStream.buf == oldThis.base.bitStream.buf && base.bitStream.currentByte >= 0 && base.bitStream.currentBit >= 0 &&&
          BitStream.invariant(base.bitStream) &&&
-         BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) <= BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + i * 8L &&&
+         BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + i * 8L &&&
          BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, nBitsToRead - i * 8L)
       )
 
@@ -1261,10 +1260,10 @@ case class ACN(base: Codec) {
          assert(nBytesToRead.toLong * 8L + nRemainingBitsToRead.toLong == nBitsToRead)
          ghostExpr { check(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) <= BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBitsToRead) }
 
-      assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) <= BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBitsToRead)
+      assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBitsToRead)
 
       pBoolValue
-   }.ensuring(_ => buf == old(this).base.bitStream.buf && BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) <= BitStream.bitIndex(old(this).base.bitStream.buf.length, old(this).base.bitStream.currentByte, old(this).base.bitStream.currentBit) + nBitsToRead)
+   }.ensuring(_ => buf == old(this).base.bitStream.buf && BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(old(this).base.bitStream.buf.length, old(this).base.bitStream.currentByte, old(this).base.bitStream.currentBit) + nBitsToRead)
 
    @opaque @inlineOnce
    def BitStream_DecodeTrueFalseBoolean(truePattern: Array[UByte], falsePattern: Array[UByte], nBitsToRead: Int): Option[Boolean] = {
@@ -1506,6 +1505,10 @@ case class ACN(base: Codec) {
          i += 1
    }
 
+   def enc_String_Ascii_Null_Terminated_multVec(max: Long, null_character: Array[Byte], null_character_size: Int, strVal: Vector[ASCIIChar]): Unit = {
+      enc_String_Ascii_Null_Terminated_mult(max, null_character, null_character_size, strVal.toScala.toArray)
+   }
+
 
    def enc_String_Ascii_External_Field_Determinant(max: Long, strVal: Array[ASCIIChar]): Unit = {
       enc_String_Ascii_private(max, strVal)
@@ -1591,6 +1594,12 @@ case class ACN(base: Codec) {
       ()
    }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
+   @extern
+   def enc_IA5String_CharIndex_External_Field_DeterminantVec(max: Long, strVal: Vector[ASCIIChar]): Unit = {
+      require(max < Int.MaxValue && max >= 0)
+      enc_IA5String_CharIndex_External_Field_Determinant(max, strVal.toScala.toArray)
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
+
    @opaque @inlineOnce
    def enc_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long, strVal: Array[ASCIIChar]): Unit = {
       val allowedCharSet: Array[Byte] = Array(
@@ -1612,6 +1621,11 @@ case class ACN(base: Codec) {
       encodeConstrainedWholeNumber(if strLen <= max then strLen else max, min, max)
       enc_String_CharIndex_private(max, UByte.fromArrayRaws(allowedCharSet), strVal)
       ()
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
+
+   @extern
+   def enc_IA5String_CharIndex_Internal_Field_DeterminantVec(max: Long, min: Long, strVal: Vector[ASCIIChar]): Unit = {
+      enc_IA5String_CharIndex_Internal_Field_Determinant(max, min, strVal.toScala.toArray)
    }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
 
@@ -1680,6 +1694,10 @@ case class ACN(base: Codec) {
       strVal
    }
 
+   def dec_String_Ascii_Null_Terminated_multVec(max: Long, null_character: Array[ASCIIChar], null_character_size: Int): Vector[ASCIIChar] = {
+      val res = dec_String_Ascii_Null_Terminated_mult(max, null_character, null_character_size)
+      Vector.fromScala(res.toVector)
+   }
 
    @opaque @inlineOnce
    def dec_String_Ascii_External_Field_Determinant(max: Long, extSizeDeterminantFld: Long): Array[ASCIIChar] = {
@@ -1718,11 +1736,12 @@ case class ACN(base: Codec) {
          charactersToDecode < Int.MaxValue &&
          i < strVal.length &&
          max < strVal.length &&
+         strVal.length == max.toInt + 1 &&
          base.bitStream.buf == oldThis.base.bitStream.buf
       )
 
       strVal
-   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
 
    def dec_String_CharIndex_FixSize(max: Long, allowedCharSet: Array[ASCIIChar]): Array[ASCIIChar] = {
       dec_String_CharIndex_private(max, max, allowedCharSet)
@@ -1760,7 +1779,16 @@ case class ACN(base: Codec) {
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
       dec_String_CharIndex_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max, UByte.fromArrayRaws(allowedCharSet))
-   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
+
+   @extern
+   def dec_IA5String_CharIndex_External_Field_DeterminantVec(max: Long, extSizeDeterminantFld: Long): Vector[ASCIIChar] = {
+      require(max < Int.MaxValue)
+      require(extSizeDeterminantFld >= 0)
+      require(max >= 0)
+      val arr = dec_IA5String_CharIndex_External_Field_Determinant(max, extSizeDeterminantFld)
+      Vector.fromScala(arr.toVector)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
 
    def dec_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long): Array[ASCIIChar] = {
       require(min <= max)
@@ -1788,7 +1816,17 @@ case class ACN(base: Codec) {
       val charToDecode = if nCount <= max then nCount else max
       assert(charToDecode >= 0 && charToDecode <= max)
       dec_String_CharIndex_private(max, charToDecode, UByte.fromArrayRaws(allowedCharSet))
-   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
+
+   @extern
+   def dec_IA5String_CharIndex_Internal_Field_DeterminantVec(max: Long, min: Long): Vector[ASCIIChar] = {
+      require(min <= max)
+      require(max < Int.MaxValue)
+      require(max >= 0)
+      require(min >= 0) // SAM Check whether this is correct, otherwise transform it into a runtime check
+      val arr = dec_IA5String_CharIndex_Internal_Field_Determinant(max, min)
+      Vector.fromScala(arr.toVector)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
 
 
    /* Length Determinant functions*/

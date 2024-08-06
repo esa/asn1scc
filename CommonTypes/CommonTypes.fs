@@ -54,34 +54,50 @@ type Selection = {
     member this.appendSelection (selectionId: string) (selTpe: SelectionType) (selOpt: bool): Selection =
         let currTpe = this.selectionType
         assert (currTpe = Value || currTpe = Pointer)
+        assert (selectionId.Trim() <> "")
         this.append (if currTpe = Value then ValueAccess (selectionId, selTpe, selOpt) else PointerAccess (selectionId, selTpe, selOpt))
 
     member this.selectionType: SelectionType =
         if this.path.IsEmpty then this.receiverType
         else (List.last this.path).selectionType
 
+    member this.dropLast: Selection =
+        if this.path.IsEmpty then this
+        else {this with path = List.initial this.path}
+
     member this.isOptional: bool =
         (not this.path.IsEmpty) &&
         match List.last this.path with
-        |ValueAccess (_exist, _, isOptional) -> isOptional
-        |PointerAccess (_, _, isOptional) -> isOptional
-        |ArrayAccess _ -> false
+        | ValueAccess (_exist, _, isOptional) -> isOptional
+        | PointerAccess (_, _, isOptional) -> isOptional
+        | ArrayAccess _ -> false
 
     member this.lastId: string =
         if this.path.IsEmpty then this.receiverId
         else
             match List.last this.path with
-            |ValueAccess (id, _, _) -> id
-            |PointerAccess (id, _, _) -> id
-            |ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
+            | ValueAccess (id, _, _) -> id
+            | PointerAccess (id, _, _) -> id
+            | ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
+
+    member this.lastIdOrArr: string =
+        if this.path.IsEmpty then this.receiverId
+        else
+            match List.last this.path with
+            | ValueAccess (id, _, _) -> id
+            | PointerAccess (id, _, _) -> id
+            | ArrayAccess _ -> "arr"
 
     member this.asLast: Selection =
         assert (not this.path.IsEmpty)
         match List.last this.path with
-        |ValueAccess (id, _, _) -> Selection.emptyPath id Value
-        |PointerAccess (id, _, _) -> Selection.emptyPath id Pointer
-        |ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
+        | ValueAccess (id, _, _) -> Selection.emptyPath id Value
+        | PointerAccess (id, _, _) -> Selection.emptyPath id Pointer
+        | ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
 
+    member this.asLastOrSelf: Selection =
+        if this.path.IsEmpty then this
+        else this.asLast
 
 type UserError = {
     line : int
@@ -479,6 +495,19 @@ type ReferenceToType with
                 match path with
                 | (MD modName)::_    -> modName
                 | _                               -> raise(BugErrorException "Did not find module at the beginning of the scope path")
+        member this.fieldPath =
+            let select (xs: ScopeNode list): string list =
+                xs |> List.map (fun s ->
+                    match s with
+                    | SEQ_CHILD (fld, _) -> fld
+                    | CH_CHILD (fld, _, _) -> fld
+                    | _ -> raise (BugErrorException $"ReferenceToType.fieldPath expects a selection of either Sequence or Choice fields (got {s})"))
+            match this with
+            | ReferenceToType path ->
+                match path with
+                | (MD _) :: (TA _) :: path    -> select path
+                | _ -> select path
+
         member this.tasInfo =
             match this with
             | ReferenceToType path ->
@@ -542,6 +571,11 @@ type ReferenceToType with
             match this with
             | ReferenceToType path ->
                 ReferenceToType (List.removeAt ((List.length path) - 1) path)
+
+        member this.dropModule =
+            match this with
+            | ReferenceToType (MD _ :: rest) -> ReferenceToType rest
+            | _ -> this
 
         member this.parentTypeId =
             match this with

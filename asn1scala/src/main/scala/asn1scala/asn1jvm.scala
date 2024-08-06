@@ -31,6 +31,7 @@ opaque type UByte = Byte
 object UByte {
     @inline def fromRaw(u: Byte): UByte = u
     @inline @pure def fromArrayRaws(arr: Array[Byte]): Array[UByte] = arr
+    @inline @pure def fromVectorRaws(arr: Vector[Byte]): Vector[UByte] = arr
 }
 extension (l: UByte) {
     @inline def toRaw: Byte = l
@@ -59,6 +60,10 @@ extension (l: UByte) {
 }
 extension (arr: Array[UByte]) {
     @inline def toArrayRaws: Array[Byte] = arr
+}
+
+extension (vec: Vector[UByte]) {
+    @inline def toVectorRaws: Vector[Byte] = vec
 }
 
 opaque type UShort = Short
@@ -248,6 +253,54 @@ def bitMSBLong(bit: Boolean, nBits: Int): Long = {
     require(0 <= nBits && nBits <= 64)
     if bit then onesMSBLong(nBits) else 0L
 }
+
+def alignedToN(alignment: Long, bits: Long): Long = {
+    require(2L <= alignment && alignment <= 64L && 0L <= bits && bits <= Long.MaxValue - alignment)
+    val rem = bits % alignment
+    if (rem != 0L) bits + (alignment - rem)
+    else bits
+}
+
+def alignedSizeToN(alignment: Long, offset: Long, bits: Long): Long = {
+    require(2L <= alignment && alignment <= 64L && 0L <= bits && bits <= Long.MaxValue - alignment)
+    require(offset >= 0L)
+    val rem = offset % alignment
+    if (rem != 0L) bits + (alignment - rem)
+    else bits
+}
+
+def alignedToByte(bits: Long): Long = {
+    require(0L <= bits && bits <= Long.MaxValue - 8L)
+    alignedToN(8L, bits)
+}.ensuring(res => res % 8L == 0L && bits <= res && res <= bits + 7L)
+
+def alignedToWord(bits: Long): Long = {
+    require(0L <= bits && bits <= Long.MaxValue - 16L)
+    alignedToN(16L, bits)
+}.ensuring(res => res % 16L == 0L && bits <= res && res <= bits + 15L)
+
+def alignedToDWord(bits: Long): Long = {
+    require(0L <= bits && bits <= Long.MaxValue - 32L)
+    alignedToN(32L, bits)
+}.ensuring(res => res % 32L == 0L && bits <= res && res <= bits + 31L)
+
+def alignedSizeToByte(bits: Long, offset: Long): Long = {
+    require(0L <= bits && bits <= Long.MaxValue - 8L)
+    require(offset >= 0L)
+    alignedSizeToN(8L, offset, bits)
+}.ensuring(res => bits <= res && res <= bits + 7L)
+
+def alignedSizeToWord(bits: Long, offset: Long): Long = {
+    require(0L <= bits && bits <= Long.MaxValue - 16L)
+    require(offset >= 0L)
+    alignedSizeToN(16L, offset, bits)
+}.ensuring(res => bits <= res && res <= bits + 15L)
+
+def alignedSizeToDWord(bits: Long, offset: Long): Long = {
+    require(0L <= bits && bits <= Long.MaxValue - 32L)
+    require(offset >= 0L)
+    alignedSizeToN(32L, offset, bits)
+}.ensuring(res => bits <= res && res <= bits + 31L)
 
 def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
     require(uintSizeInBytes >= 1 && uintSizeInBytes <= 9)

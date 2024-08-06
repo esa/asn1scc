@@ -4,5 +4,5 @@ src/main/scala/asn1scala/asn1jvm_Verification.scala  \
 src/main/scala/asn1scala/asn1jvm_Helper.scala \
 src/main/scala/asn1scala/asn1jvm_Bitstream.scala \
 --config-file=stainless.conf \
--D-parallel=5 \
+--genc=true\
 $1
