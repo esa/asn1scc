@@ -973,10 +973,101 @@ let acnExternDependenciesVariableEncode (t: Asn1AcnAst.Asn1Type) (nestingScope: 
         let nme = seqParent.id.lastItem
         Some {Var.name = nme; tpe = tpe}
 
-let generateSequencePrefixLemma (enc: Asn1Encoding)
-                                (t: Asn1AcnAst.Asn1Type)
-                                (nestingScope: NestingScope)
-                                (sq: Asn1AcnAst.Sequence): FunDef =
+type PrimitivePrefixLemma = {
+  prefix: string list
+  id: string
+  extraConstArgs: Expr list
+}
+type ComposedPrefixLemma = {
+  id: string
+}
+type PrefixLemmaInfo =
+| PrimitivePrefixLemma of PrimitivePrefixLemma
+| ComposedPrefixLemma of ComposedPrefixLemma
+
+let readPrefixLemmaIdentifier (t: Asn1AcnAst.Asn1AcnType) (id: ReferenceToType) (isOptional: bool): PrefixLemmaInfo =
+  let forIntClass (intCls:Asn1AcnAst.IntegerClass) (encCls: IntEncodingClass) (range: BigIntegerUperRange): PrimitivePrefixLemma =
+    match encCls with
+    | PositiveInteger_ConstSize_8 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_8_prefixLemma"; extraConstArgs = []}
+    | PositiveInteger_ConstSize_big_endian_16 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_big_endian_16_prefixLemma"; extraConstArgs = []}
+    | PositiveInteger_ConstSize_big_endian_32 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_big_endian_32_prefixLemma"; extraConstArgs = []}
+    | PositiveInteger_ConstSize_big_endian_64 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_big_endian_64_prefixLemma"; extraConstArgs = []}
+    | PositiveInteger_ConstSize_little_endian_16 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_little_endian_16_prefixLemma"; extraConstArgs = []}
+    | PositiveInteger_ConstSize_little_endian_32 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_little_endian_32_prefixLemma"; extraConstArgs = []}
+    | PositiveInteger_ConstSize_little_endian_64 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_little_endian_64_prefixLemma"; extraConstArgs = []}
+    | PositiveInteger_ConstSize bits -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_prefixLemma"; extraConstArgs = [int32lit bits]}
+    | TwosComplement_ConstSize_8 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_8_prefixLemma"; extraConstArgs = []}
+    | TwosComplement_ConstSize_big_endian_16 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_big_endian_16_prefixLemma"; extraConstArgs = []}
+    | TwosComplement_ConstSize_big_endian_32 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_big_endian_32_prefixLemma"; extraConstArgs = []}
+    | TwosComplement_ConstSize_big_endian_64 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_big_endian_64_prefixLemma"; extraConstArgs = []}
+    | TwosComplement_ConstSize_little_endian_16 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_little_endian_16_prefixLemma"; extraConstArgs = []}
+    | TwosComplement_ConstSize_little_endian_32 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_little_endian_32_prefixLemma"; extraConstArgs = []}
+    | TwosComplement_ConstSize_little_endian_64 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_little_endian_64_prefixLemma"; extraConstArgs = []}
+    | TwosComplement_ConstSize _ -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_prefixLemma"; extraConstArgs = []}
+    | Integer_uPER ->
+      match range with
+      | Full -> {prefix = [codecId]; id = "decodeUnconstrainedWholeNumber_prefixLemma"; extraConstArgs = []}
+      | PosInf min -> {prefix = [codecId]; id = "decodeConstrainedPosWholeNumber_prefixLemma"; extraConstArgs = [ulonglit min]}
+      | Concrete (min, max) ->
+        if intCls.IsPositive then {prefix = [codecId]; id = "decodeConstrainedPosWholeNumber_prefixLemma"; extraConstArgs = [ulonglit min; ulonglit max]}
+        else {prefix = [codecId]; id = "decodeConstrainedWholeNumber_prefixLemma"; extraConstArgs = [longlit min; longlit max]}
+      | _ -> failwith $"TODO: {range}"
+    | _ -> failwith $"TODO: {encCls}"
+
+  if isOptional then
+    ComposedPrefixLemma {id = $"{ToC id.dropModule.AsString}_prefixLemma"}
+  else
+    match t with
+    | Asn1 t ->
+      match t.Kind with
+      | Integer int -> PrimitivePrefixLemma (forIntClass int.intClass int.acnEncodingClass int.uperRange)
+      | Boolean _ -> PrimitivePrefixLemma {prefix = [bitStreamId]; id = "readBitPrefixLemma"; extraConstArgs = []}
+      | ReferenceType rt ->
+        let id =
+          if rt.hasExtraConstrainsOrChildrenOrAcnArgs then $"{ToC id.dropModule.AsString}_prefixLemma"
+          else $"{t.FT_TypeDefinition.[Scala].typeName}_prefixLemma"
+        ComposedPrefixLemma {id = id}
+      | _ -> PrimitivePrefixLemma {prefix = [acnId]; id = "readPrefixLemma_TODO"; extraConstArgs = []} // TODO
+    | Acn (AcnInteger int) -> PrimitivePrefixLemma (forIntClass int.intClass int.acnEncodingClass int.uperRange)
+    | Acn (AcnBoolean _) -> PrimitivePrefixLemma {prefix = [bitStreamId]; id = "readBitPrefixLemma"; extraConstArgs = []}
+    | _ -> PrimitivePrefixLemma {prefix = [acnId]; id = "readPrefixLemma_TODO"; extraConstArgs = []} // TODO
+
+let selectCodecReadPrefixLemma (prefixLemmaInfo: PrefixLemmaInfo) (cdcSnap: Expr) (cdc: Expr): Expr * Expr =
+  match prefixLemmaInfo with
+  | PrimitivePrefixLemma info ->
+    if info.prefix = [bitStreamId] then selBitStream cdcSnap, selBitStream cdc
+    else if info.prefix = [codecId] then selBase cdcSnap, selBase cdc
+    else cdcSnap, cdc
+  | ComposedPrefixLemma _ -> cdcSnap, cdc
+
+type PrefixLemmaData = {
+  baseId: string
+  decodeId: string
+  decodePureId: string
+  paramsAcn: Var list
+  acnTps: Type list
+  c1: Var
+  c2: Var
+  sz: Var
+  c2Reset: Var
+  c1Res: Var
+  decodingRes1: Var
+  c2Res: Var
+  decodingRes2: Var
+  v1: Var
+  v2: Var
+  decodedAcn1: Var list
+  decodedAcn2: Var list
+  v1SizeExpr: SizeExprRes
+  v1SizeVar: Var
+  subPat1: Pattern
+  subPat2: Pattern
+}
+
+let generatePrefixLemma (enc: Asn1Encoding)
+                        (t: Asn1AcnAst.Asn1Type)
+                        (nestingScope: NestingScope)
+                        (mkProof: PrefixLemmaData -> Expr): FunDef =
   let codecTpe = runtimeCodecTypeFor enc
   let c1 = {Var.name = "c1"; tpe = ClassType codecTpe}
   let c2 = {Var.name = "c2"; tpe = ClassType codecTpe}
@@ -1028,76 +1119,86 @@ let generateSequencePrefixLemma (enc: Asn1Encoding)
       LetSpec (decodingRes2, TupleSelect (Var dec2, 2))
     ]
 
+  let v1 = {Var.name = "v1"; tpe = tpe}
+  let v2 = {Var.name = "v2"; tpe = tpe}
+  let decodedAcn1 = acnTps |> List.indexed |> List.map (fun (i, tpe) -> {Var.name = $"acn1_{i + 1}"; tpe = tpe})
+  let decodedAcn2 = acnTps |> List.indexed |> List.map (fun (i, tpe) -> {Var.name = $"acn2_{i + 1}"; tpe = tpe})
+
+  let subPat1, subPat2 =
+    if acnTps.IsEmpty then
+      Wildcard (Some v1), Wildcard (Some v2)
+    else
+      let subPat1 = TuplePattern {
+        binder = None
+        subPatterns = Wildcard (Some v1) :: (decodedAcn1 |> List.map (fun v -> Wildcard (Some v)))
+      }
+      let subPat2 = TuplePattern {
+        binder = None
+        subPatterns = Wildcard (Some v2) :: (decodedAcn2 |> List.map (fun v -> Wildcard (Some v)))
+      }
+      subPat1, subPat2
+
+  let acnsEq = List.zip decodedAcn1 decodedAcn2 |> List.map (fun (acn1, acn2) -> Equals (Var acn1, Var acn2))
+  let v1SizeExpr = asn1SizeExpr t.acnAlignment t.Kind (Var v1) (bitIndexACN (Var c1)) 0I 0I
+  let v1SizeVar = {Var.name = "v1Size"; tpe = IntegerType Long}
+  let prop =
+    let prop = And ([Equals (bitIndexACN (Var c1Res), bitIndexACN (Var c2Res)); Equals (Var v1, Var v2)] @ acnsEq)
+    IfExpr {
+      cond = Equals (Var v1SizeVar, Var sz)
+      thn = MatchExpr {
+        scrut = Var decodingRes2
+        cases = [
+          {
+            pattern = ADTPattern {
+              binder = None
+              id = rightMutId
+              subPatterns = [subPat2]
+            }
+            rhs = prop
+          }
+          {
+            pattern = ADTPattern {
+              binder = None
+              id = leftMutId
+              subPatterns = [Wildcard None]
+            }
+            rhs = BoolLit false
+          }
+        ]
+      }
+      els = BoolLit true
+    }
+
   let postcond =
-    let v1 = {Var.name = "v1"; tpe = tpe}
-    let v2 = {Var.name = "v2"; tpe = tpe}
-    let decodedAcn1 = acnTps |> List.indexed |> List.map (fun (i, tpe) -> {Var.name = $"acn1_{i + 1}"; tpe = tpe})
-    let decodedAcn2 = acnTps |> List.indexed |> List.map (fun (i, tpe) -> {Var.name = $"acn2_{i + 1}"; tpe = tpe})
-
-    let subPat1, subPat2 =
-      if acnTps.IsEmpty then
-        Wildcard (Some v1), Wildcard (Some v2)
-      else
-        let subPat1 = TuplePattern {
-          binder = None
-          subPatterns = Wildcard (Some v1) :: (decodedAcn1 |> List.map (fun v -> Wildcard (Some v)))
-        }
-        let subPat2 = TuplePattern {
-          binder = None
-          subPatterns = Wildcard (Some v2) :: (decodedAcn2 |> List.map (fun v -> Wildcard (Some v)))
-        }
-        subPat1, subPat2
-
-    let acnsEq = List.zip decodedAcn1 decodedAcn2 |> List.map (fun (acn1, acn2) -> Equals (Var acn1, Var acn2))
-    let v1SizeExpr = asn1SizeExpr t.acnAlignment t.Kind (Var v1) (bitIndexACN (Var c1)) 0I 0I
-    let v1SizeVar = {Var.name = "v1Size"; tpe = IntegerType Long}
-    let prop =
-      Or [
-        Not (Equals (Var v1SizeVar, Var sz))
-        And ([Equals (bitIndexACN (Var c1Res), bitIndexACN (Var c2Res)); Equals (Var v1, Var v2)] @ acnsEq)
-      ]
     let boundProp = letsIn (v1SizeExpr.bdgs @ [v1SizeVar, v1SizeExpr.resSize]) prop
     MatchExpr {
-      scrut = mkTuple [Var decodingRes1; Var decodingRes2]
+      scrut = Var decodingRes1
       cases = [
         {
-          pattern = TuplePattern {
+          pattern = ADTPattern {
             binder = None
-            subPatterns = [
-              ADTPattern {
-                binder = None
-                id = rightMutId
-                subPatterns = [subPat1]
-              }
-              ADTPattern {
-                binder = None
-                id = rightMutId
-                subPatterns = [subPat2]
-              }
-            ]
+            id = rightMutId
+            subPatterns = [subPat1]
           }
           rhs = boundProp
         }
         {
-          pattern = TuplePattern {
+          pattern = ADTPattern {
             binder = None
-            subPatterns =  [
-              ADTPattern {
-                binder = None
-                id = leftMutId
-                subPatterns = [Wildcard None]
-              }
-              Wildcard None
-            ]
+            id = leftMutId
+            subPatterns = [Wildcard None]
           }
           rhs = BoolLit true
         }
-        {
-          pattern = Wildcard None
-          rhs = BoolLit false
-        }
       ]
     }
+
+  let proof = mkProof {baseId = baseId; decodeId = decodeId; decodePureId = decodePureId; paramsAcn = paramsAcn;
+    acnTps = acnTps; c1 = c1; c2 = c2; sz = sz; c2Reset = c2Reset;
+    c1Res = c1Res; decodingRes1 = decodingRes1; c2Res = c2Res; decodingRes2 = decodingRes2;
+    v1 = v1; v2 = v2; decodedAcn1 = decodedAcn1; decodedAcn2 = decodedAcn2;
+    v1SizeExpr = v1SizeExpr; v1SizeVar = v1SizeVar; subPat1 = subPat1; subPat2 = subPat2
+  }
 
   {
     FunDef.id = $"{baseId}_prefixLemma"
@@ -1106,8 +1207,157 @@ let generateSequencePrefixLemma (enc: Asn1Encoding)
     specs = preSpecs
     postcond = Some ({Var.name = "_"; tpe = UnitType}, postcond)
     returnTpe = UnitType
-    body = UnitLit
+    body = proof
   }
+
+let generatePrefixLemmaInteger (enc: Asn1Encoding)
+                               (t: Asn1AcnAst.Asn1Type)
+                               (nestingScope: NestingScope)
+                               (int: Integer): FunDef =
+  let mkIntProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+  generatePrefixLemma enc t nestingScope mkIntProof
+
+let generatePrefixLemmaSequence (enc: Asn1Encoding)
+                                (t: Asn1AcnAst.Asn1Type)
+                                (nestingScope: NestingScope)
+                                (sq: Sequence): FunDef =
+
+  let tpe = fromAsn1TypeKind t.Kind
+
+  let childrenSizes = [0..sq.children.Length] |> List.map (fun i -> {Var.name = $"size_1_{i}"; tpe = IntegerType Long})
+
+  let mkUnfoldedDecodeWrapper (data: PrefixLemmaData) (id: Identifier) (c: Var): FunDef =
+    let cpy = {Var.name = $"{c.name}Cpy"; tpe = c.tpe}
+    let call = FunctionCall {prefix = []; id = data.decodeId; tps = []; args = [Var cpy]}
+    let body = letsIn [cpy, Snapshot (Var c)] (Unfold call)
+    {
+      FunDef.id = id;
+      prms = []
+      annots = []
+      specs = []
+      postcond = None
+      returnTpe = UnitType
+      body = body
+    }
+
+  let mkFieldSubproofFn (data: PrefixLemmaData) (ix: int) (child: Asn1AcnAst.SeqChildInfo): FunDef =
+    let origC1 = data.c1
+    let origC2Reset = data.c2Reset
+    let c1, c2 =
+      if ix = 0 then origC1, origC2Reset
+      else {Var.name = $"c1_{ix + 1}"; tpe = origC1.tpe}, {Var.name = $"c2_{ix + 1}"; tpe = origC1.tpe}
+
+    let overallOffset = if ix = 0 then longlit 0I else childrenSizes |> List.take ix |> List.map Var |> plus
+    let childSize = childrenSizes.[ix]
+
+    let specs =
+      if ix = 0 then []
+      else [
+        Precond (Equals (selBuf (Var c1), selBuf (Var origC1)))
+        Precond (Equals (selBuf (Var c2), selBuf (Var origC2Reset)))
+        Precond (Equals (bitIndexACN (Var c1), plus [bitIndexACN (Var origC1); overallOffset]))
+        Precond (Equals (bitIndexACN (Var c1), bitIndexACN (Var c2)))
+      ]
+
+    let name =
+      match child with
+      | Asn1Child child -> child.Name.Value
+      | AcnChild child -> child.Name.Value
+
+    let slicedLemmaApp = (arrayBitRangesEqSlicedLemma
+      (selBuf (Var c1))
+      (selBuf (Var c2))
+      (longlit 0I)
+      (Minus (plus [bitIndexACN (Var c1); Var data.v1SizeVar], overallOffset))
+      (longlit 0I)
+      (plus [bitIndexACN (Var c1); Var childSize]))
+
+    let c2Moved = {Var.name = "c2Moved"; tpe = c1.tpe}
+    let c2MovedValue = withMovedBitIndexACN (Var c2) (Var childSize)
+    let c2MovedAssertions = [
+      Assert (Equals (bitIndexACN (Var c2Moved), plus [bitIndexACN (Var c1); Var childSize]))
+      Assert (arrayBitRangesEq (selBuf (Var c1)) (selBuf (Var c2Moved)) (longlit 0I) (plus [bitIndexACN (Var c1); Var childSize]))
+    ]
+
+    let asn1Tpe, id, isOpt, existArg =
+      match child with
+      | Asn1Child child ->
+        let existArg =
+          match child.Optionality with
+          | Some (Optional _) ->
+            [isDefinedMutExpr (FieldSelect (Var data.decodingRes1, child._scala_name))]
+          | _ -> []
+        Asn1 child.Type, child.Type.id, child.Optionality.IsSome, existArg
+      | AcnChild child -> Acn child.Type, child.id, false, []
+    let prefixLemmaInfo = readPrefixLemmaIdentifier asn1Tpe id isOpt
+    let cdcSnapRecv, cdcRecv = selectCodecReadPrefixLemma prefixLemmaInfo (Var c1) (Var c2Moved)
+    let prefixLemmaApp =
+      match prefixLemmaInfo with
+      | PrimitivePrefixLemma info ->
+        FunctionCall {prefix = info.prefix; id = info.id; tps = []; args = [cdcSnapRecv; cdcRecv] @ existArg @ info.extraConstArgs}
+      | ComposedPrefixLemma info ->
+        FunctionCall {prefix = []; id = info.id; tps = []; args = [cdcSnapRecv; cdcRecv] @ existArg @ [Var childSize]}
+
+    let proof = mkBlock [
+      slicedLemmaApp
+      letsIn [c2Moved, c2MovedValue] (mkBlock (
+        c2MovedAssertions @ [prefixLemmaApp]
+      ))
+    ]
+
+    {
+      FunDef.id = $"proof_{ToC name}"
+      prms = if ix = 0 then [] else [c1; c2]
+      annots = [Opaque; InlineOnce]
+      specs = specs
+      postcond = None // TODO
+      returnTpe = UnitType
+      body = proof
+    }
+
+  let mkSeqProof (data: PrefixLemmaData): Expr =
+    let bodyWithC1 = mkUnfoldedDecodeWrapper data "bodyWithC1" data.c1
+    let bodyWithC2 = mkUnfoldedDecodeWrapper data "bodyWithC2" data.c2Reset
+
+    let subproofsFns = sq.children |> List.indexed |> List.map (fun (i, c) -> mkFieldSubproofFn data i c)
+    let proof = LetRec {fds = subproofsFns; body = UnitLit}
+
+    let rightMutCase =
+      letsIn (data.v1SizeExpr.bdgs @ [data.v1SizeVar, data.v1SizeExpr.resSize]) (
+        IfExpr {
+          cond = Equals (Var data.v1SizeVar, Var data.sz)
+          thn = proof
+          els = UnitLit
+        }
+      )
+    LetRec {
+      fds = [bodyWithC1; bodyWithC2]
+      body =  MatchExpr {
+        scrut = Var data.decodingRes1
+        cases = [
+          {
+            pattern = ADTPattern {
+              binder = None
+              id = rightMutId
+              subPatterns = [data.subPat1]
+            }
+            rhs = rightMutCase
+          }
+          {
+            pattern = ADTPattern {
+              binder = None
+              id = leftMutId
+              subPatterns = [Wildcard None]
+            }
+            rhs = UnitLit
+          }
+        ]
+      }
+    }
+
+  generatePrefixLemma enc t nestingScope mkSeqProof
+
 
 let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
                     (body: string)
@@ -1311,62 +1561,69 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
 
     [fd; fdPure], ret
 
-
 let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc: Var) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (rest: Expr): Expr =
-  let nbChildren = pg.children.Length
-  assert (snapshots.Length = nbChildren)
-  assert (stmts.Length = nbChildren)
+  let nbPresenceBits = countNbPresenceBits pg.sq
+  let nbTotalChildren = nbPresenceBits + pg.sq.children.Length
+  assert (snapshots.Length = nbTotalChildren)
+  assert (stmts.Length = nbTotalChildren)
+  assert (pg.children.Length = pg.sq.children.Length)
 
-  let rec assertionsConditions (tpe: TypeEncodingKind option): Expr option =
-    match tpe with
-    | Some (OptionEncodingType tpe) -> assertionsConditions (Some tpe)
-    | Some (Asn1IntegerEncodingType (Some encodingTpe)) ->
-        match encodingTpe with
-        | FullyConstrainedPositive (min, max) | FullyConstrained (min, max) ->
-            // TODO: The RT library does not add 1, why?
-            let call = getBitCountUnsigned (ulonglit (max - min))
-            // TODO: Case min = max?
-            let nBits = if max = min then 0I else bigint (ceil ((log (double (max - min))) / (log 2.0)))
-            let cond = Equals (call, int32lit nBits)
-            Some cond
-        | _ -> None
+  let rec assertionsConditions (info: Asn1AcnAst.SeqChildInfo): Expr option =
+    let intRangeAssertion (int: BigIntegerUperRange): Expr option =
+      match int with
+      | Concrete (min, max) ->
+        // TODO: The RT library does not add 1, why?
+        let call = getBitCountUnsigned (ulonglit (max - min))
+        // TODO: Case min = max?
+        let nBits = if max = min then 0I else bigint (ceil ((log (double (max - min))) / (log 2.0)))
+        let cond = Equals (call, int32lit nBits)
+        Some cond
+      | _ -> None
+    match info with
+    | Asn1Child child ->
+      match child.Type.Kind with
+      | Integer int -> intRangeAssertion int.uperRange
+      | _ -> None
+    | AcnChild child ->
+      match child.Type with
+      | AcnInteger int -> intRangeAssertion int.uperRange
       | _ -> None
 
-  let addAssert (tpe: TypeEncodingKind option): Expr =
+  let addAssert (tpe: Asn1AcnAst.SeqChildInfo): Expr =
     assertionsConditions tpe |> Option.map (fun cond -> Assert cond)
                              |> Option.defaultValue (mkBlock [])
 
   let outerMaxSize = pg.outerMaxSize enc
-  let thisMaxSize = pg.maxSize enc
+  let thisMaxSize = (bigint nbPresenceBits) + (pg.sq.children |> List.sumBy (fun c -> c.maxSizeInBits enc))
   let fstSnap = snapshots.Head
   let isNested = pg.nestingLevel > 0I
-
+  let childrenWithPresenceBits = (List.replicate nbPresenceBits (None: SequenceChildProps option)) @ (pg.children |> List.map Some)
   let sizeRess =
-    pg.children |>
+    childrenWithPresenceBits |>
     List.indexed |>
     List.map (fun (ix, c) ->
       let childVar = {Var.name = $"size_{pg.nestingIx + bigint ix}"; tpe = IntegerType Long}
-      match c.info with
+      match c with
       | Some info ->
         let recv =
           match codec with
-          | Encode -> SelectionExpr (joinedSelection c.sel.Value)
-          | Decode -> SelectionExpr c.sel.Value.asIdentifier
-        let resSize = seqSizeExprHelperChild info (bigint ix) (Some recv) (bitIndexACN (Var snapshots.[ix])) pg.nestingLevel pg.nestingIx
+          | Encode -> SelectionExpr (joinedSelection info.sel)
+          | Decode -> SelectionExpr info.sel.asIdentifier
+        let resSize = seqSizeExprHelperChild info.info (bigint ix) (Some recv) (bitIndexACN (Var snapshots.[ix])) pg.nestingLevel pg.nestingIx
         {extraBdgs = resSize.bdgs; childVar = childVar; childSize = resSize.resSize}
       | None ->
         // presence bits
         {extraBdgs = []; childVar = childVar; childSize = longlit 1I}
     )
 
-  let annotatePostPreciseSize (ix: int) (snap: Var) (child: SequenceChildProps): Expr =
+  let annotatePostPreciseSize (ix: int) (snap: Var) (child: SequenceChildProps option): Expr =
     let previousSizes = sizeRess |> List.take ix |> List.map (fun res -> Var res.childVar)
     let sizeRes = sizeRess.[ix]
     let chk = Check (Equals (bitIndexACN (Var cdc), plus (bitIndexACN (Var oldCdc) :: previousSizes @ [Var sizeRes.childVar])))
     letsGhostIn sizeRes.allBindings (Ghost chk)
 
-  let annotatePost (ix: int) (snap: Var) (child: SequenceChildProps) (stmt: string option) (offsetAcc: bigint): Expr =
-    let sz = child.typeInfo.maxSize enc
+  let annotatePost (ix: int) (snap: Var) (child: SequenceChildProps option) (stmt: string option) (offsetAcc: bigint): Expr =
+    let sz = child |> Option.map (fun c -> c.info.maxSizeInBits enc) |> Option.defaultValue 1I
     let relativeOffset = offsetAcc - (pg.maxOffset enc)
     let offsetCheckOverall = Check (Leq (bitIndexACN (Var cdc), plus [bitIndexACN (Var oldCdc); (longlit offsetAcc)]))
     let offsetCheckNested =
@@ -1378,7 +1635,7 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
        | Decode -> [Check ((Equals (selBuf (Var cdc), selBuf (Var oldCdc))))]
     let offsetWidening =
       match pg.siblingMaxSize enc with
-      | Some siblingMaxSize when ix = nbChildren - 1 && siblingMaxSize <> thisMaxSize ->
+      | Some siblingMaxSize when ix = nbTotalChildren - 1 && siblingMaxSize <> thisMaxSize ->
         let diff = siblingMaxSize - thisMaxSize
         [
           Check (Leq (bitIndexACN (Var cdc), plus [bitIndexACN (Var oldCdc); longlit (offsetAcc + diff)]))
@@ -1387,24 +1644,25 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
       | _ -> []
     let checks = offsetCheckOverall :: offsetCheckNested @ bufCheck @ offsetWidening
     let validateOffsetLemma =
-      if stmt.IsSome && ix < nbChildren - 1 then
+      if stmt.IsSome && ix < nbTotalChildren - 1 then
         [validateOffsetBitsIneqLemma (selBitStream (Var snap)) (selBitStream (Var cdc)) (longlit (outerMaxSize - offsetAcc + sz)) (longlit sz)]
       else []
     let preciseSize = annotatePostPreciseSize ix snap child
     mkBlock [Ghost (mkBlock (validateOffsetLemma @ checks)); preciseSize]
 
-  let annotate (ix: int, (snap: Var, child: SequenceChildProps, stmt: string option)) (offsetAcc: bigint, rest: Expr): bigint * Expr =
-    let sz = child.typeInfo.maxSize enc
+  let annotate (ix: int, (snap: Var, child: SequenceChildProps option, stmt: string option)) (offsetAcc: bigint, rest: Expr): bigint * Expr =
+    let sz = child |> Option.map (fun c -> c.info.maxSizeInBits enc) |> Option.defaultValue 1I
     //assert (thisMaxSize <= (pg.siblingMaxSize enc |> Option.defaultValue thisMaxSize)) // TODO: Somehow does not always hold with UPER?
     let preAnnots =
-      if stmt.IsSome then [addAssert child.typeInfo.typeKind]
-      else []
+      match stmt, child with
+      | Some _, Some c -> [addAssert c.info]
+      | _ -> []
     let postAnnots = annotatePost ix snap child stmt offsetAcc
     let encDec = stmt |> Option.map EncDec |> Option.toList
     let body = mkBlock (preAnnots @ encDec @ [postAnnots; rest])
     offsetAcc - sz, LetGhost {bdg = snap; e = Snapshot (Var cdc); body = body}
 
-  let stmts = List.zip3 snapshots pg.children stmts |> List.indexed
+  let stmts = List.zip3 snapshots childrenWithPresenceBits stmts |> List.indexed
   List.foldBack annotate stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd
 
 let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
@@ -1414,7 +1672,8 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
     let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
     let oldCdc = {Var.name = $"oldCdc"; tpe = ClassType codecTpe}
     if enc = ACN then
-      let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = ClassType codecTpe})
+      let nbPresenceBits = countNbPresenceBits pg.sq
+      let snapshots = [1 .. nbPresenceBits + pg.sq.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = ClassType codecTpe})
       let wrappedStmts = annotateSequenceChildStmt enc snapshots cdc oldCdc stmts pg codec
       let postCondLemmas =
         let cond = Leq (bitIndexACN (Var cdc), plus [bitIndexACN (Var snapshots.Head); longlit (pg.outerMaxSize enc)])
@@ -1426,56 +1685,6 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
       let expr = mkBlock (stmts |> List.choose id |> List.map EncDec)
       let exprStr = show (ExprTree expr)
       [exprStr]
-
-
-type PrefixLemmaInfo = {
-  prefix: string list
-  id: string
-  extraArgs: Expr list
-}
-let readPrefixLemmaIdentifier (t: Asn1AcnAst.Asn1AcnTypeKind) (id: ReferenceToType) (isOptional: bool): PrefixLemmaInfo =
-  let forIntClass (intCls:Asn1AcnAst.IntegerClass) (encCls: IntEncodingClass) (range: BigIntegerUperRange): PrefixLemmaInfo =
-    match encCls with
-    | PositiveInteger_ConstSize_8 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_8_prefixLemma"; extraArgs = []}
-    | PositiveInteger_ConstSize_big_endian_16 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_big_endian_16_prefixLemma"; extraArgs = []}
-    | PositiveInteger_ConstSize_big_endian_32 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_big_endian_32_prefixLemma"; extraArgs = []}
-    | PositiveInteger_ConstSize_big_endian_64 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_big_endian_64_prefixLemma"; extraArgs = []}
-    | PositiveInteger_ConstSize_little_endian_16 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_little_endian_16_prefixLemma"; extraArgs = []}
-    | PositiveInteger_ConstSize_little_endian_32 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_little_endian_32_prefixLemma"; extraArgs = []}
-    | PositiveInteger_ConstSize_little_endian_64 -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_little_endian_64_prefixLemma"; extraArgs = []}
-    | PositiveInteger_ConstSize _ -> {prefix = [acnId]; id = "dec_Int_PositiveInteger_ConstSize_prefixLemma"; extraArgs = []}
-    | TwosComplement_ConstSize_8 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_8_prefixLemma"; extraArgs = []}
-    | TwosComplement_ConstSize_big_endian_16 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_big_endian_16_prefixLemma"; extraArgs = []}
-    | TwosComplement_ConstSize_big_endian_32 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_big_endian_32_prefixLemma"; extraArgs = []}
-    | TwosComplement_ConstSize_big_endian_64 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_big_endian_64_prefixLemma"; extraArgs = []}
-    | TwosComplement_ConstSize_little_endian_16 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_little_endian_16_prefixLemma"; extraArgs = []}
-    | TwosComplement_ConstSize_little_endian_32 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_little_endian_32_prefixLemma"; extraArgs = []}
-    | TwosComplement_ConstSize_little_endian_64 -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_little_endian_64_prefixLemma"; extraArgs = []}
-    | TwosComplement_ConstSize _ -> {prefix = [acnId]; id = "dec_Int_TwosComplement_ConstSize_prefixLemma"; extraArgs = []}
-    | Integer_uPER ->
-      match range with
-      | Full -> {prefix = [codecId]; id = "decodeUnconstrainedWholeNumber_prefixLemma"; extraArgs = []}
-      | PosInf min -> {prefix = [codecId]; id = "decodeConstrainedPosWholeNumber_prefixLemma"; extraArgs = [ulonglit min]}
-      | Concrete (min, max) ->
-        if intCls.IsPositive then {prefix = [codecId]; id = "decodeConstrainedPosWholeNumber_prefixLemma"; extraArgs = [ulonglit min; ulonglit max]}
-        else {prefix = [codecId]; id = "decodeConstrainedWholeNumber_prefixLemma"; extraArgs = [longlit min; longlit max]}
-      | _ -> failwith $"TODO: {range}"
-    | _ -> failwith $"TODO: {encCls}"
-
-  if isOptional then
-    {prefix = []; id = $"{ToC id.dropModule.AsString}_prefixLemma"; extraArgs = []}
-  else
-    match t with
-    | Asn1 (Integer int) -> forIntClass int.intClass int.acnEncodingClass int.uperRange
-    | Acn (AcnInteger int) -> forIntClass int.intClass int.acnEncodingClass int.uperRange
-    | Asn1 (Boolean _) | Acn (AcnBoolean _) -> {prefix = [bitStreamId]; id = "readBitPrefixLemma"; extraArgs = []}
-    | _ ->
-      {prefix = [acnId]; id = "readPrefixLemma_TODO"; extraArgs = []} // TODO
-
-let selectCodecReadPrefixLemma (prefixLemmaInfo: PrefixLemmaInfo) (cdcSnap: Expr) (cdc: Expr): Expr * Expr =
-  if prefixLemmaInfo.prefix = [bitStreamId] then selBitStream cdcSnap, selBitStream cdc
-  else if prefixLemmaInfo.prefix = [codecId] then selBase cdcSnap, selBase cdc
-  else cdcSnap, cdc
 
 let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): Expr option =
   if sq.children.IsEmpty then None
@@ -1576,8 +1785,16 @@ let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1
   *)
 
 let generateSequenceAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
-  if enc = ACN && codec = Decode then [generateSequencePrefixLemma enc t nestingScope sq]
-  else []
+  []
+  // if enc = ACN && codec = Decode then [generatePrefixLemmaSequence enc t nestingScope sq]
+  // else []
+
+let generateIntegerAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+  // If `tasInfo` is Some, then there is a pair of encode/decode functions that are generated wrapping a call to encode/decode the integer
+  // In such cases, we generate a "read prefix" lemma that is just an application of the appropriate ACN integer lemma
+  []
+  // if enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaInteger enc t nestingScope int]
+  // else []
 
 let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
   None
@@ -1850,20 +2067,17 @@ let generateOptionalPrefixLemma (enc: Asn1Encoding) (soc: SequenceOptionalChild)
   let c2 = {Var.name = "c2"; tpe = ClassType codecTpe}
   // The `existVar` does not exist for always present/absent
   let existVar = soc.existVar |> Option.map (fun v -> {Var.name = v; tpe = BooleanType})
-  let sizeExpr = longlit soc.child.Type.Kind.baseKind.acnMaxSizeInBits
+  let sz = {Var.name = "sz"; tpe = IntegerType Long}
+  let maxSizeExpr = longlit soc.child.Type.Kind.baseKind.acnMaxSizeInBits
   let preconds = [
     Precond (Equals (selBufLength (Var c1), selBufLength (Var c2)))
-    Precond (validateOffsetBitsACN (Var c1) sizeExpr)
+    Precond (validateOffsetBitsACN (Var c1) maxSizeExpr)
+    Precond (And [Leq (longlit 0I, Var sz); Leq (Var sz, maxSizeExpr)])
     Precond (arrayBitRangesEq
       (selBuf (Var c1))
       (selBuf (Var c2))
       (longlit 0I)
-      (plus [
-        bitIndexACN (Var c1)
-        existVar |>
-          Option.map (fun exist -> IfExpr {cond = Var exist; thn = sizeExpr; els = longlit 0I}) |>
-          Option.defaultValue sizeExpr
-      ])
+      (plus [bitIndexACN (Var c1); Var sz])
     )
   ]
   let elemTpe = fromAsn1TypeKind soc.child.Type.Kind.baseKind
@@ -1894,9 +2108,15 @@ let generateOptionalPrefixLemma (enc: Asn1Encoding) (soc: SequenceOptionalChild)
 
   let c1Cpy = {Var.name = "c1Cpy"; tpe = ClassType codecTpe}
   let c2ResetCpy = {Var.name = "c2ResetCpy"; tpe = ClassType codecTpe}
-  let underlyingPrefixLemma = readPrefixLemmaIdentifier (Asn1 soc.child.Type.Kind.baseKind) soc.child.Type.id false
+  let underlyingPrefixLemma = readPrefixLemmaIdentifier (Asn1 soc.child.Type.toAsn1AcnAst) soc.child.Type.id false
   let c1Recv, c2Recv = selectCodecReadPrefixLemma underlyingPrefixLemma (Var c1) (Var c2)
-  let underlyingPrefixLemmaCall = FunctionCall {prefix = underlyingPrefixLemma.prefix; id = underlyingPrefixLemma.id; tps = []; args = [c1Recv; c2Recv] @ underlyingPrefixLemma.extraArgs}
+  let underlyingPrefixLemmaCall =
+      match underlyingPrefixLemma with
+      | PrimitivePrefixLemma info ->
+        FunctionCall {prefix = info.prefix; id = info.id; tps = []; args = [c1Recv; c2Recv] @ info.extraConstArgs}
+      | ComposedPrefixLemma info ->
+        FunctionCall {prefix = []; id = info.id; tps = []; args = [c1Recv; c2Recv] @ [Var sz]}
+
   let body = (letsIn [
     (c1Cpy, Snapshot (Var c1))
     (c2ResetCpy, Snapshot (Var c2Reset))

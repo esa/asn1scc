@@ -322,6 +322,10 @@ type LangGeneric_scala() =
             let fds = generateSequenceAuxiliaries enc t sq nestingScope sel codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
+        override this.generateIntegerAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateIntegerAuxiliaries enc t int nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
+
         override this.generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list * string option =
             let fds, call = generateSequenceOfLikeAuxiliaries enc o pg codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""]), Some (show (ExprTree call))
@@ -380,17 +384,20 @@ type LangGeneric_scala() =
             [show (ExprTree precond)]
 
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
-            let errTpe = IntegerType Int
-            let postcondExpr =
-                match codec with
-                | Encode ->
-                    let resPostcond = {Var.name = "res"; tpe = ClassType (eitherTpe errTpe (IntegerType Int))}
-                    let decodePureId = $"{t.FT_TypeDefinition.[Scala].typeName}_ACN_Decode_pure"
-                    generateEncodePostcondExpr t p.arg resPostcond decodePureId
-                | Decode ->
-                    let resPostcond = {Var.name = "res"; tpe = ClassType (eitherMutTpe errTpe (fromAsn1TypeKind t.Kind))}
-                    generateDecodePostcondExpr t resPostcond
-            Some (show (ExprTree postcondExpr))
+            match enc with
+            | ACN ->
+                let errTpe = IntegerType Int
+                let postcondExpr =
+                    match codec with
+                    | Encode ->
+                        let resPostcond = {Var.name = "res"; tpe = ClassType (eitherTpe errTpe (IntegerType Int))}
+                        let decodePureId = $"{t.FT_TypeDefinition.[Scala].typeName}_ACN_Decode_pure"
+                        generateEncodePostcondExpr t p.arg resPostcond decodePureId
+                    | Decode ->
+                        let resPostcond = {Var.name = "res"; tpe = ClassType (eitherMutTpe errTpe (fromAsn1TypeKind t.Kind))}
+                        generateDecodePostcondExpr t resPostcond
+                Some (show (ExprTree postcondExpr))
+            | _ -> Some (show (ExprTree (BoolLit true)))
 
         override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
             generateSequenceChildProof enc stmts pg codec

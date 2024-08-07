@@ -545,6 +545,8 @@ let bitIndexACN (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = selBit
 
 let resetAtACN (recv: Expr) (arg: Expr): Expr = MethodCall { id = "resetAt"; recv = recv; args = [arg] }
 
+let withMovedBitIndexACN (recv: Expr) (diff: Expr): Expr = MethodCall { id = "withMovedBitIndex"; recv = recv; args = [diff] }
+
 let invariant (recv: Expr): Expr = FunctionCall { prefix = [bitStreamId]; id = "invariant"; tps = []; args = [selCurrentBitACN recv; selCurrentByteACN recv; selBufLength recv] }
 
 let getBitCountUnsigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetBitCountUnsigned"; tps = []; args = [arg] }
@@ -631,6 +633,9 @@ let arrayRangesEq (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr): Expr =
 let arrayBitRangesEq (a1: Expr) (a2: Expr) (fromBit: Expr) (toBit: Expr): Expr =
   FunctionCall { prefix = []; id = "arrayBitRangesEq"; tps = []; args = [a1; a2; fromBit; toBit] }
 
+let arrayBitRangesEqSlicedLemma (a1: Expr) (a2: Expr) (fromBit: Expr) (toBit: Expr) (fromSlice: Expr) (toSlice: Expr): Expr =
+  FunctionCall { prefix = []; id = "arrayBitRangesEqSlicedLemma"; tps = []; args = [a1; a2; fromBit; toBit; fromSlice; toSlice] }
+
 let listRangesEqReflexiveLemma (arr: Expr): Expr =
   FunctionCall { prefix = []; id = "listRangesEqReflexiveLemma"; tps = []; args = [arr] }
 
@@ -715,10 +720,10 @@ let fromAcnInsertedType (t: Asn1AcnAst.AcnInsertedType): Type =
   | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm -> ClassType {id = enm.enumerated.typeDef[Scala].typeName; tps = []}
   | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> ClassType (vecTpe (IntegerType UByte))
 
-let fromAsn1AcnTypeKind (t: Asn1AcnAst.Asn1AcnTypeKind): Type =
+let fromAsn1AcnType (t: Asn1AcnAst.Asn1AcnType): Type =
   match t with
-  | Asn1AcnAst.Asn1AcnTypeKind.Acn t -> fromAcnInsertedType t
-  | Asn1AcnAst.Asn1AcnTypeKind.Asn1 t -> fromAsn1TypeKind t
+  | Asn1AcnAst.Asn1AcnType.Acn t -> fromAcnInsertedType t
+  | Asn1AcnAst.Asn1AcnType.Asn1 t -> fromAsn1TypeKind t.Kind
 
 let fromAsn1AcnChildInfo (t: Asn1AcnAst.SeqChildInfo): Type =
   match t with

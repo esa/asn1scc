@@ -26,7 +26,75 @@ object ACN {
       (ACN(Codec(r1)), ACN(Codec(r2)))
    }
 
-   // For showing invertibility of encoding - not fully integrated yet
+   // TODO: Placeholder
+   def readPrefixLemma_TODO(acn1: ACN, acn2: ACN): Unit = ()
+
+   @ghost @pure @opaque @inlineOnce
+   def dec_Int_TwosComplement_ConstSize_8_prefixLemma(acn1: ACN, acn2: ACN): Unit = {
+      require(acn1.base.bitStream.buf.length == acn2.base.bitStream.buf.length)
+      require(acn1.base.bitStream.validate_offset_bits(8))
+      require(arrayBitRangesEq(
+         acn1.base.bitStream.buf,
+         acn2.base.bitStream.buf,
+         0,
+         acn1.base.bitStream.bitIndex + 8
+      ))
+
+      val acn2Reset = acn2.resetAt(acn1)
+      val (acn1Res, b1) = acn1.dec_Int_TwosComplement_ConstSize_8_pure()
+      val (acn2Res, b2) = acn2Reset.dec_Int_TwosComplement_ConstSize_8_pure()
+
+      {
+         BitStream.readBytePrefixLemma(acn1.base.bitStream, acn2.base.bitStream)
+      }.ensuring { _ =>
+         acn1Res.base.bitStream.bitIndex == acn2Res.base.bitStream.bitIndex && b1 == b2
+      }
+   }
+
+   @ghost @pure @opaque @inlineOnce
+   def dec_Int_PositiveInteger_ConstSize_8_prefixLemma(acn1: ACN, acn2: ACN): Unit = {
+      require(acn1.base.bitStream.buf.length == acn2.base.bitStream.buf.length)
+      require(acn1.base.bitStream.validate_offset_bits(8))
+      require(arrayBitRangesEq(
+         acn1.base.bitStream.buf,
+         acn2.base.bitStream.buf,
+         0,
+         acn1.base.bitStream.bitIndex + 8
+      ))
+
+      val acn2Reset = acn2.resetAt(acn1)
+      val (acn1Res, b1) = acn1.dec_Int_PositiveInteger_ConstSize_8_pure()
+      val (acn2Res, b2) = acn2Reset.dec_Int_PositiveInteger_ConstSize_8_pure()
+
+      {
+         BitStream.readBytePrefixLemma(acn1.base.bitStream, acn2.base.bitStream)
+      }.ensuring { _ =>
+         acn1Res.base.bitStream.bitIndex == acn2Res.base.bitStream.bitIndex && b1 == b2
+      }
+   }
+
+   @ghost @pure @opaque @inlineOnce
+   def dec_Int_PositiveInteger_ConstSize_prefixLemma(acn1: ACN, acn2: ACN, nBits: Int): Unit = {
+      require(0 <= nBits && nBits <= 64)
+      require(acn1.base.bitStream.buf.length == acn2.base.bitStream.buf.length)
+      require(acn1.base.bitStream.validate_offset_bits(nBits))
+      require(arrayBitRangesEq(
+         acn1.base.bitStream.buf,
+         acn2.base.bitStream.buf,
+         0,
+         acn1.base.bitStream.bitIndex + nBits
+      ))
+
+      val acn2Reset = acn2.resetAt(acn1)
+      val (acn1Res, l1) = acn1.dec_Int_PositiveInteger_ConstSize_pure(nBits)
+      val (acn2Res, l2) = acn2Reset.dec_Int_PositiveInteger_ConstSize_pure(nBits)
+
+      {
+         BitStream.readNLeastSignificantBitsPrefixLemma(acn1.base.bitStream, acn2.base.bitStream, nBits)
+      }.ensuring { _ =>
+         acn1Res.base.bitStream.bitIndex == acn2Res.base.bitStream.bitIndex && l1 == l2
+      }
+   }
 
    @ghost @pure @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_big_endian_16_prefixLemma(acn1: ACN, acn2: ACN): Unit = {

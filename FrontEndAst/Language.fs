@@ -67,17 +67,11 @@ type TypeInfo = {
         | UPER -> this.uperMaxSizeBits
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
-// type TypeKind =
-//     | Asn1Tpe Asn1AcnAst.Asn1TypeKind
-//     | AcnTpe
-
 type SequenceChildProps = {
-    info: Asn1AcnAst.SeqChildInfo option // None for presence bits
-    sel: Selection option // None for presence bits
+    info: Asn1AcnAst.SeqChildInfo
+    sel: Selection
     uperMaxOffset: bigint
     acnMaxOffset: bigint
-    typeInfo: TypeInfo // TODO: Remove?
-    typeKind: Asn1AcnAst.Asn1AcnTypeKind
 } with
     member this.maxOffset (enc: Asn1Encoding): bigint =
         match enc with
@@ -87,6 +81,7 @@ type SequenceChildProps = {
 
 type SequenceProofGen = {
     t: Asn1AcnAst.Asn1Type
+    sq: Asn1AcnAst.Sequence
     sel: Selection
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
@@ -105,8 +100,8 @@ type SequenceProofGen = {
         | UPER -> this.uperSiblingMaxSize
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
-    member this.maxSize (enc: Asn1Encoding): BigInteger =
-        this.children |> List.map (fun c -> c.typeInfo.maxSize enc) |> List.sum
+    // member this.maxSize (enc: Asn1Encoding): BigInteger =
+    //     this.children |> List.map (fun c -> c.typeInfo.maxSize enc) |> List.sum
 
     member this.outerMaxSize (enc: Asn1Encoding): bigint =
         match enc with
@@ -342,6 +337,7 @@ type ILangGeneric () =
 
     abstract member adaptAcnFuncBody: AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
     abstract member generateSequenceAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateIntegerAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> Selection -> Codec -> string list
     abstract member generateSequenceOfLikeAuxiliaries: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
     // TODO: Bad name
     abstract member generateOptionalAuxiliaries: Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
@@ -377,6 +373,7 @@ type ILangGeneric () =
 
     default this.adaptAcnFuncBody f _ _ _ = f
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ = []
+    default this.generateIntegerAuxiliaries _ _ _ _ _ _ = []
     default this.generateSequenceOfLikeAuxiliaries _ _ _ _ = [], None
     default this.generateOptionalAuxiliaries _ soc _ =
         // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves

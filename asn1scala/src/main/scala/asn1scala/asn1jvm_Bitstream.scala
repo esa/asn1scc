@@ -243,8 +243,7 @@ object BitStream {
    @ghost @pure @opaque @inlineOnce
    def readBytePrefixLemma(bs1: BitStream, bs2: BitStream): Unit = {
       require(bs1.buf.length == bs2.buf.length)
-      require(BitStream.bitIndex(bs1.buf.length, bs1.currentByte, bs1.currentBit ) + 8 <= bs1.buf.length.toLong * 8L)
-      require(BitStream.bitIndex(bs1.buf.length, bs1.currentByte, bs1.currentBit ) + 8 <= BitStream.bitIndex(bs2.buf.length, bs2.currentByte, bs2.currentBit ))
+      require(bs1.validate_offset_bits(8))
       require(arrayBitRangesEq(
          bs1.buf,
          bs2.buf,

@@ -819,9 +819,9 @@ and ReferenceType = {
     refCons             : AnyConstraint list
 }
 
-type Asn1AcnTypeKind =
+type Asn1AcnType =
     | Acn of AcnInsertedType
-    | Asn1 of Asn1TypeKind
+    | Asn1 of Asn1Type
 
 type TypeAssignment = {
     Name:StringLoc

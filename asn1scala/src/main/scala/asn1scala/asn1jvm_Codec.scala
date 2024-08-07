@@ -199,8 +199,8 @@ case class Codec(bitStream: BitStream) {
       ghostExpr {
          val nBits = GetBitCountUnsigned(v)
          val w2 = this
-         assert( w1.bitStream.buf.length == w2.bitStream.buf.length 
-            && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits 
+         assert( w1.bitStream.buf.length == w2.bitStream.buf.length
+            && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits
             && w1.isPrefixOf(w2)
          )
          val (r1, r2) = reader(w1, w2)
@@ -213,7 +213,7 @@ case class Codec(bitStream: BitStream) {
       val w1 = old(this)
       val w2 = this
       val nBits = GetBitCountUnsigned(v)
-      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits 
+      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits
       && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
@@ -229,7 +229,6 @@ case class Codec(bitStream: BitStream) {
     * @return Unsigned integer with nBits decoded from bitstream.
     *
     */
-   // @opaque @inlineOnce
    def decodeUnsignedInteger(nBits: Int): ULong = {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
       require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBits))
@@ -379,7 +378,7 @@ case class Codec(bitStream: BitStream) {
       val range = stainless.math.wrapping(max - min)
       val nBits = GetBitCountUnsigned(range.toRawULong)
       w1.bitStream.buf.length == w2.bitStream.buf.length
-      && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits 
+      && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits
       &&
       w1.isPrefixOf(w2)
       && {
@@ -548,14 +547,14 @@ case class Codec(bitStream: BitStream) {
          check(vGot == v)
       }
 
-   }.ensuring(_ => 
+   }.ensuring(_ =>
       val w1 = old(this)
       val w2 = this
       val encV: ULong = stainless.math.wrapping(v - min).toRawULong
       val nBits = GetLengthForEncodingUnsigned(stainless.math.wrapping(v - min).toRawULong) * 8L + 8L
-      buf.length == old(this).buf.length 
+      buf.length == old(this).buf.length
       &&& BitStream.bitIndex(this.bitStream.buf.length, this.bitStream.currentByte, this.bitStream.currentBit) == BitStream.bitIndex(old(this).bitStream.buf.length, old(this).bitStream.currentByte, old(this).bitStream.currentBit) + GetLengthForEncodingUnsigned(stainless.math.wrapping(v - min).toRawULong) * 8L + 8L
-      &&& w1.isPrefixOf(w2) 
+      &&& w1.isPrefixOf(w2)
       &&& {
          val (r1, r2) = reader(w1, w2)
          BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
@@ -667,10 +666,10 @@ case class Codec(bitStream: BitStream) {
          readNLSBBitsMSBFirst(nBits).toRawULong
       }
       val res: ULong = ULong.fromRaw(v + min)
-      if(res < min) then 
+      if(res < min) then
          assert(ULong.fromRaw(-1L)  >= min)
-         ULong.fromRaw(Long.MaxValue) 
-      else 
+         ULong.fromRaw(Long.MaxValue)
+      else
          assert(res >= min)
          res
    }//.ensuring(res => min <= res)
@@ -703,7 +702,7 @@ case class Codec(bitStream: BitStream) {
       @ghost val this2 = snapshot(this)
       // encode number
       appendLSBBitsMSBFirst(v & onesLSBLong(nBits), nBits)
-      
+
       ghostExpr {
          BitStream.lemmaIsPrefixTransitive(this1.bitStream, this2.bitStream, this.bitStream)
          val this2Reset = this2.bitStream.resetAt(this1.bitStream)
@@ -722,7 +721,7 @@ case class Codec(bitStream: BitStream) {
       val w1 = old(this)
       val w2 = this
       val nBits = NO_OF_BITS_IN_BYTE + GetLengthForEncodingSigned(v) * NO_OF_BITS_IN_BYTE
-      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits 
+      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits
       && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
@@ -787,9 +786,9 @@ case class Codec(bitStream: BitStream) {
 
    /**
     * Facade function for real encoding
-    * 
+    *
     * Unused in PUS-C
-    * 
+    *
     * @param vValDouble real input in IEEE754 double format
     */
    @extern
@@ -841,8 +840,8 @@ case class Codec(bitStream: BitStream) {
     * |1|S|0|0|a|b|c|d|
     * +-+-+-+-+-+-+-+-+
     *
-    * 
-    * 
+    *
+    *
     */
    private def encodeRealBitString(vVal: Long): Unit = {
       // Require from CalculateMantissaAndExponent
