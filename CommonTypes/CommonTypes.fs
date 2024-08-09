@@ -960,6 +960,7 @@ type CommandLineSettings = {
     blm         : (ProgrammingLanguage*ILangBasic) list
     userRtlFunctionsToGenerate : string list
     enum_Items_To_Enable_Efficient_Enumerations : uint
+    stainlessInvertibility: bool
 }
 with
   member this.SIntMax =

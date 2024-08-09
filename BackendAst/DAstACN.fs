@@ -272,11 +272,11 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                           (c_name: string): ((AcnFuncBodyResult option)*State) =
         let funcBody = handleSavePosition funcBody t.SaveBitStreamPosition c_name t.id lm codec
         let ret = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
-        let ret = lm.lg.adaptAcnFuncBody ret isValidFuncName t codec
+        let ret = lm.lg.adaptAcnFuncBody r ret isValidFuncName t codec
         ret st errCode prms nestingScope p
 
     let funcBody = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
-    let funcBody = lm.lg.adaptAcnFuncBody funcBody isValidFuncName t codec
+    let funcBody = lm.lg.adaptAcnFuncBody r funcBody isValidFuncName t codec
 
     let p : CallerScope = lm.lg.getParamType t codec
     let varName = p.arg.receiverId
@@ -286,8 +286,8 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
             match funcNameAndtasInfo  with
             | None -> None, None, [], None, ns
             | Some funcName ->
-                let precondAnnots = lm.lg.generatePrecond ACN t codec
-                let postcondAnnots = lm.lg.generatePostcond ACN funcNameBase p t codec
+                let precondAnnots = lm.lg.generatePrecond r ACN t codec
+                let postcondAnnots = lm.lg.generatePostcond r ACN funcNameBase p t codec
                 let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, auxiliaries, icdResult =
                     match content with
@@ -541,7 +541,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
                  (p: CallerScope) =
         let res = funcBodyOrig errCode acnArgs nestingScope p
         res |> Option.map (fun res ->
-            let aux = lm.lg.generateIntegerAuxiliaries ACN t o nestingScope p.arg codec
+            let aux = lm.lg.generateIntegerAuxiliaries r ACN t o nestingScope p.arg codec
             {res with auxiliaries = res.auxiliaries @ aux})
 
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
@@ -654,7 +654,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (lm:
                  (p: CallerScope) =
         let res = funcBodyOrig errCode acnArgs nestingScope p
         res |> Option.map (fun res ->
-            let aux = lm.lg.generateEnumAuxiliaries ACN t o nestingScope p.arg codec
+            let aux = lm.lg.generateEnumAuxiliaries r ACN t o nestingScope p.arg codec
             {res with auxiliaries = res.auxiliaries @ aux})
 
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
@@ -836,7 +836,7 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
         let pp, resultExpr = adaptArgument lm codec p
         let nullType         = lm.acn.Null_pattern
-        let aux = lm.lg.generateNullTypeAuxiliaries ACN t o nestingScope p.arg codec
+        let aux = lm.lg.generateNullTypeAuxiliaries r ACN t o nestingScope p.arg codec
 
         match o.acnProperties.encodingPattern with
         | None ->
@@ -1050,7 +1050,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             ixVariable = i
         }
         let introSnap = nestingScope.nestingLevel = 0I
-        let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries ACN (StrType o) sqfProofGen codec
+        let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries r ACN (StrType o) sqfProofGen codec
 
         let funcBodyContent, localVariables =
             match o.minSize with
@@ -1304,7 +1304,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                 elemDecodeFn = None // TODO: elemDecodeFn
                 ixVariable = i
             }
-            let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries ACN (SqOf o) sqfProofGen codec
+            let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries r ACN (SqOf o) sqfProofGen codec
 
             let ret =
                 match o.acnEncodingClass with
@@ -2049,7 +2049,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         let combinedBody (p: CallerScope) (existVar: string option): string =
                             ((presentWhenStmts |> Option.toList) @ (childBody |> Option.toList) |> List.map (fun f -> f p existVar)).StrJoin "\n"
                         let soc = {SequenceOptionalChild.t = t; sq = o; child = child; existVar = existVar; p = {p with arg = childSel}; nestingScope = childNestingScope; childBody = combinedBody}
-                        let optAux, theCombinedBody = lm.lg.generateOptionalAuxiliaries ACN soc codec
+                        let optAux, theCombinedBody = lm.lg.generateOptionalAuxiliaries r ACN soc codec
                         optAux, Some theCombinedBody
 
                 let stmts = {body = theCombinedBody; lvs = presentWhenLvs @ childLvs; errCodes = presentWhenErrs @ childErrs; icdComments = []}
@@ -2137,7 +2137,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             let presenceBits = presenceBits |> List.map Some
             let children = childrenStatements00 |> List.map (fun s -> s.joinedBodies lm codec)
             presenceBits @ children
-        let childrenStatements = lm.lg.generateSequenceChildProof ACN allStmts seqProofGen codec
+        let childrenStatements = lm.lg.generateSequenceChildProof r ACN allStmts seqProofGen codec
 
         let childrenLocalvars = childrenStatements0 |> List.collect(fun s -> s.lvs)
         let childrenExistVar = childrenStatements00 |> List.choose(fun res -> res.existVar)
@@ -2161,8 +2161,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let resultExpr = p.arg.asIdentifier
                 Some resultExpr, [lm.uper.sequence_build resultExpr (typeDefinition.longTypedefName2 lm.lg.hasModules) p.arg.isOptional (existSeq@childrenResultExpr)]
             | _ -> None, []
-        let proof = lm.lg.generateSequenceProof ACN t o nestingScope p.arg codec
-        let aux = lm.lg.generateSequenceAuxiliaries ACN t o nestingScope p.arg codec
+        let proof = lm.lg.generateSequenceProof r ACN t o nestingScope p.arg codec
+        let aux = lm.lg.generateSequenceAuxiliaries r ACN t o nestingScope p.arg codec
         let seqContent =  (saveInitialBitStrmStatements@childrenStatements@(post_encoding_function |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
 
         match existsAcnChildWithNoUpdates with
@@ -2428,8 +2428,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 let extField = getExternalField r deps t.id
                 choice_Enum pp access childrenStatements extField errCode.errCodeName codec, resultExpr
             | CEC_presWhen    -> choice_preWhen pp  access childrenStatements errCode.errCodeName codec, resultExpr
-        let choiceContent = lm.lg.generateChoiceProof ACN t o choiceContent p.arg codec
-        let aux = lm.lg.generateChoiceAuxiliaries ACN t o nestingScope p.arg codec
+        let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.arg codec
+        let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.arg codec
         Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (ChoiceEncodingType childrenTypeKindEncoding); auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd}), ns
 
 

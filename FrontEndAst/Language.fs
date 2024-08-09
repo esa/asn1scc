@@ -340,21 +340,21 @@ type ILangGeneric () =
     abstract member getBoardNames : Targets option -> string list
     abstract member getBoardDirs : Targets option -> string list
 
-    abstract member adaptAcnFuncBody: AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
-    abstract member generateSequenceAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
-    abstract member generateIntegerAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> Selection -> Codec -> string list
-    abstract member generateSequenceOfLikeAuxiliaries: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
-    abstract member generateOptionalAuxiliaries: Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
-    abstract member generateChoiceAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> NestingScope -> Selection -> Codec -> string list
-    abstract member generateNullTypeAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.NullType -> NestingScope -> Selection -> Codec -> string list
-    abstract member generateEnumAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> Selection -> Codec -> string list
+    abstract member adaptAcnFuncBody: Asn1AcnAst.AstRoot -> AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
+    abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateSequenceOfLikeAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
+    abstract member generateOptionalAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
+    abstract member generateChoiceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateNullTypeAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.NullType -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateEnumAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> Selection -> Codec -> string list
 
-    abstract member generatePrecond: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
-    abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
-    abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
-    abstract member generateSequenceProof: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
-    abstract member generateChoiceProof: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> Selection -> Codec -> string
-    abstract member generateSequenceOfLikeProof: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
+    abstract member generatePrecond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
+    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
+    abstract member generateSequenceChildProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
+    abstract member generateSequenceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateChoiceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> Selection -> Codec -> string
+    abstract member generateSequenceOfLikeProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
     abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CallerScope -> Codec -> string option
 
     abstract member generateOctetStringInvariants: Asn1AcnAst.Asn1Type -> Asn1AcnAst.OctetString -> string list
@@ -379,23 +379,23 @@ type ILangGeneric () =
     default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
         sourceCode
 
-    default this.adaptAcnFuncBody f _ _ _ = f
-    default this.generateSequenceAuxiliaries _ _ _ _ _ _ = []
-    default this.generateIntegerAuxiliaries _ _ _ _ _ _ = []
-    default this.generateSequenceOfLikeAuxiliaries _ _ _ _ = [], None
-    default this.generateOptionalAuxiliaries _ soc _ =
+    default this.adaptAcnFuncBody _ f _ _ _ = f
+    default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateIntegerAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateSequenceOfLikeAuxiliaries _ _ _ _ _ = [], None
+    default this.generateOptionalAuxiliaries _ _ soc _ =
         // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves
         [], soc.childBody {soc.p with arg = soc.p.arg.dropLast} soc.existVar
-    default this.generateChoiceAuxiliaries _ _ _ _ _ _ = []
-    default this.generateNullTypeAuxiliaries _ _ _ _ _ _ = []
-    default this.generateEnumAuxiliaries _ _ _ _ _ _ = []
+    default this.generateChoiceAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateNullTypeAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateEnumAuxiliaries _ _ _ _ _ _ _ = []
 
-    default this.generatePrecond _ _ _ = []
-    default this.generatePostcond _ _ _ _ _ = None
-    default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id
-    default this.generateSequenceProof _ _ _ _ _ _ = []
-    default this.generateChoiceProof _ _ _ stmt _ _ = stmt
-    default this.generateSequenceOfLikeProof _ _ _ _ = None
+    default this.generatePrecond _ _ _ _ = []
+    default this.generatePostcond _ _ _ _ _ _ = None
+    default this.generateSequenceChildProof _ _ stmts _ _ = stmts |> List.choose id
+    default this.generateSequenceProof _ _ _ _ _ _ _ = []
+    default this.generateChoiceProof _ _ _ _ stmt _ _ = stmt
+    default this.generateSequenceOfLikeProof _ _ _ _ _ = None
     default this.generateIntFullyConstraintRangeAssert _ _ _ = None
 
     default this.generateOctetStringInvariants _ _ = []

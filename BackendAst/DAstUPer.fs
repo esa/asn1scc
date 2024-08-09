@@ -100,8 +100,8 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                         emptyStatement, [], [], true, isValidFuncName.IsNone, []
                     | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.auxiliaries
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let precondAnnots = lm.lg.generatePrecond UPER t codec
-                let postcondAnnots = lm.lg.generatePostcond UPER typeDef.typeName p t codec
+                let precondAnnots = lm.lg.generatePrecond r UPER t codec
+                let postcondAnnots = lm.lg.generatePostcond r UPER typeDef.typeName p t codec
                 let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
@@ -474,7 +474,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
             ixVariable = i
         }
         let introSnap = nestingScope.nestingLevel = 0I
-        let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries (if fromACN then ACN else UPER) (StrType o) sqfProofGen codec
+        let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries r (if fromACN then ACN else UPER) (StrType o) sqfProofGen codec
 
         let funcBodyContent,localVariables =
             match o.minSize with
@@ -635,7 +635,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                 elemDecodeFn = None // TODO: elemDecodeFn
                 ixVariable = i
             }
-            let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries (if fromACN then ACN else UPER) (SqOf o) sqfProofGen codec
+            let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries r (if fromACN then ACN else UPER) (SqOf o) sqfProofGen codec
 
             let absOffset = nestingScope.uperOffset
             let remBits = nestingScope.uperOuterMaxSize - nestingScope.uperOffset
@@ -813,7 +813,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
         let allStmts =
             let children = childrenStatements00 |> List.map (fun s -> s.stmt |> Option.bind (fun stmt -> stmt.body))
             presenceBits @ children
-        let childrenStatements = lm.lg.generateSequenceChildProof UPER allStmts seqProofGen codec
+        let childrenStatements = lm.lg.generateSequenceChildProof r UPER allStmts seqProofGen codec
 
         let childrenStatements0 = childrenStatements00 |> List.choose(fun s -> s.stmt)
         let childrenLocalVars = childrenStatements0 |> List.collect(fun s -> s.lvs)
@@ -906,12 +906,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let introSnap = nestingScope.nestingLevel = 0I
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
             let ret = choice pp (lm.lg.getAccess p.arg) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits introSnap codec
-            let ret = lm.lg.generateChoiceProof ACN t o ret p.arg codec
+            let ret = lm.lg.generateChoiceProof r ACN t o ret p.arg codec
             Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=Some (ChoiceEncodingType childrenTypeKindEncoding); auxiliaries=childrenAuxiliaries})
         | Some baseFuncName ->
             let pp, resultExpr = adaptArgumentPtr lm codec p
             let funcBodyContent = callBaseTypeFunc lm pp baseFuncName codec
-            let ret = lm.lg.generateChoiceProof ACN t o funcBodyContent p.arg codec
+            let ret = lm.lg.generateChoiceProof r ACN t o funcBodyContent p.arg codec
             Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind=None; auxiliaries=[]})
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
