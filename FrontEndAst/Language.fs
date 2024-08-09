@@ -170,8 +170,13 @@ with
         | SqOf sqf -> sqf.isFixedSize
         | StrType st -> st.isFixedSize
 
+type Asn1TypeOrAcnRefIA5 =
+| Asn1 of Asn1AcnAst.Asn1Type
+| AcnRefIA5 of Asn1AcnAst.AcnReferenceToIA5String
+
 // TODO: rename
 type SequenceOfLikeProofGen = {
+    t: Asn1TypeOrAcnRefIA5
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
     nestingLevel: bigint
@@ -339,8 +344,11 @@ type ILangGeneric () =
     abstract member generateSequenceAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
     abstract member generateIntegerAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> Selection -> Codec -> string list
     abstract member generateSequenceOfLikeAuxiliaries: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
-    // TODO: Bad name
     abstract member generateOptionalAuxiliaries: Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
+    abstract member generateChoiceAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateNullTypeAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.NullType -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateEnumAuxiliaries: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> Selection -> Codec -> string list
+
     abstract member generatePrecond: Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
     abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
@@ -378,6 +386,10 @@ type ILangGeneric () =
     default this.generateOptionalAuxiliaries _ soc _ =
         // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves
         [], soc.childBody {soc.p with arg = soc.p.arg.dropLast} soc.existVar
+    default this.generateChoiceAuxiliaries _ _ _ _ _ _ = []
+    default this.generateNullTypeAuxiliaries _ _ _ _ _ _ = []
+    default this.generateEnumAuxiliaries _ _ _ _ _ _ = []
+
     default this.generatePrecond _ _ _ = []
     default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id

@@ -434,6 +434,20 @@ and choiceSizeExpr (choice: Asn1AcnAst.Choice)
   )
   {bdgs = []; resSize = MatchExpr {scrut = obj; cases = cases}}
 
+let optionalSizeExpr (child: Asn1AcnAst.Asn1Child)
+                     (obj: Expr)
+                     (offset: Expr)
+                     (nestingLevel: bigint)
+                     (nestingIx: bigint): SizeExprRes =
+  let sz =
+    match child.Type.Kind with
+    | Choice _ | Sequence _ | SequenceOf _ ->
+      {bdgs = []; resSize = callSize (getMutExpr obj) offset}
+    | _ -> asn1SizeExpr child.Type.acnAlignment child.Type.Kind (getMutExpr obj) offset nestingLevel nestingIx
+  match child.Optionality with
+    | Some AlwaysPresent -> sz
+    | Some AlwaysAbsent -> {sz with resSize = longlit 0I}
+    | _ -> {sz with resSize = IfExpr {cond = isDefinedMutExpr obj; thn = sz.resSize; els = longlit 0I}}
 
 
 let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef list =
@@ -901,7 +915,11 @@ let rec tryFindFirstParentACNDependency (parents: Asn1AcnAst.Asn1Type list) (dep
     match parent.ActualType.Kind with
     | Sequence _ ->
       let directAcns = collectNestedAcnChildren parent.Kind
-      directAcns |> List.tryFind (fun acn -> List.endsWith acn.id.fieldPath dep.asStringList) |>
+      assert (directAcns |> List.forall (fun acn -> List.isPrefixOf parent.id.ToScopeNodeList acn.id.ToScopeNodeList))
+      directAcns |> List.tryFind (fun acn ->
+        let suffix = ReferenceToType (acn.id.ToScopeNodeList |> List.skip parent.id.ToScopeNodeList.Length)
+        List.endsWith suffix.fieldPath dep.asStringList
+      ) |>
         Option.map (fun acn -> parent, acn) |>
         Option.orElse (tryFindFirstParentACNDependency rest dep)
     | _ -> tryFindFirstParentACNDependency rest dep
@@ -918,9 +936,9 @@ let rec firstOutermostSeqParent (parents: Asn1AcnAst.Asn1Type list): Asn1AcnAst.
 // * In case this is a Sequence, the corresponding decoded ACN inserted field, stored in a local variable
 // In both cases, the variable names are the same, so we can (ab)use this fact and not worry from where
 // we got the ACN dependency.
-let acnExternDependenciesVariableDecode (t: Asn1AcnAst.Asn1Type) (nestingScope: NestingScope): Var list =
+let acnExternDependenciesVariableDecode (t: Asn1AcnAst.Asn1Type) (parents: Asn1AcnAst.Asn1Type list): Var list =
   t.externalDependencies |> List.map (fun dep ->
-    let acnDep = tryFindFirstParentACNDependency (nestingScope.parents |> List.map snd) dep
+    let acnDep = tryFindFirstParentACNDependency parents dep
     assert acnDep.IsSome
     let _, acnParam = acnDep.Value
     let nme = ToC (acnParam.id.dropModule.AcnAbsPath.StrJoin "_")
@@ -1015,7 +1033,7 @@ let readPrefixLemmaIdentifier (t: Asn1AcnAst.Asn1AcnType) (id: ReferenceToType) 
     | _ -> failwith $"TODO: {encCls}"
 
   if isOptional then
-    ComposedPrefixLemma {id = $"{ToC id.dropModule.AsString}_prefixLemma"}
+    ComposedPrefixLemma {id = $"{ToC id.dropModule.AsString}_Optional_prefixLemma"}
   else
     match t with
     | Asn1 t ->
@@ -1023,10 +1041,20 @@ let readPrefixLemmaIdentifier (t: Asn1AcnAst.Asn1AcnType) (id: ReferenceToType) 
       | Integer int -> PrimitivePrefixLemma (forIntClass int.intClass int.acnEncodingClass int.uperRange)
       | Boolean _ -> PrimitivePrefixLemma {prefix = [bitStreamId]; id = "readBitPrefixLemma"; extraConstArgs = []}
       | ReferenceType rt ->
-        let id =
-          if rt.hasExtraConstrainsOrChildrenOrAcnArgs then $"{ToC id.dropModule.AsString}_prefixLemma"
-          else $"{t.FT_TypeDefinition.[Scala].typeName}_prefixLemma"
-        ComposedPrefixLemma {id = id}
+        match rt.resolvedType.ActualType.Kind with
+        | BitString _ ->
+          // TODO: Why don't we have a wrapper function for bitstrings?
+          PrimitivePrefixLemma {prefix = [acnId]; id = "readPrefixLemma_TODO"; extraConstArgs = []} // TODO
+        | IA5String str ->
+          match str.acnEncodingClass with
+          | Acn_Enc_String_uPER _ -> ComposedPrefixLemma {id = $"{t.ActualType.FT_TypeDefinition.[Scala].typeName}_prefixLemma"}
+          | _ -> PrimitivePrefixLemma {prefix = [acnId]; id = "readPrefixLemma_TODO"; extraConstArgs = []} // TODO
+        | OctetString _ -> PrimitivePrefixLemma {prefix = [acnId]; id = "readPrefixLemma_TODO"; extraConstArgs = []} // TODO
+        | _ ->
+          let id =
+            if rt.hasExtraConstrainsOrChildrenOrAcnArgs then $"{ToC id.dropModule.AsString}_prefixLemma"
+            else $"{t.ActualType.FT_TypeDefinition.[Scala].typeName}_prefixLemma"
+          ComposedPrefixLemma {id = id}
       | _ -> PrimitivePrefixLemma {prefix = [acnId]; id = "readPrefixLemma_TODO"; extraConstArgs = []} // TODO
     | Acn (AcnInteger int) -> PrimitivePrefixLemma (forIntClass int.intClass int.acnEncodingClass int.uperRange)
     | Acn (AcnBoolean _) -> PrimitivePrefixLemma {prefix = [bitStreamId]; id = "readBitPrefixLemma"; extraConstArgs = []}
@@ -1064,16 +1092,20 @@ type PrefixLemmaData = {
   subPat2: Pattern
 }
 
-let generatePrefixLemma (enc: Asn1Encoding)
-                        (t: Asn1AcnAst.Asn1Type)
-                        (nestingScope: NestingScope)
-                        (mkProof: PrefixLemmaData -> Expr): FunDef =
+let generatePrefixLemmaCommon (enc: Asn1Encoding)
+                              (tpe: Type)
+                              (maxSize: bigint)
+                              (baseId: string)
+                              (paramsAcn: Var list)
+                              (acnTps: Type list)
+                              (mkSizeExpr: Var -> Var -> SizeExprRes)
+                              (nestingScope: NestingScope)
+                              (mkProof: PrefixLemmaData -> Expr): FunDef =
   let codecTpe = runtimeCodecTypeFor enc
   let c1 = {Var.name = "c1"; tpe = ClassType codecTpe}
   let c2 = {Var.name = "c2"; tpe = ClassType codecTpe}
   let sz = {Var.name = "sz"; tpe = IntegerType Long}
-  let tpe = fromAsn1TypeKind t.Kind
-  let maxSizeExpr = longlit t.Kind.acnMaxSizeInBits
+  let maxSizeExpr = longlit maxSize
   let preconds = [
     Precond (Equals (selBufLength (Var c1), selBufLength (Var c2)))
     Precond (validateOffsetBitsACN (Var c1) maxSizeExpr)
@@ -1085,17 +1117,6 @@ let generatePrefixLemma (enc: Asn1Encoding)
       (plus [bitIndexACN (Var c1); Var sz])
     )
   ]
-  let isTopLevel = nestingScope.parents.IsEmpty
-  let paramsAcn, acnTps =
-    if isTopLevel then [], []
-    else
-      let paramsAcn = acnExternDependenciesVariableDecode t nestingScope
-      let acns = collectNestedAcnChildren t.Kind
-      let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
-      paramsAcn, acnTps
-  let baseId =
-    if isTopLevel then t.FT_TypeDefinition.[Scala].typeName
-    else ToC t.id.dropModule.AsString
   let decodeId = $"{baseId}_ACN_Decode"
   let decodePureId = $"{decodeId}_pure"
   let c2Reset = {Var.name = "c2Reset"; tpe = ClassType codecTpe}
@@ -1139,7 +1160,7 @@ let generatePrefixLemma (enc: Asn1Encoding)
       subPat1, subPat2
 
   let acnsEq = List.zip decodedAcn1 decodedAcn2 |> List.map (fun (acn1, acn2) -> Equals (Var acn1, Var acn2))
-  let v1SizeExpr = asn1SizeExpr t.acnAlignment t.Kind (Var v1) (bitIndexACN (Var c1)) 0I 0I
+  let v1SizeExpr = mkSizeExpr v1 c1
   let v1SizeVar = {Var.name = "v1Size"; tpe = IntegerType Long}
   let prop =
     let prop = And ([Equals (bitIndexACN (Var c1Res), bitIndexACN (Var c2Res)); Equals (Var v1, Var v2)] @ acnsEq)
@@ -1210,13 +1231,85 @@ let generatePrefixLemma (enc: Asn1Encoding)
     body = proof
   }
 
+
+let generatePrefixLemma (enc: Asn1Encoding)
+                        (t: Asn1AcnAst.Asn1Type)
+                        (nestingScope: NestingScope)
+                        (mkProof: PrefixLemmaData -> Expr): FunDef =
+  let tpe = fromAsn1TypeKind t.Kind
+  let isTopLevel = nestingScope.parents.IsEmpty
+  let paramsAcn, acnTps =
+    if isTopLevel then [], []
+    else
+      let paramsAcn = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd)
+      let acns = collectNestedAcnChildren t.Kind
+      let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
+      paramsAcn, acnTps
+  let baseId =
+    if isTopLevel then t.FT_TypeDefinition.[Scala].typeName
+    else ToC t.id.dropModule.AsString
+  let mkSizeExpr = fun v1 c1 -> asn1SizeExpr t.acnAlignment t.Kind (Var v1) (bitIndexACN (Var c1)) 0I 0I
+  generatePrefixLemmaCommon enc tpe t.acnMaxSizeInBits baseId paramsAcn acnTps mkSizeExpr nestingScope mkProof
+
 let generatePrefixLemmaInteger (enc: Asn1Encoding)
                                (t: Asn1AcnAst.Asn1Type)
                                (nestingScope: NestingScope)
                                (int: Integer): FunDef =
-  let mkIntProof (data: PrefixLemmaData): Expr =
+  let mkProof (data: PrefixLemmaData): Expr =
     UnitLit // TODO
-  generatePrefixLemma enc t nestingScope mkIntProof
+  generatePrefixLemma enc t nestingScope mkProof
+
+let generatePrefixLemmaChoice (enc: Asn1Encoding)
+                              (t: Asn1AcnAst.Asn1Type)
+                              (nestingScope: NestingScope)
+                              (ch: Asn1AcnAst.Choice): FunDef =
+  let mkProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+  generatePrefixLemma enc t nestingScope mkProof
+
+let generatePrefixLemmaNullType (enc: Asn1Encoding)
+                                (t: Asn1AcnAst.Asn1Type)
+                                (nestingScope: NestingScope)
+                                (nt: Asn1AcnAst.NullType): FunDef =
+  let mkProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+  generatePrefixLemma enc t nestingScope mkProof
+
+let generatePrefixLemmaEnum (enc: Asn1Encoding)
+                            (t: Asn1AcnAst.Asn1Type)
+                            (nestingScope: NestingScope)
+                            (enm: Asn1AcnAst.Enumerated): FunDef =
+  let mkProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+  generatePrefixLemma enc t nestingScope mkProof
+
+let generatePrefixLemmaSequenceOfLike (enc: Asn1Encoding)
+                                      (t: Asn1TypeOrAcnRefIA5)
+                                      (nestingScope: NestingScope)
+                                      (sqf: SequenceOfLike): FunDef =
+  let mkSqOfLikeProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+  let tpe = fromSequenceOfLike sqf
+  let mkSizeExpr =
+    // TODO: Alignment?
+    match sqf with
+    | SqOf _ -> fun v1 c1 -> {bdgs = []; resSize = callSize (Var v1) (bitIndexACN (Var c1))}
+    | _ ->
+      let maxElemSz = sqf.maxElemSizeInBits enc
+      fun v1 _ -> {bdgs = []; resSize = Mult (longlit maxElemSz, vecSize (Var v1))}
+  let baseId, paramsAcn, acnTps =
+    match t with
+    | Asn1TypeOrAcnRefIA5.Asn1 t ->
+      let isTopLevel = nestingScope.parents.IsEmpty
+      let baseId =
+        if isTopLevel then t.FT_TypeDefinition.[Scala].typeName
+        else ToC t.id.dropModule.AsString
+      let paramsAcn = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd)
+      let acns = collectNestedAcnChildren t.Kind
+      let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
+      baseId, paramsAcn, acnTps
+    | Asn1TypeOrAcnRefIA5.AcnRefIA5 t -> ToC t.tasName.Value, [], [] // TODO: RM
+  generatePrefixLemmaCommon enc tpe (sqf.maxSizeInBits enc) baseId paramsAcn acnTps mkSizeExpr nestingScope mkSqOfLikeProof
 
 let generatePrefixLemmaSequence (enc: Asn1Encoding)
                                 (t: Asn1AcnAst.Asn1Type)
@@ -1280,16 +1373,21 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       Assert (arrayBitRangesEq (selBuf (Var c1)) (selBuf (Var c2Moved)) (longlit 0I) (plus [bitIndexACN (Var c1); Var childSize]))
     ]
 
-    let asn1Tpe, id, isOpt, existArg =
+    let asn1Tpe, id, isOpt, existArg, paramsAcn =
       match child with
       | Asn1Child child ->
         let existArg =
           match child.Optionality with
           | Some (Optional _) ->
-            [isDefinedMutExpr (FieldSelect (Var data.decodingRes1, child._scala_name))]
+            [isDefinedMutExpr (FieldSelect (Var data.v1, child._scala_name))]
           | _ -> []
-        Asn1 child.Type, child.Type.id, child.Optionality.IsSome, existArg
-      | AcnChild child -> Acn child.Type, child.id, false, []
+        let paramsAcn =
+          match child.Type.Kind with
+          | ReferenceType rt when rt.hasExtraConstrainsOrChildrenOrAcnArgs ->
+            acnExternDependenciesVariableDecode child.Type (t :: (nestingScope.parents |> List.map snd))
+          | _ -> []
+        Asn1 child.Type, child.Type.id, child.Optionality.IsSome, existArg, paramsAcn
+      | AcnChild child -> Acn child.Type, child.id, false, [], []
     let prefixLemmaInfo = readPrefixLemmaIdentifier asn1Tpe id isOpt
     let cdcSnapRecv, cdcRecv = selectCodecReadPrefixLemma prefixLemmaInfo (Var c1) (Var c2Moved)
     let prefixLemmaApp =
@@ -1297,7 +1395,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       | PrimitivePrefixLemma info ->
         FunctionCall {prefix = info.prefix; id = info.id; tps = []; args = [cdcSnapRecv; cdcRecv] @ existArg @ info.extraConstArgs}
       | ComposedPrefixLemma info ->
-        FunctionCall {prefix = []; id = info.id; tps = []; args = [cdcSnapRecv; cdcRecv] @ existArg @ [Var childSize]}
+        FunctionCall {prefix = []; id = info.id; tps = []; args = [cdcSnapRecv; cdcRecv] @ [Var childSize] @ existArg @ (paramsAcn |> List.map Var)}
 
     let proof = mkBlock [
       slicedLemmaApp
@@ -1308,7 +1406,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
 
     {
       FunDef.id = $"proof_{ToC name}"
-      prms = if ix = 0 then [] else [c1; c2]
+      prms = if ix = 0 then paramsAcn else [c1; c2] @ paramsAcn
       annots = [Opaque; InlineOnce]
       specs = specs
       postcond = None // TODO
@@ -1374,11 +1472,14 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
   let recPVal = {Var.name = recSel.arg.receiverId; tpe = tpe}
   let precond = [Precond (validateOffsetBitsACN (Var cdc) (longlit t.acnMaxSizeInBits))]
   let isValidFuncName = $"{t.FT_TypeDefinition.[Scala].typeName}_IsConstraintValid"
-
+  let baseId =
+    match t.ActualType.Kind with
+    // | SequenceOf _ -> t.FT_TypeDefinition.[Scala].typeName
+    | _ -> ToC t.id.dropModule.AsString
   // Computing external ACN dependencies for decoding
   // We also pass them to the encoding function because its postcondition
   // refers to the decoding function, which needs them
-  let paramsAcn = acnExternDependenciesVariableDecode t nestingScope
+  let paramsAcn = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd)
   // All ACN fields present in this SEQUENCE, including nested ones
   // Encoding functions will return them so that we can refer to them in the postcondition when calling the decoding function
   let acns = collectNestedAcnChildren t.Kind
@@ -1404,7 +1505,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
     let outermostPVal = {Var.name = "pVal"; tpe = fromAsn1TypeKind (nestingScope.parents |> List.last |> snd).Kind}
     let acnExtVars = acnExternDependenciesVariableEncode t nestingScope |> Option.toList
     let resPostcond = {Var.name = "res"; tpe = ClassType (eitherTpe errTpe retTpe)}
-    let decodePureId = $"{ToC t.id.dropModule.AsString}_ACN_Decode_pure"
+    let decodePureId = $"{baseId}_ACN_Decode_pure"
     let szRecv = {Var.name = recSel.arg.asLastOrSelf.receiverId; tpe = tpe}
     let sz =
       match t.Kind with
@@ -1416,7 +1517,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
         asn1SizeExpr t.acnAlignment t.Kind (Var szRecv) (bitIndexACN (Old (Var cdc))) 0I 0I
     let postcondExpr = generateEncodePostcondExprCommon tpe t.acnMaxSizeInBits recSel.arg resPostcond acnTps sz [] decodePureId (paramsAcn |> List.map Var)
     let fd = {
-      id = $"{ToC t.id.dropModule.AsString}_ACN_Encode"
+      id = $"{baseId}_ACN_Encode"
       prms = [cdc; outermostPVal] @ acnExtVars @ paramsAcn @ [recPVal]
       specs = precond
       annots = [Opaque; InlineOnce]
@@ -1515,7 +1616,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
         }
 
     let fd = {
-      id = $"{ToC t.id.dropModule.AsString}_ACN_Decode"
+      id = $"{baseId}_ACN_Decode"
       prms = [cdc] @ paramsAcn
       specs = precond
       annots = [Opaque; InlineOnce]
@@ -1550,7 +1651,7 @@ let wrapAcnFuncBody (t: Asn1AcnAst.Asn1Type)
         varRes, FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var varCpy] @ (paramsAcn |> List.map Var)}]
         (mkTuple [Var varCpy; Var varRes]))
       {
-        FunDef.id = $"{ToC t.id.dropModule.AsString}_ACN_Decode_pure"
+        FunDef.id = $"{baseId}_ACN_Decode_pure"
         prms = [cdc] @ paramsAcn
         annots = [GhostAnnot; Pure]
         specs = precond
@@ -1785,16 +1886,27 @@ let generateSequenceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1
   *)
 
 let generateSequenceAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
-  []
-  // if enc = ACN && codec = Decode then [generatePrefixLemmaSequence enc t nestingScope sq]
-  // else []
+  if enc = ACN && codec = Decode then [generatePrefixLemmaSequence enc t nestingScope sq]
+  else []
 
 let generateIntegerAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
   // If `tasInfo` is Some, then there is a pair of encode/decode functions that are generated wrapping a call to encode/decode the integer
   // In such cases, we generate a "read prefix" lemma that is just an application of the appropriate ACN integer lemma
-  []
-  // if enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaInteger enc t nestingScope int]
-  // else []
+  if enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaInteger enc t nestingScope int]
+  else []
+
+let generateChoiceAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+  if enc = ACN && codec = Decode then [generatePrefixLemmaChoice enc t nestingScope ch]
+  else []
+
+let generateNullTypeAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+  if enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaNullType enc t nestingScope nt]
+  else []
+
+let generateEnumAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+  if enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaEnum enc t nestingScope enm]
+  else []
+
 
 let generateSequenceOfLikeProof (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
   None
@@ -2059,9 +2171,33 @@ let generateSequenceOfLikeAuxiliaries (enc: Asn1Encoding) (sqf: SequenceOfLike) 
         | StrType _ -> mkBlock ((sizeLemmaCall |> Option.map Ghost |> Option.toList) @ [Var rightBdg])
       letsIn [sqfVar, eitherMutMatchExpr scrut (Some leftBdg) leftBody (Some rightBdg) rightBody] (mkBlock [])
     let call = letsGhostIn [cdcBeforeLoop, Snapshot (Var cdc)] call
-    [fd], call
+    let prefixLemma =
+      match pg.t with
+      | Asn1TypeOrAcnRefIA5.Asn1 _ -> [generatePrefixLemmaSequenceOfLike enc pg.t pg.nestingScope sqf]
+      | Asn1TypeOrAcnRefIA5.AcnRefIA5 _ -> []
+    fd :: prefixLemma, call
 
 let generateOptionalPrefixLemma (enc: Asn1Encoding) (soc: SequenceOptionalChild): FunDef =
+  let mkProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+
+  // let isTopLevel = soc.nestingScope.parents.IsEmpty
+  // let paramsAcn, acnTps =
+  //   if isTopLevel then [], []
+  //   else
+  let paramsAcn = acnExternDependenciesVariableDecode soc.child.toAsn1AcnAst.Type (soc.nestingScope.parents |> List.map snd)
+  // let acns = collectNestedAcnChildren soc.t.Kind
+  // let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
+  // paramsAcn, acnTps
+  let baseId = $"{ToC soc.child.Type.id.dropModule.AsString}_Optional"
+  // The `existVar` does not exist for always present/absent
+  let existVar = soc.existVar |> Option.map (fun v -> {Var.name = v; tpe = BooleanType})
+  let mkSizeExpr = fun v1 c1 -> optionalSizeExpr soc.child.toAsn1AcnAst (Var v1) (bitIndexACN (Var c1)) 0I 0I
+  let elemTpe = fromAsn1TypeKind soc.child.Type.Kind.baseKind
+  let tpe = ClassType (optionMutTpe elemTpe)
+  generatePrefixLemmaCommon enc tpe soc.child.Type.toAsn1AcnAst.acnMaxSizeInBits baseId ((existVar |> Option.toList) @ paramsAcn) [] mkSizeExpr soc.nestingScope mkProof
+
+  (*
   let codecTpe = runtimeCodecTypeFor enc
   let c1 = {Var.name = "c1"; tpe = ClassType codecTpe}
   let c2 = {Var.name = "c2"; tpe = ClassType codecTpe}
@@ -2129,14 +2265,15 @@ let generateOptionalPrefixLemma (enc: Asn1Encoding) (soc: SequenceOptionalChild)
   ]))
 
   {
-    FunDef.id = $"{ToC soc.child.Type.id.dropModule.AsString}_prefixLemma"
-    prms = [c1; c2] @ (existVar |> Option.toList)
+    FunDef.id = $"{ToC soc.child.Type.id.dropModule.AsString}_Optional_prefixLemma"
+    prms = [c1; c2] @ (existVar |> Option.toList) @ [sz]
     annots = [GhostAnnot; Pure; Opaque; InlineOnce]
     specs = preSpecs
     postcond = Some ({Var.name = "_"; tpe = UnitType}, postcond)
     returnTpe = UnitType
     body = body
   }
+  *)
 
 let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild) (codec: Codec): FunDef list * Expr =
   if soc.child.Optionality.IsNone then [], EncDec (soc.childBody soc.p soc.existVar)
@@ -2158,20 +2295,12 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
     let isValidFuncName = soc.child.Type.Kind.isValidFunction |> Option.bind (fun vf -> vf.funcName)
 
     let sizeExprOf (recv: Expr): SizeExprRes =
-      let sz =
-        match childAsn1Tpe.Kind with
-        | Choice _ | Sequence _ | SequenceOf _ ->
-          {bdgs = []; resSize = callSize (getMutExpr recv) (bitIndexACN (Old (Var cdc)))}
-        | _ -> asn1SizeExpr childAsn1Tpe.acnAlignment childAsn1Tpe.Kind (getMutExpr recv) (bitIndexACN (Old (Var cdc))) 0I 0I
-      match soc.child.Optionality with
-        | Some AlwaysPresent -> sz
-        | Some AlwaysAbsent -> {sz with resSize = longlit 0I}
-        | _ -> {sz with resSize = IfExpr {cond = isDefinedMutExpr recv; thn = sz.resSize; els = longlit 0I}}
+      optionalSizeExpr soc.child.toAsn1AcnAst recv (bitIndexACN (Old (Var cdc))) 0I 0I
 
     // Computing external ACN dependencies for decoding
     // We also pass them to the encoding function because its postcondition
     // refers to the decoding function, which needs them
-    let paramsAcn = acnExternDependenciesVariableDecode soc.child.Type.toAsn1AcnAst soc.nestingScope
+    let paramsAcn = acnExternDependenciesVariableDecode soc.child.Type.toAsn1AcnAst (soc.nestingScope.parents |> List.map snd)
 
     match codec with
     | Encode ->
@@ -2296,4 +2425,4 @@ let generateOptionalAuxiliaries (enc: Asn1Encoding) (soc: SequenceOptionalChild)
           body = pureBody
         }
       let prefixLemma = generateOptionalPrefixLemma enc soc
-      [fd; fdPure], ret
+      [fd; fdPure; prefixLemma], ret

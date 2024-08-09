@@ -455,7 +455,8 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let pp, resultExpr = joinedOrAsIdentifier lm codec p
 
         let sqfProofGen = {
-            SequenceOfLikeProofGen.acnOuterMaxSize = nestingScope.acnOuterMaxSize
+            SequenceOfLikeProofGen.t = Asn1TypeOrAcnRefIA5.Asn1 t
+            acnOuterMaxSize = nestingScope.acnOuterMaxSize
             uperOuterMaxSize = nestingScope.uperOuterMaxSize
             nestingLevel = nestingScope.nestingLevel
             nestingIx = nestingScope.nestingIx
@@ -616,7 +617,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
             let internalItem = chFunc.funcBody childNestingScope chp fromACN
 
             let sqfProofGen = {
-                SequenceOfLikeProofGen.acnOuterMaxSize = nestingScope.acnOuterMaxSize
+                SequenceOfLikeProofGen.t = Asn1TypeOrAcnRefIA5.Asn1 t
+                acnOuterMaxSize = nestingScope.acnOuterMaxSize
                 uperOuterMaxSize = nestingScope.uperOuterMaxSize
                 nestingLevel = nestingScope.nestingLevel
                 nestingIx = nestingScope.nestingIx

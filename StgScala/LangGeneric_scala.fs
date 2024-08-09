@@ -335,6 +335,18 @@ type LangGeneric_scala() =
             let innerFns = fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
             innerFns, show (ExprTree call)
 
+        override this.generateChoiceAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateChoiceAuxiliaries enc t ch nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
+
+        override this.generateNullTypeAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateNullTypeAuxiliaries enc t nt nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
+
+        override this.generateEnumAuxiliaries (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateEnumAuxiliaries enc t enm nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
+
         override this.adaptAcnFuncBody (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
             let shouldWrap  =
                 match t.Kind with
