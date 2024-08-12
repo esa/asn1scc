@@ -277,6 +277,26 @@ object ACN {
          BitStream.bitIndex(acn1Res.base.bitStream.buf.length, acn1Res.base.bitStream.currentByte, acn1Res.base.bitStream.currentBit) == BitStream.bitIndex(acn2Res.base.bitStream.buf.length, acn2Res.base.bitStream.currentByte, acn2Res.base.bitStream.currentBit) && i1 == i2
       }
    }
+
+   // TODO: Incomplete specs
+   // @extern
+   @ghost @pure @opaque @inlineOnce
+   def dec_IA5String_CharIndex_External_Field_DeterminantVec_prefixLemma(acn1: ACN, acn2: ACN, max: Long, extSizeDeterminantFld: Long): Unit = {
+      require(max < Int.MaxValue)
+      require(extSizeDeterminantFld >= 0)
+      require(max >= 0)
+      require(acn1.base.bufLength() == acn2.base.bufLength())
+
+      val acn2Reset = acn2.resetAt(acn1)
+      val (acn1Res, v1) = acn1.dec_IA5String_CharIndex_External_Field_DeterminantVec_pure(max, extSizeDeterminantFld)
+      val (acn2Res, v2) = acn2Reset.dec_IA5String_CharIndex_External_Field_DeterminantVec_pure(max, extSizeDeterminantFld)
+
+      {
+         ()
+      }.ensuring { _ =>
+         acn1Res.base.bitStream.bitIndex == acn2Res.base.bitStream.bitIndex && v1 == v2
+      }
+   }
 }
 case class ACN(base: Codec) {
    import BitStream.*
@@ -1959,6 +1979,16 @@ case class ACN(base: Codec) {
       val arr = dec_IA5String_CharIndex_External_Field_Determinant(max, extSizeDeterminantFld)
       Vector.fromScala(arr.toVector)
    }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
+
+   @pure @ghost
+   def dec_IA5String_CharIndex_External_Field_DeterminantVec_pure(max: Long, extSizeDeterminantFld: Long): (ACN, Vector[ASCIIChar]) = {
+      require(max < Int.MaxValue)
+      require(extSizeDeterminantFld >= 0)
+      require(max >= 0)
+      val cpy = snapshot(this)
+      val res = cpy.dec_IA5String_CharIndex_External_Field_DeterminantVec(max, extSizeDeterminantFld)
+      (cpy, res)
+   }
 
    def dec_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long): Array[ASCIIChar] = {
       require(min <= max)

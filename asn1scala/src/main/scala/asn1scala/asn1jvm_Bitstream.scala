@@ -672,6 +672,31 @@ object BitStream {
       }
    }
 
+   // TODO: Not proved
+   @extern
+   @ghost @pure @opaque @inlineOnce
+   def readBitsVecPrefixLemma(bs1: BitStream, bs2: BitStream, nBits: Long): Unit = {
+      require(bs1.buf.length == bs2.buf.length)
+      require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
+      require(bs1.validate_offset_bits(nBits))
+      require(arrayBitRangesEq(
+         bs1.buf,
+         bs2.buf,
+         0,
+         bs1.bitIndex + nBits
+      ))
+
+      val bs2Reset = BitStream(snapshot(bs2.buf), bs1.currentByte, bs1.currentBit)
+      val (bs1Res, v1) = bs1.readBitsVecPure(nBits)
+      val (bs2Res, v2) = bs2Reset.readBitsVecPure(nBits)
+
+      {
+         ()
+      }.ensuring { _ =>
+         bs1Res.bitIndex == bs2Res.bitIndex && v1 == v2
+      }
+   }
+
    @ghost @pure @opaque @inlineOnce
    def lemmaIsPrefixRefl(bs: BitStream): Unit = {
       if (bs.buf.length != 0) {
@@ -2117,7 +2142,15 @@ case class BitStream private [asn1scala](
       res.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
    )
 
-   // @opaque @inlineOnce
+   @pure @ghost
+   def readBitsVecPure(nBits: Long): (BitStream, Vector[UByte]) = {
+      require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
+      val cpy = snapshot(this)
+      val res = cpy.readBitsVec(nBits)
+      (cpy, res)
+   }
+
    def checkBitsLoop(nBits: Long, expected: Boolean, from: Long): Boolean = {
       require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
       require(0 <= from && from <= nBits)

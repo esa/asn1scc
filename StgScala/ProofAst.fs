@@ -116,7 +116,9 @@ and Expr =
   | BoolLit of bool
   | IntLit of IntegerType * bigint
   | EncDec of string
+  | IntCast of Expr * IntegerType * IntegerType
   | This // TODO: Add type
+  | TripleQMark // TODO: Add type
   | SelectionExpr of string // TODO: Not ideal
 
 
@@ -140,6 +142,7 @@ and FunctionCall = {
   id: Identifier
   tps: Type list
   args: Expr list
+  parameterless: bool
 }
 and ApplyLetRec = {
   id: Identifier
@@ -149,6 +152,7 @@ and MethodCall = {
   recv: Expr
   id: Identifier
   args: Expr list
+  parameterless: bool
 }
 and IfExpr = {
   cond: Expr
@@ -271,7 +275,8 @@ let rec substVars (vs: (Var * Expr) list) (inExpr: Expr): Expr =
     | Plus terms -> Plus (terms |> List.map loop)
     | Minus (lhs, rhs) -> Minus (loop lhs, loop rhs)
     | Leq (lhs, rhs) -> Leq (loop lhs, loop rhs)
-    | BoolLit _ | UnitLit | IntLit _ | EncDec _ | This | SelectionExpr _ -> inExpr
+    | IntCast (e, from, tto) -> IntCast (loop e, from, tto)
+    | BoolLit _ | UnitLit | IntLit _ | EncDec _ | This | TripleQMark | SelectionExpr _ -> inExpr
   if vs.IsEmpty then inExpr else loop inExpr
 
 let bitStreamId: Identifier = "BitStream"
@@ -313,18 +318,18 @@ let cons (tpe: Type) (head: Expr) (tail: Expr): ClassCtor = {ct = consTpe tpe; a
 let consExpr (tpe: Type) (head: Expr) (tail: Expr): Expr = ClassCtor (cons tpe head tail)
 let nil (tpe: Type): ClassCtor = {ct = nilTpe tpe; args = []}
 let nilExpr (tpe: Type): Expr = ClassCtor (nil tpe)
-let reverse (list: Expr): Expr = MethodCall {recv = list; id = "reverse"; args = []}
-let isize (list: Expr): Expr = MethodCall {recv = list; id = "isize"; args = []}
-let iupdated (list: Expr) (ix: Expr) (v: Expr): Expr = MethodCall {recv = list; id = "iupdated"; args = [ix; v]}
+let reverse (list: Expr): Expr = MethodCall {recv = list; id = "reverse"; args = []; parameterless = true}
+let isize (list: Expr): Expr = MethodCall {recv = list; id = "isize"; args = []; parameterless = true}
+let iupdated (list: Expr) (ix: Expr) (v: Expr): Expr = MethodCall {recv = list; id = "iupdated"; args = [ix; v]; parameterless = true}
 
-let iapply (list: Expr) (ix: Expr): Expr = MethodCall {recv = list; id = "iapply"; args = [ix]}
+let iapply (list: Expr) (ix: Expr): Expr = MethodCall {recv = list; id = "iapply"; args = [ix]; parameterless = true}
 
 let vecTpe (tpe: Type): ClassType = {ClassType.id = vecId; tps = [tpe]}
-let vecApply (vec: Expr) (ix: Expr): Expr = MethodCall {recv = vec; id = "apply"; args = [ix]}
-let vecSize (vec: Expr): Expr = MethodCall {recv = vec; id = "size"; args = []}
-let vecList (vec: Expr): Expr = MethodCall {recv = vec; id = "list"; args = []}
-let vecAppend (vec: Expr) (v: Expr): Expr = MethodCall {recv = vec; id = "append"; args = [v]}
-let vecEmpty (tpe: Type): Expr = FunctionCall {prefix = [vecId]; id = "empty"; tps = [tpe]; args = []}
+let vecApply (vec: Expr) (ix: Expr): Expr = MethodCall {recv = vec; id = "apply"; args = [ix]; parameterless = true}
+let vecSize (vec: Expr): Expr = MethodCall {recv = vec; id = "size"; args = []; parameterless = true}
+let vecList (vec: Expr): Expr = MethodCall {recv = vec; id = "list"; args = []; parameterless = true}
+let vecAppend (vec: Expr) (v: Expr): Expr = MethodCall {recv = vec; id = "append"; args = [v]; parameterless = true}
+let vecEmpty (tpe: Type): Expr = FunctionCall {prefix = [vecId]; id = "empty"; tps = [tpe]; args = []; parameterless = true}
 
 let optionTpe (tpe: Type): ClassType = {ClassType.id = optionId; tps = [tpe]}
 let someTpe (tpe: Type): ClassType = {ClassType.id = someId; tps = [tpe]}
@@ -342,10 +347,10 @@ let someMutExpr (tpe: Type) (e: Expr): Expr = ClassCtor (someMut tpe e)
 let noneMut (tpe: Type): ClassCtor = {ct = noneMutTpe tpe; args = []}
 let noneMutExpr (tpe: Type): Expr = ClassCtor (noneMut tpe)
 
-let isDefinedExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "isDefined"; args = []}
+let isDefinedExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "isDefined"; args = []; parameterless = true}
 let isDefinedMutExpr (recv: Expr): Expr = isDefinedExpr recv // TODO: We can't distinguish symbols right now
 
-let getMutExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "get"; args = []}
+let getMutExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "get"; args = []; parameterless = true}
 let getExpr (recv: Expr): Expr = getMutExpr recv // TODO: We can't distinguish symbols right now
 
 
@@ -356,7 +361,7 @@ let left (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = leftTpe l r; args = [e
 let leftExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (left l r e)
 let right (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightTpe l r; args = [e]}
 let rightExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (right l r e)
-let isRightExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "isRight"; args = []}
+let isRightExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "isRight"; args = []; parameterless = true}
 let isRightMutExpr (recv: Expr): Expr = isRightExpr recv // TODO: We can't distinguish symbols right now
 
 let eitherMutTpe (l: Type) (r: Type): ClassType = {ClassType.id = eitherMutId; tps = [l; r]}
@@ -470,7 +475,7 @@ let longlit (l: bigint): Expr = IntLit (Long, l)
 let ulonglit (l: bigint): Expr = IntLit (ULong, l)
 
 let plus (terms: Expr list): Expr =
-  assert (not terms.IsEmpty)
+  assert (not terms.IsEmpty) // We don't know what the type of the "0" is (if we were to return that in case there are no terms), so we enforce at least one element
 
   let rec flattenAdd (e: Expr): Expr list =
     match e with
@@ -529,51 +534,58 @@ let letsIn (bdgs: (Var * Expr) list) (body: Expr): Expr =
 let letsGhostIn (bdgs: (Var * Expr) list) (body: Expr): Expr =
   List.foldBack (fun (v, e) body -> LetGhost {bdg = v; e = e; body = body}) bdgs body
 
-let selBase (recv: Expr): Expr = FieldSelect (recv, "base")
+let selBaseACN (recv: Expr): Expr = FieldSelect (recv, "base")
 
-let selBitStream (recv: Expr): Expr = FieldSelect (selBase recv, "bitStream")
+let selBitStreamCodec (recv: Expr): Expr = FieldSelect (recv, "bitStream")
+let selBitStreamACN (recv: Expr): Expr = FieldSelect (selBaseACN recv, "bitStream")
 
-let selBuf (recv: Expr): Expr = FieldSelect (selBase recv, "buf")
+let selBufBitStream (recv: Expr): Expr = FieldSelect (recv, "buf")
+let selBufCodec (recv: Expr): Expr = FieldSelect (selBitStreamCodec recv, "buf")
+let selBufACN (recv: Expr): Expr = FieldSelect (selBaseACN recv, "buf")
 
-let selBufLength (recv: Expr): Expr =  ArrayLength (selBuf recv)
+let selBufLengthBitStream (recv: Expr): Expr =  ArrayLength recv
+let selBufLengthCodec (recv: Expr): Expr =  ArrayLength (selBufCodec recv)
+let selBufLengthACN (recv: Expr): Expr =  ArrayLength (selBufACN recv)
 
-let selCurrentByteACN (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentByte")
+let selCurrentByteACN (recv: Expr): Expr =  FieldSelect (selBitStreamACN recv, "currentByte")
 
-let selCurrentBitACN (recv: Expr): Expr =  FieldSelect (selBitStream recv, "currentBit")
+let selCurrentBitACN (recv: Expr): Expr =  FieldSelect (selBitStreamACN recv, "currentBit")
 
-let bitIndexACN (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = selBitStream recv; args = [] }
+let bitIndexBitStream (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = recv; args = []; parameterless = true }
+let bitIndexCodec (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = selBitStreamCodec recv; args = []; parameterless = true }
+let bitIndexACN (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = selBitStreamACN recv; args = []; parameterless = true }
 
-let resetAtACN (recv: Expr) (arg: Expr): Expr = MethodCall { id = "resetAt"; recv = recv; args = [arg] }
+let resetAtACN (recv: Expr) (arg: Expr): Expr = MethodCall { id = "resetAt"; recv = recv; args = [arg]; parameterless = true }
 
-let withMovedBitIndexACN (recv: Expr) (diff: Expr): Expr = MethodCall { id = "withMovedBitIndex"; recv = recv; args = [diff] }
+let withMovedBitIndexACN (recv: Expr) (diff: Expr): Expr = MethodCall { id = "withMovedBitIndex"; recv = recv; args = [diff]; parameterless = true }
 
-let invariant (recv: Expr): Expr = FunctionCall { prefix = [bitStreamId]; id = "invariant"; tps = []; args = [selCurrentBitACN recv; selCurrentByteACN recv; selBufLength recv] }
+let invariant (recv: Expr): Expr = FunctionCall { prefix = [bitStreamId]; id = "invariant"; tps = []; args = [selCurrentBitACN recv; selCurrentByteACN recv; selBufLengthACN recv]; parameterless = true }
 
-let getBitCountUnsigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetBitCountUnsigned"; tps = []; args = [arg] }
+let getBitCountUnsigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetBitCountUnsigned"; tps = []; args = [arg]; parameterless = true }
 
-let validateOffsetBitsACN (recv: Expr) (offset: Expr): Expr = MethodCall { id = "validate_offset_bits"; recv = selBitStream recv; args = [offset] }
+let validateOffsetBitsACN (recv: Expr) (offset: Expr): Expr = MethodCall { id = "validate_offset_bits"; recv = selBitStreamACN recv; args = [offset]; parameterless = true }
 
-let isPrefixOfACN (recv: Expr) (other: Expr): Expr = MethodCall { id = "isPrefixOf"; recv = selBitStream recv; args = [selBitStream other] }
+let isPrefixOfACN (recv: Expr) (other: Expr): Expr = MethodCall { id = "isPrefixOf"; recv = selBitStreamACN recv; args = [selBitStreamACN other]; parameterless = true }
 
-let callSize (recv: Expr) (offset: Expr): Expr = MethodCall { id = "size"; recv = recv; args = [offset] }
+let callSize (recv: Expr) (offset: Expr): Expr = MethodCall { id = "size"; recv = recv; args = [offset]; parameterless = true }
 
 // let sizeRange (recv: Expr) (offset: Expr) (from: Expr) (tto: Expr): Expr = MethodCall { id = "sizeRange"; recv = recv; args = [offset; from; tto] }
 
-let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; tps = []; args = [arg] }
+let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; tps = []; args = [arg]; parameterless = true }
 
-let acnReader (oldCdc: Expr) (cdc: Expr): Expr = FunctionCall { prefix = [acnId]; id = "reader"; tps = []; args = [oldCdc; cdc] }
+let acnReader (oldCdc: Expr) (cdc: Expr): Expr = FunctionCall { prefix = [acnId]; id = "reader"; tps = []; args = [oldCdc; cdc]; parameterless = true }
 
 let stringLength (recv: Expr): Expr = FieldSelect (recv, "nCount")
 
-let indexOfOrLength (recv: Expr) (elem: Expr): Expr = MethodCall {recv = recv; id = "indexOfOrLength"; args = [elem]}
+let indexOfOrLength (recv: Expr) (elem: Expr): Expr = MethodCall {recv = recv; id = "indexOfOrLength"; args = [elem]; parameterless = true}
 
 let stringCapacity (recv: Expr): Expr = ArrayLength (FieldSelect (recv, "arr"))
 
-let alignedToByte (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToByte"; tps = []; args = [bits]}
+let alignedToByte (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToByte"; tps = []; args = [bits]; parameterless = true}
 
-let alignedToWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToWord"; tps = []; args = [bits]}
+let alignedToWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToWord"; tps = []; args = [bits]; parameterless = true}
 
-let alignedToDWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToDWord"; tps = []; args = [bits]}
+let alignedToDWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToDWord"; tps = []; args = [bits]; parameterless = true}
 
 
 
@@ -584,11 +596,11 @@ let alignedTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr): Exp
   | Some AcnGenericTypes.NextWord -> alignedToWord bits
   | Some AcnGenericTypes.NextDWord -> alignedToDWord bits
 
-let alignedSizeToByte (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToByte"; tps = []; args = [bits; offset]}
+let alignedSizeToByte (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToByte"; tps = []; args = [bits; offset]; parameterless = true}
 
-let alignedSizeToWord (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToWord"; tps = []; args = [bits; offset]}
+let alignedSizeToWord (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToWord"; tps = []; args = [bits; offset]; parameterless = true}
 
-let alignedSizeToDWord (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToDWord"; tps = []; args = [bits; offset]}
+let alignedSizeToDWord (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToDWord"; tps = []; args = [bits; offset]; parameterless = true}
 
 let alignedSizeTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr) (offset: Expr): Expr =
   match alignment with
@@ -598,92 +610,92 @@ let alignedSizeTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr) 
   | Some AcnGenericTypes.NextDWord -> alignedSizeToDWord bits offset
 
 let validReflexiveLemma (b: Expr): Expr =
-  FunctionCall { prefix = [bitStreamId]; id = "validReflexiveLemma"; tps = []; args = [selBitStream b] }
+  FunctionCall { prefix = [bitStreamId]; id = "validReflexiveLemma"; tps = []; args = [selBitStreamACN b]; parameterless = true }
 
 let validTransitiveLemma (b1: Expr) (b2: Expr) (b3: Expr): Expr =
-  FunctionCall { prefix = [bitStreamId]; id = "validTransitiveLemma"; tps = []; args = [selBitStream b1; selBitStream b2; selBitStream b3] }
+  FunctionCall { prefix = [bitStreamId]; id = "validTransitiveLemma"; tps = []; args = [selBitStreamACN b1; selBitStreamACN b2; selBitStreamACN b3]; parameterless = true }
 
 let validateOffsetBitsIneqLemma (b1: Expr) (b2: Expr) (b1ValidateOffsetBits: Expr) (advancedAtMostBits: Expr): Expr =
-  FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsIneqLemma"; tps = []; args = [b1; b2; b1ValidateOffsetBits; advancedAtMostBits] }
+  FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsIneqLemma"; tps = []; args = [b1; b2; b1ValidateOffsetBits; advancedAtMostBits]; parameterless = true }
 
 let validateOffsetBitsWeakeningLemma (b: Expr) (origOffset: Expr) (newOffset: Expr): Expr =
-  FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsWeakeningLemma"; tps = []; args = [b; origOffset; newOffset] }
+  FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsWeakeningLemma"; tps = []; args = [b; origOffset; newOffset]; parameterless = true }
 
 let validateOffsetBitsContentIrrelevancyLemma (b1: Expr) (buf: Expr) (bits: Expr): Expr =
-  FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsContentIrrelevancyLemma"; tps = []; args = [b1; buf; bits] }
+  FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsContentIrrelevancyLemma"; tps = []; args = [b1; buf; bits]; parameterless = true }
 
 let arrayRangesEqReflexiveLemma (arr: Expr): Expr =
-  FunctionCall { prefix = []; id = "arrayRangesEqReflexiveLemma"; tps = []; args = [arr] }
+  FunctionCall { prefix = []; id = "arrayRangesEqReflexiveLemma"; tps = []; args = [arr]; parameterless = true }
 
 let arrayRangesEqSlicedLemma (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr) (fromSlice: Expr) (toSlice: Expr): Expr =
-  FunctionCall { prefix = []; id = "arrayRangesEqSlicedLemma"; tps = []; args = [a1; a2; from; tto; fromSlice; toSlice] }
+  FunctionCall { prefix = []; id = "arrayRangesEqSlicedLemma"; tps = []; args = [a1; a2; from; tto; fromSlice; toSlice]; parameterless = true }
 
 let arrayUpdatedAtPrefixLemma (arr: Expr) (at: Expr) (v: Expr): Expr =
-  FunctionCall { prefix = []; id = "arrayUpdatedAtPrefixLemma"; tps = []; args = [arr; at; v] }
+  FunctionCall { prefix = []; id = "arrayUpdatedAtPrefixLemma"; tps = []; args = [arr; at; v]; parameterless = true }
 
 let arrayRangesEqTransitive (a1: Expr) (a2: Expr) (a3: Expr) (from: Expr) (mid: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "arrayRangesEqTransitive"; tps = []; args = [a1; a2; a3; from; mid; tto] }
+  FunctionCall { prefix = []; id = "arrayRangesEqTransitive"; tps = []; args = [a1; a2; a3; from; mid; tto]; parameterless = true }
 
 let arrayRangesEqImpliesEq (a1: Expr) (a2: Expr) (from: Expr) (at: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "arrayRangesEqImpliesEq"; tps = []; args = [a1; a2; from; at; tto] }
+  FunctionCall { prefix = []; id = "arrayRangesEqImpliesEq"; tps = []; args = [a1; a2; from; at; tto]; parameterless = true }
 
 let arrayRangesEq (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "arrayRangesEq"; tps = []; args = [a1; a2; from; tto] }
+  FunctionCall { prefix = []; id = "arrayRangesEq"; tps = []; args = [a1; a2; from; tto]; parameterless = true }
 
 let arrayBitRangesEq (a1: Expr) (a2: Expr) (fromBit: Expr) (toBit: Expr): Expr =
-  FunctionCall { prefix = []; id = "arrayBitRangesEq"; tps = []; args = [a1; a2; fromBit; toBit] }
+  FunctionCall { prefix = []; id = "arrayBitRangesEq"; tps = []; args = [a1; a2; fromBit; toBit]; parameterless = true }
 
 let arrayBitRangesEqSlicedLemma (a1: Expr) (a2: Expr) (fromBit: Expr) (toBit: Expr) (fromSlice: Expr) (toSlice: Expr): Expr =
-  FunctionCall { prefix = []; id = "arrayBitRangesEqSlicedLemma"; tps = []; args = [a1; a2; fromBit; toBit; fromSlice; toSlice] }
+  FunctionCall { prefix = []; id = "arrayBitRangesEqSlicedLemma"; tps = []; args = [a1; a2; fromBit; toBit; fromSlice; toSlice]; parameterless = true }
 
 let listRangesEqReflexiveLemma (arr: Expr): Expr =
-  FunctionCall { prefix = []; id = "listRangesEqReflexiveLemma"; tps = []; args = [arr] }
+  FunctionCall { prefix = []; id = "listRangesEqReflexiveLemma"; tps = []; args = [arr]; parameterless = true }
 
 let listRangesEqSlicedLemma (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr) (fromSlice: Expr) (toSlice: Expr): Expr =
-  FunctionCall { prefix = []; id = "listRangesEqSlicedLemma"; tps = []; args = [a1; a2; from; tto; fromSlice; toSlice] }
+  FunctionCall { prefix = []; id = "listRangesEqSlicedLemma"; tps = []; args = [a1; a2; from; tto; fromSlice; toSlice]; parameterless = true }
 
 let listUpdatedAtPrefixLemma (arr: Expr) (at: Expr) (v: Expr): Expr =
-  FunctionCall { prefix = []; id = "listUpdatedAtPrefixLemma"; tps = []; args = [arr; at; v] }
+  FunctionCall { prefix = []; id = "listUpdatedAtPrefixLemma"; tps = []; args = [arr; at; v]; parameterless = true }
 
 let listRangesEqTransitive (a1: Expr) (a2: Expr) (a3: Expr) (from: Expr) (mid: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "listRangesEqTransitive"; tps = []; args = [a1; a2; a3; from; mid; tto] }
+  FunctionCall { prefix = []; id = "listRangesEqTransitive"; tps = []; args = [a1; a2; a3; from; mid; tto]; parameterless = true }
 
 let listRangesEqImpliesEq (a1: Expr) (a2: Expr) (from: Expr) (at: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "listRangesEqImpliesEq"; tps = []; args = [a1; a2; from; at; tto] }
+  FunctionCall { prefix = []; id = "listRangesEqImpliesEq"; tps = []; args = [a1; a2; from; at; tto]; parameterless = true }
 
 let listRangesEq (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "listRangesEq"; tps = []; args = [a1; a2; from; tto] }
+  FunctionCall { prefix = []; id = "listRangesEq"; tps = []; args = [a1; a2; from; tto]; parameterless = true }
 
 let listRangesAppendDropEq (a1: Expr) (a2: Expr) (v: Expr) (from: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "listRangesAppendDropEq"; tps = []; args = [a1; a2; v; from; tto] }
+  FunctionCall { prefix = []; id = "listRangesAppendDropEq"; tps = []; args = [a1; a2; v; from; tto]; parameterless = true }
 
 let isnocIndex (ls: Expr) (v: Expr) (i: Expr): Expr =
-  FunctionCall { prefix = ["ListSpecs"]; id = "isnocIndex"; tps = []; args = [ls; v; i] }
+  FunctionCall { prefix = ["ListSpecs"]; id = "isnocIndex"; tps = []; args = [ls; v; i]; parameterless = true }
 
 
 let listApplyEqVecApply (vec: Expr) (i: Expr): Expr =
-  FunctionCall { prefix = ["Vector"]; id = "listApplyEqVecApply"; tps = []; args = [vec; i] }
+  FunctionCall { prefix = ["Vector"]; id = "listApplyEqVecApply"; tps = []; args = [vec; i]; parameterless = true }
 
 let vecRangesEqReflexiveLemma (arr: Expr): Expr =
-  FunctionCall { prefix = []; id = "vecRangesEqReflexiveLemma"; tps = []; args = [arr] }
+  FunctionCall { prefix = []; id = "vecRangesEqReflexiveLemma"; tps = []; args = [arr]; parameterless = true }
 
 let vecRangesEqSlicedLemma (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr) (fromSlice: Expr) (toSlice: Expr): Expr =
-  FunctionCall { prefix = []; id = "vecRangesEqSlicedLemma"; tps = []; args = [a1; a2; from; tto; fromSlice; toSlice] }
+  FunctionCall { prefix = []; id = "vecRangesEqSlicedLemma"; tps = []; args = [a1; a2; from; tto; fromSlice; toSlice]; parameterless = true }
 
 let vecUpdatedAtPrefixLemma (arr: Expr) (at: Expr) (v: Expr): Expr =
-  FunctionCall { prefix = []; id = "vecUpdatedAtPrefixLemma"; tps = []; args = [arr; at; v] }
+  FunctionCall { prefix = []; id = "vecUpdatedAtPrefixLemma"; tps = []; args = [arr; at; v]; parameterless = true }
 
 let vecRangesEqTransitive (a1: Expr) (a2: Expr) (a3: Expr) (from: Expr) (mid: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "vecRangesEqTransitive"; tps = []; args = [a1; a2; a3; from; mid; tto] }
+  FunctionCall { prefix = []; id = "vecRangesEqTransitive"; tps = []; args = [a1; a2; a3; from; mid; tto]; parameterless = true }
 
 let vecRangesEqImpliesEq (a1: Expr) (a2: Expr) (from: Expr) (at: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "vecRangesEqImpliesEq"; tps = []; args = [a1; a2; from; at; tto] }
+  FunctionCall { prefix = []; id = "vecRangesEqImpliesEq"; tps = []; args = [a1; a2; from; at; tto]; parameterless = true }
 
 let vecRangesEq (a1: Expr) (a2: Expr) (from: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "vecRangesEq"; tps = []; args = [a1; a2; from; tto] }
+  FunctionCall { prefix = []; id = "vecRangesEq"; tps = []; args = [a1; a2; from; tto]; parameterless = true }
 
 let vecRangesAppendDropEq (a1: Expr) (a2: Expr) (v: Expr) (from: Expr) (tto: Expr): Expr =
-  FunctionCall { prefix = []; id = "vecRangesAppendDropEq"; tps = []; args = [a1; a2; v; from; tto] }
+  FunctionCall { prefix = []; id = "vecRangesAppendDropEq"; tps = []; args = [a1; a2; v; from; tto]; parameterless = true }
 
 
 let fromIntClass (cls: Asn1AcnAst.IntegerClass): IntegerType =
@@ -1053,13 +1065,13 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
   | MethodCall call ->
     let recv = ppExpr (ctx.nestExpr call.recv) call.recv
     let args = call.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
-    joinCallLike ctx (append ctx $".{call.id}" recv) args true
+    joinCallLike ctx (append ctx $".{call.id}" recv) args call.parameterless
 
   | FunctionCall call ->
     let id = if call.prefix.IsEmpty then call.id else (call.prefix.StrJoin ".") + "." + call.id
     let args = call.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
     let tps = if call.tps.IsEmpty then "" else "[" + (call.tps |> List.map ppType).StrJoin ", " + "]"
-    joinCallLike ctx [line (id + tps)] args true
+    joinCallLike ctx [line (id + tps)] args call.parameterless
 
   | LetRec lr ->
     let fds = lr.fds |> List.collect (fun fd -> ppFunDefLike (ctx.nest (LocalFunDefTree fd)) fd)
@@ -1178,9 +1190,22 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
 
   | MatchExpr mexpr -> optP ctx (ppMatchExpr ctx mexpr)
 
+  | IntCast (e2, from, tto) ->
+    let e2 = ppExpr (ctx.nestExpr e2) e2
+    let extMeth (id: string) =
+      joinCallLike ctx (append ctx $".{id}" e2) [] true
+    let objFn (id: string) =
+     joinCallLike ctx [line id] [e2] false
+    match from, tto with
+    | ULong, Long | UInt, Int | UShort, Short | UByte, Byte -> extMeth "toRaw"
+    | Long, ULong | Int, UInt | Short, UShort | Byte, UByte -> objFn "fromRaw"
+    | _ -> failwith $"Unsupported conversion {from} -> {tto}"
+
   | SelectionExpr sel -> [line sel]
 
   | This -> [line "this"]
+
+  | TripleQMark -> [line "???"]
 
   | EncDec stmt ->
     (stmt.Split [|'\n'|]) |> Array.toList |> List.map line

@@ -172,7 +172,7 @@ with
 
 type Asn1TypeOrAcnRefIA5 =
 | Asn1 of Asn1AcnAst.Asn1Type
-| AcnRefIA5 of Asn1AcnAst.AcnReferenceToIA5String
+| AcnRefIA5 of ReferenceToType * Asn1AcnAst.AcnReferenceToIA5String
 
 // TODO: rename
 type SequenceOfLikeProofGen = {

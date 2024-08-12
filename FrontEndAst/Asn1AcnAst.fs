@@ -466,6 +466,7 @@ type OctetString = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
+    acnArgs             : RelativePath list
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
 
 }
@@ -482,6 +483,7 @@ type BitString = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
+    acnArgs             : RelativePath list
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
     namedBitList        : NamedBit1 list
 }
@@ -684,6 +686,8 @@ type Asn1Type = {
             ))
         | Choice ch -> ch.acnArgs
         | SequenceOf sqf -> sqf.acnArgs
+        | OctetString os -> os.acnArgs
+        | BitString bs -> bs.acnArgs
         | _ -> []
 
 and Asn1TypeKind =

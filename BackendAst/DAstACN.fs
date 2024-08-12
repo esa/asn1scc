@@ -1031,7 +1031,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 InternalItem_string_with_alpha pp errCode.errCodeName td i (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
         let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (o.maxSize.uper - o.minSize.uper)
         let sqfProofGen = {
-            SequenceOfLikeProofGen.t = Asn1TypeOrAcnRefIA5.AcnRefIA5 t
+            SequenceOfLikeProofGen.t = Asn1TypeOrAcnRefIA5.AcnRefIA5 (typeId, t)
             acnOuterMaxSize = nestingScope.acnOuterMaxSize
             uperOuterMaxSize = nestingScope.uperOuterMaxSize
             nestingLevel = nestingScope.nestingLevel

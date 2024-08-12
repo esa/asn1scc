@@ -139,6 +139,29 @@ object Codec {
          l1 == l2 && BitStream.bitIndex(c1Res.bitStream.buf.length, c1Res.bitStream.currentByte, c1Res.bitStream.currentBit) == BitStream.bitIndex(c2Res.bitStream.buf.length, c2Res.bitStream.currentByte, c2Res.bitStream.currentBit)
       }
    }
+
+   @ghost @pure @opaque @inlineOnce
+   def decodeOctetString_no_length_vec_prefixLemma(c1: Codec, c2: Codec, nCount: Int): Unit = {
+      require(c1.bufLength() == c2.bufLength())
+      require(nCount >= 0 && nCount <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
+      require(c1.validate_offset_bits(8L * nCount))
+      require(arrayBitRangesEq(
+         c1.bitStream.buf,
+         c2.bitStream.buf,
+         0,
+         c1.bitStream.bitIndex + 8L * nCount
+      ))
+
+      val c2Reset = c2.resetAt(c1)
+      val (c1Res, v1) = c1.decodeOctetString_no_length_vec_pure(nCount)
+      val (c2Res, v2) = c2Reset.decodeOctetString_no_length_vec_pure(nCount)
+
+      {
+         ()
+      }.ensuring { _ =>
+         c1Res.bitStream.bitIndex == c2Res.bitStream.bitIndex && v1 == v2
+      }
+   }
 }
 
 /**
@@ -1153,26 +1176,35 @@ case class Codec(bitStream: BitStream) {
 
    def encodeOctetString_no_length(arr: Array[UByte], nCount: Int): Unit = {
       require(nCount >= 0 && nCount <= arr.length)
-      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount))
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8L * nCount))
       appendByteArray(arr, nCount)
    }
 
    def decodeOctetString_no_length(nCount: Int): Array[UByte] = {
       require(nCount >= 0 && nCount <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
-      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount))
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8L * nCount))
       readByteArray(nCount)
    }
 
    def encodeOctetString_no_length_vec(arr: Vector[UByte], nCount: Int): Unit = {
       require(nCount >= 0 && nCount <= arr.length)
-      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount))
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8L * nCount))
       appendByteVec(arr, nCount)
    }
 
    def decodeOctetString_no_length_vec(nCount: Int): Vector[UByte] = {
       require(nCount >= 0 && nCount <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
-      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nCount))
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8L * nCount))
       readByteVec(nCount)
+   }
+
+   @ghost @pure
+   def decodeOctetString_no_length_vec_pure(nCount: Int): (Codec, Vector[UByte]) = {
+      require(nCount >= 0 && nCount <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
+      require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 8L * nCount))
+      val cpy = snapshot(this)
+      val res = cpy.readByteVec(nCount)
+      (cpy, res)
    }
 
    def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int) = {

@@ -141,6 +141,27 @@ let private getStringEncodingProperty errLoc (props:GenericAcnProperty list) =
     | Some (GP_BCD            ) ->  raise(SemanticError(errLoc ,"The encoding property was expected to be 'ASCII' or empty"))
     | Some (GP_Ascii          ) -> Some (AcnGenericTypes.StrAscii)
 
+let private substAcnArg (acnParamSubst: Map<string, AcnGenericTypes.RelativePath>) (arg: AcnGenericTypes.RelativePath): AcnGenericTypes.RelativePath =
+    match arg with
+    | RelativePath [] -> arg
+    | RelativePath (hd :: rest) ->
+        acnParamSubst.TryFind hd.Value |>
+        Option.map (fun subst -> match subst with RelativePath subst -> RelativePath (subst @ rest)) |>
+        Option.defaultValue arg
+
+let private substAcnArgs (acnParamSubst: Map<string, AcnGenericTypes.RelativePath>) (acnArgs : AcnGenericTypes.RelativePath list): AcnGenericTypes.RelativePath list =
+    acnArgs |> List.map (substAcnArg acnParamSubst)
+
+let private addAcnSubst (acnParamSubst: Map<string, AcnGenericTypes.RelativePath>)
+                        (acnParams: AcnParameter list)
+                        (acnArgs : AcnGenericTypes.RelativePath list): Map<string, AcnGenericTypes.RelativePath> =
+    assert (acnParams.Length = acnArgs.Length)
+    let add (curr: Map<string, AcnGenericTypes.RelativePath>) (p: AcnParameter, acnArg: AcnGenericTypes.RelativePath): Map<string, AcnGenericTypes.RelativePath> =
+        let substed = substAcnArg curr acnArg
+        curr |> Map.add p.name substed
+
+    List.fold add acnParamSubst (List.zip acnParams acnArgs)
+
 let checkIntHasEnoughSpace acnEncodingClass (hasMappingFunction:bool) acnErrLoc0 asn1Min asn1Max =
     let check_ (minEnc : BigInteger) (maxEnc:BigInteger) =
         match minEnc <= asn1Min && asn1Max <= maxEnc with
@@ -428,7 +449,15 @@ let private mergeStringType (asn1: Asn1Ast.AstRoot) (t: Asn1Ast.Asn1Type option)
         acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits;
         acnMaxSizeInBits = acnMaxSizeInBits;isNumeric=isNumeric; typeDef=typeDef}, us1
 
-let private mergeOctetStringType (asn1: Asn1Ast.AstRoot) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
+let private mergeOctetStringType (asn1: Asn1Ast.AstRoot)
+                                 (loc: SrcLoc)
+                                 (acnErrLoc: SrcLoc option)
+                                 (props: GenericAcnProperty list)
+                                 cons
+                                 withcons
+                                 (tdarg: GetTypeDefinition_arg)
+                                 (acnParamSubst: Map<string, AcnGenericTypes.RelativePath>)
+                                 (us: Asn1AcnMergeState) =
     let sizeUperRange = uPER.getOctetStringUperRange cons loc
     let sizeUperAcnRange = uPER.getOctetStringUperRange (cons@withcons) loc
 
@@ -447,15 +476,29 @@ let private mergeOctetStringType (asn1: Asn1Ast.AstRoot) (loc: SrcLoc) (acnErrLo
         match acnErrLoc with
         | Some acnErrLoc    -> {SizeableAcnProperties.sizeProp = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc props}
         | None              -> {SizeableAcnProperties.sizeProp = None}
-
+    let sizeDetArg = acnProperties.sizeProp |> Option.bind (fun p ->
+        match p with
+        | SzExternalField f -> Some f
+        | SzNullTerminated _ -> None
+    )
+    let acnArgsSubsted = substAcnArgs acnParamSubst (sizeDetArg |> Option.toList)
 
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass alignment loc acnProperties acnUperMinSizeInBits acnUperMaxSizeInBits minSize.acn maxSize.acn hasNCount
 
     let typeDef, us1 = getSizeableTypeDefinition tdarg us
-    {OctetString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
+    {OctetString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; acnArgs = acnArgsSubsted; typeDef=typeDef}, us1
 
-let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (namedBitList: NamedBit0 list) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState) =
+let private mergeBitStringType (asn1:Asn1Ast.AstRoot)
+                               (namedBitList: NamedBit0 list)
+                               (loc:SrcLoc)
+                               (acnErrLoc: SrcLoc option)
+                               (props:GenericAcnProperty list)
+                               cons
+                               withcons
+                               (tdarg:GetTypeDefinition_arg)
+                               (acnParamSubst: Map<string, AcnGenericTypes.RelativePath>)
+                               (us:Asn1AcnMergeState) =
     let newNamedBitList =
         namedBitList |> List.map(fun nb ->
             let resolvedValue =
@@ -481,6 +524,12 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (namedBitList: NamedBit0 l
         match acnErrLoc with
         | Some acnErrLoc    -> { SizeableAcnProperties.sizeProp  = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc props}
         | None              -> {SizeableAcnProperties.sizeProp = None }
+    let sizeDetArg = acnProperties.sizeProp |> Option.bind (fun p ->
+        match p with
+        | SzExternalField f -> Some f
+        | SzNullTerminated _ -> None
+    )
+    let acnArgsSubsted = substAcnArgs acnParamSubst (sizeDetArg |> Option.toList)
 
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass alignment loc acnProperties acnUperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn hasNCount
@@ -488,7 +537,7 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (namedBitList: NamedBit0 l
     let typeDef, us1 = getSizeableTypeDefinition tdarg us
     {BitString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize;
         uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;
-        acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; namedBitList = newNamedBitList}, us1
+        acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; acnArgs = acnArgsSubsted; typeDef=typeDef; namedBitList = newNamedBitList}, us1
 
 let private mergeNullType (args: CommandLineSettings) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let getRtlTypeName  (l:ProgrammingLanguage) = (args.getBasicLang l).getNullRtlTypeName
@@ -510,7 +559,7 @@ let createAcnBooleanProperties (props: GenericAcnProperty list) (acnErrLoc: SrcL
         let trueValue = tryGetProp props (fun x -> match x with TRUE_VALUE e -> Some e | _ -> None)
         let falseValue = tryGetProp props (fun x -> match x with FALSE_VALUE e -> Some e | _ -> None)
         match trueValue, falseValue with
-        | Some tv, Some fv  -> 
+        | Some tv, Some fv  ->
             //if both true and false values are defined, then the length of the values must be the same and greater than 0
             if tv.Value.Length = 0 || fv.Value.Length = 0 then
                 raise(SemanticError(acnErrLoc, "The length of the 'true-value' and 'false-value' properties must be greater than 0"))
@@ -520,12 +569,12 @@ let createAcnBooleanProperties (props: GenericAcnProperty list) (acnErrLoc: SrcL
                 raise(SemanticError(acnErrLoc, "The 'true-value' and 'false-value' properties must have different values"))
             else
                 {BooleanAcnProperties.encodingPattern  = Some( TrueFalseValueEncoding(tv, fv))}
-        | Some tv, None    ->  
+        | Some tv, None    ->
             if tv.Value.Length = 0 then
                 raise(SemanticError(acnErrLoc, "The length of the 'true-value' property must be greater than 0"))
             else
                 {BooleanAcnProperties.encodingPattern = Some( TrueValueEncoding(tv))}
-        | None, Some fv    ->  
+        | None, Some fv    ->
             if fv.Value.Length = 0 then
                 raise(SemanticError(acnErrLoc, "The length of the 'false-value' property must be greater than 0"))
             else
@@ -914,27 +963,6 @@ let rec mapAnyConstraint (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (cons:Asn1A
         let oldBaseType  = Asn1Ast.GetBaseTypeByName rf.modName rf.tasName asn1
         mapAnyConstraint asn1 oldBaseType cons
 
-let private substAcnArg (acnParamSubst: Map<string, AcnGenericTypes.RelativePath>) (arg: AcnGenericTypes.RelativePath): AcnGenericTypes.RelativePath =
-    match arg with
-    | RelativePath [] -> arg
-    | RelativePath (hd :: rest) ->
-        acnParamSubst.TryFind hd.Value |>
-        Option.map (fun subst -> match subst with RelativePath subst -> RelativePath (subst @ rest)) |>
-        Option.defaultValue arg
-
-let private substAcnArgs (acnParamSubst: Map<string, AcnGenericTypes.RelativePath>) (acnArgs : AcnGenericTypes.RelativePath list): AcnGenericTypes.RelativePath list =
-    acnArgs |> List.map (substAcnArg acnParamSubst)
-
-let private addAcnSubst (acnParamSubst: Map<string, AcnGenericTypes.RelativePath>)
-                        (acnParams: AcnParameter list)
-                        (acnArgs : AcnGenericTypes.RelativePath list): Map<string, AcnGenericTypes.RelativePath> =
-    assert (acnParams.Length = acnArgs.Length)
-    let add (curr: Map<string, AcnGenericTypes.RelativePath>) (p: AcnParameter, acnArg: AcnGenericTypes.RelativePath): Map<string, AcnGenericTypes.RelativePath> =
-        let substed = substAcnArg curr acnArg
-        curr |> Map.add p.name substed
-
-    List.fold add acnParamSubst (List.zip acnParams acnArgs)
-
 let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Module) (t:Asn1Ast.Asn1Type) (curPath : ScopeNode list)
                            (typeDefPath : ScopeNode list)
                            (enmItemTypeDefPath : ScopeNode list)
@@ -998,12 +1026,12 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
         | Asn1Ast.OctetString              ->
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getOctetStringConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getOctetStringConstraint asn1 t)
-            let o, us1 = mergeOctetStringType asn1 t.Location acnErrLoc combinedProperties cons wcons tfdArg us
+            let o, us1 = mergeOctetStringType asn1 t.Location acnErrLoc combinedProperties cons wcons tfdArg acnParamSubst us
             OctetString o, us1
         | Asn1Ast.BitString    namedBitList            ->
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBitStringConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBitStringConstraint asn1 t)
-            let o, us1 = mergeBitStringType asn1 namedBitList t.Location acnErrLoc combinedProperties cons wcons tfdArg us
+            let o, us1 = mergeBitStringType asn1 namedBitList t.Location acnErrLoc combinedProperties cons wcons tfdArg acnParamSubst us
             BitString o, us1
         | Asn1Ast.NullType                 ->
             let constraints = []
