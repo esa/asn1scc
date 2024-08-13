@@ -33,8 +33,10 @@ type Type =
   | ClassType of ClassType
   | TupleType of Type list
 and ClassType = {
+  prefix: string list
   id: Identifier
   tps: Type list
+  parameterless: bool // For constructor arguments
 }
 and ArrayType = {
   tpe: Type
@@ -195,6 +197,10 @@ let mkBlock (exprs: Expr list): Expr =
     exprs |> List.collect (fun e -> match e with Block exprs -> exprs | _ -> [e])
           |> Block
 
+let intCast (e: Expr) (from: IntegerType) (tto: IntegerType): Expr =
+  if from = tto then e
+  else IntCast (e, from, tto)
+
 let mkTuple (exprs: Expr list): Expr =
   assert (not exprs.IsEmpty)
   if exprs.Length = 1 then exprs.Head
@@ -306,14 +312,14 @@ let eitherMutId: Identifier = "EitherMut"
 let leftMutId: Identifier = "LeftMut"
 let rightMutId: Identifier = "RightMut"
 
-let bitstreamClsTpe = {ClassType.id = bitStreamId; tps = []}
-let codecClsTpe = {ClassType.id = codecId; tps = []}
-let uperClsTpe = {ClassType.id = uperId; tps = []}
-let acnClsTpe = {ClassType.id = acnId; tps = []}
+let bitstreamClsTpe = {ClassType.prefix = []; id = bitStreamId; tps = []; parameterless = false}
+let codecClsTpe = {ClassType.prefix = []; id = codecId; tps = []; parameterless = false}
+let uperClsTpe = {ClassType.prefix = []; id = uperId; tps = []; parameterless = false}
+let acnClsTpe = {ClassType.prefix = []; id = acnId; tps = []; parameterless = false}
 
-let listTpe (tpe: Type): ClassType = {ClassType.id = listId; tps = [tpe]}
-let consTpe (tpe: Type): ClassType = {ClassType.id = consId; tps = [tpe]}
-let nilTpe (tpe: Type): ClassType = {ClassType.id = nilId; tps = [tpe]}
+let listTpe (tpe: Type): ClassType = {ClassType.prefix = []; id = listId; tps = [tpe]; parameterless = false}
+let consTpe (tpe: Type): ClassType = {ClassType.prefix = []; id = consId; tps = [tpe]; parameterless = false}
+let nilTpe (tpe: Type): ClassType = {ClassType.prefix = []; id = nilId; tps = [tpe]; parameterless = false}
 let cons (tpe: Type) (head: Expr) (tail: Expr): ClassCtor = {ct = consTpe tpe; args = [head; tail]}
 let consExpr (tpe: Type) (head: Expr) (tail: Expr): Expr = ClassCtor (cons tpe head tail)
 let nil (tpe: Type): ClassCtor = {ct = nilTpe tpe; args = []}
@@ -324,27 +330,43 @@ let iupdated (list: Expr) (ix: Expr) (v: Expr): Expr = MethodCall {recv = list; 
 
 let iapply (list: Expr) (ix: Expr): Expr = MethodCall {recv = list; id = "iapply"; args = [ix]; parameterless = true}
 
-let vecTpe (tpe: Type): ClassType = {ClassType.id = vecId; tps = [tpe]}
+let vecClsTpe (tpe: Type): ClassType = {ClassType.prefix = []; id = vecId; tps = [tpe]; parameterless = false}
+let vecTpe (tpe: Type): Type = ClassType (vecClsTpe tpe)
+
 let vecApply (vec: Expr) (ix: Expr): Expr = MethodCall {recv = vec; id = "apply"; args = [ix]; parameterless = true}
 let vecSize (vec: Expr): Expr = MethodCall {recv = vec; id = "size"; args = []; parameterless = true}
 let vecList (vec: Expr): Expr = MethodCall {recv = vec; id = "list"; args = []; parameterless = true}
 let vecAppend (vec: Expr) (v: Expr): Expr = MethodCall {recv = vec; id = "append"; args = [v]; parameterless = true}
 let vecEmpty (tpe: Type): Expr = FunctionCall {prefix = [vecId]; id = "empty"; tps = [tpe]; args = []; parameterless = true}
 
-let optionTpe (tpe: Type): ClassType = {ClassType.id = optionId; tps = [tpe]}
-let someTpe (tpe: Type): ClassType = {ClassType.id = someId; tps = [tpe]}
-let noneTpe (tpe: Type): ClassType = {ClassType.id = noneId; tps = [tpe]}
-let some (tpe: Type) (e: Expr): ClassCtor = {ct = someTpe tpe; args = [e]}
+let optionClsTpe (tpe: Type): ClassType = {ClassType.prefix = []; id = optionId; tps = [tpe]; parameterless = false}
+let optionTpe (tpe: Type): Type = ClassType (optionClsTpe tpe)
+
+let someClsTpe (tpe: Type): ClassType = {ClassType.prefix = []; id = someId; tps = [tpe]; parameterless = false}
+let someTpe (tpe: Type): Type = ClassType (someClsTpe tpe)
+
+let noneClsTpe (tpe: Type): ClassType = {ClassType.prefix = []; id = noneId; tps = [tpe]; parameterless = false}
+let noneTpe (tpe: Type): Type = ClassType (noneClsTpe tpe)
+
+let some (tpe: Type) (e: Expr): ClassCtor = {ct = someClsTpe tpe; args = [e]}
 let someExpr (tpe: Type) (e: Expr): Expr = ClassCtor (some tpe e)
-let none (tpe: Type): ClassCtor = {ct = noneTpe tpe; args = []}
+
+let none (tpe: Type): ClassCtor = {ct = noneClsTpe tpe; args = []}
 let noneExpr (tpe: Type): Expr = ClassCtor (none tpe)
 
-let optionMutTpe (tpe: Type): ClassType = {ClassType.id = optionMutId; tps = [tpe]}
-let someMutTpe (tpe: Type): ClassType = {ClassType.id = someMutId; tps = [tpe]}
-let noneMutTpe (tpe: Type): ClassType = {ClassType.id = noneMutId; tps = [tpe]}
-let someMut (tpe: Type) (e: Expr): ClassCtor = {ct = someMutTpe tpe; args = [e]}
+let optionMutClsTpe (tpe: Type): ClassType = {ClassType.prefix = []; id = optionMutId; tps = [tpe]; parameterless = false}
+let optionMutTpe (tpe: Type): Type = ClassType (optionMutClsTpe tpe)
+
+let someMutClsTpe (tpe: Type): ClassType = {ClassType.prefix = []; id = someMutId; tps = [tpe]; parameterless = false}
+let someMutTpe (tpe: Type): Type = ClassType (someMutClsTpe tpe)
+
+let noneMutClsTpe (tpe: Type): ClassType = {ClassType.prefix = []; id = noneMutId; tps = [tpe]; parameterless = false}
+let noneMutTpe (tpe: Type): Type = ClassType (noneMutClsTpe tpe)
+
+let someMut (tpe: Type) (e: Expr): ClassCtor = {ct = someMutClsTpe tpe; args = [e]}
 let someMutExpr (tpe: Type) (e: Expr): Expr = ClassCtor (someMut tpe e)
-let noneMut (tpe: Type): ClassCtor = {ct = noneMutTpe tpe; args = []}
+
+let noneMut (tpe: Type): ClassCtor = {ct = noneMutClsTpe tpe; args = []}
 let noneMutExpr (tpe: Type): Expr = ClassCtor (noneMut tpe)
 
 let isDefinedExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "isDefined"; args = []; parameterless = true}
@@ -354,22 +376,37 @@ let getMutExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "get"; args = 
 let getExpr (recv: Expr): Expr = getMutExpr recv // TODO: We can't distinguish symbols right now
 
 
-let eitherTpe (l: Type) (r: Type): ClassType = {ClassType.id = eitherId; tps = [l; r]}
-let leftTpe (l: Type) (r: Type): ClassType = {ClassType.id = leftId; tps = [l; r]}
-let rightTpe (l: Type) (r: Type): ClassType = {ClassType.id = rightId; tps = [l; r]}
-let left (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = leftTpe l r; args = [e]}
+let eitherClsTpe (l: Type) (r: Type): ClassType = {ClassType.prefix = []; id = eitherId; tps = [l; r]; parameterless = false}
+let eitherTpe (l: Type) (r: Type): Type = ClassType (eitherClsTpe l r)
+
+let leftClsTpe (l: Type) (r: Type): ClassType = {ClassType.prefix = []; id = leftId; tps = [l; r]; parameterless = false}
+let leftTpe (l: Type) (r: Type): Type = ClassType (leftClsTpe l r)
+
+let rightClsTpe (l: Type) (r: Type): ClassType = {ClassType.prefix = []; id = rightId; tps = [l; r]; parameterless = false}
+let rightTpe (l: Type) (r: Type): Type = ClassType (rightClsTpe l r)
+
+let left (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = leftClsTpe l r; args = [e]}
 let leftExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (left l r e)
-let right (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightTpe l r; args = [e]}
+
+let right (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightClsTpe l r; args = [e]}
 let rightExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (right l r e)
+
 let isRightExpr (recv: Expr): Expr = MethodCall {recv = recv; id = "isRight"; args = []; parameterless = true}
 let isRightMutExpr (recv: Expr): Expr = isRightExpr recv // TODO: We can't distinguish symbols right now
 
-let eitherMutTpe (l: Type) (r: Type): ClassType = {ClassType.id = eitherMutId; tps = [l; r]}
-let leftMutTpe (l: Type) (r: Type): ClassType = {ClassType.id = leftMutId; tps = [l; r]}
-let rightMutTpe (l: Type) (r: Type): ClassType = {ClassType.id = rightMutId; tps = [l; r]}
-let leftMut (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = leftMutTpe l r; args = [e]}
+let eitherMutClsTpe (l: Type) (r: Type): ClassType = {ClassType.prefix = []; id = eitherMutId; tps = [l; r]; parameterless = false}
+let eitherMutTpe (l: Type) (r: Type): Type = ClassType (eitherMutClsTpe l r)
+
+let leftMutClsTpe (l: Type) (r: Type): ClassType = {ClassType.prefix = []; id = leftMutId; tps = [l; r]; parameterless = false}
+let leftMutTpe (l: Type) (r: Type): Type = ClassType (leftMutClsTpe l r)
+
+let rightMutClsTpe (l: Type) (r: Type): ClassType = {ClassType.prefix = []; id = rightMutId; tps = [l; r]; parameterless = false}
+let rightMutTpe (l: Type) (r: Type): Type = ClassType (rightMutClsTpe l r)
+
+let leftMut (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = leftMutClsTpe l r; args = [e]}
 let leftMutExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (leftMut l r e)
-let rightMut (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightMutTpe l r; args = [e]}
+
+let rightMut (l: Type) (r: Type) (e: Expr): ClassCtor = {ct = rightMutClsTpe l r; args = [e]}
 let rightMutExpr (l: Type) (r: Type) (e: Expr): Expr = ClassCtor (rightMut l r e)
 
 let listMatch (scrut: Expr)
@@ -533,6 +570,9 @@ let letsIn (bdgs: (Var * Expr) list) (body: Expr): Expr =
 
 let letsGhostIn (bdgs: (Var * Expr) list) (body: Expr): Expr =
   List.foldBack (fun (v, e) body -> LetGhost {bdg = v; e = e; body = body}) bdgs body
+
+let ifElseBranches (branches: (Expr * Expr) list) (els: Expr): Expr =
+  List.foldBack (fun (cond, thn) els -> IfExpr {cond = cond; thn = thn; els = els}) branches els
 
 let selBaseACN (recv: Expr): Expr = FieldSelect (recv, "base")
 
@@ -711,16 +751,16 @@ let fromIntClass (cls: Asn1AcnAst.IntegerClass): IntegerType =
 
 let rec fromAsn1TypeKind (t: Asn1AcnAst.Asn1TypeKind): Type =
   match t.ActualType with
-  | Asn1AcnAst.Sequence sq -> ClassType {id = sq.typeDef[Scala].typeName; tps = []}
-  | Asn1AcnAst.SequenceOf sqf -> ClassType {id = sqf.typeDef[Scala].typeName; tps = []}
-  | Asn1AcnAst.Choice ch -> ClassType {id = ch.typeDef[Scala].typeName; tps = []}
-  | Asn1AcnAst.Enumerated enm -> ClassType {id = enm.typeDef[Scala].typeName; tps = []}
+  | Asn1AcnAst.Sequence sq -> ClassType {ClassType.prefix = []; id = sq.typeDef[Scala].typeName; tps = []; parameterless = false}
+  | Asn1AcnAst.SequenceOf sqf -> ClassType {ClassType.prefix = []; id = sqf.typeDef[Scala].typeName; tps = []; parameterless = false}
+  | Asn1AcnAst.Choice ch -> ClassType {ClassType.prefix = []; id = ch.typeDef[Scala].typeName; tps = []; parameterless = false}
+  | Asn1AcnAst.Enumerated enm -> ClassType {ClassType.prefix = []; id = enm.typeDef[Scala].typeName; tps = []; parameterless = false}
   | Asn1AcnAst.Integer int -> IntegerType (fromIntClass int.intClass)
   | Asn1AcnAst.Boolean _ -> BooleanType
   | Asn1AcnAst.NullType _ -> IntegerType Byte
-  | Asn1AcnAst.BitString bt -> ClassType {id = bt.typeDef[Scala].typeName; tps = []}
-  | Asn1AcnAst.OctetString ot -> ClassType {id = ot.typeDef[Scala].typeName; tps = []}
-  | Asn1AcnAst.IA5String _ -> ClassType (vecTpe (IntegerType UByte))
+  | Asn1AcnAst.BitString bt -> ClassType {ClassType.prefix = []; id = bt.typeDef[Scala].typeName; tps = []; parameterless = false}
+  | Asn1AcnAst.OctetString ot -> ClassType {ClassType.prefix = []; id = ot.typeDef[Scala].typeName; tps = []; parameterless = false}
+  | Asn1AcnAst.IA5String _ -> vecTpe (IntegerType UByte)
   | Asn1AcnAst.Real _ -> DoubleType
   | t -> failwith $"TODO {t}"
 
@@ -729,8 +769,8 @@ let fromAcnInsertedType (t: Asn1AcnAst.AcnInsertedType): Type =
   | Asn1AcnAst.AcnInsertedType.AcnInteger int -> IntegerType (fromIntClass int.intClass)
   | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> BooleanType
   | Asn1AcnAst.AcnInsertedType.AcnNullType _ -> IntegerType Byte
-  | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm -> ClassType {id = enm.enumerated.typeDef[Scala].typeName; tps = []}
-  | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> ClassType (vecTpe (IntegerType UByte))
+  | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm -> ClassType {ClassType.prefix = []; id = enm.enumerated.typeDef[Scala].typeName; tps = []; parameterless = false}
+  | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> vecTpe (IntegerType UByte)
 
 let fromAsn1AcnType (t: Asn1AcnAst.Asn1AcnType): Type =
   match t with
@@ -879,7 +919,10 @@ and ppClassType (ct: ClassType): string =
   let tps =
     if ct.tps.IsEmpty then ""
     else "[" + ((ct.tps |> List.map ppType).StrJoin ", ") + "]"
-  ct.id + tps
+  let id =
+    if ct.prefix.IsEmpty then ct.id
+    else (ct.prefix.StrJoin ".") + "." + ct.id
+  id + tps
 
 let ppAnnot (annot: Annot): string =
   match annot with
@@ -1109,7 +1152,7 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
   | ClassCtor cc ->
     let ct = ppClassType cc.ct
     let args = cc.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
-    joinCallLike ctx [line ct] args false
+    joinCallLike ctx [line ct] args cc.ct.parameterless
 
   | Old e2 ->
     let e2 = ppExpr (ctx.nestExpr e2) e2
@@ -1199,6 +1242,7 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
     match from, tto with
     | ULong, Long | UInt, Int | UShort, Short | UByte, Byte -> extMeth "toRaw"
     | Long, ULong | Int, UInt | Short, UShort | Byte, UByte -> objFn "fromRaw"
+    | _ when from = tto -> e2
     | _ -> failwith $"Unsupported conversion {from} -> {tto}"
 
   | SelectionExpr sel -> [line sel]

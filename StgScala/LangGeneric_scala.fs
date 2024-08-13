@@ -402,11 +402,11 @@ type LangGeneric_scala() =
                 let postcondExpr =
                     match codec with
                     | Encode ->
-                        let resPostcond = {Var.name = "res"; tpe = ClassType (eitherTpe errTpe (IntegerType Int))}
+                        let resPostcond = {Var.name = "res"; tpe = eitherTpe errTpe (IntegerType Int)}
                         let decodePureId = $"{t.FT_TypeDefinition.[Scala].typeName}_ACN_Decode_pure"
                         generateEncodePostcondExpr r t p.arg resPostcond decodePureId
                     | Decode ->
-                        let resPostcond = {Var.name = "res"; tpe = ClassType (eitherMutTpe errTpe (fromAsn1TypeKind t.Kind))}
+                        let resPostcond = {Var.name = "res"; tpe = eitherMutTpe errTpe (fromAsn1TypeKind t.Kind)}
                         generateDecodePostcondExpr r t resPostcond
                 Some (show (ExprTree postcondExpr))
             | _ -> Some (show (ExprTree (BoolLit true)))

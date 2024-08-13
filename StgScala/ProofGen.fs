@@ -561,7 +561,7 @@ let choiceSizeFunDefs (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice): FunD
 let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDef list * FunDef list =
   let td = sq.typeDef.[Scala].typeName
   let elemTpe = fromAsn1TypeKind sq.child.Kind
-  let lsTpe = ClassType (vecTpe elemTpe)
+  let lsTpe = vecTpe elemTpe
   let res = {name = "res"; tpe = IntegerType Long}
 
   let callSizeRangeObj (ls: Expr) (offset: Expr) (from: Expr) (tto: Expr): Expr =
@@ -757,7 +757,7 @@ let generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.
 let generateSequenceSubtypeDefinitions (dealiased: string) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.Asn1Child list): string list =
   let retTpe = fromAsn1TypeKind t.Kind
   let prms = children |> List.map (fun c -> {Var.name = c.Name.Value; tpe = fromAsn1TypeKind c.Type.Kind.baseKind})
-  let body = ClassCtor {ct = {id = dealiased; tps = []}; args = prms |> List.map Var}
+  let body = ClassCtor {ct = {prefix = []; id = dealiased; tps = []; parameterless = false}; args = prms |> List.map Var}
   let reqs = sequenceInvariantsCommon t sq (List.zip children (prms |> List.map Var))
   let fd = {
     FunDef.id = "apply"
@@ -798,7 +798,7 @@ let generateEncodePostcondExprCommon (r: Asn1AcnAst.AstRoot)
       let lemmaCall = validateOffsetBitsContentIrrelevancyLemma (selBitStreamACN oldCdc) (selBufACN (Var cdc)) (longlit maxSize)
       let decodePureCall = FunctionCall {prefix = []; id = decodePureId; tps = []; args = (Var r1) :: decodeExtraArgs; parameterless = true}
       let r2Got = {Var.name = "r2Got"; tpe = ClassType codecTpe}
-      let decodingRes = {Var.name = "decodingRes"; tpe = ClassType (eitherMutTpe (IntegerType Int) tpe)}
+      let decodingRes = {Var.name = "decodingRes"; tpe = eitherMutTpe (IntegerType Int) tpe}
       let resGot = {Var.name = "resGot"; tpe = tpe}
       let acnVarsGotBdg = acnTps |> List.indexed |> List.map (fun (ix, tpe) -> {Var.name = $"acnGot{ix + 1}"; tpe = tpe})
       let acnEq = List.zip acnVarsGotBdg acnVarsPatBdg |> List.map (fun (acnGot, acn) -> Equals (Var acnGot, Var acn))
@@ -1002,6 +1002,7 @@ let acnExternDependenciesVariableEncode (t: Asn1AcnAst.Asn1Type) (nestingScope: 
 
 type PrimitiveDecodeInfo = {
   prefix: string list
+  tpe: Type
   decodePureId: string
   prefixLemmaId: string
   extraConstArgs: Expr list
@@ -1019,67 +1020,67 @@ let decodeInfo (t: Asn1AcnAst.Asn1AcnType) (id: ReferenceToType) (isOptional: bo
     match encCls with
     | PositiveInteger_ConstSize_8 ->
       let baseId = "dec_Int_PositiveInteger_ConstSize_8"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType ULong; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | PositiveInteger_ConstSize_big_endian_16 ->
       let baseId = "dec_Int_PositiveInteger_ConstSize_big_endian_16"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType ULong; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | PositiveInteger_ConstSize_big_endian_32 ->
       let baseId = "dec_Int_PositiveInteger_ConstSize_big_endian_32"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType ULong; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | PositiveInteger_ConstSize_big_endian_64 ->
       let baseId = "dec_Int_PositiveInteger_ConstSize_big_endian_64"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType ULong; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | PositiveInteger_ConstSize_little_endian_16 ->
       let baseId = "dec_Int_PositiveInteger_ConstSize_little_endian_16"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType ULong; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | PositiveInteger_ConstSize_little_endian_32 ->
       let baseId = "dec_Int_PositiveInteger_ConstSize_little_endian_32"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType ULong; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | PositiveInteger_ConstSize_little_endian_64 ->
       let baseId = "dec_Int_PositiveInteger_ConstSize_little_endian_64"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType ULong; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | PositiveInteger_ConstSize bits ->
       let baseId = "dec_Int_PositiveInteger_ConstSize"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [int32lit bits]}
+      {prefix = [acnId]; tpe = IntegerType ULong; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [int32lit bits]}
 
     | TwosComplement_ConstSize_8 ->
       let baseId = "dec_Int_TwosComplement_ConstSize_8"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType Long; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | TwosComplement_ConstSize_big_endian_16 ->
       let baseId = "dec_Int_TwosComplement_ConstSize_big_endian_16"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType Long; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | TwosComplement_ConstSize_big_endian_32 ->
       let baseId = "dec_Int_TwosComplement_ConstSize_big_endian_32"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType Long; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | TwosComplement_ConstSize_big_endian_64 ->
       let baseId = "dec_Int_TwosComplement_ConstSize_big_endian_64"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType Long; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | TwosComplement_ConstSize_little_endian_16 ->
       let baseId = "dec_Int_TwosComplement_ConstSize_little_endian_16"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType Long; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | TwosComplement_ConstSize_little_endian_32 ->
       let baseId = "dec_Int_TwosComplement_ConstSize_little_endian_32"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType Long; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | TwosComplement_ConstSize_little_endian_64 ->
       let baseId = "dec_Int_TwosComplement_ConstSize_little_endian_64"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType Long; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | TwosComplement_ConstSize _ ->
       let baseId = "dec_Int_TwosComplement_ConstSize"
-      {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+      {prefix = [acnId]; tpe = IntegerType Long; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
 
     | Integer_uPER -> failwith "UPER encoding selected for ACN integers?"
 
@@ -1091,25 +1092,25 @@ let decodeInfo (t: Asn1AcnAst.Asn1AcnType) (id: ReferenceToType) (isOptional: bo
       match range with
       | Full ->
         let baseId = "decodeUnconstrainedWholeNumber"
-        {prefix = [codecId]; decodePureId = $"{baseId}Pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
+        {prefix = [codecId]; tpe = IntegerType Long; decodePureId = $"{baseId}Pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []}
       | PosInf min ->
         let baseId = "decodeConstrainedPosWholeNumber"
-        {prefix = [codecId]; decodePureId = $"{baseId}Pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [ulonglit min]}
+        {prefix = [codecId]; tpe = IntegerType ULong; decodePureId = $"{baseId}Pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [ulonglit min]}
       | Concrete (min, max) ->
         if intCls.IsPositive then
           let baseId = "decodeConstrainedPosWholeNumber"
-          {prefix = [codecId]; decodePureId = $"{baseId}Pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [ulonglit min; ulonglit max]}
+          {prefix = [codecId]; tpe = IntegerType ULong; decodePureId = $"{baseId}Pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [ulonglit min; ulonglit max]}
         else
           let baseId = "decodeConstrainedWholeNumber"
-          {prefix = [codecId]; decodePureId = $"{baseId}Pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [longlit min; longlit max]}
+          {prefix = [codecId]; tpe = IntegerType Long; decodePureId = $"{baseId}Pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [longlit min; longlit max]}
       | _ -> failwith $"TODO: {range}"
     | _ -> forACNIntClass encCls
 
   let octetString (ot: OctetString) =
-    PrimitiveDecodeInfo {prefix = [codecId]; decodePureId = "decodeOctetString_no_length_vec_pure"; prefixLemmaId = "decodeOctetString_no_length_vec_prefixLemma"; extraConstArgs = [int32lit (ot.maxSize.acn)]}
+    PrimitiveDecodeInfo {prefix = [codecId]; tpe = vecTpe (IntegerType UByte); decodePureId = "decodeOctetString_no_length_vec_pure"; prefixLemmaId = "decodeOctetString_no_length_vec_prefixLemma"; extraConstArgs = [int32lit (ot.maxSize.acn)]}
   let bitString (bt: BitString) =
-    PrimitiveDecodeInfo {prefix = [bitStreamId]; decodePureId = "readBitsVecPure"; prefixLemmaId = "readBitsVecPrefixLemma"; extraConstArgs = [longlit bt.maxSize.acn]}
-  let boolean = PrimitiveDecodeInfo {prefix = [bitStreamId]; decodePureId = "readBitPure"; prefixLemmaId = "readBitPrefixLemma"; extraConstArgs = []}
+    PrimitiveDecodeInfo {prefix = [bitStreamId]; tpe = vecTpe (IntegerType UByte); decodePureId = "readBitsVecPure"; prefixLemmaId = "readBitsVecPrefixLemma"; extraConstArgs = [longlit bt.maxSize.acn]}
+  let boolean = PrimitiveDecodeInfo {prefix = [bitStreamId]; tpe = BooleanType; decodePureId = "readBitPure"; prefixLemmaId = "readBitPrefixLemma"; extraConstArgs = []}
 
   if isOptional then
     let baseId = $"{ToC id.dropModule.AsString}_Optional"
@@ -1133,7 +1134,7 @@ let decodeInfo (t: Asn1AcnAst.Asn1AcnType) (id: ReferenceToType) (isOptional: bo
           | _ ->
             // TODO: The second argument is the determinant but no idea where to fetch this from, therefore putting a dummy value
             let baseId = "dec_IA5String_CharIndex_External_Field_DeterminantVec"
-            PrimitiveDecodeInfo {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [longlit str.maxSize.acn; longlit 0I]}
+            PrimitiveDecodeInfo {prefix = [acnId]; tpe = vecTpe (IntegerType UByte); decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [longlit str.maxSize.acn; longlit 0I]}
         | OctetString ot -> octetString ot
         | _ ->
           let baseId =
@@ -1145,7 +1146,7 @@ let decodeInfo (t: Asn1AcnAst.Asn1AcnType) (id: ReferenceToType) (isOptional: bo
           ComposedDecodeInfo {decodePureId = $"{baseId}_ACN_Decode_pure"; prefixLemmaId = $"{baseId}_prefixLemma"}
       | _ ->
         let baseId = "TODO_ASN1_OTHER"
-        PrimitiveDecodeInfo {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []} // TODO
+        PrimitiveDecodeInfo {prefix = [acnId]; tpe = IntegerType Int; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []} // TODO
     | Acn (AcnInteger int) ->
       PrimitiveDecodeInfo (forIntClass int.intClass int.acnEncodingClass int.uperRange)
     | Acn (AcnBoolean _) -> boolean
@@ -1156,14 +1157,14 @@ let decodeInfo (t: Asn1AcnAst.Asn1AcnType) (id: ReferenceToType) (isOptional: bo
         let min = enm.enumerated.items |> List.map(fun x -> x.acnEncodeValue) |> Seq.min
         let max = enm.enumerated.items |> List.map(fun x -> x.acnEncodeValue) |> Seq.max
         let baseId = "decodeConstrainedPosWholeNumber"
-        PrimitiveDecodeInfo {prefix = [codecId]; decodePureId = $"{baseId}Pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [ulonglit min; ulonglit max]}
+        PrimitiveDecodeInfo {prefix = [codecId]; tpe = IntegerType ULong; decodePureId = $"{baseId}Pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = [ulonglit min; ulonglit max]}
       | _ -> PrimitiveDecodeInfo (forACNIntClass enm.enumerated.acnEncodingClass)
     | Acn (AcnReferenceToIA5String _) ->
       let baseId = $"{ToC id.dropModule.AsString}"
       ComposedDecodeInfo {decodePureId = $"{baseId}_ACN_Decode_pure"; prefixLemmaId = $"{baseId}_prefixLemma"}
     | _ ->
       let baseId = "TODO_ACN_OTHER"
-      PrimitiveDecodeInfo {prefix = [acnId]; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []} // TODO
+      PrimitiveDecodeInfo {prefix = [acnId]; tpe = IntegerType Int; decodePureId = $"{baseId}_pure"; prefixLemmaId = $"{baseId}_prefixLemma"; extraConstArgs = []} // TODO
 
 let selectCodecDecodeInfo (decodeInfo: DecodeInfo) (cdc: Expr): Expr =
   match decodeInfo with
@@ -1416,6 +1417,15 @@ let generatePrefixLemmaSequenceOfLike (enc: Asn1Encoding)
     | Asn1TypeOrAcnRefIA5.AcnRefIA5 (tId, _) -> ToC tId.dropModule.AsString, [], []
   generatePrefixLemmaCommon enc tpe (sqf.maxSizeInBits enc) baseId paramsAcn acnTps mkSizeExpr nestingScope mkSqOfLikeProof
 
+type private SeqPrefixLemmaSubproofData = {
+  fd: FunDef
+  decInfo: DecodeInfo
+  elemTpe: Type
+  existArg: Expr option
+  acns: AcnChild list
+  paramsAcn: Var list
+}
+
 let generatePrefixLemmaSequence (enc: Asn1Encoding)
                                 (t: Asn1AcnAst.Asn1Type)
                                 (nestingScope: NestingScope)
@@ -1444,7 +1454,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       body = body
     }
 
-  let mkFieldSubproofFn (data: PrefixLemmaData) (ix: int) (child: Asn1AcnAst.SeqChildInfo): FunDef =
+  let mkFieldSubproofFn (data: PrefixLemmaData) (ix: int) (child: Asn1AcnAst.SeqChildInfo): SeqPrefixLemmaSubproofData =
     let origC1 = data.c1
     let origC2Reset = data.c2Reset
     let c1, c2 =
@@ -1483,14 +1493,14 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       Assert (arrayBitRangesEq (selBufACN (Var c1)) (selBufACN (Var c2Moved)) (longlit 0I) (plus [bitIndexACN (Var c1); Var childSize]))
     ]
 
-    let fieldName, asn1AcnTpe, id, isOpt, existArg, paramsAcn, acnTps =
+    let fieldName, asn1AcnTpe, id, isOpt, existArg, paramsAcn, acns =
       match child with
       | Asn1Child child ->
         let existArg =
           match child.Optionality with
           | Some (Optional _) ->
-            [isDefinedMutExpr (FieldSelect (Var data.v1, child._scala_name))]
-          | _ -> []
+            Some (isDefinedMutExpr (FieldSelect (Var data.v1, child._scala_name)))
+          | _ -> None
         let acns, paramsAcn =
           let acns = fun () -> collectNestedAcnChildren child.Type.Kind
           let paramAcns = fun () -> acnExternDependenciesVariableDecode child.Type (t :: (nestingScope.parents |> List.map snd))
@@ -1504,12 +1514,12 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
           | Sequence _ | SequenceOf _ | Choice _ -> acns (), paramAcns ()
           | OctetString _ | BitString _ -> [], paramAcns ()
           | _ -> [], []
-        let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
-        ToC child.Name.Value, Asn1 child.Type, child.Type.id, child.Optionality.IsSome, existArg, paramsAcn, acnTps
-      | AcnChild child -> ToC child.Name.Value, Acn child.Type, child.id, false, [], [], []
+        ToC child.Name.Value, Asn1 child.Type, child.Type.id, child.Optionality.IsSome, existArg, paramsAcn, acns
+      | AcnChild child -> ToC child.Name.Value, Acn child.Type, child.id, false, None, [], []
+    let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
     let elemTpe = fromAsn1AcnType asn1AcnTpe
     let decInfo = decodeInfo asn1AcnTpe id isOpt
-
+    let existArgList = existArg |> Option.toList
     let c1Next = {Var.name = $"c1_{ix + 2}"; tpe = origC1.tpe}
     let c2Next = {Var.name = $"c2_{ix + 2}"; tpe = origC1.tpe}
     let res1 = {Var.name = $"{fieldName}_1"; tpe = elemTpe}
@@ -1528,13 +1538,13 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
           args = [
             selectCodecDecodeInfo decInfo (Var c1)
             selectCodecDecodeInfo decInfo (Var c2Moved)
-          ] @ existArg @ info.extraConstArgs
+          ] @ existArgList @ info.extraConstArgs
           parameterless = true
         }
         let dec1 = {Var.name = "dec1"; tpe = elemTpe}
         let dec2 = {Var.name = "dec2"; tpe = elemTpe}
-        let dec1Call = MethodCall {recv = selectCodecDecodeInfo decInfo (Var c1); id = info.decodePureId; args = existArg @ info.extraConstArgs; parameterless = false}
-        let dec2Call = MethodCall {recv = selectCodecDecodeInfo decInfo (Var c2); id = info.decodePureId; args = existArg @ info.extraConstArgs; parameterless = false}
+        let dec1Call = MethodCall {recv = selectCodecDecodeInfo decInfo (Var c1); id = info.decodePureId; args = existArgList @ info.extraConstArgs; parameterless = false}
+        let dec2Call = MethodCall {recv = selectCodecDecodeInfo decInfo (Var c2); id = info.decodePureId; args = existArgList @ info.extraConstArgs; parameterless = false}
         let v1Value, v2Value =
           match child with
           | Asn1Child child ->
@@ -1545,11 +1555,11 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
               let ncount = paramsAcn |> List.map (fun v ->
                 // The variable may have type ULong, we need to unwrap it as the constructor expects a Long
                 match v.tpe with
-                | IntegerType ULong -> IntCast (Var v, ULong, Long)
+                | IntegerType ULong -> intCast (Var v) ULong Long
                 | _ -> Var v
               )
-              let v1Value = ClassCtor {ct = {id = id; tps = []}; args = ncount @ [Var dec1]}
-              let v2Value = ClassCtor {ct = {id = id; tps = []}; args = ncount @ [Var dec2]}
+              let v1Value = ClassCtor {ct = {prefix = []; id = id; tps = []; parameterless = false}; args = ncount @ [Var dec1]}
+              let v2Value = ClassCtor {ct = {prefix = []; id = id; tps = []; parameterless = false}; args = ncount @ [Var dec2]}
               v1Value, v2Value
             | _ ->
               assert paramsAcn.IsEmpty
@@ -1565,20 +1575,20 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
           args = [
             selectCodecDecodeInfo decInfo (Var c1)
             selectCodecDecodeInfo decInfo (Var c2Moved)
-          ] @ [Var childSize] @ existArg @ (paramsAcn |> List.map Var)
+          ] @ [Var childSize] @ existArgList @ (paramsAcn |> List.map Var)
           parameterless = true
         }
-        let decResTpe = ClassType (eitherMutTpe (IntegerType Int) (tupleType (elemTpe :: acnTps)))
+        let decResTpe = eitherMutTpe (IntegerType Int) (tupleType (elemTpe :: acnTps))
         let dec1 = {Var.name = "dec1"; tpe = decResTpe}
         let dec2 = {Var.name = "dec2"; tpe = decResTpe}
         let dec1Call = FunctionCall {
           prefix = []; id = info.decodePureId; tps = []
-          args = [selectCodecDecodeInfo decInfo (Var c1)] @ existArg @ (paramsAcn |> List.map Var)
+          args = [selectCodecDecodeInfo decInfo (Var c1)] @ existArgList @ (paramsAcn |> List.map Var)
           parameterless = true
         }
         let dec2Call = FunctionCall {
           prefix = []; id = info.decodePureId; tps = []
-          args = [selectCodecDecodeInfo decInfo (Var c2)] @ existArg @ (paramsAcn |> List.map Var)
+          args = [selectCodecDecodeInfo decInfo (Var c2)] @ existArgList @ (paramsAcn |> List.map Var)
           parameterless = true
         }
 
@@ -1698,7 +1708,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
         ])
       ])
 
-    {
+    let fd = {
       FunDef.id = $"proof_{ToC name}"
       prms = if ix = 0 then paramsAcn else [c1; c2] @ paramsAcn
       annots = [Opaque; InlineOnce]
@@ -1707,23 +1717,184 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       returnTpe = UnitType
       body = proof
     }
+    {fd = fd; existArg = existArg; elemTpe = elemTpe; decInfo = decInfo; acns = acns; paramsAcn = paramsAcn}
+
+  let mkSubfieldProofCall (data: PrefixLemmaData) (ix: int) (child: Asn1AcnAst.SeqChildInfo) (proofData: SeqPrefixLemmaSubproofData option): Expr =
+    let origC1 = data.c1
+    let origC2Reset = data.c2Reset
+    let c1Prev, c2Prev =
+      if ix = 0 then origC1, origC2Reset
+      else {Var.name = $"c1_{ix}"; tpe = origC1.tpe}, {Var.name = $"c2_{ix}"; tpe = origC1.tpe}
+    let c1, c2 = {Var.name = $"c1_{ix + 1}"; tpe = origC1.tpe}, {Var.name = $"c2_{ix + 1}"; tpe = origC1.tpe}
+
+    match proofData with
+    | None ->
+      // NullType case: we assign the codecs to the previous ones
+      // TODO: handle case where there is a bitpattern
+      letsIn [(c1, Var c1Prev); (c2, Var c2Prev)] (mkBlock [])
+    | Some proofData ->
+      let codecArgs = if ix = 0 then [] else [Var c1Prev; Var c2Prev]
+      let existArgList = proofData.existArg |> Option.toList
+
+      let mkAcnBinding (dec1: Var) (c: AcnChild): Expr =
+        // This ACN variable will be picked up by the later decode functions. It is important it to be bound with that specific name
+        // Note that the calls with c1 and c2 yield the same values, we arbitrarily pick the value from the call with c1.
+        let v = {Var.name = getAcnDeterminantName c.id; tpe = fromAcnInsertedType c.Type}
+        match c.Type with
+        | AcnReferenceToEnumerated enm ->
+          // For Enumerated, we need to transform the integer to a Scala enum
+          let primDecInfo =
+            match proofData.decInfo with
+            | PrimitiveDecodeInfo info -> info
+            | _ -> failwith "Enumerated ACN child decoded with a generated function?"
+          let intTpe =
+            match primDecInfo.tpe with
+            | IntegerType tp -> tp
+            | _ -> failwith $"${v.name} has not an IntegerType type"
+          let branches = enm.enumerated.items |> List.map (fun i ->
+            let cond = Equals (Var dec1, IntLit (intTpe, i.acnEncodeValue))
+            let branch = ClassCtor {ct = {prefix = [enm.enumerated.typeDef.[Scala].typeName]; id = i.scala_name; tps = []; parameterless = true}; args = []}
+            cond, branch
+          )
+          let transform = ifElseBranches branches (mkBlock [Check (BoolLit false); TripleQMark])
+          letsIn [v, transform] (mkBlock [])
+        | _ ->
+          match proofData.decInfo with
+          | PrimitiveDecodeInfo _ -> letsIn [v, Var dec1] (mkBlock [])
+          | ComposedDecodeInfo _ ->
+            let bdg = {Var.name = "bdg"; tpe = v.tpe}
+            let extracted = eitherMutMatchExpr (Var dec1) None (mkBlock [Check (BoolLit false); TripleQMark]) (Some bdg) (Var bdg)
+            letsIn [v, extracted] (mkBlock [])
+
+      let callsBdgs =
+        match proofData.decInfo with
+        | PrimitiveDecodeInfo info ->
+          let dec1 = {Var.name = $"dec1_{ix + 1}"; tpe = proofData.elemTpe}
+          let dec2 = {Var.name = $"dec2_{ix + 1}"; tpe = proofData.elemTpe}
+          let dec1Call = MethodCall {recv = selectCodecDecodeInfo proofData.decInfo (Var c1Prev); id = info.decodePureId; args = existArgList @ info.extraConstArgs; parameterless = false}
+          let dec2Call = MethodCall {recv = selectCodecDecodeInfo proofData.decInfo (Var c2Prev); id = info.decodePureId; args = existArgList @ info.extraConstArgs; parameterless = false}
+
+          // Note: methods from BitStream/Codec return BitStream/Codec, so we need to wrap them back into an ACN codec.
+          let callsBdgs =
+            let wrapAcn (cdcId: Identifier) (recv: Expr): Expr =
+              assert (cdcId = bitStreamId || cdcId = codecId)
+              if cdcId = codecId then ClassCtor {ct = acnClsTpe; args = [recv]}
+              else ClassCtor {ct = acnClsTpe; args = [ClassCtor {ct = codecClsTpe; args = [recv]}]}
+            let mkNonAcnBdg (cdcId: Identifier): Expr =
+              assert (cdcId = bitStreamId || cdcId = codecId)
+              let cdcTpe = ClassType {prefix = []; id = cdcId; tps = []; parameterless = false}
+              let c1Tmp, c2Tmp = {Var.name = $"c1_{ix + 1}_tmp"; tpe = cdcTpe}, {Var.name = $"c2_{ix + 1}_tmp"; tpe = cdcTpe}
+              letTuple [c1Tmp; dec1] dec1Call (mkBlock [
+                letTuple [c2Tmp; dec2] dec2Call (mkBlock [
+                  letsIn [(c1, wrapAcn cdcId (Var c1Tmp)); (c2, wrapAcn cdcId (Var c2Tmp))] (mkBlock [])
+                ])
+              ])
+            if info.prefix = [bitStreamId] then mkNonAcnBdg bitStreamId
+            else if info.prefix = [codecId] then mkNonAcnBdg codecId
+            else
+              letTuple [c1; dec1] dec1Call (mkBlock [
+                letTuple [c2; dec2] dec2Call (mkBlock [])])
+
+          let acnBinding =
+            match child with
+            | AcnChild c -> mkAcnBinding dec1 c
+            | Asn1Child _ -> mkBlock []
+
+          mkBlock [
+            callsBdgs
+            acnBinding
+          ]
+        | ComposedDecodeInfo info ->
+          // The ACN values returned by this function. Since the calls with c1 and c2 yield the same values, we arbitrarily bind
+          // these variables to the first call. The variable name is important here as it will be picked up by later fields
+          // that depends on these ACNs.
+          let acnVars = proofData.acns |> List.map (fun c -> {Var.name = getAcnDeterminantName c.id; tpe = fromAcnInsertedType c.Type})
+          let acnTps = acnVars |> List.map (fun v -> v.tpe)
+          let decResTpe = eitherMutTpe (IntegerType Int) (tupleType (proofData.elemTpe :: acnTps))
+          let dec1 = {Var.name = $"dec1_{ix + 1}"; tpe = decResTpe}
+          let dec2 = {Var.name = $"dec2_{ix + 1}"; tpe = decResTpe}
+          let dec1Call = FunctionCall {
+            prefix = []; id = info.decodePureId; tps = []
+            args = [selectCodecDecodeInfo proofData.decInfo (Var c1Prev)] @ existArgList @ (proofData.paramsAcn |> List.map Var)
+            parameterless = true
+          }
+          let dec2Call = FunctionCall {
+            prefix = []; id = info.decodePureId; tps = []
+            args = [selectCodecDecodeInfo proofData.decInfo (Var c2Prev)] @ existArgList @ (proofData.paramsAcn |> List.map Var)
+            parameterless = true
+          }
+          let acnBinding =
+            if acnVars.IsEmpty then
+              match child with
+              | AcnChild c -> mkAcnBinding dec1 c
+              | Asn1Child _ -> mkBlock []
+            else
+              // Only Asn1 children (in particular, sequences) may return ACN values
+              assert (
+                match child with
+                | AcnChild _ -> false
+                | Asn1Child _ -> true
+              )
+              let decTmp = {Var.name = $"decTmp_{ix + 1}"; tpe = tupleType (proofData.elemTpe :: acnTps)}
+              let decTmpValue = eitherMutMatchExpr (Var dec1) None (mkBlock [Check (BoolLit false); TripleQMark]) (Some decTmp) (Var decTmp)
+              let acnBdgs = acnVars |> List.indexed |> List.map (fun (ix, v) -> v, TupleSelect (Var decTmp, ix + 2))
+              letsIn ((decTmp, decTmpValue) :: acnBdgs) (mkBlock [])
+
+          letTuple [c1; dec1] dec1Call (mkBlock [
+            letTuple [c2; dec2] dec2Call acnBinding])
+
+      mkBlock [
+        ApplyLetRec {id = proofData.fd.id; args = codecArgs @ (proofData.paramsAcn |> List.map Var)}
+        callsBdgs
+      ]
+
+  ////////////////////////////
 
   let mkSeqProof (data: PrefixLemmaData): Expr =
     let bodyWithC1 = mkUnfoldedDecodeWrapper data bodyWithC1Id data.c1
     let bodyWithC2 = mkUnfoldedDecodeWrapper data bodyWithC2Id data.c2Reset
 
-    let subproofsFns = (sq.children |>
+    let subproofs = (sq.children |>
       List.indexed |>
-      List.filter (fun (_, c) ->
+      List.map (fun (i, c) ->
         match c with
-        | Asn1Child c ->
-          match c.Type.Kind with
-          | NullType nt -> false // TODO: Not quite, if the NT has an encoding pattern, there is some logic to do
-          | _ -> true
-        | AcnChild _ -> true
-      ) |>
-      List.map (fun (i, c) -> mkFieldSubproofFn data i c))
-    let proof = LetRec {fds = subproofsFns; body = UnitLit}
+        | Asn1Child asn1 ->
+          match asn1.Type.Kind with
+          | NullType _ -> i, c, None // TODO: Not quite, if the NT has an encoding pattern, there is some logic to do
+          | _ -> i, c, Some (mkFieldSubproofFn data i c)
+        | AcnChild _ -> i, c, Some (mkFieldSubproofFn data i c)
+      ))
+    let subproofFns = subproofs |> List.choose (fun (_, _, sp) -> sp |> Option.map (fun sp -> sp.fd))
+    let subproofCalls = subproofs |> List.map (fun (i, c, sp) -> mkSubfieldProofCall data i c sp)
+    let finalCheck =
+      let decodedChecks = Check (Equals (Var data.v1, Var data.v2))
+      let acnChecks = List.zip data.decodedAcn1 data.decodedAcn2 |> List.map (fun (acn1, acn2) -> Check (Equals (Var acn1, Var acn2)))
+      MatchExpr {
+        scrut = Var data.decodingRes2
+        cases = [
+          {
+            pattern = ADTPattern {
+              binder = None
+              id = rightMutId
+              subPatterns = [data.subPat2]
+            }
+            rhs = mkBlock (decodedChecks :: acnChecks)
+          }
+          {
+            pattern = ADTPattern {
+              binder = None
+              id = leftMutId
+              subPatterns = [Wildcard None]
+            }
+            rhs = Check (BoolLit false)
+          }
+        ]
+      }
+    let body = mkBlock ([
+      ApplyLetRec {id = bodyWithC1.id; args = []}
+      ApplyLetRec {id = bodyWithC2.id; args = []}
+    ] @ subproofCalls @ [finalCheck])
+    let proof = LetRec {fds = subproofFns; body = body}
 
     let rightMutCase =
       letsIn (data.v1SizeExpr.bdgs @ [data.v1SizeVar, data.v1SizeExpr.resSize]) (
@@ -1809,7 +1980,7 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
 
     let outermostPVal = {Var.name = "pVal"; tpe = fromAsn1TypeKind (nestingScope.parents |> List.last |> snd).Kind}
     let acnExtVars = acnExternDependenciesVariableEncode t nestingScope |> Option.toList
-    let resPostcond = {Var.name = "res"; tpe = ClassType (eitherTpe errTpe retTpe)}
+    let resPostcond = {Var.name = "res"; tpe = eitherTpe errTpe retTpe}
     let decodePureId = $"{baseId}_ACN_Decode_pure"
     let szRecv = {Var.name = recSel.arg.asLastOrSelf.receiverId; tpe = tpe}
     let sz =
@@ -1827,7 +1998,7 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
       specs = precond
       annots = [Opaque; InlineOnce]
       postcond = Some (resPostcond, postcondExpr)
-      returnTpe = ClassType (eitherTpe errTpe retTpe)
+      returnTpe = eitherTpe errTpe retTpe
       body = body
     }
 
@@ -1835,7 +2006,7 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
       let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc; Var outermostPVal] @ ((acnExtVars @ paramsAcn) |> List.map Var) @ [outerPVal]; parameterless = true}
       let leftBdg = {Var.name = "l"; tpe = errTpe}
       // TODO: FIXME: the right type must be the outside type!!!
-      let leftHACK = ClassCtor {ct = {id = leftId; tps = []}; args = [Var leftBdg]}
+      let leftHACK = ClassCtor {ct = {prefix = []; id = leftId; tps = []; parameterless = false}; args = [Var leftBdg]}
       let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
       if acnsVars.IsEmpty then
         eitherMatchExpr scrut (Some leftBdg) leftBody None UnitLit
@@ -1866,7 +2037,7 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
     [fd], call
   | Decode ->
     let retTpe = tupleType (tpe :: acnTps)
-    let fnRetTpe = ClassType (eitherMutTpe errTpe retTpe)
+    let fnRetTpe = eitherMutTpe errTpe retTpe
     let outerPVal = {Var.name = outerSel.arg.asIdentifier; tpe = tpe}
     let retInnerFd =
       let retVal = mkTuple (Var recPVal :: (acnsVars |> List.map Var))
@@ -1934,7 +2105,7 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
       let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc] @ (paramsAcn |> List.map Var); parameterless = true}
       let leftBdg = {Var.name = "l"; tpe = errTpe}
       // TODO: FIXME: the right type must be the outside type!!!
-      let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
+      let leftHACK = ClassCtor {ct = {prefix = []; id = leftMutId; tps = []; parameterless = false}; args = [Var leftBdg]}
       let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
       let rightBdg = {Var.name = "v"; tpe = tpe}
       let rightBody = Var rightBdg
@@ -2213,7 +2384,6 @@ let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1
   if r.args.stainlessInvertibility && enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaEnum enc t nestingScope enm]
   else []
 
-
 let generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
   None
 
@@ -2232,7 +2402,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
   let outerSqf =
     if enc = ACN || codec = Decode then Var sqfVar
     else SelectionExpr (joinedSelection pg.cs.arg)
-  let collTpe = ClassType (vecTpe elemTpe)
+  let collTpe = vecTpe elemTpe
   let td =
     match sqf with
     | SqOf sqf -> sqf.typeDef.[Scala].typeName
@@ -2297,7 +2467,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
       match sqf with
       | StrType _ when not sqf.isFixedSize -> [count]
       | _ -> []
-    let fnRetTpe = ClassType (eitherTpe (IntegerType Int) (IntegerType Int))
+    let fnRetTpe = eitherTpe (IntegerType Int) (IntegerType Int)
     let reccall = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc] @ (countParam |> List.map Var) @ [Var sqfVar; plus [Var from; int32lit 1I]]; parameterless = true}
     let checkRange =
       match sqf with
@@ -2400,7 +2570,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
 
   let mkDecodeRecursiveFn (): FunDef * Expr =
     let countParam = if sqf.isFixedSize then [] else [count]
-    let fnRetTpe = ClassType (eitherMutTpe (IntegerType Int) collTpe)
+    let fnRetTpe = eitherMutTpe (IntegerType Int) collTpe
     let sqfVecVar = {Var.name = pg.cs.arg.asIdentifier; tpe = collTpe}
     let thnCase =
       let ret =
@@ -2475,13 +2645,13 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
       let scrut = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc] @ count @ [vecEmpty elemTpe; int32lit 0I]; parameterless = true}
       let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
       // TODO: FIXME: the right type must be the outside type!!!
-      let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
+      let leftHACK = ClassCtor {ct = {prefix = []; id = leftMutId; tps = []; parameterless = false}; args = [Var leftBdg]}
       let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
       let rightBdg = {Var.name = "bdg"; tpe = collTpe}
       let rightBody =
         match sqf with
         | SqOf _ ->
-          let ctor = ClassCtor {ct = {id = td; tps = []}; args = count @ [Var rightBdg]}
+          let ctor = ClassCtor {ct = {prefix = []; id = td; tps = []; parameterless = false}; args = count @ [Var rightBdg]}
           letsIn [sqfVar, ctor] (mkBlock ((sizeLemmaCall |> Option.map Ghost |> Option.toList) @ [Var sqfVar]))
         | StrType _ -> mkBlock ((sizeLemmaCall |> Option.map Ghost |> Option.toList) @ [Var rightBdg])
       letsIn [sqfVar, eitherMutMatchExpr scrut (Some leftBdg) leftBody (Some rightBdg) rightBody] (mkBlock [])
@@ -2555,7 +2725,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
           | StrType str -> str
           | _ -> failwith "ACN reference to string but not a StrType?"
         let countParam = if sqf.isFixedSize then [] else [count]
-        let fnRetTpe = ClassType (eitherMutTpe (IntegerType Int) collTpe)
+        let fnRetTpe = eitherMutTpe (IntegerType Int) collTpe
         let fromBounds =
           if sqf.isFixedSize then []
           else [Precond (Leq (int32lit 0I, nbItems))]
@@ -2588,7 +2758,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
           let scrut = FunctionCall {prefix = []; id = fdWrapper.id; tps = []; args = [Var cdc] @ countAcnVar; parameterless = true}
           let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
           // TODO: FIXME: the right type must be the outside type!!!
-          let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
+          let leftHACK = ClassCtor {ct = {prefix = []; id = leftMutId; tps = []; parameterless = false}; args = [Var leftBdg]}
           let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
           let rightBdg = {Var.name = "bdg"; tpe = collTpe}
           let rightBody = mkBlock ((sizeLemmaCall |> Option.map Ghost |> Option.toList) @ [Var rightBdg])
@@ -2634,7 +2804,7 @@ let generateOptionalPrefixLemma (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
   let existVar = soc.existVar |> Option.map (fun v -> {Var.name = v; tpe = BooleanType})
   let mkSizeExpr = fun v1 c1 -> optionalSizeExpr soc.child.toAsn1AcnAst (Var v1) (bitIndexACN (Var c1)) 0I 0I
   let elemTpe = fromAsn1TypeKind soc.child.Type.Kind.baseKind
-  let tpe = ClassType (optionMutTpe elemTpe)
+  let tpe = optionMutTpe elemTpe
   generatePrefixLemmaCommon enc tpe soc.child.Type.toAsn1AcnAst.acnMaxSizeInBits baseId ((existVar |> Option.toList) @ paramsAcn) [] mkSizeExpr soc.nestingScope mkProof
 
   (*
@@ -2723,7 +2893,7 @@ let generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
     let oldCdc = {Var.name = $"oldCdc"; tpe = ClassType codecTpe}
     let childAsn1Tpe = soc.child.Type.toAsn1AcnAst
     let childTpe = fromAsn1TypeKind soc.child.Type.Kind.baseKind
-    let optChildTpe = ClassType (optionMutTpe childTpe)
+    let optChildTpe = optionMutTpe childTpe
     let fnid, fnIdPure =
       let fnId =
         match codec with
@@ -2745,7 +2915,7 @@ let generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
     match codec with
     | Encode ->
       let rightTpe = IntegerType Int
-      let fnRetTpe = ClassType (eitherTpe errTpe rightTpe)
+      let fnRetTpe = eitherTpe errTpe rightTpe
       let childVar = {Var.name = soc.p.arg.lastId; tpe = optChildTpe}
       let cstrCheck =
         isValidFuncName |> Option.map (fun validFnName ->
@@ -2784,7 +2954,7 @@ let generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
         let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc; Var outermostPVal] @ ((acnExtVars @ paramsAcn) |> List.map Var) @ [outerPVal]; parameterless = true}
         let leftBdg = {Var.name = "l"; tpe = errTpe}
         // TODO: FIXME: the right type must be the outside type!!!
-        let leftHACK = ClassCtor {ct = {id = leftId; tps = []}; args = [Var leftBdg]}
+        let leftHACK = ClassCtor {ct = {prefix = []; id = leftId; tps = []; parameterless = false}; args = [Var leftBdg]}
         let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
         eitherMatchExpr scrut (Some leftBdg) leftBody None UnitLit
 
@@ -2795,7 +2965,7 @@ let generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
       let rightTpe = optChildTpe
       let outerPVal = {Var.name = soc.p.arg.asIdentifier; tpe = rightTpe}
       let encDec = EncDec (soc.childBody {soc.p with arg = soc.p.arg.asLastOrSelf} soc.existVar)
-      let fnRetTpe = ClassType (eitherMutTpe errTpe rightTpe)
+      let fnRetTpe = eitherMutTpe errTpe rightTpe
       let retVal = {Var.name = soc.p.arg.lastId; tpe = childTpe}
       let retInnerFd =
         let rightRet = rightMutExpr errTpe rightTpe (Var retVal)
@@ -2839,7 +3009,7 @@ let generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
         let scrut = FunctionCall {prefix = []; id = fd.id; tps = []; args = [Var cdc] @ (existVar |> Option.map Var |> Option.toList) @ (paramsAcn |> List.map Var); parameterless = true}
         let leftBdg = {Var.name = "l"; tpe = errTpe}
         // TODO: FIXME: the right type must be the outside type!!!
-        let leftHACK = ClassCtor {ct = {id = leftMutId; tps = []}; args = [Var leftBdg]}
+        let leftHACK = ClassCtor {ct = {prefix = []; id = leftMutId; tps = []; parameterless = false}; args = [Var leftBdg]}
         let leftBody = Return leftHACK // (leftMutExpr errTpe tpe (Var leftBdg)) // TODO: Wrong tpe, it's the one outside!!!
         let rightBdg = {Var.name = "v"; tpe = childTpe}
         let rightBody = Var rightBdg
