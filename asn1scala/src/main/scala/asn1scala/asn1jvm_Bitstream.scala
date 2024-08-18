@@ -177,6 +177,13 @@ object BitStream {
    }.ensuring(_ => BitStream.remainingBits(b.buf.length.toLong, b.currentByte.toLong, b.currentBit.toLong) == b.buf.length.toLong * NO_OF_BITS_IN_BYTE - BitStream.bitIndex(b.buf.length, b.currentByte, b.currentBit ))
 
    @ghost @pure @opaque @inlineOnce
+   def resetAtEqLemma(b1: BitStream, b2: BitStream, b3: BitStream): Unit = {
+      require(b1.buf == b2.buf)
+      require(b1.buf.length == b3.buf.length)
+      require(b1.bitIndex == b3.bitIndex)
+   }.ensuring(_ => b1 == b2.resetAt(b3))
+
+   @ghost @pure @opaque @inlineOnce
    def validateOffsetBytesContentIrrelevancyLemma(b1: BitStream, buf: Array[Byte], bytes: Int): Unit = {
       require(b1.buf.length == buf.length)
       require(bytes >= 0)

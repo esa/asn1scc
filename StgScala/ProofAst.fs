@@ -627,6 +627,9 @@ let alignedToWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedT
 
 let alignedToDWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToDWord"; tps = []; args = [bits]; parameterless = true}
 
+let codecWrapper (bitstream: Expr): Expr = ClassCtor {ct = codecClsTpe; args = [bitstream]}
+let acnWrapperBitstream (bitstream: Expr): Expr = ClassCtor {ct = acnClsTpe; args = [codecWrapper bitstream]}
+let acnWrapperCodec (codec: Expr): Expr = ClassCtor {ct = acnClsTpe; args = [codec]}
 
 
 let alignedTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr): Expr =
@@ -649,11 +652,14 @@ let alignedSizeTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr) 
   | Some AcnGenericTypes.NextWord -> alignedSizeToWord bits offset
   | Some AcnGenericTypes.NextDWord -> alignedSizeToDWord bits offset
 
-let validReflexiveLemma (b: Expr): Expr =
-  FunctionCall { prefix = [bitStreamId]; id = "validReflexiveLemma"; tps = []; args = [selBitStreamACN b]; parameterless = true }
+let resetAtEqLemma (b1: Expr) (b2: Expr) (b3: Expr): Expr =
+  FunctionCall { prefix = [bitStreamId]; id = "resetAtEqLemma"; tps = []; args = [selBitStreamACN b1; selBitStreamACN b2; selBitStreamACN b3]; parameterless = true }
 
-let validTransitiveLemma (b1: Expr) (b2: Expr) (b3: Expr): Expr =
-  FunctionCall { prefix = [bitStreamId]; id = "validTransitiveLemma"; tps = []; args = [selBitStreamACN b1; selBitStreamACN b2; selBitStreamACN b3]; parameterless = true }
+let lemmaIsPrefixRefl (b: Expr): Expr =
+  FunctionCall { prefix = [bitStreamId]; id = "lemmaIsPrefixRefl"; tps = []; args = [selBitStreamACN b]; parameterless = true }
+
+let lemmaIsPrefixTransitive (b1: Expr) (b2: Expr) (b3: Expr): Expr =
+  FunctionCall { prefix = [bitStreamId]; id = "lemmaIsPrefixTransitive"; tps = []; args = [selBitStreamACN b1; selBitStreamACN b2; selBitStreamACN b3]; parameterless = true }
 
 let validateOffsetBitsIneqLemma (b1: Expr) (b2: Expr) (b1ValidateOffsetBits: Expr) (advancedAtMostBits: Expr): Expr =
   FunctionCall { prefix = [bitStreamId]; id = "validateOffsetBitsIneqLemma"; tps = []; args = [b1; b2; b1ValidateOffsetBits; advancedAtMostBits]; parameterless = true }
