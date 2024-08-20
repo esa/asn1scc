@@ -577,14 +577,19 @@ let ifElseBranches (branches: (Expr * Expr) list) (els: Expr): Expr =
 let selBaseACN (recv: Expr): Expr = FieldSelect (recv, "base")
 
 let selBitStreamCodec (recv: Expr): Expr = FieldSelect (recv, "bitStream")
+
 let selBitStreamACN (recv: Expr): Expr = FieldSelect (selBaseACN recv, "bitStream")
 
 let selBufBitStream (recv: Expr): Expr = FieldSelect (recv, "buf")
+
 let selBufCodec (recv: Expr): Expr = FieldSelect (selBitStreamCodec recv, "buf")
+
 let selBufACN (recv: Expr): Expr = FieldSelect (selBaseACN recv, "buf")
 
 let selBufLengthBitStream (recv: Expr): Expr =  ArrayLength recv
+
 let selBufLengthCodec (recv: Expr): Expr =  ArrayLength (selBufCodec recv)
+
 let selBufLengthACN (recv: Expr): Expr =  ArrayLength (selBufACN recv)
 
 let selCurrentByteACN (recv: Expr): Expr =  FieldSelect (selBitStreamACN recv, "currentByte")
@@ -592,12 +597,26 @@ let selCurrentByteACN (recv: Expr): Expr =  FieldSelect (selBitStreamACN recv, "
 let selCurrentBitACN (recv: Expr): Expr =  FieldSelect (selBitStreamACN recv, "currentBit")
 
 let bitIndexBitStream (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = recv; args = []; parameterless = true }
+
 let bitIndexCodec (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = selBitStreamCodec recv; args = []; parameterless = true }
+
 let bitIndexACN (recv: Expr): Expr = MethodCall { id = "bitIndex"; recv = selBitStreamACN recv; args = []; parameterless = true }
 
 let resetAtACN (recv: Expr) (arg: Expr): Expr = MethodCall { id = "resetAt"; recv = recv; args = [arg]; parameterless = true }
 
 let withMovedBitIndexACN (recv: Expr) (diff: Expr): Expr = MethodCall { id = "withMovedBitIndex"; recv = recv; args = [diff]; parameterless = true }
+
+let withAlignedToByteACN (recv: Expr): Expr = MethodCall { id = "withAlignedToByte"; recv = recv; args = []; parameterless = false }
+
+let withAlignedToShortACN (recv: Expr): Expr = MethodCall { id = "withAlignedToShort"; recv = recv; args = []; parameterless = false }
+
+let withAlignedToIntACN (recv: Expr): Expr = MethodCall { id = "withAlignedToInt"; recv = recv; args = []; parameterless = false }
+
+let withAlignedToACN (align: AcnGenericTypes.AcnAlignment) (recv: Expr): Expr =
+  match align with
+  | AcnGenericTypes.AcnAlignment.NextByte -> withAlignedToByteACN recv
+  | AcnGenericTypes.AcnAlignment.NextWord -> withAlignedToShortACN recv
+  | AcnGenericTypes.AcnAlignment.NextDWord -> withAlignedToIntACN recv
 
 let invariant (recv: Expr): Expr = FunctionCall { prefix = [bitStreamId]; id = "invariant"; tps = []; args = [selCurrentBitACN recv; selCurrentByteACN recv; selBufLengthACN recv]; parameterless = true }
 
@@ -608,8 +627,6 @@ let validateOffsetBitsACN (recv: Expr) (offset: Expr): Expr = MethodCall { id = 
 let isPrefixOfACN (recv: Expr) (other: Expr): Expr = MethodCall { id = "isPrefixOf"; recv = selBitStreamACN recv; args = [selBitStreamACN other]; parameterless = true }
 
 let callSize (recv: Expr) (offset: Expr): Expr = MethodCall { id = "size"; recv = recv; args = [offset]; parameterless = true }
-
-// let sizeRange (recv: Expr) (offset: Expr) (from: Expr) (tto: Expr): Expr = MethodCall { id = "sizeRange"; recv = recv; args = [offset; from; tto] }
 
 let getLengthForEncodingSigned (arg: Expr): Expr = FunctionCall { prefix = []; id = "GetLengthForEncodingSigned"; tps = []; args = [arg]; parameterless = true }
 
@@ -628,7 +645,9 @@ let alignedToWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedT
 let alignedToDWord (bits: Expr): Expr = FunctionCall {prefix = []; id = "alignedToDWord"; tps = []; args = [bits]; parameterless = true}
 
 let codecWrapper (bitstream: Expr): Expr = ClassCtor {ct = codecClsTpe; args = [bitstream]}
+
 let acnWrapperBitstream (bitstream: Expr): Expr = ClassCtor {ct = acnClsTpe; args = [codecWrapper bitstream]}
+
 let acnWrapperCodec (codec: Expr): Expr = ClassCtor {ct = acnClsTpe; args = [codec]}
 
 
@@ -639,11 +658,17 @@ let alignedTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr): Exp
   | Some AcnGenericTypes.NextWord -> alignedToWord bits
   | Some AcnGenericTypes.NextDWord -> alignedToDWord bits
 
-let alignedSizeToByte (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToByte"; tps = []; args = [bits; offset]; parameterless = true}
+let alignedSizeToByteId: Identifier = "alignedSizeToByte"
 
-let alignedSizeToWord (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToWord"; tps = []; args = [bits; offset]; parameterless = true}
+let alignedSizeToWordId: Identifier = "alignedSizeToWord"
 
-let alignedSizeToDWord (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = "alignedSizeToDWord"; tps = []; args = [bits; offset]; parameterless = true}
+let alignedSizeToDWordId: Identifier = "alignedSizeToDWord"
+
+let alignedSizeToByte (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = alignedSizeToByteId; tps = []; args = [bits; offset]; parameterless = true}
+
+let alignedSizeToWord (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = alignedSizeToWordId; tps = []; args = [bits; offset]; parameterless = true}
+
+let alignedSizeToDWord (bits: Expr) (offset: Expr): Expr = FunctionCall {prefix = []; id = alignedSizeToDWordId; tps = []; args = [bits; offset]; parameterless = true}
 
 let alignedSizeTo (alignment: AcnGenericTypes.AcnAlignment option) (bits: Expr) (offset: Expr): Expr =
   match alignment with

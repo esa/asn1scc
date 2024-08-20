@@ -419,6 +419,35 @@ case class ACN(base: Codec) {
    @pure @inline
    def isPrefixOf(acn2: ACN): Boolean = bitStream.isPrefixOf(acn2.base.bitStream)
 
+
+   @inline @pure @ghost
+   def withAlignedToByte(): ACN = {
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length.toLong, base.bitStream.currentByte.toLong, base.bitStream.currentBit.toLong,
+         (NO_OF_BITS_IN_BYTE - base.bitStream.currentBit) & (NO_OF_BITS_IN_BYTE - 1)
+      ))
+      ACN(base.withAlignedToByte())
+   }
+
+   @inline @pure @ghost
+   def withAlignedToShort(): ACN = {
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length.toLong, base.bitStream.currentByte.toLong, base.bitStream.currentBit.toLong,
+         (NO_OF_BITS_IN_SHORT -                                                                                               // max alignment (16) -
+            (NO_OF_BITS_IN_BYTE * (base.bitStream.currentByte & (NO_OF_BYTES_IN_JVM_SHORT - 1)) + base.bitStream.currentBit)  // current pos
+            ) & (NO_OF_BITS_IN_SHORT - 1))                                                                                    // edge case (0,0) -> 0
+      )
+      ACN(base.withAlignedToShort())
+   }
+
+   @inline @pure @ghost
+   def withAlignedToInt(): ACN = {
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length.toLong, base.bitStream.currentByte.toLong, base.bitStream.currentBit.toLong,
+         (NO_OF_BITS_IN_INT -                                                                                              // max alignment (32) -
+            (NO_OF_BITS_IN_BYTE * (base.bitStream.currentByte & (NO_OF_BYTES_IN_JVM_INT - 1)) + base.bitStream.currentBit) // current pos
+            ) & (NO_OF_BITS_IN_INT - 1))                                                                                   // edge case (0,0) -> 0
+      )
+      ACN(base.withAlignedToInt())
+   }
+
    // @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize_8(intVal: ULong): Unit = {
       require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))

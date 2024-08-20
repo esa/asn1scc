@@ -326,6 +326,10 @@ type LangGeneric_scala() =
             let fds = generateIntegerAuxiliaries r enc t int nestingScope sel codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
+        override this.generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateBooleanAuxiliaries r enc t boolean nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
+
         override this.generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list * string option =
             let fds, call = generateSequenceOfLikeAuxiliaries r enc o pg codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""]), Some (show (ExprTree call))

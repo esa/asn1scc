@@ -287,7 +287,7 @@ object BitStream {
       val read2 = bs2Reset.readBytePure()._2
 
       {
-         val aligned = BitStream.bitIndex(bs1.withAlignedByte().buf.length, bs1.withAlignedByte().currentByte, bs1.withAlignedByte().currentBit )
+         val aligned = BitStream.bitIndex(bs1.withAlignedToByte().buf.length, bs1.withAlignedToByte().currentByte, bs1.withAlignedToByte().currentBit )
          arrayBitRangesEqSlicedLemma(bs1.buf, bs2.buf, 0, rangeEqUntil, BitStream.bitIndex(bs1.buf.length, bs1.currentByte, bs1.currentBit ), aligned)
          arrayBitRangesEqSlicedLemma(bs1.buf, bs2.buf, 0, rangeEqUntil, aligned, BitStream.bitIndex(bs1.buf.length, bs1.currentByte, bs1.currentBit ) + 8)
       }.ensuring { _ =>
@@ -2573,7 +2573,7 @@ case class BitStream private [asn1scala](
    }.ensuring(_ => this.buf == old(this).buf && BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) <= BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + 7)
 
    @pure @ghost
-   def withAlignedByte(): BitStream = {
+   def withAlignedToByte(): BitStream = {
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
          (NO_OF_BITS_IN_BYTE - currentBit) & (NO_OF_BITS_IN_BYTE - 1)
       ))
@@ -2593,6 +2593,19 @@ case class BitStream private [asn1scala](
       currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_SHORT - 1)) / NO_OF_BYTES_IN_JVM_SHORT) * NO_OF_BYTES_IN_JVM_SHORT
    }
 
+   @pure @ghost
+   def withAlignedToShort(): BitStream = {
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
+         (NO_OF_BITS_IN_SHORT -                                                                 // max alignment (16) -
+            (NO_OF_BITS_IN_BYTE * (currentByte & (NO_OF_BYTES_IN_JVM_SHORT - 1)) + currentBit)  // current pos
+            ) & (NO_OF_BITS_IN_SHORT - 1))                                                      // edge case (0,0) -> 0
+      )
+
+      val cpy = snapshot(this)
+      cpy.alignToShort()
+      cpy
+   }
+
    def alignToInt(): Unit = {
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
          (NO_OF_BITS_IN_INT -                                                                // max alignment (32) -
@@ -2602,5 +2615,18 @@ case class BitStream private [asn1scala](
 
       alignToByte()
       currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_INT - 1)) / NO_OF_BYTES_IN_JVM_INT) * NO_OF_BYTES_IN_JVM_INT
+   }
+
+   @pure @ghost
+   def withAlignedToInt(): BitStream = {
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
+         (NO_OF_BITS_IN_INT -                                                                // max alignment (32) -
+            (NO_OF_BITS_IN_BYTE * (currentByte & (NO_OF_BYTES_IN_JVM_INT - 1)) + currentBit) // current pos
+            ) & (NO_OF_BITS_IN_INT - 1))                                                     // edge case (0,0) -> 0
+      )
+
+      val cpy = snapshot(this)
+      cpy.alignToInt()
+      cpy
    }
 } // BitStream class

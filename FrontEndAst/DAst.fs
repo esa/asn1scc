@@ -993,7 +993,7 @@ and DastAcnParameter = {
 
 and Asn1Type = {
     id              : ReferenceToType
-    acnAlignment     : AcnGenericTypes.AcnAlignment option
+    acnAlignment    : AcnGenericTypes.AcnAlignment option
     acnParameters   : DastAcnParameter list
     Location        : SrcLoc //Line no, Char pos
     moduleName      : string

@@ -172,7 +172,7 @@ object Codec {
  */
 case class Codec(bitStream: BitStream) {
    import Codec.*
-   export bitStream.{resetAt => _, withMovedByteIndex => _, withMovedBitIndex => _, isPrefixOf => _, readNLSBBitsMSBFirstPure => _, *}
+   export bitStream.{resetAt => _, withMovedByteIndex => _, withMovedBitIndex => _, isPrefixOf => _, readNLSBBitsMSBFirstPure => _, withAlignedToByte => _, withAlignedToShort => _, withAlignedToInt => _, *}
 
    @ghost @pure @inline
    def resetAt(other: Codec): Codec = {
@@ -348,7 +348,7 @@ case class Codec(bitStream: BitStream) {
          // assert(min + decVal <= max) // TODO: T.O
 
          (min + decVal): ULong
-   }.ensuring(_ => buf == old(this).buf && BitStream.bitIndex(this.bitStream.buf.length, this.bitStream.currentByte, this.bitStream.currentBit) == BitStream.bitIndex(old(this).bitStream.buf.length, old(this).bitStream.currentByte, old(this).bitStream.currentBit) + GetBitCountUnsigned(max - min))
+   }.ensuring(res => buf == old(this).buf && BitStream.bitIndex(this.bitStream.buf.length, this.bitStream.currentByte, this.bitStream.currentBit) == BitStream.bitIndex(old(this).bitStream.buf.length, old(this).bitStream.currentByte, old(this).bitStream.currentBit) + GetBitCountUnsigned(max - min) && min <= res && res <= max)
 
    @ghost @pure
    def decodeConstrainedPosWholeNumberPure(min: ULong, max: ULong): (Codec, ULong) = {
@@ -2186,4 +2186,32 @@ case class Codec(bitStream: BitStream) {
       arr.length == asn1SizeMax.toInt &&
       old(arr).length == arr.length
       )
+
+   @inline @pure @ghost
+   def withAlignedToByte(): Codec = {
+      require(BitStream.validate_offset_bits(bitStream.buf.length.toLong, bitStream.currentByte.toLong, bitStream.currentBit.toLong,
+         (NO_OF_BITS_IN_BYTE - bitStream.currentBit) & (NO_OF_BITS_IN_BYTE - 1)
+      ))
+      Codec(bitStream.withAlignedToByte())
+   }
+
+   @inline @pure @ghost
+   def withAlignedToShort(): Codec = {
+      require(BitStream.validate_offset_bits(bitStream.buf.length.toLong, bitStream.currentByte.toLong, bitStream.currentBit.toLong,
+         (NO_OF_BITS_IN_SHORT -                                                                                     // max alignment (16) -
+            (NO_OF_BITS_IN_BYTE * (bitStream.currentByte & (NO_OF_BYTES_IN_JVM_SHORT - 1)) + bitStream.currentBit)  // current pos
+            ) & (NO_OF_BITS_IN_SHORT - 1))                                                                          // edge case (0,0) -> 0
+      )
+      Codec(bitStream.withAlignedToShort())
+   }
+
+   @inline @pure @ghost
+   def withAlignedToInt(): Codec = {
+      require(BitStream.validate_offset_bits(bitStream.buf.length.toLong, bitStream.currentByte.toLong, bitStream.currentBit.toLong,
+         (NO_OF_BITS_IN_INT -                                                                                    // max alignment (32) -
+            (NO_OF_BITS_IN_BYTE * (bitStream.currentByte & (NO_OF_BYTES_IN_JVM_INT - 1)) + bitStream.currentBit) // current pos
+            ) & (NO_OF_BITS_IN_INT - 1))                                                                         // edge case (0,0) -> 0
+      )
+      Codec(bitStream.withAlignedToInt())
+   }
 }
