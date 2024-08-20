@@ -1603,7 +1603,120 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       body = body
     }
 
-  let mkFieldSubproofFn (data: PrefixLemmaData) (ix: int) (child: Asn1AcnAst.SeqChildInfo option): SeqPrefixLemmaSubproofData =
+  let transformAcnEnumerated (enm: AcnReferenceToEnumerated) (info: PrimitiveDecodeInfo) (decodedVar: Var): Expr =
+    // For Enumerated, we need to transform the integer to a Scala enum
+    let intTpe =
+      match info.tpe with
+      | IntegerType tp -> tp
+      | _ -> failwith $"Enumerated is not an IntegerType type"
+    let branches = enm.enumerated.items |> List.map (fun i ->
+      let cond = Equals (Var decodedVar, IntLit (intTpe, i.acnEncodeValue))
+      let branch = ClassCtor {ct = {prefix = [enm.enumerated.typeDef.[Scala].typeName]; id = i.scala_name; tps = []; parameterless = true}; args = []}
+      cond, branch
+    )
+    // TODO: For mkFieldCodecOriginFn, what about the "???" ?
+    ifElseBranches branches (mkBlock [Check (BoolLit false); TripleQMark])
+
+
+  let mkFieldCodecOriginFn (data: PrefixLemmaData) (ix: int) (child: Asn1AcnAst.SeqChildInfo option) (childData: SeqChildDecodeMiscData) (prevChildrenData: (Asn1AcnAst.SeqChildInfo option * SeqChildDecodeMiscData option) list): FunDef =
+    assert (ix <> 0)
+    let origC1 = data.c1
+    let c1 = {Var.name = $"c1_{ix + 1}"; tpe = origC1.tpe}
+    let allReturnedCodecs = [0..ix] |> List.map (fun i -> {Var.name = $"c1_{i + 2}_got"; tpe = origC1.tpe})
+    // The ACN parameter passed to this "origin function", which we distinguish with prefix "prm_"
+    let acnParams = childData.common.paramsAcn |> List.map (fun v -> {v with name = $"prm_{v.name}"})
+
+    let mkAcnBinding (child: AcnChild) (decInfo: DecodeInfo) (decodedVar: Var): Var * Expr =
+      let v = {Var.name = getAcnDeterminantName child.id; tpe = fromAcnInsertedType child.Type}
+      match child.Type with
+      | AcnReferenceToEnumerated enm ->
+        let primDecInfo =
+          match decInfo with
+          | PrimitiveDecodeInfo info -> info
+          | _ -> failwith "Enumerated ACN child decoded with a generated function?"
+        v, transformAcnEnumerated enm primDecInfo decodedVar
+      | _ -> v, Var decodedVar
+
+    let makeCall (ix: int) (child: Asn1AcnAst.SeqChildInfo option) (childData: SeqChildDecodeMiscData option) (rest: Expr): Expr =
+      let currCodec =
+        if ix = 0 then origC1
+        else allReturnedCodecs.[ix - 1]
+      let retCdc = allReturnedCodecs.[ix]
+      match childData with
+      | None ->
+        // NullType, we only bind the codecs
+        letsIn [retCdc, Var currCodec] rest
+      | Some childData ->
+        let assertion =
+          if ix = 0 then []
+          else
+            let overallOffset = childrenSizes |> List.take ix |> List.map Var |> plus
+            [Assert (Equals (bitIndexACN (Var currCodec), plus [bitIndexACN (Var origC1); overallOffset]))]
+        let call =
+          match childData.decInfo with
+          | PrimitiveDecodeInfo info ->
+            let decData = decodePureCallPrimitiveHelper childData child info $"dec_{ix + 2}_got" (Var currCodec)
+            // Note: methods from BitStream/Codec return BitStream/Codec, so we need to wrap them back into an ACN codec.
+            let wrapAcn (cdcId: Identifier) (recv: Expr): Expr =
+              assert (cdcId = bitStreamId || cdcId = codecId)
+              if cdcId = codecId then ClassCtor {ct = acnClsTpe; args = [recv]}
+              else ClassCtor {ct = acnClsTpe; args = [ClassCtor {ct = codecClsTpe; args = [recv]}]}
+
+            let acnBinding =
+              match child with
+              | Some (AcnChild c) -> [mkAcnBinding c childData.decInfo decData.dec]
+              | Some (Asn1Child _) | None -> []
+
+            let mkNonAcnBdg (cdcId: Identifier): Expr =
+              assert (cdcId = bitStreamId || cdcId = codecId)
+              let cdcTpe = ClassType {prefix = []; id = cdcId; tps = []; parameterless = false}
+              let retCdcTmp = {Var.name = $"{retCdc.name}_tmp"; tpe = cdcTpe}
+              letTuple [retCdcTmp; decData.dec] decData.decCall (mkBlock [
+                letsIn [retCdc, wrapAcn cdcId (Var retCdcTmp)] (letsIn acnBinding rest)
+              ])
+            if info.prefix = [bitStreamId] then mkNonAcnBdg bitStreamId
+            else if info.prefix = [codecId] then mkNonAcnBdg codecId
+            else letTuple [retCdc; decData.dec] decData.decCall (letsIn acnBinding rest)
+          | ComposedDecodeInfo info ->
+            let mkRightCase (decodedRes: Var) (decodedAcns: Var list): Expr =
+              // The ACN values returned by this function. The variable names are important here as
+              // they will be picked up by later calls that depends on these ACNs.
+              let acnVars = childData.common.acns |> List.map (fun c -> {Var.name = getAcnDeterminantName c.id; tpe = fromAcnInsertedType c.Type})
+              assert (acnVars.Length = decodedAcns.Length)
+              if decodedAcns.IsEmpty then
+                match child with
+                | Some (AcnChild c) ->
+                  letsIn [mkAcnBinding c childData.decInfo decodedRes] rest
+                | Some (Asn1Child _) | None -> rest
+              else
+                // Only Asn1 children (in particular, sequences) may return ACN values
+                assert (
+                  match child with
+                  | Some (AcnChild _) | None -> false
+                  | Some (Asn1Child _) -> true
+                )
+                let bdgs = List.zip acnVars (decodedAcns |> List.map Var)
+                letsIn bdgs rest
+            let helperRes = decodePureCallComposedHelper childData.common info childData.existArg $"dec_{ix + 2}_got" (Var currCodec) (fun _ _ -> BoolLit false) mkRightCase
+            letTuple [retCdc; helperRes.dec] helperRes.decCall helperRes.extracted
+
+        mkBlock (assertion @ [call])
+
+    ///////////////
+
+    let theCondition =
+      let lastCodec = allReturnedCodecs.[ix - 1]
+      let cdcEq = Equals (Var lastCodec, Var c1)
+      let acnsEq = List.zip childData.common.paramsAcn acnParams |> List.map (fun (acn1, acn2) -> Equals (Var acn1, Var acn2))
+      if acnsEq.IsEmpty then cdcEq
+      else And (cdcEq :: acnsEq)
+
+    let body = List.foldBack (fun (ix, (child, childData)) rest -> makeCall ix child childData rest) (prevChildrenData |> List.indexed) theCondition
+    {FunDef.id = $"{childData.name}_codec_origin"; prms = c1 :: acnParams; annots = [Opaque]; specs = []; postcond = None; returnTpe = BooleanType; body = body}
+
+  /////////////////////////////////
+
+  let mkFieldSubproofFn (data: PrefixLemmaData) (ix: int) (child: Asn1AcnAst.SeqChildInfo option) (childData: SeqChildDecodeMiscData) (originFnId: Identifier option): FunDef =
     let origC1 = data.c1
     let origC2Reset = data.c2Reset
     let c1, c2 =
@@ -1613,9 +1726,14 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
     let overallOffset = if ix = 0 then longlit 0I else childrenSizes |> List.take ix |> List.map Var |> plus
     let childSize = childrenSizes.[ix]
 
+    // This is None for the first child, since this function only make sense for the subsequent children
+    let origCodecFnCall = originFnId |> Option.map (fun id ->
+      ApplyLetRec {id = id; args = (Var c1) :: (childData.common.paramsAcn |> List.map Var)}
+    )
+
     let specs =
       if ix = 0 then []
-      else [
+      else (origCodecFnCall |> Option.map Precond |> Option.toList) @ [
         Precond (Equals (selBufACN (Var c1), selBufACN (Var origC1)))
         Precond (Equals (selBufACN (Var c2), selBufACN (Var origC2Reset)))
         Precond (Equals (bitIndexACN (Var c1), plus [bitIndexACN (Var origC1); overallOffset]))
@@ -1637,7 +1755,6 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       Assert (arrayBitRangesEq (selBufACN (Var c1)) (selBufACN (Var c2Moved)) (longlit 0I) (plus [bitIndexACN (Var c1); Var childSize]))
     ]
 
-    let childData = seqChildDecodeMiscData (t :: (nestingScope.parents |> List.map snd)) ix child (Var data.v1)
     let acnTps = childData.common.acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
     let existArgList = childData.existArg |> Option.toList
     let c1Next = {Var.name = $"c1_{ix + 2}"; tpe = origC1.tpe}
@@ -1672,6 +1789,16 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
         }
 
         let proofLeftCase1 (_: Var) (_: Var list): Expr =
+          let body =
+            let callBodyWithC1 = ApplyLetRec {id = bodyWithC1Id; args = []}
+            match origCodecFnCall with
+            | Some origCodecFnCall ->
+              mkBlock [
+                Check origCodecFnCall
+                Unfold origCodecFnCall
+                callBodyWithC1
+              ]
+            | None -> callBodyWithC1
           let proofContradiction =
             {
               FunDef.id = $"proof_unreachability_{childData.name}"
@@ -1680,7 +1807,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
               specs = []
               postcond = Some ({Var.name = "_"; tpe = UnitType}, BoolLit false)
               returnTpe = UnitType
-              body = ApplyLetRec {id = bodyWithC1Id; args = []}
+              body = body
             }
           LetRec {fds = [proofContradiction]; body = mkBlock [ApplyLetRec {id = proofContradiction.id; args = []}; TripleQMark]}
         let mkRightCase (resBdg: Var) (decodedAcnsBdgs: Var list): Expr =
@@ -1726,7 +1853,12 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
         // Presence bits
         {bdgs = []; resSize = longlit 1I}
 
-    let conds = ([
+    let isRightConds =
+      match childData.decInfo with
+      | PrimitiveDecodeInfo _ -> []
+      | ComposedDecodeInfo _ -> [isRightExpr (Var decDataPostcond1.dec); isRightExpr (Var decDataPostcond2.dec)]
+
+    let conds = (isRightConds @ [
       Equals (v1Size.resSize, Var childSize)
       Equals (Var res1, Var res2)
     ] @ (List.zip decodedAcn1 decodedAcn2 |> List.map (fun (acn1, acn2) -> Equals (Var acn1, Var acn2))) @ [
@@ -1764,7 +1896,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
         ])
       ])
 
-    let fd = {
+    {
       FunDef.id = $"proof_{ToC childData.name}"
       prms = if ix = 0 then childData.common.paramsAcn else [c1; c2] @ childData.common.paramsAcn
       annots = [Opaque; InlineOnce]
@@ -1773,9 +1905,8 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       returnTpe = UnitType
       body = proof
     }
-    {fd = fd; existArg = childData.existArg; elemTpe = childData.common.elemTpe; decInfo = childData.decInfo; acns = childData.common.acns; paramsAcn = childData.common.paramsAcn}
 
-  let mkSubfieldProofCall (data: PrefixLemmaData) (ix: int) (child: Asn1AcnAst.SeqChildInfo option) (proofData: SeqPrefixLemmaSubproofData option): Expr =
+  let mkSubfieldProofCall (data: PrefixLemmaData) (ix: int) (child: Asn1AcnAst.SeqChildInfo option) (proofIdAndChildData: (Identifier * SeqChildDecodeMiscData) option) (originFnId: Identifier option): Expr =
     let origC1 = data.c1
     let origC2Reset = data.c2Reset
     let c1Prev, c2Prev =
@@ -1783,52 +1914,48 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       else {Var.name = $"c1_{ix}"; tpe = origC1.tpe}, {Var.name = $"c2_{ix}"; tpe = origC1.tpe}
     let c1, c2 = {Var.name = $"c1_{ix + 1}"; tpe = origC1.tpe}, {Var.name = $"c2_{ix + 1}"; tpe = origC1.tpe}
 
-    match proofData with
+    let mkAcnBinding (decInfo: DecodeInfo) (dec1: Var) (c: AcnChild): Expr =
+      // This ACN variable will be picked up by the later decode functions. It is important it to be bound with that specific name
+      // Note that the calls with c1 and c2 yield the same values, we arbitrarily pick the value from the call with c1.
+      let v = {Var.name = getAcnDeterminantName c.id; tpe = fromAcnInsertedType c.Type}
+      match c.Type with
+      | AcnReferenceToEnumerated enm ->
+        let primDecInfo =
+          match decInfo with
+          | PrimitiveDecodeInfo info -> info
+          | _ -> failwith "Enumerated ACN child decoded with a generated function?"
+        let transformed = transformAcnEnumerated enm primDecInfo dec1
+        letsIn [v, transformed] (mkBlock [])
+      | _ ->
+        match decInfo with
+        | PrimitiveDecodeInfo _ -> letsIn [v, Var dec1] (mkBlock [])
+        | ComposedDecodeInfo _ ->
+          let bdg = {Var.name = "bdg"; tpe = v.tpe}
+          let extracted = eitherMutMatchExpr (Var dec1) None (mkBlock [Check (BoolLit false); TripleQMark]) (Some bdg) (Var bdg)
+          letsIn [v, extracted] (mkBlock [])
+
+    match proofIdAndChildData with
     | None ->
       // NullType case: we assign the codecs to the previous ones
       // TODO: handle case where there is a bitpattern
       letsIn [(c1, Snapshot (Var c1Prev)); (c2, Snapshot (Var c2Prev))] (mkBlock [])
-    | Some proofData ->
+    | Some (proofId, childData) ->
       let codecArgs = if ix = 0 then [] else [Var c1Prev; Var c2Prev]
-      let existArgList = proofData.existArg |> Option.toList
+      let existArgList = childData.existArg |> Option.toList
 
-      let mkAcnBinding (dec1: Var) (c: AcnChild): Expr =
-        // This ACN variable will be picked up by the later decode functions. It is important it to be bound with that specific name
-        // Note that the calls with c1 and c2 yield the same values, we arbitrarily pick the value from the call with c1.
-        let v = {Var.name = getAcnDeterminantName c.id; tpe = fromAcnInsertedType c.Type}
-        match c.Type with
-        | AcnReferenceToEnumerated enm ->
-          // For Enumerated, we need to transform the integer to a Scala enum
-          let primDecInfo =
-            match proofData.decInfo with
-            | PrimitiveDecodeInfo info -> info
-            | _ -> failwith "Enumerated ACN child decoded with a generated function?"
-          let intTpe =
-            match primDecInfo.tpe with
-            | IntegerType tp -> tp
-            | _ -> failwith $"${v.name} has not an IntegerType type"
-          let branches = enm.enumerated.items |> List.map (fun i ->
-            let cond = Equals (Var dec1, IntLit (intTpe, i.acnEncodeValue))
-            let branch = ClassCtor {ct = {prefix = [enm.enumerated.typeDef.[Scala].typeName]; id = i.scala_name; tps = []; parameterless = true}; args = []}
-            cond, branch
-          )
-          let transform = ifElseBranches branches (mkBlock [Check (BoolLit false); TripleQMark])
-          letsIn [v, transform] (mkBlock [])
-        | _ ->
-          match proofData.decInfo with
-          | PrimitiveDecodeInfo _ -> letsIn [v, Var dec1] (mkBlock [])
-          | ComposedDecodeInfo _ ->
-            let bdg = {Var.name = "bdg"; tpe = v.tpe}
-            let extracted = eitherMutMatchExpr (Var dec1) None (mkBlock [Check (BoolLit false); TripleQMark]) (Some bdg) (Var bdg)
-            letsIn [v, extracted] (mkBlock [])
+      // This is None for the first child, since this function only make sense for the subsequent children
+      let origCodecFnCheck = originFnId |> Option.toList |> List.collect (fun id ->
+        let call = ApplyLetRec {id = id; args = (Var c1Prev) :: (childData.common.paramsAcn |> List.map Var)}
+        [Unfold call; Assert call]
+      )
 
       let callsBdgs =
-        match proofData.decInfo with
+        match childData.decInfo with
         | PrimitiveDecodeInfo info ->
-          let dec1 = {Var.name = $"dec1_{ix + 1}"; tpe = proofData.elemTpe}
-          let dec2 = {Var.name = $"dec2_{ix + 1}"; tpe = proofData.elemTpe}
-          let dec1Call = MethodCall {recv = selectCodecDecodeInfo proofData.decInfo (Var c1Prev); id = info.decodePureId; args = existArgList @ info.extraConstArgs; parameterless = false}
-          let dec2Call = MethodCall {recv = selectCodecDecodeInfo proofData.decInfo (Var c2Prev); id = info.decodePureId; args = existArgList @ info.extraConstArgs; parameterless = false}
+          let dec1 = {Var.name = $"dec1_{ix + 1}"; tpe = childData.common.elemTpe}
+          let dec2 = {Var.name = $"dec2_{ix + 1}"; tpe = childData.common.elemTpe}
+          let dec1Call = MethodCall {recv = selectCodecDecodeInfo childData.decInfo (Var c1Prev); id = info.decodePureId; args = existArgList @ info.extraConstArgs; parameterless = false}
+          let dec2Call = MethodCall {recv = selectCodecDecodeInfo childData.decInfo (Var c2Prev); id = info.decodePureId; args = existArgList @ info.extraConstArgs; parameterless = false}
 
           // Note: methods from BitStream/Codec return BitStream/Codec, so we need to wrap them back into an ACN codec.
           let callsBdgs =
@@ -1853,7 +1980,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
 
           let acnBinding =
             match child with
-            | Some (AcnChild c) -> mkAcnBinding dec1 c
+            | Some (AcnChild c) -> mkAcnBinding childData.decInfo dec1 c
             | Some (Asn1Child _) | None -> mkBlock []
 
           mkBlock [
@@ -1862,27 +1989,27 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
           ]
         | ComposedDecodeInfo info ->
           // The ACN values returned by this function. Since the calls with c1 and c2 yield the same values, we arbitrarily bind
-          // these variables to the first call. The variable name is important here as it will be picked up by later fields
+          // these variables to the first call. The variable name are important here as they will be picked up by later calls
           // that depends on these ACNs.
-          let acnVars = proofData.acns |> List.map (fun c -> {Var.name = getAcnDeterminantName c.id; tpe = fromAcnInsertedType c.Type})
+          let acnVars = childData.common.acns |> List.map (fun c -> {Var.name = getAcnDeterminantName c.id; tpe = fromAcnInsertedType c.Type})
           let acnTps = acnVars |> List.map (fun v -> v.tpe)
-          let decResTpe = eitherMutTpe (IntegerType Int) (tupleType (proofData.elemTpe :: acnTps))
+          let decResTpe = eitherMutTpe (IntegerType Int) (tupleType (childData.common.elemTpe :: acnTps))
           let dec1 = {Var.name = $"dec1_{ix + 1}"; tpe = decResTpe}
           let dec2 = {Var.name = $"dec2_{ix + 1}"; tpe = decResTpe}
           let dec1Call = FunctionCall {
             prefix = []; id = info.decodePureId; tps = []
-            args = [selectCodecDecodeInfo proofData.decInfo (Var c1Prev)] @ existArgList @ (proofData.paramsAcn |> List.map Var)
+            args = [Var c1Prev] @ existArgList @ (childData.common.paramsAcn |> List.map Var)
             parameterless = true
           }
           let dec2Call = FunctionCall {
             prefix = []; id = info.decodePureId; tps = []
-            args = [selectCodecDecodeInfo proofData.decInfo (Var c2Prev)] @ existArgList @ (proofData.paramsAcn |> List.map Var)
+            args = [Var c2Prev] @ existArgList @ (childData.common.paramsAcn |> List.map Var)
             parameterless = true
           }
           let acnBinding =
             if acnVars.IsEmpty then
               match child with
-              | Some (AcnChild c) -> mkAcnBinding dec1 c
+              | Some (AcnChild c) -> mkAcnBinding childData.decInfo dec1 c
               | Some (Asn1Child _) | None -> mkBlock []
             else
               // Only Asn1 children (in particular, sequences) may return ACN values
@@ -1891,7 +2018,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
                 | Some (AcnChild _) | None -> false
                 | Some (Asn1Child _) -> true
               )
-              let decTmp = {Var.name = $"decTmp_{ix + 1}"; tpe = tupleType (proofData.elemTpe :: acnTps)}
+              let decTmp = {Var.name = $"decTmp_{ix + 1}"; tpe = tupleType (childData.common.elemTpe :: acnTps)}
               let decTmpValue = eitherMutMatchExpr (Var dec1) None (mkBlock [Check (BoolLit false); TripleQMark]) (Some decTmp) (Var decTmp)
               let acnBdgs = acnVars |> List.indexed |> List.map (fun (ix, v) -> v, TupleSelect (Var decTmp, ix + 2))
               letsIn ((decTmp, decTmpValue) :: acnBdgs) (mkBlock [])
@@ -1899,10 +2026,10 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
           letTuple [c1; dec1] dec1Call (mkBlock [
             letTuple [c2; dec2] dec2Call acnBinding])
 
-      mkBlock [
-        ApplyLetRec {id = proofData.fd.id; args = codecArgs @ (proofData.paramsAcn |> List.map Var)}
+      mkBlock (origCodecFnCheck @ [
+        ApplyLetRec {id = proofId; args = codecArgs @ (childData.common.paramsAcn |> List.map Var)}
         callsBdgs
-      ]
+      ])
 
   ////////////////////////////
 
@@ -1910,19 +2037,40 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
     let bodyWithC1 = mkUnfoldedDecodeWrapper data bodyWithC1Id data.c1
     let bodyWithC2 = mkUnfoldedDecodeWrapper data bodyWithC2Id data.c2Reset
 
-    let subproofs = (
+    let isNullType (c: SeqChildInfo option): bool =
+      match c with
+      | Some (Asn1Child asn1) ->
+        match asn1.Type.Kind with
+        | NullType _ -> true
+        | _ -> false
+      | _ -> false
+
+    let construct (previousChildData: (Asn1AcnAst.SeqChildInfo option * SeqChildDecodeMiscData option) list,
+                   originFnsAcc: FunDef list,
+                   subproofFnsAcc: FunDef list,
+                   subproofCallsAcc: Expr list) (ix: int, child: SeqChildInfo option) =
+      // `child` is None for presence bits
+
+      if isNullType child then
+        // TODO: Not quite, if the NT has an encoding pattern, there is some logic to do
+        // This only does the codec bindings
+        let subproofCall = mkSubfieldProofCall data ix child None None
+        previousChildData @ [child, None], originFnsAcc, subproofFnsAcc, subproofCallsAcc @ [subproofCall]
+      else
+        let childData = seqChildDecodeMiscData (t :: (nestingScope.parents |> List.map snd)) ix child (Var data.v1)
+        let originFn =
+          if ix = 0 then None
+          else Some (mkFieldCodecOriginFn data ix child childData previousChildData)
+        let originFnId = originFn |> Option.map (fun fd -> fd.id)
+        let subproofFn = mkFieldSubproofFn data ix child childData originFnId
+        let subproofCall = mkSubfieldProofCall data ix child (Some (subproofFn.id, childData)) originFnId
+        previousChildData @ [child, Some childData], originFnsAcc @ (originFn |> Option.toList), subproofFnsAcc @ [subproofFn], subproofCallsAcc @ [subproofCall]
+
+    let _, originFns, subproofFns, subproofCalls = (
       (List.replicate nbPresenceBits (None: SeqChildInfo option) @ (sq.children |> List.map Some)) |>
       List.indexed |>
-      List.map (fun (i, c) ->
-        match c with
-        | Some (Asn1Child asn1) ->
-          match asn1.Type.Kind with
-          | NullType _ -> i, c, None // TODO: Not quite, if the NT has an encoding pattern, there is some logic to do
-          | _ -> i, c, Some (mkFieldSubproofFn data i c)
-        | Some (AcnChild _) | None -> i, c, Some (mkFieldSubproofFn data i c)
-      ))
-    let subproofFns = subproofs |> List.choose (fun (_, _, sp) -> sp |> Option.map (fun sp -> sp.fd))
-    let subproofCalls = subproofs |> List.map (fun (i, c, sp) -> mkSubfieldProofCall data i c sp)
+      List.fold (construct) ([], [], [], []))
+
     let finalCheck =
       let ixChecks = Check (Equals (bitIndexACN (Var data.c1Res), bitIndexACN (Var data.c2Res)))
       let decodedChecks = Check (Equals (Var data.v1, Var data.v2))
@@ -1950,9 +2098,11 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       }
     let body = mkBlock ([
       ApplyLetRec {id = bodyWithC1.id; args = []}
+    ] @ subproofCalls @ [
       ApplyLetRec {id = bodyWithC2.id; args = []}
-    ] @ subproofCalls @ [finalCheck])
-    let proof = LetRec {fds = subproofFns; body = body}
+      finalCheck
+    ])
+    let proof = LetRec {fds = originFns @ subproofFns; body = body}
 
     let rightMutCase =
       letsIn (data.v1SizeExpr.bdgs @ [data.v1SizeVar, data.v1SizeExpr.resSize]) (
