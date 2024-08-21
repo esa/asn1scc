@@ -1240,17 +1240,6 @@ let generatePrefixLemmaCommon (enc: Asn1Encoding)
   let dec2 = {Var.name = "dec2"; tpe = TupleType [c2Res.tpe; decodingRes2.tpe]}
   let call2 = FunctionCall {prefix = []; id = decodePureId; tps = []; args = Var c2Reset :: (paramsAcn |> List.map Var); parameterless = true}
 
-  let preSpecs =
-    preconds @ [
-      LetSpec (c2Reset, resetAtACN (Var c2) (Var c1))
-      LetSpec (dec1, call1)
-      LetSpec (c1Res, TupleSelect (Var dec1, 1))
-      LetSpec (decodingRes1, TupleSelect (Var dec1, 2))
-      LetSpec (dec2, call2)
-      LetSpec (c2Res, TupleSelect (Var dec2, 1))
-      LetSpec (decodingRes2, TupleSelect (Var dec2, 2))
-    ]
-
   let v1 = {Var.name = "v1"; tpe = tpe}
   let v2 = {Var.name = "v2"; tpe = tpe}
   let decodedAcn1 = acnTps |> List.indexed |> List.map (fun (i, tpe) -> {Var.name = $"acn1_{i + 1}"; tpe = tpe})
@@ -1271,8 +1260,51 @@ let generatePrefixLemmaCommon (enc: Asn1Encoding)
       subPat1, subPat2
 
   let acnsEq = List.zip decodedAcn1 decodedAcn2 |> List.map (fun (acn1, acn2) -> Equals (Var acn1, Var acn2))
+  // The size of the decoded value, in case of success
   let v1SizeExpr = mkSizeExpr v1 c1
+  // We pattern match on the result and bind v1Size to the result of v1SizeExpr in case of success or to 0L otherwise
+  // We also re-bind the intermediate bindings (e.g. size_1_0) since these are used by the Sequence proof
   let v1SizeVar = {Var.name = "v1Size"; tpe = IntegerType Long}
+  let v1SizePatMat =
+    MatchExpr {
+      scrut = Var decodingRes1
+      cases = [
+        {
+          pattern = ADTPattern {
+            binder = None
+            id = rightMutId
+            subPatterns = [subPat1]
+          }
+          rhs = letsIn v1SizeExpr.bdgs (mkTuple (v1SizeExpr.resSize :: (v1SizeExpr.bdgs |> List.map fst |> List.map Var)))
+        }
+        {
+          pattern = ADTPattern {
+            binder = None
+            id = leftMutId
+            subPatterns = [Wildcard None]
+          }
+          rhs = mkTuple (List.replicate (v1SizeExpr.bdgs.Length + 1) (longlit 0I))
+        }
+      ]
+    }
+
+  let preSpecs =
+    let sizeBdgs =
+      if v1SizeExpr.bdgs.IsEmpty then [LetSpec (v1SizeVar, v1SizePatMat)]
+      else
+        let v1SizeTuple = {v1SizeVar with name = $"v1SizeTuple"}
+        let tupleBdgs = (v1SizeVar :: (v1SizeExpr.bdgs |> List.map fst)) |> List.indexed |> List.map (fun (i, v) -> LetSpec (v, TupleSelect (Var v1SizeTuple, i + 1)))
+        LetSpec (v1SizeTuple, v1SizePatMat) :: tupleBdgs
+    preconds @ [
+      LetSpec (c2Reset, resetAtACN (Var c2) (Var c1))
+      LetSpec (dec1, call1)
+      LetSpec (c1Res, TupleSelect (Var dec1, 1))
+      LetSpec (decodingRes1, TupleSelect (Var dec1, 2))
+      LetSpec (dec2, call2)
+      LetSpec (c2Res, TupleSelect (Var dec2, 1))
+      LetSpec (decodingRes2, TupleSelect (Var dec2, 2))
+    ] @ sizeBdgs
+
   let prop =
     let prop = And ([Equals (bitIndexACN (Var c1Res), bitIndexACN (Var c2Res)); Equals (Var v1, Var v2)] @ acnsEq)
     IfExpr {
@@ -1302,7 +1334,6 @@ let generatePrefixLemmaCommon (enc: Asn1Encoding)
     }
 
   let postcond =
-    let boundProp = letsIn (v1SizeExpr.bdgs @ [v1SizeVar, v1SizeExpr.resSize]) prop
     MatchExpr {
       scrut = Var decodingRes1
       cases = [
@@ -1312,7 +1343,7 @@ let generatePrefixLemmaCommon (enc: Asn1Encoding)
             id = rightMutId
             subPatterns = [subPat1]
           }
-          rhs = boundProp
+          rhs = prop
         }
         {
           pattern = ADTPattern {
@@ -2105,13 +2136,11 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
     let proof = LetRec {fds = originFns @ subproofFns; body = body}
 
     let rightMutCase =
-      letsIn (data.v1SizeExpr.bdgs @ [data.v1SizeVar, data.v1SizeExpr.resSize]) (
-        IfExpr {
-          cond = Equals (Var data.v1SizeVar, Var data.sz)
-          thn = proof
-          els = UnitLit
-        }
-      )
+      IfExpr {
+        cond = Equals (Var data.v1SizeVar, Var data.sz)
+        thn = proof
+        els = UnitLit
+      }
     LetRec {
       fds = [bodyWithC1; bodyWithC2]
       body =  MatchExpr {
@@ -3162,7 +3191,6 @@ let generateOptionalPrefixLemma (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
           thn = mkBlock ((slicedLemmaApp |> Option.toList) @ [prefixLemmaApp])
           els = UnitLit
         }
-      let boundProofRightMutCase = letsIn (data.v1SizeExpr.bdgs @ [data.v1SizeVar, data.v1SizeExpr.resSize]) proofRightMutCase
       mkBlock [
         unfoldC1
         unfoldC2
@@ -3175,7 +3203,7 @@ let generateOptionalPrefixLemma (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
                 id = rightMutId
                 subPatterns = [data.subPat1]
               }
-              rhs = boundProofRightMutCase
+              rhs = proofRightMutCase
             }
             {
               pattern = ADTPattern {
