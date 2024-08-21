@@ -1393,74 +1393,6 @@ let generatePrefixLemma (enc: Asn1Encoding)
   let mkSizeExpr = fun v1 c1 -> asn1SizeExpr t.acnAlignment t.Kind (Var v1) (bitIndexACN (Var c1)) 0I 0I
   generatePrefixLemmaCommon enc tpe t.acnMaxSizeInBits baseId paramsAcn acnTps mkSizeExpr nestingScope mkProof
 
-let generatePrefixLemmaBool (enc: Asn1Encoding)
-                            (t: Asn1AcnAst.Asn1Type)
-                            (nestingScope: NestingScope)
-                            (boolean: Boolean): FunDef =
-  let mkProof (data: PrefixLemmaData): Expr =
-    UnitLit // TODO
-  generatePrefixLemma enc t nestingScope mkProof
-
-let generatePrefixLemmaInteger (enc: Asn1Encoding)
-                               (t: Asn1AcnAst.Asn1Type)
-                               (nestingScope: NestingScope)
-                               (int: Integer): FunDef =
-  let mkProof (data: PrefixLemmaData): Expr =
-    UnitLit // TODO
-  generatePrefixLemma enc t nestingScope mkProof
-
-let generatePrefixLemmaChoice (enc: Asn1Encoding)
-                              (t: Asn1AcnAst.Asn1Type)
-                              (nestingScope: NestingScope)
-                              (ch: Asn1AcnAst.Choice): FunDef =
-  let mkProof (data: PrefixLemmaData): Expr =
-    UnitLit // TODO
-  generatePrefixLemma enc t nestingScope mkProof
-
-let generatePrefixLemmaNullType (enc: Asn1Encoding)
-                                (t: Asn1AcnAst.Asn1Type)
-                                (nestingScope: NestingScope)
-                                (nt: Asn1AcnAst.NullType): FunDef =
-  let mkProof (data: PrefixLemmaData): Expr =
-    UnitLit // TODO
-  generatePrefixLemma enc t nestingScope mkProof
-
-let generatePrefixLemmaEnum (enc: Asn1Encoding)
-                            (t: Asn1AcnAst.Asn1Type)
-                            (nestingScope: NestingScope)
-                            (enm: Asn1AcnAst.Enumerated): FunDef =
-  let mkProof (data: PrefixLemmaData): Expr =
-    UnitLit // TODO
-  generatePrefixLemma enc t nestingScope mkProof
-
-let generatePrefixLemmaSequenceOfLike (enc: Asn1Encoding)
-                                      (t: Asn1TypeOrAcnRefIA5)
-                                      (nestingScope: NestingScope)
-                                      (sqf: SequenceOfLike): FunDef =
-  let mkSqOfLikeProof (data: PrefixLemmaData): Expr =
-    UnitLit // TODO
-  let tpe = fromSequenceOfLike sqf
-  let mkSizeExpr =
-    // TODO: Alignment?
-    match sqf with
-    | SqOf _ -> fun v1 c1 -> {bdgs = []; resSize = callSize (Var v1) (bitIndexACN (Var c1))}
-    | _ ->
-      let maxElemSz = sqf.maxElemSizeInBits enc
-      fun v1 _ -> {bdgs = []; resSize = Mult (longlit maxElemSz, vecSize (Var v1))}
-  let baseId, paramsAcn, acnTps =
-    match t with
-    | Asn1TypeOrAcnRefIA5.Asn1 t ->
-      let isTopLevel = nestingScope.parents.IsEmpty
-      let baseId =
-        if isTopLevel then t.FT_TypeDefinition.[Scala].typeName
-        else ToC t.id.dropModule.AsString
-      let paramsAcn = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd)
-      let acns = collectNestedAcnChildren t.Kind
-      let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
-      baseId, paramsAcn, acnTps
-    | Asn1TypeOrAcnRefIA5.AcnRefIA5 (tId, _) -> ToC tId.dropModule.AsString, [], []
-  generatePrefixLemmaCommon enc tpe (sqf.maxSizeInBits enc) baseId paramsAcn acnTps mkSizeExpr nestingScope mkSqOfLikeProof
-
 type SeqPrefixLemmaSubproofData = {
   fd: FunDef
   decInfo: DecodeInfo
@@ -1608,6 +1540,141 @@ let decodePureCallComposedHelper (data: SeqDecodeMiscData)
   {dec = dec; decCall = decCall; extracted = extracted}
 
 
+let generatePrefixLemmaBool (enc: Asn1Encoding)
+                            (t: Asn1AcnAst.Asn1Type)
+                            (nestingScope: NestingScope)
+                            (boolean: Boolean): FunDef =
+  let mkProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+  generatePrefixLemma enc t nestingScope mkProof
+
+let generatePrefixLemmaInteger (enc: Asn1Encoding)
+                               (t: Asn1AcnAst.Asn1Type)
+                               (nestingScope: NestingScope)
+                               (int: Integer): FunDef =
+  let mkProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+  generatePrefixLemma enc t nestingScope mkProof
+
+let generatePrefixLemmaChoice (enc: Asn1Encoding)
+                              (t: Asn1AcnAst.Asn1Type)
+                              (nestingScope: NestingScope)
+                              (ch: Asn1AcnAst.Choice): FunDef =
+  let mkProofSubcase (data: PrefixLemmaData) (cse: ChChildInfo): Expr =
+    match cse.Type.Kind with
+    | NullType _ -> UnitLit
+    | _ ->
+      let decMiscData = seqDecodeMiscData (t ::  (nestingScope.parents |> List.map snd)) cse.Type
+      let decInfo = decodeInfo (Asn1 cse.Type) cse.Type.id false
+      match decInfo with
+      | PrimitiveDecodeInfo info ->
+        assert decMiscData.acns.IsEmpty
+        FunctionCall {
+          prefix = info.prefix; id = info.prefixLemmaId; tps = []
+          args = [
+            selectCodecDecodeInfo decInfo (Var data.c1)
+            selectCodecDecodeInfo decInfo (Var data.c2)
+          ] @ info.extraConstArgs
+          parameterless = true
+        }
+      | ComposedDecodeInfo info ->
+        FunctionCall {
+          prefix = []; id = info.prefixLemmaId; tps = []
+          args = [Var data.c1; Var data.c2; Var data.sz] @ (decMiscData.paramsAcn |> List.map Var)
+          parameterless = true
+        }
+
+  let mkProof (data: PrefixLemmaData): Expr =
+    let mkUnfoldCall (cdc: Var): Expr =
+      Unfold (FunctionCall {prefix = []; id = data.decodeId; tps = []; args = [Snapshot (Var cdc)] @ (data.paramsAcn |> List.map Var); parameterless = true})
+
+    let callC1 = mkUnfoldCall data.c1
+    let callC2 = mkUnfoldCall data.c2Reset
+
+    let cases = ch.children |> List.map (fun child ->
+      let tpeId = (ToC ch.typeDef[Scala].typeName) + "." + (ToC child.present_when_name) + "_PRESENT"
+      let tpe = fromAsn1TypeKind child.Type.Kind
+      let binder = {Var.name = child._scala_name; tpe = tpe}
+      let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
+      {MatchCase.pattern = pat; rhs = mkProofSubcase data child}
+    )
+    let proof =
+      IfExpr {
+        cond = Equals (Var data.v1SizeVar, Var data.sz)
+        thn = MatchExpr {scrut = Var data.v1; cases = cases}
+        els = UnitLit
+      }
+    mkBlock [
+      callC1
+      callC2
+      MatchExpr {
+        scrut = Var data.decodingRes1
+        cases = [
+          {
+            pattern = ADTPattern {
+              binder = None
+              id = rightMutId
+              subPatterns = [data.subPat1]
+            }
+            rhs = proof
+          }
+          {
+            pattern = ADTPattern {
+              binder = None
+              id = leftMutId
+              subPatterns = [Wildcard None]
+            }
+            rhs = UnitLit
+          }
+        ]
+      }
+    ]
+  generatePrefixLemma enc t nestingScope mkProof
+
+let generatePrefixLemmaNullType (enc: Asn1Encoding)
+                                (t: Asn1AcnAst.Asn1Type)
+                                (nestingScope: NestingScope)
+                                (nt: Asn1AcnAst.NullType): FunDef =
+  let mkProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+  generatePrefixLemma enc t nestingScope mkProof
+
+let generatePrefixLemmaEnum (enc: Asn1Encoding)
+                            (t: Asn1AcnAst.Asn1Type)
+                            (nestingScope: NestingScope)
+                            (enm: Asn1AcnAst.Enumerated): FunDef =
+  let mkProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+  generatePrefixLemma enc t nestingScope mkProof
+
+let generatePrefixLemmaSequenceOfLike (enc: Asn1Encoding)
+                                      (t: Asn1TypeOrAcnRefIA5)
+                                      (nestingScope: NestingScope)
+                                      (sqf: SequenceOfLike): FunDef =
+  let mkSqOfLikeProof (data: PrefixLemmaData): Expr =
+    UnitLit // TODO
+  let tpe = fromSequenceOfLike sqf
+  let mkSizeExpr =
+    // TODO: Alignment?
+    match sqf with
+    | SqOf _ -> fun v1 c1 -> {bdgs = []; resSize = callSize (Var v1) (bitIndexACN (Var c1))}
+    | _ ->
+      let maxElemSz = sqf.maxElemSizeInBits enc
+      fun v1 _ -> {bdgs = []; resSize = Mult (longlit maxElemSz, vecSize (Var v1))}
+  let baseId, paramsAcn, acnTps =
+    match t with
+    | Asn1TypeOrAcnRefIA5.Asn1 t ->
+      let isTopLevel = nestingScope.parents.IsEmpty
+      let baseId =
+        if isTopLevel then t.FT_TypeDefinition.[Scala].typeName
+        else ToC t.id.dropModule.AsString
+      let paramsAcn = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd)
+      let acns = collectNestedAcnChildren t.Kind
+      let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
+      baseId, paramsAcn, acnTps
+    | Asn1TypeOrAcnRefIA5.AcnRefIA5 (tId, _) -> ToC tId.dropModule.AsString, [], []
+  generatePrefixLemmaCommon enc tpe (sqf.maxSizeInBits enc) baseId paramsAcn acnTps mkSizeExpr nestingScope mkSqOfLikeProof
+
 
 let generatePrefixLemmaSequence (enc: Asn1Encoding)
                                 (t: Asn1AcnAst.Asn1Type)
@@ -1622,7 +1689,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
 
   let mkUnfoldedDecodeWrapper (data: PrefixLemmaData) (id: Identifier) (c: Var): FunDef =
     let cpy = {Var.name = $"{c.name}Cpy"; tpe = c.tpe}
-    let call = FunctionCall {prefix = []; id = data.decodeId; tps = []; args = [Var cpy]; parameterless = true}
+    let call = FunctionCall {prefix = []; id = data.decodeId; tps = []; args = [Var cpy] @ (data.paramsAcn |> List.map Var); parameterless = true}
     let body = letsIn [cpy, Snapshot (Var c)] (Unfold call)
     {
       FunDef.id = id;

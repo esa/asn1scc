@@ -27,7 +27,7 @@ object ACN {
    }
 
    // TODO: Placeholder
-   def readPrefixLemma_TODO(acn1: ACN, acn2: ACN): Unit = ()
+   def TODO_ASN1_OTHER_prefixLemma(acn1: ACN, acn2: ACN): Unit = ()
 
    @ghost @pure @opaque @inlineOnce
    def dec_Int_TwosComplement_ConstSize_8_prefixLemma(acn1: ACN, acn2: ACN): Unit = {
