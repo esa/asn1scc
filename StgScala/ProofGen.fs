@@ -1851,6 +1851,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
     let c2MovedAssertions = [
       Assert (Equals (bitIndexACN (Var c2Moved), plus [bitIndexACN (Var c1); Var childSize]))
       Assert (arrayBitRangesEq (selBufACN (Var c1)) (selBufACN (Var c2Moved)) (longlit 0I) (plus [bitIndexACN (Var c1); Var childSize]))
+      Assert (Equals (resetAtACN (Var c2Moved) (Var c1), Var c2))
     ]
 
     let acnTps = childData.common.acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
@@ -1939,6 +1940,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       | ComposedDecodeInfo _ -> bitIndexACN cdc
 
     let accOffsets = if ix = 0 then longlit 0I else childrenSizes |> List.take ix |> List.map Var |> plus
+    let v1SizeVar = {Var.name = $"size_{childData.name}"; tpe = IntegerType Long}
     let v1Size =
       match child with
       | Some (Asn1Child asn1) ->
@@ -1951,13 +1953,39 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
         // Presence bits
         {bdgs = []; resSize = longlit 1I}
 
+    // A small lemma to prove that the size of the child decoded from the Sequence's decode function
+    // is the same as the size of the child decoded by just calling the child's decode function
+    // This lemma is trivial if the child is first, so it's omitted.
+    // It should go before pattern matching on the success of `res2` since it also helps prove
+    // that `res2` cannot fail.
+    let proofSizeEq =
+      match origCodecFnCall with
+      | None -> []
+      | Some origCodecFnCall ->
+        let body = mkBlock [
+          Check origCodecFnCall
+          Unfold origCodecFnCall
+          ApplyLetRec {id = bodyWithC1Id; args = []}
+        ]
+        let proofSizeEq =
+          {
+            FunDef.id = $"proof_size_eq_{childData.name}"
+            prms = []
+            annots = [Pure; Opaque; InlineOnce]
+            specs = []
+            postcond = Some ({Var.name = "_"; tpe = UnitType}, Equals (Var v1SizeVar, Var childSize))
+            returnTpe = UnitType
+            body = body
+          }
+        [LetRec {fds = [proofSizeEq]; body = ApplyLetRec {id = proofSizeEq.id; args = []}}]
+
     let isRightConds =
       match childData.decInfo with
       | PrimitiveDecodeInfo _ -> []
       | ComposedDecodeInfo _ -> [isRightExpr (Var decDataPostcond1.dec); isRightExpr (Var decDataPostcond2.dec)]
 
     let conds = (isRightConds @ [
-      Equals (v1Size.resSize, Var childSize)
+      Equals (Var v1SizeVar, Var childSize)
       Equals (Var res1, Var res2)
     ] @ (List.zip decodedAcn1 decodedAcn2 |> List.map (fun (acn1, acn2) -> Equals (Var acn1, Var acn2))) @ [
       // Note: c1Next and c2Next may be Codec/BitStream instead of ACN, we therefore need to adjust as said in the comment above
@@ -1971,15 +1999,18 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
       slicedLemmaApp
       letsIn [c2Moved, c2MovedValue] (mkBlock (
         c2MovedAssertions @ [prefixLemmaApp; validateOffsLemma] @
-        [letTuple [c1Next; decDataProof1.dec] decDataProof1.decCall (mkBlock [
-          letTuple [c2Next; decDataProof2.dec] decDataProof2.decCall (mkBlock [
-            letTuple (res1 ::decodedAcn1) decDataProof1.extracted (mkBlock [
-              letTuple (res2 ::decodedAcn2) decDataProof2.extracted (
-                letsIn v1Size.bdgs (mkBlock (conds |> List.map Check))
-              )
-            ])
-          ])
-        ])]
+        [letTuple [c1Next; decDataProof1.dec] decDataProof1.decCall (
+          letTuple [c2Next; decDataProof2.dec] decDataProof2.decCall (
+            letTuple (res1 ::decodedAcn1) decDataProof1.extracted (
+              letsIn (v1Size.bdgs @ [v1SizeVar, v1Size.resSize]) (mkBlock (
+                proofSizeEq @ [
+                letTuple (res2 ::decodedAcn2) decDataProof2.extracted (
+                  (mkBlock (conds |> List.map Check))
+                )]
+              ))
+            )
+          )
+        )]
       ))
     ]
 
@@ -1988,7 +2019,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
         letTuple [c2Next; decDataPostcond2.dec] decDataPostcond2.decCall (mkBlock [
           letTuple (res1 ::decodedAcn1) decDataPostcond1.extracted (mkBlock [
             letTuple (res2 ::decodedAcn2) decDataPostcond2.extracted (
-              letsIn v1Size.bdgs (And conds)
+              letsIn (v1Size.bdgs @ [v1SizeVar, v1Size.resSize]) (And conds)
             )
           ])
         ])
