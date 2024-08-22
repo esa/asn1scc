@@ -2702,7 +2702,7 @@ let generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1Ac
         let cdcAssertions =
           if ix = nbPresenceBits + sq.children.Length - 1 then [Assert (Equals (Var nextC, Var cdc))]
           else [
-            resetAtEqLemma (Var c) (Var cdc) (Var snap)
+            resetAtEqLemma (Var nextC) (Var cdc) (Var nextSnap)
             Assert (Equals (Var nextC, resetAtACN (Var cdc) (Var nextSnap)))
           ]
         let assertions = mkBlock (
