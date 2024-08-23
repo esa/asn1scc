@@ -106,7 +106,7 @@ object BitStream {
       lemmaIsPrefixTransitive(r1, w1, w2)
       lemmaIsPrefixTransitive(r1, w2, r2)
       (r1, r2)
-   } ensuring(res =>
+   }.ensuring(res =>
       res._1.isPrefixOf(res._2)
       && res._1.isPrefixOf(w1)
       && res._2.isPrefixOf(w2)
@@ -840,7 +840,7 @@ case class BitStream private [asn1scala](
    def resetAt(b: BitStream): BitStream = {
       require(b.buf.length == buf.length)
       BitStream(snapshot(buf), b.currentByte, b.currentBit)
-   } ensuring(res => invariant(res))
+   }.ensuring(res => invariant(res))
 
    // ****************** Append Bit Functions **********************
 
@@ -1568,7 +1568,7 @@ case class BitStream private [asn1scala](
       else
          val bit = bitStreamSnap.readBit()
          Cons(bit, bitStreamReadBitsIntoList(bitStreamSnap, nBits - 1))
-   } ensuring( res => if(nBits == 0) then res.isEmpty else res.length > 0 ) // we'd like to prove res.length == nBits but it's not possible because of type mismatch
+   }.ensuring( res => if(nBits == 0) then res.isEmpty else res.length > 0 ) // we'd like to prove res.length == nBits but it's not possible because of type mismatch
 
    @ghost
    @opaque
@@ -1593,7 +1593,7 @@ case class BitStream private [asn1scala](
          val bitStream1Snap = snapshot(bitStream1)
          assert(bitStream1.readBitPure()._2 == listBits.head)
          ()
-   } ensuring(_ =>
+   }.ensuring(_ =>
       bitStreamReadBitsIntoList(bitStream2, nBits - 1) == listBits.tail
    )
 
@@ -1677,7 +1677,7 @@ case class BitStream private [asn1scala](
 
       if nBits > 0 then
          lemmaSameBitContentListThenbyteArrayBitContentSame(arr1, arr2, fromArr1 + 1, fromArr2 + 1, nBits - 1)
-   } ensuring(_ => byteArrayBitContentSame(arr1, arr2, fromArr1, fromArr2, nBits))
+   }.ensuring(_ => byteArrayBitContentSame(arr1, arr2, fromArr1, fromArr2, nBits))
 
 
 
@@ -2038,7 +2038,7 @@ case class BitStream private [asn1scala](
       val arr: Array[Byte] = Array.fill(arrLen)(0 : Byte)
       readBitsLoop(nBits, arr, 0, nBits)
       UByte.fromArrayRaws(arr)
-   } ensuring(res =>
+   }.ensuring(res =>
       buf == old(this).buf
       &&& BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit)
       &&& BitStream.invariant(this.currentBit, this.currentByte, this.buf.length)
@@ -2106,7 +2106,7 @@ case class BitStream private [asn1scala](
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
       val arr = readBits(nBits)
       Vector.fromScala(arr.toVector)
-   } ensuring(res =>
+   }.ensuring(res =>
       buf == old(this).buf && BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits == BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) &&
       BitStream.invariant(this.currentBit, this.currentByte, this.buf.length) &&
       res.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
