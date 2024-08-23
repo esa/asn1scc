@@ -1096,7 +1096,7 @@ case class BitStream private [asn1scala](
          bGot == bit
          && r2Got == this &&
          r2Got.bitIndex == this.bitIndex
-         // && checkByteArrayBitContent(Array(b.toUByte), vGot, bitNr, 0 , 1)
+         // && byteArrayBitContentSame(Array(b.toUByte), vGot, bitNr, 0 , 1)
 
       }
    )
@@ -1466,7 +1466,7 @@ case class BitStream private [asn1scala](
             val (r1, r2) = reader(beforeAppend, this)
             val vGot = r1.readBits(to - i)
             assert(to - i == 0)
-            check(checkByteArrayBitContent(srcBuffer, vGot, i, 0, to - i))
+            check(byteArrayBitContentSame(srcBuffer, vGot, i, 0, to - i))
          })
 
    }.ensuring( _ =>
@@ -1528,8 +1528,8 @@ case class BitStream private [asn1scala](
          val (readerrr, _) = reader(w1, w2)
          assert(bitStreamReadBitsIntoList(readerrr, nBits) == byteArrayBitContentToList(srcBuffer, from, nBits)) // Should work
 
-         lemmaSameBitContentListThenCheckByteArrayBitContent(srcBuffer, vGot, from, 0, nBits)
-         assert(checkByteArrayBitContent(srcBuffer, vGot, from, 0, nBits) )
+         lemmaSameBitContentListThenbyteArrayBitContentSame(srcBuffer, vGot, from, 0, nBits)
+         assert(byteArrayBitContentSame(srcBuffer, vGot, from, 0, nBits) )
       })
 
    }.ensuring(_ =>
@@ -1538,7 +1538,8 @@ case class BitStream private [asn1scala](
       srcBuffer == old(srcBuffer)
       &&& BitStream.invariant(currentBit, currentByte, buf.length)
       &&& w1.buf.length == w2.buf.length
-      &&& BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) == BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) + nBits
+      &&& BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) == 
+            BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) + nBits
       &&& w1.isPrefixOf(w2)
       &&&
       {
@@ -1546,7 +1547,7 @@ case class BitStream private [asn1scala](
          validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits)
          val vGot = r1.readBits(nBits)
 
-         checkByteArrayBitContent(srcBuffer, vGot, from, 0, nBits)
+         byteArrayBitContentSame(srcBuffer, vGot, from, 0, nBits)
       }
    )
 
@@ -1634,7 +1635,7 @@ case class BitStream private [asn1scala](
      */
    @ghost
    @pure
-   def checkByteArrayBitContent(arr1: Array[UByte], arr2: Array[UByte], from1: Long, from2: Long, nBits: Long): Boolean = {
+   def byteArrayBitContentSame(arr1: Array[UByte], arr2: Array[UByte], from1: Long, from2: Long, nBits: Long): Boolean = {
       require(from1 >= 0)
       require(from2 >= 0)
       require(nBits >= 0)
@@ -1657,13 +1658,13 @@ case class BitStream private [asn1scala](
          if b1 != b2 then
             false
          else
-            checkByteArrayBitContent(arr1, arr2, from1 + 1, from2 + 1, nBits - 1)
+            byteArrayBitContentSame(arr1, arr2, from1 + 1, from2 + 1, nBits - 1)
    }
 
    @opaque
    @ghost
    @pure
-   def lemmaSameBitContentListThenCheckByteArrayBitContent(arr1: Array[UByte], arr2: Array[UByte], fromArr1: Long, fromArr2: Long, nBits: Long): Unit = {
+   def lemmaSameBitContentListThenbyteArrayBitContentSame(arr1: Array[UByte], arr2: Array[UByte], fromArr1: Long, fromArr2: Long, nBits: Long): Unit = {
       require(fromArr1 >= 0)
       require(fromArr2 >= 0)
       require(nBits >= 0)
@@ -1675,8 +1676,8 @@ case class BitStream private [asn1scala](
       decreases(nBits)
 
       if nBits > 0 then
-         lemmaSameBitContentListThenCheckByteArrayBitContent(arr1, arr2, fromArr1 + 1, fromArr2 + 1, nBits - 1)
-   } ensuring(_ => checkByteArrayBitContent(arr1, arr2, fromArr1, fromArr2, nBits))
+         lemmaSameBitContentListThenbyteArrayBitContentSame(arr1, arr2, fromArr1 + 1, fromArr2 + 1, nBits - 1)
+   } ensuring(_ => byteArrayBitContentSame(arr1, arr2, fromArr1, fromArr2, nBits))
 
 
 
