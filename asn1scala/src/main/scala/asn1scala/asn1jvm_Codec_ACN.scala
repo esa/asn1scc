@@ -264,15 +264,15 @@ case class ACN(base: Codec) {
                validateOffsetImpliesMoveBits(r1_1.base.bitStream, diff)
                assert(r2_2 == r1_1.withMovedBitIndex(diff))
                // TODO: Exported symbol not working
-               // val (r2Got_2, vGot_2) = r2_2.readNLeastSignificantBitsLoopPure(nBits, 0, 0L)
-               val (r2Got_2, vGot_2) = r2_2.base.bitStream.readNLeastSignificantBitsLoopPure(nBits, 0, 0L)
+               // val (r2Got_2, vGot_2) = r2_2.readNLSBBitsMSBFirstLoopPure(nBits, 0, 0L)
+               val (r2Got_2, vGot_2) = r2_2.base.bitStream.readNLSBBitsMSBFirstLoopPure(nBits, 0, 0L)
                assert(vGot_2 == intVal.toRaw)
 
-               val (r3Got_3, vGot_3) = r1_1.base.bitStream.readNLeastSignificantBitsLoopPure(encodedSizeInBits, 0, 0L)
+               val (r3Got_3, vGot_3) = r1_1.base.bitStream.readNLSBBitsMSBFirstLoopPure(encodedSizeInBits, 0, 0L)
                assert(iGot.toRaw == vGot_3)
                assert(r3Got.base.bitStream == r3Got_3)
                checkBitsLoopAndReadNLSB(r1_1.base.bitStream, diff, false)
-               readNLeastSignificantBitsLeadingZerosLemma(r1_1.base.bitStream, encodedSizeInBits, diff)
+               readNLSBBitsMSBFirstLeadingZerosLemma(r1_1.base.bitStream, encodedSizeInBits, diff)
                check(iGot == intVal)
                check(r3Got == r3_1)
             } else {
@@ -693,7 +693,7 @@ case class ACN(base: Codec) {
          validateOffsetBitsDifferenceLemma(this1.base.bitStream, this.base.bitStream, formatBitLength, addedBits)
       }
       // @ghost val this2 = snapshot(this)
-      appendNLeastSignificantBits(v & onesLSBLong(nBits), nBits)
+      appendLSBBitsMSBFirst(v & onesLSBLong(nBits), nBits)
       /*ghostExpr {
          assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this2.base.bitStream.buf.length, this2.base.bitStream.currentByte, this2.base.bitStream.currentBit) + nBits)
          assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this1.base.bitStream.buf.length, this1.base.bitStream.currentByte, this1.base.bitStream.currentBit) + formatBitLength)
@@ -710,13 +710,13 @@ case class ACN(base: Codec) {
             assert(r3_1 == r3_2)
             validateOffsetImpliesMoveBits(r1_1.base.bitStream, addedBits)
             assert(r2_2 == r1_1.withMovedBitIndex(addedBits))
-            val (r2Got_2, vGot_2) = r2_2.base.bitStream.readNLeastSignificantBitsLoopPure(nBits, 0, 0L)
+            val (r2Got_2, vGot_2) = r2_2.base.bitStream.readNLSBBitsMSBFirstLoopPure(nBits, 0, 0L)
             assert(vGot_2 == (v & onesLSBLong(nBits)))
 
-            val (r3Got_3, vGot_3) = r1_1.base.bitStream.readNLeastSignificantBitsLoopPure(formatBitLength, 0, 0L)
+            val (r3Got_3, vGot_3) = r1_1.base.bitStream.readNLSBBitsMSBFirstLoopPure(formatBitLength, 0, 0L)
 
             checkBitsLoopAndReadNLSB(r1_1.base.bitStream, addedBits, v < 0)
-            readNLeastSignificantBitsLeadingBitsLemma(r1_1.base.bitStream, v < 0, formatBitLength, addedBits)
+            readNLSBBitsMSBFirstLeadingBitsLemma(r1_1.base.bitStream, v < 0, formatBitLength, addedBits)
             assert(vGot == (bitMSBLong(v < 0, NO_OF_BITS_IN_LONG - formatBitLength) | vGot_3))
             assert(r3Got.base.bitStream == r3Got_3)
             assert(((vGot_3 & (1L << (formatBitLength - 1))) == 0L) == v >= 0)
@@ -793,7 +793,7 @@ case class ACN(base: Codec) {
       require(encodedSizeInBits >= 0 && encodedSizeInBits <= NO_OF_BITS_IN_LONG)
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, encodedSizeInBits))
 
-      val res = readNLeastSignificantBits(encodedSizeInBits)
+      val res = readNLSBBitsMSBFirst(encodedSizeInBits)
       if encodedSizeInBits == 0 || (res & (1L << (encodedSizeInBits - 1))) == 0L then res
       else onesMSBLong(NO_OF_BITS_IN_LONG - encodedSizeInBits) | res
       /*
