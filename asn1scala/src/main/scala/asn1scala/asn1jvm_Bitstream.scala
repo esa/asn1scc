@@ -984,7 +984,7 @@ case class BitStream private [asn1scala](
 
             assert(r3Got_23 == r3_23)
 
-            // checkBitsLoopPrefixLemma(r1_13, nBits, bit, from) // not needed but speed up verification
+            checkBitsLoopPrefixLemma(r1_13, nBits, bit, from) // not needed but speed up verification
             assert(r2_23 == r1_13.withMovedBitIndex(1))
             check(resGot_13 == resGot_23) // timeout
             check(r3Got_13 == r3_13)
