@@ -335,7 +335,7 @@ def GetCharIndex(ch: UByte, charSet: Array[UByte]): Int =
         i += 1
       ).invariant(i >= 0 &&& i <= charSet.length && ret < charSet.length && ret >= 0)
     ret
-} ensuring(res => charSet.length == 0 || res >= 0 && res < charSet.length)
+}.ensuring(res => charSet.length == 0 || res >= 0 && res < charSet.length)
 
 def NullType_Initialize(): NullType = {
     0
