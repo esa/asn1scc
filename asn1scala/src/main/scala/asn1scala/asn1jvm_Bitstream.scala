@@ -334,17 +334,17 @@ object BitStream {
 
    // TODO: "loopPrefixLemma" is a bad name, it's not the same "prefix lemma" as the others!!!
    @ghost @pure @opaque @inlineOnce
-   def readNLeastSignificantBitsLoopPrefixLemma(bs: BitStream, nBits: Int, i: Int, acc: Long): Unit = {
+   def readNLSBBitsMSBFirstLoopPrefixLemma(bs: BitStream, nBits: Int, i: Int, acc: Long): Unit = {
       require(0 <= i && i < nBits && nBits <= 64)
       require(BitStream.validate_offset_bits(bs.buf.length.toLong, bs.currentByte.toLong, bs.currentBit.toLong, nBits - i))
       require((acc & onesLSBLong(nBits - i)) == 0L)
       require((acc & onesLSBLong(nBits)) == acc)
       decreases(nBits - i)
-      val (bsFinal, vGot1) = bs.readNLeastSignificantBitsLoopPure(nBits, i, acc)
+      val (bsFinal, vGot1) = bs.readNLSBBitsMSBFirstLoopPure(nBits, i, acc)
       val readBit = bs.readBitPure()._2
       val bs2 = bs.withMovedBitIndex(1)
       val newAcc = acc | (if readBit then 1L << (nBits - 1 - i) else 0)
-      val (bs2Final, vGot2) = bs2.readNLeastSignificantBitsLoopPure(nBits, i + 1, newAcc)
+      val (bs2Final, vGot2) = bs2.readNLSBBitsMSBFirstLoopPure(nBits, i + 1, newAcc)
 
       {
          ()
@@ -354,7 +354,7 @@ object BitStream {
    }
 
    @ghost @pure @opaque @inlineOnce
-   def readNLeastSignificantBitsLoopPrefixLemma2(bs1: BitStream, bs2: BitStream, nBits: Int, i: Int, acc: Long): Unit = {
+   def readNLSBBitsMSBFirstLoopPrefixLemma2(bs1: BitStream, bs2: BitStream, nBits: Int, i: Int, acc: Long): Unit = {
       require(bs1.buf.length == bs2.buf.length)
       require(0 <= i && i < nBits && nBits <= 64)
       require(BitStream.validate_offset_bits(bs1.buf.length.toLong, bs1.currentByte.toLong, bs1.currentBit.toLong, nBits - i))
@@ -369,8 +369,8 @@ object BitStream {
       decreases(nBits - i)
 
       val bs2Reset = bs2.resetAt(bs1)
-      val (bsFinal1, vGot1) = bs1.readNLeastSignificantBitsLoopPure(nBits, i, acc)
-      val (bsFinal2, vGot2) = bs2Reset.readNLeastSignificantBitsLoopPure(nBits, i, acc)
+      val (bsFinal1, vGot1) = bs1.readNLSBBitsMSBFirstLoopPure(nBits, i, acc)
+      val (bsFinal2, vGot2) = bs2Reset.readNLSBBitsMSBFirstLoopPure(nBits, i, acc)
 
       {
          val (bs1Rec, gotB1) = bs1.readBitPure()
@@ -385,9 +385,9 @@ object BitStream {
             val accRec = acc | (if gotB1 then 1L << (nBits - 1 - i) else 0)
             assert(BitStream.bitIndex(bs1Rec.buf.length, bs1Rec.currentByte, bs1Rec.currentBit ) == BitStream.bitIndex(bs1.buf.length, bs1.currentByte, bs1.currentBit ) + 1)
             validateOffsetBitsContentIrrelevancyLemma(bs1, bs1Rec.buf, 1)
-            readNLeastSignificantBitsLoopPrefixLemma2(bs1Rec, bs2Rec, nBits, i + 1, accRec)
-            val (_, vRecGot1) = bs1Rec.readNLeastSignificantBitsLoopPure(nBits, i + 1, accRec)
-            val (_, vRecGot2) = bs2Rec.readNLeastSignificantBitsLoopPure(nBits, i + 1, accRec)
+            readNLSBBitsMSBFirstLoopPrefixLemma2(bs1Rec, bs2Rec, nBits, i + 1, accRec)
+            val (_, vRecGot1) = bs1Rec.readNLSBBitsMSBFirstLoopPure(nBits, i + 1, accRec)
+            val (_, vRecGot2) = bs2Rec.readNLSBBitsMSBFirstLoopPure(nBits, i + 1, accRec)
             assert(vRecGot1 == vRecGot2)
             assert(vGot1 == vRecGot1)
             assert(vGot2 == vRecGot2)
@@ -401,7 +401,7 @@ object BitStream {
    }
 
    @ghost @pure @opaque @inlineOnce
-   def readNLeastSignificantBitsPrefixLemma(bs1: BitStream, bs2: BitStream, nBits: Int): Unit = {
+   def readNLSBBitsMSBFirstPrefixLemma(bs1: BitStream, bs2: BitStream, nBits: Int): Unit = {
       require(bs1.buf.length == bs2.buf.length)
       require(0 <= nBits && nBits <= 64)
       require(BitStream.validate_offset_bits(bs1.buf.length.toLong, bs1.currentByte.toLong, bs1.currentBit.toLong, nBits))
@@ -413,19 +413,19 @@ object BitStream {
       ))
 
       val bs2Reset = bs2.resetAt(bs1)
-      val (bsFinal1, vGot1) = bs1.readNLeastSignificantBitsPure(nBits)
-      val (bsFinal2, vGot2) = bs2Reset.readNLeastSignificantBitsPure(nBits)
+      val (bsFinal1, vGot1) = bs1.readNLSBBitsMSBFirstPure(nBits)
+      val (bsFinal2, vGot2) = bs2Reset.readNLSBBitsMSBFirstPure(nBits)
 
       {
          if (nBits > 0)
-            readNLeastSignificantBitsLoopPrefixLemma2(bs1, bs2, nBits, 0, 0)
+            readNLSBBitsMSBFirstLoopPrefixLemma2(bs1, bs2, nBits, 0, 0)
       }.ensuring { _ =>
          vGot1 == vGot2 && BitStream.bitIndex(bsFinal1.buf.length, bsFinal1.currentByte, bsFinal1.currentBit ) == BitStream.bitIndex(bsFinal2.buf.length, bsFinal2.currentByte, bsFinal2.currentBit )
       }
    }
 
    @ghost @pure @opaque @inlineOnce
-   def readNLeastSignificantBitsLoopNextLemma(bs: BitStream, nBits: Int, i: Int, acc1: Long): Unit = {
+   def readNLSBBitsMSBFirstLoopNextLemma(bs: BitStream, nBits: Int, i: Int, acc1: Long): Unit = {
       require(0 <= i && i < nBits && nBits <= 64)
       require(1 <= nBits)
       require(BitStream.validate_offset_bits(bs.buf.length.toLong, bs.currentByte.toLong, bs.currentBit.toLong, nBits - i))
@@ -433,22 +433,22 @@ object BitStream {
       require((acc1 & onesLSBLong(nBits)) == acc1)
       decreases(nBits - i)
 
-      val (bsFinal1, vGot1) = bs.readNLeastSignificantBitsLoopPure(nBits, i, acc1)
+      val (bsFinal1, vGot1) = bs.readNLSBBitsMSBFirstLoopPure(nBits, i, acc1)
       val (bs2, bit) = bs.readBitPure()
       val mask = if bit then 1L << (nBits - 1 - i) else 0
       val acc2 = (acc1 | mask) & onesLSBLong(nBits - 1)
-      val (bsFinal2, vGot2) = bs2.readNLeastSignificantBitsLoopPure(nBits - 1, i, acc2)
+      val (bsFinal2, vGot2) = bs2.readNLSBBitsMSBFirstLoopPure(nBits - 1, i, acc2)
 
       {
          if (i >= nBits - 2) ()
          else {
             val acc1Rec = acc1 | mask
-            readNLeastSignificantBitsLoopNextLemma(bs2, nBits, i + 1, acc1Rec)
-            val (bsFinal1Rec, vGot1Rec) = bs2.readNLeastSignificantBitsLoopPure(nBits, i + 1, acc1Rec)
+            readNLSBBitsMSBFirstLoopNextLemma(bs2, nBits, i + 1, acc1Rec)
+            val (bsFinal1Rec, vGot1Rec) = bs2.readNLSBBitsMSBFirstLoopPure(nBits, i + 1, acc1Rec)
             val (bs2Rec, bitRec) = bs2.readBitPure()
             val maskRec = if bitRec then 1L << (nBits - 2 - i) else 0
             val acc2Rec = (acc1Rec | maskRec) & onesLSBLong(nBits - 1)
-            val (bsFinal2Rec, vGot2Rec) = bs2Rec.readNLeastSignificantBitsLoopPure(nBits - 1, i + 1, acc2Rec)
+            val (bsFinal2Rec, vGot2Rec) = bs2Rec.readNLSBBitsMSBFirstLoopPure(nBits - 1, i + 1, acc2Rec)
             assert((vGot1Rec & onesLSBLong(nBits - 1)) == vGot2Rec)
             assert(bsFinal1Rec == bsFinal2Rec)
 
@@ -467,49 +467,49 @@ object BitStream {
    }
 
    @ghost @pure @opaque @inlineOnce
-   def readNLeastSignificantBitsLeadingZerosLemma(bs: BitStream, nBits: Int, leadingZeros: Int): Unit = {
+   def readNLSBBitsMSBFirstLeadingZerosLemma(bs: BitStream, nBits: Int, leadingZeros: Int): Unit = {
       require(0 <= leadingZeros && leadingZeros <= nBits && nBits <= 64)
       require(BitStream.validate_offset_bits(bs.buf.length.toLong, bs.currentByte.toLong, bs.currentBit.toLong, nBits))
-      require(bs.readNLeastSignificantBitsPure(leadingZeros)._2 == 0L)
+      require(bs.readNLSBBitsMSBFirstPure(leadingZeros)._2 == 0L)
       decreases(leadingZeros)
 
-      val (bsFinal1, vGot1) = bs.readNLeastSignificantBitsPure(nBits)
-      val (bsFinal2, vGot2) = bs.withMovedBitIndex(leadingZeros).readNLeastSignificantBitsPure(nBits - leadingZeros)
+      val (bsFinal1, vGot1) = bs.readNLSBBitsMSBFirstPure(nBits)
+      val (bsFinal2, vGot2) = bs.withMovedBitIndex(leadingZeros).readNLSBBitsMSBFirstPure(nBits - leadingZeros)
 
       {
-         readNLeastSignificantBitsLeadingBitsLemma(bs, false, nBits, leadingZeros)
+         readNLSBBitsMSBFirstLeadingBitsLemma(bs, false, nBits, leadingZeros)
       }.ensuring { _ =>
          vGot1 == vGot2 && bsFinal1 == bsFinal2
       }
    }
 
    @ghost @pure @opaque @inlineOnce
-   def readNLeastSignificantBitsLeadingBitsLemma(bs: BitStream, bit: Boolean, nBits: Int, leadingBits: Int): Unit = {
+   def readNLSBBitsMSBFirstLeadingBitsLemma(bs: BitStream, bit: Boolean, nBits: Int, leadingBits: Int): Unit = {
       require(0 <= leadingBits && leadingBits <= nBits && nBits <= 64)
       require(BitStream.validate_offset_bits(bs.buf.length.toLong, bs.currentByte.toLong, bs.currentBit.toLong, nBits))
-      require(bs.readNLeastSignificantBitsPure(leadingBits)._2 == bitLSBLong(bit, leadingBits))
+      require(bs.readNLSBBitsMSBFirstPure(leadingBits)._2 == bitLSBLong(bit, leadingBits))
       decreases(leadingBits)
 
-      val (bsFinal1, vGot1) = bs.readNLeastSignificantBitsPure(nBits)
-      val (bsFinal2, vGot2) = bs.withMovedBitIndex(leadingBits).readNLeastSignificantBitsPure(nBits - leadingBits)
+      val (bsFinal1, vGot1) = bs.readNLSBBitsMSBFirstPure(nBits)
+      val (bsFinal2, vGot2) = bs.withMovedBitIndex(leadingBits).readNLSBBitsMSBFirstPure(nBits - leadingBits)
 
       {
          if (leadingBits == 0) ()
          else {
             val (bsRec, gotBit) = bs.readBitPure()
             assert(gotBit == bit)
-            readNLeastSignificantBitsLoopNextLemma(bs, leadingBits, 0, 0L)
-            readNLeastSignificantBitsLeadingBitsLemma(bsRec, bit, nBits - 1, leadingBits - 1)
+            readNLSBBitsMSBFirstLoopNextLemma(bs, leadingBits, 0, 0L)
+            readNLSBBitsMSBFirstLeadingBitsLemma(bsRec, bit, nBits - 1, leadingBits - 1)
             eqBufAndBitIndexImpliesEq(bs.withMovedBitIndex(leadingBits), bsRec.withMovedBitIndex(leadingBits - 1))
 
-            val (bsFinal1Rec, vGot1Rec) = bsRec.readNLeastSignificantBitsPure(nBits - 1)
-            val (bsFinal2Rec, vGot2Rec) = bsRec.withMovedBitIndex(leadingBits - 1).readNLeastSignificantBitsPure(nBits - leadingBits)
+            val (bsFinal1Rec, vGot1Rec) = bsRec.readNLSBBitsMSBFirstPure(nBits - 1)
+            val (bsFinal2Rec, vGot2Rec) = bsRec.withMovedBitIndex(leadingBits - 1).readNLSBBitsMSBFirstPure(nBits - leadingBits)
             assert(bsFinal1Rec == bsFinal2Rec)
             assert(vGot1Rec == ((bitLSBLong(bit, leadingBits - 1) << (nBits - leadingBits)) | vGot2Rec))
             assert(bsFinal2 == bsFinal2Rec)
             assert(vGot2 == vGot2Rec)
 
-            readNLeastSignificantBitsLoopNextLemma(bs, nBits, 0, 0L)
+            readNLSBBitsMSBFirstLoopNextLemma(bs, nBits, 0, 0L)
             assert(bsFinal1Rec == bsFinal1)
             assert(vGot1 == (vGot1Rec | (if (bit) 1L << (nBits - 1) else 0L)))
             check(vGot1 == ((bitLSBLong(bit, leadingBits) << (nBits - leadingBits)) | vGot2))
@@ -529,7 +529,7 @@ object BitStream {
    //    val (bs1Final, ok) = bs.checkBitsLoopPure(nBits, bit, from)
    //    require(ok)
    //    val acc = if (bit) onesLSBLong(from) << (nBits - from) else 0
-   //    val (bs2Final, vGot) = bs.readNLeastSignificantBitsLoopPure(nBits, from, acc)
+   //    val (bs2Final, vGot) = bs.readNLSBBitsMSBFirstLoopPure(nBits, from, acc)
 
    //    {
    //       if (from == nBits) ()
@@ -1289,11 +1289,11 @@ case class BitStream private [asn1scala](
     * After bit 24, bit 23 and so on get added
     *
     */
-   def appendNLeastSignificantBits(v: Long, nBits: Int): Unit = {
+   def appendLSBBitsMSBFirst(v: Long, nBits: Int): Unit = {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
       require((v & onesLSBLong(nBits)) == v)
-      appendNLeastSignificantBitsLoop(v, nBits, 0)
+      appendLSBBitsMSBFirstLoop(v, nBits, 0)
    }.ensuring { _ =>
       val w1 = old(this)
       val w2 = this
@@ -1301,12 +1301,12 @@ case class BitStream private [asn1scala](
       && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits)
-         val (r2Got, vGot) = r1.readNLeastSignificantBitsPure(nBits)
+         val (r2Got, vGot) = r1.readNLSBBitsMSBFirstPure(nBits)
          vGot == v && r2Got == r2
       }
    }
 
-   def appendNLeastSignificantBitsLoop(v: Long, nBits: Int, i: Int): Unit = {
+   def appendLSBBitsMSBFirstLoop(v: Long, nBits: Int, i: Int): Unit = {
       require(0 <= i && i <= nBits && nBits <= 64)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits - i))
       require((v & onesLSBLong(nBits)) == v)
@@ -1317,7 +1317,7 @@ case class BitStream private [asn1scala](
          @ghost val oldThis1 = snapshot(this)
          appendBit(b)
          @ghost val oldThis2 = snapshot(this)
-         appendNLeastSignificantBitsLoop(v, nBits, i + 1)
+         appendLSBBitsMSBFirstLoop(v, nBits, i + 1)
 
          ghostExpr {
             lemmaIsPrefixTransitive(oldThis1, oldThis2, this)
@@ -1330,15 +1330,15 @@ case class BitStream private [asn1scala](
 
             val zeroed = v & ~onesLSBLong(nBits - i)
             validateOffsetBitsContentIrrelevancyLemma(oldThis1, this.buf, nBits - i)
-            val (r3Got_13, resGot_13) = r1_13.readNLeastSignificantBitsLoopPure(nBits, i, zeroed)
+            val (r3Got_13, resGot_13) = r1_13.readNLSBBitsMSBFirstLoopPure(nBits, i, zeroed)
 
             val upd = zeroed | (if bitGot then 1L << (nBits - 1 - i) else 0)
             validateOffsetBitsContentIrrelevancyLemma(oldThis2, this.buf, nBits - i - 1)
-            val (r3Got_23, resGot_23) = r2_23.readNLeastSignificantBitsLoopPure(nBits, i + 1, upd)
+            val (r3Got_23, resGot_23) = r2_23.readNLSBBitsMSBFirstLoopPure(nBits, i + 1, upd)
 
             assert(r3Got_23 == r3_23)
 
-            readNLeastSignificantBitsLoopPrefixLemma(r1_13, nBits, i, zeroed)
+            readNLSBBitsMSBFirstLoopPrefixLemma(r1_13, nBits, i, zeroed)
 
             check(r1_13 == r3_13.withMovedBitIndex(BitStream.bitIndex(oldThis1.buf.length, oldThis1.currentByte, oldThis1.currentBit) - BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) ))
             check(r2_23 == r3_23.withMovedBitIndex(BitStream.bitIndex(oldThis2.buf.length, oldThis2.currentByte, oldThis2.currentBit) - BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) ))
@@ -1362,7 +1362,7 @@ case class BitStream private [asn1scala](
          val (r1, r2) = reader(w1, w2)
          val zeroed = v & ~onesLSBLong(nBits - i)
          validateOffsetBitsContentIrrelevancyLemma(w1, w2.buf, nBits - i)
-         val (r2Got, vGot) = r1.readNLeastSignificantBitsLoopPure(nBits, i, zeroed)
+         val (r2Got, vGot) = r1.readNLSBBitsMSBFirstLoopPure(nBits, i, zeroed)
          vGot == v && r2Got == r2
       }
    }
@@ -2206,29 +2206,29 @@ case class BitStream private [asn1scala](
    }
 
    /**
-    * Counter Operation to appendNLeastSignificantBits
+    * Counter Operation to appendLSBBitsMSBFirst
     * @param nBits number of bits to read [0-64]
     * @return value that holds nBits from bitstream
     *
     * Remarks:
     * The last bit from the bitstream will get written into the LSB
     */
-   def readNLeastSignificantBits(nBits: Int): Long = {
+   def readNLSBBitsMSBFirst(nBits: Int): Long = {
       require(nBits >= 0 && nBits <= 64)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
-      readNLeastSignificantBitsLoop(nBits, 0, 0L)
+      readNLSBBitsMSBFirstLoop(nBits, 0, 0L)
    }.ensuring(_ => buf == old(this).buf && BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) == BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + nBits)
 
    @ghost @pure
-   def readNLeastSignificantBitsPure(nBits: Int): (BitStream, Long) = {
+   def readNLSBBitsMSBFirstPure(nBits: Int): (BitStream, Long) = {
       require(nBits >= 0 && nBits <= 64)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
       val cpy = snapshot(this)
-      val res = cpy.readNLeastSignificantBits(nBits)
+      val res = cpy.readNLSBBitsMSBFirst(nBits)
       (cpy, res)
    }
 
-   def readNLeastSignificantBitsLoop(nBits: Int, i: Int, acc: Long): Long = {
+   def readNLSBBitsMSBFirstLoop(nBits: Int, i: Int, acc: Long): Long = {
       require(0 <= i && i <= nBits && nBits <= 64)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits - i))
       require((acc & onesLSBLong(nBits - i)) == 0L) //  The nBits - i LSBs must be 0
@@ -2239,7 +2239,7 @@ case class BitStream private [asn1scala](
       } else {
          val bit = readBit()
          val newAcc = acc | (if bit then 1L << (nBits - 1 - i) else 0)
-         readNLeastSignificantBitsLoop(nBits, i + 1, newAcc)
+         readNLSBBitsMSBFirstLoop(nBits, i + 1, newAcc)
       }
    }.ensuring { res =>
       buf == old(this).buf &&
@@ -2250,13 +2250,13 @@ case class BitStream private [asn1scala](
    }
 
    @ghost @pure
-   def readNLeastSignificantBitsLoopPure(nBits: Int, i: Int, acc: Long): (BitStream, Long) = {
+   def readNLSBBitsMSBFirstLoopPure(nBits: Int, i: Int, acc: Long): (BitStream, Long) = {
       require(0 <= i && i <= nBits && nBits <= 64)
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits - i))
       require((acc & onesLSBLong(nBits - i)) == 0L) //  The nBits - i LSBs must be 0
       require((acc & onesLSBLong(nBits)) == acc)
       val cpy = snapshot(this)
-      val res = cpy.readNLeastSignificantBitsLoop(nBits, i, acc)
+      val res = cpy.readNLSBBitsMSBFirstLoop(nBits, i, acc)
       (cpy, res)
    }
 
