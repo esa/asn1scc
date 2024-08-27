@@ -27,7 +27,7 @@ object ACN {
    }
 
    // For showing invertibility of encoding - not fully integrated yet
-   /*
+   
    @ghost @pure @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_big_endian_16_prefixLemma(acn1: ACN, acn2: ACN): Unit = {
       require(acn1.base.bufLength() == acn2.base.bufLength())
@@ -48,8 +48,9 @@ object ACN {
          val end = (BitStream.bitIndex(acn1.base.bitStream.buf.length, acn1.base.bitStream.currentByte, acn1.base.bitStream.currentBit) / 8 + 2).toInt
          arrayRangesEqImpliesEq(acn1.base.bitStream.buf, acn2.base.bitStream.buf, 0, acn1.base.bitStream.currentByte, end)
          arrayRangesEqImpliesEq(acn1.base.bitStream.buf, acn2.base.bitStream.buf, 0, acn1.base.bitStream.currentByte + 1, end)
+         assert(i1 == i2)
       }.ensuring { _ =>
-         BitStream.bitIndex(acn1Res.base.bitStream.buf.length, acn1Res.base.bitStream.currentByte, acn1Res.base.bitStream.currentBit) == BitStream.bitIndex(acn2Res.base.bitStream.buf.length, acn2Res.base.bitStream.currentByte, acn2Res.base.bitStream.currentBit) && i1 == i2
+         BitStream.bitIndex(acn1Res.base.bitStream.buf.length, acn1Res.base.bitStream.currentByte, acn1Res.base.bitStream.currentBit) == BitStream.bitIndex(acn2Res.base.bitStream.buf.length, acn2Res.base.bitStream.currentByte, acn2Res.base.bitStream.currentBit) &&& i1 == i2
       }
    }
 
@@ -143,7 +144,6 @@ object ACN {
          BitStream.bitIndex(acn1Res.base.bitStream.buf.length, acn1Res.base.bitStream.currentByte, acn1Res.base.bitStream.currentBit) == BitStream.bitIndex(acn2Res.base.bitStream.buf.length, acn2Res.base.bitStream.currentByte, acn2Res.base.bitStream.currentBit) && i1 == i2
       }
    }
-
    @ghost @pure @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_little_endian_32_prefixLemma(acn1: ACN, acn2: ACN): Unit = {
       require(acn1.base.bufLength() == acn2.base.bufLength())
@@ -208,7 +208,7 @@ object ACN {
       }.ensuring { _ =>
          BitStream.bitIndex(acn1Res.base.bitStream.buf.length, acn1Res.base.bitStream.currentByte, acn1Res.base.bitStream.currentBit) == BitStream.bitIndex(acn2Res.base.bitStream.buf.length, acn2Res.base.bitStream.currentByte, acn2Res.base.bitStream.currentBit) && i1 == i2
       }
-   }*/
+   }
 }
 case class ACN(base: Codec) {
    import BitStream.*
@@ -526,7 +526,7 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
+   
    def dec_Int_PositiveInteger_ConstSize_big_endian_16(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16))
       val b1 = readByte().toRaw
@@ -542,7 +542,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_big_endian_32(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32))
       val i1 = dec_Int_PositiveInteger_ConstSize_big_endian_16().toRaw
@@ -558,7 +557,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_big_endian_64(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       val i1 = dec_Int_PositiveInteger_ConstSize_big_endian_32().toRaw
@@ -574,7 +572,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_little_endian_16(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16))
       val b1 = readByte().toRaw
@@ -590,7 +587,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_little_endian_32(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32))
       val i1 = dec_Int_PositiveInteger_ConstSize_little_endian_16().toRaw
@@ -606,7 +602,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_little_endian_64(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       val i1 = dec_Int_PositiveInteger_ConstSize_little_endian_32().toRaw
@@ -629,11 +624,13 @@ case class ACN(base: Codec) {
       var vv = v.toRaw << (NO_OF_BYTES_IN_JVM_LONG * 8 - nBytes * 8)
 
       var i: Int = 0
-      while i < nBytes do
+      (while (i < nBytes) {
+         decreases(nBytes - i)
          val byteToEncode = ((vv & MAX_BYTE_MASK) >>> ((NO_OF_BYTES_IN_JVM_LONG - 1) * 8)).toByte
          appendByte(byteToEncode.toRawUByte)
          vv <<= 8
          i += 1
+      })
    }
 
    def enc_Int_PositiveInteger_VarSize_LengthEmbedded(intVal: ULong): Unit = {
@@ -1128,6 +1125,7 @@ case class ACN(base: Codec) {
 
       var i: Int = 0 // TODO: size_t?
       while i < 100 && digitsArray100(i) != 0x0 do
+         decreases(100 - i)
          appendByte(digitsArray100(i).toRawUByte)
          i += 1
 
@@ -1153,11 +1151,11 @@ case class ACN(base: Codec) {
 
       //read null_character_size characters into the tmp buffer
       var j: Int = 0
-      (while j < null_characters_size do
+      (while (j < null_characters_size){
          decreases(null_characters_size - j)
          tmp(j) = readByte().toRaw
          j += 1
-      ).invariant(true) // TODO invariant
+      }).invariant(true) // TODO invariant
 
       var i: Long = 0
       while !arraySameElements(null_characters, tmp) do
@@ -1505,6 +1503,7 @@ case class ACN(base: Codec) {
          i += 1
    }
 
+   @extern
    def enc_String_Ascii_Null_Terminated_multVec(max: Long, null_character: Array[Byte], null_character_size: Int, strVal: Vector[ASCIIChar]): Unit = {
       enc_String_Ascii_Null_Terminated_mult(max, null_character, null_character_size, strVal.toScala.toArray)
    }
@@ -1523,6 +1522,7 @@ case class ACN(base: Codec) {
    def enc_String_CharIndex_FixSize(max: Long, allowedCharSet: Array[UByte], strVal: Array[ASCIIChar]): Unit = {
       var i: Int = 0
       while i < max do
+         decreases(max -i)
          val charIndex: Int = GetCharIndex(strVal(i), allowedCharSet)
          encodeConstrainedWholeNumber(charIndex, 0, allowedCharSet.length - 1)
          i += 1
@@ -1694,6 +1694,7 @@ case class ACN(base: Codec) {
       strVal
    }
 
+   @extern
    def dec_String_Ascii_Null_Terminated_multVec(max: Long, null_character: Array[ASCIIChar], null_character_size: Int): Vector[ASCIIChar] = {
       val res = dec_String_Ascii_Null_Terminated_mult(max, null_character, null_character_size)
       Vector.fromScala(res.toVector)
@@ -1725,23 +1726,33 @@ case class ACN(base: Codec) {
       assert(i < strVal.length)
 
       val nBitsPerElmt = GetBitCountUnsigned(stainless.math.wrapping(allowedCharSet.length - 1).toRawULong)
-      (while i < charactersToDecode  do
+      var flag = false
+      (while !flag && i < charactersToDecode do
          decreases(charactersToDecode - i)
          if(!BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nBitsPerElmt))
-            return Array.empty
-         strVal(i) = allowedCharSet(decodeConstrainedWholeNumber(0, allowedCharSet.length - 1).toInt)
-         i += 1
+            // return Array.empty
+            flag = true
+         else 
+            strVal(i) = allowedCharSet(decodeConstrainedWholeNumber(0, allowedCharSet.length - 1).toInt)
+            i += 1
       ).invariant(
-         i <= charactersToDecode && i >= 0 &&
-         charactersToDecode < Int.MaxValue &&
-         i < strVal.length &&
-         max < strVal.length &&
-         strVal.length == max.toInt + 1 &&
-         base.bitStream.buf == oldThis.base.bitStream.buf
+         flag && base.bitStream.buf == oldThis.base.bitStream.buf 
+         || !flag && (
+            i <= charactersToDecode && i >= 0 &&
+            charactersToDecode < Int.MaxValue &&
+            charactersToDecode <= max &&
+            charactersToDecode >= 0 &&
+            i < strVal.length &&
+            max < strVal.length &&
+            strVal.length == max.toInt + 1 &&
+            base.bitStream.buf == oldThis.base.bitStream.buf
+         )
       )
-
-      strVal
-   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
+      if flag then 
+         Array.empty[ASCIIChar]
+      else 
+         strVal
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && (res.length == max.toInt + 1 || res.length == 0))
 
    def dec_String_CharIndex_FixSize(max: Long, allowedCharSet: Array[ASCIIChar]): Array[ASCIIChar] = {
       dec_String_CharIndex_private(max, max, allowedCharSet)
@@ -1779,7 +1790,7 @@ case class ACN(base: Codec) {
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
       dec_String_CharIndex_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max, UByte.fromArrayRaws(allowedCharSet))
-   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && (res.length == max.toInt + 1 || res.length == 0))
 
    @extern
    def dec_IA5String_CharIndex_External_Field_DeterminantVec(max: Long, extSizeDeterminantFld: Long): Vector[ASCIIChar] = {
@@ -1816,7 +1827,7 @@ case class ACN(base: Codec) {
       val charToDecode = if nCount <= max then nCount else max
       assert(charToDecode >= 0 && charToDecode <= max)
       dec_String_CharIndex_private(max, charToDecode, UByte.fromArrayRaws(allowedCharSet))
-   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && (res.length == max.toInt + 1 || res.length == 0))
 
    @extern
    def dec_IA5String_CharIndex_Internal_Field_DeterminantVec(max: Long, min: Long): Vector[ASCIIChar] = {

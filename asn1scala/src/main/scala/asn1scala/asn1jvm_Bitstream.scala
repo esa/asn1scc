@@ -113,18 +113,18 @@ object BitStream {
       && res._1 == res._2.withMovedBitIndex(BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) - BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit))
       )
 
-   // @ghost @pure @opaque @inlineOnce
-   // def resetAndThenMovedLemma(b1: BitStream, b2: BitStream, moveInBits: Long): Unit = {
-   //    require(b1.buf.length == b2.buf.length)
-   //    require(moveInBits >= 0)
-   //    require(BitStream.validate_offset_bits(b1.buf.length.toLong, b1.currentByte.toLong, b1.currentBit.toLong, moveInBits))
+   @ghost @pure @opaque @inlineOnce
+   def resetAndThenMovedLemma(b1: BitStream, b2: BitStream, moveInBits: Long): Unit = {
+      require(b1.buf.length == b2.buf.length)
+      require(moveInBits >= 0)
+      require(BitStream.validate_offset_bits(b1.buf.length.toLong, b1.currentByte.toLong, b1.currentBit.toLong, moveInBits))
 
-   //    val b2Reset = b2.resetAt(b1)
+      val b2Reset = b2.resetAt(b1)
 
-   //    {
-   //       ()
-   //    }.ensuring(_ => moveBitIndexPrecond(b2Reset, moveInBits))
-   // }
+      {
+         ()
+      }.ensuring(_ => moveBitIndexPrecond(b2Reset, moveInBits))
+   }
 
    @ghost @pure @opaque @inlineOnce
    def eqBufAndBitIndexImpliesEq(b1: BitStream, b2: BitStream): Unit = {

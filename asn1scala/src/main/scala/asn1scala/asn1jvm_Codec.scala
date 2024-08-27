@@ -8,7 +8,6 @@ import stainless.proof.*
 import stainless.math.*
 import StaticChecks.{require as staticRequire, _}
 import scala.annotation.static
-import scala.annotation.newMain
 
 val masks2: Array[Int] = Array(
    0x00000000, //         0 / 0000 0000 0000 0000 0000 0000 0000 0000 / 0x0000 0000
