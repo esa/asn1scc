@@ -238,16 +238,16 @@ case class ACN(base: Codec) {
          /* put required zeros*/
          val diff = encodedSizeInBits - nBits
          appendNZeroBits(diff)
-         // @ghost val this2 = snapshot(this)
+         @ghost val this2 = snapshot(this)
          ghostExpr {
-            validateOffsetBitsDifferenceLemma(this1.base.bitStream, this.base.bitStream, encodedSizeInBits, diff)
+            BitStream.validateOffsetBitsDifferenceLemma(this1.base.bitStream, this.base.bitStream, encodedSizeInBits, diff)
          }
          /*Encode number */
          encodeUnsignedInteger(intVal)
-         /*ghostExpr {
+         ghostExpr {
             assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this2.base.bitStream.buf.length, this2.base.bitStream.currentByte, this2.base.bitStream.currentBit) + nBits)
             assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this1.base.bitStream.buf.length, this1.base.bitStream.currentByte, this1.base.bitStream.currentBit) + encodedSizeInBits)
-            validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+            lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
             val this2Reset = this2.resetAt(this1)
             val (r1_1, r3_1) = ACN.reader(this1, this)
             validateOffsetBitsContentIrrelevancyLemma(this1.base.bitStream, this.base.bitStream.buf, encodedSizeInBits)
@@ -279,22 +279,22 @@ case class ACN(base: Codec) {
                check(iGot == intVal)
                check(r3Got == r3_1)
             }
-         }*/
-      } /*else {
-         ghostExpr {
-            validReflexiveLemma(bitStream)
          }
-      }*/
+      } else {
+         ghostExpr {
+            lemmaIsPrefixRefl(bitStream)
+         }
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
       w1.base.bitStream.buf.length == w3.base.bitStream.buf.length && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + encodedSizeInBits
-      /*&& w1.isPrefixOf(w3) && {
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, encodedSizeInBits)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_pure(encodedSizeInBits)
          iGot == intVal && r3Got == r3
-      }*/
+      }
    }
 
    @ghost @pure @inline
@@ -345,7 +345,7 @@ case class ACN(base: Codec) {
       appendByte(wrappingExpr { intVal.toByte.toRawUByte })
       /*ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first byte gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.base.bitStream.resetAt(this1.base.bitStream)
          readBytePrefixLemma(this2Reset, this.base.bitStream)
@@ -373,7 +373,7 @@ case class ACN(base: Codec) {
       enc_Int_PositiveInteger_ConstSize_big_endian_16(wrappingExpr { (intVal & 0xFFFFL).toRawULong })
       /*ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_big_endian_16_prefixLemma(this2Reset, this)
@@ -399,7 +399,7 @@ case class ACN(base: Codec) {
       enc_Int_PositiveInteger_ConstSize_big_endian_32(wrappingExpr { (intVal & 0xFFFFFFFFL).toRawULong })
       /*ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_big_endian_32_prefixLemma(this2Reset, this)
@@ -427,7 +427,7 @@ case class ACN(base: Codec) {
       appendByte(wrappingExpr { (intVal >> 8).toUByte })
       /*ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first byte gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          readBytePrefixLemma(this2Reset.base.bitStream, this.base.bitStream)
@@ -455,7 +455,7 @@ case class ACN(base: Codec) {
       enc_Int_PositiveInteger_ConstSize_little_endian_16(wrappingExpr { ((intVal >> 16) & 0xFFFFL).toRawULong })
       /*ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_little_endian_16_prefixLemma(this2Reset, this)
@@ -481,7 +481,7 @@ case class ACN(base: Codec) {
       enc_Int_PositiveInteger_ConstSize_little_endian_32(wrappingExpr { ((intVal >> 32) & 0xFFFFFFFFL).toRawULong })
       /*ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_little_endian_32_prefixLemma(this2Reset, this)
@@ -694,7 +694,7 @@ case class ACN(base: Codec) {
       /*ghostExpr {
          assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this2.base.bitStream.buf.length, this2.base.bitStream.currentByte, this2.base.bitStream.currentBit) + nBits)
          assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this1.base.bitStream.buf.length, this1.base.bitStream.currentByte, this1.base.bitStream.currentBit) + formatBitLength)
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          val this2Reset = this2.resetAt(this1)
          val (r1_1, r3_1) = ACN.reader(this1, this)
          validateOffsetBitsContentIrrelevancyLemma(this1.base.bitStream, this.base.bitStream.buf, formatBitLength)

@@ -229,15 +229,15 @@ object BitStream {
       }.ensuring(_ =>  BitStream.validate_offset_bytes(b2.buf.length.toLong, b2.currentByte.toLong, b2.currentBit.toLong,bytes - ((bits + 7) / 8).toInt))
    }
 
-   // @ghost @pure @opaque @inlineOnce
-   // def validateOffsetImpliesMoveBits(b: BitStream, bits: Long): Unit = {
-   //    require(0 <= bits && bits <= b.buf.length.toLong * 8L)
-   //    require(BitStream.validate_offset_bits(b.buf.length.toLong, b.currentByte.toLong, b.currentBit.toLong, bits))
+   @ghost @pure @opaque @inlineOnce
+   def validateOffsetImpliesMoveBits(b: BitStream, bits: Long): Unit = {
+      require(0 <= bits && bits <= b.buf.length.toLong * 8L)
+      require(BitStream.validate_offset_bits(b.buf.length.toLong, b.currentByte.toLong, b.currentBit.toLong, bits))
 
-   //    {
-   //       ()
-   //    }.ensuring(_ => moveBitIndexPrecond(b, bits))
-   // }
+      {
+         ()
+      }.ensuring(_ => moveBitIndexPrecond(b, bits))
+   }
 
    // For showing invertibility of encoding - not fully integrated yet
    @ghost @pure @opaque @inlineOnce
@@ -520,28 +520,28 @@ object BitStream {
       }
    }
 
-   // @ghost @pure @opaque @inlineOnce
-   // def checkBitsLoopAndReadNLSB(bs: BitStream, nBits: Int, bit: Boolean, from: Int = 0): Unit = {
-   //    require(0 < nBits && nBits <= 64)
-   //    require(0 <= from && from <= nBits)
-   //    require(BitStream.validate_offset_bits(bs.buf.length.toLong, bs.currentByte.toLong, bs.currentBit.toLong, nBits - from))
-   //    decreases(nBits - from)
-   //    val (bs1Final, ok) = bs.checkBitsLoopPure(nBits, bit, from)
-   //    require(ok)
-   //    val acc = if (bit) onesLSBLong(from) << (nBits - from) else 0
-   //    val (bs2Final, vGot) = bs.readNLSBBitsMSBFirstLoopPure(nBits, from, acc)
+   @ghost @pure @opaque @inlineOnce
+   def checkBitsLoopAndReadNLSB(bs: BitStream, nBits: Int, bit: Boolean, from: Int = 0): Unit = {
+      require(0 < nBits && nBits <= 64)
+      require(0 <= from && from <= nBits)
+      require(BitStream.validate_offset_bits(bs.buf.length.toLong, bs.currentByte.toLong, bs.currentBit.toLong, nBits - from))
+      decreases(nBits - from)
+      val (bs1Final, ok) = bs.checkBitsLoopPure(nBits, bit, from)
+      require(ok)
+      val acc = if (bit) onesLSBLong(from) << (nBits - from) else 0
+      val (bs2Final, vGot) = bs.readNLSBBitsMSBFirstLoopPure(nBits, from, acc)
 
-   //    {
-   //       if (from == nBits) ()
-   //       else {
-   //          val (bs1Rec, _) = bs.readBitPure()
-   //          checkBitsLoopAndReadNLSB(bs1Rec, nBits, bit, from + 1)
-   //       }
-   //    }.ensuring { _ =>
-   //       if (!bit) vGot == 0
-   //       else vGot == onesLSBLong(nBits)
-   //    }
-   // }
+      {
+         if (from == nBits) ()
+         else {
+            val (bs1Rec, _) = bs.readBitPure()
+            checkBitsLoopAndReadNLSB(bs1Rec, nBits, bit, from + 1)
+         }
+      }.ensuring { _ =>
+         if (!bit) vGot == 0
+         else vGot == onesLSBLong(nBits)
+      }
+   }
 
    // TODO: Bad name
    @ghost @pure @opaque @inlineOnce

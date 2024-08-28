@@ -149,8 +149,7 @@ object Codec {
  */
 case class Codec(bitStream: BitStream) {
    import Codec.*
-   import BitStream.{reader => _, *}
-   export bitStream.{resetAt => _, withMovedByteIndex => _, withMovedBitIndex => _, isPrefixOf => _, *}
+   export bitStream.{resetAt => _, withMovedByteIndex => _, withMovedBitIndex => _, isPrefixOf => _, readNLSBBitsMSBFirstPure => _, *}
 
    @ghost @pure @inline
    def resetAt(other: Codec): Codec = {
@@ -160,13 +159,13 @@ case class Codec(bitStream: BitStream) {
 
    @ghost @pure @inline
    def withMovedByteIndex(diffInBytes: Int): Codec = {
-      require(moveByteIndexPrecond(bitStream, diffInBytes))
+      require(BitStream.moveByteIndexPrecond(bitStream, diffInBytes))
       Codec(bitStream.withMovedByteIndex(diffInBytes))
    }
 
    @ghost @pure @inline
    def withMovedBitIndex(diffInBits: Int): Codec = {
-      require(moveBitIndexPrecond(bitStream, diffInBits))
+      require(BitStream.moveBitIndexPrecond(bitStream, diffInBits))
       Codec(bitStream.withMovedBitIndex(diffInBits))
    }
 
@@ -195,17 +194,32 @@ case class Codec(bitStream: BitStream) {
    @opaque @inlineOnce
    def encodeUnsignedInteger(v: ULong): Unit = {
       require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,GetBitCountUnsigned(v)))
+      @ghost val w1 = snapshot(this)
       appendLSBBitsMSBFirst(v.toRaw, GetBitCountUnsigned(v))
+      ghostExpr {
+         val nBits = GetBitCountUnsigned(v)
+         val w2 = this
+         assert( w1.bitStream.buf.length == w2.bitStream.buf.length 
+            && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits 
+            && w1.isPrefixOf(w2)
+         )
+         val (r1, r2) = reader(w1, w2)
+         BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
+         val (r2Got, vGot) = r1.bitStream.readNLSBBitsMSBFirstPure(nBits)
+         assert(vGot == v.toRaw && r2Got == r2.bitStream)
+
+      }
    } .ensuring { _ =>
       val w1 = old(this)
       val w2 = this
       val nBits = GetBitCountUnsigned(v)
-      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits /*&& w1.isPrefixOf(w2) && {
+      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits 
+      && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
-         validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
+         BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
          val (r2Got, vGot) = r1.decodeUnsignedIntegerPure(nBits)
          vGot == v && r2Got == r2
-      }*/
+      }
    }
 
    /**
@@ -215,7 +229,7 @@ case class Codec(bitStream: BitStream) {
     * @return Unsigned integer with nBits decoded from bitstream.
     *
     */
-   @opaque @inlineOnce
+   // @opaque @inlineOnce
    def decodeUnsignedInteger(nBits: Int): ULong = {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
       require(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBits))
@@ -266,7 +280,7 @@ case class Codec(bitStream: BitStream) {
          appendLSBBitsMSBFirst(encVal, nRangeBits)
       else
          ghostExpr {
-            lemmaIsPrefixRefl(bitStream)
+            BitStream.lemmaIsPrefixRefl(bitStream)
          }
    }.ensuring { _ =>
       val w1 = old(this)
@@ -275,7 +289,7 @@ case class Codec(bitStream: BitStream) {
       val nBits = GetBitCountUnsigned(range)
       w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
-         validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
+         BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
          val (r2Got, vGot) = r1.decodeConstrainedPosWholeNumberPure(min, max)
          vGot == v && r2Got == r2
       }
@@ -357,7 +371,7 @@ case class Codec(bitStream: BitStream) {
          appendLSBBitsMSBFirst(encVal, nRangeBits)
       // else
       //    ghostExpr {
-      //       lemmaIsPrefixRefl(bitStream)
+      //       BitStream.lemmaIsPrefixRefl(bitStream)
       //    }
    }.ensuring { _ =>
       val w1 = old(this)
@@ -369,7 +383,7 @@ case class Codec(bitStream: BitStream) {
       w1.isPrefixOf(w2)
       && {
          val (r1, r2) = reader(w1, w2)
-         validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
+         BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
          val (r2Got, vGot) = r1.decodeConstrainedWholeNumberPure(min, max)
          vGot == v && r2Got == r2
       }*/
@@ -646,7 +660,7 @@ case class Codec(bitStream: BitStream) {
       val nBits = NO_OF_BITS_IN_BYTE + GetLengthForEncodingSigned(v) * NO_OF_BITS_IN_BYTE
       w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits /*&& w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
-         validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
+         BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
          val (r2Got, vGot) = r1.decodeUnconstrainedWholeNumberPure()
          vGot == v && r2Got == r2
       }*/
