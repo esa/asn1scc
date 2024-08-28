@@ -365,28 +365,29 @@ case class Codec(bitStream: BitStream) {
          val encVal = stainless.math.wrapping(v - min).toRawULong
 
          @ghost val nEncValBits = GetBitCountUnsigned(encVal)
-         //SAMassert(nRangeBits >= nEncValBits)
-         //SAMassert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRangeBits))
+         assert(nRangeBits >= nEncValBits)
+         assert(BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nRangeBits))
 
          appendLSBBitsMSBFirst(encVal, nRangeBits)
-      // else
-      //    ghostExpr {
-      //       BitStream.lemmaIsPrefixRefl(bitStream)
-      //    }
+      else
+         ghostExpr {
+            BitStream.lemmaIsPrefixRefl(bitStream)
+         }
    }.ensuring { _ =>
       val w1 = old(this)
       val w2 = this
       val range = stainless.math.wrapping(max - min)
       val nBits = GetBitCountUnsigned(range.toRawULong)
       w1.bitStream.buf.length == w2.bitStream.buf.length
-      && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits /*&&
+      && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits 
+      &&
       w1.isPrefixOf(w2)
       && {
          val (r1, r2) = reader(w1, w2)
          BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
          val (r2Got, vGot) = r1.decodeConstrainedWholeNumberPure(min, max)
          vGot == v && r2Got == r2
-      }*/
+      }
    }
 
    /**
@@ -404,7 +405,6 @@ case class Codec(bitStream: BitStream) {
     * SAM Changed to cap the value to the max/min value, so that the post condition holds
     *
    */
-   @opaque @inlineOnce
    def decodeConstrainedWholeNumber(min: Long, max: Long): Long = {
       require(min <= max)
       staticRequire(
@@ -500,6 +500,7 @@ case class Codec(bitStream: BitStream) {
     * This function writes full bytes to the bitstream. The length is written as
     * an signed byte in front of the bytes written for the number v.
     *
+    * Unused in PUS-C
     * @param v    number that gets encoded to the bitstream. Must be bigger than min.
     * @param min  lower boundary of range
     *
@@ -513,21 +514,61 @@ case class Codec(bitStream: BitStream) {
 
       val encV: ULong = stainless.math.wrapping(v - min).toRawULong
       val nBytes = GetLengthForEncodingUnsigned(encV).toByte
+      val nBits = nBytes * NO_OF_BITS_IN_BYTE
 
       // need space for length and value
       assert(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,nBytes + 1))
 
+      @ghost val this1 = snapshot(this)
       // encode length
       appendByte(nBytes.toRawUByte)
+
+      @ghost val this2 = snapshot(this)
       // encode value
       appendLSBBitsMSBFirst(encV.toRaw, nBytes * NO_OF_BITS_IN_BYTE)
-   }.ensuring(_ => buf.length == old(this).buf.length &&
-      BitStream.bitIndex(this.bitStream.buf.length, this.bitStream.currentByte, this.bitStream.currentBit) == BitStream.bitIndex(old(this).bitStream.buf.length, old(this).bitStream.currentByte, old(this).bitStream.currentBit) + GetLengthForEncodingUnsigned(stainless.math.wrapping(v - min).toRawULong) * 8L + 8L)
+
+      ghostExpr(BitStream.lemmaIsPrefixTransitive(this1.bitStream, this2.bitStream, this.bitStream))
+
+      ghostExpr {
+         BitStream.lemmaIsPrefixRefl(bitStream)
+      }
+
+      ghostExpr {
+         BitStream.lemmaIsPrefixTransitive(this1.bitStream, this2.bitStream, this.bitStream)
+         val this2Reset = this2.bitStream.resetAt(this1.bitStream)
+         BitStream.readBytePrefixLemma(this2Reset, this.bitStream)
+         assert(this2.bitStream.resetAt(this1.bitStream).readBytePure()._2.unsignedToInt == nBytes)
+         val (r1, r2) = reader(this1, this)
+         BitStream.validateOffsetBytesContentIrrelevancyLemma(this1.bitStream, this.bitStream.buf, nBytes + 1)
+         assert(r1 == Codec(BitStream(snapshot(this.bitStream.buf), this1.bitStream.currentByte, this1.bitStream.currentBit)))
+         assert(BitStream.validate_offset_bytes(r1.bitStream.buf.length, r1.bitStream.currentByte, r1.bitStream.currentBit, nBytes + 1))
+         val (r2Got, vGot) = r1.decodeSemiConstrainedWholeNumberPure(min)
+         check(r2Got == r2)
+         assert((vGot & onesLSBLong(nBits)) == (v & onesLSBLong(nBits)))
+         check(vGot == v)
+      }
+
+   }.ensuring(_ => 
+      val w1 = old(this)
+      val w2 = this
+      val encV: ULong = stainless.math.wrapping(v - min).toRawULong
+      val nBits = GetLengthForEncodingUnsigned(stainless.math.wrapping(v - min).toRawULong) * 8L + 8L
+      buf.length == old(this).buf.length 
+      &&& BitStream.bitIndex(this.bitStream.buf.length, this.bitStream.currentByte, this.bitStream.currentBit) == BitStream.bitIndex(old(this).bitStream.buf.length, old(this).bitStream.currentByte, old(this).bitStream.currentBit) + GetLengthForEncodingUnsigned(stainless.math.wrapping(v - min).toRawULong) * 8L + 8L
+      &&& w1.isPrefixOf(w2) 
+      &&& {
+         val (r1, r2) = reader(w1, w2)
+         BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
+         val (r2Got, vGot) = r1.decodeSemiConstrainedWholeNumberPure(min)
+         (vGot == v) && r2Got == r2
+      }
+   )
 
    /**
     * Decode number from bitstream that is in range [min, Long.MaxValue].
     * This is the reversal function of encodeSemiConstrainedWholeNumber.
     *
+    *  Unused in PUS-C
     * @param min lower boundary of range
     * @return value decoded from the bitstream.
     *
@@ -555,14 +596,30 @@ case class Codec(bitStream: BitStream) {
       // SAM: here the post condition should be obvious, as ULong are always positive. But we can have
       // overflow, and ULong does not encode the unsigned nature in any way, so cannot work.
 
-      v + min
-   }// SAM .ensuring(x => x >= min)
+      val res = v + min
+      if(res < min) then Long.MaxValue else res
+   }.ensuring(res => res >= min)
+
+   //  Unused in PUS-C
+   @ghost @pure
+   def decodeSemiConstrainedWholeNumberPure(min: Long): (Codec, Long) = {
+      require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 1))
+      staticRequire {
+         val nBytes = bitStream.readBytePure()._2.unsignedToInt
+         BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, 1 + nBytes) && 0 <= nBytes && nBytes <= 8
+      }
+      val cpy = snapshot(this)
+      val res = cpy.decodeSemiConstrainedWholeNumber(min)
+      (cpy, res)
+   }
+
 
    /**
     * Encode number to the bitstream within the range [min, Long.Max_Value].
     * This function writes full bytes to the bitstream. The length is written as
     * an signed byte in front of the bytes written for the number v.
     *
+    * Unused in PUS-C
     * @param v   number that gets encoded to the bitstream. Must be bigger than min.
     * @param min lower unsigned boundary of range
     *
@@ -589,6 +646,7 @@ case class Codec(bitStream: BitStream) {
     * Decode unsigned number from the bitstream
     * within the range [min, Long.Max_Value].
     *
+    *  Unused in PUS-C
     * @param min lower unsigned boundary of range
     *
     */
@@ -603,13 +661,18 @@ case class Codec(bitStream: BitStream) {
       val nBytesRaw = nBytes.toRaw
       val nBits = nBytesRaw * NO_OF_BITS_IN_BYTE
       // SAM GUARD
-      val v = if(!(nBits >= 0 && nBits <= 64) || !BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nBits)){
+      val v: ULong = if(!(nBits >= 0 && nBits <= 64) || !BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nBits)){
          0L.toRawULong
       } else {
          readNLSBBitsMSBFirst(nBits).toRawULong
       }
-      val res: ULong = ULong.fromRaw(v + min) // For some reasons, the scala compiler chokes on this being returned
-      res
+      val res: ULong = ULong.fromRaw(v + min)
+      if(res < min) then 
+         assert(ULong.fromRaw(-1L)  >= min)
+         ULong.fromRaw(Long.MaxValue) 
+      else 
+         assert(res >= min)
+         res
    }//.ensuring(res => min <= res)
 
    /**
@@ -618,6 +681,7 @@ case class Codec(bitStream: BitStream) {
     * The encoding of an integer value shall be primitive.
     * The contents octets shall consist of one or more octets.
     *
+    * Unused in PUS-C
     * @param v The value that is always encoded in the smallest possible number of octets.
     */
    @opaque @inlineOnce
@@ -639,31 +703,32 @@ case class Codec(bitStream: BitStream) {
       @ghost val this2 = snapshot(this)
       // encode number
       appendLSBBitsMSBFirst(v & onesLSBLong(nBits), nBits)
-      /*
+      
       ghostExpr {
-         validTransitiveLemma(this1.bitStream, this2.bitStream, this.bitStream)
+         BitStream.lemmaIsPrefixTransitive(this1.bitStream, this2.bitStream, this.bitStream)
          val this2Reset = this2.bitStream.resetAt(this1.bitStream)
-         readBytePrefixLemma(this2Reset, this.bitStream)
+         BitStream.readBytePrefixLemma(this2Reset, this.bitStream)
          assert(this2.bitStream.resetAt(this1.bitStream).readBytePure()._2.unsignedToInt == nBytes)
          val (r1, r2) = reader(this1, this)
-         validateOffsetBytesContentIrrelevancyLemma(this1.bitStream, this.bitStream.buf, nBytes + 1)
+         BitStream.validateOffsetBytesContentIrrelevancyLemma(this1.bitStream, this.bitStream.buf, nBytes + 1)
          assert(r1 == Codec(BitStream(snapshot(this.bitStream.buf), this1.bitStream.currentByte, this1.bitStream.currentBit)))
          assert(BitStream.validate_offset_bytes(r1.bitStream.buf.length, r1.bitStream.currentByte, r1.bitStream.currentBit, nBytes + 1))
          val (r2Got, vGot) = r1.decodeUnconstrainedWholeNumberPure()
          check(r2Got == r2)
-         //SAM assert((vGot & onesLSBLong(nBits)) == (v & onesLSBLong(nBits)))
-         check(vGot == v)
-      }*/
+         assert(vGot.isEmpty || (vGot.get & onesLSBLong(nBits)) == (v & onesLSBLong(nBits)))
+         check(vGot.isEmpty || vGot.get == v)
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w2 = this
       val nBits = NO_OF_BITS_IN_BYTE + GetLengthForEncodingSigned(v) * NO_OF_BITS_IN_BYTE
-      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits /*&& w1.isPrefixOf(w2) && {
+      w1.bitStream.buf.length == w2.bitStream.buf.length && BitStream.bitIndex(w2.bitStream.buf.length, w2.bitStream.currentByte, w2.bitStream.currentBit) == BitStream.bitIndex(w1.bitStream.buf.length, w1.bitStream.currentByte, w1.bitStream.currentBit) + nBits 
+      && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.bitStream, w2.bitStream.buf, nBits)
          val (r2Got, vGot) = r1.decodeUnconstrainedWholeNumberPure()
-         vGot == v && r2Got == r2
-      }*/
+         (vGot.isEmpty || vGot.get == v) && r2Got == r2
+      }
    }
 
    /**
@@ -673,9 +738,9 @@ case class Codec(bitStream: BitStream) {
     * The length n is the first octet, n octets with the value follow
     * Values with n > 8 are not supported
     *
+    * Unused in PUS-C
     * @return decoded number
     */
-   @opaque @inlineOnce
    def decodeUnconstrainedWholeNumber(): Option[Long] = {
       require(BitStream.validate_offset_bytes(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit,1))
 
@@ -722,6 +787,9 @@ case class Codec(bitStream: BitStream) {
 
    /**
     * Facade function for real encoding
+    * 
+    * Unused in PUS-C
+    * 
     * @param vValDouble real input in IEEE754 double format
     */
    @extern
@@ -773,6 +841,8 @@ case class Codec(bitStream: BitStream) {
     * |1|S|0|0|a|b|c|d|
     * +-+-+-+-+-+-+-+-+
     *
+    * 
+    * 
     */
    private def encodeRealBitString(vVal: Long): Unit = {
       // Require from CalculateMantissaAndExponent

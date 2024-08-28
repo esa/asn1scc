@@ -326,93 +326,97 @@ case class ACN(base: Codec) {
    }.ensuring { _ =>
       val w1 = old(this)
       val w2 = this
-      w1.base.bufLength() == w2.base.bufLength() && BitStream.bitIndex(w2.base.bitStream.buf.length, w2.base.bitStream.currentByte, w2.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 8 /*&& w1.isPrefixOf(w2) && {
+      w1.base.bufLength() == w2.base.bufLength() && BitStream.bitIndex(w2.base.bitStream.buf.length, w2.base.bitStream.currentByte, w2.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 8 
+      && w1.isPrefixOf(w2) && {
          val (r1, r2) = ACN.reader(w1, w2)
          val (r2Got, vGot) = r1.dec_Int_PositiveInteger_ConstSize_8_pure()
          vGot == intVal && r2Got == r2
-      }*/
+      }
    }
 
-   @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize_big_endian_16(uintVal: ULong): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16))
       require(uintVal <= 65535)
       val intVal = uintVal.toRaw
       assert((intVal >> 16) == 0L)
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       appendByte(wrappingExpr { (intVal >> 8).toByte.toRawUByte })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       appendByte(wrappingExpr { intVal.toByte.toRawUByte })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
          lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first byte gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.base.bitStream.resetAt(this1.base.bitStream)
          readBytePrefixLemma(this2Reset, this.base.bitStream)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 16 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 16 
+      && w1.isPrefixOf(w3) 
+      && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 16)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_big_endian_16_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
-   @opaque @inlineOnce
+   @inlineOnce @opaque
    def enc_Int_PositiveInteger_ConstSize_big_endian_32(uintVal: ULong): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32))
       require(uintVal <= 4294967295L)
       val intVal = uintVal.toRaw
       assert((intVal >> 32) == 0L)
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_big_endian_16(wrappingExpr { ((intVal >> 16) & 0xFFFFL).toRawULong })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_big_endian_16(wrappingExpr { (intVal & 0xFFFFL).toRawULong })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
          lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_big_endian_16_prefixLemma(this2Reset, this)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 32 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 32 
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 32)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_big_endian_32_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
    @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize_big_endian_64(uintVal: ULong): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       val intVal = uintVal.toRaw
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_big_endian_32(wrappingExpr { ((intVal >> 32) & 0xFFFFFFFFL).toRawULong })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_big_endian_32(wrappingExpr { (intVal & 0xFFFFFFFFL).toRawULong })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
          lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_big_endian_32_prefixLemma(this2Reset, this)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 64 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 64 
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 64)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_big_endian_64_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
    @opaque @inlineOnce
@@ -421,26 +425,27 @@ case class ACN(base: Codec) {
       require(uintVal <= 65535)
       val intVal = uintVal.toRaw
       assert((intVal >> 16) == 0L)
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       appendByte(wrappingExpr { intVal.toUByte })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       appendByte(wrappingExpr { (intVal >> 8).toUByte })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
          lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first byte gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          readBytePrefixLemma(this2Reset.base.bitStream, this.base.bitStream)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 16 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 16 
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 16)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_little_endian_16_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
    @opaque @inlineOnce
@@ -449,52 +454,54 @@ case class ACN(base: Codec) {
       require(uintVal <= 4294967295L)
       val intVal = uintVal.toRaw
       assert((intVal >> 32) == 0L)
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_little_endian_16(wrappingExpr { (intVal & 0xFFFFL).toRawULong })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_little_endian_16(wrappingExpr { ((intVal >> 16) & 0xFFFFL).toRawULong })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
          lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_little_endian_16_prefixLemma(this2Reset, this)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 32 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 32 
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 32)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_little_endian_32_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
    @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize_little_endian_64(uintVal: ULong): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       val intVal = uintVal.toRaw
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_little_endian_32(wrappingExpr { (intVal & 0xFFFFFFFFL).toRawULong })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_little_endian_32(wrappingExpr { ((intVal >> 32) & 0xFFFFFFFFL).toRawULong })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
          lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_little_endian_32_prefixLemma(this2Reset, this)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 64 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 64 
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 64)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_little_endian_64_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
    def dec_Int_PositiveInteger_ConstSize(encodedSizeInBits: Int): ULong = {
@@ -512,7 +519,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_8(): ULong = {
       require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
       ULong.fromRaw(readByte().toRaw & 0xFF)
@@ -677,7 +683,7 @@ case class ACN(base: Codec) {
     * @param v                value that gets encoded
     * @param formatBitLength  number of dataformat bits
     */
-   @opaque @inlineOnce
+   // @opaque @inlineOnce
    def enc_Int_TwosComplement_ConstSize(v: Long, formatBitLength: Int): Unit = {
       val nBits = GetBitCountSigned(v)
       require(nBits <= formatBitLength && formatBitLength <= NO_OF_BITS_IN_LONG)
@@ -689,9 +695,9 @@ case class ACN(base: Codec) {
       ghostExpr {
          validateOffsetBitsDifferenceLemma(this1.base.bitStream, this.base.bitStream, formatBitLength, addedBits)
       }
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       appendLSBBitsMSBFirst(v & onesLSBLong(nBits), nBits)
-      /*ghostExpr {
+      ghostExpr {
          assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this2.base.bitStream.buf.length, this2.base.bitStream.currentByte, this2.base.bitStream.currentBit) + nBits)
          assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this1.base.bitStream.buf.length, this1.base.bitStream.currentByte, this1.base.bitStream.currentBit) + formatBitLength)
          lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
@@ -739,16 +745,17 @@ case class ACN(base: Codec) {
             check(vGot == v)
             check(r3Got == r3_1)
          }
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + formatBitLength /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + formatBitLength 
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, formatBitLength)
          val (r3Got, vGot) = r1.dec_Int_TwosComplement_ConstSize_pure(formatBitLength)
          vGot == v && r3Got == r3
-      }*/
+      }
    }
 
    def enc_Int_TwosComplement_ConstSize_8(intVal: Long): Unit = {
