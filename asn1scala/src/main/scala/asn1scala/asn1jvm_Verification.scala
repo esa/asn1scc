@@ -33,14 +33,14 @@ def arrayCopyOffset[T](@pure src: Array[T], dst: Array[T], fromSrc: Int, toSrc: 
     dst(fromDst) = src(fromSrc)
     arrayCopyOffset(src, dst, fromSrc + 1, toSrc, fromDst + 1)
   }
-} ensuring ( _ => old(dst).length == dst.length)
+}.ensuring ( _ => old(dst).length == dst.length)
 
 def arrayCopyOffsetLen[T](@pure src: Array[T], dst: Array[T], fromSrc: Int, fromDst: Int, len: Int): Unit = {
   require(0 <= len && len <= src.length && len <= dst.length)
   require(0 <= fromSrc && fromSrc <= src.length - len)
   require(0 <= fromDst && fromDst <= dst.length - len)
   arrayCopyOffset(src, dst, fromSrc, fromSrc + len, fromDst)
-} ensuring ( _ => old(dst).length == dst.length)
+}.ensuring ( _ => old(dst).length == dst.length)
 
 @pure
 def arrayBitIndices(fromBit: Long, toBit: Long): (Int, Int, Int, Int) = {
