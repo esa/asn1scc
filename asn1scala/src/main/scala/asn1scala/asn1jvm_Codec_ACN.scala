@@ -225,7 +225,7 @@ case class ACN(base: Codec) {
       enc_Int_PositiveInteger_ConstSize(intVal.toLong.toRawULong, encodedSizeInBits)
    }
 
-   @opaque @inlineOnce
+   // @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize(intVal: ULong, encodedSizeInBits: Int): Unit = {
       require(encodedSizeInBits >= 0 && encodedSizeInBits <= 64)
       /* Get number of bits*/
