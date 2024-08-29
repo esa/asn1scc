@@ -351,7 +351,7 @@ type LangGeneric_scala() =
             let fds = generateEnumAuxiliaries r enc t enm nestingScope sel codec
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
-        override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
+        override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
             let shouldWrap  =
                 match t.Kind with
                 | Asn1AcnAst.ReferenceType rt -> rt.hasExtraConstrainsOrChildrenOrAcnArgs
@@ -380,7 +380,7 @@ type LangGeneric_scala() =
                     match res with
                     | Some res ->
                         assert (not nestingScope.parents.IsEmpty)
-                        let fds, call = wrapAcnFuncBody r t res.funcBody codec nestingScope p recP
+                        let fds, call = wrapAcnFuncBody r deps t res.funcBody codec nestingScope p recP
                         let fdsStr = fds |> List.map (fun fd -> show (FunDefTree fd))
                         let callStr = show (ExprTree call)
                         // TODO: Hack to determine how to change the "result variable"

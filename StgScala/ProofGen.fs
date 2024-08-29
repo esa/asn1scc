@@ -938,19 +938,20 @@ let rec firstOutermostSeqParent (parents: Asn1AcnAst.Asn1Type list): Asn1AcnAst.
     match parent.ActualType.Kind with
     | Sequence _ -> firstOutermostSeqParent rest |> Option.orElse (Some parent)
     | _ -> None
+
 // We must provide all ACN dependencies to auxiliary decoding functions, which can come from two sources:
 // * From the current function (not the one we create but the one where we "stand") parameter list (forwarded dependency)
 // * In case this is a Sequence, the corresponding decoded ACN inserted field, stored in a local variable
 // In both cases, the variable names are the same, so we can (ab)use this fact and not worry from where
 // we got the ACN dependency.
-let acnExternDependenciesVariableDecode (t: Asn1AcnAst.Asn1Type) (parents: Asn1AcnAst.Asn1Type list): Var list =
+let acnExternDependenciesVariableDecode (t: Asn1AcnAst.Asn1Type) (parents: Asn1AcnAst.Asn1Type list): (Asn1AcnAst.Asn1Type * AcnChild * Var) list =
   t.externalDependencies |> List.map (fun dep ->
     let acnDep = tryFindFirstParentACNDependency parents dep
     assert acnDep.IsSome
-    let _, acnParam = acnDep.Value
+    let parent, acnParam = acnDep.Value
     let nme = ToC (acnParam.id.dropModule.AcnAbsPath.StrJoin "_")
     let tpe = fromAcnInsertedType acnParam.Type
-    {Var.name = nme; tpe = tpe}
+    parent, acnParam, {Var.name = nme; tpe = tpe}
   )
 
 // For auxiliary encoding function, we sometimes need to encode bytes that depend on the determinant
@@ -959,7 +960,7 @@ let acnExternDependenciesVariableDecode (t: Asn1AcnAst.Asn1Type) (parents: Asn1A
 // * Add the dependency as a parameter and forward it as needed.
 // * Refer to it from the outermost "pVal" (always in the function parameter) when possible
 // The second way is preferred but not always possible (e.g. if there is a Choice in the path),
-// we cannot access the field pass the choice since we need to pattern match).
+// we cannot access the field past the choice since we need to pattern match).
 let acnExternDependenciesVariableEncode (t: Asn1AcnAst.Asn1Type) (nestingScope: NestingScope): Var option =
   let rec allDependenciesExcept (t: Asn1AcnAst.Asn1Type) (avoid: ReferenceToType): RelativePath list =
     if t.id = avoid then []
@@ -1383,7 +1384,7 @@ let generatePrefixLemma (enc: Asn1Encoding)
   let paramsAcn, acnTps =
     if isTopLevel then [], []
     else
-      let paramsAcn = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd)
+      let paramsAcn = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd) |> List.map (fun (_, _, v) -> v)
       let acns = collectNestedAcnChildren t.Kind
       let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
       paramsAcn, acnTps
@@ -1418,7 +1419,7 @@ let seqDecodeMiscData (allParents: Asn1AcnAst.Asn1Type list)
   let elemTpe = fromAsn1TypeKind t.Kind
   let acns, paramsAcn =
     let acns = fun () -> collectNestedAcnChildren t.Kind
-    let paramAcns = fun () -> acnExternDependenciesVariableDecode t allParents
+    let paramAcns = fun () -> acnExternDependenciesVariableDecode t allParents |> List.map (fun (_, _, v) -> v)
     // Top-level definitions do not return ACNs (and can't have parameter ACNs as well)
     if allParents.IsEmpty then [], []
     else
@@ -1668,7 +1669,7 @@ let generatePrefixLemmaSequenceOfLike (enc: Asn1Encoding)
       let baseId =
         if isTopLevel then t.FT_TypeDefinition.[Scala].typeName
         else ToC t.id.dropModule.AsString
-      let paramsAcn = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd)
+      let paramsAcn = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd) |> List.map (fun (_, _, v) -> v)
       let acns = collectNestedAcnChildren t.Kind
       let acnTps = acns |> List.map (fun acn -> fromAcnInsertedType acn.Type)
       baseId, paramsAcn, acnTps
@@ -2268,6 +2269,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
 
 
 let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
+                    (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
                     (t: Asn1AcnAst.Asn1Type)
                     (body: string)
                     (codec: Codec)
@@ -2287,7 +2289,8 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
   // Computing external ACN dependencies for decoding
   // We also pass them to the encoding function because its postcondition
   // refers to the decoding function, which needs them
-  let paramsAcn = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd)
+  let paramsAcnInfo = acnExternDependenciesVariableDecode t (nestingScope.parents |> List.map snd)
+  let paramsAcn = paramsAcnInfo |> List.map (fun (_, _, v) -> v)
   // All ACN fields present in this SEQUENCE, including nested ones
   // Encoding functions will return them so that we can refer to them in the postcondition when calling the decoding function
   let acns = collectNestedAcnChildren t.Kind
@@ -3215,8 +3218,8 @@ let generateOptionalPrefixLemma (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
   // The `existVar` does not exist for always present/absent
   let existVar = soc.existVar |> Option.map (fun v -> {Var.name = v; tpe = BooleanType})
   let baseId = $"{ToC soc.child.Type.id.dropModule.AsString}_Optional"
-
-  let paramsAcn = acnExternDependenciesVariableDecode soc.child.toAsn1AcnAst.Type (soc.nestingScope.parents |> List.map snd)
+  // TODO: paramAcn comme wrapAcnFuncBody
+  let paramsAcn = acnExternDependenciesVariableDecode soc.child.toAsn1AcnAst.Type (soc.nestingScope.parents |> List.map snd) |> List.map (fun (_, _, v) -> v)
   let mkSizeExpr = fun v1 c1 -> optionalSizeExpr soc.child.toAsn1AcnAst (Var v1) (bitIndexACN (Var c1)) 0I 0I
   let elemTpe = fromAsn1TypeKind soc.child.Type.Kind.baseKind
   let tpe = optionMutTpe elemTpe
@@ -3343,7 +3346,7 @@ let generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
     // Computing external ACN dependencies for decoding
     // We also pass them to the encoding function because its postcondition
     // refers to the decoding function, which needs them
-    let paramsAcn = acnExternDependenciesVariableDecode soc.child.Type.toAsn1AcnAst (soc.nestingScope.parents |> List.map snd)
+    let paramsAcn = acnExternDependenciesVariableDecode soc.child.Type.toAsn1AcnAst (soc.nestingScope.parents |> List.map snd) |> List.map (fun (_, _, v) -> v)
 
     match codec with
     | Encode ->

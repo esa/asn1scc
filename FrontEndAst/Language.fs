@@ -340,7 +340,7 @@ type ILangGeneric () =
     abstract member getBoardNames : Targets option -> string list
     abstract member getBoardDirs : Targets option -> string list
 
-    abstract member adaptAcnFuncBody: Asn1AcnAst.AstRoot -> AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
+    abstract member adaptAcnFuncBody: Asn1AcnAst.AstRoot -> Asn1AcnAst.AcnInsertedFieldDependencies -> AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
     abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
     abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> Selection -> Codec -> string list
     abstract member generateBooleanAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Boolean -> NestingScope -> Selection -> Codec -> string list
@@ -380,7 +380,7 @@ type ILangGeneric () =
     default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
         sourceCode
 
-    default this.adaptAcnFuncBody _ f _ _ _ = f
+    default this.adaptAcnFuncBody _ _ f _ _ _ = f
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateIntegerAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateBooleanAuxiliaries _ _ _ _ _ _ _ = []

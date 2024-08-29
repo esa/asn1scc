@@ -778,6 +778,7 @@ and Choice = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnParameters       : AcnParameter list
+    // detArg              : RelativePath option
     acnArgs             : RelativePath list
     acnLoc              : SrcLoc option
     typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
@@ -869,7 +870,7 @@ type AstRoot = {
     Files: list<Asn1File>
     acnConstants : Map<string, BigInteger>
     args:CommandLineSettings
-    acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
+    acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with colors the initial ACN input
 }
 
 
@@ -912,7 +913,7 @@ type AcnDependency = {
 }
 
 type AcnInsertedFieldDependencies = {
-    acnDependencies                         : AcnDependency list
+    acnDependencies: AcnDependency list
 }
 
 

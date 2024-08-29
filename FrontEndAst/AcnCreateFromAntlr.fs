@@ -1378,14 +1378,17 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
             let alignment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
             let acnMinSizeInBits, acnMaxSizeInBits = AcnEncodingClasses.GetChoiceEncodingClass  mergedChildren alignment t.Location acnProperties
-            let detArg = acnType |> Option.bind (fun acnType -> acnType.acnProperties |> List.tryFindMap (fun prop ->
-                match prop with
-                | SIZE (GP_SizeDeterminant det) -> Some det
-                | _ -> None))
-            let acnArgsSubsted = substAcnArgs acnParamSubst (acnArgs @ Option.toList detArg)
+            // TODO: Voir si cela ne prove pas de dup? + SequenceOf
+            // let detArg = acnType |> Option.bind (fun acnType -> acnType.acnProperties |> List.tryFindMap (fun prop ->
+            //     match prop with
+            //     | CHOICE_DETERMINANT det -> Some det
+            //     | _ -> None))
+            // let detArgSubsted = detArg |> Option.map (fun detArg -> substAcnArg acnParamSubst detArg)
+            let allAcnArgsSubsted = substAcnArgs acnParamSubst acnArgs
+            // let allAcnArgsSubsted = acnArgsSubsted @ (detArgSubsted |> Option.toList)
             Choice ({Choice.children = mergedChildren; acnProperties = acnProperties; cons=cons; withcons = wcons;
                 uperMaxSizeInBits=indexSize+maxChildSize; uperMinSizeInBits=indexSize+minChildSize; acnMinSizeInBits =acnMinSizeInBits;
-                acnMaxSizeInBits=acnMaxSizeInBits; acnParameters = acnParameters; acnArgs = acnArgsSubsted; acnLoc = acnLoc; typeDef=typeDef}), chus
+                acnMaxSizeInBits=acnMaxSizeInBits; acnParameters = acnParameters; acnArgs = allAcnArgsSubsted; acnLoc = acnLoc; typeDef=typeDef}), chus
 
         | Asn1Ast.ReferenceType rf    ->
             let acnArguments = acnArgs
