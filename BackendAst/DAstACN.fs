@@ -547,17 +547,6 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
 
     createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
 
-let createAcnChildIcdFunction  (ch:AcnChild) =
-    let icd fieldName comments  =
-        let sType, minSize, maxSize =
-            match ch.Type with
-            | Asn1AcnAst.AcnInteger  a -> "INTEGER", a.acnMinSizeInBits, a.acnMaxSizeInBits
-            | Asn1AcnAst.AcnBoolean  a -> "BOOLEAN", a.acnMinSizeInBits, a.acnMaxSizeInBits
-            | Asn1AcnAst.AcnNullType a -> "NULL", a.acnMinSizeInBits, a.acnMaxSizeInBits
-            | Asn1AcnAst.AcnReferenceToEnumerated a -> a.tasName.Value, a.enumerated.acnMinSizeInBits, a.enumerated.acnMaxSizeInBits
-            | Asn1AcnAst.AcnReferenceToIA5String a -> a.tasName.Value, a.str.acnMinSizeInBits, a.str.acnMaxSizeInBits
-        {IcdRow.fieldName = fieldName; comments = comments; sPresent="always";sType=(IcdPlainType sType); sConstraint=None; minLengthInBits = minSize ;maxLengthInBits=maxSize;sUnits=None; rowType = IcdRowType.FieldRow; idxOffset = None}
-    icd
 
 let enumComment stgFileName (o:Asn1AcnAst.Enumerated) =
     let EmitItem (n:Asn1AcnAst.NamedItem) =
@@ -808,20 +797,22 @@ let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
         match o.acnProperties.encodingPattern with
         | None      -> None
         | Some encPattern   ->
-            let arrsBits, arrBytes, nBitsSize =
+            let arrsBits, arrBytes, nBitsSize, icdDesc =
                 match encPattern with
                 | PATTERN_PROP_BITSTR_VALUE bitStringPattern ->
                     let arrsBits = bitStringPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                     let arrBytes = bitStringValueToByteArray bitStringPattern
-                    arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length)
+                    let icdDesc = sprintf "fixed pattern: '%s'B" bitStringPattern.Value
+                    arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length), icdDesc
                 | PATTERN_PROP_OCTSTR_VALUE octStringBytes   ->
                     let arrBytes = octStringBytes |> Seq.map(fun z -> z.Value) |> Seq.toArray
                     let bitStringPattern = byteArrayToBitStringValue arrBytes
                     let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-                    arrsBits,arrBytes,(BigInteger bitStringPattern.Length)
+                    let icdDesc = sprintf "fixed pattern:  '%s'H" (arrBytes |> Seq.map(fun z -> z.ToString("X2")) |> Seq.StrJoin "")
+                    arrsBits,arrBytes,(BigInteger bitStringPattern.Length), icdDesc
             let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName o.acnProperties.savePosition codec
             let icdFnc fieldName sPresent comments =
-                [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType "NULL"); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.FieldRow; idxOffset = None}], []
+                [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType icdDesc); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.FieldRow; idxOffset = None}], []
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = "NULL"; rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnNullEncodingType (Some encPattern)); icdResult = Some icd})
     (funcBody errCode), ns
@@ -839,20 +830,22 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 Some ({AcnFuncBodyResult.funcBody = lm.acn.Null_declare pp; errCodes = []; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=Some pp; typeEncodingKind = Some (AcnNullEncodingType None); icdResult=None})
             | _ -> None
         | Some encPattern   ->
-            let arrsBits, arrBytes, nBitsSize =
+            let arrsBits, arrBytes, nBitsSize, icdDesc =
                 match encPattern with
                 | PATTERN_PROP_BITSTR_VALUE bitStringPattern ->
                     let arrsBits = bitStringPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                     let arrBytes = bitStringValueToByteArray bitStringPattern
-                    arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length)
+                    let icdDesc = sprintf "fixed pattern: '%s'B" bitStringPattern.Value
+                    arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length), icdDesc
                 | PATTERN_PROP_OCTSTR_VALUE octStringBytes   ->
                     let arrBytes = octStringBytes |> Seq.map(fun z -> z.Value) |> Seq.toArray
                     let bitStringPattern = byteArrayToBitStringValue arrBytes
                     let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-                    arrsBits,arrBytes,(BigInteger bitStringPattern.Length)
+                    let icdDesc = sprintf "fixed pattern:  '%s'H" (arrBytes |> Seq.map(fun z -> z.ToString("X2")) |> Seq.StrJoin "")
+                    arrsBits,arrBytes,(BigInteger bitStringPattern.Length), icdDesc
             let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName o.acnProperties.savePosition codec
             let icdFnc fieldName sPresent comments =
-                [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
+                [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType icdDesc); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
 
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= lm.lg.acn.null_valIsUnReferenced; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnNullEncodingType (Some encPattern)); icdResult = Some icd})
@@ -1878,8 +1871,17 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             [], []
 
     let icd_acn_child (c:AcnChild) (extra_comments:string list) : ((IcdRow list) * (IcdTypeAss list))=
-        let icdRow = createAcnChildIcdFunction c c.Name.Value ((c.Comments |> Seq.toList)@extra_comments)
-        [icdRow], []
+        let icdResult = 
+            let dummyNestingScope = NestingScope.init 0I 0I
+            let p : CallerScope = {CallerScope.modName = ""; arg = Selection.valueEmptyPath ""}
+            let funcResult = c.funcBody Encode [] dummyNestingScope p
+            match funcResult with
+            | None -> None
+            | Some bodyResult -> bodyResult.icdResult
+        match icdResult with
+        | None -> [], []
+        | Some icdArgAux -> 
+            icdArgAux.rowsFunc c.Name.Value "always" extra_comments
 
 
 
