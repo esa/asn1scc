@@ -687,7 +687,14 @@ let CheckFiles( ast:AstRoot) (pass :int) =
     modules |> Seq.map(fun m-> m.Name) |> CheckForDuplicates
     // check each file
     modules |> Seq.iter (fun x -> CheckModule x ast pass)
-
+    //check that the icdPdus list provided in the command line is valid
+    match ast.args.icdPdus with
+    | None      -> ()
+    | Some pdus ->
+        let allPdus = modules |> Seq.collect(fun m -> m.TypeAssignments |> Seq.map(fun tas -> tas.Name.Value)) |> Seq.toList
+        pdus |> List.iter(fun pdu ->
+            if not (allPdus |> Seq.exists(fun x -> x = pdu)) then
+                raise (SemanticError(emptyLocation, sprintf "The PDU '%s' which was specified in the command line does not exist in the ASN.1 files" pdu)))
 
 
 
