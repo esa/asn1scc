@@ -182,7 +182,7 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
 
 let md5 = System.Security.Cryptography.MD5.Create()
 
-let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) (td:FE_TypeDefinition) (typeDefinition:TypeDefinitionOrReference) nMinBytesInACN nMaxBytesInACN=
+let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) (td:FE_TypeDefinition) (typeDefinition:TypeDefinitionOrReference) nMinBytesInACN nMaxBytesInACN hasAcnDefinition =
     let calcIcdTypeAssHash (t1:IcdTypeAss) =
         let rec calcIcdTypeAssHash_aux (t1:IcdTypeAss) =
             let rws =
@@ -224,6 +224,7 @@ let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) 
             compositeChildren = compositeChildren
             minLengthInBytes = nMinBytesInACN;
             maxLengthInBytes = nMaxBytesInACN
+            hasAcnDefinition = hasAcnDefinition
             hash = "" // will be calculated later
         }
     let icdHash = calcIcdTypeAssHash icdTas
@@ -334,7 +335,8 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let icdAux, ns3 =
         match icdResult with
         | Some icdAux ->
-            let icdTas = createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN
+            let hasAcnDefinition = t.typeAssignmentInfo.IsSome && t.acnLocation.IsSome
+            let icdTas = createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN hasAcnDefinition
             let ns3 =
                 match ns2.icdHashes.TryFind icdTas.hash with
                 | None -> {ns2 with icdHashes = ns2.icdHashes.Add(icdTas.hash, [icdTas])}

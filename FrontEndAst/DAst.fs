@@ -81,6 +81,7 @@ and IcdTypeAss = {
     maxLengthInBytes : BigInteger
     hash            : string
     canBeEmbedded  : bool
+    hasAcnDefinition : bool
     createRowsFunc : IcdInnerTableFunc
 }
 
