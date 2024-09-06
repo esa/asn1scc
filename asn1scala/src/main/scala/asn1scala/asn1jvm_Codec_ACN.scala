@@ -223,6 +223,16 @@ case class ACN(base: Codec) {
       require(nBits <= encodedSizeInBits && encodedSizeInBits <= 64)
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, encodedSizeInBits))
       enc_Int_PositiveInteger_ConstSize(intVal.toLong.toRawULong, encodedSizeInBits)
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.base.bitStream.buf.length == w3.base.bitStream.buf.length && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + encodedSizeInBits
+      && w1.isPrefixOf(w3) && {
+         val (r1, r3) = ACN.reader(w1, w3)
+         validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, encodedSizeInBits)
+         val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_pure(encodedSizeInBits)
+         iGot.toRaw.toInt == intVal && r3Got == r3
+      }
    }
 
    // @opaque @inlineOnce
@@ -762,23 +772,63 @@ case class ACN(base: Codec) {
       require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
       require(-128L <= intVal && intVal <= 127L)
       enc_Int_PositiveInteger_ConstSize_8(ULong.fromRaw(intVal & 0xFFL))
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 8
+      && w1.isPrefixOf(w3) && {
+         val (r1, r3) = ACN.reader(w1, w3)
+         validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 8)
+         val (r3Got, iGot) = r1.dec_Int_TwosComplement_ConstSize_8_pure()
+         iGot == intVal && r3Got == r3
+      }
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_16(intVal: Long): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16))
       require(-32768L <= intVal && intVal <= 32767L)
       enc_Int_PositiveInteger_ConstSize_big_endian_16(ULong.fromRaw(intVal & 0xFFFFL))
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 16 
+      && w1.isPrefixOf(w3) && {
+         val (r1, r3) = ACN.reader(w1, w3)
+         validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 16)
+         val (r3Got, iGot) = r1.dec_Int_TwosComplement_ConstSize_big_endian_16_pure()
+         iGot == intVal && r3Got == r3
+      }
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_32(intVal: Long): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32))
       require(-2147483648L <= intVal && intVal <= 2147483647L)
       enc_Int_PositiveInteger_ConstSize_big_endian_32(ULong.fromRaw(intVal & 0xFFFFFFFFL))
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 32
+      && w1.isPrefixOf(w3) && {
+         val (r1, r3) = ACN.reader(w1, w3)
+         validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 32)
+         val (r3Got, iGot) = r1.dec_Int_TwosComplement_ConstSize_big_endian_32_pure()
+         iGot == intVal && r3Got == r3
+      }
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_64(intVal: Long): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       enc_Int_PositiveInteger_ConstSize_big_endian_64(ULong.fromRaw(intVal))
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 64 
+      && w1.isPrefixOf(w3) && {
+         val (r1, r3) = ACN.reader(w1, w3)
+         validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 64)
+         val (r3Got, iGot) = r1.dec_Int_TwosComplement_ConstSize_big_endian_64_pure()
+         iGot == intVal && r3Got == r3
+      }
    }
 
    def enc_Int_TwosComplement_ConstSize_little_endian_16(intVal: Long): Unit = {
@@ -832,6 +882,13 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
+   @ghost @pure
+   def dec_Int_TwosComplement_ConstSize_8_pure(): (ACN, Long) = {
+
+      val cpy = snapshot(this)
+      val l = cpy.dec_Int_TwosComplement_ConstSize_8()
+      (cpy, l)
+   }
 
    def dec_Int_TwosComplement_ConstSize_8(): Long = {
       if(!BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) ) then
@@ -840,11 +897,27 @@ case class ACN(base: Codec) {
          uint2int(dec_Int_PositiveInteger_ConstSize_8(), 1)
    }
 
+   @ghost @pure
+   def dec_Int_TwosComplement_ConstSize_big_endian_16_pure(): (ACN, Long) = {
+
+      val cpy = snapshot(this)
+      val l = cpy.dec_Int_TwosComplement_ConstSize_big_endian_16()
+      (cpy, l)
+   }
+
    def dec_Int_TwosComplement_ConstSize_big_endian_16(): Long = {
       if(!BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16) ) then
          0L
       else
          uint2int(dec_Int_PositiveInteger_ConstSize_big_endian_16(), NO_OF_BYTES_IN_JVM_SHORT)
+   }
+   
+   @ghost @pure
+   def dec_Int_TwosComplement_ConstSize_big_endian_32_pure(): (ACN, Long) = {
+
+      val cpy = snapshot(this)
+      val l = cpy.dec_Int_TwosComplement_ConstSize_big_endian_32()
+      (cpy, l)
    }
 
    def dec_Int_TwosComplement_ConstSize_big_endian_32(): Long = {
@@ -852,6 +925,14 @@ case class ACN(base: Codec) {
          0L
       else
          uint2int(dec_Int_PositiveInteger_ConstSize_big_endian_32(), NO_OF_BYTES_IN_JVM_INT)
+   }
+
+   @ghost @pure
+   def dec_Int_TwosComplement_ConstSize_big_endian_64_pure(): (ACN, Long) = {
+
+      val cpy = snapshot(this)
+      val l = cpy.dec_Int_TwosComplement_ConstSize_big_endian_64()
+      (cpy, l)
    }
 
    def dec_Int_TwosComplement_ConstSize_big_endian_64(): Long = {
