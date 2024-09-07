@@ -952,7 +952,7 @@ let acnExternDependenciesVariableDecode (t: Asn1AcnAst.Asn1Type) (parents: Asn1A
     let nme = ToC (acnParam.id.dropModule.AcnAbsPath.StrJoin "_")
     let tpe = fromAcnInsertedType acnParam.Type
     parent, acnParam, {Var.name = nme; tpe = tpe}
-  )
+  ) |> List.distinctBy (fun (_, _, v) -> v)
 
 // For auxiliary encoding function, we sometimes need to encode bytes that depend on the determinant
 // of a field that is outside of the current encoding function. We therefore need to somehow refer to it.
@@ -3209,7 +3209,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
           }
         [fd; fdWrapper; fdWrapperPure], fdWrapperCall
     let prefixLemma =
-      if r.args.stainlessInvertibility then
+      if enc = ACN && r.args.stainlessInvertibility then
         [generatePrefixLemmaSequenceOfLike enc pg.t pg.nestingScope sqf]
       else []
     returnedFds @ prefixLemma, auxCall
@@ -3471,7 +3471,7 @@ let generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
           body = pureBody
         }
       let prefixLemma =
-        if r.args.stainlessInvertibility then
+        if enc = ACN && r.args.stainlessInvertibility then
           [generateOptionalPrefixLemma r enc soc]
         else []
       [fd; fdPure] @ prefixLemma, ret
