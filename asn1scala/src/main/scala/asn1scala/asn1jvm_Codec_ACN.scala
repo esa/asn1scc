@@ -90,7 +90,7 @@ object ACN {
       val (acn2Res, l2) = acn2Reset.dec_Int_PositiveInteger_ConstSize_pure(nBits)
 
       {
-         BitStream.readNLeastSignificantBitsPrefixLemma(acn1.base.bitStream, acn2.base.bitStream, nBits)
+         BitStream.readNLSBBitsMSBFirstPrefixLemma(acn1.base.bitStream, acn2.base.bitStream, nBits)
       }.ensuring { _ =>
          acn1Res.base.bitStream.bitIndex == acn2Res.base.bitStream.bitIndex && l1 == l2
       }
