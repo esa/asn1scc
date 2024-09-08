@@ -8,6 +8,9 @@ open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
 open DAst
 open Language
+open System.Xml.Serialization
+open System.IO
+//open Newtonsoft.Json
 
 let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
     let handleNode zeroBasedSequenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) =
@@ -1061,3 +1064,73 @@ let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReferenc
             | true  -> typeDefinitionName0
             | false -> moduleName + "." + typeDefinitionName0
     baseTypeDefinitionName, baseTypeDefinitionName + methodSuffix + codec.suffix
+
+
+let serializeIcdTasToXml (icdTypeAss: IcdTypeAss) =
+    let serializer = XmlSerializer(typeof<IcdTypeAss>)
+    use stringWriter = new StringWriter()
+    serializer.Serialize(stringWriter, icdTypeAss)
+    stringWriter.ToString()
+
+//let serializeIcdTasToJson (icdTypeAss: IcdTypeAss) =
+//    JsonConvert.SerializeObject(icdTypeAss)
+
+(*
+and IcdTypeAss = {
+    linkId  : ReferenceToType
+    tasInfo : TypeAssignmentInfo option
+    asn1Link : string option
+    acnLink : string option
+    name : string
+    kind : string
+    comments : string list
+    rows : IcdRow list
+    compositeChildren : IcdTypeAss list
+    minLengthInBytes : BigInteger
+    maxLengthInBytes : BigInteger
+    hash            : string
+    canBeEmbedded  : bool
+    hasAcnDefinition : bool
+
+*)
+
+let md5 = System.Security.Cryptography.MD5.Create()
+let calcIcdTypeAssHash (t1:IcdTypeAss) =
+    let rec calcIcdTypeAssHash_aux (t1:IcdTypeAss) =
+        let rws =
+            t1.rows |>
+            Seq.map(fun r -> sprintf "%A%A%A%A%A%A%A%A%A%A" r.idxOffset r.fieldName r.comments r.sPresent r.sType r.sConstraint r.minLengthInBits r.maxLengthInBits r.sUnits r.rowType) |>
+            Seq.StrJoin ""
+        let aa = sprintf"%A%A%A%A%A%A%A%A%A" t1.acnLink t1.asn1Link  t1.name t1.kind t1.comments t1.minLengthInBytes t1.maxLengthInBytes (rws) ("")
+        let bytes = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes aa)
+        Convert.ToHexString bytes
+    calcIcdTypeAssHash_aux t1
+
+let serializeIcdTasToText (icdTypeAss: IcdTypeAss) =
+    let printRow (r:IcdRow) =
+        sprintf """
+            idxOffset = %A
+            fieldName = %A
+            comments = %A
+            sPresent = %A
+            sType = %A
+            sConstraint = %A
+            minLengthInBits = %A
+            maxLengthInBits = %A
+            sUnits = %A
+            rowType = %A
+            """ r.idxOffset r.fieldName r.comments r.sPresent r.sType r.sConstraint r.minLengthInBits r.maxLengthInBits r.sUnits r.rowType
+    
+    //let aa = sprintf"%A%A%A%A%A%A%A%A%A" t1.acnLink t1.asn1Link  t1.name t1.kind t1.comments t1.minLengthInBytes t1.maxLengthInBytes (rws) ("")
+    let rws = icdTypeAss.rows |> Seq.map printRow |> Seq.StrJoin "\n"
+    sprintf """
+        acnLink = %A
+        asn1Link = %A
+        name = %A
+        kind = %A
+        comments = %A
+        minLengthInBytes = %A
+        maxLengthInBytes = %A
+        rows = 
+            %A
+        """ icdTypeAss.acnLink icdTypeAss.asn1Link  icdTypeAss.name icdTypeAss.kind icdTypeAss.comments icdTypeAss.minLengthInBytes icdTypeAss.maxLengthInBytes rws
