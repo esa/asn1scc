@@ -182,7 +182,7 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
 
 let md5 = System.Security.Cryptography.MD5.Create()
 
-let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) (td:FE_TypeDefinition) (typeDefinition:TypeDefinitionOrReference) nMinBytesInACN nMaxBytesInACN=
+let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) (td:FE_TypeDefinition) (typeDefinition:TypeDefinitionOrReference) nMinBytesInACN nMaxBytesInACN hasAcnDefinition =
     let calcIcdTypeAssHash (t1:IcdTypeAss) =
         let rec calcIcdTypeAssHash_aux (t1:IcdTypeAss) =
             let rws =
@@ -224,6 +224,7 @@ let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) 
             compositeChildren = compositeChildren
             minLengthInBytes = nMinBytesInACN;
             maxLengthInBytes = nMaxBytesInACN
+            hasAcnDefinition = hasAcnDefinition
             hash = "" // will be calculated later
         }
     let icdHash = calcIcdTypeAssHash icdTas
@@ -328,7 +329,8 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let icdAux, ns3 =
         match icdResult with
         | Some icdAux ->
-            let icdTas = createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN
+            let hasAcnDefinition = t.typeAssignmentInfo.IsSome && t.acnLocation.IsSome
+            let icdTas = createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN hasAcnDefinition
             let ns3 =
                 match ns2.icdHashes.TryFind icdTas.hash with
                 | None -> {ns2 with icdHashes = ns2.icdHashes.Add(icdTas.hash, [icdTas])}
@@ -548,17 +550,6 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
 
-let createAcnChildIcdFunction  (ch:AcnChild) =
-    let icd fieldName comments  =
-        let sType, minSize, maxSize =
-            match ch.Type with
-            | Asn1AcnAst.AcnInteger  a -> "INTEGER", a.acnMinSizeInBits, a.acnMaxSizeInBits
-            | Asn1AcnAst.AcnBoolean  a -> "BOOLEAN", a.acnMinSizeInBits, a.acnMaxSizeInBits
-            | Asn1AcnAst.AcnNullType a -> "NULL", a.acnMinSizeInBits, a.acnMaxSizeInBits
-            | Asn1AcnAst.AcnReferenceToEnumerated a -> a.tasName.Value, a.enumerated.acnMinSizeInBits, a.enumerated.acnMaxSizeInBits
-            | Asn1AcnAst.AcnReferenceToIA5String a -> a.tasName.Value, a.str.acnMinSizeInBits, a.str.acnMaxSizeInBits
-        {IcdRow.fieldName = fieldName; comments = comments; sPresent="always";sType=(IcdPlainType sType); sConstraint=None; minLengthInBits = minSize ;maxLengthInBits=maxSize;sUnits=None; rowType = IcdRowType.FieldRow; idxOffset = None}
-    icd
 
 let enumComment stgFileName (o:Asn1AcnAst.Enumerated) =
     let EmitItem (n:Asn1AcnAst.NamedItem) =
@@ -814,20 +805,22 @@ let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsert
         match o.acnProperties.encodingPattern with
         | None      -> None
         | Some encPattern   ->
-            let arrsBits, arrBytes, nBitsSize =
+            let arrsBits, arrBytes, nBitsSize, icdDesc =
                 match encPattern with
                 | PATTERN_PROP_BITSTR_VALUE bitStringPattern ->
                     let arrsBits = bitStringPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                     let arrBytes = bitStringValueToByteArray bitStringPattern
-                    arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length)
+                    let icdDesc = sprintf "fixed pattern: '%s'B" bitStringPattern.Value
+                    arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length), icdDesc
                 | PATTERN_PROP_OCTSTR_VALUE octStringBytes   ->
                     let arrBytes = octStringBytes |> Seq.map(fun z -> z.Value) |> Seq.toArray
                     let bitStringPattern = byteArrayToBitStringValue arrBytes
                     let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-                    arrsBits,arrBytes,(BigInteger bitStringPattern.Length)
+                    let icdDesc = sprintf "fixed pattern:  '%s'H" (arrBytes |> Seq.map(fun z -> z.ToString("X2")) |> Seq.StrJoin "")
+                    arrsBits,arrBytes,(BigInteger bitStringPattern.Length), icdDesc
             let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName o.acnProperties.savePosition codec
             let icdFnc fieldName sPresent comments =
-                [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType "NULL"); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.FieldRow; idxOffset = None}], []
+                [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType icdDesc); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.FieldRow; idxOffset = None}], []
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = "NULL"; rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnNullEncodingType (Some encPattern)); auxiliaries=[]; icdResult = Some icd})
     (funcBody errCode), ns
@@ -846,20 +839,22 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedF
                 Some ({AcnFuncBodyResult.funcBody = lm.acn.Null_declare pp; errCodes = []; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=Some pp; typeEncodingKind = Some (AcnNullEncodingType None); auxiliaries=aux; icdResult=None})
             | _ -> None
         | Some encPattern   ->
-            let arrsBits, arrBytes, nBitsSize =
+            let arrsBits, arrBytes, nBitsSize, icdDesc =
                 match encPattern with
                 | PATTERN_PROP_BITSTR_VALUE bitStringPattern ->
                     let arrsBits = bitStringPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                     let arrBytes = bitStringValueToByteArray bitStringPattern
-                    arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length)
+                    let icdDesc = sprintf "fixed pattern: '%s'B" bitStringPattern.Value
+                    arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length), icdDesc
                 | PATTERN_PROP_OCTSTR_VALUE octStringBytes   ->
                     let arrBytes = octStringBytes |> Seq.map(fun z -> z.Value) |> Seq.toArray
                     let bitStringPattern = byteArrayToBitStringValue arrBytes
                     let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-                    arrsBits,arrBytes,(BigInteger bitStringPattern.Length)
+                    let icdDesc = sprintf "fixed pattern:  '%s'H" (arrBytes |> Seq.map(fun z -> z.ToString("X2")) |> Seq.StrJoin "")
+                    arrsBits,arrBytes,(BigInteger bitStringPattern.Length), icdDesc
             let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName o.acnProperties.savePosition codec
             let icdFnc fieldName sPresent comments =
-                [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
+                [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType icdDesc); sConstraint=None; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= lm.lg.acn.null_valIsUnReferenced; bBsIsUnReferenced=false; resultExpr=resultExpr; typeEncodingKind = Some (AcnNullEncodingType (Some encPattern)); auxiliaries=aux; icdResult = Some icd})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
@@ -1722,7 +1717,7 @@ type private SequenceChildResult = {
     props: SequenceChildProps
     typeKindEncoding: TypeEncodingKind option
     auxiliaries: string list
-    icdComments : string list
+    icdResult : ((IcdRow list) * (IcdTypeAss list))
 } with
     member this.joinedBodies (lm:LanguageMacros) (codec:CommonTypes.Codec): string option =
         this.stmts |> List.choose (fun s -> s.body) |> nestChildItems lm codec
@@ -1822,47 +1817,49 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         | true -> []
         | false ->
             [{IcdRow.fieldName = "Presence Mask"; comments = [$"Presence bit mask"]; sPresent="always";sType=IcdPlainType "bit mask"; sConstraint=None; minLengthInBits = sPresenceBitIndexMap.Count.AsBigInt ;maxLengthInBits=sPresenceBitIndexMap.Count.AsBigInt;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
-    let icdFnc fieldName sPresent comments  =
-        let chRows0, compositeChildren0 =
-            children |>
-            List.map(fun c ->
-                match c with
-                | Asn1Child c ->
-                    let optionality =
-                        match c.Optionality with
-                        | None                -> "always"
-                        | Some(AlwaysAbsent ) -> "never"
-                        | Some(AlwaysPresent) -> "always"
-                        | Some(Optional  opt) ->
-                            match opt.acnPresentWhen with
-                            | None                                      -> $"when bit %d{sPresenceBitIndexMap[c.Name.Value]} is set in the uPER bit mask"
-                            | Some(PresenceWhenBool relPath)            -> $"when %s{relPath.AsString} is true"
-                            | Some(PresenceWhenBoolExpression acnExp)   ->
-                                let dummyScope = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
-                                let retExp = acnExpressionToBackendExpression o dummyScope acnExp
-                                $"when %s{retExp}"
-                    let comments = c.Comments |> Seq.toList
-                    let childIcdTas = c.Type.icdTas
-                    //let isRef = match c.Type.Kind with ReferenceType _ -> true | _ -> false
-                    match c.Type.icdTas with
-                    | Some childIcdTas ->
-                        match childIcdTas.canBeEmbedded   with
-                        | true  ->
-                            let chRows, _ = childIcdTas.createRowsFunc c.Name.Value optionality comments
-                            chRows, []
-                        | false ->
-                            let sType = TypeHash childIcdTas.hash
-                            [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=None; minLengthInBits = c.Type.acnMinSizeInBits; maxLengthInBits=c.Type.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}], [childIcdTas]
-                    | None ->
-                        [], []
-                | AcnChild  c ->
-                    let icdRow = createAcnChildIcdFunction c c.Name.Value (c.Comments |> Seq.toList)
-                    [icdRow], []) |>
-                List.unzip
-        let chRows = chRows0 |> List.collect id
-        let compositeChildren = compositeChildren0 |> List.collect id
-        uperPresenceMask@chRows |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)}), compositeChildren
-    let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
+
+    let icd_asn1_child (c:Asn1Child) (extra_comments:string list) : ((IcdRow list) * (IcdTypeAss list)) =
+        let optionality =
+            match c.Optionality with
+            | None                -> "always"
+            | Some(AlwaysAbsent ) -> "never"
+            | Some(AlwaysPresent) -> "always"
+            | Some(Optional  opt) ->
+                match opt.acnPresentWhen with
+                | None                                      -> $"when bit %d{sPresenceBitIndexMap[c.Name.Value]} is set in the uPER bit mask"
+                | Some(PresenceWhenBool relPath)            -> $"when %s{relPath.AsString} is true"
+                | Some(PresenceWhenBoolExpression acnExp)   ->
+                    let dummyScope = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
+                    let retExp = acnExpressionToBackendExpression o dummyScope acnExp
+                    $"when %s{retExp}"
+        let comments = (c.Comments |> Seq.toList)@extra_comments
+        let childIcdTas = c.Type.icdTas
+        //let isRef = match c.Type.Kind with ReferenceType _ -> true | _ -> false
+        match c.Type.icdTas with
+        | Some childIcdTas ->
+            match childIcdTas.canBeEmbedded   with
+            | true  ->
+                let chRows, _ = childIcdTas.createRowsFunc c.Name.Value optionality comments
+                chRows, []
+            | false ->
+                let sType = TypeHash childIcdTas.hash
+                [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=None; minLengthInBits = c.Type.acnMinSizeInBits; maxLengthInBits=c.Type.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}], [childIcdTas]
+        | None ->
+            [], []
+
+    let icd_acn_child (c:AcnChild) (extra_comments:string list) : ((IcdRow list) * (IcdTypeAss list))=
+        let icdResult =
+            let dummyNestingScope = NestingScope.init 0I 0I []
+            let p : CallerScope = {CallerScope.modName = ""; arg = Selection.valueEmptyPath ""}
+            let funcResult = c.funcBody Encode [] dummyNestingScope p
+            match funcResult with
+            | None -> None
+            | Some bodyResult -> bodyResult.icdResult
+        match icdResult with
+        | None -> [], []
+        | Some icdArgAux ->
+            icdArgAux.rowsFunc c.Name.Value "always" extra_comments
+
 
 
     let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
@@ -2057,7 +2054,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     if child.Optionality.IsSome then childTpeKind |> Option.map OptionEncodingType
                     else childTpeKind
                 let props = {info=childInfo.toAsn1AcnAst; sel=childSel; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
-                let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; typeKindEncoding=tpeKind; auxiliaries=auxiliaries @ optAux; icdComments=[]}
+                let icdResult = icd_asn1_child child stmts.icdComments
+                let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; typeKindEncoding=tpeKind; auxiliaries=auxiliaries @ optAux; icdResult=icdResult}
                 let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
                 res, newAcc
             | AcnChild acnChild ->
@@ -2102,7 +2100,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let icdComments = stmts |> List.collect(fun z -> z.icdComments)
                 // Note: uperMaxSizeBits and uperAccBits here do not make sense since we are in ACN
                 let props = {info=childInfo.toAsn1AcnAst; sel=childP.arg; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
-                let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; typeKindEncoding=childTpeKind; icdComments=icdComments; auxiliaries=auxiliaries}
+                let icdResult = icd_acn_child acnChild icdComments
+                let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; typeKindEncoding=childTpeKind; auxiliaries=auxiliaries; icdResult=icdResult}
                 let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
                 res, newAcc
         // find acn inserted fields, which are not NULL types and which have no dependency.
@@ -2164,6 +2163,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let proof = lm.lg.generateSequenceProof r ACN t o nestingScope p.arg codec
         let aux = lm.lg.generateSequenceAuxiliaries r ACN t o nestingScope p.arg codec
         let seqContent =  (saveInitialBitStrmStatements@childrenStatements@(post_encoding_function |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
+
+        let icdFnc fieldName sPresent comments  =
+            let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip
+            let chRows = chRows0 |> List.collect id
+            let compositeChildren = compositeChildren0 |> List.collect id
+            uperPresenceMask@chRows |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)}), compositeChildren
+        let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
 
         match existsAcnChildWithNoUpdates with
         | []     ->
@@ -2444,12 +2450,15 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
   let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
   let getNewSType (r:IcdRow) =
+    (*
     let newType =
         match r.sType with
         | TypeHash hash   -> TypeHash hash
         | IcdPlainType plainType when r.rowType = FieldRow -> IcdPlainType (td.asn1Name + "(" + plainType + ")")
         | IcdPlainType plainType -> IcdPlainType plainType
     {r with sType = newType}
+    *)
+    r
 
   let icdFnc,extraComment, name  =
     match o.encodingOptions with
