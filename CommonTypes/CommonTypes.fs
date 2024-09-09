@@ -505,7 +505,7 @@ type ReferenceToType with
             match this with
             | ReferenceToType path ->
                 match path with
-                | (MD _) :: (TA _) :: path    -> select path
+                | (MD _) :: (TA _) :: path -> select path
                 | _ -> select path
 
         member this.tasInfo =
@@ -642,7 +642,11 @@ and FE_PrimitiveTypeDefinition = {
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     programUnit     : string            //the program unit where this type is defined
     kind            : FE_PrimitiveTypeDefinitionKind
-}
+} with
+    member this.dealiased: FE_PrimitiveTypeDefinition =
+        match this.kind with
+        | PrimitiveNewSubTypeDefinition sub -> sub.dealiased
+        | _ -> this
 
 type FE_NonPrimitiveTypeDefinitionKind<'SUBTYPE> =
     | NonPrimitiveNewTypeDefinition                       //type
@@ -680,6 +684,11 @@ with
         | true   when this.programUnit = callerProgramUnit   -> this
         | true           -> {this with typeName = z this.typeName; encoding_range = z this.encoding_range; index = z this.index; alpha = z this.alpha; alpha_set = z this.alpha_set; alpha_index = z this.alpha_index}
 
+    member this.dealiased: FE_StringTypeDefinition =
+        match this.kind with
+        | NonPrimitiveNewSubTypeDefinition sub -> sub.dealiased
+        | _ -> this
+
 type FE_SizeableTypeDefinition = {
     asn1Name        : string
     asn1Module      : string option
@@ -698,6 +707,11 @@ with
         | true   when this.programUnit = callerProgramUnit   -> this
         | true           -> {this with typeName = z this.typeName; index = z this.index; array = z this.array; length_index = z this.length_index}
 
+    member this.dealiased: FE_SizeableTypeDefinition =
+        match this.kind with
+        | NonPrimitiveNewSubTypeDefinition sub -> sub.dealiased
+        | _ -> this
+
 type FE_SequenceTypeDefinition = {
     asn1Name        : string
     asn1Module      : string option
@@ -714,6 +728,11 @@ with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
         | true   -> {this with typeName = z this.typeName; exist = z this.exist}
+
+    member this.dealiased: FE_SequenceTypeDefinition =
+        match this.kind with
+        | NonPrimitiveNewSubTypeDefinition sub -> sub.dealiased
+        | _ -> this
 
 type FE_ChoiceTypeDefinition = {
     asn1Name        : string
@@ -732,6 +751,11 @@ with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
         | true           -> {this with typeName = z this.typeName; index_range = z this.index_range; selection = z this.selection}
+
+    member this.dealiased: FE_ChoiceTypeDefinition =
+        match this.kind with
+        | NonPrimitiveNewSubTypeDefinition sub -> sub.dealiased
+        | _ -> this
 
 type FE_EnumeratedTypeDefinition = {
     asn1Name        : string
@@ -754,6 +778,10 @@ with
         | true   when this.programUnit = callerProgramUnit   -> this
         | true           -> {this with typeName = z this.typeName; index_range = z this.index_range}
 
+    member this.dealiased: FE_EnumeratedTypeDefinition =
+        match this.kind with
+        | NonPrimitiveNewSubTypeDefinition sub -> sub.dealiased
+        | _ -> this
 
 type FE_TypeDefinition =
     | FE_PrimitiveTypeDefinition   of FE_PrimitiveTypeDefinition
@@ -797,6 +825,14 @@ type FE_TypeDefinition =
             | FE_ChoiceTypeDefinition     a    -> a.kind.BaseKind
             | FE_EnumeratedTypeDefinition a    -> a.kind.BaseKind
 
+        member this.dealiased =
+            match this with
+            | FE_PrimitiveTypeDefinition t -> FE_PrimitiveTypeDefinition t.dealiased
+            | FE_SequenceTypeDefinition t -> FE_SequenceTypeDefinition t.dealiased
+            | FE_StringTypeDefinition t -> FE_StringTypeDefinition t.dealiased
+            | FE_SizeableTypeDefinition t -> FE_SizeableTypeDefinition t.dealiased
+            | FE_ChoiceTypeDefinition t -> FE_ChoiceTypeDefinition t.dealiased
+            | FE_EnumeratedTypeDefinition t -> FE_EnumeratedTypeDefinition t.dealiased
 
         member this.asn1Name =
             match this with
@@ -924,6 +960,7 @@ type CommandLineSettings = {
     blm         : (ProgrammingLanguage*ILangBasic) list
     userRtlFunctionsToGenerate : string list
     enum_Items_To_Enable_Efficient_Enumerations : uint
+    stainlessInvertibility: bool
 }
 with
   member this.SIntMax =

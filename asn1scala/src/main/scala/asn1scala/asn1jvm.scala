@@ -302,6 +302,31 @@ def alignedSizeToDWord(bits: Long, offset: Long): Long = {
     alignedSizeToN(32L, offset, bits)
 }.ensuring(res => bits <= res && res <= bits + 31L)
 
+def uint2intWhile(v: ULong, uintSizeInBytes: Int): Long = {
+    require(uintSizeInBytes >= 1 && uintSizeInBytes <= 9)
+
+    var vv = v.toRaw
+    val tmp: ULong = 0x80
+    val bIsNegative: Boolean = (vv & (tmp << ((uintSizeInBytes - 1) * 8))) > 0
+
+    if !bIsNegative then
+        return v
+
+    var i: Int = NO_OF_BYTES_IN_JVM_LONG-1 // 7
+    (while i >= uintSizeInBytes do
+        decreases(i)
+        vv |= ber_aux(i)
+        i -= 1
+      ).invariant(i <= NO_OF_BYTES_IN_JVM_LONG-1 && i >= uintSizeInBytes - 1)
+    -(~vv) - 1
+}
+
+/**
+  * Version of uint2int that unfolds completely the loop, to help verification
+  *
+  * @param v
+  * @param uintSizeInBytes
+  */
 def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
     require(uintSizeInBytes >= 1 && uintSizeInBytes <= 9)
 
@@ -312,14 +337,17 @@ def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
     if !bIsNegative then
         return v
 
-    var i: Int = NO_OF_BYTES_IN_JVM_LONG-1
-    (while i >= uintSizeInBytes do
-        decreases(i)
-        vv |= ber_aux(i)
-        i -= 1
-      ).invariant(i <= NO_OF_BYTES_IN_JVM_LONG-1 && i >= uintSizeInBytes - 1)
+    if(uintSizeInBytes <= 7) then vv |= ber_aux(7)
+    if(uintSizeInBytes <= 6) then vv |= ber_aux(6)
+    if(uintSizeInBytes <= 5) then vv |= ber_aux(5)
+    if(uintSizeInBytes <= 4) then vv |= ber_aux(4)
+    if(uintSizeInBytes <= 3) then vv |= ber_aux(3)
+    if(uintSizeInBytes <= 2) then vv |= ber_aux(2)
+    if(uintSizeInBytes <= 1) then vv |= ber_aux(1)
+
     -(~vv) - 1
 }
+
 
 
 def GetCharIndex(ch: UByte, charSet: Array[UByte]): Int =

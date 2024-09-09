@@ -113,18 +113,18 @@ object BitStream {
       && res._1 == res._2.withMovedBitIndex(BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) - BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit))
       )
 
-   // @ghost @pure @opaque @inlineOnce
-   // def resetAndThenMovedLemma(b1: BitStream, b2: BitStream, moveInBits: Long): Unit = {
-   //    require(b1.buf.length == b2.buf.length)
-   //    require(moveInBits >= 0)
-   //    require(BitStream.validate_offset_bits(b1.buf.length.toLong, b1.currentByte.toLong, b1.currentBit.toLong, moveInBits))
+   @ghost @pure @opaque @inlineOnce
+   def resetAndThenMovedLemma(b1: BitStream, b2: BitStream, moveInBits: Long): Unit = {
+      require(b1.buf.length == b2.buf.length)
+      require(moveInBits >= 0)
+      require(BitStream.validate_offset_bits(b1.buf.length.toLong, b1.currentByte.toLong, b1.currentBit.toLong, moveInBits))
 
-   //    val b2Reset = b2.resetAt(b1)
+      val b2Reset = b2.resetAt(b1)
 
-   //    {
-   //       ()
-   //    }.ensuring(_ => moveBitIndexPrecond(b2Reset, moveInBits))
-   // }
+      {
+         ()
+      }.ensuring(_ => moveBitIndexPrecond(b2Reset, moveInBits))
+   }
 
    @ghost @pure @opaque @inlineOnce
    def eqBufAndBitIndexImpliesEq(b1: BitStream, b2: BitStream): Unit = {
@@ -175,6 +175,13 @@ object BitStream {
    def remainingBitsBitIndexLemma(b: BitStream): Unit = {
       ()
    }.ensuring(_ => BitStream.remainingBits(b.buf.length.toLong, b.currentByte.toLong, b.currentBit.toLong) == b.buf.length.toLong * NO_OF_BITS_IN_BYTE - BitStream.bitIndex(b.buf.length, b.currentByte, b.currentBit ))
+
+   @ghost @pure @opaque @inlineOnce
+   def resetAtEqLemma(b1: BitStream, b2: BitStream, b3: BitStream): Unit = {
+      require(b1.buf == b2.buf)
+      require(b1.buf.length == b3.buf.length)
+      require(b1.bitIndex == b3.bitIndex)
+   }.ensuring(_ => b1 == b2.resetAt(b3))
 
    @ghost @pure @opaque @inlineOnce
    def validateOffsetBytesContentIrrelevancyLemma(b1: BitStream, buf: Array[Byte], bytes: Int): Unit = {
@@ -229,22 +236,21 @@ object BitStream {
       }.ensuring(_ =>  BitStream.validate_offset_bytes(b2.buf.length.toLong, b2.currentByte.toLong, b2.currentBit.toLong,bytes - ((bits + 7) / 8).toInt))
    }
 
-   // @ghost @pure @opaque @inlineOnce
-   // def validateOffsetImpliesMoveBits(b: BitStream, bits: Long): Unit = {
-   //    require(0 <= bits && bits <= b.buf.length.toLong * 8L)
-   //    require(BitStream.validate_offset_bits(b.buf.length.toLong, b.currentByte.toLong, b.currentBit.toLong, bits))
+   @ghost @pure @opaque @inlineOnce
+   def validateOffsetImpliesMoveBits(b: BitStream, bits: Long): Unit = {
+      require(0 <= bits && bits <= b.buf.length.toLong * 8L)
+      require(BitStream.validate_offset_bits(b.buf.length.toLong, b.currentByte.toLong, b.currentBit.toLong, bits))
 
-   //    {
-   //       ()
-   //    }.ensuring(_ => moveBitIndexPrecond(b, bits))
-   // }
+      {
+         ()
+      }.ensuring(_ => moveBitIndexPrecond(b, bits))
+   }
 
    // For showing invertibility of encoding - not fully integrated yet
    @ghost @pure @opaque @inlineOnce
    def readBytePrefixLemma(bs1: BitStream, bs2: BitStream): Unit = {
       require(bs1.buf.length == bs2.buf.length)
-      require(BitStream.bitIndex(bs1.buf.length, bs1.currentByte, bs1.currentBit ) + 8 <= bs1.buf.length.toLong * 8L)
-      require(BitStream.bitIndex(bs1.buf.length, bs1.currentByte, bs1.currentBit ) + 8 <= BitStream.bitIndex(bs2.buf.length, bs2.currentByte, bs2.currentBit ))
+      require(bs1.validate_offset_bits(8))
       require(arrayBitRangesEq(
          bs1.buf,
          bs2.buf,
@@ -281,7 +287,7 @@ object BitStream {
       val read2 = bs2Reset.readBytePure()._2
 
       {
-         val aligned = BitStream.bitIndex(bs1.withAlignedByte().buf.length, bs1.withAlignedByte().currentByte, bs1.withAlignedByte().currentBit )
+         val aligned = BitStream.bitIndex(bs1.withAlignedToByte().buf.length, bs1.withAlignedToByte().currentByte, bs1.withAlignedToByte().currentBit )
          arrayBitRangesEqSlicedLemma(bs1.buf, bs2.buf, 0, rangeEqUntil, BitStream.bitIndex(bs1.buf.length, bs1.currentByte, bs1.currentBit ), aligned)
          arrayBitRangesEqSlicedLemma(bs1.buf, bs2.buf, 0, rangeEqUntil, aligned, BitStream.bitIndex(bs1.buf.length, bs1.currentByte, bs1.currentBit ) + 8)
       }.ensuring { _ =>
@@ -520,28 +526,28 @@ object BitStream {
       }
    }
 
-   // @ghost @pure @opaque @inlineOnce
-   // def checkBitsLoopAndReadNLSB(bs: BitStream, nBits: Int, bit: Boolean, from: Int = 0): Unit = {
-   //    require(0 < nBits && nBits <= 64)
-   //    require(0 <= from && from <= nBits)
-   //    require(BitStream.validate_offset_bits(bs.buf.length.toLong, bs.currentByte.toLong, bs.currentBit.toLong, nBits - from))
-   //    decreases(nBits - from)
-   //    val (bs1Final, ok) = bs.checkBitsLoopPure(nBits, bit, from)
-   //    require(ok)
-   //    val acc = if (bit) onesLSBLong(from) << (nBits - from) else 0
-   //    val (bs2Final, vGot) = bs.readNLSBBitsMSBFirstLoopPure(nBits, from, acc)
+   @ghost @pure @opaque @inlineOnce
+   def checkBitsLoopAndReadNLSB(bs: BitStream, nBits: Int, bit: Boolean, from: Int = 0): Unit = {
+      require(0 < nBits && nBits <= 64)
+      require(0 <= from && from <= nBits)
+      require(BitStream.validate_offset_bits(bs.buf.length.toLong, bs.currentByte.toLong, bs.currentBit.toLong, nBits - from))
+      decreases(nBits - from)
+      val (bs1Final, ok) = bs.checkBitsLoopPure(nBits, bit, from)
+      require(ok)
+      val acc = if (bit) onesLSBLong(from) << (nBits - from) else 0
+      val (bs2Final, vGot) = bs.readNLSBBitsMSBFirstLoopPure(nBits, from, acc)
 
-   //    {
-   //       if (from == nBits) ()
-   //       else {
-   //          val (bs1Rec, _) = bs.readBitPure()
-   //          checkBitsLoopAndReadNLSB(bs1Rec, nBits, bit, from + 1)
-   //       }
-   //    }.ensuring { _ =>
-   //       if (!bit) vGot == 0
-   //       else vGot == onesLSBLong(nBits)
-   //    }
-   // }
+      {
+         if (from == nBits) ()
+         else {
+            val (bs1Rec, _) = bs.readBitPure()
+            checkBitsLoopAndReadNLSB(bs1Rec, nBits, bit, from + 1)
+         }
+      }.ensuring { _ =>
+         if (!bit) vGot == 0
+         else vGot == onesLSBLong(nBits)
+      }
+   }
 
    // TODO: Bad name
    @ghost @pure @opaque @inlineOnce
@@ -670,6 +676,31 @@ object BitStream {
          }
       }.ensuring { _ =>
          arrayRangesEq(arr1, arr2, 0, to)
+      }
+   }
+
+   // TODO: Not proved
+   @extern
+   @ghost @pure @opaque @inlineOnce
+   def readBitsVecPrefixLemma(bs1: BitStream, bs2: BitStream, nBits: Long): Unit = {
+      require(bs1.buf.length == bs2.buf.length)
+      require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
+      require(bs1.validate_offset_bits(nBits))
+      require(arrayBitRangesEq(
+         bs1.buf,
+         bs2.buf,
+         0,
+         bs1.bitIndex + nBits
+      ))
+
+      val bs2Reset = BitStream(snapshot(bs2.buf), bs1.currentByte, bs1.currentBit)
+      val (bs1Res, v1) = bs1.readBitsVecPure(nBits)
+      val (bs2Res, v2) = bs2Reset.readBitsVecPure(nBits)
+
+      {
+         ()
+      }.ensuring { _ =>
+         bs1Res.bitIndex == bs2Res.bitIndex && v1 == v2
       }
    }
 
@@ -840,7 +871,7 @@ case class BitStream private [asn1scala](
    def resetAt(b: BitStream): BitStream = {
       require(b.buf.length == buf.length)
       BitStream(snapshot(buf), b.currentByte, b.currentBit)
-   }.ensuring(res => invariant(res))
+   }.ensuring(res => res.buf == this.buf && res.currentByte == b.currentByte && res.currentBit == b.currentBit)
 
    // ****************** Append Bit Functions **********************
 
@@ -1544,7 +1575,7 @@ case class BitStream private [asn1scala](
       srcBuffer == old(srcBuffer)
       &&& BitStream.invariant(currentBit, currentByte, buf.length)
       &&& w1.buf.length == w2.buf.length
-      &&& BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) == 
+      &&& BitStream.bitIndex(w2.buf.length, w2.currentByte, w2.currentBit) ==
             BitStream.bitIndex(w1.buf.length, w1.currentByte, w1.currentBit) + nBits
       &&& w1.isPrefixOf(w2)
       &&&
@@ -2118,7 +2149,15 @@ case class BitStream private [asn1scala](
       res.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
    )
 
-   // @opaque @inlineOnce
+   @pure @ghost
+   def readBitsVecPure(nBits: Long): (BitStream, Vector[UByte]) = {
+      require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong, nBits))
+      val cpy = snapshot(this)
+      val res = cpy.readBitsVec(nBits)
+      (cpy, res)
+   }
+
    def checkBitsLoop(nBits: Long, expected: Boolean, from: Long): Boolean = {
       require(0 <= nBits && nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
       require(0 <= from && from <= nBits)
@@ -2534,7 +2573,7 @@ case class BitStream private [asn1scala](
    }.ensuring(_ => this.buf == old(this).buf && BitStream.bitIndex(this.buf.length, this.currentByte, this.currentBit) <= BitStream.bitIndex(old(this).buf.length, old(this).currentByte, old(this).currentBit) + 7)
 
    @pure @ghost
-   def withAlignedByte(): BitStream = {
+   def withAlignedToByte(): BitStream = {
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
          (NO_OF_BITS_IN_BYTE - currentBit) & (NO_OF_BITS_IN_BYTE - 1)
       ))
@@ -2554,6 +2593,19 @@ case class BitStream private [asn1scala](
       currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_SHORT - 1)) / NO_OF_BYTES_IN_JVM_SHORT) * NO_OF_BYTES_IN_JVM_SHORT
    }
 
+   @pure @ghost
+   def withAlignedToShort(): BitStream = {
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
+         (NO_OF_BITS_IN_SHORT -                                                                 // max alignment (16) -
+            (NO_OF_BITS_IN_BYTE * (currentByte & (NO_OF_BYTES_IN_JVM_SHORT - 1)) + currentBit)  // current pos
+            ) & (NO_OF_BITS_IN_SHORT - 1))                                                      // edge case (0,0) -> 0
+      )
+
+      val cpy = snapshot(this)
+      cpy.alignToShort()
+      cpy
+   }
+
    def alignToInt(): Unit = {
       require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
          (NO_OF_BITS_IN_INT -                                                                // max alignment (32) -
@@ -2563,5 +2615,18 @@ case class BitStream private [asn1scala](
 
       alignToByte()
       currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_INT - 1)) / NO_OF_BYTES_IN_JVM_INT) * NO_OF_BYTES_IN_JVM_INT
+   }
+
+   @pure @ghost
+   def withAlignedToInt(): BitStream = {
+      require(BitStream.validate_offset_bits(buf.length.toLong, currentByte.toLong, currentBit.toLong,
+         (NO_OF_BITS_IN_INT -                                                                // max alignment (32) -
+            (NO_OF_BITS_IN_BYTE * (currentByte & (NO_OF_BYTES_IN_JVM_INT - 1)) + currentBit) // current pos
+            ) & (NO_OF_BITS_IN_INT - 1))                                                     // edge case (0,0) -> 0
+      )
+
+      val cpy = snapshot(this)
+      cpy.alignToInt()
+      cpy
    }
 } // BitStream class

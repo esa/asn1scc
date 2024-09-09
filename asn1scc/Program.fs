@@ -32,7 +32,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-customIcdUper")>] CustomIcdUper  of custom_stg_colon_out_filename:string
     | [<Unique; AltCommandLine("-icdAcn")>] IcdAcn  of acn_icd_output_file:string
     | [<Unique; AltCommandLine("-customIcdAcn")>] CustomIcdAcn  of custom_stg_colon_out_filename:string
-    | [<Unique; AltCommandLine("-icdPdus")>] IcdPdus  of asn1_type_assignments_list:string list
+    | [<Unique; AltCommandLine("-icdPdus")>] IcdPdus  of asn1_type_assignments_list:string
 
     | [<Unique; AltCommandLine("-AdaUses")>] AdaUses
     | [<Unique; AltCommandLine("-ACND")>] ACND
@@ -48,6 +48,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-ig")>]   Init_Globals
     | [<Unique; AltCommandLine("-es")>]   Handle_Empty_Sequences
     | [<AltCommandLine("-if")>] Include_Func of string
+    | [<Unique; AltCommandLine("-invertibility")>] StainlessInvertibility
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -80,11 +81,11 @@ with
       that has least one conflicting enumerant.
     3 all enumerants of all of an enumerated types
       are renamed.
-"""         
+"""
             | Enable_Efficient_Enumerations _ -> """Enable efficient enumerations. (Applicable only to C.)
-This mode optimizes the generated C code for ASN.1 Enumerated types with multiple enumerants (e.g., 50 or more). 
-Instead of generating switch statements, asn1scc generates sorted arrays containing the possible values. 
-Lookups (e.g., for validation or index retrieval in uPER encoding) are performed using an optimized binary search. 
+This mode optimizes the generated C code for ASN.1 Enumerated types with multiple enumerants (e.g., 50 or more).
+Instead of generating switch statements, asn1scc generates sorted arrays containing the possible values.
+Lookups (e.g., for validation or index retrieval in uPER encoding) are performed using an optimized binary search.
 This results in more efficient and less verbose code.
 The argument is the minimum number of enumerants in an enumerated type to enable this mode.
 E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumerants.
@@ -100,7 +101,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | CustomIcdUper  _  -> "Invokes the custom stg file 'stgFile.stg' using the icdUper backend and produces the output file 'outputFile'"
             | IcdAcn  _         -> "Produces an Interface Control Document for the input ASN.1 and ACN grammars for ACN encoding"
             | CustomIcdAcn  _   -> "Invokes the custom stg file 'stgFile.stg' using the icdAcn backend and produces the output file 'outputFile'"
-            | IcdPdus       _   -> "A list of type assignments to be included in the generated ICD."
+            | IcdPdus       _   -> "A list of type assignments to be included in the generated ICD. If there are multiple type assignments, please separate them with commas and enclose them in double quotes."
             | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
             | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
             | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
@@ -112,6 +113,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | Streaming_Mode    -> "Streaming mode support"
             | Handle_Empty_Sequences -> "Adds a dummy integer member to empty ASN.1 SEQUENCE structures for compliant C code generation."
             | Include_Func _    -> "Include a function from the RTL. The function name is expected as argument. This argument can be repeated many times. This argument is supported only for C"
+            | StainlessInvertibility -> "(Scala backend only) Generate invertibility conditions and lemmas"
 
 
 let printVersion () =
@@ -155,11 +157,11 @@ let checkCompositeFile comFile cmdoption extention=
 
 let c_macro =
         {
-            LanguageMacros.equal = new IEqual_c.IEqual_c() 
+            LanguageMacros.equal = new IEqual_c.IEqual_c()
             init = new Init_c.Init_c()
-            typeDef = new ITypeDefinition_c.ITypeDefinition_c() 
-            lg = new LangGeneric_c.LangGeneric_c(); 
-            isvalid= new IsValid_c.IsValid_c() 
+            typeDef = new ITypeDefinition_c.ITypeDefinition_c()
+            lg = new LangGeneric_c.LangGeneric_c();
+            isvalid= new IsValid_c.IsValid_c()
             vars = new IVariables_c.IVariables_c()
             uper = new iuper_c.iuper_c()
             acn = new IAcn_c.IAcn_c()
@@ -167,13 +169,13 @@ let c_macro =
             xer = new IXer_c.IXer_c()
             src = new ISrcBody_c.ISrcBody_c()
         }
-let scala_macro = 
+let scala_macro =
         {
-            LanguageMacros.equal = new IEqual_scala.IEqual_scala() 
+            LanguageMacros.equal = new IEqual_scala.IEqual_scala()
             init = new IInit_scala.IInit_scala()
-            typeDef = new ITypeDefinition_scala.ITypeDefinition_scala() 
-            lg = new LangGeneric_scala.LangGeneric_scala(); 
-            isvalid= new IIsValid_scala.IIsValid_scala() 
+            typeDef = new ITypeDefinition_scala.ITypeDefinition_scala()
+            lg = new LangGeneric_scala.LangGeneric_scala();
+            isvalid= new IIsValid_scala.IIsValid_scala()
             vars = new IVariables_scala.IVariables_scala()
             uper = new IUper_scala.IUper_scala()
             acn = new IAcn_scala.IAcn_scala()
@@ -181,12 +183,12 @@ let scala_macro =
             xer = new IXer_scala.IXer_scala()
             src = new ISrcBody_scala.ISrcBody_scala()
         }
-let ada_macro = 
+let ada_macro =
         {
-            LanguageMacros.equal = new IEqual_a.IEqual_a(); 
+            LanguageMacros.equal = new IEqual_a.IEqual_a();
             init = new Init_a.Init_a()
-            typeDef = new ITypeDefinition_a.ITypeDefinition_a(); 
-            lg = new LangGeneric_a.LangGeneric_a(); 
+            typeDef = new ITypeDefinition_a.ITypeDefinition_a();
+            lg = new LangGeneric_a.LangGeneric_a();
             isvalid= new IsValid_a.IsValid_a()
             vars = new IVariables_a.IVariables_a()
             uper = new iuper_a.iuper_a()
@@ -194,7 +196,7 @@ let ada_macro =
             atc = new ITestCases_a.ITestCases_a()
             xer = new IXer_a.IXer_a()
             src = new ISrcBody_a.ISrcBody_a()
-        }        
+        }
 let allMacros = [ (C, c_macro); (Scala, scala_macro); (Ada, ada_macro)]
 let getLanguageMacro (l:ProgrammingLanguage) =
     allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
@@ -268,17 +270,18 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | Mapping_Functions_Module mfm  -> ()
     | Streaming_Mode    -> ()
     | Handle_Empty_Sequences -> ()
-    | Include_Func  fnName    -> 
+    | Include_Func  fnName    ->
         //check that the target language is C
         match cliArgs |> List.exists (fun a -> a = C_lang) with
-        | true  -> 
+        | true  ->
             // check if the function exists in the RTL
             match c_macro.lg.RtlFuncNames |> List.exists (fun name -> name = fnName ) with
             | true  -> ()
-            | false -> 
+            | false ->
                 let availableFunctions = c_macro.lg.RtlFuncNames |> String.concat "\n"
                 raise (UserException (sprintf "Function '%s' does not exist in the C RTL.\nThe available functions to choose are:\n\n%s" fnName availableFunctions))
         | false -> raise (UserException ("The -if option is supported only for C."))
+    | StainlessInvertibility -> ()
 
 let createInput (fileName:string) : Input =
     {
@@ -302,7 +305,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         enum_Items_To_Enable_Efficient_Enumerations =
             match parserResults.TryGetResult <@ Enable_Efficient_Enumerations @> with
             | None -> System.UInt32.MaxValue
-            | Some n -> 
+            | Some n ->
                 match n with
                     | Some n -> n
                     | None -> 0u
@@ -315,7 +318,13 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         IcdAcnHtmlFileName = ""
         generateConstInitGlobals = parserResults.Contains(<@Init_Globals@>)
         custom_Stg_Ast_Version = parserResults.GetResult(<@ Custom_Stg_Ast_Version @>, defaultValue = 1)
-        icdPdus = parserResults.TryGetResult(<@ IcdPdus @>)
+        icdPdus = 
+            match parserResults.TryGetResult(<@ IcdPdus @>) with
+            | None -> None
+            | Some pdus -> 
+                // remove double quotes and split by comma
+                let actualPdus = pdus.Replace("\"", "")
+                Some ((actualPdus.Split(',')) |> Seq.map(fun (z:string) -> z.Trim()) |> Seq.filter(fun z -> not (String.IsNullOrEmpty z)) |> Seq.toList)
         mappingFunctionsModule = parserResults.TryGetResult(<@ Mapping_Functions_Module @>)
         integerSizeInBytes =
             let ws = parserResults.GetResult(<@Word_Size@>, defaultValue = 8)
@@ -351,14 +360,15 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _                 -> Some (FieldPrefixUserValue vl)
         targetLanguages =
             args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | _ -> None)
-        
+
         userRtlFunctionsToGenerate =
             args |> List.choose(fun a -> match a with Include_Func fnName -> Some fnName | _ -> None)
-    
+
         objectIdentifierMaxLength = 20I
         handleEmptySequences = parserResults.Contains <@ Handle_Empty_Sequences @>
 
         blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala()) ]
+        stainlessInvertibility = args |> List.exists (fun a -> match a with StainlessInvertibility -> true | _ -> false)
     }
 
 let main0 argv =
