@@ -382,25 +382,7 @@ type Asn1IntegerEncodingType =
     | UnconstrainedMax of bigint
     | Unconstrained
 
-type TypeEncodingKind = // TODO: Alignment???
-    | Asn1IntegerEncodingType of Asn1IntegerEncodingType option // None if range min = max
-    | Asn1RealEncodingType of Asn1AcnAst.RealClass
-    | AcnIntegerEncodingType of AcnIntegerEncodingType
-    | AcnRealEncodingType of AcnRealEncodingType
-    | AcnBooleanEncodingType of AcnBooleanEncoding option
-    | AcnNullEncodingType of PATTERN_PROP_VALUE option
-    | AcnStringEncodingType of Asn1AcnAst.StringAcnEncodingClass
-    | AcnOctetStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass
-    | AcnBitStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass
-    | SequenceOfEncodingType of TypeEncodingKind * Asn1AcnAst.SizeableAcnEncodingClass
-    | SequenceEncodingType of TypeEncodingKind option list
-    | ChoiceEncodingType of TypeEncodingKind option list
-    | ReferenceEncodingType of string
-    | OptionEncodingType of TypeEncodingKind
-    | Placeholder
-
 /////////////////////////////////////////////////////////////////////
-
 
 type NestingScope = {
     acnOuterMaxSize: bigint
@@ -429,7 +411,6 @@ type UPERFuncBodyResult = {
     bValIsUnReferenced  : bool
     bBsIsUnReferenced   : bool
     resultExpr          : string option
-    typeEncodingKind    : TypeEncodingKind option
     auxiliaries         : string list
 }
 type UPerFunction = {
@@ -457,7 +438,6 @@ type AcnFuncBodyResult = {
     bValIsUnReferenced  : bool
     bBsIsUnReferenced   : bool
     resultExpr          : string option
-    typeEncodingKind    : TypeEncodingKind option
     auxiliaries         : string list
     icdResult           : IcdArgAux option
 }
@@ -843,7 +823,6 @@ and Asn1Child = {
     isEqualBodyStats            : CallerScope -> CallerScope -> (string*(LocalVariable list)) option
     Type                        : Asn1Type
     Optionality                 : Asn1AcnAst.Asn1Optionality option
-    // acnArgs                     : RelativePath list
     Comments                    : string array
 } with
     member this.toAsn1AcnAst: Asn1AcnAst.Asn1Child =
@@ -854,7 +833,6 @@ and Asn1Child = {
             _ada_name = this._ada_name
             Type = this.Type.toAsn1AcnAst
             Optionality = this.Optionality
-            // acnArgs = this.acnArgs
             asn1Comments = this.Comments |> Array.toList
             acnComments = []
         }

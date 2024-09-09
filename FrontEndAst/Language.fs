@@ -55,18 +55,6 @@ type UncheckedAccessKind =
     | FullAccess // unwrap all selection, including the last one
     | PartialAccess // unwrap all but the last selection
 
-// TODO: Remove?
-type TypeInfo = {
-    uperMaxSizeBits: bigint
-    acnMaxSizeBits: bigint
-    typeKind: TypeEncodingKind option
-} with
-    member this.maxSize (enc: Asn1Encoding): bigint =
-        match enc with
-        | ACN -> this.acnMaxSizeBits
-        | UPER -> this.uperMaxSizeBits
-        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
-
 type SequenceChildProps = {
     info: Asn1AcnAst.SeqChildInfo
     sel: Selection
@@ -99,9 +87,6 @@ type SequenceProofGen = {
         | ACN -> this.acnSiblingMaxSize
         | UPER -> this.uperSiblingMaxSize
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
-
-    // member this.maxSize (enc: Asn1Encoding): BigInteger =
-    //     this.children |> List.map (fun c -> c.typeInfo.maxSize enc) |> List.sum
 
     member this.outerMaxSize (enc: Asn1Encoding): bigint =
         match enc with
@@ -183,7 +168,6 @@ type SequenceOfLikeProofGen = {
     nestingIx: bigint
     acnMaxOffset: bigint
     uperMaxOffset: bigint
-    typeInfo: TypeInfo
     nestingScope: NestingScope
     cs: CallerScope
     encDec: string option
