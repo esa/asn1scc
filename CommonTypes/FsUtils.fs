@@ -393,8 +393,8 @@ module List =
         match xs with
         | [] -> None
         | x :: xs ->
-            match f(x) with
-            | Some(b) -> Some(b)
+            match f x with
+            | Some b -> Some b
             | None -> tryFindMap f xs
 
     let foldBackWith (f: 'a -> 's -> 's) (init: 'a -> 's) (xs: 'a list): 's =
