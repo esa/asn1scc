@@ -625,11 +625,12 @@ let emitIcdRow stgFileName (r:AstRoot) _i (rw:IcdRow) =
     | _        -> icd_acn.EmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName r rw.sType) sConstraint (rw.minLengthInBits.ToString()) (rw.maxLengthInBits.ToString()) None rw.sUnits
 
 let emitTas2 stgFileName (r:AstRoot) myParams (icdTas:IcdTypeAss)  =
-    let sCommentLine = icdTas.hash::icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
+    let sCommentLine = icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
     let arRows =
         icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName r (i+1) rw)
     let bHasAcnDef = icdTas.hasAcnDefinition
-    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name icdTas.hash bHasAcnDef (icdTas.kind) (icdTas.minLengthInBytes.ToString()) (icdTas.maxLengthInBytes.ToString()) "sMaxBitsExplained" sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|])
+    let sMaxBitsExplained = ""
+    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name icdTas.hash bHasAcnDef (icdTas.kind) (icdTas.minLengthInBytes.ToString()) (icdTas.maxLengthInBytes.ToString()) sMaxBitsExplained sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|])
 
 (*
 let rec PrintType2 stgFileName (r:AstRoot)  acnParams (icdTas:IcdTypeAss): string list =
@@ -717,6 +718,15 @@ let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list) =
     (files, icdHashesToPrint)
 
 let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPrint:string list) (f:Asn1File) =
+    let debug (tsName:string) =
+        r.icdHashes.Values |> 
+        Seq.collect id |> 
+        Seq.filter(fun ts -> ts.name = tsName) |>
+        Seq.iter(fun ts ->
+            let content = DAstUtilFunctions.serializeIcdTasToText ts
+            let fileName = sprintf "%s_%s.txt" tsName ts.hash
+            File.WriteAllText(fileName, content))
+    //debug("ALPHA-TC-SECONDARY-HEADER")
     //let tryCreateRefType = CreateAsn1AstFromAntlrTree.CreateRefTypeContent
     let icdHashesToPrintSet = icdHashesToPrint |> Set.ofList
     let fileModules = f.Modules |> List.map(fun m -> m.Name.Value) |> Set.ofList
@@ -724,10 +734,15 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
         r.icdHashes.Values |>
         Seq.collect id |>
         Seq.choose(fun z ->
-            match z.tasInfo with
-            | None -> None
-            | Some ts when icdHashesToPrintSet.Contains z.hash &&  fileModules.Contains ts.modName -> Some (ts.tasName, z.hash)
-            | Some _ -> None ) |> Seq.toList
+            //match z.tasInfo with
+            //| None -> None
+            //| Some ts when icdHashesToPrintSet.Contains z.hash &&  fileModules.Contains ts.modName -> Some (ts.tasName, z.hash)
+            //| Some _ -> None ) |> 
+            match icdHashesToPrintSet.Contains z.hash with
+            | true  -> Some (z.name, z.hash)
+            | false -> None ) |>
+        Seq.distinct |>
+        Seq.toList
 
 
     //let blueTasses = f.Modules |> Seq.collect(fun m -> getModuleBlueTasses m)
@@ -749,37 +764,49 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
             let isAsn1Token = GenerateUperIcd.asn1Tokens.Contains t.Text
             //let isType = containedIn tasses
             let safeText = t.Text.Replace("<",lt).Replace(">",gt)
-            let checkWsCmt (tok: IToken) =
-                match tok.Type with
-                |asn1Lexer.WS
-                |asn1Lexer.COMMENT
-                |asn1Lexer.COMMENT2 -> false
-                |_ -> true
-            let findToken = Array.tryFind(fun tok -> checkWsCmt tok)
-            let findNextToken = f.Tokens.[idx+1..] |> findToken
-            let findPrevToken = Array.rev f.Tokens.[0..idx-1] |> findToken
-            let nextToken =
-                let size = Seq.length(f.Tokens) - 1
-                match findNextToken with
-                |Some(tok) -> tok
-                |None -> if idx = size then t else f.Tokens.[idx+1]
-            let prevToken =
-                match findPrevToken with
-                |Some(tok) -> tok
-                |None -> if idx = 0 then t else f.Tokens.[idx-1]
-            let uid =
-                //match fileTypeAssignments.TryFind t.Text with
-                match fileTypeAssignments |> List.filter(fun (tasName,_) -> tasName = t.Text) with
+            let uid () =
+                let checkWsCmt (tok: IToken) =
+                    match tok.Type with
+                    |asn1Lexer.WS
+                    |asn1Lexer.COMMENT
+                    |asn1Lexer.COMMENT2 -> false
+                    |_ -> true
+                let findToken = Array.tryFind(fun tok -> checkWsCmt tok)
+                let findNextToken = f.Tokens.[idx+1..] |> findToken
+                let findPrevToken = Array.rev f.Tokens.[0..idx-1] |> findToken
+                let nextToken =
+                    let size = Seq.length(f.Tokens) - 1
+                    match findNextToken with
+                    |Some(tok) -> tok
+                    |None -> if idx = size then t else f.Tokens.[idx+1]
+                let prevToken =
+                    match findPrevToken with
+                    |Some(tok) -> tok
+                    |None -> if idx = 0 then t else f.Tokens.[idx-1]
+                let tasfileTypeAssignments = fileTypeAssignments |> List.filter(fun (tasName,_) -> tasName = t.Text)
+                match tasfileTypeAssignments with
                 | [] -> safeText
-                //|Some tasHash ->
                 | (_,tasHash)::[] ->
                     if nextToken.Type = asn1Lexer.ASSIG_OP && prevToken.Type <> asn1Lexer.LID then
                         icd_uper.TasName stgFileName safeText tasHash
                     else
                         icd_uper.TasName2 stgFileName safeText tasHash
                 | _ ->
-                    //printfn "Warning: %s is not unique" t.Text
-                    //printfn "Warning: %A" (fileTypeAssignments |> List.filter(fun (tasName,_) -> tasName = t.Text))
+                    let debug () =
+                        printfn "Warning: %s is not unique. %d" t.Text tasfileTypeAssignments.Length
+
+                        printfn "Warning: %A" tasfileTypeAssignments
+                        //print to jso the type assignments that are not unique
+                        tasfileTypeAssignments |> 
+                        Seq.iter (fun (tasName, tasHash) -> 
+                            let icdTas = r.icdHashes.[tasHash] 
+                            icdTas |> 
+                            Seq.iter(fun icdTas ->
+                                let content = DAstUtilFunctions.serializeIcdTasToText icdTas
+                                let fileName = sprintf "%s_%s.txt" tasName icdTas.hash
+                                File.WriteAllText(fileName, content)))
+                        
+                    //debug ()
                     safeText
                 //|None -> safeText
             let colored =
@@ -787,7 +814,7 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
                 |asn1Lexer.StringLiteral
                 |asn1Lexer.OctectStringLiteral
                 |asn1Lexer.BitStringLiteral -> icd_uper.StringLiteral stgFileName safeText
-                |asn1Lexer.UID -> uid
+                |asn1Lexer.UID -> uid ()
                 |asn1Lexer.COMMENT
                 |asn1Lexer.COMMENT2 -> icd_uper.Comment stgFileName safeText
                 |_ -> safeText

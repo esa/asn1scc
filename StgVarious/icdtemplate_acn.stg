@@ -42,7 +42,7 @@ RelativeOid()       ::= "RELATIVE-OID"
 
 EmitRowWith3Dots() ::= <<
 <tr class="CommentRow">
-<td class="threeDots" colspan="8"> <p>. . .</p> </td>
+<td class="threeDots" colspan="9"> <p>. . .</p> </td>
 </tr>
 >>
 

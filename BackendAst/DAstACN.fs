@@ -259,6 +259,8 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
         | _     -> None
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName None
+    //if t.id.AsString.EndsWith "ALPHA-DELETE-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURES-GENERIC" then
+    //    printfn "debug"
     let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
     let nMinBytesInACN = BigInteger (ceil ((double t.acnMinSizeInBits)/8.0))
     let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
@@ -1256,9 +1258,9 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                 lengthRow@chRows@[THREE_DOTS]@lastChRows@terminationPattern, []
             | false ->
                 let sType = TypeHash childIcdTas.hash
-                let a1 = {IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=sType; sConstraint=None; minLengthInBits = t.acnMinSizeInBits; maxLengthInBits=t.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = Some (lengthRow.Length + 1)}
-                let a2 = {a1 with idxOffset = Some ((int o.maxSize.acn)+lengthRow.Length)}
-                [a1;THREE_DOTS;a2], [childIcdTas]
+                let a1 = {IcdRow.fieldName = "Item #1"; comments = comments; sPresent=sPresent;sType=sType; sConstraint=None; minLengthInBits = child.acnMinSizeInBits; maxLengthInBits=child.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = Some (lengthRow.Length + 1)}
+                let a2 = {a1 with fieldName = $"Item #{o.maxSize.acn}"; idxOffset = Some ((int o.maxSize.acn)+lengthRow.Length)}
+                lengthRow@[a1;THREE_DOTS;a2], [childIcdTas]
         | None -> lengthRow@terminationPattern, []
     let sExtraComment =
         match o.acnEncodingClass with
@@ -1412,7 +1414,9 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         | Some prmUpdateStatement   ->
             let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
                 prmUpdateStatement.updateAcnChildFnc child nestingScope vTarget pSrcRoot
-            let icdComments = []
+            let icdComments = 
+                let aaa = sprintf "reference determinant for %s " (acnPrm.id.AsString)
+                [aaa]
             Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=prmUpdateStatement.errCodes; testCaseFnc = prmUpdateStatement.testCaseFnc; localVariables=[]}), ns1
     | AcnDepSizeDeterminant (minSize, maxSize, szAcnProp)        ->
         let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
@@ -1433,7 +1437,9 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
             atc.testCaseTypeIDsMap.TryFind d.asn1Type
 
-        let icdComments = []
+        let icdComments = 
+            let aaa = sprintf "size determinant for %s " (d.asn1Type.AsString)
+            [aaa]
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
     | AcnDepSizeDeterminant_bit_oct_str_contain  o       ->
         let baseTypeDefinitionName =
@@ -1475,7 +1481,9 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
             atc.testCaseTypeIDsMap.TryFind d.asn1Type
         let localVars = lm.lg.acn.getAcnDepSizeDeterminantLocVars sReqBytesForUperEncoding
-        let icdComments = []
+        let icdComments = 
+            let aaa = sprintf "size determinant for %s " (d.asn1Type.AsString)
+            [aaa]
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=errCodes0; testCaseFnc=testCaseFnc; localVariables= localVariables0@localVars}), ns
     | AcnDepIA5StringSizeDeterminant (minSize, maxSize, szAcnProp)   ->
 
@@ -1488,7 +1496,9 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | _     -> checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
             atc.testCaseTypeIDsMap.TryFind d.asn1Type
-        let icdComments = []
+        let icdComments = 
+            let aaa = sprintf "size determinant for %s " (d.asn1Type.AsString)
+            [aaa]
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
     | AcnDepPresenceBool              ->
         let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
@@ -1505,7 +1515,9 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             match atc.testCaseTypeIDsMap.TryFind(d.asn1Type) with
             | Some _    -> Some TcvComponentPresent
             | None      -> Some TcvComponentAbsent
-        let icdComments = []
+        let icdComments = 
+            let aaa = sprintf "Used as a presence determinant for %s " (d.asn1Type.AsString)
+            [aaa]
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
     | AcnDepPresence   (relPath, chc)               ->
         let icdComments =
@@ -1603,7 +1615,9 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | _     -> checkAccessPath checkPath updateStatement2 v (initExpr r lm m child.Type)
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
             atc.testCaseTypeIDsMap.TryFind d.asn1Type
-        let icdComments = []
+        let icdComments = 
+            let aaa = sprintf "Used as a presence determinant for %s " (chc.typeDef[C].asn1Name)
+            [aaa]
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
 and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm: LanguageMacros) (m: Asn1AcnAst.Asn1Module) (acnChildOrAcnParameterId) (us:State) : (AcnChildUpdateResult option*State)=

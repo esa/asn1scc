@@ -983,6 +983,12 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
     let acnErrLoc = acnType |> Option.map(fun x -> x.loc)
     let combinedProperties = acnProps
     let allCons = t.Constraints@refTypeCons@withCons
+    let debug = ReferenceToType curPath
+    //if debug.AsString.EndsWith "ALPHA-DELETE-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURES-GENERIC" then
+    //    printfn "%s" debug.AsString
+    //if debug.AsString = "RW90-DATAVIEW.UART-Config.timeout" then
+    //    printfn "%s" debug.AsString
+
     let tfdArg = {GetTypeDefinition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = curPath; typeDefPath = typeDefPath; enmItemTypeDefPath = enmItemTypeDefPath; inheritInfo = inheritInfo; typeAssignmentInfo = typeAssignmentInfo; rtlFnc = None; blm=asn1.args.blm}
     let fixConstraint = fixConstraint asn1
 
