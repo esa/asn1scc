@@ -8,12 +8,12 @@ targets **C**, **Ada** and **Scala** while placing specific emphasis on embedded
 
 ASN1SCC is the ASN.1 compiler of the **European Space Agency** and is used is space missions to support binary encoding needs in satellite systems flight and ground software.
 
+An overview of the ASN.1 language support scope is available [on this page](https://taste.tuxfamily.org/wiki/index.php?title=Technical_topic:_ASN1SCC_-_ESA%27s_ASN.1_Compiler_for_safety-critical_embedded_platforms)
+
 What makes **ASN1SCC** unique is that in addition to supporting the standard ASN.1 uPER compact binary encoding rules, it offers the possibility to describe **custom binary encoding rules** with a simple textual notation, in order to communicate with equipments that come with legacy data formats. Check out [this page](https://taste.tuxfamily.org/wiki/index.php?title=Technical_topic:_ASN.1_-_An_introduction_to_ACN) to get a comprehensive overview of the feature, and [this page](https://taste.tuxfamily.org/wiki/index.php?title=Technical_topic:_Hints_to_model_complex_packet_encodings_with_ASN.1_and_ACN) for concrete examples as used in space systems.
 
-To know more you can also read this paper about ASN1SCC
-[here (PDF)](http://web1.see.asso.fr/erts2012/Site/0P2RUC89/7C-4.pdf),
-or a blog post with hands-on examples
-[here](https://www.thanassis.space/asn1.html).
+To know more you can also read [this conference paper about ASN1SCC (PDF)](http://web1.see.asso.fr/erts2012/Site/0P2RUC89/7C-4.pdf),
+or a [blog post with hands-on examples](https://www.thanassis.space/asn1.html).
 Suffice to say, if you are developing for embedded systems, it will probably
 interest you.
 
