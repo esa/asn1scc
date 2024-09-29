@@ -1092,7 +1092,6 @@ and IcdTypeAss = {
     canBeEmbedded  : bool
     hasAcnDefinition : bool
 
-*)
 
 let md5 = System.Security.Cryptography.MD5.Create()
 let calcIcdTypeAssHash (t1:IcdTypeAss) =
@@ -1105,6 +1104,7 @@ let calcIcdTypeAssHash (t1:IcdTypeAss) =
         let bytes = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes aa)
         Convert.ToHexString bytes
     calcIcdTypeAssHash_aux t1
+*)
 
 let serializeIcdTasToText (icdTypeAss: IcdTypeAss) =
     let printRow (r:IcdRow) =
@@ -1124,6 +1124,7 @@ let serializeIcdTasToText (icdTypeAss: IcdTypeAss) =
     //let aa = sprintf"%A%A%A%A%A%A%A%A%A" t1.acnLink t1.asn1Link  t1.name t1.kind t1.comments t1.minLengthInBytes t1.maxLengthInBytes (rws) ("")
     let rws = icdTypeAss.rows |> Seq.map printRow |> Seq.StrJoin "\n"
     sprintf """
+        typeId = %s
         acnLink = %A
         asn1Link = %A
         name = %A
@@ -1133,4 +1134,4 @@ let serializeIcdTasToText (icdTypeAss: IcdTypeAss) =
         maxLengthInBytes = %A
         rows = 
             %A
-        """ icdTypeAss.acnLink icdTypeAss.asn1Link  icdTypeAss.name icdTypeAss.kind icdTypeAss.comments icdTypeAss.minLengthInBytes icdTypeAss.maxLengthInBytes rws
+        """ icdTypeAss.typeId.AsString icdTypeAss.acnLink icdTypeAss.asn1Link  icdTypeAss.name icdTypeAss.kind icdTypeAss.comments icdTypeAss.minLengthInBytes icdTypeAss.maxLengthInBytes rws

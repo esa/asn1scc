@@ -61,7 +61,7 @@ let PrintAcnAsHTML stgFileName (r:AstRoot)  =
             //let f = r.Files |> Seq.find(fun x -> Path.GetFileNameWithoutExtension(x.FileName) = Path.GetFileNameWithoutExtension(fName))
             //let tasNames = f.Modules |> Seq.collect(fun x -> x.TypeAssignments) |> Seq.map(fun x -> x.Name.Value) |> Seq.toArray
             let content = tokens |> Seq.map(fun token -> colorize(token,tasNames))
-            icd_acn.EmitFilePart2  stgFileName (Path.GetFileName fName) (content |> Seq.StrJoin "")
+            icd_acn.EmitFilePart2  stgFileName (Path.GetFileName fName) (content )
     )
 
 let PrintAcnAsHTML2 stgFileName (r:AstRoot)  (icdHashesToPrint:string list) =
@@ -100,8 +100,8 @@ let PrintAcnAsHTML2 stgFileName (r:AstRoot)  (icdHashesToPrint:string list) =
             //let f = r.Files |> Seq.find(fun x -> Path.GetFileNameWithoutExtension(x.FileName) = Path.GetFileNameWithoutExtension(fName))
             //let tasNames = f.Modules |> Seq.collect(fun x -> x.TypeAssignments) |> Seq.map(fun x -> x.Name.Value) |> Seq.toArray
             let content = tokens |> Seq.map(fun token -> colorize(token))
-            icd_acn.EmitFilePart2  stgFileName (Path.GetFileName fName) (content |> Seq.StrJoin "")
-    )
+            icd_acn.EmitFilePart2  stgFileName (Path.GetFileName fName) (content)
+    ) |> Seq.toList
 
 let foldGenericCon = GenerateUperIcd.foldGenericCon
 let foldRangeCon   = GenerateUperIcd.foldRangeCon
@@ -603,7 +603,7 @@ let selectTypeWithSameHash (lst:IcdTypeAss list) =
     | _      ->
         lst |> List.minBy(
             fun z ->
-                let (ReferenceToType nodes) = z.linkId;
+                let (ReferenceToType nodes) = z.typeId;
                 nodes.Length)
 
 
@@ -709,6 +709,10 @@ let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list) =
                             | None -> ()
                         | false -> ()
         } |> Seq.distinct |> Seq.toList
+    //print in a file the icds that are going to be printed
+    let content = icdHashesToPrint |> Seq.StrJoin "\n"
+    let fileName = sprintf "%s_icdHashesToPrint.txt" stgFileName
+    File.WriteAllText(fileName, content)
     let files =
         icdHashesToPrint
         |> Seq.choose(fun hash ->
@@ -742,7 +746,8 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
             | true  -> Some (z.name, z.hash)
             | false -> None ) |>
         Seq.distinct |>
-        Seq.toList
+        Seq.groupBy fst |>
+        Seq.map(fun (tasName, tasHashes) -> (tasName, tasHashes |> Seq.map snd |> List.ofSeq)) |> Map.ofSeq
 
 
     //let blueTasses = f.Modules |> Seq.collect(fun m -> getModuleBlueTasses m)
@@ -774,6 +779,10 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
                 let findToken = Array.tryFind(fun tok -> checkWsCmt tok)
                 let findNextToken = f.Tokens.[idx+1..] |> findToken
                 let findPrevToken = Array.rev f.Tokens.[0..idx-1] |> findToken
+                
+                //let findNextToken = f.Tokens.[idx+1..] |> Array.tryFind(fun tok -> checkWsCmt tok)
+                //let findPrevToken = f.Tokens.[0..idx-1] |> Array.tryFindBack(fun tok -> checkWsCmt tok)
+
                 let nextToken =
                     let size = Seq.length(f.Tokens) - 1
                     match findNextToken with
@@ -783,22 +792,26 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
                     match findPrevToken with
                     |Some(tok) -> tok
                     |None -> if idx = 0 then t else f.Tokens.[idx-1]
-                let tasfileTypeAssignments = fileTypeAssignments |> List.filter(fun (tasName,_) -> tasName = t.Text)
-                match tasfileTypeAssignments with
-                | [] -> safeText
-                | (_,tasHash)::[] ->
+                //let tasfileTypeAssignments = fileTypeAssignments |> List.filter(fun (tasName,_) -> tasName = t.Text)
+                //match tasfileTypeAssignments with
+                match fileTypeAssignments.TryFind t.Text with
+                | None -> safeText
+                | Some ([]) -> safeText
+                //| (_,tasHash)::[] ->
+                | Some (tasHash::[]) ->
                     if nextToken.Type = asn1Lexer.ASSIG_OP && prevToken.Type <> asn1Lexer.LID then
                         icd_uper.TasName stgFileName safeText tasHash
                     else
                         icd_uper.TasName2 stgFileName safeText tasHash
-                | _ ->
+                | Some tasHashList ->
+                    let tasName = t.Text
                     let debug () =
-                        printfn "Warning: %s is not unique. %d" t.Text tasfileTypeAssignments.Length
+                        printfn "Warning: %s is not unique. %d" t.Text tasHashList.Length
 
-                        printfn "Warning: %A" tasfileTypeAssignments
+                        printfn "Warning: %A" tasHashList
                         //print to jso the type assignments that are not unique
-                        tasfileTypeAssignments |> 
-                        Seq.iter (fun (tasName, tasHash) -> 
+                        tasHashList |> 
+                        Seq.iter (fun (tasHash) -> 
                             let icdTas = r.icdHashes.[tasHash] 
                             icdTas |> 
                             Seq.iter(fun icdTas ->
@@ -809,7 +822,7 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
                     //debug ()
                     safeText
                 //|None -> safeText
-            let colored =
+            let colored () =
                 match t.Type with
                 |asn1Lexer.StringLiteral
                 |asn1Lexer.OctectStringLiteral
@@ -820,28 +833,28 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
                 |_ -> safeText
             match blueTas with
             |Some (s,_,_) -> icd_uper.BlueTas stgFileName (ToC s) safeText
-            |None -> if isAsn1Token then icd_uper.Asn1Token stgFileName safeText else colored
-    let asn1Content = f.Tokens |> Seq.mapi(fun i token -> colorize(token,i,blueTassesWithLoc))
-    icd_uper.EmitFilePart2  stgFileName (Path.GetFileName f.FileName ) (asn1Content |> Seq.StrJoin "")
+            |None -> if isAsn1Token then icd_uper.Asn1Token stgFileName safeText else (colored ())
+    let asn1Content = f.Tokens |> Seq.mapi(fun i token -> colorize(token,i,blueTassesWithLoc)) |> Seq.toList
+    icd_uper.EmitFilePart2  stgFileName (Path.GetFileName f.FileName ) (asn1Content )
 
 
 let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string) (asn1HtmlStgFileMacros:string option)   outFileName =
-    let files1 = r.Files |> Seq.map (fun f -> PrintTasses stgFileName f r )
-    let (files1b, icdHashesToPrint) = printTasses3 stgFileName r
+    let files1 =  TL "GenerateAcnIcd_PrintTasses" (fun () -> r.Files |> List.map (fun f -> PrintTasses stgFileName f r ))
+    let (files1b, icdHashesToPrint) = TL "GenerateAcnIcd_printTasses3" (fun () -> printTasses3 stgFileName r)
     let bAcnParamsMustBeExplained = true
     let asn1HtmlMacros =
         match asn1HtmlStgFileMacros with
         | None  -> stgFileName
         | Some x -> x
-    let files2 = r.Files |> Seq.map (PrintAsn1FileInColorizedHtml asn1HtmlMacros r icdHashesToPrint)
-    let files3 = PrintAcnAsHTML2 stgFileName r icdHashesToPrint
+    let files2 = TL "GenerateAcnIcd_PrintAsn1FileInColorizedHtml" (fun () -> r.Files |> List.map (PrintAsn1FileInColorizedHtml asn1HtmlMacros r icdHashesToPrint))
+    let files3 = TL "GenerateAcnIcd_PrintAcnAsHTML2" (fun () -> PrintAcnAsHTML2 stgFileName r icdHashesToPrint)
     let cssFileName = Path.ChangeExtension(outFileName, ".css")
-    let htmlContent = icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName))
-    let htmlContentb = icd_acn.RootHtml stgFileName files1b files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName))
+    let htmlContent = TL "GenerateAcnIcd_RootHtml" (fun () -> icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName)))
+    let htmlContentb = TL "GenerateAcnIcd_RootHtml_b" (fun () -> icd_acn.RootHtml stgFileName files1b files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName)))
 
     File.WriteAllText(outFileName, htmlContent.Replace("\r",""))
     File.WriteAllText(outFileName.Replace(".html", "_new.html"), htmlContentb.Replace("\r",""))
     let cssFileName = Path.ChangeExtension(outFileName, ".css");
-    emitCss r stgFileName cssFileName
+    TL "GenerateAcnIcd_emitCss" (fun () -> emitCss r stgFileName cssFileName)
 
 

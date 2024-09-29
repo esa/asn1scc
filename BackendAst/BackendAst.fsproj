@@ -5,6 +5,7 @@
     <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CalculateIcdHash.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="DAstUtilFunctions.fs" />
     <Compile Include="DastFold.fs" />

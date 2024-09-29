@@ -14,6 +14,7 @@ let rec foldMap func state lst =
 *)
 
 //let foldMap = RemoveParameterizedTypes.foldMap
+(*
 let foldMap func state lst =
     let rec loop acc func state lst =
         match lst with
@@ -24,7 +25,8 @@ let foldMap func state lst =
             //procItem::restList, finalState
             loop (procItem::acc) func newState tail
     loop [] func state lst
-
+*)
+let foldMap = List.mapFold
 
 let foldGenericConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc
     (c:GenericConstraint<'v>)

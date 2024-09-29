@@ -68,7 +68,7 @@ type IcdRow = {
 type IcdInnerTableFunc = string-> string -> string list -> ((IcdRow list)*(IcdTypeAss list))
 
 and IcdTypeAss = {
-    linkId  : ReferenceToType
+    typeId  : ReferenceToType
     tasInfo : TypeAssignmentInfo option
     asn1Link : string option
     acnLink : string option

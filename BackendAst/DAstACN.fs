@@ -183,8 +183,11 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
 let md5 = System.Security.Cryptography.MD5.Create()
 
 let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) (td:FE_TypeDefinition) (typeDefinition:TypeDefinitionOrReference) nMinBytesInACN nMaxBytesInACN hasAcnDefinition =
+    (*
+    Slow Implementation. It has been replaced by CalculateIcdHash.fs.
+    We keep it here for reference.
     let calcIcdTypeAssHash (t1:IcdTypeAss) =
-        let rec calcIcdTypeAssHash_aux (t1:IcdTypeAss) =
+        let calcIcdTypeAssHash_aux (t1:IcdTypeAss) =
             let rws =
                 t1.rows |>
                 Seq.map(fun r -> sprintf "%A%A%A%A%A%A%A%A%A%A" r.idxOffset r.fieldName r.comments r.sPresent r.sType r.sConstraint r.minLengthInBits r.maxLengthInBits r.sUnits r.rowType) |>
@@ -193,11 +196,11 @@ let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) 
             let bytes = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes aa)
             Convert.ToHexString bytes
         calcIcdTypeAssHash_aux t1
-
+    *)
     let icdRows, compositeChildren = icdAux.rowsFunc "" "" [];
     let icdTas =
         {
-            IcdTypeAss.linkId = id
+            IcdTypeAss.typeId = id
             tasInfo = id.tasInfo
             asn1Link = None;
             acnLink = None;
@@ -227,7 +230,7 @@ let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) 
             hasAcnDefinition = hasAcnDefinition
             hash = "" // will be calculated later
         }
-    let icdHash = calcIcdTypeAssHash icdTas
+    let icdHash = CalculateIcdHash.calcIcdTypeAssHash icdTas
     {icdTas with hash = icdHash}
 
 
@@ -337,13 +340,15 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let icdAux, ns3 =
         match icdResult with
         | Some icdAux ->
-            let hasAcnDefinition = t.typeAssignmentInfo.IsSome && t.acnLocation.IsSome
-            let icdTas = createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN hasAcnDefinition
-            let ns3 =
-                match ns2.icdHashes.TryFind icdTas.hash with
-                | None -> {ns2 with icdHashes = ns2.icdHashes.Add(icdTas.hash, [icdTas])}
-                | Some exList -> {ns2 with icdHashes = ns2.icdHashes.Add(icdTas.hash, icdTas::exList)}
-            Some icdTas, ns3
+            let foo () =
+                let hasAcnDefinition = t.typeAssignmentInfo.IsSome && t.acnLocation.IsSome
+                let icdTas = createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN hasAcnDefinition
+                let ns3 =
+                    match ns2.icdHashes.TryFind icdTas.hash with
+                    | None -> {ns2 with icdHashes = ns2.icdHashes.Add(icdTas.hash, [icdTas])}
+                    | Some exList -> {ns2 with icdHashes = ns2.icdHashes.Add(icdTas.hash, icdTas::exList)}
+                Some icdTas, ns3
+            TL "createIcdTas" foo
         | None -> None, ns2
     let ret =
         {

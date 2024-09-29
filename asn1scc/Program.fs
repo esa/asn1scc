@@ -47,6 +47,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-sm")>]   Streaming_Mode
     | [<Unique; AltCommandLine("-ig")>]   Init_Globals
     | [<Unique; AltCommandLine("-es")>]   Handle_Empty_Sequences
+    | [<Unique; AltCommandLine("-let")>]    Log_Execution_Time
     | [<AltCommandLine("-if")>] Include_Func of string
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
@@ -112,6 +113,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | Streaming_Mode    -> "Streaming mode support"
             | Handle_Empty_Sequences -> "Adds a dummy integer member to empty ASN.1 SEQUENCE structures for compliant C code generation."
             | Include_Func _    -> "Include a function from the RTL. The function name is expected as argument. This argument can be repeated many times. This argument is supported only for C"
+            | Log_Execution_Time           -> "Enables detailed logging of execution time."
 
 
 let printVersion () =
@@ -202,6 +204,7 @@ let getLanguageMacro (l:ProgrammingLanguage) =
 let checkArgument (cliArgs : CliArguments list) arg =
     match arg with
     | Version          -> ()
+    | Log_Execution_Time -> ()
     | Debug            -> ()
     | C_lang           -> ()
     | Ada_Lang         -> ()
@@ -375,6 +378,7 @@ let main0 argv =
     let parser = ArgumentParser.Create<CliArguments>(programName = "asn1scc.exe")
     try
         let parserResults = parser.Parse argv
+        let logExecutionTime = parserResults.Contains <@ Log_Execution_Time @>
         let cliArgs = parserResults.GetAllResults()
         cliArgs |> Seq.iter(fun arg -> match arg with Debug -> RangeSets.debug () | _ -> ())
         cliArgs |> Seq.iter (checkArgument cliArgs)
@@ -400,7 +404,7 @@ let main0 argv =
         match args.AstXmlAbsFileName with
         | ""    -> ()
         | _     ->
-            ExportToXml.exportFile frontEntAst acnDeps args.AstXmlAbsFileName
+            TL "ExportToXml.exportFile" (fun () -> ExportToXml.exportFile frontEntAst acnDeps args.AstXmlAbsFileName)
 
         let icdStgFileName =
             match parserResults.TryGetResult (<@CustomIcdAcn@>) with
@@ -445,8 +449,8 @@ let main0 argv =
                 //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
                 //let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
                 //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang)
-                let generatedContent = GenerateFiles.generateAll dirInfo r lm args.encodings
-                GenerateRTL.exportRTL dirInfo r.lang args lm generatedContent
+                let generatedContent =  TL "GenerateFiles.generateAll" (fun () -> GenerateFiles.generateAll dirInfo r lm args.encodings)
+                TL "GenerateRTL.exportRTL" (fun () -> GenerateRTL.exportRTL dirInfo r.lang args lm generatedContent)
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
                 | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)
@@ -477,37 +481,40 @@ let main0 argv =
                 TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
             | x::_  -> x
 
-
-        cliArgs |>
-            //List.choose (fun a -> match a with | Custom_Stg compFile   -> Some compFile | _ -> None) |>
-            Seq.iter(fun arg ->
-                match arg with
-                | Custom_Stg comFile ->
-                    match getCustmStgFileNames comFile with
-                    | Some(stgFile, outFile)  -> CustomStgExport.exportFile r acnDeps stgFile outFile
-                    | None  -> ()
-                | IcdUper outFile       -> GenerateUperIcd.DoWork r "icdtemplate_uper.stg" outFile
-                | CustomIcdUper comFile ->
-                    match getCustmStgFileNames comFile with
-                    | Some(stgFile, outFile)  -> GenerateUperIcd.DoWork r stgFile outFile
-                    | None  -> ()
-                | IcdAcn outFile       -> GenerateAcnIcd.DoWork r  acnDeps "icdtemplate_acn.stg"  (Some "icdtemplate_uper.stg") outFile
-                | CustomIcdAcn comFile ->
-                    match getCustmStgFileNames comFile with
-                    | Some(stgFile, outFile)  ->
-                        GenerateAcnIcd.DoWork r  acnDeps stgFile None outFile
-                    | None  -> ()
-                | AdaUses   -> DAstUtilFunctions.AdaUses r
-                | ACND      -> GenerateFiles.EmitDefaultACNGrammar r outDir
-                | Version   -> printVersion () //Antlr.VersionInformation.printGitVersion()
-                | Debug     -> RangeSets.debug ()
-                | _ -> ())
+        let generateCustomStgCode () =
+            cliArgs |>
+                //List.choose (fun a -> match a with | Custom_Stg compFile   -> Some compFile | _ -> None) |>
+                Seq.iter(fun arg ->
+                    match arg with
+                    | Custom_Stg comFile ->
+                        match getCustmStgFileNames comFile with
+                        | Some(stgFile, outFile)  -> CustomStgExport.exportFile r acnDeps stgFile outFile
+                        | None  -> ()
+                    | IcdUper outFile       -> GenerateUperIcd.DoWork r "icdtemplate_uper.stg" outFile
+                    | CustomIcdUper comFile ->
+                        match getCustmStgFileNames comFile with
+                        | Some(stgFile, outFile)  -> GenerateUperIcd.DoWork r stgFile outFile
+                        | None  -> ()
+                    | IcdAcn outFile       -> GenerateAcnIcd.DoWork r  acnDeps "icdtemplate_acn.stg"  (Some "icdtemplate_uper.stg") outFile
+                    | CustomIcdAcn comFile ->
+                        match getCustmStgFileNames comFile with
+                        | Some(stgFile, outFile)  ->
+                            GenerateAcnIcd.DoWork r  acnDeps stgFile None outFile
+                        | None  -> ()
+                    | AdaUses   -> DAstUtilFunctions.AdaUses r
+                    | ACND      -> GenerateFiles.EmitDefaultACNGrammar r outDir
+                    | Version   -> printVersion () //Antlr.VersionInformation.printGitVersion()
+                    | Debug     -> RangeSets.debug ()
+                    | _ -> ())
+        
+        TL "GenerateCustomStgCode" generateCustomStgCode
 
         cliArgs |>
             List.filter (fun a -> match a with | Generate_Test_Grammar    -> true | _  -> false) |>
             Seq.iter(fun _ -> GrammarGenerator.generateGrammars outDir)
-
-        //TL_report ()
+        
+        if logExecutionTime then
+            TL_report ()
 
 
         0

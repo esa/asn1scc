@@ -401,11 +401,11 @@ EmitFile(sAsnFileName, arrsModules) ::= <<
 </div>
 >>
 
-EmitFilePart2(sFileName, sAsn1Content) ::= <<
+EmitFilePart2(sFileName, arrsAsn1Content) ::= <<
 <div style="width: 100%">
 <h1 >File : $sFileName$</h1>
 <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
-$sAsn1Content$
+$arrsAsn1Content$
 </div>
 </div>
 >>

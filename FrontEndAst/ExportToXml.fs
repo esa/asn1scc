@@ -569,6 +569,7 @@ let private exportType (t:Asn1Type) =
                             XAttribute(xname "AdaName", ch._ada_name),
                             XAttribute(xname "CName", ch._c_name),
                             XAttribute(xname "ScalaName", ch._scala_name),
+                            //XAttribute(xname "ChoiceOptionality", (match ch.Optionality with None  -> "None" | Some ChoiceAlwaysAbsent  -> "ALWAYS-ABSENT" | Some ChoiceAlwaysPresent -> "ALWAYS-PRESENT")),
                             (exportChoiceOptionality ch.Optionality ),
                             (exportChoiceChildPresentWhenCondition ch.acnPresentWhenConditions),
                             (if ch.asn1Comments.Length > 0 then (XElement (xname "AsnComment", (ch.asn1Comments |> Seq.StrJoin "\n"))) else null),

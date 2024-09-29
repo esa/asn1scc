@@ -25,6 +25,38 @@ open System.Diagnostics
 open System.Collections.Generic
 
 
+let subsystems: Dictionary<String, int*TimeSpan> = new Dictionary<String, int*TimeSpan>()
+let TL  subSystem func =
+    let stopwatch = Stopwatch.StartNew()
+    let ret = func ()
+    stopwatch.Stop()
+    let totalElapsed = stopwatch.Elapsed
+
+    match subsystems.ContainsKey subSystem with
+    | true ->
+        let (oc, ts) = subsystems.[subSystem]
+        subsystems.[subSystem] <-  (oc+1, ts+totalElapsed)
+    | false ->
+        subsystems.Add(subSystem, (1,totalElapsed))
+
+    ret
+
+let TL_report () =
+    let StrJoin_priv str listItems =
+        if Seq.isEmpty listItems then
+            ""
+        else
+            listItems |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
+
+
+    let aaa = subsystems.Keys |> Seq.toList
+    let bbb =
+        aaa |>
+        List.map(fun z ->
+            let (a,b) = subsystems.[z]
+            sprintf "%s nCall %d = took %A" z a b) |> StrJoin_priv "\n"
+    printfn "%s" bbb
+
 
 type OptionBuilder() =
     member x.Bind(opt, f) =
@@ -80,10 +112,12 @@ let emptyLocation = {srcFilename=""; srcLine=0; charPos = 0}
 
 module Seq =
     let StrJoin str listItems =
-        if Seq.isEmpty listItems then
-            ""
-        else
-            listItems |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
+        let foo () =
+            if Seq.isEmpty listItems then
+                ""
+            else
+                listItems |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
+        TL "Seq.StrJoin" foo
 
 [<CustomEquality; NoComparison>]
 type PrimitiveWithLocation<'T when 'T :equality>  =
@@ -857,36 +891,5 @@ let getResourceAsByteArray0 (resourcePrefix:string) (assembly:Reflection.Assembl
 
 
 
-let subsystems: Dictionary<String, int*TimeSpan> = new Dictionary<String, int*TimeSpan>()
-let TL  subSystem func =
-    let stopwatch = Stopwatch.StartNew()
-    let ret = func ()
-    stopwatch.Stop()
-    let totalElapsed = stopwatch.Elapsed
-
-    match subsystems.ContainsKey subSystem with
-    | true ->
-        let (oc, ts) = subsystems.[subSystem]
-        subsystems.[subSystem] <-  (oc+1, ts+totalElapsed)
-    | false ->
-        subsystems.Add(subSystem, (1,totalElapsed))
-
-    ret
-
-let TL_report () =
-    let StrJoin_priv str listItems =
-        if Seq.isEmpty listItems then
-            ""
-        else
-            listItems |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
-
-
-    let aaa = subsystems.Keys |> Seq.toList
-    let bbb =
-        aaa |>
-        List.map(fun z ->
-            let (a,b) = subsystems.[z]
-            sprintf "%s nCall %d = took %A" z a b) |> StrJoin_priv "\n"
-    printfn "%s" bbb
 
 

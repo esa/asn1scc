@@ -417,7 +417,7 @@ let PrintFile2 (stgFileName:string) (f:Asn1File) =
             |Some (s,_,_) -> icd_uper.BlueTas stgFileName (ToC s) safeText
             |None -> if isAsn1Token then icd_uper.Asn1Token stgFileName safeText else colored
     let asn1Content = f.Tokens |> Seq.mapi(fun i token -> colorize(token,i,tasNames,blueTassesWithLoc))
-    icd_uper.EmitFilePart2  stgFileName (Path.GetFileName f.FileName ) (asn1Content |> Seq.StrJoin "")
+    icd_uper.EmitFilePart2  stgFileName (Path.GetFileName f.FileName ) (asn1Content )
 
 let DoWork (r:AstRoot) (stgFileName:string)   outFileName =
     let files1 = r.Files |> Seq.map (fun f -> PrintFile1 stgFileName f r )
