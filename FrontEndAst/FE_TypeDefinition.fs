@@ -20,16 +20,17 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
             match Int32.TryParse curN with
             | true, num ->  (oldPart |> List.rev |> Seq.StrJoin "_") + "_" + ((num+1).ToString())
             | _         -> oldName + "_1"
+    let programUnit_for_map = match ib.isCaseSensitive with true -> programUnit | false -> programUnit.ToUpper()
     let addAllocatedTypeNames (allocatedTypeNames : Map<(ProgrammingLanguage*string), string list>) (l:ProgrammingLanguage) (programUnit:string) (proposedTypeDefName:string) =
-        let key, value = 
+        let key= 
             match ib.isCaseSensitive with
-            | true  -> (l, proposedTypeDefName), programUnit
-            | false -> (l, proposedTypeDefName.ToUpper()), programUnit.ToUpper()
+            | true  -> (l, proposedTypeDefName)
+            | false -> (l, proposedTypeDefName.ToUpper())
         
             
         match allocatedTypeNames.TryFind key with
-        | None -> allocatedTypeNames.Add (key, [value])
-        | Some (allocatedModules) -> allocatedTypeNames.Add (key, value::allocatedModules)
+        | None -> allocatedTypeNames.Add (key, [programUnit_for_map])
+        | Some (allocatedModules) -> allocatedTypeNames.Add (key, programUnit_for_map::allocatedModules)
 
     let rec getValidTypeDefname (proposedTypeDefName: string) =
         let keywords =  ib.keywords
@@ -39,15 +40,19 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
             match ib.isKeyword proposedTypeDefName with
             | false      -> proposedTypeDefName
             | true    -> getNextCount proposedTypeDefName
-
+        let key  =
+            match ib.isCaseSensitive with
+            | true  -> (l, proposedTypeDefName)
+            | false -> (l, proposedTypeDefName.ToUpper())
+        
         match ib.OnTypeNameConflictTryAppendModName with
         | true     ->
             //match allocatedTypeNames |> Set.exists(fun (cl, _, ct) -> cl = l && ct = proposedTypeDefName) with
-            match allocatedTypeNames.TryFind (l, programUnit) with
+            match allocatedTypeNames.TryFind key with
             | None -> proposedTypeDefName
             | Some (allocatedModules)  ->
                 //match allocatedTypeNames |> Set.exists(fun (cl, cp, ct) -> cl = l && cp = programUnit && ct = proposedTypeDefName) with
-                match allocatedModules |> List.exists(fun z -> z = programUnit) with
+                match allocatedModules |> List.exists(fun z -> z = programUnit_for_map) with
                 | false ->
                     match proposedTypeDefName.StartsWith typePrefix with
                     | true  -> getValidTypeDefname (typePrefix + programUnit + "_" + proposedTypeDefName.Substring(typePrefix.Length) )
@@ -55,10 +60,10 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
                 | true  -> getValidTypeDefname (getNextCount proposedTypeDefName )
         | false   ->
             //match allocatedTypeNames  |> Set.exists(fun (cl, cp, ct) -> cl = l && cp.ToUpper() = programUnit.ToUpper() && ct.ToUpper() = proposedTypeDefName.ToUpper()) with
-            match allocatedTypeNames.TryFind (l, programUnit) with
+            match allocatedTypeNames.TryFind key with
             | None -> proposedTypeDefName
             | Some (allocatedModules)  ->  
-                match allocatedModules |> List.exists(fun z -> z = programUnit.ToUpper()) with
+                match allocatedModules |> List.exists(fun z -> z = programUnit_for_map) with
                 | false -> proposedTypeDefName
                 | true  -> getValidTypeDefname (getNextCount proposedTypeDefName  )
 
