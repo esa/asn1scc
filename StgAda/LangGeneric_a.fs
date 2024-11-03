@@ -59,11 +59,14 @@ let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.
 
 //let getBoardDirs (l:ProgrammingLanguage) target =
 //    getBoardNames l target |> List.map(fun s -> Path.Combine(boardsDirName l target , s))
+let ada_keywords_upper = ada_keywords |> Set.map(fun s -> s.ToUpper())
 
 type LangBasic_ada() =
     inherit ILangBasic()
         override this.cmp (s1:string) (s2:string) = s1.icompare s2
-        override this.keywords = ada_keywords
+        override this.isCaseSensitive = false
+        override this.keywords = ada_keywords 
+        override this.isKeyword (token:string) = ada_keywords_upper.Contains (token.ToUpper())
         override this.OnTypeNameConflictTryAppendModName = false
         override this.declare_IntegerNoRTL = "adaasn1rtl", "Asn1Int", "INTEGER"
         override this.declare_PosIntegerNoRTL = "adaasn1rtl", "Asn1UInt" , "INTEGER"

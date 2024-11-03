@@ -42,7 +42,9 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
 type LangBasic_c() =
     inherit ILangBasic()
         override this.cmp (s1:string) (s2:string) = s1 = s2
+        override this.isCaseSensitive = true
         override this.keywords = c_keywords
+        override this.isKeyword (token) = c_keywords.Contains token
         override this.OnTypeNameConflictTryAppendModName = true
         override this.declare_IntegerNoRTL = "", "asn1SccSint", "INTEGER"
         override this.declare_PosIntegerNoRTL = "", "asn1SccUint" , "INTEGER"

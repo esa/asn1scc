@@ -218,7 +218,7 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) ((lang, 
                     yield vas.Name.Value
         } |> Seq.toList
 
-    let doubleEnumNames = doubleEnumNames0@lm.lg.Keywords |> (List.keepDuplicates lm.lg.isCaseSensitive)
+    let doubleEnumNames = doubleEnumNames0@(lm.lg.Keywords |> Set.toList ) |> (List.keepDuplicates lm.lg.isCaseSensitive)
 
     match doubleEnumNames with
     | []    -> r

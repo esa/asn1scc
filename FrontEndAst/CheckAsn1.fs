@@ -22,13 +22,14 @@ let ada_keywords =  CommonTypes.ada_keywords
 
 // TODO: Scala
 let all_keywords =
-    let ada_set = ada_keywords |> Set.ofList
-    let cmn_keys = c_keywords |> List.filter(fun ck -> ada_set.Contains ck)
-    let cmn_set = cmn_keys |> Set.ofList
-    let cmn_keys = cmn_keys  |> List.map(fun k -> (k, "is a C and Ada"))
-    let c_keys = c_keywords |> List.filter(fun z -> not (cmn_set.Contains z))  |> List.map(fun k -> (k, "is a C"))
-    let a_keys = ada_keywords |> List.filter(fun z -> not (cmn_set.Contains z)) |> List.map(fun k -> (k, "is an Ada"))
+    let ada_set = ada_keywords 
+    let cmn_keys = c_keywords |> Set.filter(fun ck -> ada_set.Contains ck)
+    let cmn_set = cmn_keys 
+    let cmn_keys = cmn_keys  |> Seq.map(fun k -> (k, "is a C and Ada")) |> Seq.toList
+    let c_keys = c_keywords |> Seq.filter(fun z -> not (cmn_set.Contains z))  |> Seq.map(fun k -> (k, "is a C")) |> Seq.toList
+    let a_keys = ada_keywords |> Seq.filter(fun z -> not (cmn_set.Contains z)) |> Seq.map(fun k -> (k, "is an Ada")) |> Seq.toList
     cmn_keys@c_keys@a_keys |> Map.ofList
+    
 
 let checkAgainstKeywords (strLc : StringLoc) =
     match all_keywords.TryFind(strLc.Value.ToLower()) with

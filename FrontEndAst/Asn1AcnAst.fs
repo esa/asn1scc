@@ -884,7 +884,10 @@ type AcnInsertedFieldDependencies = {
 
 type Asn1AcnMergeState = {
     args:CommandLineSettings
-    allocatedTypeNames          : (ProgrammingLanguage*string*string)  list     //language, program unit, type definition name
+
+    //the folowin map contains the currently allocated type names for each language
+    //if value of the map is a list of the module names where the type is defined (obviously we have different types with the same name but in different modules)
+    allocatedTypeNames          : Map<(ProgrammingLanguage*string), string list>      //language, type definition name, program unit lists 
     allocatedFE_TypeDefinition  : Map<(ProgrammingLanguage*ReferenceToType), FE_TypeDefinition>
     temporaryTypesAllocation    : Map<(ProgrammingLanguage*ReferenceToType), string>
 }

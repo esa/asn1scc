@@ -11,7 +11,7 @@ open AbstractMacros
 open FsUtils
 open Asn1AcnAst
 
-let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames : (ProgrammingLanguage*string*string)  list) (l:ProgrammingLanguage, ib:ILangBasic)  (programUnit:string) (proposedTypeDefName:string)  =
+let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames : Map<(ProgrammingLanguage*string), string list>) (l:ProgrammingLanguage, ib:ILangBasic)  (programUnit:string) (proposedTypeDefName:string) : (string*Map<(ProgrammingLanguage*string), string list>)  =
     let getNextCount (oldName:string) =
         match oldName.Split('_') |> Seq.toList |> List.rev with
         | []
@@ -20,33 +20,50 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
             match Int32.TryParse curN with
             | true, num ->  (oldPart |> List.rev |> Seq.StrJoin "_") + "_" + ((num+1).ToString())
             | _         -> oldName + "_1"
+    let addAllocatedTypeNames (allocatedTypeNames : Map<(ProgrammingLanguage*string), string list>) (l:ProgrammingLanguage) (programUnit:string) (proposedTypeDefName:string) =
+        let key, value = 
+            match ib.isCaseSensitive with
+            | true  -> (l, proposedTypeDefName), programUnit
+            | false -> (l, proposedTypeDefName.ToUpper()), programUnit.ToUpper()
+        
+            
+        match allocatedTypeNames.TryFind key with
+        | None -> allocatedTypeNames.Add (key, [value])
+        | Some (allocatedModules) -> allocatedTypeNames.Add (key, value::allocatedModules)
 
     let rec getValidTypeDefname (proposedTypeDefName: string) =
         let keywords =  ib.keywords
-        let cmp (ib:ILangBasic) (s1:String) (s2:String) = ib.cmp s1 s2
+        //let cmp (ib:ILangBasic) (s1:String) (s2:String) = ib.cmp s1 s2
         let proposedTypeDefName =
-            match keywords |> Seq.tryFind(fun kw -> cmp ib proposedTypeDefName kw) with
-            | None      -> proposedTypeDefName
-            | Some _    -> getNextCount proposedTypeDefName
+            //match keywords |> Seq.tryFind(fun kw -> cmp ib proposedTypeDefName kw) with
+            match ib.isKeyword proposedTypeDefName with
+            | false      -> proposedTypeDefName
+            | true    -> getNextCount proposedTypeDefName
 
         match ib.OnTypeNameConflictTryAppendModName with
         | true     ->
-            match allocatedTypeNames |> Seq.exists(fun (cl, _, ct) -> cl = l && ct = proposedTypeDefName) with
-            | false -> proposedTypeDefName
-            | true  ->
-                match allocatedTypeNames |> Seq.exists(fun (cl, cp, ct) -> cl = l && cp = programUnit && ct = proposedTypeDefName) with
+            //match allocatedTypeNames |> Set.exists(fun (cl, _, ct) -> cl = l && ct = proposedTypeDefName) with
+            match allocatedTypeNames.TryFind (l, programUnit) with
+            | None -> proposedTypeDefName
+            | Some (allocatedModules)  ->
+                //match allocatedTypeNames |> Set.exists(fun (cl, cp, ct) -> cl = l && cp = programUnit && ct = proposedTypeDefName) with
+                match allocatedModules |> List.exists(fun z -> z = programUnit) with
                 | false ->
                     match proposedTypeDefName.StartsWith typePrefix with
                     | true  -> getValidTypeDefname (typePrefix + programUnit + "_" + proposedTypeDefName.Substring(typePrefix.Length) )
                     | false -> getValidTypeDefname (programUnit + "_" + proposedTypeDefName )
                 | true  -> getValidTypeDefname (getNextCount proposedTypeDefName )
         | false   ->
-            match allocatedTypeNames  |> Seq.exists(fun (cl, cp, ct) -> cl = l && cp.ToUpper() = programUnit.ToUpper() && ct.ToUpper() = proposedTypeDefName.ToUpper()) with
-            | false -> proposedTypeDefName
-            | true  -> getValidTypeDefname (getNextCount proposedTypeDefName  )
+            //match allocatedTypeNames  |> Set.exists(fun (cl, cp, ct) -> cl = l && cp.ToUpper() = programUnit.ToUpper() && ct.ToUpper() = proposedTypeDefName.ToUpper()) with
+            match allocatedTypeNames.TryFind (l, programUnit) with
+            | None -> proposedTypeDefName
+            | Some (allocatedModules)  ->  
+                match allocatedModules |> List.exists(fun z -> z = programUnit.ToUpper()) with
+                | false -> proposedTypeDefName
+                | true  -> getValidTypeDefname (getNextCount proposedTypeDefName  )
 
     let validTypeDefname = getValidTypeDefname proposedTypeDefName
-    validTypeDefname, (l, programUnit, validTypeDefname)::allocatedTypeNames
+    validTypeDefname, (addAllocatedTypeNames allocatedTypeNames l programUnit validTypeDefname)
 
 let private reserveMasterTypeDefinitionName (us:Asn1AcnMergeState) (id:ReferenceToType) (l:ProgrammingLanguage, ib:ILangBasic)  (programUnit:string) (proposedTypeDefName:string)  =
     match us.temporaryTypesAllocation.TryFind(l,id) with

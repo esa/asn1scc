@@ -92,7 +92,9 @@ let asn1rtlDirName  = Path.Combine("src", "main", "scala", "asn1scala")
 type LangBasic_scala() =
     inherit ILangBasic()
         override this.cmp (s1:string) (s2:string) = s1 = s2
+        override this.isCaseSensitive = true
         override this.keywords = scala_keywords
+        override this.isKeyword (token) = c_keywords.Contains token
         override this.OnTypeNameConflictTryAppendModName = true
         override this.declare_IntegerNoRTL = "", "Int", "INTEGER"
         override this.declare_PosIntegerNoRTL = "", " asn1SccUint" , "INTEGER"

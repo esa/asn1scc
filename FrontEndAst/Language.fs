@@ -233,7 +233,7 @@ type ILangGeneric () =
     abstract member SpecNameSuffix: string
     abstract member SpecExtension : string
     abstract member BodyExtension : string
-    abstract member Keywords : string list
+    abstract member Keywords : string Set
     abstract member isCaseSensitive : bool
 
     abstract member RtlFuncNames : string list

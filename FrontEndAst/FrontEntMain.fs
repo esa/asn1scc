@@ -38,17 +38,21 @@ open Language
 let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*LanguageMacros) list) (op_mode:Asn1SccOperationMode) (debugFnc : Asn1Ast.AstRoot -> AcnGenericTypes.AcnAst-> unit) : (Result<Asn1AcnAst.AstRoot*Asn1AcnAst.AcnInsertedFieldDependencies, (UserError *UserError list)>) =
 
     let asn1ParseTrees, asn1ParseErrors = 
-        args.asn1Files |> 
-        Seq.groupBy(fun f -> f.name) |> 
-        Seq.map (antlrParse asn1Lexer asn1treeParser  ) |> 
-        Seq.toList |> List.unzip
+        TL "FrontEntMain.antlrParse_asn1" (fun () ->
+            args.asn1Files |> 
+            Seq.groupBy(fun f -> f.name) |> 
+            Seq.map (antlrParse asn1Lexer asn1treeParser  ) |> 
+            Seq.toList |> List.unzip)
 
     let acnParseTrees, acnParseErrors = 
-        args.acnFiles |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse acnLexer acnTreeParser  ) |> Seq.toList |> List.unzip
+        TL "FrontEntMain.antlrParse_acn" (fun () ->
+            args.acnFiles |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse acnLexer acnTreeParser  ) |> Seq.toList |> List.unzip)
 
     match asn1ParseErrors@acnParseErrors |> List.collect id with
     | []     -> 
-        let acnAst = AcnGenericCreateFromAntlr.CreateAcnAst args.integerSizeInBytes acnParseTrees
+        let acnAst = 
+            TL "AcnGenericCreateFromAntlr.CreateAcnAst" (fun () ->
+                AcnGenericCreateFromAntlr.CreateAcnAst args.integerSizeInBytes acnParseTrees)
 
         (*
             * constructs a parameterized (templatized) ASN.1 AST by antlr trees.
@@ -62,7 +66,9 @@ let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*Langua
             * 
         *)
 
-        let parameterized_ast = CreateAsn1AstFromAntlrTree.CreateAstRoot asn1ParseTrees acnAst args
+        let parameterized_ast = 
+            TL "CreateAsn1AstFromAntlrTree.CreateAstRoot" (fun () ->
+                CreateAsn1AstFromAntlrTree.CreateAstRoot asn1ParseTrees acnAst args)
 
         (*
             *  Removes parameterized types by resolving them. In the example above
@@ -71,7 +77,9 @@ let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*Langua
             *  MyTestInt ::= SEQUENCE (SIZE(5)) OF INTEGER(1..20)
             *  MyTestReal ::= SEQUENCE (SIZE(5)) OF REAL
             *)
-        let asn1Ast0 = MapParamAstToNonParamAst.DoWork parameterized_ast
+        let asn1Ast0 = 
+            TL "MapParamAstToNonParamAst.DoWork" (fun () ->
+                MapParamAstToNonParamAst.DoWork parameterized_ast)
 
 
         (*
@@ -81,25 +89,35 @@ let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*Langua
             * is OK for ANTLR but of course not OK for ASN.1
             *)
         //todo : check for commented code with uPER.
-        CheckAsn1.CheckFiles asn1Ast0 0
+        TL "CheckAsn1.CheckFiles" (fun () ->
+            CheckAsn1.CheckFiles asn1Ast0 0)
 
         (*
             Ensure unique enum names
         *)
-        let uniqueEnumNamesAst = EnsureUniqueEnumNames.DoWork asn1Ast0 lms
+
+        let uniqueEnumNamesAst = 
+            TL "EnsureUniqueEnumNames.DoWork" (fun () ->            
+                EnsureUniqueEnumNames.DoWork asn1Ast0 lms)
 
 
         (*
             - Updates ASN.1 AST with ACN information
             - Creates the expanded tree (i.e reference types are now resolved)
         *)
-        let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst (acnAst, acnParseTrees) 
-        debugFnc uniqueEnumNamesAst acn0
+        let acnAst,acn0 = 
+            TL "AcnCreateFromAntlr.mergeAsn1WithAcnAst" (fun () ->
+                AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst (acnAst, acnParseTrees))
+
+        TL "debugFnc uniqueEnumNamesAst" (fun () ->
+            debugFnc uniqueEnumNamesAst acn0)
 
         (*
             check acn references
         *)
-        let acnDeps = CheckLongReferences.checkAst acnAst
+        let acnDeps = 
+            TL "CheckLongReferences.checkAst" (fun () ->
+                CheckLongReferences.checkAst acnAst)
 
         Ok (acnAst, acnDeps)
     | xx1::xs ->  

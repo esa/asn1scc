@@ -9,9 +9,9 @@ open System.IO
 open Antlr.Runtime.Tree
 open Antlr.Runtime
 
-let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ]
-let scala_keywords =  [ "abstract"; "case"; "catch"; "class"; "def"; "do"; "else"; "enum"; "export"; "extends"; "false"; "final"; "finally"; "float"; "for"; "given"; "if"; "implicit"; "import"; "int"; "lazy"; "match"; "new"; "null"; "object"; "override"; "package"; "private"; "protected"; "return"; "sealed"; "super"; "then"; "throw"; "trait"; "true"; "try"; "type"; "val"; "var"; "while"; "with"; "yield"; ]
-let ada_keywords =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ]
+let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ] |> Set.ofList
+let scala_keywords =  [ "abstract"; "case"; "catch"; "class"; "def"; "do"; "else"; "enum"; "export"; "extends"; "false"; "final"; "finally"; "float"; "for"; "given"; "if"; "implicit"; "import"; "int"; "lazy"; "match"; "new"; "null"; "object"; "override"; "package"; "private"; "protected"; "return"; "sealed"; "super"; "then"; "throw"; "trait"; "true"; "try"; "type"; "val"; "var"; "while"; "with"; "yield"; ] |> Set.ofList
+let ada_keywords =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ] |> Set.ofList
 
 type UserErrorSeverity =
     | ERROR
@@ -297,7 +297,9 @@ let getDateTimeFromAsn1TimeStringValue timeClass (str:StringLoc) =
 [<AbstractClass>]
 type ILangBasic () =
     abstract member cmp : string -> string -> bool
-    abstract member keywords : string list
+    abstract member isCaseSensitive : bool
+    abstract member keywords : string Set
+    abstract member isKeyword : string -> bool
     abstract member OnTypeNameConflictTryAppendModName : bool
     abstract member declare_IntegerNoRTL : string*string*string
     abstract member declare_PosIntegerNoRTL : string*string*string
