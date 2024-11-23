@@ -187,3 +187,4 @@ Moreover, a `deduced-size` type cannot  be encapsulated:
 
 Adding support for the PUS protocol to the ACN protocol in asn1scc will improve its usability and versatility. This document serves as a roadmap for the implementation of this new feature.
 
+
