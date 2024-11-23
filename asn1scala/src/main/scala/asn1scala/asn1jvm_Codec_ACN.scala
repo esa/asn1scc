@@ -26,8 +26,76 @@ object ACN {
       (ACN(Codec(r1)), ACN(Codec(r2)))
    }
 
-   // For showing invertibility of encoding - not fully integrated yet
-   /*
+   // TODO: Placeholder
+   def TODO_ASN1_OTHER_prefixLemma(acn1: ACN, acn2: ACN): Unit = ()
+
+   @ghost @pure @opaque @inlineOnce
+   def dec_Int_TwosComplement_ConstSize_8_prefixLemma(acn1: ACN, acn2: ACN): Unit = {
+      require(acn1.base.bitStream.buf.length == acn2.base.bitStream.buf.length)
+      require(acn1.base.bitStream.validate_offset_bits(8))
+      require(arrayBitRangesEq(
+         acn1.base.bitStream.buf,
+         acn2.base.bitStream.buf,
+         0,
+         acn1.base.bitStream.bitIndex + 8
+      ))
+
+      val acn2Reset = acn2.resetAt(acn1)
+      val (acn1Res, b1) = acn1.dec_Int_TwosComplement_ConstSize_8_pure()
+      val (acn2Res, b2) = acn2Reset.dec_Int_TwosComplement_ConstSize_8_pure()
+
+      {
+         BitStream.readBytePrefixLemma(acn1.base.bitStream, acn2.base.bitStream)
+      }.ensuring { _ =>
+         acn1Res.base.bitStream.bitIndex == acn2Res.base.bitStream.bitIndex && b1 == b2
+      }
+   }
+
+   @ghost @pure @opaque @inlineOnce
+   def dec_Int_PositiveInteger_ConstSize_8_prefixLemma(acn1: ACN, acn2: ACN): Unit = {
+      require(acn1.base.bitStream.buf.length == acn2.base.bitStream.buf.length)
+      require(acn1.base.bitStream.validate_offset_bits(8))
+      require(arrayBitRangesEq(
+         acn1.base.bitStream.buf,
+         acn2.base.bitStream.buf,
+         0,
+         acn1.base.bitStream.bitIndex + 8
+      ))
+
+      val acn2Reset = acn2.resetAt(acn1)
+      val (acn1Res, b1) = acn1.dec_Int_PositiveInteger_ConstSize_8_pure()
+      val (acn2Res, b2) = acn2Reset.dec_Int_PositiveInteger_ConstSize_8_pure()
+
+      {
+         BitStream.readBytePrefixLemma(acn1.base.bitStream, acn2.base.bitStream)
+      }.ensuring { _ =>
+         acn1Res.base.bitStream.bitIndex == acn2Res.base.bitStream.bitIndex && b1 == b2
+      }
+   }
+
+   @ghost @pure @opaque @inlineOnce
+   def dec_Int_PositiveInteger_ConstSize_prefixLemma(acn1: ACN, acn2: ACN, nBits: Int): Unit = {
+      require(0 <= nBits && nBits <= 64)
+      require(acn1.base.bitStream.buf.length == acn2.base.bitStream.buf.length)
+      require(acn1.base.bitStream.validate_offset_bits(nBits))
+      require(arrayBitRangesEq(
+         acn1.base.bitStream.buf,
+         acn2.base.bitStream.buf,
+         0,
+         acn1.base.bitStream.bitIndex + nBits
+      ))
+
+      val acn2Reset = acn2.resetAt(acn1)
+      val (acn1Res, l1) = acn1.dec_Int_PositiveInteger_ConstSize_pure(nBits)
+      val (acn2Res, l2) = acn2Reset.dec_Int_PositiveInteger_ConstSize_pure(nBits)
+
+      {
+         BitStream.readNLSBBitsMSBFirstPrefixLemma(acn1.base.bitStream, acn2.base.bitStream, nBits)
+      }.ensuring { _ =>
+         acn1Res.base.bitStream.bitIndex == acn2Res.base.bitStream.bitIndex && l1 == l2
+      }
+   }
+
    @ghost @pure @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_big_endian_16_prefixLemma(acn1: ACN, acn2: ACN): Unit = {
       require(acn1.base.bufLength() == acn2.base.bufLength())
@@ -48,8 +116,9 @@ object ACN {
          val end = (BitStream.bitIndex(acn1.base.bitStream.buf.length, acn1.base.bitStream.currentByte, acn1.base.bitStream.currentBit) / 8 + 2).toInt
          arrayRangesEqImpliesEq(acn1.base.bitStream.buf, acn2.base.bitStream.buf, 0, acn1.base.bitStream.currentByte, end)
          arrayRangesEqImpliesEq(acn1.base.bitStream.buf, acn2.base.bitStream.buf, 0, acn1.base.bitStream.currentByte + 1, end)
+         assert(i1 == i2)
       }.ensuring { _ =>
-         BitStream.bitIndex(acn1Res.base.bitStream.buf.length, acn1Res.base.bitStream.currentByte, acn1Res.base.bitStream.currentBit) == BitStream.bitIndex(acn2Res.base.bitStream.buf.length, acn2Res.base.bitStream.currentByte, acn2Res.base.bitStream.currentBit) && i1 == i2
+         BitStream.bitIndex(acn1Res.base.bitStream.buf.length, acn1Res.base.bitStream.currentByte, acn1Res.base.bitStream.currentBit) == BitStream.bitIndex(acn2Res.base.bitStream.buf.length, acn2Res.base.bitStream.currentByte, acn2Res.base.bitStream.currentBit) &&& i1 == i2
       }
    }
 
@@ -143,7 +212,6 @@ object ACN {
          BitStream.bitIndex(acn1Res.base.bitStream.buf.length, acn1Res.base.bitStream.currentByte, acn1Res.base.bitStream.currentBit) == BitStream.bitIndex(acn2Res.base.bitStream.buf.length, acn2Res.base.bitStream.currentByte, acn2Res.base.bitStream.currentBit) && i1 == i2
       }
    }
-
    @ghost @pure @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_little_endian_32_prefixLemma(acn1: ACN, acn2: ACN): Unit = {
       require(acn1.base.bufLength() == acn2.base.bufLength())
@@ -208,7 +276,27 @@ object ACN {
       }.ensuring { _ =>
          BitStream.bitIndex(acn1Res.base.bitStream.buf.length, acn1Res.base.bitStream.currentByte, acn1Res.base.bitStream.currentBit) == BitStream.bitIndex(acn2Res.base.bitStream.buf.length, acn2Res.base.bitStream.currentByte, acn2Res.base.bitStream.currentBit) && i1 == i2
       }
-   }*/
+   }
+
+   // TODO: Incomplete specs
+   // @extern
+   @ghost @pure @opaque @inlineOnce
+   def dec_IA5String_CharIndex_External_Field_DeterminantVec_prefixLemma(acn1: ACN, acn2: ACN, max: Long, extSizeDeterminantFld: Long): Unit = {
+      require(max < Int.MaxValue)
+      require(extSizeDeterminantFld >= 0)
+      require(max >= 0)
+      require(acn1.base.bufLength() == acn2.base.bufLength())
+
+      val acn2Reset = acn2.resetAt(acn1)
+      val (acn1Res, v1) = acn1.dec_IA5String_CharIndex_External_Field_DeterminantVec_pure(max, extSizeDeterminantFld)
+      val (acn2Res, v2) = acn2Reset.dec_IA5String_CharIndex_External_Field_DeterminantVec_pure(max, extSizeDeterminantFld)
+
+      {
+         ()
+      }.ensuring { _ =>
+         acn1Res.base.bitStream.bitIndex == acn2Res.base.bitStream.bitIndex && v1 == v2
+      }
+   }
 }
 case class ACN(base: Codec) {
    import BitStream.*
@@ -223,9 +311,19 @@ case class ACN(base: Codec) {
       require(nBits <= encodedSizeInBits && encodedSizeInBits <= 64)
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, encodedSizeInBits))
       enc_Int_PositiveInteger_ConstSize(intVal.toLong.toRawULong, encodedSizeInBits)
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.base.bitStream.buf.length == w3.base.bitStream.buf.length && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + encodedSizeInBits
+      && w1.isPrefixOf(w3) && {
+         val (r1, r3) = ACN.reader(w1, w3)
+         validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, encodedSizeInBits)
+         val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_pure(encodedSizeInBits)
+         iGot.toRaw.toInt == intVal && r3Got == r3
+      }
    }
 
-   @opaque @inlineOnce
+   // @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize(intVal: ULong, encodedSizeInBits: Int): Unit = {
       require(encodedSizeInBits >= 0 && encodedSizeInBits <= 64)
       /* Get number of bits*/
@@ -238,16 +336,16 @@ case class ACN(base: Codec) {
          /* put required zeros*/
          val diff = encodedSizeInBits - nBits
          appendNZeroBits(diff)
-         // @ghost val this2 = snapshot(this)
+         @ghost val this2 = snapshot(this)
          ghostExpr {
-            validateOffsetBitsDifferenceLemma(this1.base.bitStream, this.base.bitStream, encodedSizeInBits, diff)
+            BitStream.validateOffsetBitsDifferenceLemma(this1.base.bitStream, this.base.bitStream, encodedSizeInBits, diff)
          }
          /*Encode number */
          encodeUnsignedInteger(intVal)
-         /*ghostExpr {
+         ghostExpr {
             assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this2.base.bitStream.buf.length, this2.base.bitStream.currentByte, this2.base.bitStream.currentBit) + nBits)
             assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this1.base.bitStream.buf.length, this1.base.bitStream.currentByte, this1.base.bitStream.currentBit) + encodedSizeInBits)
-            validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+            lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
             val this2Reset = this2.resetAt(this1)
             val (r1_1, r3_1) = ACN.reader(this1, this)
             validateOffsetBitsContentIrrelevancyLemma(this1.base.bitStream, this.base.bitStream.buf, encodedSizeInBits)
@@ -264,44 +362,44 @@ case class ACN(base: Codec) {
                validateOffsetImpliesMoveBits(r1_1.base.bitStream, diff)
                assert(r2_2 == r1_1.withMovedBitIndex(diff))
                // TODO: Exported symbol not working
-               // val (r2Got_2, vGot_2) = r2_2.readNLeastSignificantBitsLoopPure(nBits, 0, 0L)
-               val (r2Got_2, vGot_2) = r2_2.base.bitStream.readNLeastSignificantBitsLoopPure(nBits, 0, 0L)
+               // val (r2Got_2, vGot_2) = r2_2.readNLSBBitsMSBFirstLoopPure(nBits, 0, 0L)
+               val (r2Got_2, vGot_2) = r2_2.base.bitStream.readNLSBBitsMSBFirstLoopPure(nBits, 0, 0L)
                assert(vGot_2 == intVal.toRaw)
 
-               val (r3Got_3, vGot_3) = r1_1.base.bitStream.readNLeastSignificantBitsLoopPure(encodedSizeInBits, 0, 0L)
+               val (r3Got_3, vGot_3) = r1_1.base.bitStream.readNLSBBitsMSBFirstLoopPure(encodedSizeInBits, 0, 0L)
                assert(iGot.toRaw == vGot_3)
                assert(r3Got.base.bitStream == r3Got_3)
                checkBitsLoopAndReadNLSB(r1_1.base.bitStream, diff, false)
-               readNLeastSignificantBitsLeadingZerosLemma(r1_1.base.bitStream, encodedSizeInBits, diff)
+               readNLSBBitsMSBFirstLeadingZerosLemma(r1_1.base.bitStream, encodedSizeInBits, diff)
                check(iGot == intVal)
                check(r3Got == r3_1)
             } else {
                check(iGot == intVal)
                check(r3Got == r3_1)
             }
-         }*/
-      } /*else {
-         ghostExpr {
-            validReflexiveLemma(bitStream)
          }
-      }*/
+      } else {
+         ghostExpr {
+            lemmaIsPrefixRefl(bitStream)
+         }
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
       w1.base.bitStream.buf.length == w3.base.bitStream.buf.length && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + encodedSizeInBits
-      /*&& w1.isPrefixOf(w3) && {
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, encodedSizeInBits)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_pure(encodedSizeInBits)
          iGot == intVal && r3Got == r3
-      }*/
+      }
    }
 
    @ghost @pure @inline
    def resetAt(other: ACN): ACN = {
       require(bitStream.buf.length == other.base.bitStream.buf.length)
       ACN(Codec(bitStream.resetAt(other.base.bitStream)))
-   }
+   }.ensuring(res => res.base.bitStream.buf == this.base.bitStream.buf && res.base.bitStream.currentByte == other.base.bitStream.currentByte && res.base.bitStream.currentBit == other.base.bitStream.currentBit)
 
    @ghost @pure @inline
    def withMovedByteIndex(diffInBytes: Int): ACN = {
@@ -310,15 +408,47 @@ case class ACN(base: Codec) {
    }
 
    @ghost @pure @inline
-   def withMovedBitIndex(diffInBits: Int): ACN = {
+   def withMovedBitIndex(diffInBits: Long): ACN = {
       require(moveBitIndexPrecond(bitStream, diffInBits))
       ACN(Codec(bitStream.withMovedBitIndex(diffInBits)))
-   }
+   }.ensuring(res =>
+      this.base.bitStream.bitIndex + diffInBits == res.base.bitStream.bitIndex
+      && this.base.bitStream.buf.length == res.base.bitStream.buf.length
+   )
 
    @pure @inline
    def isPrefixOf(acn2: ACN): Boolean = bitStream.isPrefixOf(acn2.base.bitStream)
 
-   @opaque @inlineOnce
+
+   @inline @pure @ghost
+   def withAlignedToByte(): ACN = {
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length.toLong, base.bitStream.currentByte.toLong, base.bitStream.currentBit.toLong,
+         (NO_OF_BITS_IN_BYTE - base.bitStream.currentBit) & (NO_OF_BITS_IN_BYTE - 1)
+      ))
+      ACN(base.withAlignedToByte())
+   }
+
+   @inline @pure @ghost
+   def withAlignedToShort(): ACN = {
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length.toLong, base.bitStream.currentByte.toLong, base.bitStream.currentBit.toLong,
+         (NO_OF_BITS_IN_SHORT -                                                                                               // max alignment (16) -
+            (NO_OF_BITS_IN_BYTE * (base.bitStream.currentByte & (NO_OF_BYTES_IN_JVM_SHORT - 1)) + base.bitStream.currentBit)  // current pos
+            ) & (NO_OF_BITS_IN_SHORT - 1))                                                                                    // edge case (0,0) -> 0
+      )
+      ACN(base.withAlignedToShort())
+   }
+
+   @inline @pure @ghost
+   def withAlignedToInt(): ACN = {
+      require(BitStream.validate_offset_bits(base.bitStream.buf.length.toLong, base.bitStream.currentByte.toLong, base.bitStream.currentBit.toLong,
+         (NO_OF_BITS_IN_INT -                                                                                              // max alignment (32) -
+            (NO_OF_BITS_IN_BYTE * (base.bitStream.currentByte & (NO_OF_BYTES_IN_JVM_INT - 1)) + base.bitStream.currentBit) // current pos
+            ) & (NO_OF_BITS_IN_INT - 1))                                                                                   // edge case (0,0) -> 0
+      )
+      ACN(base.withAlignedToInt())
+   }
+
+   // @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize_8(intVal: ULong): Unit = {
       require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
       require(intVal <= 255)
@@ -326,93 +456,97 @@ case class ACN(base: Codec) {
    }.ensuring { _ =>
       val w1 = old(this)
       val w2 = this
-      w1.base.bufLength() == w2.base.bufLength() && BitStream.bitIndex(w2.base.bitStream.buf.length, w2.base.bitStream.currentByte, w2.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 8 /*&& w1.isPrefixOf(w2) && {
+      w1.base.bufLength() == w2.base.bufLength() && BitStream.bitIndex(w2.base.bitStream.buf.length, w2.base.bitStream.currentByte, w2.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 8
+      && w1.isPrefixOf(w2) && {
          val (r1, r2) = ACN.reader(w1, w2)
          val (r2Got, vGot) = r1.dec_Int_PositiveInteger_ConstSize_8_pure()
          vGot == intVal && r2Got == r2
-      }*/
+      }
    }
 
-   @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize_big_endian_16(uintVal: ULong): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16))
       require(uintVal <= 65535)
       val intVal = uintVal.toRaw
       assert((intVal >> 16) == 0L)
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       appendByte(wrappingExpr { (intVal >> 8).toByte.toRawUByte })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       appendByte(wrappingExpr { intVal.toByte.toRawUByte })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first byte gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.base.bitStream.resetAt(this1.base.bitStream)
          readBytePrefixLemma(this2Reset, this.base.bitStream)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 16 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 16
+      && w1.isPrefixOf(w3)
+      && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 16)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_big_endian_16_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
-   @opaque @inlineOnce
+   @inlineOnce @opaque
    def enc_Int_PositiveInteger_ConstSize_big_endian_32(uintVal: ULong): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32))
       require(uintVal <= 4294967295L)
       val intVal = uintVal.toRaw
       assert((intVal >> 32) == 0L)
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_big_endian_16(wrappingExpr { ((intVal >> 16) & 0xFFFFL).toRawULong })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_big_endian_16(wrappingExpr { (intVal & 0xFFFFL).toRawULong })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_big_endian_16_prefixLemma(this2Reset, this)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 32 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 32
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 32)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_big_endian_32_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
    @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize_big_endian_64(uintVal: ULong): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       val intVal = uintVal.toRaw
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_big_endian_32(wrappingExpr { ((intVal >> 32) & 0xFFFFFFFFL).toRawULong })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_big_endian_32(wrappingExpr { (intVal & 0xFFFFFFFFL).toRawULong })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_big_endian_32_prefixLemma(this2Reset, this)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 64 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 64
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 64)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_big_endian_64_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
    @opaque @inlineOnce
@@ -421,26 +555,27 @@ case class ACN(base: Codec) {
       require(uintVal <= 65535)
       val intVal = uintVal.toRaw
       assert((intVal >> 16) == 0L)
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       appendByte(wrappingExpr { intVal.toUByte })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       appendByte(wrappingExpr { (intVal >> 8).toUByte })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first byte gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          readBytePrefixLemma(this2Reset.base.bitStream, this.base.bitStream)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 16 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 16
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 16)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_little_endian_16_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
    @opaque @inlineOnce
@@ -449,52 +584,54 @@ case class ACN(base: Codec) {
       require(uintVal <= 4294967295L)
       val intVal = uintVal.toRaw
       assert((intVal >> 32) == 0L)
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_little_endian_16(wrappingExpr { (intVal & 0xFFFFL).toRawULong })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_little_endian_16(wrappingExpr { ((intVal >> 16) & 0xFFFFL).toRawULong })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_little_endian_16_prefixLemma(this2Reset, this)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 32 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 32
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 32)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_little_endian_32_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
    @opaque @inlineOnce
    def enc_Int_PositiveInteger_ConstSize_little_endian_64(uintVal: ULong): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       val intVal = uintVal.toRaw
-      // @ghost val this1 = snapshot(this)
+      @ghost val this1 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_little_endian_32(wrappingExpr { (intVal & 0xFFFFFFFFL).toRawULong })
-      // @ghost val this2 = snapshot(this)
+      @ghost val this2 = snapshot(this)
       enc_Int_PositiveInteger_ConstSize_little_endian_32(wrappingExpr { ((intVal >> 32) & 0xFFFFFFFFL).toRawULong })
-      /*ghostExpr {
+      ghostExpr {
          // For isPrefix
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          // Reading back the first integer gives the same result whether we are reading from this2 or the end result this
          val this2Reset = this2.resetAt(this1)
          dec_Int_PositiveInteger_ConstSize_little_endian_32_prefixLemma(this2Reset, this)
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 64 /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 64
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 64)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_little_endian_64_pure()
          iGot == uintVal && r3Got == r3
-      }*/
+      }
    }
 
    def dec_Int_PositiveInteger_ConstSize(encodedSizeInBits: Int): ULong = {
@@ -512,7 +649,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_8(): ULong = {
       require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
       ULong.fromRaw(readByte().toRaw & 0xFF)
@@ -526,7 +662,7 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
+
    def dec_Int_PositiveInteger_ConstSize_big_endian_16(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16))
       val b1 = readByte().toRaw
@@ -542,7 +678,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_big_endian_32(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32))
       val i1 = dec_Int_PositiveInteger_ConstSize_big_endian_16().toRaw
@@ -558,7 +693,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_big_endian_64(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       val i1 = dec_Int_PositiveInteger_ConstSize_big_endian_32().toRaw
@@ -574,7 +708,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_little_endian_16(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16))
       val b1 = readByte().toRaw
@@ -590,7 +723,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_little_endian_32(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32))
       val i1 = dec_Int_PositiveInteger_ConstSize_little_endian_16().toRaw
@@ -606,7 +738,6 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
-   @opaque @inlineOnce
    def dec_Int_PositiveInteger_ConstSize_little_endian_64(): ULong = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       val i1 = dec_Int_PositiveInteger_ConstSize_little_endian_32().toRaw
@@ -629,11 +760,13 @@ case class ACN(base: Codec) {
       var vv = v.toRaw << (NO_OF_BYTES_IN_JVM_LONG * 8 - nBytes * 8)
 
       var i: Int = 0
-      while i < nBytes do
+      (while (i < nBytes) {
+         decreases(nBytes - i)
          val byteToEncode = ((vv & MAX_BYTE_MASK) >>> ((NO_OF_BYTES_IN_JVM_LONG - 1) * 8)).toByte
          appendByte(byteToEncode.toRawUByte)
          vv <<= 8
          i += 1
+      })
    }
 
    def enc_Int_PositiveInteger_VarSize_LengthEmbedded(intVal: ULong): Unit = {
@@ -680,7 +813,7 @@ case class ACN(base: Codec) {
     * @param v                value that gets encoded
     * @param formatBitLength  number of dataformat bits
     */
-   @opaque @inlineOnce
+   // @opaque @inlineOnce
    def enc_Int_TwosComplement_ConstSize(v: Long, formatBitLength: Int): Unit = {
       val nBits = GetBitCountSigned(v)
       require(nBits <= formatBitLength && formatBitLength <= NO_OF_BITS_IN_LONG)
@@ -692,12 +825,12 @@ case class ACN(base: Codec) {
       ghostExpr {
          validateOffsetBitsDifferenceLemma(this1.base.bitStream, this.base.bitStream, formatBitLength, addedBits)
       }
-      // @ghost val this2 = snapshot(this)
-      appendNLeastSignificantBits(v & onesLSBLong(nBits), nBits)
-      /*ghostExpr {
+      @ghost val this2 = snapshot(this)
+      appendLSBBitsMSBFirst(v & onesLSBLong(nBits), nBits)
+      ghostExpr {
          assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this2.base.bitStream.buf.length, this2.base.bitStream.currentByte, this2.base.bitStream.currentBit) + nBits)
          assert(BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(this1.base.bitStream.buf.length, this1.base.bitStream.currentByte, this1.base.bitStream.currentBit) + formatBitLength)
-         validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
+         lemmaIsPrefixTransitive(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
          val this2Reset = this2.resetAt(this1)
          val (r1_1, r3_1) = ACN.reader(this1, this)
          validateOffsetBitsContentIrrelevancyLemma(this1.base.bitStream, this.base.bitStream.buf, formatBitLength)
@@ -710,13 +843,13 @@ case class ACN(base: Codec) {
             assert(r3_1 == r3_2)
             validateOffsetImpliesMoveBits(r1_1.base.bitStream, addedBits)
             assert(r2_2 == r1_1.withMovedBitIndex(addedBits))
-            val (r2Got_2, vGot_2) = r2_2.base.bitStream.readNLeastSignificantBitsLoopPure(nBits, 0, 0L)
+            val (r2Got_2, vGot_2) = r2_2.base.bitStream.readNLSBBitsMSBFirstLoopPure(nBits, 0, 0L)
             assert(vGot_2 == (v & onesLSBLong(nBits)))
 
-            val (r3Got_3, vGot_3) = r1_1.base.bitStream.readNLeastSignificantBitsLoopPure(formatBitLength, 0, 0L)
+            val (r3Got_3, vGot_3) = r1_1.base.bitStream.readNLSBBitsMSBFirstLoopPure(formatBitLength, 0, 0L)
 
             checkBitsLoopAndReadNLSB(r1_1.base.bitStream, addedBits, v < 0)
-            readNLeastSignificantBitsLeadingBitsLemma(r1_1.base.bitStream, v < 0, formatBitLength, addedBits)
+            readNLSBBitsMSBFirstLeadingBitsLemma(r1_1.base.bitStream, v < 0, formatBitLength, addedBits)
             assert(vGot == (bitMSBLong(v < 0, NO_OF_BITS_IN_LONG - formatBitLength) | vGot_3))
             assert(r3Got.base.bitStream == r3Got_3)
             assert(((vGot_3 & (1L << (formatBitLength - 1))) == 0L) == v >= 0)
@@ -742,39 +875,80 @@ case class ACN(base: Codec) {
             check(vGot == v)
             check(r3Got == r3_1)
          }
-      }*/
+      }
    }.ensuring { _ =>
       val w1 = old(this)
       val w3 = this
-      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + formatBitLength /*&& w1.isPrefixOf(w3) && {
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + formatBitLength
+      && w1.isPrefixOf(w3) && {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, formatBitLength)
          val (r3Got, vGot) = r1.dec_Int_TwosComplement_ConstSize_pure(formatBitLength)
          vGot == v && r3Got == r3
-      }*/
+      }
    }
 
    def enc_Int_TwosComplement_ConstSize_8(intVal: Long): Unit = {
       require(BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit))
       require(-128L <= intVal && intVal <= 127L)
       enc_Int_PositiveInteger_ConstSize_8(ULong.fromRaw(intVal & 0xFFL))
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 8
+      && w1.isPrefixOf(w3) && {
+         val (r1, r3) = ACN.reader(w1, w3)
+         validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 8)
+         val (r3Got, iGot) = r1.dec_Int_TwosComplement_ConstSize_8_pure()
+         iGot == intVal && r3Got == r3
+      }
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_16(intVal: Long): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 16))
       require(-32768L <= intVal && intVal <= 32767L)
       enc_Int_PositiveInteger_ConstSize_big_endian_16(ULong.fromRaw(intVal & 0xFFFFL))
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 16
+      && w1.isPrefixOf(w3) && {
+         val (r1, r3) = ACN.reader(w1, w3)
+         validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 16)
+         val (r3Got, iGot) = r1.dec_Int_TwosComplement_ConstSize_big_endian_16_pure()
+         iGot == intVal && r3Got == r3
+      }
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_32(intVal: Long): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32))
       require(-2147483648L <= intVal && intVal <= 2147483647L)
       enc_Int_PositiveInteger_ConstSize_big_endian_32(ULong.fromRaw(intVal & 0xFFFFFFFFL))
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 32
+      && w1.isPrefixOf(w3) && {
+         val (r1, r3) = ACN.reader(w1, w3)
+         validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 32)
+         val (r3Got, iGot) = r1.dec_Int_TwosComplement_ConstSize_big_endian_32_pure()
+         iGot == intVal && r3Got == r3
+      }
    }
 
    def enc_Int_TwosComplement_ConstSize_big_endian_64(intVal: Long): Unit = {
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 64))
       enc_Int_PositiveInteger_ConstSize_big_endian_64(ULong.fromRaw(intVal))
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w3 = this
+      w1.base.bufLength() == w3.base.bufLength() && BitStream.bitIndex(w3.base.bitStream.buf.length, w3.base.bitStream.currentByte, w3.base.bitStream.currentBit) == BitStream.bitIndex(w1.base.bitStream.buf.length, w1.base.bitStream.currentByte, w1.base.bitStream.currentBit) + 64
+      && w1.isPrefixOf(w3) && {
+         val (r1, r3) = ACN.reader(w1, w3)
+         validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 64)
+         val (r3Got, iGot) = r1.dec_Int_TwosComplement_ConstSize_big_endian_64_pure()
+         iGot == intVal && r3Got == r3
+      }
    }
 
    def enc_Int_TwosComplement_ConstSize_little_endian_16(intVal: Long): Unit = {
@@ -793,7 +967,7 @@ case class ACN(base: Codec) {
       require(encodedSizeInBits >= 0 && encodedSizeInBits <= NO_OF_BITS_IN_LONG)
       require(BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, encodedSizeInBits))
 
-      val res = readNLeastSignificantBits(encodedSizeInBits)
+      val res = readNLSBBitsMSBFirst(encodedSizeInBits)
       if encodedSizeInBits == 0 || (res & (1L << (encodedSizeInBits - 1))) == 0L then res
       else onesMSBLong(NO_OF_BITS_IN_LONG - encodedSizeInBits) | res
       /*
@@ -828,12 +1002,27 @@ case class ACN(base: Codec) {
       (cpy, l)
    }
 
+   @ghost @pure
+   def dec_Int_TwosComplement_ConstSize_8_pure(): (ACN, Long) = {
+
+      val cpy = snapshot(this)
+      val l = cpy.dec_Int_TwosComplement_ConstSize_8()
+      (cpy, l)
+   }
 
    def dec_Int_TwosComplement_ConstSize_8(): Long = {
       if(!BitStream.validate_offset_byte(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) ) then
          0L
       else
          uint2int(dec_Int_PositiveInteger_ConstSize_8(), 1)
+   }
+
+   @ghost @pure
+   def dec_Int_TwosComplement_ConstSize_big_endian_16_pure(): (ACN, Long) = {
+
+      val cpy = snapshot(this)
+      val l = cpy.dec_Int_TwosComplement_ConstSize_big_endian_16()
+      (cpy, l)
    }
 
    def dec_Int_TwosComplement_ConstSize_big_endian_16(): Long = {
@@ -843,11 +1032,27 @@ case class ACN(base: Codec) {
          uint2int(dec_Int_PositiveInteger_ConstSize_big_endian_16(), NO_OF_BYTES_IN_JVM_SHORT)
    }
 
+   @ghost @pure
+   def dec_Int_TwosComplement_ConstSize_big_endian_32_pure(): (ACN, Long) = {
+
+      val cpy = snapshot(this)
+      val l = cpy.dec_Int_TwosComplement_ConstSize_big_endian_32()
+      (cpy, l)
+   }
+
    def dec_Int_TwosComplement_ConstSize_big_endian_32(): Long = {
       if(!BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, 32)) then
          0L
       else
          uint2int(dec_Int_PositiveInteger_ConstSize_big_endian_32(), NO_OF_BYTES_IN_JVM_INT)
+   }
+
+   @ghost @pure
+   def dec_Int_TwosComplement_ConstSize_big_endian_64_pure(): (ACN, Long) = {
+
+      val cpy = snapshot(this)
+      val l = cpy.dec_Int_TwosComplement_ConstSize_big_endian_64()
+      (cpy, l)
    }
 
    def dec_Int_TwosComplement_ConstSize_big_endian_64(): Long = {
@@ -1128,6 +1333,7 @@ case class ACN(base: Codec) {
 
       var i: Int = 0 // TODO: size_t?
       while i < 100 && digitsArray100(i) != 0x0 do
+         decreases(100 - i)
          appendByte(digitsArray100(i).toRawUByte)
          i += 1
 
@@ -1153,11 +1359,11 @@ case class ACN(base: Codec) {
 
       //read null_character_size characters into the tmp buffer
       var j: Int = 0
-      (while j < null_characters_size do
+      (while (j < null_characters_size){
          decreases(null_characters_size - j)
          tmp(j) = readByte().toRaw
          j += 1
-      ).invariant(true) // TODO invariant
+      }).invariant(true) // TODO invariant
 
       var i: Long = 0
       while !arraySameElements(null_characters, tmp) do
@@ -1209,10 +1415,9 @@ case class ACN(base: Codec) {
       var pBoolValue: Boolean = true
       var i: Int = 0
 
-
-      assert(i >= 0 )
-      assert(i <= nBytesToRead )
-      assert(nBitsToRead < Int.MaxValue )
+      assert(i >= 0)
+      assert(i <= nBytesToRead)
+      assert(nBitsToRead < Int.MaxValue)
       assert(neededBytes <= patternToRead.length)
       assert(neededBytes == nBytesToRead || neededBytes == nBytesToRead + 1)
       assert(nBytesToRead <= Int.MaxValue / 8)
@@ -1250,7 +1455,7 @@ case class ACN(base: Codec) {
          nBytesToRead <= Int.MaxValue / 8 &&&
          base.bitStream.buf == oldThis.base.bitStream.buf && base.bitStream.currentByte >= 0 && base.bitStream.currentBit >= 0 &&&
          BitStream.invariant(base.bitStream) &&&
-         BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) <= BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + i * 8L &&&
+         BitStream.bitIndex(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit) == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + i * 8L &&&
          BitStream.validate_offset_bits(base.bitStream.buf.length, base.bitStream.currentByte, base.bitStream.currentBit, nBitsToRead - i * 8L)
       )
 
@@ -1261,10 +1466,10 @@ case class ACN(base: Codec) {
          assert(nBytesToRead.toLong * 8L + nRemainingBitsToRead.toLong == nBitsToRead)
          ghostExpr { check(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) <= BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBitsToRead) }
 
-      assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) <= BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBitsToRead)
+      assert(BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(oldThis.base.bitStream.buf.length, oldThis.base.bitStream.currentByte, oldThis.base.bitStream.currentBit) + nBitsToRead)
 
       pBoolValue
-   }.ensuring(_ => buf == old(this).base.bitStream.buf && BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) <= BitStream.bitIndex(old(this).base.bitStream.buf.length, old(this).base.bitStream.currentByte, old(this).base.bitStream.currentBit) + nBitsToRead)
+   }.ensuring(_ => buf == old(this).base.bitStream.buf && BitStream.bitIndex(this.base.bitStream.buf.length, this.base.bitStream.currentByte, this.base.bitStream.currentBit) == BitStream.bitIndex(old(this).base.bitStream.buf.length, old(this).base.bitStream.currentByte, old(this).base.bitStream.currentBit) + nBitsToRead)
 
    @opaque @inlineOnce
    def BitStream_DecodeTrueFalseBoolean(truePattern: Array[UByte], falsePattern: Array[UByte], nBitsToRead: Int): Option[Boolean] = {
@@ -1506,6 +1711,11 @@ case class ACN(base: Codec) {
          i += 1
    }
 
+   @extern
+   def enc_String_Ascii_Null_Terminated_multVec(max: Long, null_character: Array[Byte], null_character_size: Int, strVal: Vector[ASCIIChar]): Unit = {
+      enc_String_Ascii_Null_Terminated_mult(max, null_character, null_character_size, strVal.toScala.toArray)
+   }
+
 
    def enc_String_Ascii_External_Field_Determinant(max: Long, strVal: Array[ASCIIChar]): Unit = {
       enc_String_Ascii_private(max, strVal)
@@ -1520,6 +1730,7 @@ case class ACN(base: Codec) {
    def enc_String_CharIndex_FixSize(max: Long, allowedCharSet: Array[UByte], strVal: Array[ASCIIChar]): Unit = {
       var i: Int = 0
       while i < max do
+         decreases(max -i)
          val charIndex: Int = GetCharIndex(strVal(i), allowedCharSet)
          encodeConstrainedWholeNumber(charIndex, 0, allowedCharSet.length - 1)
          i += 1
@@ -1591,6 +1802,12 @@ case class ACN(base: Codec) {
       ()
    }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
+   @extern
+   def enc_IA5String_CharIndex_External_Field_DeterminantVec(max: Long, strVal: Vector[ASCIIChar]): Unit = {
+      require(max < Int.MaxValue && max >= 0)
+      enc_IA5String_CharIndex_External_Field_Determinant(max, strVal.toScala.toArray)
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
+
    @opaque @inlineOnce
    def enc_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long, strVal: Array[ASCIIChar]): Unit = {
       val allowedCharSet: Array[Byte] = Array(
@@ -1612,6 +1829,11 @@ case class ACN(base: Codec) {
       encodeConstrainedWholeNumber(if strLen <= max then strLen else max, min, max)
       enc_String_CharIndex_private(max, UByte.fromArrayRaws(allowedCharSet), strVal)
       ()
+   }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
+
+   @extern
+   def enc_IA5String_CharIndex_Internal_Field_DeterminantVec(max: Long, min: Long, strVal: Vector[ASCIIChar]): Unit = {
+      enc_IA5String_CharIndex_Internal_Field_Determinant(max, min, strVal.toScala.toArray)
    }.ensuring(_ => base.bitStream.buf.length == old(this).base.bitStream.buf.length)
 
 
@@ -1680,6 +1902,11 @@ case class ACN(base: Codec) {
       strVal
    }
 
+   @extern
+   def dec_String_Ascii_Null_Terminated_multVec(max: Long, null_character: Array[ASCIIChar], null_character_size: Int): Vector[ASCIIChar] = {
+      val res = dec_String_Ascii_Null_Terminated_mult(max, null_character, null_character_size)
+      Vector.fromScala(res.toVector)
+   }
 
    @opaque @inlineOnce
    def dec_String_Ascii_External_Field_Determinant(max: Long, extSizeDeterminantFld: Long): Array[ASCIIChar] = {
@@ -1707,22 +1934,33 @@ case class ACN(base: Codec) {
       assert(i < strVal.length)
 
       val nBitsPerElmt = GetBitCountUnsigned(stainless.math.wrapping(allowedCharSet.length - 1).toRawULong)
-      (while i < charactersToDecode  do
+      var flag = false
+      (while !flag && i < charactersToDecode do
          decreases(charactersToDecode - i)
          if(!BitStream.validate_offset_bits(bitStream.buf.length, bitStream.currentByte, bitStream.currentBit, nBitsPerElmt))
-            return Array.empty
-         strVal(i) = allowedCharSet(decodeConstrainedWholeNumber(0, allowedCharSet.length - 1).toInt)
-         i += 1
+            // return Array.empty
+            flag = true
+         else
+            strVal(i) = allowedCharSet(decodeConstrainedWholeNumber(0, allowedCharSet.length - 1).toInt)
+            i += 1
       ).invariant(
-         i <= charactersToDecode && i >= 0 &&
-         charactersToDecode < Int.MaxValue &&
-         i < strVal.length &&
-         max < strVal.length &&
-         base.bitStream.buf == oldThis.base.bitStream.buf
+         flag && base.bitStream.buf == oldThis.base.bitStream.buf
+         || !flag && (
+            i <= charactersToDecode && i >= 0 &&
+            charactersToDecode < Int.MaxValue &&
+            charactersToDecode <= max &&
+            charactersToDecode >= 0 &&
+            i < strVal.length &&
+            max < strVal.length &&
+            strVal.length == max.toInt + 1 &&
+            base.bitStream.buf == oldThis.base.bitStream.buf
+         )
       )
-
-      strVal
-   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
+      if flag then
+         Array.empty[ASCIIChar]
+      else
+         strVal
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && (res.length == max.toInt + 1 || res.length == 0))
 
    def dec_String_CharIndex_FixSize(max: Long, allowedCharSet: Array[ASCIIChar]): Array[ASCIIChar] = {
       dec_String_CharIndex_private(max, max, allowedCharSet)
@@ -1760,7 +1998,26 @@ case class ACN(base: Codec) {
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
       dec_String_CharIndex_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max, UByte.fromArrayRaws(allowedCharSet))
-   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && (res.length == max.toInt + 1 || res.length == 0))
+
+   @extern
+   def dec_IA5String_CharIndex_External_Field_DeterminantVec(max: Long, extSizeDeterminantFld: Long): Vector[ASCIIChar] = {
+      require(max < Int.MaxValue)
+      require(extSizeDeterminantFld >= 0)
+      require(max >= 0)
+      val arr = dec_IA5String_CharIndex_External_Field_Determinant(max, extSizeDeterminantFld)
+      Vector.fromScala(arr.toVector)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
+
+   @pure @ghost
+   def dec_IA5String_CharIndex_External_Field_DeterminantVec_pure(max: Long, extSizeDeterminantFld: Long): (ACN, Vector[ASCIIChar]) = {
+      require(max < Int.MaxValue)
+      require(extSizeDeterminantFld >= 0)
+      require(max >= 0)
+      val cpy = snapshot(this)
+      val res = cpy.dec_IA5String_CharIndex_External_Field_DeterminantVec(max, extSizeDeterminantFld)
+      (cpy, res)
+   }
 
    def dec_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long): Array[ASCIIChar] = {
       require(min <= max)
@@ -1788,7 +2045,17 @@ case class ACN(base: Codec) {
       val charToDecode = if nCount <= max then nCount else max
       assert(charToDecode >= 0 && charToDecode <= max)
       dec_String_CharIndex_private(max, charToDecode, UByte.fromArrayRaws(allowedCharSet))
-   }.ensuring(_ => base.bitStream.buf == old(this).base.bitStream.buf)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && (res.length == max.toInt + 1 || res.length == 0))
+
+   @extern
+   def dec_IA5String_CharIndex_Internal_Field_DeterminantVec(max: Long, min: Long): Vector[ASCIIChar] = {
+      require(min <= max)
+      require(max < Int.MaxValue)
+      require(max >= 0)
+      require(min >= 0) // SAM Check whether this is correct, otherwise transform it into a runtime check
+      val arr = dec_IA5String_CharIndex_Internal_Field_Determinant(max, min)
+      Vector.fromScala(arr.toVector)
+   }.ensuring(res => base.bitStream.buf == old(this).base.bitStream.buf && res.length == max.toInt + 1)
 
 
    /* Length Determinant functions*/

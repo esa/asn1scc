@@ -223,7 +223,7 @@ subtype <td.alpha> <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.a
 
 
 /***********************************       OCTET STRING    ************************************************************/
-Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize) ::= <<
+Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, arrsInvariants) ::= <<
 subtype <td.index> is Integer range 1..<nMax>;
 subtype <td.array> is <rtlModuleName()>.OctetBuffer(<td.index>);
 <if(!bFixedSize)>subtype <td.length_index> is Integer range <nMin>..<nMax>;<endif>
@@ -249,7 +249,7 @@ Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBit
 <td.typeName>_<sTargetLangBitName> : constant <rtlModuleName()>.Asn1UInt:= 16#<sHexValue>#;  --<sComment>
 >>
 
-Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits) ::= <<
+Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits, arrsInvariants) ::= <<
 <arrsNamedBits:{it|<it>}; separator="\n">
 
 subtype <td.index> is Integer range 1..<nMax>;
@@ -274,7 +274,7 @@ Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTy
 
 /***********************************       SEQUENCE OF    ************************************************************/
 
-Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition) ::= <<
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeClassDefinition, arrsSizeObjDefinition, arrsInvariants) ::= <<
 -- <td.typeName> --------------------------------------------
 
 <soChildDefinition>
@@ -307,7 +307,7 @@ Define_new_sequence_child_bit(sName) ::= "<sName>:<rtlModuleName()>.bit;"
 Define_new_sequence_child(sName, sType, bIsOptional) ::= "<sName> : <sType>;"
 Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "<sName> : <rtlModuleName()>.encoding.BitstreamPtr;"
 
-Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos) ::= <<
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos, arrsSizeDefinition, arrsInvariants) ::= <<
 -- <td.typeName> --------------------------------------------
 <arrsChildrenDefinitions; separator= "\n">
 
@@ -343,7 +343,7 @@ end record;
 <endif>
 >>
 
-Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
+Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
 <define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
 <if(arrsOptionalChildren)>
 <define_subtype(thisType=td.exist, parentType=prTd.exist, soParentTypePackage=soParentTypePackage)>
@@ -364,7 +364,7 @@ when <sPresent> =>
         <sName>: <sType>;
 >>
 
-Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions) ::= <<
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions, arrsSizeDefinition) ::= <<
 -- <td.typeName> --------------------------------------------
 <arrsChildrenDefinitions; separator= "\n">
 
@@ -393,4 +393,3 @@ Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefini
 <define_subtype(thisType=td.index_range, parentType=prTd.index_range, soParentTypePackage=soParentTypePackage)>
 <define_subtype(thisType=td.selection, parentType=prTd.selection, soParentTypePackage=soParentTypePackage)>
 >>
-

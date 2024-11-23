@@ -466,6 +466,7 @@ type OctetString = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
+    acnArgs             : RelativePath list
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
 
 }
@@ -482,6 +483,7 @@ type BitString = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
+    acnArgs             : RelativePath list
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
     namedBitList        : NamedBit1 list
 }
@@ -562,14 +564,14 @@ type AcnReferenceToIA5String = {
     modName             : StringLoc
     tasName             : StringLoc
     str                 : StringType
-    acnAlignment         : AcnAlignment option
+    acnAlignment        : AcnAlignment option
 }
 
 type AcnInteger = {
     acnProperties       : IntegerAcnProperties
     cons                : IntegerTypeConstraint list
     withcons            : IntegerTypeConstraint list
-    acnAlignment         : AcnAlignment option
+    acnAlignment        : AcnAlignment option
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : IntEncodingClass
@@ -659,7 +661,34 @@ type Asn1Type = {
     acnEncSpecAntlrSubTree      : ITree option
     unitsOfMeasure : string option
 }
+ with
+    member this.externalDependencies: RelativePath list =
+        match this.Kind with
+        | ReferenceType tp -> tp.resolvedType.externalDependencies
+        | Sequence sq ->
+            let prefixes = sq.children |> List.map (fun c ->
+                match c with
+                | Asn1Child c -> c.Name.Value
+                | AcnChild c -> c.id.lastItem
+            )
+            this.allDependencies |> List.filter (fun dep ->
+                prefixes |> List.forall (fun prefix -> not (List.isPrefixOf [prefix] dep.asStringList)))
+        | _ -> this.allDependencies
 
+    member this.allDependencies: RelativePath list =
+        match this.Kind with
+        | ReferenceType tp -> tp.resolvedType.allDependencies
+        | Sequence sq ->
+            sq.acnArgs @ (sq.children |> List.collect (fun c ->
+                match c with
+                | Asn1Child c -> c.Type.allDependencies
+                | AcnChild _ -> []
+            ))
+        | Choice ch -> ch.acnArgs
+        | SequenceOf sqf -> sqf.acnArgs
+        | OctetString os -> os.acnArgs
+        | BitString bs -> bs.acnArgs
+        | _ -> []
 
 and Asn1TypeKind =
     | Integer           of Integer
@@ -678,7 +707,6 @@ and Asn1TypeKind =
     | ObjectIdentifier  of ObjectIdentifier
     | ReferenceType     of ReferenceType
 
-
 and SequenceOf = {
     child           : Asn1Type
     acnProperties   : SizeableAcnProperties
@@ -692,6 +720,7 @@ and SequenceOf = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
+    acnArgs             : RelativePath list
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
 
 }
@@ -703,9 +732,9 @@ and Sequence = {
     withcons                : SeqConstraint list
     uperMaxSizeInBits       : BigInteger
     uperMinSizeInBits       : BigInteger
-
     acnMaxSizeInBits        : BigInteger
     acnMinSizeInBits        : BigInteger
+    acnArgs                 : RelativePath list
     typeDef                 : Map<ProgrammingLanguage, FE_SequenceTypeDefinition>
 }
 
@@ -728,6 +757,7 @@ and Asn1Child = {
     _ada_name                   : string
     Type                        : Asn1Type
     Optionality                 : Asn1Optionality option
+    // acnArgs                     : RelativePath list // TODO: RM?
     asn1Comments                : string list
     acnComments                 : string list
 }
@@ -747,6 +777,9 @@ and Choice = {
 
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
+    acnParameters       : AcnParameter list
+    // detArg              : RelativePath option
+    acnArgs             : RelativePath list
     acnLoc              : SrcLoc option
     typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
 }
@@ -791,6 +824,9 @@ and ReferenceType = {
     refCons             : AnyConstraint list
 }
 
+type Asn1AcnType =
+    | Acn of AcnInsertedType
+    | Asn1 of Asn1Type
 
 type TypeAssignment = {
     Name:StringLoc
@@ -834,7 +870,7 @@ type AstRoot = {
     Files: list<Asn1File>
     acnConstants : Map<string, BigInteger>
     args:CommandLineSettings
-    acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
+    acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with colors the initial ACN input
 }
 
 
@@ -846,14 +882,14 @@ type ReferenceToEnumerated = {
 }
 
 type AcnDependencyKind =
-    | AcnDepIA5StringSizeDeterminant  of (SIZE*SIZE*StringAcnProperties)                // The asn1Type has a size dependency in IA5String etc
-    | AcnDepSizeDeterminant     of (SIZE*SIZE*SizeableAcnProperties)               // The asn1Type has a size dependency a SEQUENCE OF, BIT STRING, OCTET STRING etc
-    | AcnDepSizeDeterminant_bit_oct_str_contain     of ReferenceType             // The asn1Type has a size dependency a BIT STRING, OCTET STRING containing another type
-    | AcnDepRefTypeArgument       of AcnParameter        // string is the param name
-    | AcnDepPresenceBool                     // points to a SEQUENCE or Choice child
-    | AcnDepPresence              of (RelativePath*Choice)
-    | AcnDepPresenceStr           of (RelativePath*Choice*StringType)
-    | AcnDepChoiceDeterminant   of (ReferenceToEnumerated*Choice*bool)           // points to Enumerated type acting as CHOICE determinant; is optional
+    | AcnDepIA5StringSizeDeterminant of SIZE * SIZE * StringAcnProperties   // The asn1Type has a size dependency in IA5String etc
+    | AcnDepSizeDeterminant of SIZE * SIZE * SizeableAcnProperties          // The asn1Type has a size dependency a SEQUENCE OF, BIT STRING, OCTET STRING etc
+    | AcnDepSizeDeterminant_bit_oct_str_contain of ReferenceType            // The asn1Type has a size dependency a BIT STRING, OCTET STRING containing another type
+    | AcnDepRefTypeArgument of AcnParameter                                 // string is the param name
+    | AcnDepPresenceBool                                                    // points to a SEQUENCE or Choice child
+    | AcnDepPresence of RelativePath * Choice
+    | AcnDepPresenceStr of RelativePath * Choice * StringType
+    | AcnDepChoiceDeterminant of ReferenceToEnumerated * Choice * bool      // points to Enumerated type acting as CHOICE determinant; is optional
     with
         member this.isString =
             match this with
@@ -877,7 +913,7 @@ type AcnDependency = {
 }
 
 type AcnInsertedFieldDependencies = {
-    acnDependencies                         : AcnDependency list
+    acnDependencies: AcnDependency list
 }
 
 

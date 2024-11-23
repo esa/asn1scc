@@ -187,9 +187,9 @@ StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
-def <sFuncName>(str0: Array[UByte]): Boolean =
+def <sFuncName>(str0: Vector[UByte]): Boolean =
 {
-    val str = str0.toArrayRaws
+    val str = str0.toVectorRaws
     var valid: Boolean = true
     var i: Int = 0
     (while (i \< str.length && (str(i) != CHAR_0000) && valid) {
