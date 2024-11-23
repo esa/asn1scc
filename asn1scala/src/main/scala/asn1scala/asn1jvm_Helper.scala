@@ -52,11 +52,20 @@ extension [T](arr: Array[T]) {
          if (i == arr.length) -1
          else if (arr(i) == elem) i
          else rec(i + 1)
-      }
+      }.ensuring(res => -1 <= res && res < arr.length)
       rec(0)
-   }
+   }.ensuring(res => -1 <= res && res < arr.length)
+
+   def indexOfOrLength(elem: T): Int = {
+      val ix = indexOf(elem)
+      if (ix == -1) arr.length else ix
+   }.ensuring(res => 0 <= res && res <= arr.length)
 
    def sameElements(other: Array[T]): Boolean = arraySameElements(arr, other)
+}
+
+extension [T](vec: Vector[T]) {
+   def sameElements(other: Vector[T]): Boolean = vecSameElements(vec, other)
 }
 
 // TODO: FIXME: To get around aliasing restriction, ideally we should do things differently
@@ -289,6 +298,12 @@ sealed trait OptionMut[@mutable A] {
 case class NoneMut[@mutable A]() extends OptionMut[A]
 case class SomeMut[@mutable A](v: A) extends OptionMut[A]
 
-sealed trait EitherMut[@mutable A, @mutable B]
+sealed trait EitherMut[@mutable A, @mutable B] {
+   def isRight: Boolean = this match {
+      case RightMut(_) => true
+      case LeftMut(_) => false
+   }
+   def isLeft: Boolean = !isRight
+}
 case class LeftMut[@mutable A, @mutable B](a: A) extends EitherMut[A, B]
 case class RightMut[@mutable A, @mutable B](b: B) extends EitherMut[A, B]

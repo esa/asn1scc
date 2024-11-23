@@ -13,9 +13,14 @@ open Asn1AcnAst
 let toByte sizeInBits =
     sizeInBits/8I + (if sizeInBits % 8I = 0I then 0I else 1I)
 
-type Asn1Type with
+type Asn1TypeKind with
+    member this.ActualType =
+        match this with
+        | ReferenceType t -> t.resolvedType.Kind.ActualType
+        | _ -> this
+
     member this.uperMinSizeInBits =
-        match this.Kind with
+        match this with
         | Integer        x -> x.uperMinSizeInBits
         | Real           x -> x.uperMinSizeInBits
         | IA5String      x -> x.uperMinSizeInBits
@@ -34,7 +39,7 @@ type Asn1Type with
 
 
     member this.uperMaxSizeInBits =
-        match this.Kind with
+        match this with
         | Integer        x -> x.uperMaxSizeInBits
         | Real           x -> x.uperMaxSizeInBits
         | IA5String      x -> x.uperMaxSizeInBits
@@ -52,7 +57,7 @@ type Asn1Type with
         | ReferenceType  x -> x.uperMaxSizeInBits
 
     member this.acnMinSizeInBits =
-        match this.Kind with
+        match this with
         | Integer        x -> x.acnMinSizeInBits
         | Real           x -> x.acnMinSizeInBits
         | IA5String      x -> x.acnMinSizeInBits
@@ -70,7 +75,7 @@ type Asn1Type with
         | ReferenceType  x -> x.acnMinSizeInBits
 
     member this.acnMaxSizeInBits =
-        match this.Kind with
+        match this with
         | Integer        x -> x.acnMaxSizeInBits
         | Real           x -> x.acnMaxSizeInBits
         | IA5String      x -> x.acnMaxSizeInBits
@@ -87,6 +92,15 @@ type Asn1Type with
         | ObjectIdentifier x -> x.acnMaxSizeInBits
         | ReferenceType  x -> x.acnMaxSizeInBits
 
+type Asn1Type with
+    member this.uperMinSizeInBits = this.Kind.uperMinSizeInBits
+
+    member this.uperMaxSizeInBits = this.Kind.uperMaxSizeInBits
+
+    member this.acnMinSizeInBits = this.Kind.acnMinSizeInBits
+
+    member this.acnMaxSizeInBits = this.Kind.acnMaxSizeInBits
+
     member this.maxSizeInBits (enc: Asn1Encoding): BigInteger =
         match enc with
         | UPER -> this.uperMaxSizeInBits
@@ -96,20 +110,7 @@ type Asn1Type with
     member this.ActualType =
         match this.Kind with
         | ReferenceType t-> t.resolvedType.ActualType
-        | Integer      _ -> this
-        | Real         _ -> this
-        | IA5String    _ -> this
-        | NumericString _ -> this
-        | OctetString  _ -> this
-        | NullType     _ -> this
-        | TimeType     _ -> this
-        | BitString    _ -> this
-        | Boolean      _ -> this
-        | Enumerated   _ -> this
-        | SequenceOf   _ -> this
-        | Sequence     _ -> this
-        | Choice       _ -> this
-        | ObjectIdentifier _ -> this
+        | _ -> this
 
 
     member this.isComplexType =
@@ -617,7 +618,3 @@ type Asn1Type with
             match tas.Type.inheritInfo with
             | None  -> Some tas.Type
             | Some _ -> tas.Type.getBaseType r
-
-
-
-

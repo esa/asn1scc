@@ -78,7 +78,12 @@ def <sFuncName>(<sVarName1>: <sTypeDefName>, <sVarName2>: <sTypeDefName>): Boole
 
 isEqual_Primitive(p1, p2) ::= "<p1> == <p2>"
 
-isEqual_String(p1, p2) ::= "<p1>.sameElements(<p2>)"
+isEqual_String(p1, p2) ::= <<
+locally {
+    val zero = <p1>.indexOfOrLength(UByte.fromRaw(0))
+    <p1>.toScala.slice(0, zero).sameElements(<p2>.toScala.slice(0, zero))
+}
+>>
 
 
 isEqual_Integer(p1, p2) /*nogen*/::= "ret = (<p1> == <p2>)"
@@ -90,7 +95,12 @@ isEqual_Boolean(p1, p2) /*nogen*/::= "ret = ( (<p1> && <p2>) || (!<p1> && !<p2>)
 
 isEqual_Real(p1, p2) ::= "Asn1Real_Equal(<p1>, <p2>)"
 
-isEqual_IA5String(p1, p2) /*nogen*/::= "ret = <p1>.sameElements(<p2>)"
+isEqual_IA5String(p1, p2) /*nogen*/::= <<
+locally {
+    val zero = <p1>.indexOfOrLength(UByte.fromRaw(0))
+    ret = <p1>.toScala.slice(0, zero).sameElements(<p2>.toScala.slice(0, zero))
+}
+>>
 
 isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)>"
 isEqual_NullType()/*nogen*/ ::= "ret = true"
@@ -98,11 +108,11 @@ isEqual_NullType()/*nogen*/ ::= "ret = true"
 isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
     (<p1>nCount == <p2>nCount) &&
-    (<p1>arr.slice(0,(<p1>nCount/8).toInt).sameElements(<p2>arr.slice(0,(<p1>nCount/8).toInt))) &&
+    (<p1>arr.toScala.slice(0,(<p1>nCount/8).toInt).sameElements(<p2>arr.toScala.slice(0,(<p1>nCount/8).toInt))) &&
     (if <p1>nCount % 8 > 0 then (<p1>arr(<p1>nCount.toInt/8).toRaw \>> (8-<p1>nCount % 8).toInt == <p2>arr(<p1>nCount.toInt/8).toRaw \>> (8-<p1>nCount % 8).toInt) else true)
 
 <else>
-    (<p1>arr.slice(0,<nFixedSize>/8).sameElements(<p2>arr.slice(0,<nFixedSize>/8))) &&
+    (<p1>arr.toScala.slice(0,<nFixedSize>/8).sameElements(<p2>arr.toScala.slice(0,<nFixedSize>/8))) &&
     (if (<nFixedSize> % 8) > 0 then (<p1>arr(<nFixedSize>/8).toRaw \>> (8-<nFixedSize> % 8).toInt == <p2>arr(<nFixedSize>/8).toRaw \>> (8-<nFixedSize> % 8).toInt) else true)
 
 <endif>
@@ -112,9 +122,9 @@ isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 
 isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
-    (<p1>nCount == <p2>nCount) && (<p1>arr.slice(0, <p1>nCount.toInt).sameElements(<p2>arr.slice(0, <p1>nCount.toInt)))
+    (<p1>nCount == <p2>nCount) && (<p1>arr.toScala.slice(0, <p1>nCount.toInt).sameElements(<p2>arr.toScala.slice(0, <p1>nCount.toInt)))
 <else>
-    <p1>arr.sameElements(<p2>arr)
+    <p1>arr.toScala.sameElements(<p2>arr.toScala)
 <endif>
 >>
 

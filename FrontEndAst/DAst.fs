@@ -63,7 +63,7 @@ type IcdRow = {
 // An Octet string may return multiple IcdRow (e.g. one for length determinant and one for the body content) and an empty list of IcdTypeAss
 // A composite type such as SEQUENCE will return multiple IcdRow one for each asn1/acn child.
 // if the child can be embedded in the parent type then the rows of the child are returned as rows of the parent type.
-// if the child cannot be embedded in the parent type then a single IcdRow is returned for this child (of type ReferenceToCompositeTypeRow) and 
+// if the child cannot be embedded in the parent type then a single IcdRow is returned for this child (of type ReferenceToCompositeTypeRow) and
 // the child IcdTypeAss is included in the list of the returned IcdTypeAss
 type IcdInnerTableFunc = string-> string -> string list -> ((IcdRow list)*(IcdTypeAss list))
 
@@ -253,6 +253,7 @@ Generates initialization statement(s) that initialize the type with the given As
 *)
 type InitFunctionResult = {
     funcBody            : string
+    resultVar           : string
     localVariables      : LocalVariable list
 }
 
@@ -381,25 +382,7 @@ type Asn1IntegerEncodingType =
     | UnconstrainedMax of bigint
     | Unconstrained
 
-type TypeEncodingKind =
-    | Asn1IntegerEncodingType of Asn1IntegerEncodingType option // None if range min = max
-    | Asn1RealEncodingType of Asn1AcnAst.RealClass
-    | AcnIntegerEncodingType of AcnIntegerEncodingType
-    | AcnRealEncodingType of AcnRealEncodingType
-    | AcnBooleanEncodingType of AcnBooleanEncoding option
-    | AcnNullEncodingType of PATTERN_PROP_VALUE option
-    | AcnStringEncodingType of Asn1AcnAst.StringAcnEncodingClass
-    | AcnOctetStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass
-    | AcnBitStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass
-    | SequenceOfEncodingType of TypeEncodingKind * Asn1AcnAst.SizeableAcnEncodingClass
-    | SequenceEncodingType of TypeEncodingKind option list
-    | ChoiceEncodingType of TypeEncodingKind option list
-    | ReferenceEncodingType of string
-    | OptionEncodingType of TypeEncodingKind
-    | Placeholder
-
 /////////////////////////////////////////////////////////////////////
-
 
 type NestingScope = {
     acnOuterMaxSize: bigint
@@ -412,10 +395,14 @@ type NestingScope = {
     uperRelativeOffset: bigint
     acnSiblingMaxSize: bigint option
     uperSiblingMaxSize: bigint option
+    // The parents are ordered in ascendant (i.e. the head is a child of the second parent etc.)
+    parents: (CallerScope * Asn1AcnAst.Asn1Type) list
 } with
-    static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint): NestingScope =
-        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I; acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None}
-
+    static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint) (parents: (CallerScope * Asn1AcnAst.Asn1Type) list): NestingScope =
+        {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I;
+        acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None;
+        parents = parents}
+    member this.isInit: bool = this.nestingLevel = 0I && this.nestingIx = 0I
 
 type UPERFuncBodyResult = {
     funcBody            : string
@@ -424,14 +411,15 @@ type UPERFuncBodyResult = {
     bValIsUnReferenced  : bool
     bBsIsUnReferenced   : bool
     resultExpr          : string option
-    typeEncodingKind    : TypeEncodingKind option
+    auxiliaries         : string list
 }
 type UPerFunction = {
     funcName            : string option               // the name of the function
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
-    funcBody            : NestingScope -> CallerScope -> (UPERFuncBodyResult option)            // returns a list of validations statements
-    funcBody_e          : ErrorCode -> NestingScope -> CallerScope -> (UPERFuncBodyResult option)
+    funcBody            : NestingScope -> CallerScope -> bool -> UPERFuncBodyResult option            // returns a list of validations statements. The bool indicates whether this was called from ACN context
+    funcBody_e          : ErrorCode -> NestingScope -> CallerScope -> bool -> UPERFuncBodyResult option // bool: whether called from ACN context
+    auxiliaries         : string list
 }
 
 type IcdArgAux = {
@@ -450,7 +438,7 @@ type AcnFuncBodyResult = {
     bValIsUnReferenced  : bool
     bBsIsUnReferenced   : bool
     resultExpr          : string option
-    typeEncodingKind    : TypeEncodingKind option
+    auxiliaries         : string list
     icdResult           : IcdArgAux option
 }
 
@@ -482,15 +470,18 @@ type XerFunction =
 
 
 
+type AcnFuncBody = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> AcnFuncBodyResult option * State
+type AcnFuncBodySeqComp = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> string -> AcnFuncBodyResult option * State
+
 type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
     func                : string option               // the body of the function
     funcDef             : string option               // function definition
-
+    auxiliaries         : string list
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
-    funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> ((AcnFuncBodyResult option)*State)
-    funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)
+    funcBody            : AcnFuncBody
+    funcBodyAsSeqComp   : AcnFuncBodySeqComp
     isTestVaseValid     : AutomaticTestCase -> bool
     icdTas              : IcdTypeAss option (* always present in Encode, always None in Decode *)
 }
@@ -804,13 +795,25 @@ and AcnChild = {
     funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
     funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement
     Comments                    : string array
+    deps                        : Asn1AcnAst.AcnInsertedFieldDependencies
     initExpression              : string
-}
+} with
+    member this.toAsn1AcnAst: Asn1AcnAst.AcnChild =
+        {
+            Name = this.Name
+            id = this.id
+            Type = this.Type
+            Comments = this.Comments
+        }
 
 and SeqChildInfo =
     | Asn1Child of Asn1Child
     | AcnChild  of AcnChild
-
+with
+    member this.toAsn1AcnAst: Asn1AcnAst.SeqChildInfo =
+        match this with
+        | Asn1Child child -> Asn1AcnAst.Asn1Child child.toAsn1AcnAst
+        | AcnChild child -> Asn1AcnAst.AcnChild child.toAsn1AcnAst
 
 and Asn1Child = {
     Name                        : StringLoc
@@ -821,7 +824,19 @@ and Asn1Child = {
     Type                        : Asn1Type
     Optionality                 : Asn1AcnAst.Asn1Optionality option
     Comments                    : string array
-}
+} with
+    member this.toAsn1AcnAst: Asn1AcnAst.Asn1Child =
+        {
+            Name = this.Name
+            _c_name = this._c_name
+            _scala_name = this._scala_name
+            _ada_name = this._ada_name
+            Type = this.Type.toAsn1AcnAst
+            Optionality = this.Optionality
+            asn1Comments = this.Comments |> Array.toList
+            acnComments = []
+        }
+
 
 
 
@@ -945,13 +960,19 @@ and DastAcnParameter = {
     loc         : SrcLoc
     id          : ReferenceToType
     typeDefinitionBodyWithinSeq : string
-}
-
+} with
+    member this.toAcnGeneric: AcnGenericTypes.AcnParameter =
+        {
+            name = this.name
+            asn1Type = this.asn1Type
+            loc = this.loc
+            id = this.id
+        }
 
 
 and Asn1Type = {
     id              : ReferenceToType
-    acnAlignment     : AcnGenericTypes.AcnAlignment option
+    acnAlignment    : AcnGenericTypes.AcnAlignment option
     acnParameters   : DastAcnParameter list
     Location        : SrcLoc //Line no, Char pos
     moduleName      : string
@@ -964,7 +985,24 @@ and Asn1Type = {
 
     Kind            : Asn1TypeKind
     unitsOfMeasure  : string option
-}
+} with
+    member this.toAsn1AcnAst: Asn1AcnAst.Asn1Type =
+        {
+            id = this.id
+            parameterizedTypeInstance = false
+            Kind = this.Kind.baseKind
+            acnAlignment = this.acnAlignment
+            acnParameters = this.acnParameters |> List.map (fun p -> p.toAcnGeneric)
+            Location = this.Location
+            moduleName = this.moduleName
+            acnLocation = None
+            inheritInfo = this.inheritInfo
+            typeAssignmentInfo = this.typeAssignmentInfo
+            acnEncSpecPosition = None
+            acnEncSpecAntlrSubTree = None
+            unitsOfMeasure = this.unitsOfMeasure
+        }
+
 
 and Asn1TypeKind =
     | Integer           of Integer
@@ -981,8 +1019,39 @@ and Asn1TypeKind =
     | Choice            of Choice
     | ReferenceType     of ReferenceType
     | TimeType          of TimeType
-
-
+with
+    member this.baseKind: Asn1AcnAst.Asn1TypeKind =
+        match this with
+        | Integer k -> Asn1AcnAst.Integer k.baseInfo
+        | Real k -> Asn1AcnAst.Real k.baseInfo
+        | IA5String k -> Asn1AcnAst.IA5String k.baseInfo
+        | OctetString k -> Asn1AcnAst.OctetString k.baseInfo
+        | NullType k -> Asn1AcnAst.NullType k.baseInfo
+        | BitString k -> Asn1AcnAst.BitString k.baseInfo
+        | Boolean k -> Asn1AcnAst.Boolean k.baseInfo
+        | Enumerated k -> Asn1AcnAst.Enumerated k.baseInfo
+        | ObjectIdentifier k -> Asn1AcnAst.ObjectIdentifier k.baseInfo
+        | SequenceOf k -> Asn1AcnAst.SequenceOf k.baseInfo
+        | Sequence k -> Asn1AcnAst.Sequence k.baseInfo
+        | Choice k -> Asn1AcnAst.Choice k.baseInfo
+        | ReferenceType k -> Asn1AcnAst.ReferenceType k.baseInfo
+        | TimeType k -> Asn1AcnAst.TimeType k.baseInfo
+    member this.isValidFunction: IsValidFunction option =
+        match this with
+        | Integer k -> k.isValidFunction
+        | Real k -> k.isValidFunction
+        | IA5String k -> k.isValidFunction
+        | OctetString k -> k.isValidFunction
+        | NullType k -> None
+        | BitString k -> k.isValidFunction
+        | Boolean k -> k.isValidFunction
+        | Enumerated k -> k.isValidFunction
+        | ObjectIdentifier k -> k.isValidFunction
+        | SequenceOf k -> k.isValidFunction
+        | Sequence k -> k.isValidFunction
+        | Choice k -> k.isValidFunction
+        | ReferenceType k -> k.isValidFunction
+        | TimeType k -> k.isValidFunction
 
 let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) =
     let rec getErrorCode (errCodeName:string) =

@@ -55,26 +55,12 @@ type UncheckedAccessKind =
     | FullAccess // unwrap all selection, including the last one
     | PartialAccess // unwrap all but the last selection
 
-type TypeInfo = {
-    uperMaxSizeBits: bigint
-    acnMaxSizeBits: bigint
-    typeKind: TypeEncodingKind option
-} with
-    member this.maxSize (enc: Asn1Encoding): bigint =
-        match enc with
-        | ACN -> this.acnMaxSizeBits
-        | UPER -> this.uperMaxSizeBits
-        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
-
 type SequenceChildProps = {
-    // TODO: String not ideal, but array selection index is string anyway...
-    sel: string option // None for presence bits
-    // TODO: What about padding?
+    info: Asn1AcnAst.SeqChildInfo
+    sel: Selection
     uperMaxOffset: bigint
     acnMaxOffset: bigint
-    typeInfo: TypeInfo
 } with
-
     member this.maxOffset (enc: Asn1Encoding): bigint =
         match enc with
         | ACN -> this.acnMaxOffset
@@ -82,6 +68,9 @@ type SequenceChildProps = {
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
 type SequenceProofGen = {
+    t: Asn1AcnAst.Asn1Type
+    sq: Asn1AcnAst.Sequence
+    sel: Selection
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
     nestingLevel: bigint
@@ -98,9 +87,6 @@ type SequenceProofGen = {
         | ACN -> this.acnSiblingMaxSize
         | UPER -> this.uperSiblingMaxSize
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
-
-    member this.maxSize (enc: Asn1Encoding): BigInteger =
-        this.children |> List.map (fun c -> c.typeInfo.maxSize enc) |> List.sum
 
     member this.outerMaxSize (enc: Asn1Encoding): bigint =
         match enc with
@@ -164,23 +150,28 @@ with
     member this.maxElemSizeInBits (enc: Asn1Encoding): bigint =
         snd (this.elemSizeInBits enc)
 
-
-
     member this.isFixedSize: bool =
         match this with
         | SqOf sqf -> sqf.isFixedSize
         | StrType st -> st.isFixedSize
 
+type Asn1TypeOrAcnRefIA5 =
+| Asn1 of Asn1AcnAst.Asn1Type
+| AcnRefIA5 of ReferenceToType * Asn1AcnAst.AcnReferenceToIA5String
 
+// TODO: rename
 type SequenceOfLikeProofGen = {
+    t: Asn1TypeOrAcnRefIA5
     acnOuterMaxSize: bigint
     uperOuterMaxSize: bigint
     nestingLevel: bigint
     nestingIx: bigint
     acnMaxOffset: bigint
     uperMaxOffset: bigint
-    typeInfo: TypeInfo
-    sel: string
+    nestingScope: NestingScope
+    cs: CallerScope
+    encDec: string option
+    elemDecodeFn: string option
     ixVariable: string
 } with
     member this.outerMaxSize (enc: Asn1Encoding): bigint =
@@ -201,6 +192,18 @@ type SequenceOfLikeProofGenResult = {
     postInc: string
     invariant: string
 }
+
+type SequenceOptionalChild = {
+    t: Asn1AcnAst.Asn1Type
+    sq: Asn1AcnAst.Sequence
+    child: Asn1Child
+    existVar: string option
+    p: CallerScope
+    nestingScope: NestingScope
+    childBody: CallerScope -> string option -> string
+}
+
+type AcnFuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> (AcnFuncBodyResult option) * State
 
 [<AbstractClass>]
 type ILangGeneric () =
@@ -321,11 +324,33 @@ type ILangGeneric () =
     abstract member getBoardNames : Targets option -> string list
     abstract member getBoardDirs : Targets option -> string list
 
-    abstract member generatePrecond: Asn1Encoding -> t: Asn1AcnAst.Asn1Type -> string list
-    abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
-    abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
-    abstract member generateSequenceOfLikeProof: Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
+    abstract member adaptAcnFuncBody: Asn1AcnAst.AstRoot -> Asn1AcnAst.AcnInsertedFieldDependencies -> AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
+    abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateBooleanAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Boolean -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateSequenceOfLikeAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> string list * string option
+    abstract member generateOptionalAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOptionalChild -> Codec -> string list * string
+    abstract member generateChoiceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateNullTypeAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.NullType -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateEnumAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> Selection -> Codec -> string list
+
+    abstract member generatePrecond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
+    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
+    abstract member generateSequenceChildProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
+    abstract member generateSequenceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> Selection -> Codec -> string list
+    abstract member generateChoiceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> Selection -> Codec -> string
+    abstract member generateSequenceOfLikeProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
     abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CallerScope -> Codec -> string option
+
+    abstract member generateOctetStringInvariants: Asn1AcnAst.Asn1Type -> Asn1AcnAst.OctetString -> string list
+    abstract member generateBitStringInvariants: Asn1AcnAst.Asn1Type -> Asn1AcnAst.BitString -> string list
+    abstract member generateSequenceInvariants: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> SeqChildInfo list -> string list
+    abstract member generateSequenceOfInvariants: Asn1AcnAst.Asn1Type -> Asn1AcnAst.SequenceOf -> DAst.Asn1TypeKind -> string list
+
+    abstract member generateSequenceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> SeqChildInfo list -> string list
+    abstract member generateChoiceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> ChChildInfo list -> string list
+    abstract member generateSequenceOfSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.SequenceOf -> DAst.Asn1Type -> string list * string list
+    abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> Asn1Child list -> string list
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
@@ -339,11 +364,35 @@ type ILangGeneric () =
     default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
         sourceCode
 
-    default this.generatePrecond _ _ = []
-    default this.generatePostcond _ _ _ _ _ = None
-    default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id
-    default this.generateSequenceOfLikeProof _ _ _ _ = None
+    default this.adaptAcnFuncBody _ _ f _ _ _ = f
+    default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateIntegerAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateBooleanAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateSequenceOfLikeAuxiliaries _ _ _ _ _ = [], None
+    default this.generateOptionalAuxiliaries _ _ soc _ =
+        // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves
+        [], soc.childBody {soc.p with arg = soc.p.arg.dropLast} soc.existVar
+    default this.generateChoiceAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateNullTypeAuxiliaries _ _ _ _ _ _ _ = []
+    default this.generateEnumAuxiliaries _ _ _ _ _ _ _ = []
+
+    default this.generatePrecond _ _ _ _ = []
+    default this.generatePostcond _ _ _ _ _ _ = None
+    default this.generateSequenceChildProof _ _ stmts _ _ = stmts |> List.choose id
+    default this.generateSequenceProof _ _ _ _ _ _ _ = []
+    default this.generateChoiceProof _ _ _ _ stmt _ _ = stmt
+    default this.generateSequenceOfLikeProof _ _ _ _ _ = None
     default this.generateIntFullyConstraintRangeAssert _ _ _ = None
+
+    default this.generateOctetStringInvariants _ _ = []
+    default this.generateBitStringInvariants _ _ = []
+    default this.generateSequenceInvariants _ _ _ = []
+    default this.generateSequenceOfInvariants _ _ _ = []
+
+    default this.generateSequenceSizeDefinitions _ _ _ = []
+    default this.generateChoiceSizeDefinitions _ _ _ = []
+    default this.generateSequenceOfSizeDefinitions _ _ _ = [], []
+    default this.generateSequenceSubtypeDefinitions _ _ _ _ = []
 
     //most programming languages are case sensitive
     default _.isCaseSensitive = true

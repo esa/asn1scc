@@ -1,6 +1,6 @@
 group scala_acn;
 
-getStringSize(p) ::= "ULong.fromRaw(<p>.indexOf(0x00.toRawUByte))"
+getStringSize(p) ::= "ULong.fromRaw(<p>.indexOfOrLength(0x00.toRawUByte))"
 
 getSizeableSize(p, sAcc, bIsUnsigned) ::= <<
 <if(bIsUnsigned)>
@@ -33,6 +33,7 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
     <soIValidFuncName>(<sVarName>) match
         case Left(l) => return Left(l)
         case Right(_) =>
+    @ghost val oldCdc = snapshot(codec)
     <sContent>
     <else>
     <sContent>
@@ -54,6 +55,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN): Ei
     <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
+    @ghost val oldCdc = snapshot(codec)
     <sContent>
 
     <if(soIValidFuncName)>
@@ -100,8 +102,7 @@ locally {
     codec.base.bitStream.alignTo<sAlignmentValue>()
     ghostExpr {
         BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
-        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
-        check(codec.base.bitStream.bitIndex \<= codec_<nLevel>_<nIx>.base.bitStream.bitIndex + <nOffset>L + 7L)
+        check(codec.base.bitStream.bitIndex \<= oldCdc.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
     }
 }
 <sMainBody>
@@ -113,8 +114,7 @@ locally {
     codec.base.bitStream.alignTo<sAlignmentValue>()
     ghostExpr {
         BitStream.validateOffsetBitsIneqLemma(unalignedCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, 7L)
-        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
-        check(codec.base.bitStream.bitIndex \<= codec_<nLevel>_<nIx>.base.bitStream.bitIndex + <nOffset>L + 7L)
+        check(codec.base.bitStream.bitIndex \<= oldCdc.base.bitStream.bitIndex + <nAbsOffset>L + 7L)
     }
 }
 <sMainBody>
@@ -450,11 +450,11 @@ val <p> = codec.dec_String_Ascii_FixSize(<nAsn1Max>)
 >>
 
 Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-codec.enc_String_Ascii_Null_Terminated_mult(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>, <p>)
+codec.enc_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>, <p>)
 >>
 
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-val <p> = codec.dec_String_Ascii_Null_Terminated_mult(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>)
+val <p> = codec.dec_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>)
 >>
 
 Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "codec.enc_String_Ascii_External_Field_Determinant(<nAsn1Max>, <p>)"
@@ -498,8 +498,8 @@ val <p> = codec.dec_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allo
 Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
 locally {
     val bix = codec.base.bitStream.bitIndex
-    codec.enc_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <p>)
-    if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L  then
+    codec.enc_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <p>)
+    if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L || codec.base.bitStream.bitIndex != bix + 7L * <p>.indexOfOrLength(UByte.fromRaw(0.toByte)) then
         return Left(461)
 }
 >>
@@ -509,8 +509,8 @@ val <p> = locally {
     val bix = codec.base.bitStream.bitIndex
     if <sExtFld>.toRaw \< 0L then
         return LeftMut(464)
-    val <p> = codec.dec_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <sExtFld>.toRaw)
-    if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L  then
+    val <p> = codec.dec_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <sExtFld>.toRaw)
+    if codec.base.bitStream.bitIndex > bix + <nAsn1Max>L * <nCharSize>L || codec.base.bitStream.bitIndex != bix + 7L * <p>.indexOfOrLength(UByte.fromRaw(0.toByte)) then
         return LeftMut(470)
     <p>
 }
@@ -518,107 +518,112 @@ val <p> = locally {
 
 
 oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
-codec.base.encodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.toInt)
+codec.base.encodeOctetString_no_length_vec(<p><sAcc>arr, <p><sAcc>nCount.toInt)
 >>
 
 oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
-        <sTypedefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, codec.base.decodeOctetString_no_length(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>))
+        <sTypedefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, codec.base.decodeOctetString_no_length_vec(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>))
     else return LeftMut(<sErrCode>)
 >>
 
 oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
-codec.base.encodeOctetString_no_length(<p><sAcc>arr, <nSizeMax>)
+codec.base.encodeOctetString_no_length_vec(<p><sAcc>arr, <nSizeMax>)
 >>
 
 oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
-        <sTypedefName>(codec.base.decodeOctetString_no_length(<nSizeMax>))
+        <sTypedefName>(codec.base.decodeOctetString_no_length_vec(<nSizeMax>))
     else return LeftMut(<sErrCode>)
 >>
 
-
-sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
-<i> = 0
-(while(<i> \< <p>.nCount.toInt) {
-    decreases(<p>.nCount.toInt - <i>)
-    <soPreSerde>
-    <sInternalItem>
-    <soPostSerde>
-    <i> += 1
-    <soPostInc>
-}).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <p>.nCount.toInt<if(soInvariant)> && <soInvariant><endif>)
+locally {
+    @ghost val oldCodec = snapshot(codec)
+    codec.base.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
+    ghostExpr {
+        @opaque @inlineOnce
+        def bitCountLemma(): Unit = ().ensuring(_ => GetBitCountUnsigned(ULong.fromRaw(<nSizeMax>) - ULong.fromRaw(<nSizeMin>)) == <nSizeInBits>)
+        bitCountLemma()
+        assert(codec.base.bitStream.bitIndex \<= oldCodec.base.bitStream.bitIndex + <nSizeInBits>L)
+        BitStream.validateOffsetBitsIneqLemma(oldCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, <nSizeInBits>L)
+        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + <nSizeInBits>L)
+    }
+}
+<soCallAux>
 >>
 
-sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+<if(bIntroSnap)>
+@ghost val codec_0_1 = snapshot(codec)
+<endif>
+
+val <p>_nCount = locally {
+    @ghost val oldCodec = snapshot(codec)
+    val <p>_nCount = codec.base.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>).toInt
+    ghostExpr {
+        @opaque @inlineOnce
+        def bitCountLemma(): Unit = ().ensuring(_ => GetBitCountUnsigned(ULong.fromRaw(<nSizeMax>) - ULong.fromRaw(<nSizeMin>)) == <nSizeInBits>)
+        bitCountLemma()
+        assert(codec.base.bitStream.bitIndex \<= oldCodec.base.bitStream.bitIndex + <nSizeInBits>L)
+        BitStream.validateOffsetBitsIneqLemma(oldCodec.base.bitStream, codec.base.bitStream, <nRemainingMinBits>, <nSizeInBits>L)
+        check(codec.base.bitStream.bitIndex \<= codec_0_1.base.bitStream.bitIndex + <nAbsOffset>L + <nSizeInBits>L)
+    }
+    <p>_nCount
+}
+<soCallAux>
+>>
+
+sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+<if(bIntroSnap)>
+@ghost val codec_0_1 = snapshot(codec)
+<endif>
+
+<soCallAux>
+>>
+
+sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
-        val <p> = <sTypeDefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, Array.fill(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>)(<sChildInitExpr>))
-        @ghost val <p>_snap = snapshot(<p>)
-        <i> = 0
-        (while(<i> \< <p>.nCount.toInt) {
-            decreases(<p>.nCount.toInt - <i>)
-            <soPreSerde>
-            <sInternalItem>
-            <soPostSerde>
-            <i> += 1
-            <soPostInc>
-        }).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <p>.nCount.toInt && <p>_snap.arr.length == <p>.arr.length<if(soInvariant)> && <soInvariant><endif>)
+        val <p>_nCount = <if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>
+        <soCallAux>
         <p>
     else return LeftMut(<sErrCode>)
 >>
 
-sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
-<i> = 0
-(while(<i> \< <nSizeMax>.toInt) {
-    decreases(<nSizeMax>.toInt - <i>)
-    <soPreSerde>
-    <sInternalItem>
-    <soPostSerde>
-    <i> += 1
-    <soPostInc>
-}).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <nSizeMax>.toInt<if(soInvariant)> && <soInvariant><endif>)
+<soCallAux>
 >>
 
-sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soPreSerde, soPostSerde, soPostInc, soInvariant) ::= <<
+sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
 
 val <p> =
     if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
-        val <p> = <sTypeDefName>(Array.fill(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>)(<sChildInitExpr>))
-        @ghost val <p>_snap = snapshot(<p>)
-        <i> = 0
-        (while(<i> \< <nSizeMax>.toInt) {
-            decreases(<nSizeMax>.toInt - <i>)
-            <soPreSerde>
-            <sInternalItem>
-            <soPostSerde>
-            <i> += 1
-            <soPostInc>
-        }).opaque.inline.noReturnInvariant(0 \<= <i> && <i> \<= <nSizeMax>.toInt && <p>_snap.arr.length == <p>.arr.length<if(soInvariant)> && <soInvariant><endif>)
+        <soCallAux>
         <p>
     else return LeftMut(<sErrCode>)
 >>
 
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
-codec.base.bitStream.appendBitsMSBFirst(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
+codec.base.bitStream.appendBitsMSBFirstVec(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
 oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
@@ -641,7 +646,7 @@ else if checkBitPatternPresentResult.get then
 >>
 
 bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
-codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <p><sAcc>nCount)
+codec.base.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <p><sAcc>nCount)
 >>
 
 bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -652,7 +657,7 @@ val <p> =
 >>
 
 bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
-codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <nSizeMax>)
+codec.base.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <nSizeMax>)
 >>
 
 bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -663,7 +668,7 @@ val <p> =
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
-codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <p><sAcc>arr.length*8) // TODO: re-introduce nCount?  -> codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <p><sAcc>nCount)
+codec.base.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <p><sAcc>arr.length*8) // TODO: re-introduce nCount?  -> codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <p><sAcc>nCount)
 codec.base.bitStream.appendBitsMSBFirst(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
@@ -758,21 +763,21 @@ sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatemen
 <sChildContent>
 >>
 
-sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /* Encode <sChName> */
 /* marked as ALWAYS PRESENT, so it must be Some */
-<p><sAcc><sChName> match
+<p> match
     case SomeMut(<sChName>) =>
         <soSaveBitStrmPosStatement>
         <soChildContent>
     case NoneMut() => return Left(628)
 >>
 
-sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /* Decode <sChName> */
 /* marked as ALWAYS PRESENT */
 <soSaveBitStrmPosStatement>
-val <p>_<sChName> =
+val <p>: OptionMut[<sChildTypedef>] =
     <soChildContent>
     SomeMut(<soChildExpr>)
 >>
@@ -786,13 +791,13 @@ sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTyped
 /* Decode <sChName> */
 /* marked as ALWAYS ABSENT, so do not decode anything */
 <soSaveBitStrmPosStatement>
-val <p>_<sChName> = NoneMut[<sChildTypedef>]()
+val <p>: OptionMut[<sChildTypedef>] = NoneMut[<sChildTypedef>]()
 >>
 
 sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /* Encode <sChName> */
 <soSaveBitStrmPosStatement>
-<p><sAcc><sChName> match
+<p> match
     case SomeMut(<sChName>) =>
         <sChildContent>
     case NoneMut() =>
@@ -801,7 +806,7 @@ sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soCh
 sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
-val <p>_<sChName>: OptionMut[<sChildTypedef>] =
+val <p>: OptionMut[<sChildTypedef>] =
     if <soExistVar> then
         <sChildContent>
         SomeMut(<soChildExpr>)
@@ -881,7 +886,7 @@ case <sChildID>(<sChildName>) =>
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> == <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
-(<sExtFld>.sameElements(Array[UByte](<arruVal:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">)))
+(<sExtFld>.sameElements(Vector.fromList(List[UByte](<arruVal:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))))
 >>
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
@@ -966,7 +971,7 @@ case _: <sChildNamePresent> =>
 
 ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
 case _: <sChildNamePresent> =>
-    Array(<arruChildRetValBytes:{b|0x<b;format="X2">.toByte}; separator=", ">)
+    Vector.fromList(List(<arruChildRetValBytes:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))
 >>
 
 ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
@@ -1047,7 +1052,7 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
 >>
 
 octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
-codec.base.encodeOctetString_no_length(arr, <sExtField>.toInt)
+codec.base.encodeOctetString_no_length_vec(arr, <sExtField>.toInt)
 >>
 
 octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
@@ -1058,7 +1063,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
     val bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
 
     if <sExtField>.toInt \<= <sReqBytesForUperEncoding> then
-        codec.base.decodeOctetString_no_length(<sExtField>.toInt) match
+        codec.base.decodeOctetString_no_length_vec(<sExtField>.toInt) match
             case NoneMut() =>
                 return LeftMut(<pErrCode>)
             case SomeMut(arr) =>
@@ -1071,7 +1076,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
-codec.base.bitStream.appendBitsMSBFirst(arr, <sExtField>.toInt)
+codec.base.bitStream.appendBitsMSBFirstVec(arr, <sExtField>.toInt)
 >>
 
 bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<

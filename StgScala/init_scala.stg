@@ -11,25 +11,25 @@ initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sC
 def <sFuncName>(): <sTypeDefName> = <sDefaultInitValue>
 >>
 
-initInteger(sVal, sValue, bIsOptional) ::= <<
+initInteger(sVal, sValue, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
-<sVal> = SomeMut(<sValue>)
+val <sResVar> = SomeMut(<sValue>)
 <else>
-<sVal> = <sValue>
+val <sResVar> = <sValue>
 <endif>
 >>
-initReal(sVal, dValue, bIsOptional) ::= <<
+initReal(sVal, dValue, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
-<sVal> = SomeMut(<dValue>)
+val <sResVar> = SomeMut(<dValue>)
 <else>
-<sVal> = <dValue>
+val <sResVar> = <dValue>
 <endif>
 >>
-initBoolean(sVal, bValue, bIsOptional) ::= <<
+initBoolean(sVal, bValue, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
-<sVal> = SomeMut(<if(bValue)>true<else>false<endif>)
+val <sResVar> = SomeMut(<if(bValue)>true<else>false<endif>)
 <else>
-<sVal> = <if(bValue)>true<else>false<endif>
+val <sResVar> = <if(bValue)>true<else>false<endif>
 <endif>
 >>
 
@@ -89,51 +89,42 @@ assignAny(p, sValue, sTypeDecl) ::= "<p> = <sValue>"
 assignString(p, sValue) ::= "<p> = <sValue>"
 
 
-initIA5String(sPtr, sValue, bIsOptional) ::= <<
+initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
-<sPtr> = SomeMut(<sValue>)
+val <sResVar> = SomeMut(<sValue>)
 <else>
-<sPtr> = <sValue>
+val <sResVar> = <sValue>
 <endif>
 >>
 
-initEnumerated(sVal, sValue, bIsOptional) ::= <<
+initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
-<sVal> = SomeMut(<sValue>)
+val <sResVar>: OptionMut[<sTypeDefName>] = SomeMut(<sValue>)
 <else>
-<sVal> = <sValue>
+val <sResVar>: <sTypeDefName> = <sValue>
 <endif>
 >>
 
-initNull(sVal, bIsOptional) ::= <<
+initNull(sVal, bIsOptional, sResVar) ::= <<
 <if(bIsOptional)>
-<sVal> = SomeMut(0)
+val <sResVar>: OptionMut[NullType] = SomeMut(0)
 <else>
-<sVal> = 0
+val <sResVar>: NullType = 0
 <endif>
 >>
 
-initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar) ::= <<
 <if(bZero)>
-<p> = Array.fill(<nMaxSizePlusOne>)(0.toRawUByte)
-
+val <sResVar> = Vector.fill(<nMaxSizePlusOne>)(UByte.fromRaw(0))
 <else>
-
-<i> = 0
-<p> = Array.fill(<nMaxSizePlusOne>)(0.toRawUByte)
-while (<i> \< <nSize>) {
-    <if(bAlpha)>
-    val allowedCharSet: Array[UByte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">.toRawUByte}; wrap, anchor, separator=",">)
-
-    <p>(<i>) = allowedCharSet(<i> % <nAlphabetLength>)
-
-    <else>
-    <p>(<i>) = (if <i> % 128 == 0 then 'A'.toByte.toRawUByte else (<i> % 128).toByte.toRawUByte) // TODO: what is done here?
-
-    <endif>
-    <i> = <i> + 1
-}
-
+<if(bAlpha)>
+val allowedCharSet: Array[UByte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">.toRawUByte}; wrap, anchor, separator=",">)
+val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => if <i> == <nMaxSizePlusOne> - 1 then UByte.fromRaw(0) else allowedCharSet(<i> % <nAlphabetLength>))
+val <sResVar> = Vector.fromScala(<sResVar>_tmp :+ UByte.fromRaw(0))
+<else>
+val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => UByte.fromRaw(if <i> == <nMaxSizePlusOne> - 1 then 0.toByte else if <i> % 128 == 0 then 'A'.toByte else (<i> % 128).toByte))
+val <sResVar> = Vector.fromScala(<sResVar>_tmp :+ UByte.fromRaw(0))
+<endif>
 <endif>
 >>
 
@@ -151,33 +142,25 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray) ::= <<
+initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray, sResVar) ::= <<
 <if(bZero)>
-<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSize>)(0.toRawUByte))
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Vector.fill(<nSize>)(0.toRawUByte))
 <else>
-<i> = 0
-(while (<i>\< <nSize>) {
-    <p>.arr(<i>) = (<i>%256).toByte.toRawUByte
-    <i> += 1
-})
+val <sResVar>_tmp = scala.collection.immutable.Vector.tabulate(<nSize>)(<i> => UByte.fromRaw((<i> % 256).toByte))
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>Vector.fromScala(<sResVar>_tmp))
 <endif>
-
-<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)><nMinSize><else><nSize><endif><endif>
 >>
 
 
-initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize, bIsOptionalField) ::= <<
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize, bIsOptionalField, sResVar) ::= <<
 <if(bZero)>
-<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSizeCeiled>/8)(0.toRawUByte)
-
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Vector.fill(<nSizeCeiled>/8)(0.toRawUByte))
 <else>
-
-<if(!bIsFixedSize)><p><sAcc>nCount = <nSize><endif>
-<i> = 0
-while (<i>\< <nSizeCeiled>/8 <if (bIsOptionalField)>&& <p><sAcc>isDefined<endif>) {
-    <p><sAcc><if (bIsOptionalField)>get<sAcc><endif>arr(<i>) = 0x55.toRawUByte /* --> 0101 0101 as in Ada*/
-    <i> = <i> + 1
-}
+<if(bIsOptionalField)>
+val <sResVar>: OptionMut[<sArrayHolderName>] = SomeMut(<sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>Vector.fill(<nSizeCeiled> / 8)(UByte.fromRaw(0x55))))
+<else>
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>Vector.fill(<nSizeCeiled> / 8)(UByte.fromRaw(0x55)))
+<endif>
 <endif>
 >>
 
@@ -200,18 +183,17 @@ initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
 >>
 
 
-initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen) ::= <<
+initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen, sResVar) ::= <<
 <if(!bLastItem)><if(bFirst)>if<else>else if<endif> (<i> % <nCaseLen> == <nCaseIdx>)  {<else>else {<endif>
     <sChildCaseInit>
+    <sResVar>
 }>>
 
-initTestCaseSizeSequenceOf(p, sAcc, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
-<i> = 0
-while (<i> \< <nSize>) {
+initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i, sResVar) ::= <<
+val <sResVar>_vec = scala.collection.immutable.Vector.tabulate(<nSize>) { <i> =>
     <arrsInnerItems; separator="\n">
-    <i> = <i> + 1
 }
-<if(!bIsFixedSize)><p><sAcc>nCount = <if(noMinSize)><noMinSize><else><nSize><endif><endif>
+val <sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif>Vector.fromScala(<sResVar>_vec))
 >>
 
 
@@ -229,15 +211,11 @@ initSequence(arrsInnerValues) ::= <<
 initSequence_emptySeq(p) ::= ""
 
 initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExpr) ::= <<
-<if(bOptional)>
-<p><sAcc><sChName> = SomeMut(<sInitExpr>)
-<endif>
-
 <sChildContent>
 >>
 
-initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
-<p><sAcc><sChName> = NoneMut()
+initTestCase_sequence_child_opt(p, sAcc, sChName, sChildTypedef, sResVar) ::= <<
+val <sResVar>: OptionMut[<sChildTypedef>] = NoneMut()
 >>
 
 initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
@@ -246,13 +224,12 @@ var <sChildTempVarName>: <sChildTypeName> = <sChildTempDefaultInit>
 <p> = <sChildID>(<sChildTempVarName>)
 >>
 
-initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional) ::= <<
-var <sChildTempVarName>: <sChildTypeName> = <sChildTempDefaultInit>
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional, sResVar) ::= <<
 <sChildContent>
 <if(bIsOptional)>
-<p> = SomeMut(<sChildID>(<sChildTempVarName>))
+val <sResVar> = SomeMut(<sChildID>(<sChildTempVarName>))
 <else>
-<p> = <sChildID>(<sChildTempVarName>)
+val <sResVar> = <sChildID>(<sChildTempVarName>)
 <endif>
 >>
 
@@ -280,14 +257,14 @@ initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
 val <sConstantName>: <sTypeDecl> = <sValue>
 >>
 
-initFixSizeOctetString(sTypeDefName, nMax, bZeroSizedArray) ::= "<sTypeDefName>(Array.fill(<nMax>)(0.toRawUByte))"
-initVarSizeOctetString(sTypeDefName, nMin, nMax) ::= "<sTypeDefName>(<nMin>, Array.fill(<nMax>)(0.toRawUByte))"
+initFixSizeOctetString(sTypeDefName, nMax, bZeroSizedArray) ::= "<sTypeDefName>(Vector.fill(<nMax>)(0.toRawUByte))"
+initVarSizeOctetString(sTypeDefName, nMin, nMax) ::= "<sTypeDefName>(<nMin>, Vector.fill(<nMax>)(0.toRawUByte))"
 
-initFixSizeBitString(sTypeDefName, nMax, nMaxOctets) ::= "<sTypeDefName>(Array.fill(<nMaxOctets>)(0.toRawUByte))"
-initVarSizeBitString(sTypeDefName, nMin, nMax, nMaxOctets) ::= "<sTypeDefName>(<nMin>, Array.fill(<nMaxOctets>)(0.toRawUByte))"
+initFixSizeBitString(sTypeDefName, nMax, nMaxOctets) ::= "<sTypeDefName>(Vector.fill(<nMaxOctets>)(0.toRawUByte))"
+initVarSizeBitString(sTypeDefName, nMin, nMax, nMaxOctets) ::= "<sTypeDefName>(<nMin>, Vector.fill(<nMaxOctets>)(0.toRawUByte))"
 
-initFixSizeSequenceOfExpr(sTypeDefName, nMax, sChildExp) ::= "<sTypeDefName>(Array.fill(<nMax>)(<sChildExp>))"
-initVarSizeSequenceOfExpr(sTypeDefName, nMin, nMax, sChildExp) ::= "<sTypeDefName>(<nMin>, Array.fill(<nMax>)(<sChildExp>))"
+initFixSizeSequenceOfExpr(sTypeDefName, nMax, sChildExp) ::= "<sTypeDefName>(Vector.fill(<nMax>)(<sChildExp>))"
+initVarSizeSequenceOfExpr(sTypeDefName, nMin, nMax, sChildExp) ::= "<sTypeDefName>(<nMin>, Vector.fill(<nMax>)(<sChildExp>))"
 
 
 initObjectIdentifierAsExpr() ::= <<
