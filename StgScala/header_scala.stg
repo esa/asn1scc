@@ -15,6 +15,9 @@ package asn1src
 import asn1scala._
 import stainless.lang._
 import stainless.annotation._
+import stainless.collection._
+import stainless.proof._
+import StaticChecks._
 
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
 
@@ -133,7 +136,7 @@ Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
-type <td.typeName> = Array[UByte]
+type <td.typeName> = Vector[UByte]
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
@@ -142,14 +145,14 @@ typedef <prTd.typeName> <td.typeName>
 
 /***********************************       OCTET STRING    ************************************************************/
 
-Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize) ::= <<
+Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, arrsInvariants) ::= <<
 <if(!bFixedSize)>
 /*nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)*/
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
+case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Vector[UByte])
 {
-    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMax><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length<endif>)
+    <arrsInvariants; separator="\n">
 }
 >>
 
@@ -163,16 +166,16 @@ Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBit
 #define <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /*<sComment>*/
 >>
 
-Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits) ::= <<
+Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits, arrsInvariants) ::= <<
 <arrsNamedBits:{it|<it>}; separator="\n">
 
 <if(!bFixedSize)>
 /*nCount equals to Number of bits in the array. Max value is : <nMax> */
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
+case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Vector[UByte])
 {
-    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMaxOctets><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length.toLong * 8L<endif>)
+    <arrsInvariants; separator="\n">
 }
 >>
 
@@ -183,13 +186,18 @@ typedef <prTd.typeName> <td.typeName>
 /***********************************       SEQUENCE OF    ************************************************************/
 
 
-Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition) ::= <<
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeClassDefinition, arrsSizeObjDefinition, arrsInvariants) ::= <<
 
 <soChildDefinition>
 
-case class <td.typeName> (<if(!bFixedSize)>var nCount: Int, <endif>arr: Array[<sChildType>])
+case class <td.typeName> (<if(!bFixedSize)>nCount: Int, <endif>arr: Vector[<sChildType>])
 {
-    require(arr.length <if(!bFixedSize)>\<=<else>==<endif> <nMax><if(!bFixedSize)> && 0 \<= nCount && nCount \<= arr.length<endif>)
+    <arrsInvariants; separator="\n">
+
+    <arrsSizeClassDefinition; separator="\n\n">
+}
+object <td.typeName> {
+    <arrsSizeObjDefinition; separator="\n\n">
 }
 >>
 
@@ -215,26 +223,38 @@ Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 
 Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "BitStream <sName>;"
 
-Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos) ::= <<
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos, arrsSizeDefinition, arrsInvariants) ::= <<
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildrenDefinitions; separator= "\n">
 <if (arrsNullFieldsSavePos)>
 case class <td.extension_function_positions> (
     <arrsNullFieldsSavePos; separator="\n">
-)
+) {
+    <arrsInvariants; separator="\n">
+
+    <arrsSizeDefinition; separator="\n\n">
+}
 
 <endif>
 
 
 case class <td.typeName> (
+    <arrsChildren:{ch|<ch>}; separator=", \n">
+) {
+    <arrsInvariants; separator="\n">
 
-    <arrsChildren:{ch| var <ch>}; separator=", \n">
-)
+    <arrsSizeDefinition; separator="\n\n">
+}
 
 >>
 
-Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
+Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
 type <td.typeName> = <prTd.typeName>
+
+object <td.typeName> {
+    <arrsExtraDefs; separator="\n">
+}
+
 <if (arrsNullFieldsSavePos)>
 type <td.extension_function_positions> = <prTd.extension_function_positions>
 <endif>
@@ -247,12 +267,14 @@ Define_new_choice_child(sName, sType, sPresent) ::=<<
 <sName>: <sType>
 >>
 
-Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions) ::= <<
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions, arrsSizeDefinition) ::= <<
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildrenDefinitions; separator= "\n">
 
 enum <td.typeName>:
     <arrsCombined:{ch|case <ch>}; separator="\n">
+
+    <arrsSizeDefinition; separator="\n\n">
 >>
 
 Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<

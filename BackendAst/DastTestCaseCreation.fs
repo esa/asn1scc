@@ -74,7 +74,7 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
         match ST.lang with
         | Scala ->
             match resolveReferenceType v.Type.Kind with
-             | Integer v -> "tc_data = " + initStatement
+             | Integer v -> "val tc_data = " + initStatement
              | Real v -> initStatement
              | IA5String v -> initStatement
              | OctetString v -> initStatement
@@ -195,7 +195,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                         let encDecTestFunc = t.Type.getEncDecTestFunc e
                         match encDecTestFunc with
                         | Some _    ->
-                            let hasEncodeFunc = e <> Asn1Encoding.ACN ||  hasAcnEncodeFunction t.Type.acnEncFunction t.Type.acnParameters
+                            let hasEncodeFunc = e <> Asn1Encoding.ACN ||  hasAcnEncodeFunction t.Type.acnEncFunction t.Type.acnParameters t.Type.id.tasInfo
                             if hasEncodeFunc   then
                                 let isTestCaseValid atc =
                                     match t.Type.acnEncFunction with
@@ -287,4 +287,3 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
 
     arrsSrcTstFiles, arrsHdrTstFiles
-

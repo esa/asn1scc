@@ -15,6 +15,24 @@ with
         match this with  RelativePath p -> p |> Seq.StrJoin "."
     member this.location =
         match this with  RelativePath p -> p |> List.map(fun z -> z.Location) |> List.head
+    member this.isPrefixOf (other: RelativePath) =
+        match this, other with
+            RelativePath this, RelativePath other ->
+                List.isPrefixOf this other
+
+    member this.isPrefixOf2 (other: string list) =
+        match this with
+            RelativePath this ->
+                List.isPrefixOf (this |> List.map (fun s -> s.Value)) other
+    member this.asStringList =
+        match this with
+        | RelativePath path -> path |> List.map (fun s -> s.Value)
+
+    member this.concat (other: RelativePath): RelativePath =
+        match this, other with
+            RelativePath this, RelativePath other ->
+                RelativePath (this @ other)
+
     override this.ToString() = this.AsString
 
 type AcnEndianness =
@@ -25,6 +43,12 @@ type AcnAlignment =
     | NextByte
     | NextWord
     | NextDWord
+with
+    member this.nbBits: bigint =
+        match this with
+        | NextByte -> 8I
+        | NextWord -> 16I
+        | NextDWord -> 32I
 
 
 
@@ -359,11 +383,11 @@ with
         | TrueFalseValueEncoding (tv,_) -> tv.Value.Length
 
 type BooleanAcnProperties = {
-    encodingPattern     : AcnBooleanEncoding    option
+    encodingPattern: AcnBooleanEncoding option
 }
 
 type ChoiceAcnProperties = {
-    enumDeterminant     : RelativePath              option
+    enumDeterminant: RelativePath option
 }
 
 type SequenceAcnProperties = {
@@ -418,12 +442,12 @@ with
     member this.c_name = ToC this.name
 
 
-type  GenericAcnPresentWhenCondition =
+type GenericAcnPresentWhenCondition =
     | GP_PresenceBool  of RelativePath
     | GP_PresenceInt   of RelativePath*IntLoc
     | GP_PresenceStr   of RelativePath*StringLoc
 
-type  GenAcnEncodingProp =
+type GenAcnEncodingProp =
     | GP_PosInt
     | GP_TwosComplement
     | GP_Ascii
@@ -431,14 +455,14 @@ type  GenAcnEncodingProp =
     | GP_IEEE754_32
     | GP_IEEE754_64
 
-type  GenSizeProperty =
+type GenSizeProperty =
     | GP_Fixed                 of IntLoc
     | GP_NullTerminated
     | GP_SizeDeterminant       of RelativePath
 
 
 
-type  GenericAcnProperty =
+type GenericAcnProperty =
     | ENCODING          of GenAcnEncodingProp
     | SIZE              of GenSizeProperty
     | ALIGNTONEXT       of AcnAlignment
@@ -460,16 +484,16 @@ type  GenericAcnProperty =
 
 
 
-type  AcnTypeEncodingSpec = {
+type AcnTypeEncodingSpec = {
     acnProperties   : GenericAcnProperty list
     children        : ChildSpec list
     loc             : SrcLoc
     comments        : string list
-    position         : SrcLoc*SrcLoc   //start pos, end pos
+    position        : SrcLoc*SrcLoc   //start pos, end pos
     antlrSubTree    :ITree option
 }
 
-and  ChildSpec = {
+and ChildSpec = {
     name            : StringLoc
     childEncodingSpec : AcnTypeEncodingSpec
     asn1Type        : AcnParamType option    // if present then it indicates an ACN inserted type
@@ -477,7 +501,7 @@ and  ChildSpec = {
     comments        : string list
 }
 
-type  AcnTypeAssignment = {
+type AcnTypeAssignment = {
     name            : StringLoc
     acnParameters   : AcnParameter list
     typeEncodingSpec: AcnTypeEncodingSpec
@@ -485,18 +509,18 @@ type  AcnTypeAssignment = {
     position        : RangeWithinFile
 }
 
-type  AcnModule = {
+type AcnModule = {
     name            : StringLoc
     typeAssignments : AcnTypeAssignment list
 }
 
 
-type  AcnFile = {
+type AcnFile = {
     antlrResult : CommonTypes.AntlrParserResult
     modules     : AcnModule list
 }
 
-type  AcnAst = {
+type AcnAst = {
     files : AcnFile list
     acnConstants : Map<string, BigInteger>
 }

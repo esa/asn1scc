@@ -922,14 +922,14 @@ type SeqChildInfo with
         | ACN -> this.acnMaxSizeInBits
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
-let hasAcnEncodeFunction (encFunc : AcnFunction option) acnParameters  =
+let hasAcnEncodeFunction (encFunc: AcnFunction option) acnParameters (tasInfo: TypeAssignmentInfo option) =
     match encFunc with
     | None  -> false
     | Some fnc ->
-        match acnParameters with
-        | [] ->
+        match acnParameters, tasInfo with
+        | [], Some _ ->
             let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
-            let ret,_ = fnc.funcBody emptyState [] (NestingScope.init 0I 0I) p
+            let ret,_ = fnc.funcBody emptyState [] (NestingScope.init 0I 0I []) p
             match ret with
             | None   -> false
             | Some _ -> true
@@ -940,7 +940,7 @@ let hasUperEncodeFunction (encFunc : UPerFunction option)  =
     | None  -> false
     | Some fnc ->
             let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
-            match fnc.funcBody (NestingScope.init 0I 0I) p with
+            match fnc.funcBody (NestingScope.init 0I 0I []) p false with
             | None   -> false
             | Some _ -> true
 

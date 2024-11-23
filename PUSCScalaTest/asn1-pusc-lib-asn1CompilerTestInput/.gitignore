@@ -1,4 +1,6 @@
+atc-*/
 out-*/
+mins/
 /.build
 /.dist
 /*.pro.user
