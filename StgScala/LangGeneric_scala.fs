@@ -7,6 +7,8 @@ open Language
 open System.IO
 open System
 open Asn1AcnAstUtilFunctions
+open ProofGen
+open ProofAst
 
 let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind =
     match t with
@@ -143,7 +145,7 @@ type LangGeneric_scala() =
         override _.doubleValueToString (v:double) =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-        override _.initializeString stringSize = sprintf "Array.fill[UByte](%d.toInt+1)(0x0.toRawUByte)" stringSize
+        override _.initializeString stringSize = sprintf "Vector.fill[UByte](%d.toInt+1)(0x0.toRawUByte)" stringSize
 
         override _.supportsInitExpressions = false
 
@@ -318,34 +320,152 @@ type LangGeneric_scala() =
 
         override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
-        // TODO: Replace with an AST when it becomes complete
-        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.base.bitStream.validate_offset_bits({t.maxSizeInBits enc})"]
+        override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateSequenceAuxiliaries r enc t sq nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
-        // TODO: Replace with an AST when it becomes complete
-        override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
-            let suffix, buf =
-                match codec with
-                | Encode -> "", "w1.base.bitStream.buf.length == w2.base.bitStream.buf.length"
-                | Decode -> "Mut", "w1.base.bitStream.buf == w2.base.bitStream.buf"
-            let res = $"""
-res match
-    case Left{suffix}(_) => true
-    case Right{suffix}(res) =>
-        val w1 = old(codec)
-        val w2 = codec
-        {buf} && w2.base.bitStream.bitIndex <= w1.base.bitStream.bitIndex + {t.maxSizeInBits enc}"""
-            Some (res.TrimStart())
+        override this.generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateIntegerAuxiliaries r enc t int nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
-        override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
-            ProofGen.generateSequenceChildProof enc stmts pg codec
+        override this.generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateBooleanAuxiliaries r enc t boolean nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
-        override this.generateSequenceOfLikeProof (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
-            ProofGen.generateSequenceOfLikeProof enc o pg codec
+        override this.generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list * string option =
+            let fds, call = generateSequenceOfLikeAuxiliaries r enc o pg codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""]), Some (show (ExprTree call))
+
+        override this.generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc: SequenceOptionalChild) (codec: Codec): string list * string =
+            let fds, call = generateOptionalAuxiliaries r enc soc codec
+            let innerFns = fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
+            innerFns, show (ExprTree call)
+
+        override this.generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateChoiceAuxiliaries r enc t ch nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
+
+        override this.generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateNullTypeAuxiliaries r enc t nt nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
+
+        override this.generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let fds = generateEnumAuxiliaries r enc t enm nestingScope sel codec
+            fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
+
+        override this.adaptAcnFuncBody (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (funcBody: AcnFuncBody) (isValidFuncName: string option) (t: Asn1AcnAst.Asn1Type) (codec: Codec): AcnFuncBody =
+            let shouldWrap  =
+                match t.Kind with
+                | Asn1AcnAst.ReferenceType rt -> rt.hasExtraConstrainsOrChildrenOrAcnArgs
+                | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.SequenceOf _ -> true
+                | _ -> false
+
+            let rec collectAllAcnChildren (tpe: Asn1AcnAst.Asn1TypeKind): Asn1AcnAst.AcnChild list =
+                match tpe.ActualType with
+                | Asn1AcnAst.Sequence sq ->
+                    sq.children |> List.collect (fun c ->
+                    match c with
+                    | Asn1AcnAst.AcnChild c -> [c]
+                    | Asn1AcnAst.Asn1Child c -> collectAllAcnChildren c.Type.Kind
+                    )
+                | _ -> []
+
+            let newFuncBody (s: State)
+                            (err: ErrorCode)
+                            (prms: (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list)
+                            (nestingScope: NestingScope)
+                            (p: CallerScope): (AcnFuncBodyResult option) * State =
+                if not nestingScope.isInit && shouldWrap then
+                    let recP = {p with arg = p.arg.asLastOrSelf}
+                    let recNS = NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits ((p, t) :: nestingScope.parents)
+                    let res, s = funcBody s err prms recNS recP
+                    match res with
+                    | Some res ->
+                        assert (not nestingScope.parents.IsEmpty)
+                        let fds, call = wrapAcnFuncBody r deps t res.funcBody codec nestingScope p recP
+                        let fdsStr = fds |> List.map (fun fd -> show (FunDefTree fd))
+                        let callStr = show (ExprTree call)
+                        // TODO: Hack to determine how to change the "result variable"
+                        let resultExpr =
+                            match res.resultExpr with
+                            | Some res when res = recP.arg.asIdentifier -> Some p.arg.asIdentifier
+                            | Some res -> Some res
+                            | None -> None
+                        Some {res with funcBody = callStr; resultExpr = resultExpr; auxiliaries = res.auxiliaries @ fdsStr}, s
+                    | None -> None, s
+                else funcBody s err prms nestingScope p
+
+            newFuncBody
+
+        override this.generatePrecond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (codec: Codec): string list =
+            let precond = generatePrecond r enc t codec
+            [show (ExprTree precond)]
+
+        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
+            match enc with
+            | ACN ->
+                let errTpe = IntegerType Int
+                let postcondExpr =
+                    match codec with
+                    | Encode ->
+                        let resPostcond = {Var.name = "res"; tpe = eitherTpe errTpe (IntegerType Int)}
+                        let decodePureId = $"{t.FT_TypeDefinition.[Scala].typeName}_ACN_Decode_pure"
+                        generateEncodePostcondExpr r t p.arg resPostcond decodePureId
+                    | Decode ->
+                        let resPostcond = {Var.name = "res"; tpe = eitherMutTpe errTpe (fromAsn1TypeKind t.Kind)}
+                        generateDecodePostcondExpr r t resPostcond
+                Some (show (ExprTree postcondExpr))
+            | _ -> Some (show (ExprTree (BoolLit true)))
+
+        override this.generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
+            generateSequenceChildProof r enc stmts pg codec
+
+        override this.generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
+            let proof = generateSequenceProof r enc t sq nestingScope sel codec
+            proof |> Option.map (fun p -> show (ExprTree p)) |> Option.toList
+
+        // override this.generateChoiceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (stmt: string) (sel: Selection) (codec: Codec): string =
+        //     let proof = generateChoiceProof enc t ch stmt sel codec
+        //     show (ExprTree proof)
+
+        override this.generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
+            generateSequenceOfLikeProof r enc o pg codec
 
         override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CallerScope) (codec: Codec): string option =
+            None
+            // TODO: Need something better than that
+            (*
             match codec with
             | Encode -> Some $"assert({topLevelTd}_IsConstraintValid(pVal).isRight)" // TODO: HACK: When for CHOICE, `p` gets reset to the choice variant name, so we hardcode "pVal" here...
             | Decode -> None
+            *)
+        override this.generateOctetStringInvariants (t: Asn1AcnAst.Asn1Type) (os: Asn1AcnAst.OctetString): string list =
+            let inv = octetStringInvariants t os This
+            [$"require({show (ExprTree inv)})"]
+
+        override this.generateBitStringInvariants (t: Asn1AcnAst.Asn1Type) (bs: Asn1AcnAst.BitString): string list =
+            let inv = bitStringInvariants t bs This
+            [$"require({show (ExprTree inv)})"]
+
+        override this.generateSequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
+            let inv = sequenceInvariants t sq (children |> List.choose (fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)) This
+            inv |> Option.map (fun inv -> $"require({show (ExprTree inv)})") |> Option.toList
+
+        override this.generateSequenceOfInvariants (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (tpe: DAst.Asn1TypeKind): string list =
+            let inv = sequenceOfInvariants sqf This
+            [$"require({show (ExprTree inv)})"]
+
+        override this.generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
+            generateSequenceSizeDefinitions t sq children
+
+        override this.generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
+            generateChoiceSizeDefinitions t choice children
+
+        override this.generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): string list * string list =
+            generateSequenceOfSizeDefinitions t sqf elemTpe
+
+        override this.generateSequenceSubtypeDefinitions (dealiased: string) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: Asn1Child list): string list =
+            generateSequenceSubtypeDefinitions dealiased t sq children
 
         override this.uper =
             {

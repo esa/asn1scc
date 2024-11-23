@@ -49,6 +49,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-es")>]   Handle_Empty_Sequences
     | [<Unique; AltCommandLine("-let")>]    Log_Execution_Time
     | [<AltCommandLine("-if")>] Include_Func of string
+    | [<Unique; AltCommandLine("-invertibility")>] StainlessInvertibility
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -81,11 +82,11 @@ with
       that has least one conflicting enumerant.
     3 all enumerants of all of an enumerated types
       are renamed.
-"""         
+"""
             | Enable_Efficient_Enumerations _ -> """Enable efficient enumerations. (Applicable only to C.)
-This mode optimizes the generated C code for ASN.1 Enumerated types with multiple enumerants (e.g., 50 or more). 
-Instead of generating switch statements, asn1scc generates sorted arrays containing the possible values. 
-Lookups (e.g., for validation or index retrieval in uPER encoding) are performed using an optimized binary search. 
+This mode optimizes the generated C code for ASN.1 Enumerated types with multiple enumerants (e.g., 50 or more).
+Instead of generating switch statements, asn1scc generates sorted arrays containing the possible values.
+Lookups (e.g., for validation or index retrieval in uPER encoding) are performed using an optimized binary search.
 This results in more efficient and less verbose code.
 The argument is the minimum number of enumerants in an enumerated type to enable this mode.
 E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumerants.
@@ -114,6 +115,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | Handle_Empty_Sequences -> "Adds a dummy integer member to empty ASN.1 SEQUENCE structures for compliant C code generation."
             | Include_Func _    -> "Include a function from the RTL. The function name is expected as argument. This argument can be repeated many times. This argument is supported only for C"
             | Log_Execution_Time           -> "Enables detailed logging of execution time."
+            | StainlessInvertibility -> "(Scala backend only) Generate invertibility conditions and lemmas"
 
 
 let printVersion () =
@@ -157,11 +159,11 @@ let checkCompositeFile comFile cmdoption extention=
 
 let c_macro =
         {
-            LanguageMacros.equal = new IEqual_c.IEqual_c() 
+            LanguageMacros.equal = new IEqual_c.IEqual_c()
             init = new Init_c.Init_c()
-            typeDef = new ITypeDefinition_c.ITypeDefinition_c() 
-            lg = new LangGeneric_c.LangGeneric_c(); 
-            isvalid= new IsValid_c.IsValid_c() 
+            typeDef = new ITypeDefinition_c.ITypeDefinition_c()
+            lg = new LangGeneric_c.LangGeneric_c();
+            isvalid= new IsValid_c.IsValid_c()
             vars = new IVariables_c.IVariables_c()
             uper = new iuper_c.iuper_c()
             acn = new IAcn_c.IAcn_c()
@@ -169,13 +171,13 @@ let c_macro =
             xer = new IXer_c.IXer_c()
             src = new ISrcBody_c.ISrcBody_c()
         }
-let scala_macro = 
+let scala_macro =
         {
-            LanguageMacros.equal = new IEqual_scala.IEqual_scala() 
+            LanguageMacros.equal = new IEqual_scala.IEqual_scala()
             init = new IInit_scala.IInit_scala()
-            typeDef = new ITypeDefinition_scala.ITypeDefinition_scala() 
-            lg = new LangGeneric_scala.LangGeneric_scala(); 
-            isvalid= new IIsValid_scala.IIsValid_scala() 
+            typeDef = new ITypeDefinition_scala.ITypeDefinition_scala()
+            lg = new LangGeneric_scala.LangGeneric_scala();
+            isvalid= new IIsValid_scala.IIsValid_scala()
             vars = new IVariables_scala.IVariables_scala()
             uper = new IUper_scala.IUper_scala()
             acn = new IAcn_scala.IAcn_scala()
@@ -183,12 +185,12 @@ let scala_macro =
             xer = new IXer_scala.IXer_scala()
             src = new ISrcBody_scala.ISrcBody_scala()
         }
-let ada_macro = 
+let ada_macro =
         {
-            LanguageMacros.equal = new IEqual_a.IEqual_a(); 
+            LanguageMacros.equal = new IEqual_a.IEqual_a();
             init = new Init_a.Init_a()
-            typeDef = new ITypeDefinition_a.ITypeDefinition_a(); 
-            lg = new LangGeneric_a.LangGeneric_a(); 
+            typeDef = new ITypeDefinition_a.ITypeDefinition_a();
+            lg = new LangGeneric_a.LangGeneric_a();
             isvalid= new IsValid_a.IsValid_a()
             vars = new IVariables_a.IVariables_a()
             uper = new iuper_a.iuper_a()
@@ -196,7 +198,7 @@ let ada_macro =
             atc = new ITestCases_a.ITestCases_a()
             xer = new IXer_a.IXer_a()
             src = new ISrcBody_a.ISrcBody_a()
-        }        
+        }
 let allMacros = [ (C, c_macro); (Scala, scala_macro); (Ada, ada_macro)]
 let getLanguageMacro (l:ProgrammingLanguage) =
     allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
@@ -271,17 +273,18 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | Mapping_Functions_Module mfm  -> ()
     | Streaming_Mode    -> ()
     | Handle_Empty_Sequences -> ()
-    | Include_Func  fnName    -> 
+    | Include_Func  fnName    ->
         //check that the target language is C
         match cliArgs |> List.exists (fun a -> a = C_lang) with
-        | true  -> 
+        | true  ->
             // check if the function exists in the RTL
             match c_macro.lg.RtlFuncNames |> List.exists (fun name -> name = fnName ) with
             | true  -> ()
-            | false -> 
+            | false ->
                 let availableFunctions = c_macro.lg.RtlFuncNames |> String.concat "\n"
                 raise (UserException (sprintf "Function '%s' does not exist in the C RTL.\nThe available functions to choose are:\n\n%s" fnName availableFunctions))
         | false -> raise (UserException ("The -if option is supported only for C."))
+    | StainlessInvertibility -> ()
 
 let createInput (fileName:string) : Input =
     {
@@ -305,7 +308,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         enum_Items_To_Enable_Efficient_Enumerations =
             match parserResults.TryGetResult <@ Enable_Efficient_Enumerations @> with
             | None -> System.UInt32.MaxValue
-            | Some n -> 
+            | Some n ->
                 match n with
                     | Some n -> n
                     | None -> 0u
@@ -360,14 +363,15 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _                 -> Some (FieldPrefixUserValue vl)
         targetLanguages =
             args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | _ -> None)
-        
+
         userRtlFunctionsToGenerate =
             args |> List.choose(fun a -> match a with Include_Func fnName -> Some fnName | _ -> None)
-    
+
         objectIdentifierMaxLength = 20I
         handleEmptySequences = parserResults.Contains <@ Handle_Empty_Sequences @>
 
         blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala()) ]
+        stainlessInvertibility = args |> List.exists (fun a -> match a with StainlessInvertibility -> true | _ -> false)
     }
 
 let main0 argv =

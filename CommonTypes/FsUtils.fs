@@ -401,6 +401,16 @@ module List =
 
     let last lst =  lst |> List.rev |> List.head
 
+    let rec isPrefixOf (lhs: 'a list) (rhs: 'a list): bool =
+        match lhs, rhs with
+        | [], _ -> true
+        | _, [] -> false
+        | l :: lhs, r :: rhs ->
+            l = r && isPrefixOf lhs rhs
+
+    let rec endsWith (xs: 'a list) (suffix: 'a list): bool =
+        isPrefixOf (List.rev suffix) (List.rev xs)
+
     let rec initial (xs: 'a list): 'a list =
         match xs with
         | [] -> failwith "init of an empty list"
@@ -412,6 +422,14 @@ module List =
         assert (xs.Length >= 2)
         let pre, rest = List.splitAt 2  xs
         List.fold (fun acc x -> acc @ [(snd (List.last acc), x)]) [(pre.[0], pre.[1])] rest
+
+    let rec tryFindMap (f: 'a -> 'b option) (xs: 'a list): 'b option =
+        match xs with
+        | [] -> None
+        | x :: xs ->
+            match f x with
+            | Some b -> Some b
+            | None -> tryFindMap f xs
 
     let foldBackWith (f: 'a -> 's -> 's) (init: 'a -> 's) (xs: 'a list): 's =
         assert (not xs.IsEmpty)
@@ -886,8 +904,6 @@ let getResourceAsByteArray0 (resourcePrefix:string) (assembly:Reflection.Assembl
         use memStrm = new MemoryStream ()
         resource.CopyTo(memStrm)
         memStrm.ToArray()
-
-
 
 
 

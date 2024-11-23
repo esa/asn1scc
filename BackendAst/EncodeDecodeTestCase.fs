@@ -153,7 +153,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let sAmberDecode = getAmberDecode t
     let sAmberIsValid = getAmberDecode t
 
-    match hasAcnEncodeFunction encFunc t.acnParameters  with
+    match hasAcnEncodeFunction encFunc t.acnParameters t.id.tasInfo with
     | false -> None, us
     | true  ->
         match funcName  with
@@ -189,7 +189,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                                                 }
                 joinItems (content.orElse "") sNestedContent
 
-            match hasAcnEncodeFunction encFunc t.acnParameters with
+            match hasAcnEncodeFunction encFunc t.acnParameters t.id.tasInfo with
             | true  ->
                 let sNestedStatements =
                     let rec printStatements statements : string option =
@@ -484,4 +484,3 @@ let BitStringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1T
                 let s2 = System.String('0', int o.maxSize.uper)
                 [s1;s2]
     | _     -> valsFromSingleValueConstraints
-
