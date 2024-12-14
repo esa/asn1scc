@@ -217,11 +217,11 @@ type LangGeneric_c() =
             (sel.appendSelection "u" Value false).appendSelection childName (if childTypeIsString then FixArray else Value) false
 
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =
-            let prefix = ToC (id.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))
+            let prefix = ToC ((id.AcnAbsPath.Tail |> Seq.StrJoin("_")).Replace("#","elem"))
             match typeIdsSet.TryFind prefix with
             | None  -> prefix + "_NONE"
             | Some a when a = 1 -> prefix + "_NONE"
-            | Some a            -> ToC (id.AcnAbsPath.StrJoin("_").Replace("#","elem")) + "_NONE"
+            | Some a            -> ToC ((id.AcnAbsPath |> Seq.StrJoin("_")).Replace("#","elem")) + "_NONE"
 
         override this.presentWhenName (defOrRef:TypeDefinitionOrReference option) (ch:ChChildInfo) : string =
             (ToC ch._present_when_name_private) + "_PRESENT"

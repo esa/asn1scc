@@ -904,7 +904,7 @@ let requiresParentheses (curr: Tree) (parent: Tree option): bool =
 
 let joined (ctx: PrintCtx) (lines: Line list) (sep: string): Line =
   if lines.IsEmpty then {lvl = ctx.lvl; txt = ""}
-  else {lvl = lines.Head.lvl; txt = lines.StrJoin sep}
+  else {lvl = lines.Head.lvl; txt = lines |> Seq.StrJoin sep}
 
 let prepend (ctx: PrintCtx) (prefix: string) (lines: Line list): Line list =
   if lines.IsEmpty then [{lvl = ctx.lvl; txt = prefix}]
@@ -944,15 +944,15 @@ let rec ppType (tpe: Type): string =
   | DoubleType -> "Double"
   | ArrayType at -> $"Array[{ppType at.tpe}]"
   | ClassType ct -> ppClassType ct
-  | TupleType tps -> "(" + ((tps |> List.map ppType).StrJoin ", ") + ")"
+  | TupleType tps -> "(" + ((tps |> List.map ppType) |> Seq.StrJoin ", ") + ")"
 
 and ppClassType (ct: ClassType): string =
   let tps =
     if ct.tps.IsEmpty then ""
-    else "[" + ((ct.tps |> List.map ppType).StrJoin ", ") + "]"
+    else "[" + ((ct.tps |> List.map ppType) |> Seq.StrJoin ", ") + "]"
   let id =
     if ct.prefix.IsEmpty then ct.id
-    else (ct.prefix.StrJoin ".") + "." + ct.id
+    else (ct.prefix |> Seq.StrJoin ".") + "." + ct.id
   id + tps
 
 let ppAnnot (annot: Annot): string =
@@ -985,7 +985,8 @@ and joinCallLike (ctx: PrintCtx) (prefix: Line list) (argss: Line list list) (pa
       )) @ (List.last argss)) |> List.map (fun l -> l.inc)
       (join ctx "(" prefix args) @ [{lvl = ctx.lvl; txt = ")"}]
     else
-      join ctx "(" prefix [{lvl = ctx.lvl; txt = ((List.concat argss) |> List.map (fun l -> l.txt)).StrJoin ", " + ")"}]
+      let txtList = (List.concat argss) |> List.map (fun l -> l.txt) |> Seq.StrJoin ", "
+      join ctx "(" prefix [{lvl = ctx.lvl; txt = txtList + ")"}]
 
 // `prefix` {
 //   stmts
@@ -998,10 +999,10 @@ and joinBraces (ctx: PrintCtx) (prefix: string) (stmts: Line list): Line list =
 and ppLetGeneric (ctx: PrintCtx) (theLet: Expr) (ltBdgs: Var list) (ltE: Expr) (ltBody: Expr) (annot: string list): Line list =
   let e2 = ppExpr (ctx.nestExpr theLet) ltE
   let body = ppExpr (ctx.nestExpr theLet) ltBody
-  let annot = if annot.IsEmpty then "" else (annot.StrJoin " ") + " "
+  let annot = if annot.IsEmpty then "" else (annot |> Seq.StrJoin " ") + " "
   let bdgs =
     if ltBdgs.Length = 1 then ltBdgs.Head.name
-    else "(" + ((ltBdgs |> List.map (fun v -> v.name)).StrJoin ", ") + ")"
+    else "(" + ((ltBdgs |> List.map (fun v -> v.name)) |> Seq.StrJoin ", ") + ")"
   let prepended = (prepend ctx $"{annot}val {bdgs} = " e2)
   prepended @ body
 and ppLet (ctx: PrintCtx) (theLet: Expr) (lt: Let) (annot: string list): Line list =
@@ -1014,11 +1015,11 @@ and ppMatchExpr (ctx: PrintCtx) (mexpr: MatchExpr): Line list =
     | Wildcard (Some var) -> var.name
     | ADTPattern pat ->
       let bdg = pat.binder |> Option.map (fun bdg -> $"${bdg.name} @ ") |> Option.defaultValue ""
-      let subpats = (pat.subPatterns |> List.map ppPattern).StrJoin ", "
+      let subpats = (pat.subPatterns |> List.map ppPattern) |> Seq.StrJoin ", "
       $"{bdg}{pat.id}({subpats})"
     | TuplePattern pat ->
       let bdg = pat.binder |> Option.map (fun bdg -> $"${bdg.name} @ ") |> Option.defaultValue ""
-      let subpats = (pat.subPatterns |> List.map ppPattern).StrJoin ", "
+      let subpats = (pat.subPatterns |> List.map ppPattern) |> Seq.StrJoin ", "
       $"{bdg}({subpats})"
 
   let ppMatchCase (ctx: PrintCtx) (cse: MatchCase): Line list =
@@ -1042,11 +1043,11 @@ and ppFunDefLike (ctx: PrintCtx) (fd: FunDefLike): Line list =
   let prms =
     if fd.prms.IsEmpty then ""
     else
-      let prms = (fd.prms |> List.map (fun v -> $"{v.name}: {ppType v.tpe}")).StrJoin ", "
+      let prms = (fd.prms |> List.map (fun v -> $"{v.name}: {ppType v.tpe}")) |> Seq.StrJoin ", "
       $"({prms})"
   let annots =
     if fd.annots.IsEmpty then []
-    else [{txt = (fd.annots |> List.map ppAnnot).StrJoin " "; lvl = ctx.lvl}]
+    else [{txt = (fd.annots |> List.map ppAnnot)|> Seq.StrJoin " "; lvl = ctx.lvl}]
   let header = annots @ [{txt = $"def {fd.id}{prms}: {ppType fd.returnTpe} = {{"; lvl = ctx.lvl}]
   let preSpecs = fd.specs |> List.collect (fun s ->
     match s with
@@ -1142,9 +1143,9 @@ and ppExprBody (ctx: PrintCtx) (e: Expr): Line list =
     joinCallLike ctx (append ctx $".{call.id}" recv) args call.parameterless
 
   | FunctionCall call ->
-    let id = if call.prefix.IsEmpty then call.id else (call.prefix.StrJoin ".") + "." + call.id
+    let id = if call.prefix.IsEmpty then call.id else (call.prefix |> Seq.StrJoin ".") + "." + call.id
     let args = call.args |> List.map (fun a -> ppExpr (ctx.nestExpr a) a)
-    let tps = if call.tps.IsEmpty then "" else "[" + (call.tps |> List.map ppType).StrJoin ", " + "]"
+    let tps = if call.tps.IsEmpty then "" else "[" + ((call.tps |> List.map ppType) |> Seq.StrJoin ", ") + "]"
     joinCallLike ctx [line (id + tps)] args call.parameterless
 
   | LetRec lr ->
@@ -1290,4 +1291,4 @@ let showLines (t: Tree): string list =
   pp {curr = t; parents = []; lvl = 0} t |> List.map (fun line -> (String.replicate line.lvl "    ") + line.txt)
 
 let show (t: Tree): string =
-  (showLines t).StrJoin "\n"
+  (showLines t)|> Seq.StrJoin "\n"
