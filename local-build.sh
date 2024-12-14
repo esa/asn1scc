@@ -16,7 +16,7 @@ dotnet build parseStg2/ || exit 1
 dotnet build "asn1scc.sln" || exit 1
 =======
 cd /workdir/ || exit
-#git config --global --add safe.directory /app || exit
+git config --global --add safe.directory /app || exit
 git -C asn1scc pull || git clone /app/ asn1scc || exit
 cd asn1scc || exit
 git checkout $1 || exit
