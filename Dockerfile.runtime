@@ -10,7 +10,7 @@ FROM  mcr.microsoft.com/dotnet/sdk:9.0 AS builder
 RUN apt update
 #RUN mkdir /usr/share/man/man1
 RUN apt install -y python3 python3-distutils \
-    make openjdk-11-jre nuget libgit2-dev libssl-dev ; apt clean
+    make openjdk-17-jre nuget libgit2-dev libssl-dev ; apt clean
 
 RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt \
     set -ex ;\
