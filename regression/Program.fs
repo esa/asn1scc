@@ -293,7 +293,7 @@ let main0 argv =
 
         let asn1sccdll =
             Path.GetFullPath(
-                parserResults.GetResult(<@Asn1scc_Location@>, defaultValue = "../asn1scc/bin/Debug/net7.0/asn1scc.dll"))
+                parserResults.GetResult(<@Asn1scc_Location@>, defaultValue = "../asn1scc/bin/Debug/net9.0/asn1scc.dll"))
 
         let word_sizes =
             match parserResults.Contains <@ Word_Size @> with
