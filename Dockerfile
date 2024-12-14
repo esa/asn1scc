@@ -39,6 +39,13 @@ RUN wget -O gnat-2021-20210519-x86_64-linux-bin https://community.download.adaco
 	&& sed -i 's/# alias l=/alias l=/' ~/.bashrc \
 	&& sed -i 's/# export LS_OPTIONS/export LS_OPTIONS/' ~/.bashrc
 
+
+# Create a non-root user
+RUN adduser --disabled-password --gecos '' --uid 1000 myuser
+
+# Switch to the non-root user
+USER myuser
+
 WORKDIR /app/
 
 ENV PATH="/opt/GNAT/gnat-x86-2021/bin:${PATH}"
