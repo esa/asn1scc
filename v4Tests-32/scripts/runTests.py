@@ -78,7 +78,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     astXml  = targetDir + os.sep + "ast.xml"
     #launcher = '' if sys.platform == 'cygwin' else 'mono '
     #path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
-    path_to_asn1scc = "../asn1scc/bin/Debug/net7.0/asn1scc"
+    path_to_asn1scc = "../asn1scc/bin/Debug/net9.0/asn1scc"
     res = mysystem(
         path_to_asn1scc +
         " -" + language + " -x ast.xml -uPER -ACN -typePrefix gmamais_ -fpWordSize 4 -wordSize 4 -t msp430 " +

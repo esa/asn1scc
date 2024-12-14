@@ -18,7 +18,7 @@ dotnet-debian.SENTINEL:
 	rm packages-microsoft-prod.deb
 	# install the sdk
 	sudo apt update
-	sudo apt install -y apt-transport-https &&  sudo apt update &&  sudo apt install -y dotnet-sdk-7.0
+	sudo apt install -y apt-transport-https &&  sudo apt update &&  sudo apt install -y dotnet-sdk-9.0
 	touch $@
 
 tests:

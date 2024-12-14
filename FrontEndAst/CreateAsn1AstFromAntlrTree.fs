@@ -31,7 +31,7 @@ let TimeClassMap  =
         ("Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=LD"  , Asn1Date_LocalTimeWithTimeZone 0  ) ] |>
     List.collect (fun (str, cl) ->
         let arr = str.Split ' '
-        let combs = combinations arr |> List.map (fun l -> l.StrJoin "") |> List.map (fun s -> (s,cl))
+        let combs = combinations arr |> List.map (fun l -> Seq.StrJoin "" l ) |> List.map (fun s -> (s,cl))
         combs) |> Map.ofList
 
 
