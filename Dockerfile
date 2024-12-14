@@ -18,13 +18,10 @@ RUN mkdir -p /workdir /app && chown -R myuser:myuser /workdir /app
 # Switch to the non-root user
 USER myuser
 
-# Install SDKMAN and configure
-RUN curl -s "https://get.sdkman.io" | bash \
-    && chmod a+x "$HOME/.sdkman/bin/sdkman-init.sh" \
-    && source "$HOME/.sdkman/bin/sdkman-init.sh" \
-    && sdk install java 17.0.9-oracle \
-    && sdk install scala 3.3.0 \
-    && sdk install sbt 1.9.0
+# Install SDKMAN
+RUN curl -s "https://get.sdkman.io" | bash && \
+    echo "source $HOME/.sdkman/bin/sdkman-init.sh" >> $HOME/.bashrc && \
+    bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && sdk install java 17.0.9-oracle && sdk install scala 3.3.0 && sdk install sbt 1.9.0"
 
 # Install GNAT and SPARK from AdaCore (still as root since no SDKMAN required here)
 USER root
