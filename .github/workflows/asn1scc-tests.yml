@@ -21,4 +21,4 @@ jobs:
       run: chmod +x ./github-build.sh
 
     - name: Run container to build and test
-      run: docker run --rm -v ${{ github.workspace }}:/app asn1scc bash -c "./github-build.sh"
+      run: docker run --rm -v ${{ github.workspace }}:/app --user 1000:1000 asn1scc bash -c "./github-build.sh"
