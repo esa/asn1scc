@@ -1638,7 +1638,7 @@ let calculateTypeIdsMap (r:Asn1Ast.AstRoot) =
     List.collect(fun f -> f.Modules) |>
     List.collect(fun m -> m.TypeAssignments) |>
     List.collect(fun ta -> mapTypeId [TA ta.Name.Value] ta.Type) |>
-    List.map(fun tid -> ToC (tid.AcnAbsPath.StrJoin("_").Replace("#","elem"))) |>
+    List.map(fun tid -> ToC ((tid.AcnAbsPath |> Seq.StrJoin("_")).Replace("#","elem"))) |>
     List.groupBy id |>
     List.map(fun (id, lst) -> (id, Seq.length lst)) |>
     Map.ofList
