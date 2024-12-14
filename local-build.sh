@@ -3,13 +3,13 @@ echo "****"
 echo $1
 echo "****"
 source "$HOME/.sdkman/bin/sdkman-init.sh"
-cd /workdir/
-git config --global --add safe.directory /app
-git -C asn1scc pull || git clone /app/ asn1scc
-cd asn1scc
-git checkout $1
-git pull
-git rev-parse --abbrev-ref HEAD
+cd /workdir/ || exit
+git config --global --add safe.directory /app || exit
+git -C asn1scc pull || git clone /app/ asn1scc || exit
+cd asn1scc || exit
+git checkout $1 || exit
+git pull || exit
+git rev-parse --abbrev-ref HEAD || exit
 dotnet build Antlr/
 dotnet build parseStg2/
 dotnet build "asn1scc.sln"
