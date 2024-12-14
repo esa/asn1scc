@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Fix ownership of /app
-chown -R myuser:myuser /app
-
-# Ensure HOME is set correctly for sdkman
-export HOME=/home/myuser
-
 # Source sdkman initialization script
 source "$HOME/.sdkman/bin/sdkman-init.sh"
 
