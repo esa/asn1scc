@@ -951,7 +951,8 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         Seq.collect(fun f -> f.Modules) |>
         Seq.collect(fun m -> m.TypeAssignments) |>
         Seq.collect(fun tas -> mapTypeId r deps tas.Type) |>
-        Seq.map(fun tid -> ToC (tid.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))) |>
+        //Seq.map(fun tid -> ToC (tid.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))) |>
+        Seq.map(fun tid -> ToC ((Seq.StrJoin "_" tid.AcnAbsPath.Tail).Replace("#","elem"))) |>
         Seq.groupBy id |>
         Seq.map(fun (id, lst) -> (id, Seq.length lst)) |>
         Map.ofSeq
