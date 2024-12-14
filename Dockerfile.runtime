@@ -5,7 +5,7 @@
 #################################################################################################
 #################################################################################################
 
-FROM  mcr.microsoft.com/dotnet/sdk:7.0 AS builder
+FROM  mcr.microsoft.com/dotnet/sdk:9.0 AS builder
 
 RUN apt update
 #RUN mkdir /usr/share/man/man1
