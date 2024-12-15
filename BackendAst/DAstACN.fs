@@ -292,12 +292,16 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let func, funcDef, auxiliaries, icdResult, ns2  =
             match funcNameAndtasInfo  with
             | None -> 
-                let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
-                let icdResult =
-                    match content with
-                    | None -> None
-                    | Some bodyResult -> bodyResult.icdResult
-                None, None, [], icdResult, ns1a
+                match ST.lang with
+                | Scala -> 
+                    None, None, [], None, ns
+                | _ ->
+                    let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
+                    let icdResult =
+                        match content with
+                        | None -> None
+                        | Some bodyResult -> bodyResult.icdResult
+                    None, None, [], icdResult, ns1a
             | Some funcName ->
                 let precondAnnots = lm.lg.generatePrecond r ACN t codec
                 let postcondAnnots = lm.lg.generatePostcond r ACN funcNameBase p t codec
