@@ -283,14 +283,19 @@ type InitProcedure0 = {
     def:string;
     body:string
 }
+type InitGlobal = {
+    globalName:string;
+    def:string;
+    body:string
+}
 
 type InitFunction = {
-    initExpression          : string               // an expression that provides the default initialization.
-    initExpressionGlobal    : string               // an expression that provides the default initialization.
+    initExpressionFnc       : unit -> string               // an expression that provides the default initialization.
+    initExpressionGlobalFnc : unit -> string               // an expression that provides the default initialization.
                                                           //It is usually present except of some rare cases such as an empty sequence (for C only) etc
     initProcedure           : InitProcedure0 option
     initFunction            : InitProcedure0 option                      // an expression that initializes the given type to a default value.
-    initGlobal              : {|globalName:string; def:string; body:string |} option                      // an expression that initializes the given type to a default value.
+    initGlobal              : InitGlobal option                      // an expression that initializes the given type to a default value.
 
     initTas                 : (CallerScope  -> InitFunctionResult)              // returns the statement(s) that defaults initialize this type (used in the init function)
     initByAsn1Value         : CallerScope  -> Asn1ValueKind -> string           // returns the statement(s) that initialize according to the asn1value
@@ -1070,6 +1075,7 @@ with
         | TimeType _ -> "TIME"
 
 let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) =
+    TL "getNextValidErrorCode" (fun () ->
     let rec getErrorCode (errCodeName:string) =
         match cur.curErrCodeNames.Contains errCodeName with
         | false -> {ErrorCode.errCodeName = errCodeName; errCodeValue = cur.currErrorCode; comment=comment}
@@ -1077,7 +1083,7 @@ let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string optio
             getErrorCode (errCodeName + "_2")
 
     let errCode = getErrorCode (errCodeName.ToUpper())
-    errCode, {cur with currErrorCode = cur.currErrorCode + 1; curErrCodeNames = cur.curErrCodeNames.Add errCode.errCodeName}
+    errCode, {cur with currErrorCode = cur.currErrorCode + 1; curErrCodeNames = cur.curErrCodeNames.Add errCode.errCodeName})
 
 type TypeAssignment = {
     Name:StringLoc

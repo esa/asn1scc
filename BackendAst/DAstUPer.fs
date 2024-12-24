@@ -756,7 +756,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 let childResultExpr =
                     TL "handleChild_11" (fun () -> 
                     match codec, lm.lg.decodingKind with
-                    | Decode, Copy -> Some child.Type.initFunction.initExpression
+                    | Decode, Copy -> Some (child.Type.initFunction.initExpressionFnc ())
                     | _ -> None)
                 {stmt=None; resultExpr=childResultExpr; props=props; auxiliaries = []}, newAcc
             | Some childContent ->
@@ -870,7 +870,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
             let isSequence = match child.chType.Kind with | Sequence _ -> true | _ -> false
             let isEnum = match child.chType.Kind with | Enumerated _ -> true | _ -> false
-            let sChildInitExpr = child.chType.initFunction.initExpression
+            let sChildInitExpr = child.chType.initFunction.initExpressionFnc()
             let sChoiceTypeName = typeDefinitionName
 
             let mk_choice_child (childContent: string): string =

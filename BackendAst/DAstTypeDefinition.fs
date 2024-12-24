@@ -542,16 +542,20 @@ let createString_u (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn
 
 
 let createEnumerated_u (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated)  (us:State) =
-    let (aaa, priv) =
-        match createEnumerated r lm t o us with
-        | Some (a, b) -> Some a, b
-        | None -> None, None
     let programUnit = ToC t.id.ModName
     let td = lm.lg.getEnumTypeDefinition   o.typeDef
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
+        let (aaa, priv) =
+            match createEnumerated r lm t o us with
+            | Some (a, b) -> Some a, b
+            | None -> None, None
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=priv; baseType=None}
     | NonPrimitiveNewSubTypeDefinition subDef     ->
+        let (aaa, priv) =
+            match createEnumerated r lm t o us with
+            | Some (a, b) -> Some a, b
+            | None -> None, None
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=priv; baseType=Some baseType}
     | NonPrimitiveReference2OtherType            ->

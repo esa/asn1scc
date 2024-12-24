@@ -317,8 +317,10 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         TypePrefix = parserResults.GetResult(<@ Type_Prefix@>, defaultValue = "")
         CheckWithOss = false
         AstXmlAbsFileName = parserResults.GetResult(<@Xml_Ast@>, defaultValue = "")
-        IcdUperHtmlFileName = ""
-        IcdAcnHtmlFileName = ""
+        //IcdUperHtmlFileName = ""
+        //IcdAcnHtmlFileName = ""
+        generateAcnIcd = 
+            parserResults.Contains <@ IcdAcn @> || parserResults.Contains <@ CustomIcdAcn @>
         generateConstInitGlobals = parserResults.Contains(<@Init_Globals@>)
         custom_Stg_Ast_Version = parserResults.GetResult(<@ Custom_Stg_Ast_Version @>, defaultValue = 1)
         icdPdus = 

@@ -183,20 +183,6 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
 let md5 = System.Security.Cryptography.MD5.Create()
 
 let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) (td:FE_TypeDefinition) (typeDefinition:TypeDefinitionOrReference) nMinBytesInACN nMaxBytesInACN hasAcnDefinition =
-    (*
-    Slow Implementation. It has been replaced by CalculateIcdHash.fs.
-    We keep it here for reference.
-    let calcIcdTypeAssHash (t1:IcdTypeAss) =
-        let calcIcdTypeAssHash_aux (t1:IcdTypeAss) =
-            let rws =
-                t1.rows |>
-                Seq.map(fun r -> sprintf "%A%A%A%A%A%A%A%A%A%A" r.idxOffset r.fieldName r.comments r.sPresent r.sType r.sConstraint r.minLengthInBits r.maxLengthInBits r.sUnits r.rowType) |>
-                Seq.StrJoin ""
-            let aa = sprintf"%A%A%A%A%A%A%A%A%A" t1.acnLink t1.asn1Link  t1.name t1.kind t1.comments t1.minLengthInBytes t1.maxLengthInBytes (rws) ("")
-            let bytes = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes aa)
-            Convert.ToHexString bytes
-        calcIcdTypeAssHash_aux t1
-    *)
     let icdRows, compositeChildren = icdAux.rowsFunc "" "" [];
     let icdTas =
         {
@@ -216,12 +202,18 @@ let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) 
                     match id.tasInfo with
                     | None -> []
                     | Some tasInfo ->
+                        (*
                         match r.Modules |> Seq.tryFind(fun m -> m.Name.Value = tasInfo.modName) with
                         | None -> []
                         | Some m ->
                             match m.TypeAssignments |> Seq.tryFind(fun ts -> ts.Name.Value = tasInfo.tasName) with
                             | None -> []
                             | Some ts -> ts.Comments |> Seq.toList
+                            *)
+                        match r.typeAssignmentsMap.TryFind (tasInfo.modName, tasInfo.tasName) with
+                        | None -> []
+                        | Some ts -> ts.Comments |> Seq.toList
+
                 asn1Comments@icdAux.commentsForTas
             rows  = icdRows
             compositeChildren = compositeChildren
@@ -296,12 +288,18 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                 | Scala -> 
                     None, None, [], None, ns
                 | _ ->
-                    let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
-                    let icdResult =
-                        match content with
-                        | None -> None
-                        | Some bodyResult -> bodyResult.icdResult
-                    None, None, [], icdResult, ns1a
+                    match r.args.generateAcnIcd with
+                    | false -> 
+                        None, None, [], None, ns
+                    | true ->
+                        //the call to funcBody is necessary to get the correct nesting scope
+                        //however, it is expensive to call so we only call it if we need to generate the ICD
+                        let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
+                        let icdResult =
+                            match content with
+                            | None -> None
+                            | Some bodyResult -> bodyResult.icdResult
+                        None, None, [], icdResult, ns1a
             | Some funcName ->
                 let precondAnnots = lm.lg.generatePrecond r ACN t codec
                 let postcondAnnots = lm.lg.generatePostcond r ACN funcNameBase p t codec
@@ -639,12 +637,12 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
 
 
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (icdStgFileName:string) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (defOrRef:TypeDefinitionOrReference) (typeDefinition:TypeDefinitionOrReference)   (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
-    let typeDefinitionName = defOrRef.longTypedefName2 lm.lg.hasModules //getTypeDefinitionName t.id.tasInfo typeDefinition
-    let funcBodyOrig = createEnumCommon r deps lm codec t.id o defOrRef typeDefinitionName icdStgFileName None t.acnMinSizeInBits t.acnMaxSizeInBits t.unitsOfMeasure
     let funcBody (errCode: ErrorCode)
                  (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)
                  (nestingScope: NestingScope)
                  (p: CallerScope) =
+        let typeDefinitionName = defOrRef.longTypedefName2 lm.lg.hasModules //getTypeDefinitionName t.id.tasInfo typeDefinition
+        let funcBodyOrig = createEnumCommon r deps lm codec t.id o defOrRef typeDefinitionName icdStgFileName None t.acnMinSizeInBits t.acnMaxSizeInBits t.unitsOfMeasure
         let res = funcBodyOrig errCode acnArgs nestingScope p
         res |> Option.map (fun res ->
             let aux = lm.lg.generateEnumAuxiliaries r ACN t o nestingScope p.arg codec
@@ -2007,7 +2005,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         // Copy-decoding expects to have a result expression (even if unused), so we pick the initExpression
                         let childResultExpr =
                             match codec, lm.lg.decodingKind with
-                            | Decode, Copy -> Some child.Type.initFunction.initExpression
+                            | Decode, Copy -> Some (child.Type.initFunction.initExpressionFnc ())
                             | _ -> None
                         match child.Optionality with
                         | Some Asn1AcnAst.AlwaysPresent     ->
@@ -2319,7 +2317,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let uperSiblingMaxSize = children |> List.map (fun c -> c.chType.uperMaxSizeInBits) |> List.max
         let handleChild (us:State) (idx:int) (child:ChChildInfo) =
             let chFunc = child.chType.getAcnFunction codec
-            let sChildInitExpr = child.chType.initFunction.initExpression
+            let sChildInitExpr = child.chType.initFunction.initExpressionFnc ()
             let childNestingScope =
                 {nestingScope with
                     nestingLevel = nestingScope.nestingLevel + 1I
@@ -2438,11 +2436,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
     createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations [] us, ec
 
+let emptyIcdFnc fieldName sPresent comments  = [],[]
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
   let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
 
-  let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
+  //let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
   let getNewSType (r:IcdRow) =
     (*
     let newType =
@@ -2455,41 +2454,40 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     r
 
   let icdFnc,extraComment, name  =
-    match o.encodingOptions with
-    | None ->
-        let name =
-          match o.hasExtraConstrainsOrChildrenOrAcnArgs with
-          | false -> None
-          | true -> Some t.id.AsString.RDD
-        match baseType.icdTas with
-        | Some baseTypeIcdTas ->
-            let icdFnc fieldName sPresent comments  =
-                let rows, comp = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
-                rows |> List.map(fun r -> getNewSType r), comp
-
-            icdFnc, baseTypeIcdTas.comments, name
+    match r.args.generateAcnIcd with
+    | true  ->
+        match o.encodingOptions with
         | None ->
-            let icdFnc fieldName sPresent comments  = [],[]
-            icdFnc, [], name
+            let name =
+              match o.hasExtraConstrainsOrChildrenOrAcnArgs with
+              | false -> None
+              | true -> Some t.id.AsString.RDD
+            match baseType.icdTas with
+            | Some baseTypeIcdTas ->
+                let icdFnc fieldName sPresent comments  =
+                    let rows, comp = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
+                    rows |> List.map(fun r -> getNewSType r), comp
 
-    | Some encOptions ->
-        let lengthDetRow =
-            match encOptions.acnEncodingClass with
-            | SZ_EC_LENGTH_EMBEDDED  nSizeInBits ->
-                let sCommentUnit = match encOptions.octOrBitStr with ContainedInOctString -> "bytes" | ContainedInBitString -> "bits"
+                icdFnc, baseTypeIcdTas.comments, name
+            | None -> emptyIcdFnc, [], name
 
-                [ {IcdRow.fieldName = "Length"; comments = [$"The number of {sCommentUnit} used in the encoding"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengthInBits = nSizeInBits ;maxLengthInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
-            | _ -> []
-        match baseType.icdTas with
-        | Some baseTypeIcdTas ->
-            let icdFnc fieldName sPresent comments  =
-                let rows0, compChildren = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
-                let rows = rows0 |> List.map getNewSType
-                lengthDetRow@rows |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)}), compChildren
-            icdFnc, ("OCTET STING CONTAINING BY"::baseTypeIcdTas.comments), Some (t.id.AsString.RDD + "_OCT_STR" )
-        | None ->
-            let icdFnc fieldName sPresent comments  = [],[]
-            icdFnc, [], None
+        | Some encOptions ->
+            let lengthDetRow =
+                match encOptions.acnEncodingClass with
+                | SZ_EC_LENGTH_EMBEDDED  nSizeInBits ->
+                    let sCommentUnit = match encOptions.octOrBitStr with ContainedInOctString -> "bytes" | ContainedInBitString -> "bits"
+
+                    [ {IcdRow.fieldName = "Length"; comments = [$"The number of {sCommentUnit} used in the encoding"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengthInBits = nSizeInBits ;maxLengthInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
+                | _ -> []
+            match baseType.icdTas with
+            | Some baseTypeIcdTas ->
+                let icdFnc fieldName sPresent comments  =
+                    let rows0, compChildren = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
+                    let rows = rows0 |> List.map getNewSType
+                    lengthDetRow@rows |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)}), compChildren
+                icdFnc, ("OCTET STING CONTAINING BY"::baseTypeIcdTas.comments), Some (t.id.AsString.RDD + "_OCT_STR" )
+            | None -> emptyIcdFnc, [], None
+    | false -> emptyIcdFnc, [], None
 
 
   let icd =
@@ -2503,6 +2501,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
       match o.hasExtraConstrainsOrChildrenOrAcnArgs with
       | true  ->
           // TODO: this is where stuff gets inlined
+          TL "ACN_REF_01" (fun () ->
           match codec with
             | Codec.Encode  -> baseType.getAcnFunction codec, us
             | Codec.Decode  ->
@@ -2516,9 +2515,10 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                             baseTypeAcnFunction.funcBody us (acnArgs@paramsArgsPairs) nestingScope p
                         Some  {baseTypeAcnFunction with funcBody = funcBody}
 
-                ret, us
+                ret, us)
       | false ->
             let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
+                TL "ACN_REF_02" (fun () ->
                 let pp, resultExpr =
                     let str = lm.lg.getParamValue t p.arg codec
                     match codec, lm.lg.decodingKind with
@@ -2527,7 +2527,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                         toc, Some toc
                     | _ -> str, None
                 let funcBodyContent = callBaseTypeFunc lm pp baseFncName codec
-                Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd}), us
+                Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd}), us)
 
 
             let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
@@ -2536,6 +2536,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
     | Some encOptions ->
         //contained type i.e. MyOct ::= OCTET STRING (CONTAINING Other-Type)
+        TL "ACN_REF_03" (fun () ->
         let loc = o.tasName.Location
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
         let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ACN_ENCODING" baseTypeDefinitionName
@@ -2548,6 +2549,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let baseTypeAcnFunction = baseType.getAcnFunction codec
 
         let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
+            TL "ACN_REF_04" (fun () ->
             let pp, resultExpr =
                 let str = lm.lg.getParamValue t p.arg codec
                 match codec, lm.lg.decodingKind with
@@ -2597,8 +2599,8 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     let fncBody = bit_string_containing_func pp baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false codec
                     fncBody, [errCode],[]
                 | SZ_EC_TerminationPattern nullVal  ,  _                    ->  raise(SemanticError (loc, "Invalid type for parameter4"))
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd})
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd}))
 
         let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
         let a,b = createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
-        Some a, b
+        Some a, b)

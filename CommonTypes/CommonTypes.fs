@@ -947,8 +947,9 @@ type CommandLineSettings = {
     TypePrefix:string
     CheckWithOss:bool
     AstXmlAbsFileName:string
-    IcdUperHtmlFileName:string
-    IcdAcnHtmlFileName:string
+    //IcdUperHtmlFileName:string
+    //IcdAcnHtmlFileName:string
+    generateAcnIcd: bool
     custom_Stg_Ast_Version : int
     icdPdus : (string list) option
     mappingFunctionsModule : string option
