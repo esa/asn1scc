@@ -853,8 +853,11 @@ type ValueAssignment = {
 type Asn1Module = {
     Name : StringLoc
     TypeAssignments : list<TypeAssignment>
+    typeAssignmentsMap : Map<string, TypeAssignment>
     ValueAssignments : list<ValueAssignment>
+    valueAssignmentsMap : Map<string, ValueAssignment>
     Imports : list<Asn1Ast.ImportedModule>
+    typeImportMap : Map<string, Asn1Ast.ImportedModule> //key is the imported type name, value is the imported module
     Exports : Asn1Ast.Exports
     Comments : string array
     position : SrcLoc*SrcLoc   //start pos, end pos
@@ -868,6 +871,8 @@ type Asn1File = {
 
 type AstRoot = {
     Files: list<Asn1File>
+    modulesMap : Map<string, Asn1Module>
+    typeAssignmentsMap : Map<string*string, TypeAssignment>
     acnConstants : Map<string, BigInteger>
     args:CommandLineSettings
     acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with colors the initial ACN input

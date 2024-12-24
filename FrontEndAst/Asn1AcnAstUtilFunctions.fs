@@ -539,10 +539,12 @@ let locateTypeByRefId (r:AstRoot) (ReferenceToType nodes) =
 type AstRoot with
     member r.Modules = r.Files |> List.collect(fun f -> f.Modules)
     member r.GetModuleByName(name:StringLoc)  =
+        TL "GetModuleByName" (fun () ->
         let (n,loc) = name.AsTupple
-        match r.Modules |> Seq.tryFind( fun m -> m.Name = name)  with
+        //match r.Modules |> Seq.tryFind( fun m -> m.Name = name)  with
+        match r.modulesMap.TryFind n with
         | Some(m) -> m
-        | None    -> raise(SemanticError(loc, sprintf "No Module Defined with name: %s" n ))
+        | None    -> raise(SemanticError(loc, sprintf "No Module Defined with name: %s" n )))
 
 type Asn1Module with
     member this.ExportedTypes =
@@ -558,33 +560,63 @@ type Asn1Module with
         | Asn1Ast.OnlySome(typesAndVars)    ->
             typesAndVars |> List.filter(fun x -> not (System.Char.IsUpper (x.Chars 0)))
 
-    member m.TryGetTypeAssignmentByName name (r:AstRoot) =
-        match m.TypeAssignments|> Seq.tryFind(fun x -> x.Name = name) with
+    member m.TryGetTypeAssignmentByName (name:StringLoc) (r:AstRoot) =
+        TL "TryGetTypeAssignmentByName" (fun () ->
+        //match m.TypeAssignments|> Seq.tryFind(fun x -> x.Name = name) with
+        match m.typeAssignmentsMap.TryFind name.Value with
         | Some t   -> Some t
         | None      ->
-            let othMods = m.Imports |> Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name))
-                                |> Seq.map(fun imp -> imp.Name) |> Seq.toList
+            (*
+            let othMods = 
+                m.Imports |> 
+                Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name)) |> 
+                Seq.map(fun imp -> imp.Name) |> Seq.toList
             match othMods with
             | firstMod::_   ->
-                match r.Modules |> Seq.tryFind( fun m -> m.Name = firstMod)  with
+                //match r.Modules |> Seq.tryFind( fun m -> m.Name = firstMod)  with
+                match r.modulesMap.TryFind firstMod.Value with
                 | Some(m) -> m.TryGetTypeAssignmentByName name r
                 | None    -> None
-            | []            -> None
+            | []            -> None)
+            *)
+            match m.typeImportMap.TryFind name.Value with
+            | Some firstMod ->
+                match r.modulesMap.TryFind firstMod.Name.Value with
+                | Some(m) -> m.TryGetTypeAssignmentByName name r
+                | None    -> None
+            | None -> None)
 
-    member m.GetTypeAssignmentByName name (r:AstRoot) =
-        match m.TypeAssignments|> Seq.tryFind(fun x -> x.Name = name) with
+
+    member m.GetTypeAssignmentByName (name:StringLoc) (r:AstRoot) =
+        TL "GetTypeAssignmentByName" (fun () ->
+        //match m.TypeAssignments|> Seq.tryFind(fun x -> x.Name = name) with
+        match m.typeAssignmentsMap.TryFind name.Value with
         | Some(t)   -> t
         | None      ->
+            (*
             let othMods = m.Imports |> Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name))
                                 |> Seq.map(fun imp -> imp.Name) |> Seq.toList
             match othMods with
             | firstMod::tail   -> r.GetModuleByName(firstMod).GetTypeAssignmentByName name r
             | []               ->
                 let (n,loc) = name.AsTupple
-                raise(SemanticError(loc, sprintf "No Type Assignment with name: %s is defined in Module %s" n m.Name.Value))
+                raise(SemanticError(loc, sprintf "No Type Assignment with name: %s is defined in Module %s" n m.Name.Value)))
+                *)
+            match m.typeImportMap.TryFind name.Value with
+            | Some firstMod ->
+                match r.modulesMap.TryFind firstMod.Name.Value with
+                | Some(m) -> m.GetTypeAssignmentByName name r
+                | None    -> let (n,loc) = name.AsTupple
+                             raise(SemanticError(loc, sprintf "No Type Assignment with name: %s is defined in Module %s" n m.Name.Value))
+            | None -> 
+                let (n,loc) = name.AsTupple
+                raise(SemanticError(loc, sprintf "No Type Assignment with name: %s is defined in Module %s" n m.Name.Value)))
+    
     member m.GetValueAsigByName(name:StringLoc) (r:AstRoot) =
+        TL "GetValueAsigByName" (fun () ->
         let (n,loc) = name.AsTupple
-        let value = m.ValueAssignments |> Seq.tryFind(fun x -> x.Name = name)
+        //let value = m.ValueAssignments |> Seq.tryFind(fun x -> x.Name = name)
+        let value = m.valueAssignmentsMap.TryFind n
         match value with
         | Some(v)       -> v
         | None          ->
@@ -593,20 +625,22 @@ type Asn1Module with
                           |> Seq.map(fun imp -> imp.Name) |> Seq.toList
             match othMods with
             | firstMod::tail   -> r.GetModuleByName(firstMod).GetValueAsigByName name r
-            | []               -> raise (SemanticError(loc, sprintf "No value assignment with name '%s' exists" n))
+            | []               -> raise (SemanticError(loc, sprintf "No value assignment with name '%s' exists" n)))
 
 let rec GetActualType (t:Asn1Type) (r:AstRoot) =
+    TL "GetActualType" (fun () ->
     match t.Kind with
     | ReferenceType ref ->
         let newmod = r.GetModuleByName(ref.modName)
         let tas = newmod.GetTypeAssignmentByName ref.tasName r
         GetActualType tas.Type r
-    | _                         -> t
+    | _                         -> t)
 
 let GetActualTypeByName (r:AstRoot) modName tasName  =
+    TL "GetActualTypeByName" (fun () ->
     let mdl = r.GetModuleByName(modName)
     let tas = mdl.GetTypeAssignmentByName tasName r
-    GetActualType tas.Type r
+    GetActualType tas.Type r)
 
 type Asn1Type with
     member this.getBaseType  (r:AstRoot) =

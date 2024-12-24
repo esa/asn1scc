@@ -602,6 +602,9 @@ let foldMap (func: 'a -> 'b -> 'c * 'a) (state: 'a) (lst: 'b list) : 'c list * '
             loop (procItem::acc) func newState tail
     loop [] func state lst
 
+//it seems that List.mapFold is not as fast as the recursive version above
+//let foldMap = List.mapFold
+
 type FE_TypeDefinitionKindInternal =
     | FEI_NewTypeDefinition                       //type
     | FEI_NewSubTypeDefinition of ReferenceToType    //subtype
