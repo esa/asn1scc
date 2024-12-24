@@ -1052,6 +1052,22 @@ with
         | Choice k -> k.isValidFunction
         | ReferenceType k -> k.isValidFunction
         | TimeType k -> k.isValidFunction
+    member this.BaseAsn1Type =
+        match this with
+        | Integer _ -> "INTEGER"
+        | Real _ -> "REAL"
+        | IA5String _ -> "IA5String"
+        | OctetString _ -> "OCTET STRING"
+        | NullType _ -> "NULL"
+        | BitString _ -> "BIT STRING"
+        | Boolean _ -> "BOOLEAN"
+        | Enumerated _ -> "ENUMERATED"
+        | ObjectIdentifier _ -> "OBJECT IDENTIFIER"
+        | SequenceOf _ -> "SEQUENCE OF"
+        | Sequence _ -> "SEQUENCE"
+        | Choice _ -> "CHOICE"
+        | ReferenceType _ -> "REFERENCE"
+        | TimeType _ -> "TIME"
 
 let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) =
     let rec getErrorCode (errCodeName:string) =

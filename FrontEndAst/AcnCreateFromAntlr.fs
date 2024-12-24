@@ -1553,11 +1553,22 @@ let private mergeModule (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Modul
     let acnModule = acn.files |> Seq.collect(fun f -> f.modules)  |> Seq.tryFind (fun x -> x.name = m.Name)
     let newTases, us1 = m.TypeAssignments |> foldMap (fun st tas -> mergeTAS asn1 acn m acnModule tas st) us
     let newVaes, us2 = m.ValueAssignments |> foldMap (fun st vas -> mergeValueAssignment asn1 acn m acnModule vas st) us1
+    let typeAssignmentsMap = newTases |> Seq.map(fun tas -> (tas.Name.Value), tas) |> Map.ofSeq
+    let valueAssignmentsMap = newVaes |> Seq.map(fun vas -> (vas.Name.Value), vas) |> Map.ofSeq
+    let typeImportMap = 
+        seq {
+            for imp in m.Imports do
+                for typeName in imp.Types do
+                    yield typeName.Value, imp
+        } |> Map.ofSeq
     let newModule =
         {
             Asn1Module.Name = m.Name
             TypeAssignments = newTases
             ValueAssignments = newVaes
+            typeAssignmentsMap = typeAssignmentsMap
+            valueAssignmentsMap = valueAssignmentsMap
+            typeImportMap = typeImportMap
             Imports  =  m.Imports
             Exports = m.Exports
             Comments = m.Comments
@@ -1601,4 +1612,12 @@ let mergeAsn1WithAcnAst (asn1: Asn1Ast.AstRoot) (acn: AcnGenericTypes.AcnAst, ac
             ) initialState |> snd
     //let acn = CreateAcnAst acnParseResults
     let files, finalState = asn1.Files |> foldMap (fun st f -> mergeFile asn1 acn f st) state
-    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults}, acn
+    let modulesMap = files |> Seq.collect(fun f -> f.Modules) |> Seq.map(fun m -> m.Name.Value, m) |> Map.ofSeq
+    let typeAssignmentsMap =  
+        seq {
+            for f in files do
+                for m in f.Modules do
+                    for tas in m.TypeAssignments do
+                        yield (m.Name.Value, tas.Name.Value), tas
+        } |> Map.ofSeq
+    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; modulesMap = modulesMap; typeAssignmentsMap = typeAssignmentsMap}, acn
