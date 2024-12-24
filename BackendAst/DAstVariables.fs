@@ -115,7 +115,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
             | SequenceOf so ->
                 let td =  lm.lg.getSizeableTypeDefinition so.baseInfo.typeDef
                 let childVals = v |> List.map (fun chv -> printValue r lm curProgramUnitName so.childType (Some gv) chv.kind)
-                let sDefValue = so.childType.initFunction.initExpression
+                let sDefValue = so.childType.initFunction.initExpressionFnc ()
                 lm.vars.PrintSequenceOfValue td (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) (BigInteger v.Length) childVals sDefValue
             | _         -> raise(BugErrorException "unexpected type")
         | SeqValue          v ->
@@ -148,8 +148,8 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                                     | Some v    ->
                                         let chV = (mapValue v).kind
                                         Some (printValue r lm curProgramUnitName x.Type None chV)
-                                    | None      -> if lm.lg.supportsInitExpressions then (Some x.Type.initFunction.initExpression) else None
-                                | _             -> if lm.lg.supportsInitExpressions then (Some x.Type.initFunction.initExpression) else None
+                                    | None      -> if lm.lg.supportsInitExpressions then (Some (x.Type.initFunction.initExpressionFnc ())) else None
+                                | _             -> if lm.lg.supportsInitExpressions then (Some (x.Type.initFunction.initExpressionFnc ())) else None
                             match chV with
                             | None -> None
                             | Some chV -> Some (lm.vars.PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) chV ))
@@ -301,7 +301,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         match gv with
         | SeqOfValue chVals    ->
             let childVals = chVals |> List.map (fun chv -> childType.printValue curProgramUnitName (Some gv) chv.kind)
-            let sDefValue =  childType.initFunction.initExpression
+            let sDefValue =  childType.initFunction.initExpressionFnc ()
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
             PrintSequenceOfValue td (o.minSize.uper = o.maxSize.uper) (BigInteger chVals.Length) childVals sDefValue
 
@@ -347,8 +347,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                                     | Some zz    ->
                                         let v = (mapValue zz).kind
                                         Some(x.Type.printValue curProgramUnitName (Some gv) v)
-                                    | None      -> match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpression)
-                                | _             -> match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpression)
+                                    | None      -> match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
+                                | _             -> match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
                             match childValue with
                             | None  -> None
                             | Some childValue -> Some (PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) childValue) )
