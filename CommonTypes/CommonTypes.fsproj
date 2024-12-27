@@ -6,6 +6,12 @@
     <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <!--
+    <DefineConstants>$(DefineConstants);LOG_TIMING</DefineConstants>
+    -->
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="FsUtils.fs" />
     <Compile Include="RemoveUnusedRtlFunction.fs" />

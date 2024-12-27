@@ -240,15 +240,16 @@ let createEnumerated (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.A
     let define_subType_enumerated    = lm.typeDef.Define_subType_enumerated
     let define_new_enumerated_private = lm.typeDef.Define_new_enumerated_private
     let define_subType_enumerated_private = lm.typeDef.Define_subType_enumerated_private
-    let orderedItems = o.items |> List.sortBy(fun i -> i.definitionValue)
-    let arrsEnumNames = orderedItems |> List.map( fun i -> lm.lg.getNamedItemBackendName None i)
-    let arrsEnumNamesAndValues = orderedItems |> List.map(fun i -> define_new_enumerated_item td (lm.lg.getNamedItemBackendName None i) i.definitionValue)
-    let macros = orderedItems |> List.map( fun i -> define_new_enumerated_item_macro td (ToC i.Name.Value) (lm.lg.getNamedItemBackendName None i) )
-    let nIndexMax = BigInteger ((Seq.length o.items)-1)
-    let arrsValidEnumNames = o.validItems |> List.sortBy(fun i -> i.definitionValue) |> List.map( fun i -> lm.lg.getNamedItemBackendName None i)
+    let orderedItems            = TL "CR_EN_01" (fun () -> o.items |> List.sortBy(fun i -> i.definitionValue))
+    let arrsEnumNames           = TL "CR_EN_02" (fun () -> orderedItems |> List.map( fun i -> lm.lg.getNamedItemBackendName None i))
+    let arrsEnumNamesAndValues  = TL "CR_EN_03" (fun () -> orderedItems |> List.map(fun i -> define_new_enumerated_item td (lm.lg.getNamedItemBackendName None i) i.definitionValue))
+    let macros                  = TL "CR_EN_04" (fun () -> orderedItems |> List.map( fun i -> define_new_enumerated_item_macro td (ToC i.Name.Value) (lm.lg.getNamedItemBackendName None i) ))
+    let nIndexMax               = TL "CR_EN_05" (fun () -> BigInteger ((Seq.length o.items)-1))
+    let arrsValidEnumNames      = TL "CR_EN_06" (fun () -> o.validItems |> List.sortBy(fun i -> i.definitionValue) |> List.map( fun i -> lm.lg.getNamedItemBackendName None i))
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
+        TL "CR_EN_07" (fun () -> 
         let completeDefinition = define_new_enumerated td arrsEnumNames arrsEnumNamesAndValues nIndexMax macros
         let privateDefinition =
             match r.args.isEnumEfficientEnabled o.items.Length with
@@ -258,9 +259,9 @@ let createEnumerated (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.A
                 match System.String.IsNullOrWhiteSpace ret with
                 | true  -> None
                 | false -> Some ret
-
-        Some (completeDefinition, privateDefinition)
+        Some (completeDefinition, privateDefinition))
     | NonPrimitiveNewSubTypeDefinition subDef     ->
+        TL "CR_EN_08" (fun () -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
         let completeDefinition = define_subType_enumerated td subDef otherProgramUnit
         let privateDefinition =
@@ -271,7 +272,7 @@ let createEnumerated (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.A
                 match System.String.IsNullOrWhiteSpace ret with
                 | true  -> None
                 | false -> Some ret
-        Some (completeDefinition, privateDefinition)
+        Some (completeDefinition, privateDefinition))
     | NonPrimitiveReference2OtherType            -> None
 
 let internal getChildDefinition (childDefinition:TypeDefinitionOrReference) =
@@ -546,20 +547,23 @@ let createEnumerated_u (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst
     let td = lm.lg.getEnumTypeDefinition   o.typeDef
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
+        TL "CR_EN_U_01" (fun () ->
         let (aaa, priv) =
             match createEnumerated r lm t o us with
             | Some (a, b) -> Some a, b
             | None -> None, None
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=priv; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=priv; baseType=None})
     | NonPrimitiveNewSubTypeDefinition subDef     ->
+        TL "CR_EN_U_02" (fun () ->
         let (aaa, priv) =
             match createEnumerated r lm t o us with
             | Some (a, b) -> Some a, b
             | None -> None, None
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=priv; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=priv; baseType=Some baseType})
     | NonPrimitiveReference2OtherType            ->
-        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
+        TL "CR_EN_U_03" (fun () ->
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false})
 
 
 let createSequenceOf_u (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (childType: DAst.Asn1Type) (us:State) =

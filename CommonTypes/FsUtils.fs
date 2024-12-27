@@ -24,8 +24,12 @@ open System.IO
 open System.Diagnostics
 open System.Collections.Generic
 
+//to enabe log timing, go to project properties, build, and add LOG_TIMING to conditional compilation symbols
 
+#if LOG_TIMING
+#warning "Timing is enabled"
 let subsystems: Dictionary<String, int*TimeSpan> = new Dictionary<String, int*TimeSpan>()
+
 let TL  subSystem func =
     let stopwatch = Stopwatch.StartNew()
     let ret = func ()
@@ -56,6 +60,13 @@ let TL_report () =
             let (a,b) = subsystems.[z]
             sprintf "%s nCall %d = took %A" z a b) |> StrJoin_priv "\n"
     printfn "%s" bbb
+
+
+#else
+let TL  subSystem func = func ()
+let TL_report () = ()
+#endif
+
 
 
 type OptionBuilder() =
