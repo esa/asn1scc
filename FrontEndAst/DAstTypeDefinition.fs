@@ -609,14 +609,3 @@ let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
 
-let createReferenceType_u (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType)  (baseType:Asn1Type )  =
-    match o.encodingOptions with
-    | None    -> baseType.typeDefinitionOrReference
-    | Some _  -> baseType.typeDefinitionOrReference
-
-let createReferenceType_u2 (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType)   =
-    let tdProgramUnit = o.typeDef[C].programUnit
-    let tdTypeName = o.typeDef[C].typeName
-    let programUnit = ToC t.id.ModName
-
-    ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if tdProgramUnit = programUnit then None else Some tdProgramUnit); typedefName= tdTypeName; definedInRtl = false}

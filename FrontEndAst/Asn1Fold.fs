@@ -520,7 +520,10 @@ let foldType2
                     refType pi t ti (loopType pi ti.resolvedType us)
                 | false ->  
                     match ti.resolvedType.isComplexType with
-                    | true->    refType2 pi t ti us
+                    | true->    
+                        match ti.encodingOptions with
+                        | None -> refType2 pi t ti us
+                        | Some _ -> refType pi t ti (loopType pi ti.resolvedType us)
                     | false ->  refType pi t ti (loopType pi ti.resolvedType us)
         typeFunc pi t newKind
     loopType parentInfo t us
