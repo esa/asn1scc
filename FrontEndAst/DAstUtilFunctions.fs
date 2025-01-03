@@ -26,10 +26,7 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
                 | false -> []
             isPresent, {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString chOpt}
         | CH_CHILD (chName, pre_name, chParent)  ->
-            let chChildIsPresent =
-                match ST.lang with
-                | Scala -> sprintf "%s.isInstanceOf[%s.%s_PRESENT]" (pVal.arg.joined lm.lg) chParent pre_name
-                | _ -> sprintf "%s%skind %s %s_PRESENT" (pVal.arg.joined lm.lg) (lm.lg.getAccess pVal.arg) lm.lg.eqOp pre_name
+            let chChildIsPresent = lm.lg.getChChildIsPresent pVal.arg chParent pre_name
             [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString}
         | SQF               ->
             let curIdx = sprintf "i%d" (zeroBasedSequenceOfLevel + 1)
@@ -48,10 +45,6 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         ret
     | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 
-let extractEnumClassName (prefix: String)(varName: String)(internalName: String): String =
-    match ST.lang with
-    | Scala -> prefix + varName.Substring(0, max 0 (varName.Length - (internalName.Length + 1))) // TODO: check case where max is needed
-    | _ -> ""
 
 let rec extractDefaultInitValue (childType: Asn1TypeKind): String =
     match childType with

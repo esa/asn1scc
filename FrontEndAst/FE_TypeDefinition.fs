@@ -10,6 +10,8 @@ open CommonTypes
 open AbstractMacros
 open FsUtils
 open Asn1AcnAst
+open Language
+open Asn1AcnAstUtilFunctions
 
 let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames : Map<(ProgrammingLanguage*string), string list>) (l:ProgrammingLanguage, ib:ILangBasic)  (programUnit:string) (proposedTypeDefName:string) : (string*Map<(ProgrammingLanguage*string), string list>)  =
     let getNextCount (oldName:string) =
@@ -545,3 +547,100 @@ let getReferenceTypeDefinition (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (arg:
     | Asn1Ast.Sequence          _      -> getSequenceTypeDefinition arg us    |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_SequenceTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.Choice            _      -> getChoiceTypeDefinition arg us      |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_ChoiceTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.ReferenceType     _      -> raise(BugErrorException "getReferenceTypeDefinition")
+
+
+(*
+
+open DAst
+let getIntegerTypeByClass (lm:LanguageMacros) intClass =
+    match intClass with
+    | ASN1SCC_Int8   (_)   -> lm.typeDef.Declare_Int8
+    | ASN1SCC_Int16  (_)   -> lm.typeDef.Declare_Int16
+    | ASN1SCC_Int32  (_)   -> lm.typeDef.Declare_Int32
+    | ASN1SCC_Int64  (_)   -> lm.typeDef.Declare_Int64
+    | ASN1SCC_Int    (_)   -> lm.typeDef.Declare_Integer
+    | ASN1SCC_UInt8  (_)   -> lm.typeDef.Declare_UInt8
+    | ASN1SCC_UInt16 (_)   -> lm.typeDef.Declare_UInt16
+    | ASN1SCC_UInt32 (_)   -> lm.typeDef.Declare_UInt32
+    | ASN1SCC_UInt64 (_)   -> lm.typeDef.Declare_UInt64
+    | ASN1SCC_UInt   (_)   -> lm.typeDef.Declare_PosInteger
+
+let getRealTypeByClass (lm:LanguageMacros) realClass =
+    match realClass with
+    | ASN1SCC_REAL   -> lm.typeDef.Declare_Real
+    | ASN1SCC_FP32   -> lm.typeDef.Declare_Real32
+    | ASN1SCC_FP64   -> lm.typeDef.Declare_Real64
+
+let createInteger (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer)  =
+    let declare_Integer = getIntegerTypeByClass lm o.intClass
+
+    let rtlModuleName                   = if lm.typeDef.rtlModuleName().IsEmptyOrNull then None else (Some (lm.typeDef.rtlModuleName ()))
+
+    let defineSubType                   = lm.typeDef.Define_SubType
+    let define_SubType_int_range        = lm.typeDef.Define_SubType_int_range
+
+    let getNewRange soInheritParentTypePackage sInheritParentType =
+        match o.uperRange with
+        | Concrete(a,b)               ->  Some (define_SubType_int_range soInheritParentTypePackage sInheritParentType (Some a) (Some b))
+        | NegInf (b)                  ->  Some (define_SubType_int_range soInheritParentTypePackage sInheritParentType None (Some b))
+        | PosInf (a)  when a=0I       ->  None
+        | PosInf (a)                  ->  Some (define_SubType_int_range soInheritParentTypePackage sInheritParentType (Some a) None)
+        | Full                        ->  None
+
+    let td = lm.lg.typeDef o.typeDef
+    let programUnit = ToC t.id.ModName
+    match td.kind with
+    | PrimitiveNewTypeDefinition              -> 
+        let baseType = declare_Integer()
+        let typedefBody () = defineSubType  td.typeName None baseType (getNewRange None baseType) None []
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = typedefBody; privateTypeDefinition=None; baseType=None}
+    | PrimitiveNewSubTypeDefinition subDef     ->
+        let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
+        let typedefBody () = defineSubType td.typeName otherProgramUnit subDef.typeName (getNewRange otherProgramUnit subDef.typeName) None []
+        let baseType = {DAst.ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = typedefBody; privateTypeDefinition=None; baseType=Some baseType}
+    | PrimitiveReference2RTL                  -> 
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
+    | PrimitiveReference2OtherType            -> 
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
+
+
+
+let createReal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.Real)    =
+    //let getRtlTypeName  = lm.typeDef.Declare_RealNoRTL
+    let getRtlTypeName  = getRealTypeByClass lm (o.getClass r.args)
+    let defineSubType = lm.typeDef.Define_SubType
+    let rtlModuleName = if lm.typeDef.rtlModuleName().IsEmptyOrNull then None else (Some (lm.typeDef.rtlModuleName ()))
+
+    let td = lm.lg.typeDef o.typeDef
+    let annots =
+        match ST.lang with
+        | Scala -> ["extern"]
+        | _ -> []
+    match td.kind with
+    | PrimitiveNewTypeDefinition              ->
+        let baseType = getRtlTypeName()
+        let typedefBody = defineSubType td.typeName None baseType None None annots
+        Some typedefBody
+    | PrimitiveNewSubTypeDefinition subDef     ->
+        let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
+        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None annots
+        Some typedefBody
+    | PrimitiveReference2RTL                  -> None
+    | PrimitiveReference2OtherType            -> None
+
+let createReal_u (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real)  (us:State) =
+    let aaa = createReal r lm t o 
+    let programUnit = ToC t.id.ModName
+    let td = lm.lg.typeDef o.typeDef
+    match td.kind with
+    | PrimitiveNewTypeDefinition              ->
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
+    | PrimitiveNewSubTypeDefinition subDef     ->
+        let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
+    | PrimitiveReference2RTL                  ->
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
+    | PrimitiveReference2OtherType            ->
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
+*)

@@ -196,7 +196,7 @@ type ValidationStatement =
     | ValidationStatementFalse  of (string * LocalVariable list)
     | ValidationStatement       of (string * LocalVariable list)
 
-
+#if MOVE_TO_COMMON
 type ReferenceToExistingDefinition = {
     /// the module where this type is defined
     /// if the value is not present then is the same as the "caller"
@@ -236,6 +236,7 @@ type TypeDefinitionOrReference =
     /// indicates that a new type is
     | TypeDefinition                of TypeDefinition
 
+#endif
 type ErrorCode = {
     errCodeValue    : int
     errCodeName     : string
@@ -807,6 +808,7 @@ and AcnChild = {
         {
             Name = this.Name
             id = this.id
+            c_name = this.c_name
             Type = this.Type
             Comments = this.Comments
         }

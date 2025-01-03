@@ -379,3 +379,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (defOrRef:TypeDefinitionOrReference) (baseType:Asn1Type)   =
     baseType.printValue
+
+let createReferenceTypeFunction2 (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (defOrRef:TypeDefinitionOrReference)    =
+    let printValue (curProgramUnitName:string) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) = ""
+    printValue

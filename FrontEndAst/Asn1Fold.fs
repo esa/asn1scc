@@ -459,6 +459,7 @@ let foldType2
     (choiceFunc: ParentInfo<'T> option -> Asn1Type -> Choice -> 'd list * 'UserState -> 'a)
     (chChildFunc: ChChildInfo -> 'b -> 'd * 'UserState)
     (refType: ParentInfo<'T> option -> Asn1Type -> ReferenceType -> 'b -> 'a)
+    (refType2: ParentInfo<'T> option -> Asn1Type -> ReferenceType -> 'UserState -> 'a)
     (typeFunc: ParentInfo<'T> option -> Asn1Type -> 'a -> 'b)
     (preSeqOfFunc: ParentInfo<'T> option -> Asn1Type -> SequenceOf -> 'UserState -> 'T * 'UserState)
     (preSeqFunc: ParentInfo<'T> option -> Asn1Type -> Sequence -> 'UserState -> 'T * 'UserState)
@@ -514,7 +515,13 @@ let foldType2
                 let newChildren = ti.children |> foldMap (fun curState ch -> chChildFunc ch (loopType (Some {ParentInfo.parent = t ; name=Some ch.Name.Value; parentData=parentData}) ch.Type curState)) ns
                 choiceFunc pi t ti newChildren
             | ReferenceType  ti ->
-               refType pi t ti (loopType pi ti.resolvedType us)
+                match ti.hasExtraConstrainsOrChildrenOrAcnArgs with
+                | true ->   
+                    refType pi t ti (loopType pi ti.resolvedType us)
+                | false ->  
+                    match ti.resolvedType.isComplexType with
+                    | true->    refType2 pi t ti us
+                    | false ->  refType pi t ti (loopType pi ti.resolvedType us)
         typeFunc pi t newKind
     loopType parentInfo t us
 

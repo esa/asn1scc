@@ -264,6 +264,7 @@ type ILangGeneric () =
 
     abstract member Length          : string -> string -> string
     abstract member typeDef         : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition> -> FE_PrimitiveTypeDefinition
+    abstract member definitionOrRef : Map<ProgrammingLanguage, TypeDefinitionOrReference> -> TypeDefinitionOrReference
     abstract member getTypeDefinition : Map<ProgrammingLanguage, FE_TypeDefinition> -> FE_TypeDefinition
     abstract member getEnumTypeDefinition : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>  -> FE_EnumeratedTypeDefinition
     abstract member getStrTypeDefinition : Map<ProgrammingLanguage, FE_StringTypeDefinition> -> FE_StringTypeDefinition
@@ -274,13 +275,15 @@ type ILangGeneric () =
     abstract member getSeqChild: sel: Selection -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> Selection;
     //return a string that contains code with a boolean expression that is true if the child is present
     abstract member getSeqChildIsPresent   : Selection -> string -> string
+    abstract member getChChildIsPresent   : Selection -> string -> string-> string
     abstract member getChChild      : Selection -> string -> bool -> Selection;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefinitionOrReference -> string;
     abstract member getEmptySequenceInitExpression : string -> string
     abstract member callFuncWithNoArgs : unit -> string
-
+    abstract member extractEnumClassName : string -> string -> string -> string
     abstract member presentWhenName : TypeDefinitionOrReference option -> ChChildInfo -> string;
+    abstract member presentWhenName0 : TypeDefinitionOrReference option -> Asn1AcnAst.ChChildInfo -> string;
     abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CallerScope;
     abstract member getParamValue   : Asn1AcnAst.Asn1Type -> Selection -> Codec -> string
 
@@ -342,15 +345,17 @@ type ILangGeneric () =
     abstract member generateSequenceOfLikeProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
     abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CallerScope -> Codec -> string option
 
-    abstract member generateOctetStringInvariants: Asn1AcnAst.Asn1Type -> Asn1AcnAst.OctetString -> string list
-    abstract member generateBitStringInvariants: Asn1AcnAst.Asn1Type -> Asn1AcnAst.BitString -> string list
+    abstract member generateOctetStringInvariants: SIZE -> SIZE -> string list
+    abstract member generateBitStringInvariants:  SIZE -> SIZE -> string list
     abstract member generateSequenceInvariants: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> SeqChildInfo list -> string list
-    abstract member generateSequenceOfInvariants: Asn1AcnAst.Asn1Type -> Asn1AcnAst.SequenceOf -> DAst.Asn1TypeKind -> string list
+    abstract member generateSequenceOfInvariants: SIZE -> SIZE -> string list
 
     abstract member generateSequenceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> SeqChildInfo list -> string list
     abstract member generateChoiceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> ChChildInfo list -> string list
-    abstract member generateSequenceOfSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.SequenceOf -> DAst.Asn1Type -> string list * string list
+    //(typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : SizeableAcnEncodingClass) (acnAlignment : AcnAlignment option) (child : Asn1AcnAst.Asn1Type)
+    abstract member generateSequenceOfSizeDefinitions: Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> BigInteger -> BigInteger-> SIZE -> Asn1AcnAst.SizeableAcnEncodingClass -> AcnGenericTypes.AcnAlignment option -> Asn1AcnAst.Asn1Type -> string list * string list
     abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> Asn1Child list -> string list
+    abstract member real_annotations : string list
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
@@ -363,6 +368,10 @@ type ILangGeneric () =
         sourceCode
     default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
         sourceCode
+    default this.real_annotations = []
+
+    default this.extractEnumClassName (prefix: string) (varName: string) (internalName: string): string = ""
+        
 
     default this.adaptAcnFuncBody _ _ f _ _ _ = f
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
@@ -387,11 +396,11 @@ type ILangGeneric () =
     default this.generateOctetStringInvariants _ _ = []
     default this.generateBitStringInvariants _ _ = []
     default this.generateSequenceInvariants _ _ _ = []
-    default this.generateSequenceOfInvariants _ _ _ = []
+    default this.generateSequenceOfInvariants _ _ = []
 
     default this.generateSequenceSizeDefinitions _ _ _ = []
     default this.generateChoiceSizeDefinitions _ _ _ = []
-    default this.generateSequenceOfSizeDefinitions _ _ _ = [], []
+    default this.generateSequenceOfSizeDefinitions _ _ _ _ _ _ _ = [], []
     default this.generateSequenceSubtypeDefinitions _ _ _ _ = []
 
     //most programming languages are case sensitive

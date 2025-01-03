@@ -219,6 +219,7 @@ type Asn1File = {
 type AstRoot = {
     Files: list<Asn1File>
     args:CommandLineSettings
+    typeAssignmentsMap : Map<string*string, TypeAssignment>
 }
 
 

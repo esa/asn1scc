@@ -444,8 +444,15 @@ let MapFile (r:ParameterizedAsn1Ast.AstRoot) (f:ParameterizedAsn1Ast.Asn1File) :
 
 let DoWork (r:ParameterizedAsn1Ast.AstRoot) : Asn1Ast.AstRoot =
     let r = RemoveParameterizedTypes.DoWork r
+    let files = r.Files |> List.map (MapFile r)
     {
-        Asn1Ast.AstRoot.Files = r.Files |> List.map (MapFile r)
+        Asn1Ast.AstRoot.Files = files
         args = r.args
-
+        typeAssignmentsMap = 
+            seq {
+                for f in files do
+                    for m in f.Modules do
+                        for tas in m.TypeAssignments do
+                            yield ((m.Name.Value, tas.Name.Value), tas)
+            } |> Map.ofSeq
     }

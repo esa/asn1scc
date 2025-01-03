@@ -7,6 +7,7 @@ open Language
 open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
 open AcnGenericTypes
+open System.Numerics
 
 type SizeProps =
   | ExternalField
@@ -171,19 +172,19 @@ let stringInvariants (minSize: bigint) (maxSize: bigint) (recv: Expr): Expr =
     And [Leq (int32lit (maxSize + 1I), arrayLen); Leq (int32lit minSize, nullCharIx); Leq (nullCharIx, int32lit maxSize)]
   *)
 
-let octetStringInvariants (t: Asn1AcnAst.Asn1Type) (os: Asn1AcnAst.OctetString) (recv: Expr): Expr =
+let octetStringInvariants (minSize : SIZE) (maxSize : SIZE) (recv: Expr): Expr =
   let len = ArrayLength (FieldSelect (recv, "arr"))
-  if os.minSize.acn = os.maxSize.acn then Equals (len, int32lit os.maxSize.acn)
+  if minSize.acn = maxSize.acn then Equals (len, int32lit maxSize.acn)
   else
     let nCount = FieldSelect (recv, "nCount")
-    And [Leq (len, int32lit os.maxSize.acn); Leq (int32lit os.minSize.acn, nCount); Leq (nCount, len)]
+    And [Leq (len, int32lit maxSize.acn); Leq (int32lit minSize.acn, nCount); Leq (nCount, len)]
 
-let bitStringInvariants (t: Asn1AcnAst.Asn1Type) (bs: Asn1AcnAst.BitString) (recv: Expr): Expr =
+let bitStringInvariants  (minSize : SIZE) (maxSize : SIZE) (recv: Expr): Expr =
   let len = ArrayLength (FieldSelect (recv, "arr"))
-  if bs.minSize.acn = bs.maxSize.acn then Equals (len, int32lit (bigint bs.MaxOctets))
+  if minSize.acn = maxSize.acn then Equals (len, int32lit (bigint (getBitStringMaxOctets maxSize)))
   else
     let nCount = FieldSelect (recv, "nCount")
-    And [Leq (len, int32lit (bigint bs.MaxOctets)); Leq (longlit bs.minSize.acn, nCount); Leq (nCount, Mult (len, longlit 8I))] // TODO: Cast en long explicite
+    And [Leq (len, int32lit (bigint (getBitStringMaxOctets maxSize))); Leq (longlit minSize.acn, nCount); Leq (nCount, Mult (len, longlit 8I))] // TODO: Cast en long explicite
 
 let sequenceInvariantsCommon (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: (DAst.Asn1Child * Expr) list): Expr option =
   let conds = children |> List.collect (fun (child, field) ->
@@ -207,12 +208,12 @@ let sequenceInvariantsCommon (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) 
 let sequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.Asn1Child list) (recv: Expr): Expr option =
   sequenceInvariantsCommon t sq (children |> List.map (fun c -> c, FieldSelect (recv, c._scala_name)))
 
-let sequenceOfInvariants (sqf: Asn1AcnAst.SequenceOf) (recv: Expr): Expr =
+let sequenceOfInvariants (minSize : SIZE) (maxSize : SIZE) (recv: Expr): Expr =
     let len = vecSize (FieldSelect (recv, "arr"))
-    if sqf.minSize.acn = sqf.maxSize.acn then Equals (len, int32lit sqf.maxSize.acn)
+    if minSize.acn = maxSize.acn then Equals (len, int32lit maxSize.acn)
     else
       let nCount = FieldSelect (recv, "nCount")
-      And [Leq (len, int32lit sqf.maxSize.acn); Leq (int32lit sqf.minSize.acn, nCount); Leq (nCount, len)]
+      And [Leq (len, int32lit maxSize.acn); Leq (int32lit minSize.acn, nCount); Leq (nCount, len)]
 
 let private offsetConds (offset :Var) (maxSize: bigint) =
   And [
@@ -560,9 +561,9 @@ let choiceSizeFunDefs (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice): FunD
   let lemmas = implyingAligns |> List.map sizeLemmas
   sizeFd :: lemmas
 
-let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDef list * FunDef list =
-  let td = sq.typeDef.[Scala].typeName
-  let elemTpe = fromAsn1TypeKind sq.child.Kind
+let seqOfSizeFunDefs (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : SizeableAcnEncodingClass) (acnAlignment : AcnAlignment option) (child : Asn1AcnAst.Asn1Type) : FunDef list * FunDef list =
+  let td = typeDef.[Scala].typeName
+  let elemTpe = fromAsn1TypeKind child.Kind
   let lsTpe = vecTpe elemTpe
   let res = {name = "res"; tpe = IntegerType Long}
 
@@ -576,12 +577,12 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
     }
 
   let offsetCondHelper (offset: Var) (from: Var) (tto: Var): Expr =
-    let overhead = sq.acnMaxSizeInBits - sq.maxSize.acn * sq.child.Kind.acnMaxSizeInBits
+    let overhead = acnMaxSizeInBits - maxSize.acn * child.Kind.acnMaxSizeInBits
     And [
       Leq (longlit 0I, Var offset)
-      Leq (Var offset, Minus (longlit (2I ** 63 - 1I - overhead), Mult (longlit sq.child.Kind.acnMaxSizeInBits, Minus (Var tto, Var from))))
+      Leq (Var offset, Minus (longlit (2I ** 63 - 1I - overhead), Mult (longlit child.Kind.acnMaxSizeInBits, Minus (Var tto, Var from))))
     ]
-  let rangeVarsCondHelper (ls: Var) (from: Var) (tto: Var): Expr = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, vecSize (Var ls)); Leq (vecSize (Var ls), int32lit sq.maxSize.acn)]
+  let rangeVarsCondHelper (ls: Var) (from: Var) (tto: Var): Expr = And [Leq (int32lit 0I, Var from); Leq (Var from, Var tto); Leq (Var tto, vecSize (Var ls)); Leq (vecSize (Var ls), int32lit maxSize.acn)]
 
   let sizeRangeObjFd =
     let ls = {name = "ls"; tpe = lsTpe}
@@ -593,17 +594,17 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
     let rangeVarsConds = rangeVarsCondHelper ls from tto
     let elem = vecApply (Var ls) (Var from)
     let elemSizeVar = {name = "elemSize"; tpe = IntegerType Long}
-    let elemSize = asn1SizeExpr sq.child.acnAlignment sq.child.Kind elem (Var offset) 0I 0I
+    let elemSize = asn1SizeExpr child.acnAlignment child.Kind elem (Var offset) 0I 0I
     let elemSizeAssert =
-      if sq.child.Kind.acnMinSizeInBits = sq.child.Kind.acnMaxSizeInBits then
-        Assert (Equals (Var elemSizeVar, longlit sq.child.Kind.acnMinSizeInBits))
+      if child.Kind.acnMinSizeInBits = child.Kind.acnMaxSizeInBits then
+        Assert (Equals (Var elemSizeVar, longlit child.Kind.acnMinSizeInBits))
       else
         Assert (And [
           Leq (longlit 0I, Var elemSizeVar)
-          Leq (Var elemSizeVar, longlit sq.child.Kind.acnMaxSizeInBits)
+          Leq (Var elemSizeVar, longlit child.Kind.acnMaxSizeInBits)
         ])
     let reccall = callSizeRangeObj (Var ls) (plus [Var offset; Var elemSizeVar]) (plus [Var from; int32lit 1I]) (Var tto)
-    let resSize = alignedSizeTo t.acnAlignment (plus [Var elemSizeVar; reccall]) (Var offset)
+    let resSize = alignedSizeTo acnAlignment (plus [Var elemSizeVar; reccall]) (Var offset)
     let elseBody = letsIn (elemSize.bdgs @ [elemSizeVar, elemSize.resSize]) (mkBlock [elemSizeAssert; resSize])
     let body =
       IfExpr {
@@ -614,7 +615,7 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
 
     let postcondRange =
       let nbElems = {Var.name = "nbElems"; tpe = IntegerType Int} // TODO: Add explicit cast to Long
-      let sqUpperBound = Mult (longlit sq.child.Kind.acnMaxSizeInBits, Var nbElems)
+      let sqUpperBound = Mult (longlit child.Kind.acnMaxSizeInBits, Var nbElems)
       Let {
         bdg = nbElems
         e = Minus (Var tto, Var from) // TODO: Add explicit cast to Long
@@ -635,15 +636,15 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
 
   let sizeLemmas (align: AcnAlignment option): FunDef * FunDef =
     let elemSizeAssert (elemSizeVar: Var): Expr =
-      if sq.child.Kind.acnMinSizeInBits = sq.child.Kind.acnMaxSizeInBits then
-        Assert (Equals (Var elemSizeVar, longlit sq.child.Kind.acnMinSizeInBits))
+      if child.Kind.acnMinSizeInBits = child.Kind.acnMaxSizeInBits then
+        Assert (Equals (Var elemSizeVar, longlit child.Kind.acnMinSizeInBits))
       else
         Assert (And [
           Leq (longlit 0I, Var elemSizeVar)
-          Leq (Var elemSizeVar, longlit sq.child.Kind.acnMaxSizeInBits)
+          Leq (Var elemSizeVar, longlit child.Kind.acnMaxSizeInBits)
         ])
 
-    let template = sizeLemmaTemplate sq.acnMaxSizeInBits align
+    let template = sizeLemmaTemplate acnMaxSizeInBits align
     let offset = template.prms.[0]
     let otherOffset = template.prms.[1]
     let ls = {name = "ls"; tpe = lsTpe}
@@ -664,14 +665,14 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
     let elemSel = vecApply (Var ls) (Var from)
     let elemSizeOffVar = {Var.name = "elemSizeOff"; tpe = IntegerType Long}
     let elemSizeOtherOffVar = {Var.name = "elemSizeOtherOff"; tpe = IntegerType Long}
-    let elemSizeOffRes = asn1SizeExpr align sq.child.Kind elemSel (Var offset) 0I 0I
-    let elemSizeOtherOffRes = asn1SizeExpr align sq.child.Kind elemSel (Var otherOffset) 0I 0I
+    let elemSizeOffRes = asn1SizeExpr align child.Kind elemSel (Var offset) 0I 0I
+    let elemSizeOtherOffRes = asn1SizeExpr align child.Kind elemSel (Var otherOffset) 0I 0I
     let elemSizesBdgs =
       elemSizeOffRes.bdgs @
       [(elemSizeOffVar, elemSizeOffRes.resSize)] @
       elemSizeOtherOffRes.bdgs @
       [(elemSizeOtherOffVar, elemSizeOtherOffRes.resSize)]
-    let elemLemmaCall = sizeLemmaCall sq.child.Kind align elemSel (Var offset) (Var otherOffset)
+    let elemLemmaCall = sizeLemmaCall child.Kind align elemSel (Var offset) (Var otherOffset)
     let inductiveStep = FunctionCall {
       prefix = [td]
       id = template.id
@@ -718,12 +719,12 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
   let sizeClsFd =
     let offset = {Var.name = "offset"; tpe = IntegerType Long}
     let sizeField =
-      match sq.acnEncodingClass with
+      match acnEncodingClass with
       | SZ_EC_LENGTH_EMBEDDED sz -> sz
       | _ -> 0I // TODO: Pattern?
     let postcond =
-      if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then Equals (Var res, longlit sq.acnMaxSizeInBits)
-      else And [Leq (longlit 0I, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
+      if acnMinSizeInBits = acnMaxSizeInBits then Equals (Var res, longlit acnMaxSizeInBits)
+      else And [Leq (longlit 0I, Var res); Leq (Var res, longlit acnMaxSizeInBits)]
     let finalSize = (plus [
       longlit sizeField
       callSizeRangeObj (FieldSelect (This, "arr")) (Var offset) (int32lit 0I) (FieldSelect (This, "nCount"))
@@ -731,14 +732,17 @@ let seqOfSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.SequenceOf): FunDe
     {
       id = "size"
       prms = [offset]
-      specs = [Precond (offsetConds offset sq.acnMaxSizeInBits)]
+      specs = [Precond (offsetConds offset acnMaxSizeInBits)]
       annots = []
       postcond = Some (res, postcond)
       returnTpe = IntegerType Long
       body = finalSize
     }
 
-  let maxAlign = maxAlignment t
+  //SOS: The following is a hack to avoid using t in the function signature
+  //SOS: It will be calculated by the caller
+  //let maxAlign = maxAlignment t
+  let maxAlign = acnAlignment
   let implyingAligns = implyingAlignments maxAlign
   let clsLemmas, objLemmas = implyingAligns |> List.map sizeLemmas |> List.unzip
   sizeClsFd :: clsLemmas, sizeRangeObjFd :: objLemmas
@@ -752,8 +756,8 @@ let generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.C
   let fds = choiceSizeFunDefs t choice
   fds |> List.map (fun fd -> show (FunDefTree fd))
 
-let generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): string list * string list =
-  let fdsCls, fdsObj = seqOfSizeFunDefs t sqf
+let generateSequenceOfSizeDefinitions (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : SizeableAcnEncodingClass) (acnAlignment : AcnAlignment option) (child : Asn1AcnAst.Asn1Type): string list * string list =
+  let fdsCls, fdsObj = seqOfSizeFunDefs typeDef acnMinSizeInBits acnMaxSizeInBits maxSize acnEncodingClass acnAlignment child
   fdsCls |> List.map (fun fd -> show (FunDefTree fd)), fdsObj |> List.map (fun fd -> show (FunDefTree fd))
 
 let generateSequenceSubtypeDefinitions (dealiased: string) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.Asn1Child list): string list =

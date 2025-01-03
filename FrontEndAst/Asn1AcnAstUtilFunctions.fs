@@ -138,7 +138,23 @@ type Asn1Type with
         | ReferenceType t-> t.resolvedType.isStringType
         | _             -> false
 
-
+    member this.typeDefinitionOrReference : Map<ProgrammingLanguage, TypeDefinitionOrReference> =
+        match this.Kind with
+        | Integer      t -> t.definitionOrRef
+        | Real         t -> t.definitionOrRef
+        | NumericString t -> t.definitionOrRef
+        | IA5String    t -> t.definitionOrRef
+        | OctetString  t -> t.definitionOrRef
+        | NullType     t -> t.definitionOrRef
+        | BitString    t -> t.definitionOrRef
+        | Boolean      t -> t.definitionOrRef
+        | Enumerated   t -> t.definitionOrRef
+        | ObjectIdentifier t -> t.definitionOrRef
+        | TimeType t      -> t.definitionOrRef
+        | SequenceOf   t -> t.definitionOrRef
+        | Sequence     t -> t.definitionOrRef
+        | Choice       t -> t.definitionOrRef
+        | ReferenceType t-> t.definitionOrRef
 
     member this.FT_TypeDefinition =
         match this.Kind with
@@ -216,8 +232,11 @@ type AcnInsertedType with
         | AcnReferenceToEnumerated x -> x.tasName.Location
         | AcnReferenceToIA5String x -> x.tasName.Location
 
+let getBitStringMaxOctets (maxSize:SIZE) =
+    int (ceil ((double maxSize.uper)/8.0))
+
 type BitString with
-    member this.MaxOctets = int (ceil ((double this.maxSize.uper)/8.0))
+    member this.MaxOctets = getBitStringMaxOctets this.maxSize
 
 type Asn1Child with
     member this.getBackendName0 l =
@@ -283,6 +302,17 @@ type SeqChildInfo with
             | AcnChild x -> raise (BugErrorException $"Unexpected UPER encoding for ACN child {x.Name}")
         | ACN -> this.acnMaxSizeInBits
         | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+    member this.savePosition =
+        match this with
+        | AcnChild z ->
+            match z.Type with
+            | Asn1AcnAst.AcnNullType nt when nt.acnProperties.savePosition   ->  true
+            | _     -> false
+        | Asn1Child z ->
+            match z.Type.Kind with
+            | Asn1AcnAst.NullType nt when nt.acnProperties.savePosition         -> true
+            | _                     -> false
+
 
 let rec getASN1Name  (t:Asn1Type) =
     match t.Kind with
@@ -412,19 +442,20 @@ type ObjectIdentifier with
 type TimeType with
     member this.AllCons  = this.cons@this.withcons
 
+let getRealEncodingClass (bSlim:bool) (acnEncodingClass:RealEncodingClass) =
+    match bSlim with
+    | true ->
+        match acnEncodingClass with
+        | Real_uPER                         -> ASN1SCC_REAL
+        | Real_IEEE754_32_big_endian        -> ASN1SCC_FP32
+        | Real_IEEE754_64_big_endian        -> ASN1SCC_FP64
+        | Real_IEEE754_32_little_endian     -> ASN1SCC_FP32
+        | Real_IEEE754_64_little_endian     -> ASN1SCC_FP64
+    | false -> ASN1SCC_REAL
 
 type Real             with
     member this.AllCons  = this.cons@this.withcons
-    member this.getClass (args:CommandLineSettings)  =
-        match args.slim with
-        | true ->
-            match this.acnEncodingClass with
-            | Real_uPER                         -> ASN1SCC_REAL
-            | Real_IEEE754_32_big_endian        -> ASN1SCC_FP32
-            | Real_IEEE754_64_big_endian        -> ASN1SCC_FP64
-            | Real_IEEE754_32_little_endian     -> ASN1SCC_FP32
-            | Real_IEEE754_64_little_endian     -> ASN1SCC_FP64
-        | false -> ASN1SCC_REAL
+    member this.getClass (args:CommandLineSettings)  = getRealEncodingClass args.slim this.acnEncodingClass
 
 
 type StringType       with
