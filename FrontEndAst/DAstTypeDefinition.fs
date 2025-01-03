@@ -447,8 +447,8 @@ let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<
 
         match td.kind with
         | NonPrimitiveNewTypeDefinition ->
-            let invariants = lm.lg.generateSequenceOfInvariants minSize maxSize 
-            let sizeClsDefinitions, sizeObjDefinitions = lm.lg.generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  child
+            let invariants = [] //lm.lg.generateSequenceOfInvariants minSize maxSize 
+            let sizeClsDefinitions, sizeObjDefinitions = [],[]//lm.lg.generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  child
             let completeDefinition = define_new_sequence_of td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (childTypeDefinitionOrReference.longTypedefName2 lm.lg.hasModules) (getChildDefinition childTypeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
             let privateDefinition =
                 match childTypeDefinitionOrReference with

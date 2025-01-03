@@ -472,7 +472,7 @@ let getPrimitiveTypeDefinition (arg:GetTypeDefinition_arg) (us:Asn1AcnMergeState
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, reference to other type etc)
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
-        ProgrammingLanguage.AllLanguages |> foldMap (fun us l ->
+        ProgrammingLanguage.ActiveLanguages |> foldMap (fun us l ->
             let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
             let itm, ns = registerPrimitiveTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind arg.rtlFnc
             (l,itm), ns) us
@@ -482,7 +482,7 @@ let getStringTypeDefinition (arg:GetTypeDefinition_arg) (us:Asn1AcnMergeState)=
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, reference to other type etc)
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
-        ProgrammingLanguage.AllLanguages |> foldMap (fun us l ->
+        ProgrammingLanguage.ActiveLanguages |> foldMap (fun us l ->
             let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
             let itm, ns = registerStringTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind
             (l,itm), ns) us
@@ -492,7 +492,7 @@ let getSizeableTypeDefinition (arg:GetTypeDefinition_arg) (us:Asn1AcnMergeState)
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, reference to other type etc)
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
-        ProgrammingLanguage.AllLanguages |> foldMap (fun us l ->
+        ProgrammingLanguage.ActiveLanguages |> foldMap (fun us l ->
             let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
             let itm, ns = registerSizeableTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind
             (l,itm), ns) us
@@ -502,7 +502,7 @@ let getSequenceTypeDefinition (arg:GetTypeDefinition_arg) (us:Asn1AcnMergeState)
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, reference to other type etc)
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
-        ProgrammingLanguage.AllLanguages |> foldMap (fun us l ->
+        ProgrammingLanguage.ActiveLanguages |> foldMap (fun us l ->
             let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
             let itm, ns = registerSequenceTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind
             (l,itm), ns) us
@@ -512,7 +512,7 @@ let getChoiceTypeDefinition (arg:GetTypeDefinition_arg) (us:Asn1AcnMergeState)=
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, reference to other type etc)
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
-        ProgrammingLanguage.AllLanguages |> foldMap (fun us l ->
+        ProgrammingLanguage.ActiveLanguages |> foldMap (fun us l ->
             let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
             let itm, ns = registerChoiceTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind
             (l,itm), ns) us
@@ -523,7 +523,7 @@ let getEnumeratedTypeDefinition (arg:GetTypeDefinition_arg) (us:Asn1AcnMergeStat
     let typedefKind = getTypedefKind arg
     //let typedefKindEmnItem = getTypedefKind {arg with typeDefPath=arg.enmItemTypeDefPath}
     let lanDefs, us1 =
-        ProgrammingLanguage.AllLanguages |> foldMap (fun us l ->
+        ProgrammingLanguage.ActiveLanguages |> foldMap (fun us l ->
             let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
             let itm, ns = registerEnumeratedTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind
             (l,itm), ns) us
