@@ -331,6 +331,11 @@ type ProgrammingLanguage =
     |Ada
     with
         static member AllLanguages = [C; Scala; Ada]
+        static let mutable activeLanguages = [C]
+        static member ActiveLanguages
+            with get() = activeLanguages
+            and set(value) = activeLanguages <- value
+
 
 type Codec =
     |Encode

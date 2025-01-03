@@ -403,7 +403,10 @@ let main0 argv =
             | false -> ()
 
         // TODO frontend typo
-        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args allMacros debugFunc)
+        let activeLangs = 
+            allMacros |> List.filter(fun (lang,_) -> ProgrammingLanguage.ActiveLanguages |> List.exists (fun l -> l = lang)) 
+            
+        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args activeLangs debugFunc)
 
 
         // print front ent ast as xml

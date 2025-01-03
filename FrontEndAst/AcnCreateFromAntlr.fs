@@ -460,7 +460,7 @@ let private mergeStringType (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*La
         | EnmStrGetTypeDefinition_arg tdarg   -> getStringTypeDefinition tdarg us
         | AcnPrmGetTypeDefinition (curPath, md, ts)   ->
             let lanDefs, us1 =
-                ProgrammingLanguage.AllLanguages |> foldMap (fun us l ->
+                ProgrammingLanguage.ActiveLanguages |> foldMap (fun us l ->
                     let ib = asn1.args.getBasicLang l
                     let itm, ns = registerStringTypeDefinition us (l,ib) (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts]))
                     (l,itm), ns) us
@@ -667,17 +667,17 @@ let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*La
         match tdarg with
         | EnmStrGetTypeDefinition_arg tdarg   ->
             let proposedEnmName =
-                ProgrammingLanguage.AllLanguages |> List.map(fun l ->
+                ProgrammingLanguage.ActiveLanguages |> List.map(fun l ->
                     l, FE_TypeDefinition.getProposedTypeDefName us l (ReferenceToType tdarg.enmItemTypeDefPath) |> fst) |> Map.ofList
 
             let typeDef, us1 = getEnumeratedTypeDefinition tdarg us
             typeDef, proposedEnmName, us1
         | AcnPrmGetTypeDefinition (curPath, md, ts)   ->
             let proposedEnmName =
-                ProgrammingLanguage.AllLanguages |> List.map(fun l ->
+                ProgrammingLanguage.ActiveLanguages |> List.map(fun l ->
                     l, FE_TypeDefinition.getProposedTypeDefName us l (ReferenceToType [MD md; TA ts]) |> fst) |> Map.ofList
             let lanDefs, us1 =
-                ProgrammingLanguage.AllLanguages |> foldMap (fun us l ->
+                ProgrammingLanguage.ActiveLanguages |> foldMap (fun us l ->
                     let ib = asn1.args.getBasicLang l
                     let itm, ns = registerEnumeratedTypeDefinition us (l,ib) (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts]))
                     (l,itm), ns) us
@@ -707,7 +707,9 @@ let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*La
             match asn1.args.renamePolicy with
             | AlwaysPrefixTypeName      ->
                 let typeName0 lang =
-                    proposedEnmName[lang]
+                    match ProgrammingLanguage.ActiveLanguages |> Seq.exists ((=) lang) with
+                    | true -> proposedEnmName[lang]
+                    | false -> ""
                     (*
                     let langTypeDef = typeDef.[lang]
                     let rec aux (langTypeDef:FE_EnumeratedTypeDefinition) =
@@ -1700,7 +1702,7 @@ let mergeAsn1WithAcnAst (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Langua
     let initialState = {Asn1AcnMergeState.allocatedTypeNames = Map.empty; allocatedFE_TypeDefinition = Map.empty; args = asn1.args; temporaryTypesAllocation = Map.empty}
     let state =
         seq {
-            for l in ProgrammingLanguage.AllLanguages do
+            for l in ProgrammingLanguage.ActiveLanguages do
                 for f in asn1.Files do
                     for m in f.Modules do
                         for tas in m.TypeAssignments do

@@ -612,13 +612,18 @@ let private exportType (t:Asn1Type) =
         0 |> fst
 
 
+let getLangSpecificName (typeDef : Map<CommonTypes.ProgrammingLanguage, CommonTypes.FE_TypeDefinition>) (lang:CommonTypes.ProgrammingLanguage) =
+    match typeDef |> Map.tryFind lang with
+    | Some td -> td.typeName
+    | None -> ""
+
 
 let private exportTas (tas:TypeAssignment) =
     XElement(xname "TypeAssignment",
         XAttribute(xname "Name", tas.Name.Value),
-        XAttribute(xname "CName", tas.Type.FT_TypeDefinition.[CommonTypes.C].typeName),
-        XAttribute(xname "ScalaName", tas.Type.FT_TypeDefinition.[CommonTypes.Scala].typeName),
-        XAttribute(xname "AdaName", tas.Type.FT_TypeDefinition.[CommonTypes.Ada].typeName),
+        XAttribute(xname "CName", (getLangSpecificName tas.Type.FT_TypeDefinition CommonTypes.C)),
+        XAttribute(xname "ScalaName", (getLangSpecificName tas.Type.FT_TypeDefinition CommonTypes.Scala)),
+        XAttribute(xname "AdaName", (getLangSpecificName tas.Type.FT_TypeDefinition CommonTypes.Ada)),
         XAttribute(xname "Line", tas.Name.Location.srcLine),
         XAttribute(xname "CharPositionInLine", tas.Name.Location.charPos),
         (if tas.asn1Comments.Length > 0 then (XElement (xname "AsnComment", (tas.asn1Comments |> Seq.StrJoin "\n"))) else null),
