@@ -863,12 +863,14 @@ let private mapType (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1Acn
         (fun ch newChild -> TL "createChoiceChild" (fun () -> createChoiceChild r lm m ch newChild))
 
         (fun pi t ti newBaseType ->
-            TL "createReferenceType" (fun () -> createReferenceType r deps lm m pi t ti newBaseType))
+            createReferenceType r deps lm m pi t ti newBaseType)
 
         (fun pi t ti us ->
             let refToType = ReferenceToType.createFromModAndTasName ti.modName.Value ti.tasName.Value
             let newType = us.newTypesMap[refToType] :?> Asn1Type
-            TL "createReferenceType2" (fun () -> createReferenceType2 r deps lm m pi t ti (newType,us)))
+            //createReferenceType2 r deps lm m pi t ti (newType,us) 
+            createReferenceType r deps lm m pi t ti (newType,us) 
+            )
         (fun pi t ((newKind, newPrms),us)        -> TL "createType" (fun () -> createType r pi t ((newKind, newPrms),us)))
 
         (fun pi t ti us -> (),us)
