@@ -858,6 +858,46 @@ type FE_TypeDefinition =
             | FE_EnumeratedTypeDefinition a    -> a.asn1Module
 
 
+type ReferenceToExistingDefinition = {
+    /// the module where this type is defined
+    /// if the value is not present then is the same as the "caller"
+    programUnit     : string option
+    /// The name of the defined type.
+    typedefName     : string
+    definedInRtl    : bool
+}
+
+type TypeDefinition = {
+    // The program unit where this type is defined.
+    // In C this is None
+    //programUnitName : string option
+    /// The name of the defined type. If type is a type assignment then is the name of the type assignment.
+    /// if the type is an inner type (i.e. within a SEQUENCE/SEQUENCE OF/CHOICE) then name is created as
+    /// parentType.typedefName + "_" + component_name
+    typedefName : string
+
+    /// the complete definition of the type
+    /// e.g. C : typedef asn1SccSint MyInt4;
+    /// and Ada: SUBTYPE MyInt4 IS adaasn1rtl.Asn1Int range 0..25;
+    /// For composite types, typedefBody contains also the definition of any
+    /// inner children
+    typedefBody : unit -> string
+    baseType    : ReferenceToExistingDefinition option
+
+    /// extra information that is needed for the type definition
+    /// E.g. the name of the array that is used to store the enumerated values, used in enum efficient encoding
+    /// This information is not exposed to other types, it is used only in the implementation of the type
+    /// and is not part of the public interface. That is why it should be defined in the implementation file, not in the header file
+    privateTypeDefinition : string option
+}
+
+type TypeDefinitionOrReference =
+    /// indicates that no extra type definition is required (e.g. INTEGER without constraints or type reference type without new constraints)
+    | ReferenceToExistingDefinition    of ReferenceToExistingDefinition
+    /// indicates that a new type is
+    | TypeDefinition                of TypeDefinition
+
+
 type AntlrParserResult = {
     rootItem    : ITree
     fileName    : string

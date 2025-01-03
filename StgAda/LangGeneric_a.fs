@@ -179,6 +179,7 @@ type LangGeneric_a() =
             isvalid_a.ArrayLen exp sAcc
 
         override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[Ada]
+        override this.definitionOrRef (d:Map<ProgrammingLanguage, TypeDefinitionOrReference>) = d.[Ada]
         override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[Ada]
         override this.getEnumTypeDefinition (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[Ada]
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[Ada]
@@ -221,6 +222,10 @@ type LangGeneric_a() =
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC ch._present_when_name_private) + "_PRESENT")
             | _       -> (ToC ch._present_when_name_private) + "_PRESENT"
+        override this.presentWhenName0 (defOrRef:TypeDefinitionOrReference option) (ch:Asn1AcnAst.ChChildInfo) : string =
+            match defOrRef with
+            | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC ch.present_when_name) + "_PRESENT")
+            | _       -> (ToC ch.present_when_name) + "_PRESENT"
         override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
             {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath ("val" + suf) Value}
 
@@ -354,3 +359,5 @@ type LangGeneric_a() =
 
         override _.CreateAuxFiles (r:AstRoot)  (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             ()
+        override this.getChChildIsPresent   (arg:Selection) (chParent:string)  (pre_name:string) =
+            sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name

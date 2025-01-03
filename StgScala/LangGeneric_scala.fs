@@ -176,6 +176,8 @@ type LangGeneric_scala() =
 
         override this.getStar _ = ""
 
+        override _.real_annotations = ["extern"]
+
         override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) =
             (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
 
@@ -201,6 +203,7 @@ type LangGeneric_scala() =
             isvalid_scala.ArrayLen exp sAcc
 
         override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[Scala]
+        override this.definitionOrRef (d:Map<ProgrammingLanguage, TypeDefinitionOrReference>) = d.[Scala]
         override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[Scala]
         override this.getEnumTypeDefinition (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[Scala]
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[Scala]
@@ -275,6 +278,15 @@ type LangGeneric_scala() =
                             | TypeDefinition c -> c.typedefName + "."
                 | None -> ""
             parentName + (ToC ch._present_when_name_private) + "_PRESENT"
+
+        override this.presentWhenName0 (defOrRef:TypeDefinitionOrReference option) (ch:Asn1AcnAst.ChChildInfo) : string =
+            let parentName =
+                match defOrRef with
+                | Some a -> match a with
+                            | ReferenceToExistingDefinition b -> b.typedefName + "."
+                            | TypeDefinition c -> c.typedefName + "."
+                | None -> ""
+            parentName + (ToC ch.present_when_name) + "_PRESENT"
 
         override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
             let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
@@ -439,20 +451,20 @@ type LangGeneric_scala() =
             | Encode -> Some $"assert({topLevelTd}_IsConstraintValid(pVal).isRight)" // TODO: HACK: When for CHOICE, `p` gets reset to the choice variant name, so we hardcode "pVal" here...
             | Decode -> None
             *)
-        override this.generateOctetStringInvariants (t: Asn1AcnAst.Asn1Type) (os: Asn1AcnAst.OctetString): string list =
-            let inv = octetStringInvariants t os This
+        override this.generateOctetStringInvariants (minSize : SIZE) (maxSize : SIZE): string list =
+            let inv = octetStringInvariants minSize maxSize This
             [$"require({show (ExprTree inv)})"]
 
-        override this.generateBitStringInvariants (t: Asn1AcnAst.Asn1Type) (bs: Asn1AcnAst.BitString): string list =
-            let inv = bitStringInvariants t bs This
+        override this.generateBitStringInvariants (minSize : SIZE) (maxSize : SIZE): string list =
+            let inv = bitStringInvariants minSize maxSize This
             [$"require({show (ExprTree inv)})"]
 
         override this.generateSequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
             let inv = sequenceInvariants t sq (children |> List.choose (fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)) This
             inv |> Option.map (fun inv -> $"require({show (ExprTree inv)})") |> Option.toList
 
-        override this.generateSequenceOfInvariants (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (tpe: DAst.Asn1TypeKind): string list =
-            let inv = sequenceOfInvariants sqf This
+        override this.generateSequenceOfInvariants (minSize : SIZE) (maxSize : SIZE) : string list =
+            let inv = sequenceOfInvariants minSize maxSize This
             [$"require({show (ExprTree inv)})"]
 
         override this.generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
@@ -461,8 +473,8 @@ type LangGeneric_scala() =
         override this.generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
             generateChoiceSizeDefinitions t choice children
 
-        override this.generateSequenceOfSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sqf: Asn1AcnAst.SequenceOf) (elemTpe: DAst.Asn1Type): string list * string list =
-            generateSequenceOfSizeDefinitions t sqf elemTpe
+        override this.generateSequenceOfSizeDefinitions (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : Asn1AcnAst.SizeableAcnEncodingClass) (acnAlignment : AcnGenericTypes.AcnAlignment option) (child : Asn1AcnAst.Asn1Type): string list * string list =
+            generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  child 
 
         override this.generateSequenceSubtypeDefinitions (dealiased: string) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: Asn1Child list): string list =
             generateSequenceSubtypeDefinitions dealiased t sq children
@@ -537,3 +549,7 @@ type LangGeneric_scala() =
 
         override this.getTopLevelDirs (target:Targets option) =
             [asn1rtlDirName; srcDirName; "lib"]
+        override this.getChChildIsPresent   (arg:Selection) (chParent:string)  (pre_name:string) =
+            sprintf "%s.isInstanceOf[%s.%s_PRESENT]" (arg.joined this) chParent pre_name
+        override this.extractEnumClassName (prefix: String)(varName: String)(internalName: String): String =
+            prefix + varName.Substring(0, max 0 (varName.Length - (internalName.Length + 1))) // TODO: check case where max is needed

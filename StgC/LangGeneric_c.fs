@@ -148,6 +148,7 @@ type LangGeneric_c() =
             isvalid_c.ArrayLen exp sAcc
 
         override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[C]
+        override this.definitionOrRef (d:Map<ProgrammingLanguage, TypeDefinitionOrReference>) = d.[C]
         override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[C]
         override this.getEnumTypeDefinition (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[C]
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[C]
@@ -224,6 +225,8 @@ type LangGeneric_c() =
 
         override this.presentWhenName (defOrRef:TypeDefinitionOrReference option) (ch:ChChildInfo) : string =
             (ToC ch._present_when_name_private) + "_PRESENT"
+        override this.presentWhenName0 (defOrRef:TypeDefinitionOrReference option) (ch:Asn1AcnAst.ChChildInfo) : string =
+            (ToC ch.present_when_name) + "_PRESENT"
         override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
             let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
                 match kind with
@@ -717,3 +720,6 @@ type LangGeneric_c() =
             {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}
 
         override this.getTopLevelDirs (target:Targets option) = []
+
+        override this.getChChildIsPresent   (arg:Selection) (chParent:string) (pre_name:string) =
+            sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name

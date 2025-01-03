@@ -7,11 +7,9 @@
   <ItemGroup>
     <Compile Include="CalculateIcdHash.fs" />
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="DAstUtilFunctions.fs" />
     <Compile Include="DastFold.fs" />
     <Compile Include="DAstAsn1.fs" />
     <Compile Include="DAstBaseTypesEquivalence.fs" />
-    <Compile Include="DAstTypeDefinition.fs" />
     <Compile Include="DAstTypeDefinition2.fs" />
     <Compile Include="DAstVariables.fs" />
     <Compile Include="DAstEqual.fs" />

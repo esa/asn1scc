@@ -22,6 +22,7 @@
         <Compile Include="Asn1AcnAstUtilFunctions.fs" />
         <Compile Include="DAst.fs" />
         <Compile Include="Language.fs" />
+        <Compile Include="DAstUtilFunctions.fs" />
         <Compile Include="EnsureUniqueEnumNames.fs" />
         <Compile Include="Asn1Fold.fs" />
         <Compile Include="ValuesMapping.fs" />
@@ -31,6 +32,8 @@
         <Compile Include="AcnEncodingClasses.fs" />
         <Compile Include="CheckLongReferences.fs" />
         <Compile Include="FE_TypeDefinition.fs" />
+        <Compile Include="DAstTypeDefinition.fs" />
+        
         <Compile Include="AcnCreateFromAntlr.fs" />
         <Compile Include="TypesEquivalence.fs" />
         <Compile Include="ExportToXml.fs" />

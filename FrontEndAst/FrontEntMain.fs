@@ -107,7 +107,7 @@ let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*Langua
         *)
         let acnAst,acn0 = 
             TL "AcnCreateFromAntlr.mergeAsn1WithAcnAst" (fun () ->
-                AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst (acnAst, acnParseTrees))
+                AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst lms (acnAst, acnParseTrees))
 
         TL "debugFnc uniqueEnumNamesAst" (fun () ->
             debugFnc uniqueEnumNamesAst acn0)

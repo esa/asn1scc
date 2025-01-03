@@ -416,6 +416,7 @@ type Integer = {
     acnEncodingClass    : IntEncodingClass
     isUnsigned          : bool
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
     defaultInitVal      : String
 }
 
@@ -432,6 +433,7 @@ type Real = {
     acnEncodingClass    : RealEncodingClass
 
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
     defaultInitVal      : String
 }
 
@@ -451,6 +453,7 @@ type StringType = {
     acnEncodingClass    : StringAcnEncodingClass
     isNumeric           : bool
     typeDef             : Map<ProgrammingLanguage, FE_StringTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
 }
 
 
@@ -468,6 +471,7 @@ type OctetString = {
     acnEncodingClass    : SizeableAcnEncodingClass
     acnArgs             : RelativePath list
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
 
 }
 
@@ -485,6 +489,7 @@ type BitString = {
     acnEncodingClass    : SizeableAcnEncodingClass
     acnArgs             : RelativePath list
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
     namedBitList        : NamedBit1 list
 }
 
@@ -498,6 +503,7 @@ type TimeType = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
 }
 
 type NullType = {
@@ -508,6 +514,7 @@ type NullType = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
     defaultInitVal      : String
 }
 
@@ -520,6 +527,7 @@ type Boolean = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
     defaultInitVal      : String
 }
 
@@ -533,6 +541,7 @@ type ObjectIdentifier = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
 }
 
 
@@ -550,6 +559,7 @@ type Enumerated = {
     encodeValues        : bool
     userDefinedValues   : bool      //if true, the user has associated at least one item with a value
     typeDef             : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
 }
 
 type AcnReferenceToEnumerated = {
@@ -722,6 +732,7 @@ and SequenceOf = {
     acnEncodingClass    : SizeableAcnEncodingClass
     acnArgs             : RelativePath list
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
 
 }
 
@@ -736,10 +747,12 @@ and Sequence = {
     acnMinSizeInBits        : BigInteger
     acnArgs                 : RelativePath list
     typeDef                 : Map<ProgrammingLanguage, FE_SequenceTypeDefinition>
+    definitionOrRef         : Map<ProgrammingLanguage, TypeDefinitionOrReference>
 }
 
 and AcnChild = {
     Name                        : StringLoc
+    c_name                      : string
     id                          : ReferenceToType
     Type                        : AcnInsertedType
     Comments                    : string array
@@ -782,6 +795,7 @@ and Choice = {
     acnArgs             : RelativePath list
     acnLoc              : SrcLoc option
     typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
 }
 
 and ChChildInfo = {
@@ -822,6 +836,7 @@ and ReferenceType = {
     acnMinSizeInBits    : BigInteger
     encodingOptions        : EncodeWithinOctetOrBitStringProperties option
     refCons             : AnyConstraint list
+    definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
 }
 
 type Asn1AcnType =

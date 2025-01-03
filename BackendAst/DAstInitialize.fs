@@ -1251,3 +1251,45 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
             createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value initTasFunction bs.automaticTestCases constantInitExpression constantInitExpressionGlobal nonEmbeddedChildrenFuncs [] []
         | false ->
             createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpressionFnc bs.initExpressionGlobalFnc bs.nonEmbeddedChildrenFuncs [] []
+
+let createReferenceType2 (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) =
+    let initChildWithInitFunc = lm.init.initChildWithInitFunc
+    let nonEmbeddedChildrenFuncs = []
+
+    let moduleName, typeDefinitionName =
+        match typeDefinition with
+        | ReferenceToExistingDefinition refToExist   ->
+            match refToExist.programUnit with
+            | Some md -> md, refToExist.typedefName
+            | None    -> ToC t.id.ModName, refToExist.typedefName
+        | TypeDefinition                tdDef        ->
+            match tdDef.baseType with
+            | None -> ToC t.id.ModName, tdDef.typedefName
+            | Some refToExist ->
+                match refToExist.programUnit with
+                | Some md -> md, refToExist.typedefName
+                | None    -> ToC t.id.ModName, refToExist.typedefName
+
+
+
+    let t1              = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+    let t1WithExtensions = o.resolvedType;
+
+    //let bs = baseType.initFunction
+    let baseFncName, baseGlobalName =
+        let funcName = typeDefinitionName + (lm.init.methodNameSuffix())
+        let globalName = typeDefinitionName + "_constant"
+        match lm.lg.hasModules with
+        | false     -> funcName, globalName
+        | true   ->
+            match t.id.ModName = o.modName.Value with
+            | true  -> funcName, globalName
+            | false -> moduleName + "." + funcName, moduleName + "." + globalName
+    let constantInitExpression () = baseFncName //+ lm.lg.init.initMethSuffix baseType.Kind
+    let constantInitExpressionGlobal () = baseGlobalName
+    let initTasFunction (p:CallerScope) =
+        let resVar = p.arg.asIdentifier
+        let funcBody = initChildWithInitFunc (lm.lg.getPointer p.arg) baseFncName
+        {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables = []}
+    let dummyInitfuncBody (p:CallerScope) (v:Asn1ValueKind) = ""
+    createInitFunctionCommon r lm t typeDefinition dummyInitfuncBody initTasFunction [] constantInitExpression constantInitExpressionGlobal nonEmbeddedChildrenFuncs [] []
