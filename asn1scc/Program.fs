@@ -403,7 +403,6 @@ let main0 argv =
         cliArgs |> Seq.iter (checkArgument cliArgs)
         setActiveLanguages cliArgs
 
-        ProgrammingLanguage.ActiveLanguages <- ProgrammingLanguage.ActiveLanguages @ [C]
 
 
         let args = constructCommandLineSettings cliArgs parserResults
