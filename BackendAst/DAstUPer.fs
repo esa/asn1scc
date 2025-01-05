@@ -419,9 +419,6 @@ let handleFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:CommonTypes.C
         fragmentation (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) internalItem_funcBody  nIntItemMaxSize ( minSize) ( maxSize) uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString codec, fragmentationVars
 
 let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefinitionOrReference)   (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
-    let ii = t.id.SequenceOfLevel + 1
-    let i = sprintf "i%d" ii
-    let lv = SequenceOfIndex (ii, None)
     let charIndex =
         match lm.lg.uper.requires_charIndex with
         | false     -> []
@@ -431,6 +428,9 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         | true  -> []
         | false -> [lm.lg.uper.createLv "nStringLength"]
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
+        let ii = p.arg.SequenceOfLevel + 1
+        let i = sprintf "i%d" ii
+        let lv = SequenceOfIndex (ii, None)
         let td0 = lm.lg.getStrTypeDefinition o.typeDef
         let td = td0.longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let InternalItem_string_no_alpha   = lm.uper.InternalItem_string_no_alpha
@@ -489,9 +489,9 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
 
 
 let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefinitionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (o:Asn1AcnAst.OctetString) (errCode:ErrorCode) (p:CallerScope) =
-    let ii = id.SequenceOfLevel + 1;
+    let ii = p.arg.SequenceOfLevel + 1;
     let i = sprintf "i%d" ii
-    let lv = SequenceOfIndex (id.SequenceOfLevel + 1, None)
+    let lv = SequenceOfIndex (ii, None)
 
     let td = typeDefinition.longTypedefName2 lm.lg.hasModules
     let pp, resultExpr = joinedOrAsIdentifier lm codec p
@@ -541,11 +541,11 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)
 let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefinitionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (o:Asn1AcnAst.BitString) (errCode:ErrorCode) (p:CallerScope) =
     let bitString_FixSize = lm.uper.bitString_FixSize
     let bitString_VarSize = lm.uper.bitString_VarSize
-    let ii = id.SequenceOfLevel + 1;
-    let i = sprintf "i%d" (id.SequenceOfLevel + 1)
+    let ii = p.arg.SequenceOfLevel + 1;
+    let i = sprintf "i%d" ii
     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (maxSize - minSize))
     let internalItem = lm.uper.InternalItem_bit_str (p.arg.joined lm.lg) i  errCode.errCodeName codec
-    let iVar = SequenceOfIndex (id.SequenceOfLevel + 1, None)
+    let iVar = SequenceOfIndex (ii, None)
     let td = typeDefinition.longTypedefName2 lm.lg.hasModules
     let pp, resultExpr = joinedOrAsIdentifier lm codec p
     let access = lm.lg.getAccess p.arg
@@ -595,7 +595,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
             // It is only meaningful for "Copy" decoding kind, since InPlace will directly modify `p`'s array
             let childInitExpr = DAstInitialize.getChildExpression lm child
 
-            let ii = t.id.SequenceOfLevel + 1
+            let ii = p.arg.SequenceOfLevel + 1
             let i = sprintf "i%d" ii
             let lv = lm.lg.uper.seqof_lv t.id o.minSize.uper o.maxSize.uper
 

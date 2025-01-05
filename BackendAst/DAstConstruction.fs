@@ -769,6 +769,7 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
         }
     ((ReferenceType ret),newPrms), s10
 
+(*
 let private createReferenceType2 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (newResolvedType:Asn1Type, us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
     let defOrRef            = lm.lg.definitionOrRef o.definitionOrRef  //DAstTypeDefinition.createReferenceType_u2 r lm t o  
@@ -813,6 +814,7 @@ let private createReferenceType2 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInse
             xerEncDecTestFunc   = xerEncDecTestFunc
         }
     ((ReferenceType ret),newPrms), s10
+*)
 
 let private createType (r:Asn1AcnAst.AstRoot) pi (t:Asn1AcnAst.Asn1Type) ((newKind, newPrms), (us:State )) =
     let newAsn1Type  =

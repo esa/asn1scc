@@ -232,8 +232,8 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:
                 let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) fncName p1.arg.isOptional p2.arg.isOptional
                 Some(makeExpressionToStatement lm exp, [])
 
-        let i = sprintf "i%d" (t.id.SequenceOfLevel + 1)
-        let lv = SequenceOfIndex (t.id.SequenceOfLevel + 1, None)
+        let i = sprintf "i%d" (v1.arg.SequenceOfLevel + 1)
+        let lv = SequenceOfIndex (v1.arg.SequenceOfLevel + 1, None)
         match getInnerStatement i with
         | None when o.minSize.uper = o.maxSize.uper        -> None
         | None                                   ->
