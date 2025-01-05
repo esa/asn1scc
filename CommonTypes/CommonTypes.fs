@@ -98,6 +98,9 @@ type Selection = {
     member this.asLastOrSelf: Selection =
         if this.path.IsEmpty then this
         else this.asLast
+    member this.SequenceOfLevel =
+        this.path |> List.filter(fun n -> match n with ArrayAccess _ -> true | _ -> false) |> Seq.length
+
 
 type UserError = {
     line : int

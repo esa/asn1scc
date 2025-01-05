@@ -277,9 +277,9 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let SequenceOf = lm.xer.SequenceOf
     let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "SEQUENCE-OF")
-        let ii = t.id.SequenceOfLevel + 1
+        let ii = p.arg.SequenceOfLevel + 1
         let i = sprintf "i%d" ii
-        let lv = SequenceOfIndex (t.id.SequenceOfLevel + 1, None)
+        let lv = SequenceOfIndex (ii + 1, None)
         let pp =  lm.lg.getPointer p.arg
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let chFunc =

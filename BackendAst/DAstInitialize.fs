@@ -17,7 +17,6 @@ open Language
 
 
 
-
 (*
 create procedures that initialize an ASN.1 type.
 
@@ -333,13 +332,15 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
         let tlLit = DAstVariables.convertStringValue2TargetLangStringLiteral lm (int o.maxSize.uper) vl
         initIA5String (lm.lg.getValue p.arg) tlLit p.arg.isOptional resVar
 
-    let ii = t.id.SequenceOfLevel + 1
-    let i = sprintf "i%d" ii
+    //let ii = t.id.SequenceOfLevel + 1
+    //let i = sprintf "i%d" ii
     let bAlpha = o.uperCharSet.Length < 128
     let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
     let testCaseFuncs =
         let seqOfCase (nSize:BigInteger)  =
             let initTestCaseFunc (p:CallerScope) =
+                let ii = p.arg.SequenceOfLevel + 1
+                let i = sprintf "i%d" ii
                 let resVar = p.arg.asIdentifier
                 let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
                 let funcBody = initTestCaseIA5String (p.arg.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.arg) (nSize) ((o.maxSize.uper+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false resVar
@@ -357,6 +358,8 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
                 | false -> ()
         } |> Seq.toList
     let zero (p:CallerScope) =
+        let ii = p.arg.SequenceOfLevel + 1
+        let i = sprintf "i%d" ii
         let resVar = p.arg.asIdentifier
         let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
         let funcBody = initTestCaseIA5String (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) ( (o.maxSize.uper+1I)) ( (o.maxSize.uper+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true resVar
@@ -397,10 +400,12 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
     let testCaseFuncs, tasInitFunc =
         match anonyms with
         | []  ->
-            let ii = t.id.SequenceOfLevel + 1
-            let i = sprintf "i%d" ii
+            //let ii = t.id.SequenceOfLevel + 1
+            //let i = sprintf "i%d" ii
             let seqOfCase (nSize:BigInteger) =
                 let initTestCaseFunc (p:CallerScope) =
+                    let ii = p.arg.SequenceOfLevel + 1
+                    let i = sprintf "i%d" ii
                     let resVar = p.arg.asIdentifier
                     let funcBody = initTestCaseOctetString (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) tdName nSize i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper (nSize = 0I) resVar
                     {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
@@ -426,6 +431,8 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                         match bs.Kind with
                         | Asn1AcnAst.OctetString bo -> bo.isFixedSize
                         | _                        -> raise(BugErrorException "UnexpectedType")
+                let ii = p.arg.SequenceOfLevel + 1
+                let i = sprintf "i%d" ii
                 let funcBody = initTestCaseOctetString (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) tdName o.maxSize.uper i (isFixedSize) true o.minSize.uper (o.maxSize.uper = 0I) resVar
                 let lvars = lm.lg.init.zeroIA5String_localVars ii
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
@@ -490,10 +497,12 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
     let testCaseFuncs, tasInitFunc =
         match anonyms with
         | []  ->
-            let ii = t.id.SequenceOfLevel + 1
-            let i = sprintf "i%d" ii
+            //let ii = t.id.SequenceOfLevel + 1
+            //let i = sprintf "i%d" ii
             let seqOfCase (nSize:BigInteger) =
                 let initTestCaseFunc (p:CallerScope) =
+                    let ii = p.arg.SequenceOfLevel + 1
+                    let i = sprintf "i%d" ii
                     let resVar = p.arg.asIdentifier
                     let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I))
                     let funcBody = initTestCaseBitString (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) tdName nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper p.arg.isOptional resVar
@@ -513,6 +522,8 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                         | false -> ()
                 } |> Seq.toList
             let zero (p:CallerScope) =
+                let ii = p.arg.SequenceOfLevel + 1
+                let i = sprintf "i%d" ii
                 let resVar = p.arg.asIdentifier
                 let nSize = o.maxSize.uper
                 let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I))
@@ -728,8 +739,8 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         | true  -> initFixedSequenceOf vl
         | false -> initVarSizeSequenceOf (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) (BigInteger vl.Length) vl
     let tdName = typeDefinition.longTypedefName2 lm.lg.hasModules
-    let ii = t.id.SequenceOfLevel + 1
-    let i = sprintf "i%d" (t.id.SequenceOfLevel + 1)
+    //let ii = t.id.SequenceOfLevel + 1
+    //let i = sprintf "i%d" (t.id.SequenceOfLevel + 1)
     let testCaseFuncs =
         let seqOfCase (childTestCases : AutomaticTestCase list) (nSize:BigInteger)  =
                 match childTestCases with
@@ -740,6 +751,8 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
                 | atc::[] ->
                     let initTestCaseFunc (p:CallerScope) =
+                        let ii = p.arg.SequenceOfLevel + 1
+                        let i = sprintf "i%d" ii
                         let resVar = p.arg.asIdentifier
                         let chp = {p with arg = lm.lg.getArrayItem p.arg i childType.isIA5String}
                         let childCase = atc.initTestCaseFunc chp
@@ -752,6 +765,8 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase }
                 | _             ->
                     let initTestCaseFunc (p:CallerScope) =
+                        let ii = p.arg.SequenceOfLevel + 1
+                        let i = sprintf "i%d" ii
                         let resVar = p.arg.asIdentifier
                         let arrsInnerItems, childLocalVars =
                             childTestCases |>
@@ -803,6 +818,8 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
 
     let initTasFunction, nonEmbeddedChildrenFuncs =
         let initTasFunction (p:CallerScope) =
+            let ii = p.arg.SequenceOfLevel + 1
+            let i = sprintf "i%d" ii
             let resVar = p.arg.asIdentifier
             let initCountValue = Some o.minSize.uper
             let chp = {p with arg = lm.lg.getArrayItem p.arg i childType.isIA5String}

@@ -508,9 +508,6 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
 
 and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.SequenceOf) (child:Asn1Type) (equalFunc:EqualFunction) (c:SequenceOfConstraint) st =
 
-    let ii = typeId.SequenceOfLevel + 1
-    let i = sprintf "i%d" ii
-    let lv = SequenceOfIndex (ii, None)
     let expressionToStatement              = l.isvalid.ExpressionToStatement
     let statementForLoop                 = l.isvalid.StatementForLoop
 
@@ -524,7 +521,10 @@ and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageM
             | false  -> foldSizeRangeTypeConstraint r l getSizeFunc intCon s
             | true  -> (fun p -> VCBTrue), s)
         (fun _ c loc s ->
-            (fun p ->
+            (fun (p:CallerScope) ->
+                let ii = p.arg.SequenceOfLevel + 1
+                let i = sprintf "i%d" ii
+                let lv = SequenceOfIndex (ii, None)
                 let fnc, ns = anyConstraint2ValidationCodeBlock r l loc child c s
                 let ch_arg = l.lg.getArrayItem p.arg i child.isIA5String
                 let childCheck p = fnc ({p with arg = ch_arg})
@@ -735,9 +735,9 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
 
     let vcbs, ns2 = o.cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l t.id o (childType:Asn1Type) equalFunc c cs) us
 
-    let i = sprintf "i%d" (t.id.SequenceOfLevel + 1)
-    let chp p = {p with arg = l.lg.getArrayItem p.arg i childType.isIA5String}
-    let lv = SequenceOfIndex (t.id.SequenceOfLevel + 1, None)
+    let chp (p:CallerScope) = 
+        let i = sprintf "i%d" (p.arg.SequenceOfLevel + 1)
+        {p with arg = l.lg.getArrayItem p.arg i childType.isIA5String}
 
     let childFunc, childErrCodes, childAlphaFuncs, childLocalVars, nonEmbeddedChildValidFuncs =
         match childType.isValidFunction with
@@ -753,6 +753,9 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
                 Some f1, cvf.errCodes, cvf.alphaFuncs, cvf.localVariables, []
 
     let funBody (errCode: ErrorCode) (p:CallerScope) =
+        let ii = p.arg.SequenceOfLevel + 1
+        let i = sprintf "i%d" ii
+        let lv = SequenceOfIndex (ii, None)
         let with_component_check, lllvs = convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |> List.unzip
         let childCheck =
             match childFunc with
