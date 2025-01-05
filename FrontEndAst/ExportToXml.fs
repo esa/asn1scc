@@ -583,7 +583,7 @@ let private exportType (t:Asn1Type) =
                              | args -> [XElement(xname "AcnArguments", (args |> List.map exprtRefTypeArgument) )]),
                             nt), us )
         (fun t nk us -> XElement(xname "Asn1Type",
-                            XAttribute(xname "TD", t.FT_TypeDefinition.[CommonTypes.C].kind),
+                            XAttribute(xname "TD", t.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].kind),
                             XAttribute(xname "id", t.id.AsString),
                             XAttribute(xname "Line", t.Location.srcLine),
                             XAttribute(xname "CharPositionInLine", t.Location.charPos),
