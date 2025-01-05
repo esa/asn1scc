@@ -447,8 +447,8 @@ let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<
 
         match td.kind with
         | NonPrimitiveNewTypeDefinition ->
-            let invariants = [] //lm.lg.generateSequenceOfInvariants minSize maxSize 
-            let sizeClsDefinitions, sizeObjDefinitions = [],[]//lm.lg.generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  child
+            let invariants = lm.lg.generateSequenceOfInvariants minSize maxSize 
+            let sizeClsDefinitions, sizeObjDefinitions = lm.lg.generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  child
             let completeDefinition = define_new_sequence_of td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (childTypeDefinitionOrReference.longTypedefName2 lm.lg.hasModules) (getChildDefinition childTypeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
             let privateDefinition =
                 match childTypeDefinitionOrReference with
@@ -481,7 +481,7 @@ let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
 
-let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>)  (id: ReferenceToType) (acnProperties : AcnGenericTypes.SequenceAcnProperties) (acnMaxSizeInBits : BigInteger)   (children:Asn1AcnAst.SeqChildInfo list)  =
+let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>)  (id: ReferenceToType) (acnAlignment : AcnGenericTypes.AcnAlignment option) (acnProperties : AcnGenericTypes.SequenceAcnProperties) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger)   (children:Asn1AcnAst.SeqChildInfo list)  =
     let createSequence  (allchildren: Asn1AcnAst.SeqChildInfo list)  =
         let define_new_sequence             = lm.typeDef.Define_new_sequence
         let define_new_sequence_child       = lm.typeDef.Define_new_sequence_child
@@ -524,10 +524,8 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
 
         match td.kind with
         | NonPrimitiveNewTypeDefinition ->
-            //SOS: invariants and size definitions are current not generated for sequences
-            //we need to implement this in the future
-            let invariants = [] //lm.lg.generateSequenceInvariants t o allchildren
-            let sizeDefinitions = [] //lm.lg.generateSequenceSizeDefinitions t o allchildren
+            let invariants = lm.lg.generateSequenceInvariants children
+            let sizeDefinitions = lm.lg.generateSequenceSizeDefinitions acnAlignment  acnMinSizeInBits acnMaxSizeInBits allchildren 
             let completeDefinition = define_new_sequence td arrsChildren arrsOptionalChildren childrenCompleteDefinitions arrsNullFieldsSavePos sizeDefinitions invariants
             let privateDef =
                 match childrenPrivatePart with
@@ -536,9 +534,7 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
             Some (completeDefinition, privateDef)
         | NonPrimitiveNewSubTypeDefinition subDef ->
             let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-            //SOS: extraDefs are not currently generated for sequences
-            //we need to implement this in the future
-            let extraDefs = []//lm.lg.generateSequenceSubtypeDefinitions subDef.typeName t o children
+            let extraDefs = lm.lg.generateSequenceSubtypeDefinitions subDef.typeName typeDef  children
             let completeDefinition = define_subType_sequence td subDef otherProgramUnit arrsOptionalChildren extraDefs
             Some (completeDefinition, None)
         | NonPrimitiveReference2OtherType -> None
