@@ -64,7 +64,7 @@ let Kind2Name (stgFileName:string) (t:Asn1Type) =
     | other -> raise (BugErrorException $"Unsupported kind for Kind2Name: {other}")
 
 let getTypeName (stgFileName:string) (t:Asn1Type) =
-    icd_acn.EmitSeqChild_RefType stgFileName t.FT_TypeDefinition.[CommonTypes.C].asn1Name (ToC t.FT_TypeDefinition.[CommonTypes.C].asn1Name)
+    icd_acn.EmitSeqChild_RefType stgFileName t.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name (ToC t.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)
     //match t.Kind with
     //| ReferenceType ref  -> icd_uper.EmitSeqChild_RefType stgFileName ref.baseInfo.tasName.Value (ToC ref.baseInfo.tasName.Value)
     //| _                  -> Kind2Name stgFileName t
@@ -324,7 +324,7 @@ let getModuleIcdTasses (m:Asn1Module) =
                 | Some tas -> tas.Comments
                 | None     -> [||]
             | None         -> [||]
-        let td = x.FT_TypeDefinition.[CommonTypes.C]
+        let td = x.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head]
         match td.BaseKind with
         | NewTypeDefinition       -> Some {IcdTypeAssignment.name = td.asn1Name; comments=comments; t=x; isBlue = x.tasInfo.IsNone}               //type
         | NewSubTypeDefinition    -> Some {IcdTypeAssignment.name = td.asn1Name; comments=comments; t=x; isBlue = x.tasInfo.IsNone}

@@ -172,7 +172,7 @@ let emitSequenceComponent (r:AstRoot) stgFileName (optionalLikeUperChildren:Asn1
                 let defaultRetValue =
                     match ch.Type.Kind with
                     | ReferenceType o when not o.baseInfo.hasExtraConstrainsOrChildrenOrAcnArgs ->
-                        icd_acn.EmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefinition.[CommonTypes.C].asn1Name (ToC ch.Type.FT_TypeDefinition.[CommonTypes.C].asn1Name)
+                        icd_acn.EmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name (ToC ch.Type.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)
                     | OctetString o -> "OCTET STRING"
                     | _ ->
                         match ch.Type.ActualType.Kind with
@@ -181,7 +181,7 @@ let emitSequenceComponent (r:AstRoot) stgFileName (optionalLikeUperChildren:Asn1
                         | SequenceOf _ ->
                             icd_acn.EmitSeqChild_RefType stgFileName ch.Type.id.AsString.RDD (ToC ch.Type.id.AsString.RDD)
                         | _            ->
-                            icd_acn.EmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefinition.[CommonTypes.C].asn1Name (ToC ch.Type.FT_TypeDefinition.[CommonTypes.C].asn1Name)
+                            icd_acn.EmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name (ToC ch.Type.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)
                 match ch.Type.ActualType.Kind with
                 | DAst.NullType       o  when o.baseInfo.acnProperties.encodingPattern.IsSome  ->
                                                 handleNullType stgFileName o.baseInfo.acnProperties.encodingPattern defaultRetValue
@@ -345,7 +345,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             let sPresentWhen = getPresence i ch
 
             let sType =
-                let defaultRetValue = icd_acn.EmitSeqChild_RefType stgFileName ch.chType.FT_TypeDefinition.[CommonTypes.C].asn1Name (ToC ch.chType.FT_TypeDefinition.[CommonTypes.C].asn1Name)
+                let defaultRetValue = icd_acn.EmitSeqChild_RefType stgFileName ch.chType.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name (ToC ch.chType.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)
                 match ch.chType.Kind with
                 | ReferenceType o when not o.baseInfo.hasExtraConstrainsOrChildrenOrAcnArgs -> defaultRetValue
                 | _  ->
@@ -500,7 +500,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                     let sMaxBits, sMaxBytes = child.acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(child.acnMaxSizeInBits)/8.0)).ToString()
                     let sMinBits, sMinBytes = child.acnMinSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(child.acnMinSizeInBits)/8.0)).ToString()
                     let sType =
-                        icd_acn.EmitSeqChild_RefType stgFileName child.FT_TypeDefinition.[CommonTypes.C].asn1Name (ToC child.FT_TypeDefinition.[CommonTypes.C].asn1Name)
+                        icd_acn.EmitSeqChild_RefType stgFileName child.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name (ToC child.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)
 //                        match child.Kind with
 //                        | ReferenceType ref -> icd_acn.EmitSeqChild_RefType stgFileName ref.baseInfo.tasName.Value (ToC ref.baseInfo.tasName.Value)
 //                        | _                       -> Kind2Name stgFileName child

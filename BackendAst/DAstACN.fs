@@ -1499,7 +1499,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
     | AcnDepPresence   (relPath, chc)               ->
         let icdComments =
-            let aaa = sprintf "Used as a presence determinant for %s " (chc.typeDef[C].asn1Name)
+            let aaa = sprintf "Used as a presence determinant for %s " (chc.typeDef[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)
             [aaa]
         let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
@@ -1594,7 +1594,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
             atc.testCaseTypeIDsMap.TryFind d.asn1Type
         let icdComments =
-            let aaa = sprintf "Used as a presence determinant for %s " (chc.typeDef[C].asn1Name)
+            let aaa = sprintf "Used as a presence determinant for %s " (chc.typeDef[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)
             [aaa]
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 

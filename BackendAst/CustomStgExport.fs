@@ -147,9 +147,9 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName (sMin = sMax) sResolvedType stgFileName
                 | None              -> gen.RefType asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName sResolvedType stgFileName
 
-            let cName = t.FT_TypeDefinition.[C].typeName
-            let scalaName = t.FT_TypeDefinition.[Scala].typeName
-            let adaName = t.FT_TypeDefinition.[Ada].typeName
+            let cName = t.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].typeName
+            let scalaName = t.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].typeName
+            let adaName = t.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].typeName
             gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) cName scalaName adaName stgFileName
 
     let PrintTypeAux (t:Asn1Type) =
@@ -239,9 +239,9 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
             | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName  (sMin=sMax) (Some resolvedType) stgFileName
             | None              -> gen.RefType info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName (Some resolvedType) stgFileName
         | other -> raise (BugErrorException $"Unsupported kind for PrintTypeAux {other}")
-    let cName = t.FT_TypeDefinition.[C].typeName
-    let scalaName = t.FT_TypeDefinition.[Scala].typeName
-    let adaName = t.FT_TypeDefinition.[Ada].typeName
+    let cName = t.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].typeName
+    let scalaName = t.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].typeName
+    let adaName = t.FT_TypeDefinition.[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].typeName
     gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName  (PrintTypeAux t) (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) cName scalaName adaName stgFileName
 
 
