@@ -186,7 +186,7 @@ let bitStringInvariants  (minSize : SIZE) (maxSize : SIZE) (recv: Expr): Expr =
     let nCount = FieldSelect (recv, "nCount")
     And [Leq (len, int32lit (bigint (getBitStringMaxOctets maxSize))); Leq (longlit minSize.acn, nCount); Leq (nCount, Mult (len, longlit 8I))] // TODO: Cast en long explicite
 
-let sequenceInvariantsCommon (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: (DAst.Asn1Child * Expr) list): Expr option =
+let sequenceInvariantsCommon (children: (Asn1AcnAst.Asn1Child * Expr) list): Expr option =
   let conds = children |> List.collect (fun (child, field) ->
     let isDefined = isDefinedMutExpr field
     let opt =
@@ -196,7 +196,7 @@ let sequenceInvariantsCommon (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) 
       | _ -> []
     // StringType is a type alias and has therefore no associated class invariant; we need to explicitly add them
     let strType =
-      match child.Type.Kind.baseKind.ActualType with
+      match child.Type.Kind.ActualType with
       | IA5String st -> [stringInvariants st.minSize.acn st.maxSize.acn field]
       | _ -> []
     opt @ strType
@@ -205,8 +205,8 @@ let sequenceInvariantsCommon (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) 
   else if conds.Tail.IsEmpty then Some conds.Head
   else Some (And conds)
 
-let sequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.Asn1Child list) (recv: Expr): Expr option =
-  sequenceInvariantsCommon t sq (children |> List.map (fun c -> c, FieldSelect (recv, c._scala_name)))
+let sequenceInvariants  (children: Asn1AcnAst.Asn1Child list) (recv: Expr): Expr option =
+  sequenceInvariantsCommon  (children |> List.map (fun c -> c, FieldSelect (recv, c._scala_name)))
 
 let sequenceOfInvariants (minSize : SIZE) (maxSize : SIZE) (recv: Expr): Expr =
     let len = vecSize (FieldSelect (recv, "arr"))
@@ -251,8 +251,8 @@ let private sizeLemmaTemplate (maxSize: bigint) (align: AcnAlignment option): Fu
     body = UnitLit
   }
 
-let countNbPresenceBits (sq: Sequence): int =
-  sq.children |> List.sumBy (fun child ->
+let countNbPresenceBits (children  : SeqChildInfo list): int =
+  children |> List.sumBy (fun child ->
     match child with
     | AcnChild _ -> 0
     | Asn1Child asn1 ->
@@ -336,7 +336,7 @@ let rec asn1SizeExpr (align: AcnAlignment option)
     aligned {bdgs = []; resSize = longlit rt.acnMaxSizeInBits}
   | Sequence sq ->
     // Alignment done there
-    seqSizeExpr sq align obj offset (nestingLevel + 1I) nestingIx
+    seqSizeExpr sq.children align obj offset (nestingLevel + 1I) nestingIx
   | Choice ch ->
     // Ditto
     choiceSizeExpr ch align obj offset (nestingLevel + 1I) nestingIx
@@ -375,12 +375,12 @@ and seqSizeExprHelperChild (child: SeqChildInfo)
     | None ->
       asn1SizeExpr asn1.Type.acnAlignment asn1.Type.Kind recv.Value offset nestingLevel (nestingIx + ix)
 
-and seqSizeExprHelper (sq: Sequence)
+and seqSizeExprHelper (children : SeqChildInfo list)
                       (obj: Expr)
                       (offset: Expr)
                       (nestingLevel: bigint)
                       (nestingIx: bigint): SeqSizeExprChildRes list =
-  let nbPresenceBits = countNbPresenceBits sq
+  let nbPresenceBits = countNbPresenceBits children 
 
   let childSize (acc: SeqSizeExprChildRes list) (ix0: int, child: SeqChildInfo): SeqSizeExprChildRes list =
     let ix = bigint (nbPresenceBits + ix0)
@@ -402,17 +402,17 @@ and seqSizeExprHelper (sq: Sequence)
       else $"size_{nestingLevel}_{nestingIx + bigint i}"
     {extraBdgs = []; childVar = {name = varName; tpe = IntegerType Long}; childSize = longlit 1I}
   )
-  sq.children |> List.indexed |> (List.fold childSize presenceBitsVars)
+  children |> List.indexed |> (List.fold childSize presenceBitsVars)
 
-and seqSizeExpr (sq: Sequence)
+and seqSizeExpr (children : SeqChildInfo list)
                 (align: AcnAlignment option)
                 (obj: Expr)
                 (offset: Expr)
                 (nestingLevel: bigint)
                 (nestingIx: bigint): SizeExprRes =
-  if sq.children.IsEmpty then {bdgs = []; resSize = longlit 0I}
+  if children.IsEmpty then {bdgs = []; resSize = longlit 0I}
   else
-    let childrenSizes = seqSizeExprHelper sq obj offset nestingLevel nestingIx
+    let childrenSizes = seqSizeExprHelper children obj offset nestingLevel nestingIx
     let allBindings = childrenSizes |> List.collect (fun s -> s.extraBdgs @ [(s.childVar, s.childSize)])
     let childrenVars = childrenSizes |> List.map (fun s -> s.childVar)
     let resultSize = childrenVars |> List.map Var |> plus
@@ -455,24 +455,26 @@ let optionalSizeExpr (child: Asn1AcnAst.Asn1Child)
       {res with resSize = IfExpr {cond = isDefinedMutExpr obj; thn = res.resSize; els = longlit 0I}}
     | None -> sz obj
 
-let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef list =
+    
+
+let seqSizeFunDefs (acnAlignment    : AcnAlignment option) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (children : SeqChildInfo list) : FunDef list =
   // TODO: Pour les int, on peut ajouter une assertion GetBitUnsignedCount(...) == resultat (ici et/ou ailleurs)
   let offset = {Var.name = "offset"; tpe = IntegerType Long}
-  let res = seqSizeExpr sq t.acnAlignment This (Var offset) 0I 0I
+  let res = seqSizeExpr children acnAlignment This (Var offset) 0I 0I
   let finalSize = letsIn res.bdgs res.resSize
   let res = {name = "res"; tpe = IntegerType Long}
   let postcond =
-    if sq.acnMinSizeInBits = sq.acnMaxSizeInBits then Equals (Var res, longlit sq.acnMaxSizeInBits)
-    else And [Leq (longlit 0I, Var res); Leq (Var res, longlit sq.acnMaxSizeInBits)]
+    if acnMinSizeInBits = acnMaxSizeInBits then Equals (Var res, longlit acnMaxSizeInBits)
+    else And [Leq (longlit 0I, Var res); Leq (Var res, longlit acnMaxSizeInBits)]
 
   let sizeLemmas (align: AcnAlignment option): FunDef =
-    let template = sizeLemmaTemplate sq.acnMaxSizeInBits align
+    let template = sizeLemmaTemplate acnMaxSizeInBits align
     let offset = template.prms.[0]
     let otherOffset = template.prms.[1]
 
-    let allResWithOffset = seqSizeExprHelper sq This (Var offset) 0I 0I
+    let allResWithOffset = seqSizeExprHelper children This (Var offset) 0I 0I
     let allResWithOffset = renameBindingsSeqSizeRes allResWithOffset "_offset"
-    let allResWithOtherOffset = seqSizeExprHelper sq This (Var otherOffset) 0I 0I
+    let allResWithOtherOffset = seqSizeExprHelper children This (Var otherOffset) 0I 0I
     let allResWithOtherOffset = renameBindingsSeqSizeRes allResWithOtherOffset "_otherOffset"
 
     let proofSubcase (ix: int, (resWithOffset: SeqSizeExprChildRes, resWithOtherOffset: SeqSizeExprChildRes, child: SeqChildInfo option)) (rest: Expr): Expr =
@@ -502,10 +504,10 @@ let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef li
           withBindingsPlugged lemmaCall
       | _ -> withBindingsPlugged None
 
-    let nbPresenceBits = countNbPresenceBits sq
+    let nbPresenceBits = countNbPresenceBits children
     assert (allResWithOffset.Length = allResWithOtherOffset.Length)
-    assert (allResWithOffset.Length = sq.children.Length + nbPresenceBits)
-    let sqChildren = (List.replicate nbPresenceBits None) @ (sq.children |> List.map Some)
+    assert (allResWithOffset.Length = children.Length + nbPresenceBits)
+    let sqChildren = (List.replicate nbPresenceBits None) @ (children |> List.map Some)
     let proofBody = (List.foldBack proofSubcase ((List.zip3 allResWithOffset allResWithOtherOffset sqChildren) |> List.indexed) UnitLit)
 
     {template with body = proofBody}
@@ -513,13 +515,15 @@ let seqSizeFunDefs (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence): FunDef li
   let sizeFd = {
     id = "size"
     prms = [offset]
-    specs = [Precond (offsetConds offset sq.acnMaxSizeInBits)]
+    specs = [Precond (offsetConds offset acnMaxSizeInBits)]
     annots = []
     postcond = Some (res, postcond)
     returnTpe = IntegerType Long
     body = finalSize
   }
-  let maxAlign = maxAlignment t
+  //SOS: We need to calculate the max alignment of the sequence to generate the lemmas
+  //currently we are assuming that the max alignment is the same as the alignment of the sequence
+  let maxAlign = acnAlignment // maxAlignment t
   let implyingAligns = implyingAlignments maxAlign
   let lemmas = implyingAligns |> List.map sizeLemmas
   sizeFd :: lemmas
@@ -748,8 +752,8 @@ let seqOfSizeFunDefs (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefiniti
   sizeClsFd :: clsLemmas, sizeRangeObjFd :: objLemmas
 
 
-let generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.SeqChildInfo list): string list =
-  let fds = seqSizeFunDefs t sq
+let generateSequenceSizeDefinitions (acnAlignment : AcnAlignment option) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (children : SeqChildInfo list): string list =
+  let fds = seqSizeFunDefs acnAlignment acnMinSizeInBits  acnMaxSizeInBits children 
   fds |> List.map (fun fd -> show (FunDefTree fd))
 
 let generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
@@ -760,11 +764,11 @@ let generateSequenceOfSizeDefinitions (typeDef : Map<ProgrammingLanguage, FE_Siz
   let fdsCls, fdsObj = seqOfSizeFunDefs typeDef acnMinSizeInBits acnMaxSizeInBits maxSize acnEncodingClass acnAlignment child
   fdsCls |> List.map (fun fd -> show (FunDefTree fd)), fdsObj |> List.map (fun fd -> show (FunDefTree fd))
 
-let generateSequenceSubtypeDefinitions (dealiased: string) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: DAst.Asn1Child list): string list =
-  let retTpe = fromAsn1TypeKind t.Kind
-  let prms = children |> List.map (fun c -> {Var.name = c.Name.Value; tpe = fromAsn1TypeKind c.Type.Kind.baseKind})
+let generateSequenceSubtypeDefinitions (dealiased: string) (typeDef:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) (children: Asn1AcnAst.Asn1Child list): string list =
+  let retTpe = ClassType {ClassType.prefix = []; id = typeDef[Scala].typeName; tps = []; parameterless = false} //fromAsn1TypeKind kind
+  let prms = children |> List.map (fun c -> {Var.name = c.Name.Value; tpe = fromAsn1TypeKind c.Type.Kind})
   let body = ClassCtor {ct = {prefix = []; id = dealiased; tps = []; parameterless = false}; args = prms |> List.map Var}
-  let reqs = sequenceInvariantsCommon t sq (List.zip children (prms |> List.map Var))
+  let reqs = sequenceInvariantsCommon (List.zip children (prms |> List.map Var))
   let fd = {
     FunDef.id = "apply"
     prms = prms
@@ -1685,7 +1689,7 @@ let generatePrefixLemmaSequence (enc: Asn1Encoding)
                                 (t: Asn1AcnAst.Asn1Type)
                                 (nestingScope: NestingScope)
                                 (sq: Sequence): FunDef =
-  let nbPresenceBits = countNbPresenceBits sq
+  let nbPresenceBits = countNbPresenceBits sq.children
   let childrenSizes = [0..nbPresenceBits + sq.children.Length] |> List.map (fun i -> {Var.name = $"size_1_{i}"; tpe = IntegerType Long})
   let bodyWithC1Id = "bodyWithC1"
   let bodyWithC2Id = "bodyWithC2"
@@ -2478,7 +2482,7 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
     [fd; fdPure], ret
 
 let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc: Var) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (rest: Expr): Expr =
-  let nbPresenceBits = countNbPresenceBits pg.sq
+  let nbPresenceBits = countNbPresenceBits pg.sq.children
   let nbTotalChildren = nbPresenceBits + pg.sq.children.Length
   assert (snapshots.Length = nbTotalChildren)
   assert (stmts.Length = nbTotalChildren)
@@ -2589,7 +2593,7 @@ let generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmt
     let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
     let oldCdc = {Var.name = $"oldCdc"; tpe = ClassType codecTpe}
     if enc = ACN then
-      let nbPresenceBits = countNbPresenceBits pg.sq
+      let nbPresenceBits = countNbPresenceBits pg.sq.children
       let snapshots = [1 .. nbPresenceBits + pg.sq.children.Length] |> List.map (fun i -> {Var.name = $"codec_{pg.nestingLevel}_{pg.nestingIx + bigint i}"; tpe = ClassType codecTpe})
       let wrappedStmts = annotateSequenceChildStmt enc snapshots cdc oldCdc stmts pg codec
       let postCondLemmas =
@@ -2613,7 +2617,7 @@ let generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1Ac
       | Encode -> SelectionExpr (joinedSelection sel)
       | Decode -> SelectionExpr sel.asIdentifier
 
-    let nbPresenceBits = countNbPresenceBits sq
+    let nbPresenceBits = countNbPresenceBits sq.children
     let childrenSizes = [0 .. nbPresenceBits + sq.children.Length - 1] |> List.map (fun i -> {name = $"size_{i}"; tpe = IntegerType Long})
     // For "nested sequences", we always inline the size definition instead of calling the corresponding `size` function
     // since we do not know whether we have extra ACN fields or not. See the TODO in `wrapAcnFuncBody`

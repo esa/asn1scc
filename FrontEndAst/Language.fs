@@ -347,14 +347,14 @@ type ILangGeneric () =
 
     abstract member generateOctetStringInvariants: SIZE -> SIZE -> string list
     abstract member generateBitStringInvariants:  SIZE -> SIZE -> string list
-    abstract member generateSequenceInvariants: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> SeqChildInfo list -> string list
+    abstract member generateSequenceInvariants: Asn1AcnAst.Asn1Child list-> string list
     abstract member generateSequenceOfInvariants: SIZE -> SIZE -> string list
 
-    abstract member generateSequenceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> SeqChildInfo list -> string list
+    abstract member generateSequenceSizeDefinitions: (AcnGenericTypes.AcnAlignment option)-> (BigInteger)->(BigInteger)-> (Asn1AcnAst.SeqChildInfo list) -> string list
     abstract member generateChoiceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> ChChildInfo list -> string list
     //(typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : SizeableAcnEncodingClass) (acnAlignment : AcnAlignment option) (child : Asn1AcnAst.Asn1Type)
     abstract member generateSequenceOfSizeDefinitions: Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> BigInteger -> BigInteger-> SIZE -> Asn1AcnAst.SizeableAcnEncodingClass -> AcnGenericTypes.AcnAlignment option -> Asn1AcnAst.Asn1Type -> string list * string list
-    abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> Asn1Child list -> string list
+    abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> Asn1AcnAst.Asn1Child list -> string list
     abstract member real_annotations : string list
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
@@ -395,13 +395,13 @@ type ILangGeneric () =
 
     default this.generateOctetStringInvariants _ _ = []
     default this.generateBitStringInvariants _ _ = []
-    default this.generateSequenceInvariants _ _ _ = []
+    default this.generateSequenceInvariants  _ = []
     default this.generateSequenceOfInvariants _ _ = []
 
-    default this.generateSequenceSizeDefinitions _ _ _ = []
+    default this.generateSequenceSizeDefinitions _ _ _ _ = []
     default this.generateChoiceSizeDefinitions _ _ _ = []
     default this.generateSequenceOfSizeDefinitions _ _ _ _ _ _ _ = [], []
-    default this.generateSequenceSubtypeDefinitions _ _ _ _ = []
+    default this.generateSequenceSubtypeDefinitions _ _ _ = []
 
     //most programming languages are case sensitive
     default _.isCaseSensitive = true

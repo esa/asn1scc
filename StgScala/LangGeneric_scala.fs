@@ -459,16 +459,16 @@ type LangGeneric_scala() =
             let inv = bitStringInvariants minSize maxSize This
             [$"require({show (ExprTree inv)})"]
 
-        override this.generateSequenceInvariants (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
-            let inv = sequenceInvariants t sq (children |> List.choose (fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)) This
+        override this.generateSequenceInvariants  (children: Asn1AcnAst.Asn1Child list): string list =
+            let inv = sequenceInvariants children This
             inv |> Option.map (fun inv -> $"require({show (ExprTree inv)})") |> Option.toList
 
         override this.generateSequenceOfInvariants (minSize : SIZE) (maxSize : SIZE) : string list =
             let inv = sequenceOfInvariants minSize maxSize This
             [$"require({show (ExprTree inv)})"]
 
-        override this.generateSequenceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: SeqChildInfo list): string list =
-            generateSequenceSizeDefinitions t sq children
+        override this.generateSequenceSizeDefinitions (acnAlignment : AcnGenericTypes.AcnAlignment option) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (children : Asn1AcnAst.SeqChildInfo list): string list =
+            generateSequenceSizeDefinitions acnAlignment acnMinSizeInBits acnMaxSizeInBits children
 
         override this.generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
             generateChoiceSizeDefinitions t choice children
@@ -476,8 +476,8 @@ type LangGeneric_scala() =
         override this.generateSequenceOfSizeDefinitions (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : Asn1AcnAst.SizeableAcnEncodingClass) (acnAlignment : AcnGenericTypes.AcnAlignment option) (child : Asn1AcnAst.Asn1Type): string list * string list =
             generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  child 
 
-        override this.generateSequenceSubtypeDefinitions (dealiased: string) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (children: Asn1Child list): string list =
-            generateSequenceSubtypeDefinitions dealiased t sq children
+        override this.generateSequenceSubtypeDefinitions (dealiased: string) (typeDef:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) (children: Asn1AcnAst.Asn1Child list): string list =
+            generateSequenceSubtypeDefinitions dealiased typeDef children
 
         override this.uper =
             {
