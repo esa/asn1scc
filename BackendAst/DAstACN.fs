@@ -1576,7 +1576,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 chc.children |>
                 List.map(fun ch ->
                     let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = ch.Name.Value)
-                    let choiceName = chc.typeDef[Scala].typeName
+                    let choiceName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName //chc.typeDef[Scala].typeName
                     choiceDependencyEnum_Item v ch.presentWhenName choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) isOptional)
             let updateStatement = choiceDependencyEnum v (choicePath.arg.joined lm.lg) (lm.lg.getAccess choicePath.arg) arrsChildUpdates isOptional (initExpr r lm m child.Type)
             // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for
