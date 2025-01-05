@@ -333,7 +333,11 @@ type ProgrammingLanguage =
     |Scala
     |Ada
     static member AllLanguages = [C; Scala; Ada]
-    static let mutable activeLanguages = [C]
+
+let mutable activeLanguages = [C]
+
+type ProgrammingLanguage 
+with
     static member ActiveLanguages
         with get() = activeLanguages
         and set(value) = activeLanguages <- value
