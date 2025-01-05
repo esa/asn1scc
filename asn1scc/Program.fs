@@ -376,6 +376,19 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         stainlessInvertibility = args |> List.exists (fun a -> match a with StainlessInvertibility -> true | _ -> false)
     }
 
+let setActiveLanguages args =
+    let activeLangs = 
+        args |> 
+        List.choose(fun a -> 
+            match a with 
+            | C_lang -> Some (CommonTypes.ProgrammingLanguage.C) 
+            | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) 
+            | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) 
+            | _ -> None)
+    match activeLangs with
+    | [] ->     ProgrammingLanguage.ActiveLanguages <- [CommonTypes.ProgrammingLanguage.C]
+    | _  ->     ProgrammingLanguage.ActiveLanguages <- activeLangs
+
 let main0 argv =
 
     //RemoveUnusedRtlFunction.test1 ()
@@ -388,6 +401,10 @@ let main0 argv =
         let cliArgs = parserResults.GetAllResults()
         cliArgs |> Seq.iter(fun arg -> match arg with Debug -> RangeSets.debug () | _ -> ())
         cliArgs |> Seq.iter (checkArgument cliArgs)
+        setActiveLanguages cliArgs
+
+        ProgrammingLanguage.ActiveLanguages <- ProgrammingLanguage.ActiveLanguages @ [C]
+
 
         let args = constructCommandLineSettings cliArgs parserResults
         let outDir = parserResults.GetResult(<@Out@>, defaultValue = ".")
