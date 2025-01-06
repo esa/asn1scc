@@ -351,7 +351,7 @@ type ILangGeneric () =
     abstract member generateSequenceOfInvariants: SIZE -> SIZE -> string list
 
     abstract member generateSequenceSizeDefinitions: (AcnGenericTypes.AcnAlignment option)-> (BigInteger)->(BigInteger)-> (Asn1AcnAst.SeqChildInfo list) -> string list
-    abstract member generateChoiceSizeDefinitions: Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> ChChildInfo list -> string list
+    abstract member generateChoiceSizeDefinitions: AcnGenericTypes.AcnAlignment option -> BigInteger->BigInteger->Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>->Asn1AcnAst.ChChildInfo list-> string list
     //(typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : SizeableAcnEncodingClass) (acnAlignment : AcnAlignment option) (child : Asn1AcnAst.Asn1Type)
     abstract member generateSequenceOfSizeDefinitions: Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> BigInteger -> BigInteger-> SIZE -> Asn1AcnAst.SizeableAcnEncodingClass -> AcnGenericTypes.AcnAlignment option -> Asn1AcnAst.Asn1Type -> string list * string list
     abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> Asn1AcnAst.Asn1Child list -> string list
@@ -399,7 +399,7 @@ type ILangGeneric () =
     default this.generateSequenceOfInvariants _ _ = []
 
     default this.generateSequenceSizeDefinitions _ _ _ _ = []
-    default this.generateChoiceSizeDefinitions _ _ _ = []
+    default this.generateChoiceSizeDefinitions _ _ _ _ _ = []
     default this.generateSequenceOfSizeDefinitions _ _ _ _ _ _ _ = [], []
     default this.generateSequenceSubtypeDefinitions _ _ _ = []
 

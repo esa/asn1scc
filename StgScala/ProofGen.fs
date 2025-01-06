@@ -339,7 +339,7 @@ let rec asn1SizeExpr (align: AcnAlignment option)
     seqSizeExpr sq.children align obj offset (nestingLevel + 1I) nestingIx
   | Choice ch ->
     // Ditto
-    choiceSizeExpr ch align obj offset (nestingLevel + 1I) nestingIx
+    choiceSizeExpr ch.typeDef ch.children align obj offset (nestingLevel + 1I) nestingIx
   | SequenceOf _ ->
     // seqOfSizeRangeExpr sqf obj offset (nestingLevel + 1I) nestingIx
     // TODO: dire pk
@@ -419,14 +419,15 @@ and seqSizeExpr (children : SeqChildInfo list)
     let resultSize = alignedSizeTo align resultSize offset
     {bdgs = allBindings; resSize = resultSize}
 
-and choiceSizeExpr (choice: Asn1AcnAst.Choice)
+and choiceSizeExpr (typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>)
+                   (children            : Asn1AcnAst.ChChildInfo list)
                    (align: AcnAlignment option)
                    (obj: Expr)
                    (offset: Expr)
                    (nestingLevel: bigint)
                    (nestingIx: bigint): SizeExprRes =
-  let cases = choice.children |> List.map (fun child ->
-    let tpeId = (ToC choice.typeDef[Scala].typeName) + "." + (ToC child.present_when_name) + "_PRESENT"
+  let cases = children |> List.map (fun child ->
+    let tpeId = (ToC typeDef[Scala].typeName) + "." + (ToC child.present_when_name) + "_PRESENT"
     let tpe = fromAsn1TypeKind child.Type.Kind
     let binder = {Var.name = child._scala_name; tpe = tpe}
     let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
@@ -528,16 +529,20 @@ let seqSizeFunDefs (acnAlignment    : AcnAlignment option) (acnMinSizeInBits : B
   let lemmas = implyingAligns |> List.map sizeLemmas
   sizeFd :: lemmas
 
-let choiceSizeFunDefs (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice): FunDef list =
+let choiceSizeFunDefs (acnAlignment : AcnAlignment option) 
+                      (acnMinSizeInBits    : BigInteger)
+                      (acnMaxSizeInBits    : BigInteger)
+                      (typeDef : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) 
+                      (children            : Asn1AcnAst.ChChildInfo list): FunDef list =
   let offset = {Var.name = "offset"; tpe = IntegerType Long}
-  let sizeRes = choiceSizeExpr choice t.acnAlignment This (Var offset) 0I 0I
+  let sizeRes = choiceSizeExpr typeDef children acnAlignment This (Var offset) 0I 0I
   assert sizeRes.bdgs.IsEmpty
   let sizeLemmas (align: AcnAlignment option): FunDef =
-    let template = sizeLemmaTemplate choice.acnMaxSizeInBits align
+    let template = sizeLemmaTemplate acnMaxSizeInBits align
     let offset = template.prms.[0]
     let otherOffset = template.prms.[1]
-    let proofCases = choice.children |> List.map (fun child ->
-      let tpeId = (ToC choice.typeDef[Scala].typeName) + "." + (ToC child.present_when_name) + "_PRESENT"
+    let proofCases = children |> List.map (fun child ->
+      let tpeId = (ToC typeDef[Scala].typeName) + "." + (ToC child.present_when_name) + "_PRESENT"
       let tpe = fromAsn1TypeKind child.Type.Kind
       let binder = {Var.name = child._scala_name; tpe = tpe}
       let pat = ADTPattern {binder = None; id = tpeId; subPatterns = [Wildcard (Some binder)]}
@@ -549,18 +554,19 @@ let choiceSizeFunDefs (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice): FunD
 
   let res = {name = "res"; tpe = IntegerType Long}
   let postcond =
-    if choice.acnMinSizeInBits = choice.acnMaxSizeInBits then Equals (Var res, longlit choice.acnMaxSizeInBits)
-    else And [Leq (longlit 0I, Var res); Leq (Var res, longlit choice.acnMaxSizeInBits)]
+    if acnMinSizeInBits = acnMaxSizeInBits then Equals (Var res, longlit acnMaxSizeInBits)
+    else And [Leq (longlit 0I, Var res); Leq (Var res, longlit acnMaxSizeInBits)]
   let sizeFd = {
     id = "size"
     prms = [offset]
-    specs = [Precond (offsetConds offset choice.acnMaxSizeInBits)]
+    specs = [Precond (offsetConds offset acnMaxSizeInBits)]
     annots = []
     postcond = Some (res, postcond)
     returnTpe = IntegerType Long
     body = sizeRes.resSize
   }
-  let maxAlign = maxAlignment t
+  //SOS: We need to calculate the max alignment of the choice to generate the lemmas
+  let maxAlign = acnAlignment    //maxAlignment t
   let implyingAligns = implyingAlignments maxAlign
   let lemmas = implyingAligns |> List.map sizeLemmas
   sizeFd :: lemmas
@@ -756,8 +762,12 @@ let generateSequenceSizeDefinitions (acnAlignment : AcnAlignment option) (acnMin
   let fds = seqSizeFunDefs acnAlignment acnMinSizeInBits  acnMaxSizeInBits children 
   fds |> List.map (fun fd -> show (FunDefTree fd))
 
-let generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
-  let fds = choiceSizeFunDefs t choice
+let generateChoiceSizeDefinitions (acnAlignment : AcnAlignment option) 
+                      (acnMinSizeInBits    : BigInteger)
+                      (acnMaxSizeInBits    : BigInteger)
+                      (typeDef : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) 
+                      (children            : Asn1AcnAst.ChChildInfo list) : string list =
+  let fds = choiceSizeFunDefs acnAlignment acnMinSizeInBits acnMaxSizeInBits typeDef children
   fds |> List.map (fun fd -> show (FunDefTree fd))
 
 let generateSequenceOfSizeDefinitions (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : SizeableAcnEncodingClass) (acnAlignment : AcnAlignment option) (child : Asn1AcnAst.Asn1Type): string list * string list =

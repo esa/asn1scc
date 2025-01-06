@@ -1459,7 +1459,8 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             // let allAcnArgsSubsted = acnArgsSubsted @ (detArgSubsted |> Option.toList)
             let definitionOrRef = 
                 lms |> List.map(fun (l,lm) ->
-                   (l, DAstTypeDefinition.createChoice_u asn1.args typeIdsSet lm typeDef (ReferenceToType curPath)  acnProperties acnMaxSizeInBits mergedChildren)) |> Map.ofList
+                   let acnAlignment     = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
+                   (l, DAstTypeDefinition.createChoice_u asn1.args typeIdsSet lm typeDef (ReferenceToType curPath)  acnProperties acnAlignment acnMinSizeInBits acnMaxSizeInBits mergedChildren)) |> Map.ofList
 
             Choice ({Choice.children = mergedChildren; acnProperties = acnProperties; cons=cons; withcons = wcons;
                 uperMaxSizeInBits=indexSize+maxChildSize; uperMinSizeInBits=indexSize+minChildSize; acnMinSizeInBits =acnMinSizeInBits;
