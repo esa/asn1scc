@@ -80,7 +80,7 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
 
 let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:Asn1AcnAst.ChChildInfo) (newChild:Asn1Type) (v1:CallerScope) (v2:CallerScope)  =
     let p1,p2 =
-        match ST.lang with
+        match ProgrammingLanguage.ActiveLanguages.Head with
         | ProgrammingLanguage.Scala ->
             ({v1 with arg = lm.lg.getChChild v1.arg (sprintf "%s_%s_tmp" (v1.arg.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String}),
             ({v2 with arg = lm.lg.getChChild v2.arg (sprintf "%s_%s_tmp" (v2.arg.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String})

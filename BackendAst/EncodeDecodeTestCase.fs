@@ -132,7 +132,7 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
 
 
 let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : AcnFunction option) (decFunc : AcnFunction option)   (us:State)  =
-    //let sEnc = match ST.lang with | Scala -> "ACN" | _ -> lm.lg.atc.acnPrefix
+    //let sEnc = match ProgrammingLanguage.ActiveLanguages.Head with | Scala -> "ACN" | _ -> lm.lg.atc.acnPrefix
     let sEnc = lm.lg.atc.acnPrefix
 
     let funcName            = getFuncName r sEnc t.id (lm.lg.getTypeDefinition t.FT_TypeDefinition)
