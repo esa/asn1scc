@@ -515,9 +515,9 @@ let foldType2
                 let newChildren = ti.children |> foldMap (fun curState ch -> chChildFunc ch (loopType (Some {ParentInfo.parent = t ; name=Some ch.Name.Value; parentData=parentData}) ch.Type curState)) ns
                 choiceFunc pi t ti newChildren
             | ReferenceType  ti ->
-                match CommonTypes.ProgrammingLanguage.ActiveLanguages.Head with
-                | CommonTypes.ProgrammingLanguage.Scala -> refType pi t ti (loopType pi ti.resolvedType us)
-                | _ ->
+                //match CommonTypes.ProgrammingLanguage.ActiveLanguages.Head with
+                //| CommonTypes.ProgrammingLanguage.Scala -> refType pi t ti (loopType pi ti.resolvedType us)
+                //| _ ->
                     match ti.hasExtraConstrainsOrChildrenOrAcnArgs with
                     | true ->   
                         refType pi t ti (loopType pi ti.resolvedType us)
