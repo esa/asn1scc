@@ -515,16 +515,19 @@ let foldType2
                 let newChildren = ti.children |> foldMap (fun curState ch -> chChildFunc ch (loopType (Some {ParentInfo.parent = t ; name=Some ch.Name.Value; parentData=parentData}) ch.Type curState)) ns
                 choiceFunc pi t ti newChildren
             | ReferenceType  ti ->
-                match ti.hasExtraConstrainsOrChildrenOrAcnArgs with
-                | true ->   
-                    refType pi t ti (loopType pi ti.resolvedType us)
-                | false ->  
-                    match ti.resolvedType.isComplexType with
-                    | true->    
-                        match ti.encodingOptions with
-                        | None -> refType2 pi t ti us
-                        | Some _ -> refType pi t ti (loopType pi ti.resolvedType us)
-                    | false ->  refType pi t ti (loopType pi ti.resolvedType us)
+                match CommonTypes.ProgrammingLanguage.ActiveLanguages.Head with
+                | CommonTypes.ProgrammingLanguage.Scala -> refType pi t ti (loopType pi ti.resolvedType us)
+                | _ ->
+                    match ti.hasExtraConstrainsOrChildrenOrAcnArgs with
+                    | true ->   
+                        refType pi t ti (loopType pi ti.resolvedType us)
+                    | false ->  
+                        match ti.resolvedType.isComplexType with
+                        | true->    
+                            match ti.encodingOptions with
+                            | None -> refType2 pi t ti us
+                            | Some _ -> refType pi t ti (loopType pi ti.resolvedType us)
+                        | false ->  refType pi t ti (loopType pi ti.resolvedType us)
         typeFunc pi t newKind
     loopType parentInfo t us
 

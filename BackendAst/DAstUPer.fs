@@ -970,26 +970,3 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                 | None -> None
             createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  [] us)
 
-let createReferenceFunction2 (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (us:State)  =
-    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "" codec
-
-    let t1              = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-    let t1WithExtensions = o.resolvedType;
-    let areUperTypesEquivalent = TL "UPER_REF_01" (fun () -> TypesEquivalence.uperEquivalence t1 t1WithExtensions)
-    let soSparkAnnotations = TL "UPER_REF_02" (fun () -> Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec))
-    let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
-        //let funcBodyContent = TL "UPER_REF_03" (fun () -> (baseType.getUperFunction codec).funcBody nestingScope p fromACN)
-        //match funcBodyContent with
-        //| Some _ ->
-            let pp, resultExpr =
-                TL "UPER_REF_04" (fun () -> 
-                let str = lm.lg.getParamValue t p.arg codec
-                match codec, lm.lg.decodingKind with
-                | Decode, Copy ->
-                    let toc = ToC str
-                    toc, Some toc
-                | _ -> str, None)
-            let funcBodyContent = TL "UPER_REF_05" (fun () -> callBaseTypeFunc lm pp baseFncName codec)
-            Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
-        //| None -> None
-    TL "UPER_REF_06" (fun () -> createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations [] us)

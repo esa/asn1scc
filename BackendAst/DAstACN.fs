@@ -2600,31 +2600,3 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         Some a, b)
 
 
-let createReferenceFunction2 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (us:State)  =
-    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
-
-  //let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
-    let getNewSType (r:IcdRow) =    r
-
-    let icdFnc,extraComment, name  = emptyIcdFnc, [], None
-
-
-    let icd = None
-
-    let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CallerScope) =
-        TL "ACN_REF_02" (fun () ->
-        let pp, resultExpr =
-            let str = lm.lg.getParamValue t p.arg codec
-            match codec, lm.lg.decodingKind with
-            | Decode, Copy ->
-                let toc = ToC str
-                toc, Some toc
-            | _ -> str, None
-        let funcBodyContent = callBaseTypeFunc lm pp baseFncName codec
-        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd}), us)
-
-
-    let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    let a, ns = createAcnFunction r deps lm codec t typeDefinition  isValidFunc funcBody (fun atc -> true) soSparkAnnotations [] us
-    Some a, ns
-

@@ -769,52 +769,6 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
         }
     ((ReferenceType ret),newPrms), s10
 
-(*
-let private createReferenceType2 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (newResolvedType:Asn1Type, us:State) =
-    let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
-    let defOrRef            = lm.lg.definitionOrRef o.definitionOrRef  //DAstTypeDefinition.createReferenceType_u2 r lm t o  
-    //let typeDefinition = DAstTypeDefinition.createReferenceType r l t o newResolvedType us
-    let equalFunction       = DAstEqual.createReferenceTypeEqualFunction2 r lm t o defOrRef 
-    //let initialValue        = {Asn1Value.kind=newResolvedType.initialValue;id=ReferenceToValue([],[]);loc=emptyLocation}
-    let initFunction        = DAstInitialize.createReferenceType2 r lm t o defOrRef 
-    let isValidFunction, s1     = DastValidate2.createReferenceTypeFunction2 r lm t o defOrRef us
-    let uperEncFunction, s2     = DAstUPer.createReferenceFunction2 r lm Codec.Encode t o defOrRef isValidFunction s1
-    let uperDecFunction, s3     = DAstUPer.createReferenceFunction2 r lm Codec.Decode t o defOrRef isValidFunction s2
-    let acnEncFunction, s4      = DAstACN.createReferenceFunction2 r deps lm Codec.Encode t o defOrRef  isValidFunction s3
-    let acnDecFunction, s5      = DAstACN.createReferenceFunction2 r deps lm Codec.Decode t o defOrRef  isValidFunction s4
-
-    let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
-    let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction acnEncFunction acnDecFunction s6
-
-    let xerEncFunction, s8      = XER r (fun () ->   DAstXer.createReferenceFunction2  r lm Codec.Encode t o defOrRef isValidFunction s7) s7
-    let xerDecFunction, s9      = XER r (fun () ->   DAstXer.createReferenceFunction2  r lm Codec.Decode t o defOrRef isValidFunction  s8) s8
-    let xerEncDecTestFunc,s10   = EncodeDecodeTestCase.createXerEncDecFunction r lm t defOrRef equalFunction isValidFunction xerEncFunction xerDecFunction s9
-
-    let ret =
-        {
-            ReferenceType.baseInfo = o
-            resolvedType        = newResolvedType
-            //typeDefinition      = typeDefinition
-            definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createReferenceTypeFunction2 r lm t o defOrRef 
-            //initialValue        = initialValue
-            initFunction        = initFunction
-            equalFunction       = equalFunction
-            isValidFunction     = isValidFunction
-            uperEncFunction     = uperEncFunction
-            uperDecFunction     = uperDecFunction
-            acnEncFunction      = acnEncFunction.Value
-            acnDecFunction      = acnDecFunction.Value
-            uperEncDecTestFunc  = uperEncDecTestFunc
-            acnEncDecTestFunc   = acnEncDecTestFunc
-            xerEncFunction      = xerEncFunction
-            xerDecFunction      = xerDecFunction
-            //automaticTestCasesValues = newResolvedType.automaticTestCasesValues
-            constraintsAsn1Str = []
-            xerEncDecTestFunc   = xerEncDecTestFunc
-        }
-    ((ReferenceType ret),newPrms), s10
-*)
 
 let private createType (r:Asn1AcnAst.AstRoot) pi (t:Asn1AcnAst.Asn1Type) ((newKind, newPrms), (us:State )) =
     let newAsn1Type  =
