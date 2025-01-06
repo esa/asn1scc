@@ -553,7 +553,7 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
     | NonPrimitiveReference2OtherType            ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
-let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm:LanguageMacros) (typeDef:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>)  (id: ReferenceToType) (acnProperties : AcnGenericTypes.ChoiceAcnProperties) (acnMaxSizeInBits : BigInteger)   (children:Asn1AcnAst.ChChildInfo list)  =
+let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm:LanguageMacros) (typeDef:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>)  (id: ReferenceToType) (acnProperties : AcnGenericTypes.ChoiceAcnProperties) (acnAlignment : AcnGenericTypes.AcnAlignment option) (acnMinSizeInBits    : BigInteger) (acnMaxSizeInBits : BigInteger)   (children:Asn1AcnAst.ChChildInfo list)  =
     let createChoice (children:Asn1AcnAst.ChChildInfo list)  =
         let define_new_choice             = lm.typeDef.Define_new_choice
         let define_new_choice_child       = lm.typeDef.Define_new_choice_child
@@ -580,8 +580,7 @@ let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm
 
         match td.kind with
         | NonPrimitiveNewTypeDefinition ->
-            //SOS: invariants and size definitions are currently not generated for choices
-            let sizeDefinitions = []//lm.lg.generateChoiceSizeDefinitions t o children
+            let sizeDefinitions = lm.lg.generateChoiceSizeDefinitions acnAlignment acnMinSizeInBits     acnMaxSizeInBits typeDef  children
             let completeDefinition = define_new_choice td (lm.lg.choiceIDForNone typeIdsSet id) (lm.lg.presentWhenName0 None children.Head) arrsChildren arrsPresent arrsCombined nIndexMax childrenCompleteDefinitions sizeDefinitions
             Some (completeDefinition, privatePart)
         | NonPrimitiveNewSubTypeDefinition subDef ->

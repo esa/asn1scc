@@ -470,8 +470,12 @@ type LangGeneric_scala() =
         override this.generateSequenceSizeDefinitions (acnAlignment : AcnGenericTypes.AcnAlignment option) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (children : Asn1AcnAst.SeqChildInfo list): string list =
             generateSequenceSizeDefinitions acnAlignment acnMinSizeInBits acnMaxSizeInBits children
 
-        override this.generateChoiceSizeDefinitions (t: Asn1AcnAst.Asn1Type) (choice: Asn1AcnAst.Choice) (children: DAst.ChChildInfo list): string list =
-            generateChoiceSizeDefinitions t choice children
+        override this.generateChoiceSizeDefinitions (acnAlignment : AcnGenericTypes.AcnAlignment option) 
+                      (acnMinSizeInBits    : BigInteger)
+                      (acnMaxSizeInBits    : BigInteger)
+                      (typeDef : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) 
+                      (children            : Asn1AcnAst.ChChildInfo list): string list =
+            generateChoiceSizeDefinitions acnAlignment acnMinSizeInBits acnMaxSizeInBits typeDef children
 
         override this.generateSequenceOfSizeDefinitions (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : Asn1AcnAst.SizeableAcnEncodingClass) (acnAlignment : AcnGenericTypes.AcnAlignment option) (child : Asn1AcnAst.Asn1Type): string list * string list =
             generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  child 
