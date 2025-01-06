@@ -447,33 +447,3 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         baseType.getXerFunction codec, us
 
 
-let createReferenceFunction2 (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
-    let callBaseTypeFunc = lm.xer.call_base_type_func
-
-    let moduleName, typeDefinitionName0 =
-        let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-        let typeDef = lm.lg.getTypeDefinition t1.FT_TypeDefinition
-        typeDef.programUnit, typeDef.typeName
-
-    let baseTypeDefinitionName =
-        match lm.lg.hasModules with
-        | false     -> typeDefinitionName0
-        | true   ->
-            match t.id.ModName = o.modName.Value with
-            | true  -> typeDefinitionName0
-            | false -> moduleName + "." + typeDefinitionName0
-
-    let baseFncName = baseTypeDefinitionName+ "_XER"  + codec.suffix
-
-
-
-    let t1              = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-    let t1WithExtensions = o.resolvedType;
-
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
-        let xmlTag = xmlTag |> orElse (XerLiteralConstant o.tasName.Value)
-        let funcBodyContent = callBaseTypeFunc (lm.lg.getParamValue t p.arg codec) xmlTag.p baseFncName codec
-        Some {XERFuncBodyResult.funcBody = funcBodyContent; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=0I}
-
-    let soSparkAnnotations = None
-    createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
