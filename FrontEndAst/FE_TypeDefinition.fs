@@ -614,7 +614,7 @@ let createReal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type
 
     let td = lm.lg.typeDef o.typeDef
     let annots =
-        match ST.lang with
+        match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala -> ["extern"]
         | _ -> []
     match td.kind with

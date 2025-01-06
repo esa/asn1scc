@@ -388,6 +388,7 @@ let setActiveLanguages args =
     match activeLangs with
     | [] ->     ProgrammingLanguage.ActiveLanguages <- [CommonTypes.ProgrammingLanguage.C]
     | _  ->     ProgrammingLanguage.ActiveLanguages <- activeLangs
+    ST.lang <- ProgrammingLanguage.ActiveLanguages.Head
 
 let main0 argv =
 

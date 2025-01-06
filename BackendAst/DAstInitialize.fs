@@ -300,7 +300,7 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.
             | [] -> lm.lg.doubleValueToString 0.0
         | true  -> lm.lg.doubleValueToString 0.0
     let annots =
-        match ST.lang with
+        match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala -> ["extern"; "pure"]
         | _ -> []
     createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] [] annots
@@ -1120,7 +1120,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
     let testCaseFuncs =
         let handleChild  (ch:ChChildInfo)  =
             let sChildID (p:CallerScope) = (lm.lg.presentWhenName (Some typeDefinition) ch)
-                //match ST.lang with
+                //match ProgrammingLanguage.ActiveLanguages.Head with
                 //| ProgrammingLanguage.Scala -> (lm.lg.presentWhenName (Some typeDefinition) ch)
                 //| _ -> (ToC ch._present_when_name_private) + "_PRESENT"
 
@@ -1135,7 +1135,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                     let resVar = p.arg.asIdentifier
                     let childContent_funcBody, childContent_localVariables =
                         let childContent =
-                            match ST.lang with
+                            match ProgrammingLanguage.ActiveLanguages.Head with
                             | ProgrammingLanguage.Scala ->
                                 match lm.lg.init.choiceComponentTempInit with
                                 | false ->  fnc {p with arg = lm.lg.getChChild p.arg sChildTempVarName ch.chType.isIA5String}
@@ -1147,7 +1147,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                         childContent.funcBody, childContent.localVariables
 
                     let sChildTempDefaultInit =
-                        match ST.lang with
+                        match ProgrammingLanguage.ActiveLanguages.Head with
                         | ProgrammingLanguage.Scala ->
                             sChildTypeDef + (lm.init.methodNameSuffix()) + "()"
                         | _ -> (extractDefaultInitValue ch.chType.Kind)
@@ -1174,7 +1174,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             let sChildName = (lm.lg.getAsn1ChChildBackendName ch)
             let sChildTypeDef = ch.chType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
             let sChildTempVarName = (ToC ch.chType.id.AsString) + "_tmp"
-            let chp = {p with arg = lm.lg.getChChild p.arg (match ST.lang with | ProgrammingLanguage.Scala -> sChildTempVarName | _ -> sChildName) ch.chType.isIA5String}
+            let chp = {p with arg = lm.lg.getChChild p.arg (match ProgrammingLanguage.ActiveLanguages.Head with | ProgrammingLanguage.Scala -> sChildTempVarName | _ -> sChildName) ch.chType.isIA5String}
             let resVar = p.arg.asIdentifier // TODO: resVar ok?
             let sChildID = (lm.lg.presentWhenName (Some typeDefinition) ch)
             let childContent_funcBody, childContent_localVariables =
@@ -1189,7 +1189,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                 | Some initProc  ->
                     match lm.lg.init.choiceComponentTempInit with
                     | false  ->
-                        match ST.lang with
+                        match ProgrammingLanguage.ActiveLanguages.Head with
                         | ProgrammingLanguage.Scala ->
                             initChildWithInitFunc sChildTempVarName initProc.funcName, []
                         | _ ->

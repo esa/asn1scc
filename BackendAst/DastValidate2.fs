@@ -416,12 +416,12 @@ and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageM
                 newChildCheckFnc
 
         let isAbsentFlag =
-            match ST.lang with
+            match ProgrammingLanguage.ActiveLanguages.Head with
             | ProgrammingLanguage.Scala -> l.lg.FalseLiteral
             | _ -> "0"
 
         let isPresentFlag =
-            match ST.lang with
+            match ProgrammingLanguage.ActiveLanguages.Head with
             | ProgrammingLanguage.Scala -> l.lg.TrueLiteral
             | _ -> "1" // leave like it was - TRUE may not be 1
 
@@ -881,7 +881,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                 let newFunc =
                     (fun (p:CallerScope) ->
                         let localTmpVarName =
-                            match ST.lang with
+                            match ProgrammingLanguage.ActiveLanguages.Head with
                             | Scala -> child._scala_name
                             | _ -> ""
                         match func p with

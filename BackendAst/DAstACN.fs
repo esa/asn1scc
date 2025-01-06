@@ -123,15 +123,15 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
         let alStr, nAlignmentVal =
             match al with
             | AcnGenericTypes.NextByte ->
-                match ST.lang with
+                match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> "Byte", 8I
                 | _ -> "NextByte", 8I
             | AcnGenericTypes.NextWord ->
-                match ST.lang with
+                match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> "Short", 16I
                 | _ -> "NextWord", 16I
             | AcnGenericTypes.NextDWord ->
-                match ST.lang with
+                match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> "Int", 32I
                 | _ -> "NextDWord", 32I
         let newFuncBody st errCode prms nestingScope p =
@@ -277,7 +277,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let func, funcDef, auxiliaries, icdResult, ns2  =
             match funcNameAndtasInfo  with
             | None -> 
-                match ST.lang with
+                match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> 
                     None, None, [], None, ns
                 | _ ->
@@ -687,7 +687,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult=Some icd})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     let annots =
-        match ST.lang with
+        match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala -> ["extern"]
         | _ -> []
     createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations annots us
@@ -1582,7 +1582,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for
             // accessing enums fields instead of a compiler-unchecked access
             let updateStatement2 =
-                match ST.lang with
+                match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala ->
                     match checkPath.Length > 0 && checkPath[0].Contains("isInstanceOf") with
                     | true -> (sprintf "val %s = %s.%s\n%s" (choicePath.arg.joined lm.lg) (checkPath[0].Replace("isInstanceOf", "asInstanceOf")) (choicePath.arg.joined lm.lg) updateStatement)
@@ -2572,7 +2572,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     // For some reasons, the `soInner` is not inlined in the Ada backend,
                     // but instead calls a function. We therefore do not include the local vars.
                     let lvs =
-                        match ST.lang with
+                        match ProgrammingLanguage.ActiveLanguages.Head with
                         | Ada -> []
                         | _ -> localVariables0
                     fncBody, errCode::errCodes0,lvs

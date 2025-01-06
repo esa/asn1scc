@@ -62,7 +62,7 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
     let sFuncName = sprintf "test_case_%A_%06d" e idx
     let encAmper, initAmper = gAmber v.Type
     let initAmper =
-        match ST.lang with
+        match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala ->
             match v.Type.initFunction.initProcedure with
             | Some initProc -> initProc.funcName
@@ -71,7 +71,7 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
     let curProgramUnitName = ""  //Main program has no module
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
     let initStatement =
-        match ST.lang with
+        match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala ->
             match resolveReferenceType v.Type.Kind with
              | Integer v -> "val tc_data = " + initStatement
@@ -104,7 +104,7 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
 
     let encAmper, initAmper = gAmber t
     let initAmper =
-        match ST.lang with
+        match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala ->
             match t.initFunction.initProcedure with
             | Some initProc -> initProc.funcName

@@ -245,7 +245,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     let annots =
-        match ST.lang with
+        match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala -> ["extern"]
         | _ -> []
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations annots us
@@ -709,7 +709,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 | Decode, Copy -> Some (ToC (child._c_name + "_exist"))
                 | _ -> None
             let absent, present =
-                match ST.lang with
+                match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> "false", "true"
                 | _ -> "0", "1"
             // please note that in decode, macro uper_sequence_presence_bit_fix
