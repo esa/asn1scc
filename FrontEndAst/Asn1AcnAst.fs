@@ -699,6 +699,15 @@ type Asn1Type = {
         | OctetString os -> os.acnArgs
         | BitString bs -> bs.acnArgs
         | _ -> []
+    
+    member this.maxAlignment =
+        match this.Kind with
+        | Sequence sq -> sq.maxAlignment
+        | SequenceOf sqf -> sqf.maxAlignment
+        | Choice ch -> ch.maxAlignment
+        | ReferenceType tp -> tp.maxAlignment
+        | _ -> this.acnAlignment
+
 
 and Asn1TypeKind =
     | Integer           of Integer
@@ -733,6 +742,7 @@ and SequenceOf = {
     acnArgs             : RelativePath list
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
     definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
+    maxAlignment        : AcnAlignment option
 
 }
 
@@ -748,6 +758,7 @@ and Sequence = {
     acnArgs                 : RelativePath list
     typeDef                 : Map<ProgrammingLanguage, FE_SequenceTypeDefinition>
     definitionOrRef         : Map<ProgrammingLanguage, TypeDefinitionOrReference>
+    maxAlignment        : AcnAlignment option
 }
 
 and AcnChild = {
@@ -796,6 +807,7 @@ and Choice = {
     acnLoc              : SrcLoc option
     typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
     definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
+    maxAlignment        : AcnAlignment option
 }
 
 and ChChildInfo = {
@@ -837,6 +849,7 @@ and ReferenceType = {
     encodingOptions        : EncodeWithinOctetOrBitStringProperties option
     refCons             : AnyConstraint list
     definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
+    maxAlignment        : AcnAlignment option
 }
 
 type Asn1AcnType =
