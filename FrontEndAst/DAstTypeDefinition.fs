@@ -438,7 +438,7 @@ let createEnumerated_u (args:CommandLineSettings) (lm:LanguageMacros)  (id:Refer
     | NonPrimitiveReference2OtherType            ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
-let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (minSize : SIZE) (maxSize : SIZE) (acnEncodingClass : Asn1AcnAst.SizeableAcnEncodingClass) (acnAlignment : AcnGenericTypes.AcnAlignment option) (child : Asn1AcnAst.Asn1Type)   =
+let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (minSize : SIZE) (maxSize : SIZE) (acnEncodingClass : Asn1AcnAst.SizeableAcnEncodingClass) (acnAlignment : AcnGenericTypes.AcnAlignment option) (maxAlignment: AcnGenericTypes.AcnAlignment option) (child : Asn1AcnAst.Asn1Type)   =
     let childTypeDefinitionOrReference = lm.lg.definitionOrRef child.typeDefinitionOrReference
     let createSequenceOf ()  =
         let define_new_sequence_of        = lm.typeDef.Define_new_sequence_of
@@ -448,7 +448,7 @@ let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<
         match td.kind with
         | NonPrimitiveNewTypeDefinition ->
             let invariants = lm.lg.generateSequenceOfInvariants minSize maxSize 
-            let sizeClsDefinitions, sizeObjDefinitions = lm.lg.generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  child
+            let sizeClsDefinitions, sizeObjDefinitions = lm.lg.generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  maxAlignment child
             let completeDefinition = define_new_sequence_of td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (childTypeDefinitionOrReference.longTypedefName2 lm.lg.hasModules) (getChildDefinition childTypeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
             let privateDefinition =
                 match childTypeDefinitionOrReference with
@@ -481,7 +481,7 @@ let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
 
-let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>)  (id: ReferenceToType) (acnAlignment : AcnGenericTypes.AcnAlignment option) (acnProperties : AcnGenericTypes.SequenceAcnProperties) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger)   (children:Asn1AcnAst.SeqChildInfo list)  =
+let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>)  (id: ReferenceToType) (acnAlignment : AcnGenericTypes.AcnAlignment option) (maxAlignment: AcnGenericTypes.AcnAlignment option) (acnProperties : AcnGenericTypes.SequenceAcnProperties) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger)   (children:Asn1AcnAst.SeqChildInfo list)  =
     let createSequence  (allchildren: Asn1AcnAst.SeqChildInfo list)  =
         let define_new_sequence             = lm.typeDef.Define_new_sequence
         let define_new_sequence_child       = lm.typeDef.Define_new_sequence_child
@@ -525,7 +525,7 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
         match td.kind with
         | NonPrimitiveNewTypeDefinition ->
             let invariants = lm.lg.generateSequenceInvariants children
-            let sizeDefinitions = lm.lg.generateSequenceSizeDefinitions acnAlignment  acnMinSizeInBits acnMaxSizeInBits allchildren 
+            let sizeDefinitions = lm.lg.generateSequenceSizeDefinitions acnAlignment maxAlignment  acnMinSizeInBits acnMaxSizeInBits allchildren 
             let completeDefinition = define_new_sequence td arrsChildren arrsOptionalChildren childrenCompleteDefinitions arrsNullFieldsSavePos sizeDefinitions invariants
             let privateDef =
                 match childrenPrivatePart with
@@ -553,7 +553,7 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
     | NonPrimitiveReference2OtherType            ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
-let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm:LanguageMacros) (typeDef:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>)  (id: ReferenceToType) (acnProperties : AcnGenericTypes.ChoiceAcnProperties) (acnAlignment : AcnGenericTypes.AcnAlignment option) (acnMinSizeInBits    : BigInteger) (acnMaxSizeInBits : BigInteger)   (children:Asn1AcnAst.ChChildInfo list)  =
+let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm:LanguageMacros) (typeDef:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>)  (id: ReferenceToType) (acnProperties : AcnGenericTypes.ChoiceAcnProperties) (acnAlignment : AcnGenericTypes.AcnAlignment option) (maxAlignment: AcnGenericTypes.AcnAlignment option) (acnMinSizeInBits    : BigInteger) (acnMaxSizeInBits : BigInteger)   (children:Asn1AcnAst.ChChildInfo list)  =
     let createChoice (children:Asn1AcnAst.ChChildInfo list)  =
         let define_new_choice             = lm.typeDef.Define_new_choice
         let define_new_choice_child       = lm.typeDef.Define_new_choice_child
@@ -580,7 +580,7 @@ let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm
 
         match td.kind with
         | NonPrimitiveNewTypeDefinition ->
-            let sizeDefinitions = lm.lg.generateChoiceSizeDefinitions acnAlignment acnMinSizeInBits     acnMaxSizeInBits typeDef  children
+            let sizeDefinitions = lm.lg.generateChoiceSizeDefinitions acnAlignment maxAlignment acnMinSizeInBits     acnMaxSizeInBits typeDef  children
             let completeDefinition = define_new_choice td (lm.lg.choiceIDForNone typeIdsSet id) (lm.lg.presentWhenName0 None children.Head) arrsChildren arrsPresent arrsCombined nIndexMax childrenCompleteDefinitions sizeDefinitions
             Some (completeDefinition, privatePart)
         | NonPrimitiveNewSubTypeDefinition subDef ->

@@ -126,7 +126,7 @@ let acnTypeSizeExpr (acn: AcnInsertedType): Expr =
   | AcnReferenceToIA5String  s ->
     if s.str.acnMinSizeInBits <> s.str.acnMaxSizeInBits then failwith "TODO"
     else longlit s.str.acnMaxSizeInBits
-
+(*
 let maxAlignmentOf (aligns: AcnAlignment option list): AcnAlignment option =
   assert (not aligns.IsEmpty)
   aligns |> List.maxBy (fun a -> a |> Option.map (fun a -> a.nbBits) |> Option.defaultValue 0I)
@@ -144,7 +144,7 @@ let rec maxAlignment (tp: Asn1AcnAst.Asn1Type): AcnAlignment option =
   | SequenceOf sqf ->
     maxAlignmentOf [tp.acnAlignment; maxAlignment sqf.child]
   | _ -> tp.acnAlignment
-
+*)
 let sizeLemmaId(align: AcnAlignment option): string =
   match align with
   | None -> "sizeLemmaAnyOffset"
@@ -458,7 +458,7 @@ let optionalSizeExpr (child: Asn1AcnAst.Asn1Child)
 
     
 
-let seqSizeFunDefs (acnAlignment    : AcnAlignment option) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (children : SeqChildInfo list) : FunDef list =
+let seqSizeFunDefs (acnAlignment : AcnAlignment option) (maxAlignment: AcnAlignment option) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (children : SeqChildInfo list) : FunDef list =
   // TODO: Pour les int, on peut ajouter une assertion GetBitUnsignedCount(...) == resultat (ici et/ou ailleurs)
   let offset = {Var.name = "offset"; tpe = IntegerType Long}
   let res = seqSizeExpr children acnAlignment This (Var offset) 0I 0I
@@ -522,14 +522,13 @@ let seqSizeFunDefs (acnAlignment    : AcnAlignment option) (acnMinSizeInBits : B
     returnTpe = IntegerType Long
     body = finalSize
   }
-  //SOS: We need to calculate the max alignment of the sequence to generate the lemmas
-  //currently we are assuming that the max alignment is the same as the alignment of the sequence
-  let maxAlign = acnAlignment // maxAlignment t
+  let maxAlign = maxAlignment
   let implyingAligns = implyingAlignments maxAlign
   let lemmas = implyingAligns |> List.map sizeLemmas
   sizeFd :: lemmas
 
 let choiceSizeFunDefs (acnAlignment : AcnAlignment option) 
+                      (maxAlignment: AcnAlignment option)
                       (acnMinSizeInBits    : BigInteger)
                       (acnMaxSizeInBits    : BigInteger)
                       (typeDef : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) 
@@ -565,13 +564,12 @@ let choiceSizeFunDefs (acnAlignment : AcnAlignment option)
     returnTpe = IntegerType Long
     body = sizeRes.resSize
   }
-  //SOS: We need to calculate the max alignment of the choice to generate the lemmas
-  let maxAlign = acnAlignment    //maxAlignment t
+  let maxAlign = maxAlignment 
   let implyingAligns = implyingAlignments maxAlign
   let lemmas = implyingAligns |> List.map sizeLemmas
   sizeFd :: lemmas
 
-let seqOfSizeFunDefs (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : SizeableAcnEncodingClass) (acnAlignment : AcnAlignment option) (child : Asn1AcnAst.Asn1Type) : FunDef list * FunDef list =
+let seqOfSizeFunDefs (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : SizeableAcnEncodingClass) (acnAlignment : AcnAlignment option) (maxAlignment: AcnAlignment option) (child : Asn1AcnAst.Asn1Type) : FunDef list * FunDef list =
   let td = typeDef.[Scala].typeName
   let elemTpe = fromAsn1TypeKind child.Kind
   let lsTpe = vecTpe elemTpe
@@ -749,29 +747,28 @@ let seqOfSizeFunDefs (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefiniti
       body = finalSize
     }
 
-  //SOS: The following is a hack to avoid using t in the function signature
-  //SOS: It will be calculated by the caller
-  //let maxAlign = maxAlignment t
-  let maxAlign = acnAlignment
+  
+  let maxAlign = maxAlignment
   let implyingAligns = implyingAlignments maxAlign
   let clsLemmas, objLemmas = implyingAligns |> List.map sizeLemmas |> List.unzip
   sizeClsFd :: clsLemmas, sizeRangeObjFd :: objLemmas
 
 
-let generateSequenceSizeDefinitions (acnAlignment : AcnAlignment option) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (children : SeqChildInfo list): string list =
-  let fds = seqSizeFunDefs acnAlignment acnMinSizeInBits  acnMaxSizeInBits children 
+let generateSequenceSizeDefinitions (acnAlignment : AcnAlignment option) (maxAlignment: AcnAlignment option) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (children : SeqChildInfo list): string list =
+  let fds = seqSizeFunDefs acnAlignment maxAlignment acnMinSizeInBits  acnMaxSizeInBits children 
   fds |> List.map (fun fd -> show (FunDefTree fd))
 
 let generateChoiceSizeDefinitions (acnAlignment : AcnAlignment option) 
+                      (maxAlignment: AcnAlignment option)
                       (acnMinSizeInBits    : BigInteger)
                       (acnMaxSizeInBits    : BigInteger)
                       (typeDef : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) 
                       (children            : Asn1AcnAst.ChChildInfo list) : string list =
-  let fds = choiceSizeFunDefs acnAlignment acnMinSizeInBits acnMaxSizeInBits typeDef children
+  let fds = choiceSizeFunDefs acnAlignment maxAlignment acnMinSizeInBits acnMaxSizeInBits typeDef children
   fds |> List.map (fun fd -> show (FunDefTree fd))
 
-let generateSequenceOfSizeDefinitions (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : SizeableAcnEncodingClass) (acnAlignment : AcnAlignment option) (child : Asn1AcnAst.Asn1Type): string list * string list =
-  let fdsCls, fdsObj = seqOfSizeFunDefs typeDef acnMinSizeInBits acnMaxSizeInBits maxSize acnEncodingClass acnAlignment child
+let generateSequenceOfSizeDefinitions (typeDef : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) (acnMinSizeInBits : BigInteger) (acnMaxSizeInBits : BigInteger) (maxSize : SIZE) (acnEncodingClass : SizeableAcnEncodingClass) (acnAlignment : AcnAlignment option) (maxAlignment: AcnAlignment option) (child : Asn1AcnAst.Asn1Type): string list * string list =
+  let fdsCls, fdsObj = seqOfSizeFunDefs typeDef acnMinSizeInBits acnMaxSizeInBits maxSize acnEncodingClass acnAlignment maxAlignment child
   fdsCls |> List.map (fun fd -> show (FunDefTree fd)), fdsObj |> List.map (fun fd -> show (FunDefTree fd))
 
 let generateSequenceSubtypeDefinitions (dealiased: string) (typeDef:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) (children: Asn1AcnAst.Asn1Child list): string list =

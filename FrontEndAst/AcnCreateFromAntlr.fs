@@ -1027,12 +1027,17 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                            (inheritInfo : InheritanceInfo option)
                            (typeAssignmentInfo : AssignmentInfo option)
                            (us:Asn1AcnMergeState) : (Asn1Type*Asn1AcnMergeState)=
+
+    let maxAlignmentOf (aligns: AcnAlignment option list): AcnAlignment option =
+      aligns |> List.maxBy (fun a -> a |> Option.map (fun a -> a.nbBits) |> Option.defaultValue 0I)
+
     let acnProps =
         match acnType with
         | None      -> []
         | Some x    -> x.acnProperties
     let acnErrLoc = acnType |> Option.map(fun x -> x.loc)
     let combinedProperties = acnProps
+    let alignment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let allCons = t.Constraints@refTypeCons@withCons
     let debug = ReferenceToType curPath
     //if debug.AsString.EndsWith "ALPHA-DELETE-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURES-GENERIC" then
@@ -1147,14 +1152,15 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let uperMinSizeInBits, _ = uPER.getSizeableTypeSize minSize.uper maxSize.uper newChType.uperMinSizeInBits
             let _, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper newChType.uperMaxSizeInBits
 
-            let alignment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
             let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetSequenceOfEncodingClass alignment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn newChType.acnMinSizeInBits newChType.acnMaxSizeInBits hasNCount
             //   (acnAlignment : AcnGenericTypes.AcnAlignment option) (child : Asn1AcnAst.Asn1Type) (childType: DAst.Asn1Type)
+            let maxAlignment = maxAlignmentOf [alignment; newChType.maxAlignment]
+
             let definitionOrRef = 
                 lms |> List.map(fun (l,lm) ->
-                   (l, DAstTypeDefinition.createSequenceOf_u lm (ReferenceToType curPath) typeDef acnMinSizeInBits acnMaxSizeInBits minSize maxSize acnEncodingClass alignment newChType)) |> Map.ofList
+                   (l, DAstTypeDefinition.createSequenceOf_u lm (ReferenceToType curPath) typeDef acnMinSizeInBits acnMaxSizeInBits minSize maxSize acnEncodingClass alignment maxAlignment newChType)) |> Map.ofList
 
-            let newKind = {SequenceOf.child=newChType; acnProperties   = acnProperties; cons = cons; withcons = wcons;minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits = acnMinSizeInBits; acnMaxSizeInBits=acnMaxSizeInBits; acnArgs=acnArgsSubsted; typeDef=typeDef; definitionOrRef=definitionOrRef}
+            let newKind = {SequenceOf.child=newChType; acnProperties   = acnProperties; cons = cons; withcons = wcons;minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits = acnMinSizeInBits; acnMaxSizeInBits=acnMaxSizeInBits; acnArgs=acnArgsSubsted; typeDef=typeDef; definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}
             SequenceOf newKind, us2
         | Asn1Ast.Sequence children ->
             let childrenNameConstraints = allCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint (_,w) -> Some w| _ -> None) |> List.collect id
@@ -1326,13 +1332,16 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 }
 
             let acnArgsSubsted = substAcnArgs acnParamSubst acnArgs
-            // (acnProperties : AcnGenericTypes.SequenceAcnProperties) (acnMaxSizeInBits : BigInteger)   (children:SeqChildInfo list)  =
+
+            let childrenAlignemts = mergedChildren |> List.map(fun c -> match c with Asn1Child c -> c.Type.maxAlignment | AcnChild c -> c.Type.acnAlignment)
+            let maxAlignment = maxAlignmentOf (alignment::childrenAlignemts)
+
             let definitionOrRef = 
                 lms |> List.map(fun (l,lm) ->
                    let acnAlignment     = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
-                   (l, DAstTypeDefinition.createSequence_u asn1.args lm typeDef (ReferenceToType curPath) acnAlignment acnProperties acnMinSizeInBits acnMaxSizeInBits mergedChildren)) |> Map.ofList
+                   (l, DAstTypeDefinition.createSequence_u asn1.args lm typeDef (ReferenceToType curPath) acnAlignment maxAlignment acnProperties acnMinSizeInBits acnMaxSizeInBits mergedChildren)) |> Map.ofList
 
-            Sequence ({Sequence.children = mergedChildren;  acnProperties=acnProperties;  cons=cons; withcons = wcons;uperMaxSizeInBits=uperBitMaskSize+uperMaxChildrenSize; uperMinSizeInBits=uperBitMaskSize+uperMinChildrenSize;acnMaxSizeInBits=acnMaxSizeInBits;acnMinSizeInBits=acnMinSizeInBits; acnArgs=acnArgsSubsted; typeDef=typeDef; definitionOrRef=definitionOrRef}), chus
+            Sequence ({Sequence.children = mergedChildren;  acnProperties=acnProperties;  cons=cons; withcons = wcons;uperMaxSizeInBits=uperBitMaskSize+uperMaxChildrenSize; uperMinSizeInBits=uperBitMaskSize+uperMinChildrenSize;acnMaxSizeInBits=acnMaxSizeInBits;acnMinSizeInBits=acnMinSizeInBits; acnArgs=acnArgsSubsted; typeDef=typeDef; definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}), chus
         | Asn1Ast.Choice children ->
             let childrenNameConstraints = t.Constraints@refTypeCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint (_,w) -> Some w| _ -> None) |> List.collect id
             let myVisibleConstraints = t.Constraints@refTypeCons
@@ -1447,7 +1456,6 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let minChildSize = mergedChildren  |> List.map(fun x -> x.Type.uperMinSizeInBits) |> Seq.min
             let maxChildSize = mergedChildren  |> List.map(fun x -> x.Type.uperMaxSizeInBits) |> Seq.max
 
-            let alignment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
             let acnMinSizeInBits, acnMaxSizeInBits = AcnEncodingClasses.GetChoiceEncodingClass  mergedChildren alignment t.Location acnProperties
             // TODO: Voir si cela ne prove pas de dup? + SequenceOf
             // let detArg = acnType |> Option.bind (fun acnType -> acnType.acnProperties |> List.tryFindMap (fun prop ->
@@ -1456,15 +1464,18 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             //     | _ -> None))
             // let detArgSubsted = detArg |> Option.map (fun detArg -> substAcnArg acnParamSubst detArg)
             let allAcnArgsSubsted = substAcnArgs acnParamSubst acnArgs
-            // let allAcnArgsSubsted = acnArgsSubsted @ (detArgSubsted |> Option.toList)
+
+            let childrenAlignemts = mergedChildren |> List.map(fun c -> c.Type.maxAlignment)
+            let maxAlignment = maxAlignmentOf (alignment::childrenAlignemts)
+
             let definitionOrRef = 
                 lms |> List.map(fun (l,lm) ->
                    let acnAlignment     = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
-                   (l, DAstTypeDefinition.createChoice_u asn1.args typeIdsSet lm typeDef (ReferenceToType curPath)  acnProperties acnAlignment acnMinSizeInBits acnMaxSizeInBits mergedChildren)) |> Map.ofList
+                   (l, DAstTypeDefinition.createChoice_u asn1.args typeIdsSet lm typeDef (ReferenceToType curPath)  acnProperties acnAlignment maxAlignment acnMinSizeInBits acnMaxSizeInBits mergedChildren)) |> Map.ofList
 
             Choice ({Choice.children = mergedChildren; acnProperties = acnProperties; cons=cons; withcons = wcons;
                 uperMaxSizeInBits=indexSize+maxChildSize; uperMinSizeInBits=indexSize+minChildSize; acnMinSizeInBits =acnMinSizeInBits;
-                acnMaxSizeInBits=acnMaxSizeInBits; acnParameters = acnParameters; acnArgs = allAcnArgsSubsted; acnLoc = acnLoc; typeDef=typeDef; definitionOrRef=definitionOrRef}), chus
+                acnMaxSizeInBits=acnMaxSizeInBits; acnParameters = acnParameters; acnArgs = allAcnArgsSubsted; acnLoc = acnLoc; typeDef=typeDef; definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}), chus
 
         | Asn1Ast.ReferenceType rf    ->
             let acnArguments = acnArgs
@@ -1522,7 +1533,6 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let toByte sizeInBits =
                 sizeInBits/8I + (if sizeInBits % 8I = 0I then 0I else 1I)
 
-            let alignment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
 
             let uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, encodingOptions =
                 match rf.refEnc with
@@ -1555,8 +1565,11 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass alignment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn hasNCount
 
                     uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, (Some  {EncodeWithinOctetOrBitStringProperties.acnEncodingClass = acnEncodingClass; octOrBitStr = ContainedInOctString; minSize = minSize; maxSize=maxSize})
+
+            let maxAlignment = maxAlignmentOf [alignment; resolvedType.maxAlignment]
+
             let definitionOrRef = resolvedType.typeDefinitionOrReference
-            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions; hasExtraConstrainsOrChildrenOrAcnArgs=hasExtraConstrainsOrChildrenOrAcnArgs; refCons = refCons;definitionOrRef=definitionOrRef}
+            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions; hasExtraConstrainsOrChildrenOrAcnArgs=hasExtraConstrainsOrChildrenOrAcnArgs; refCons = refCons;definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}
             ReferenceType newRef, us2
 
     {
