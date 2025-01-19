@@ -1013,7 +1013,7 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         //Seq.groupBy id |>
         //Seq.map(fun (id, lst) -> (id, Seq.length lst)) |>
         //Map.ofSeq
-    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty}
+    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty}
     let sortedTypes = sortTypes r
     //let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (tas:Asn1AcnAst.TypeAssignment) (us:State)=
 
