@@ -86,6 +86,27 @@ and IcdTypeAss = {
 }
 
 
+type FunctionType =
+    | InitFunctionType
+    | IsValidFunctionType
+    | EqualFunctionType
+    | UperEncFunctionType
+    | UperDecFunctionType
+    | AcnEncFunctionType
+    | AcnDecFunctionType
+
+
+type Caller = {
+    typeId : ReferenceToType
+    funcType : FunctionType
+}
+
+type Callee = {
+    typeId : ReferenceToType
+    funcType : FunctionType
+    funcName : string
+}
+
 type State = {
     currErrorCode   : int
     curErrCodeNames : Set<String>
@@ -96,11 +117,23 @@ type State = {
     typeIdsSet : Map<String,int>
     newTypesMap : Dictionary<ReferenceToType, System.Object>
     icdHashes   : Map<String, IcdTypeAss list>
+    // This map stores function calls made by various generated functions,
+    // such as init, isValid, etc., for a type identified by ReferenceToType.
+    // The key is a Caller Type (ReferenceToType and FunctionType which identifies the caller), 
+    // while the value is a list of Callee types (ReferenceToType identifies the callee types, FunctionType, 
+    // and the actual function name as a string).
+    // This map helps identify functions called by PDU types recursively.
+    // Functions not called by PDU types recursively will not be generated.
+    functionCalls : Map<Caller, Callee list>
 }
 
 
-let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty}
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty}
 
+let addFunctionCallToState (state:State) (caller:Caller) (callee:Callee) =
+    match state.functionCalls.TryFind caller  with
+    | Some lst -> {state with functionCalls = state.functionCalls.Add(caller, callee::lst)}
+    | None -> {state with functionCalls = state.functionCalls.Add(caller, [callee])}
 
 
 
