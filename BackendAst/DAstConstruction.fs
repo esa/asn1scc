@@ -1000,6 +1000,41 @@ let private mapFile (r:Asn1AcnAst.AstRoot) (newTasMap : Map<TypeAssignmentInfo, 
 let private reMapFile (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (files0:Asn1File list) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (f:Asn1File) (us:State) =
     let newModules, ns = f.Modules |> foldMap (fun cs m -> reMapModule r icdStgFileName files0 deps lm m cs) us
     {f with Modules = newModules}, ns
+(*
+//the following functions determines which functions are used by PDU types. 
+//Only those functions are generated in the generated code.
+let determinGeneratedFunctions (r:Asn1AcnAst.AstRoot) (files: Asn1File list) (us:State) =
+    let getFunctionCalls (tasId:ReferenceToType)=
+        seq {
+            for c in us.functionCalls do
+                if c.Key.typeId.AsString.StartsWith (tasId.AsString) then
+                    yield (c.Key, c.Value)
+        } |> Seq.toList
+
+    let allTasses = 
+        seq {
+            for f in files do
+                for m in f.Modules do
+                    for tas in m.TypeAssignments do
+                        match tas.Type.isValidFunction with
+                        | None -> ()
+                        | Some isValidFunction -> 
+                            match isValidFunction.funcName with
+                            | None -> ()
+                            | Some fncName ->
+                                let fncCalls = getFunctionCalls tas.Type.id
+                                yield {modName = m.Name.Value; tasName = tas.Name.Value; validationFunName = fncName; validationDependencies = fncCalls}
+                        
+        } |> List.ofSeq
+    let ret =
+        match r.args.icdPdus with
+        | None -> allTasses |> List.map(fun tas -> tas.modName, tas.tasName)
+        | Some pdus -> 
+            let pduTas = pdus |> List.choose (fun pdu -> allTasses |> List.tryFind(fun tas -> tas.tasName = pdu))
+            0
+    0
+
+*)
 
 let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lang:CommonTypes.ProgrammingLanguage) (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) : AstRoot=
     let l = lang
