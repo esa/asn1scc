@@ -90,21 +90,18 @@ type FunctionType =
     | InitFunctionType
     | IsValidFunctionType
     | EqualFunctionType
-    | UperEncFunctionType
-    | UperDecFunctionType
-    | AcnEncFunctionType
-    | AcnDecFunctionType
+    | UperEncDecFunctionType
+    | AcnEncDecFunctionType
 
 
 type Caller = {
-    typeId : ReferenceToType
+    typeId : TypeAssignmentInfo
     funcType : FunctionType
 }
 
 type Callee = {
-    typeId : ReferenceToType
+    typeId : TypeAssignmentInfo
     funcType : FunctionType
-    funcName : string
 }
 
 type State = {
@@ -1180,6 +1177,7 @@ type AstRoot = {
     lang         : ProgrammingLanguage
     acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
     icdHashes   : Map<String, IcdTypeAss list>
+    callersSet  : Set<Caller>
 }
 
 

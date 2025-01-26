@@ -88,9 +88,9 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
     let sStar = lm.lg.getStar p.arg
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
     let sInitialExp = ""
-    let func, funcDef, auxiliaries =
+    let func, funcDef, auxiliaries,ns2 =
             match funcName  with
-            | None              -> None, None, []
+            | None              -> None, None, [], ns
             | Some funcName     ->
                 let content = funcBody (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p false
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, auxiliaries =
@@ -106,7 +106,15 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
 
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
                 let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) codec)
-                func, funcDef, auxiliaries
+                let ns2 =
+                    match t.id.topLevelTas with
+                    | None -> ns
+                    | Some tasInfo ->
+                        let caller = {Caller.typeId = tasInfo; funcType= UperEncDecFunctionType}
+                        let callee = {Callee.typeId = tasInfo; funcType=IsValidFunctionType}
+                        addFunctionCallToState ns caller callee
+
+                func, funcDef, auxiliaries, ns2
 
 
     let ret =
@@ -118,7 +126,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
             funcBody_e                 = funcBody_e
             auxiliaries                = auxiliaries
         }
-    ret, ns
+    ret, ns2
 
 let getIntDecFuncSuffix (intClass:Asn1AcnAst.IntegerClass) =
     match intClass with
@@ -926,6 +934,14 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
         match areUperTypesEquivalent with
         | true  ->
             let soSparkAnnotations = TL "UPER_REF_02" (fun () -> Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec))
+            let ns =
+                match t.id.topLevelTas with
+                | None -> us
+                | Some tasInfo ->
+                    let caller = {Caller.typeId = tasInfo; funcType=UperEncDecFunctionType}
+                    let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=UperEncDecFunctionType}
+                    addFunctionCallToState us caller callee
+
             let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
                 //let funcBodyContent = TL "UPER_REF_03" (fun () -> (baseType.getUperFunction codec).funcBody nestingScope p fromACN)
                 //match funcBodyContent with
@@ -941,7 +957,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                     let funcBodyContent = TL "UPER_REF_05" (fun () -> callBaseTypeFunc lm pp baseFncName codec)
                     Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
                 //| None -> None
-            TL "UPER_REF_06" (fun () -> createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations [] us)
+            TL "UPER_REF_06" (fun () -> createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations [] ns)
         | false ->
             baseType.getUperFunction codec, us
     | Some opts  ->
