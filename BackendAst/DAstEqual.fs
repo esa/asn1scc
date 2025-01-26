@@ -285,7 +285,7 @@ let createChoiceEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
     createEqualFunction_any r lm t typeDefinition (EqualBodyStatementList isEqualBody)
     //createCompositeEqualFunction r l lm  t typeDefinition isEqualBody (stgMacroCompDefFunc l)
 
-let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType)  (defOrRef:TypeDefinitionOrReference) (baseType:Asn1Type) =
+let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType)  (defOrRef:TypeDefinitionOrReference) (baseType:Asn1Type) (us:State) =
     //let isEqualFuncName     = getEqualFuncName r l lm t.id
     let isEqualFuncName            = getFuncName r lm  defOrRef
     let typeDefinitionName = lm.lg.getLongTypedefName defOrRef
@@ -327,7 +327,7 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
     | IA5String _
     | ReferenceType _ ->
         let bs = baseType.equalFunction
-        createEqualFunction_any r lm t defOrRef bs.isEqualBody
+        createEqualFunction_any r lm t defOrRef bs.isEqualBody, us
     | OctetString _
     | BitString  _
     | ObjectIdentifier _
@@ -343,6 +343,15 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
         let val2 = lm.lg.getParamTypeSuffix t "2" CommonTypes.Codec.Encode
 
         let stgMacroDefFunc = lm.equal.PrintEqualDefinitionComposite
+        let ns =
+            match t.id.topLevelTas with
+            | None -> 
+                printfn "No type assignment info for %A" t.id
+                us
+            | Some tasInfo ->
+                let caller = {Caller.typeId = tasInfo; funcType=EqualFunctionType}
+                let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=EqualFunctionType}
+                addFunctionCallToState us caller callee
 
         let isEqualFunc, isEqualFuncDef =
             match isEqualFuncName with
@@ -358,5 +367,5 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
             isEqualBody                    = EqualBodyStatementList (isEqualBody )
             isEqualFunc                    = isEqualFunc
             isEqualFuncDef                 = isEqualFuncDef
-        }
+        }, ns
 
