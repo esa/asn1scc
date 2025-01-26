@@ -729,9 +729,9 @@ let private createChoiceChild (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn
 let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (newResolvedType:Asn1Type, us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
     let defOrRef            =  lm.lg.definitionOrRef o.definitionOrRef   
-    let equalFunction       = DAstEqual.createReferenceTypeEqualFunction r lm t o defOrRef newResolvedType
-    let initFunction        = DAstInitialize.createReferenceType r lm t o defOrRef newResolvedType
-    let isValidFunction, s1     = DastValidate2.createReferenceTypeFunction r lm t o defOrRef newResolvedType us
+    let equalFunction, s00       = DAstEqual.createReferenceTypeEqualFunction r lm t o defOrRef newResolvedType us
+    let initFunction,s0        = DAstInitialize.createReferenceType r lm t o defOrRef newResolvedType s00
+    let isValidFunction, s1     = DastValidate2.createReferenceTypeFunction r lm t o defOrRef newResolvedType s0
     let uperEncFunction, s2     = DAstUPer.createReferenceFunction r lm Codec.Encode t o defOrRef isValidFunction newResolvedType s1
     let uperDecFunction, s3     = DAstUPer.createReferenceFunction r lm Codec.Decode t o defOrRef isValidFunction newResolvedType s2
     let acnEncFunction, s4      = DAstACN.createReferenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction newResolvedType s3
@@ -1036,6 +1036,64 @@ let determinGeneratedFunctions (r:Asn1AcnAst.AstRoot) (files: Asn1File list) (us
 
 *)
 
+
+let calculateFunctionToBeGenerated (r:Asn1AcnAst.AstRoot) (us:State) =
+    let functionCalls = us.functionCalls
+    let requiresUPER = r.args.encodings |> Seq.exists ( (=) Asn1Encoding.UPER)
+    let requiresAcn = r.args.encodings |> Seq.exists ( (=) Asn1Encoding.ACN)
+
+    let functionTypes =  
+        seq {
+            yield InitFunctionType; 
+            yield IsValidFunctionType; 
+            if r.args.GenerateEqualFunctions then yield EqualFunctionType; 
+            if requiresUPER then yield UperEncDecFunctionType; 
+            if requiresAcn then yield AcnEncDecFunctionType; 
+        } |> Seq.toList
+    
+    let rec getCallees (c: Caller)=
+        seq {
+            yield c
+            match functionCalls.ContainsKey c with
+            | false -> ()
+            | true  ->
+                let callees = functionCalls[c]
+                for callee in callees do
+                    yield! getCallees {Caller.typeId = callee.typeId; funcType = callee.funcType}
+        } |> Seq.toList
+
+    let ret = 
+        seq {
+            for f in r.Files do
+                for m in f.Modules do
+                    let tasToGenerate, bFindCalles = 
+                        match r.args.icdPdus with
+                        | None -> m.TypeAssignments, false
+                        | Some pdus -> pdus |> List.choose (fun pdu -> m.TypeAssignments |> List.tryFind(fun tas -> tas.Name.Value = pdu)), true
+                    for tas in tasToGenerate do
+                        for fncType in functionTypes do
+                            let tsInfo = {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}
+                            let caller = {Caller.typeId = tsInfo; funcType = fncType}
+                            match bFindCalles with
+                            | true   -> yield! getCallees caller
+                            | false  -> yield caller
+        } |> Set.ofSeq
+    match r.args.icdPdus with
+    | None -> ()
+    | Some _ -> 
+        //let's print in the console the functions that will not be generated
+        let s = ret 
+        for f in r.Files do
+            for m in f.Modules do
+                for tas in m.TypeAssignments do
+                    for fncType in functionTypes do
+                        let tsInfo = {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}
+                        let caller = {Caller.typeId = tsInfo; funcType = fncType}
+                        if not (s.Contains caller) then
+                            printfn "Function %A will not be generated for %s.%s" fncType tsInfo.modName tsInfo.tasName
+        
+    ret
+
 let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lang:CommonTypes.ProgrammingLanguage) (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) : AstRoot=
     let l = lang
 
@@ -1072,4 +1130,5 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         acnParseResults = r.acnParseResults
         deps    = deps
         icdHashes   = ns.icdHashes
+        callersSet = calculateFunctionToBeGenerated r ns
     }

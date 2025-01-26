@@ -1033,6 +1033,16 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             | false -> moduleName + "." + baseTypeDefinitionName + "_IsConstraintValid"
 
 
+    let ns =
+        match resolvedType.isValidFunction with
+        | Some _    ->
+            match t.id.topLevelTas with
+            | None -> us
+            | Some tasInfo ->
+                let caller = {Caller.typeId = tasInfo; funcType=IsValidFunctionType}
+                let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=IsValidFunctionType}
+                addFunctionCallToState us caller callee
+        | None      -> us
     let funBody (errCode: ErrorCode) (p:CallerScope) =
         let with_component_check, lv2 =
             convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |>
@@ -1051,6 +1061,6 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
 
     let errorCodeComment = o.refCons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
 
-    createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment) us
+    createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 

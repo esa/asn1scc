@@ -1220,7 +1220,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
         List.head
     createInitFunctionCommon r lm t typeDefinition funcBody initTasFunction testCaseFuncs (constantInitExpression getChildExpression) (constantInitExpression getChildExpressionGlobal) nonEmbeddedChildrenFuncs [] []
 
-let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (baseType:Asn1Type) =
+let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (baseType:Asn1Type) (us:State) =
     let initChildWithInitFunc = lm.init.initChildWithInitFunc
     let nonEmbeddedChildrenFuncs = []
 
@@ -1246,10 +1246,19 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
     let bs = baseType.initFunction
     match TypesEquivalence.uperEquivalence t1 t1WithExtensions with
     | false ->
-        createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpressionFnc bs.initExpressionGlobalFnc  bs.nonEmbeddedChildrenFuncs [] []
+        createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpressionFnc bs.initExpressionGlobalFnc  bs.nonEmbeddedChildrenFuncs [] [], us
     | true  ->
         match t.isComplexType with
         | true ->
+            let ns =
+                match t.id.topLevelTas with
+                | None -> 
+                    printfn "No type assignment info for %A" t.id
+                    us
+                | Some tasInfo ->
+                    let caller = {Caller.typeId = tasInfo; funcType=InitFunctionType}
+                    let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=InitFunctionType}
+                    addFunctionCallToState us caller callee
             let baseFncName, baseGlobalName =
                 let funcName = typeDefinitionName + (lm.init.methodNameSuffix())
                 let globalName = typeDefinitionName + "_constant"
@@ -1265,7 +1274,7 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
                 let resVar = p.arg.asIdentifier
                 let funcBody = initChildWithInitFunc (lm.lg.getPointer p.arg) baseFncName
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables = []}
-            createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value initTasFunction bs.automaticTestCases constantInitExpression constantInitExpressionGlobal nonEmbeddedChildrenFuncs [] []
+            createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value initTasFunction bs.automaticTestCases constantInitExpression constantInitExpressionGlobal nonEmbeddedChildrenFuncs [] [], ns
         | false ->
-            createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpressionFnc bs.initExpressionGlobalFnc bs.nonEmbeddedChildrenFuncs [] []
+            createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpressionFnc bs.initExpressionGlobalFnc bs.nonEmbeddedChildrenFuncs [] [], us
 
