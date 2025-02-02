@@ -316,14 +316,18 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 for tas in tases do
                     let typeAssignmentInfo = tas.Type.id.tasInfo.Value
                     let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
-                    let reqUPER = r.callersSet |> Set.contains (f UperEncDecFunctionType)
-                    let reqACN = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+                    let reqUPER = 
+                        r.args.encodings |> Seq.exists ((=) CommonTypes.UPER)
+                        && r.callersSet |> Set.contains (f UperEncDecFunctionType)
+                    let reqACN = 
+                        r.args.encodings |> Seq.exists ((=) CommonTypes.ACN)
+                        && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
 
-                    if reqUPER && r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
+                    if reqUPER then
                         yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.func))
                     if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
                         yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.func))
-                    if reqACN && r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
+                    if reqACN  then
                         yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.func))
                 } |> Seq.choose id |> Seq.toList
 
