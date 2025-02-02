@@ -1000,42 +1000,78 @@ let private mapFile (r:Asn1AcnAst.AstRoot) (newTasMap : Map<TypeAssignmentInfo, 
 let private reMapFile (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (files0:Asn1File list) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (f:Asn1File) (us:State) =
     let newModules, ns = f.Modules |> foldMap (fun cs m -> reMapModule r icdStgFileName files0 deps lm m cs) us
     {f with Modules = newModules}, ns
-(*
-//the following functions determines which functions are used by PDU types. 
-//Only those functions are generated in the generated code.
-let determinGeneratedFunctions (r:Asn1AcnAst.AstRoot) (files: Asn1File list) (us:State) =
-    let getFunctionCalls (tasId:ReferenceToType)=
-        seq {
-            for c in us.functionCalls do
-                if c.Key.typeId.AsString.StartsWith (tasId.AsString) then
-                    yield (c.Key, c.Value)
-        } |> Seq.toList
 
-    let allTasses = 
+let detectPDUs (r:Asn1AcnAst.AstRoot) (us:State) =
+    let functionTypes =  Set.ofList [AcnEncDecFunctionType] 
+    let functionCalls = us.functionCalls |> Map.filter(fun z _ -> z.funcType = AcnEncDecFunctionType)
+    printfn "Detecting PDUs. Function calls: %d" functionCalls.Count
+
+    let memo = System.Collections.Generic.Dictionary<Caller, Set<Caller> >()
+    let rec getCallees2 bIsTass (c: Caller) =
+        let getCallees2_aux (c: Caller) =
+            if memo.ContainsKey(c) then
+                memo.[c]
+            else
+                let result =
+                    match functionCalls.ContainsKey(c) with
+                    | false -> 
+                        match bIsTass with
+                        | true  -> Set.empty
+                        | false -> Set.singleton c
+                    | true  ->
+                        let callees = functionCalls.[c]
+                        let ret2 =
+                            callees
+                            |> List.map (fun callee -> getCallees2 false {Caller.typeId = callee.typeId; funcType = callee.funcType})
+                            |> List.fold Set.union Set.empty
+                        match bIsTass with
+                        | true  -> ret2
+                        | false -> Set.add c ret2
+                memo.[c] <- result
+                result
+        getCallees2_aux c
+        
+    let callesList = 
         seq {
-            for f in files do
+            for f in r.Files do
                 for m in f.Modules do
                     for tas in m.TypeAssignments do
-                        match tas.Type.isValidFunction with
-                        | None -> ()
-                        | Some isValidFunction -> 
-                            match isValidFunction.funcName with
-                            | None -> ()
-                            | Some fncName ->
-                                let fncCalls = getFunctionCalls tas.Type.id
-                                yield {modName = m.Name.Value; tasName = tas.Name.Value; validationFunName = fncName; validationDependencies = fncCalls}
-                        
-        } |> List.ofSeq
-    let ret =
-        match r.args.icdPdus with
-        | None -> allTasses |> List.map(fun tas -> tas.modName, tas.tasName)
-        | Some pdus -> 
-            let pduTas = pdus |> List.choose (fun pdu -> allTasses |> List.tryFind(fun tas -> tas.tasName = pdu))
-            0
-    0
+                        for fncType in functionTypes do
+                            //let msg = sprintf "Processing %s.%s. " m.Name.Value tas.Name.Value
+                            //printf "%s" msg
+                            let tsInfo = {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}
+                            let caller = {Caller.typeId = tsInfo; funcType = fncType}
+                            //let calles = getCallees true caller |> List.map(fun c -> c.typeId) |> List.distinct
+                            let calles = getCallees2 true caller |> Set.map(fun c -> c.typeId) 
+                            //printfn "Calles detected: %d" calles.Length
+                            yield calles
+        } |> Seq.toList
+    printfn "Calles detected: %d" callesList.Length
+    //let callesMap = callesList |> List.collect id |> List.distinct |> Set.ofList
+    let callesMap = callesList |> List.fold (fun acc x -> Set.union acc x) Set.empty
 
-*)
-
+    //PDUS are the types that are not called by any other types
+    let pdus = 
+        seq {
+            for f in r.Files do
+                for m in f.Modules do
+                    for tas in m.TypeAssignments do
+                        let tsInfo = {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}
+                        if not (callesMap.Contains tsInfo) then
+                            //printfn "PDU detected: %s.%s" m.Name.Value tas.Name.Value
+                            let caller = {Caller.typeId = tsInfo; funcType = AcnEncDecFunctionType}
+                            //let calles = getCallees true caller |> List.map(fun c -> c.typeId) |> List.distinct
+                            let calles = getCallees2 true caller |> Set.map(fun c -> c.typeId)
+                            if (calles.Count > 0) then
+                                printfn "PDU %s.%s detected. It has %d callees" m.Name.Value tas.Name.Value calles.Count
+                                yield (tsInfo, calles)
+        } |> Seq.toList  
+    
+    let pudsSorted = pdus |> List.sortByDescending(fun (tas, calles) -> calles.Count) 
+    let maxToPrint = min 5 (pudsSorted.Length)
+    printfn "PDUs detected: %d. Printing the first %d" pudsSorted.Length maxToPrint
+    for (tas, calles) in pudsSorted |> List.take maxToPrint do
+        printfn "%s.%s references %d types" tas.modName tas.tasName calles.Count
 
 let calculateFunctionToBeGenerated (r:Asn1AcnAst.AstRoot) (us:State) =
     let functionCalls = us.functionCalls
@@ -1051,6 +1087,7 @@ let calculateFunctionToBeGenerated (r:Asn1AcnAst.AstRoot) (us:State) =
             if requiresAcn then yield AcnEncDecFunctionType; 
         } |> Seq.toList
     
+    (*
     let rec getCallees (c: Caller)=
         seq {
             yield c
@@ -1061,6 +1098,27 @@ let calculateFunctionToBeGenerated (r:Asn1AcnAst.AstRoot) (us:State) =
                 for callee in callees do
                     yield! getCallees {Caller.typeId = callee.typeId; funcType = callee.funcType}
         } |> Seq.toList
+        *)
+    let memo2 = System.Collections.Generic.Dictionary<Caller, Set<Caller>  >()
+    let rec getCallees (c: Caller)=
+        if memo2.Count%50 = 0 then printfn "Processing %d" memo2.Count
+        match memo2.ContainsKey(c) with
+        | true  -> memo2.[c]
+        | false ->
+            let getCallees_aux (c: Caller) =
+                let result =
+                    match functionCalls.ContainsKey c with
+                    | false -> Set.singleton c
+                    | true  ->
+                        let callees = functionCalls[c]
+                        let ret2 =
+                            callees
+                            |> List.map (fun callee -> getCallees {Caller.typeId = callee.typeId; funcType = callee.funcType})
+                            |> List.fold Set.union Set.empty
+                        Set.add c ret2
+                memo2.[c] <- result
+                result
+            getCallees_aux c
 
     let ret = 
         seq {
@@ -1078,6 +1136,7 @@ let calculateFunctionToBeGenerated (r:Asn1AcnAst.AstRoot) (us:State) =
                             | true   -> yield! getCallees caller
                             | false  -> yield caller
         } |> Set.ofSeq
+    printfn "Function calls detected: %d" ret.Count
     match r.args.icdPdus with
     | None -> ()
     | Some _ -> 
@@ -1130,5 +1189,7 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         acnParseResults = r.acnParseResults
         deps    = deps
         icdHashes   = ns.icdHashes
-        callersSet = calculateFunctionToBeGenerated r ns
+        callersSet = 
+            detectPDUs r ns //this function will print the PDUs detected
+            calculateFunctionToBeGenerated r ns
     }

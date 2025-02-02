@@ -92,6 +92,8 @@ type FunctionType =
     | EqualFunctionType
     | UperEncDecFunctionType
     | AcnEncDecFunctionType
+    | XerEncDecFunctionType
+    | BerEncDecFunctionType
 
 
 type Caller = {
