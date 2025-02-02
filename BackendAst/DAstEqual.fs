@@ -346,7 +346,7 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
         let ns =
             match t.id.topLevelTas with
             | None -> 
-                printfn "No type assignment info for %A" t.id
+                //printfn "No type assignment info for %A" t.id
                 us
             | Some tasInfo ->
                 let caller = {Caller.typeId = tasInfo; funcType=EqualFunctionType}

@@ -185,6 +185,11 @@ let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacro
                 Some (emitTestCaseAsFunc_dummy_init_function lm sTypeName initProc.funcName dummyVarName)
         | Some _ -> None)
 
+let asn1EncodingMapping = function
+    | UPER  -> UperEncDecFunctionType
+    | ACN   -> AcnEncDecFunctionType 
+    | BER   -> BerEncDecFunctionType 
+    | XER   -> XerEncDecFunctionType 
 
 let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outDir =
     let tcFunctors =
@@ -196,7 +201,10 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                         match encDecTestFunc with
                         | Some _    ->
                             let hasEncodeFunc = e <> Asn1Encoding.ACN ||  hasAcnEncodeFunction t.Type.acnEncFunction t.Type.acnParameters t.Type.id.tasInfo
-                            if hasEncodeFunc   then
+                            let typeAssignmentInfo = t.Type.id.tasInfo.Value
+                            let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
+                            let requiresTestCaseFunc = r.callersSet |> Set.contains (f (asn1EncodingMapping e))
+                            if hasEncodeFunc && requiresTestCaseFunc  then
                                 let isTestCaseValid atc =
                                     match t.Type.acnEncFunction with
                                     | None  -> false
