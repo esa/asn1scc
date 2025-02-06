@@ -58,6 +58,7 @@ $arrsAsn1Content$
 
 EmitModule(sModName, sAsn1FileName, soAcnFileName, arrsComments, arrsTases) ::= <<
 <div style="width: 100%">
+<a name="ICD_$sModName$"></a>
 <h1>Module $sModName$</h1>
 $if(soAcnFileName)$
 <i>Defined in: $sAsn1FileName$, $soAcnFileName$.</i>
@@ -69,6 +70,10 @@ $arrsComments;separator="\n<br/>\n"$
 </p>
 $arrsTases;separator="\n"$
 </div>
+>>
+
+EmitNavLink(sTitle, sTarget) ::= <<
+<a href="#ICD_$sTarget$">$sTitle$</a>
 >>
 
 
@@ -135,7 +140,7 @@ $arrsItems;separator="\n"$
 
 EmitSequenceOrChoice(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsn1Kinf, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsChildren, arrsParams, arrsComments) ::= <<
 <a name="ICD_$sTasNameC$"></a>
-<table width="100%" >
+<table>
 <tbody>
 
 <tr class="typeRow">
@@ -206,7 +211,7 @@ $if(noAlignToNextSize)$
 $endif$
 <tr class="$sCssClass$">
 <td class="no">$nIndex$</td>
-<td class="field">$sName$</td>
+<td class="field", style="white-space: nowrap;">$sName$</td>
 <td class="comment">$sComment$</td>
 <td class="optional">$sPresentWhen$</td>
 <td class="type">$sType$</td>
@@ -257,7 +262,7 @@ EmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
 
 EmitPrimitiveType(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsnKindName, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, sAsn1Constraints, sMinBits, sMaxBits, arrsParams, arrsComments, soUnit) ::= <<
 <a name="ICD_$sTasNameC$"></a>
-<table width="100%" >
+<table>
 <tbody>
 
 <tr class="typeRow">
@@ -312,10 +317,9 @@ $endif$
 </table>
 >>
 
-
 EmitSizeable(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sKind, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsRows, arrsParams, arrsComments) ::= <<
 <a name="ICD_$sTasNameC$"></a>
-<table width="100%" >
+<table>
 <tbody>
 
 <tr  class="typeRow">
@@ -623,31 +627,96 @@ font.enumeration_name
 >>
 
 
-RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFileName) ::= <<
+RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFileName, navLinks) ::= <<
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" >
 <head>
     <title>ICD</title>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
     <link rel="stylesheet" href="$sCssFileName$" />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Left Navigation Pane */
+        .nav-pane {
+            width: 250px;
+            background-color: #f4f4f4;
+            padding: 15px;
+            overflow-y: auto;
+            position: fixed;
+            height: 100vh;
+            border-right: 2px solid #ccc;
+        }
+
+        .nav-pane a {
+            display: block;
+            padding: 5px;
+            text-decoration: none;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px; /* Adjust this value as needed */
+        }
+
+        .nav-pane a:hover {
+            background-color: #ddd;
+        }
+
+        /* Scrollable Content Area */
+        .content {
+            margin-left: 250px; /* Same width as nav */
+            padding: 20px;
+            overflow-y: auto;
+            height: 100vh;
+            flex-grow: 1;
+        }
+
+        /* Example section styling */
+        .section {
+            padding: 20px;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
+
 <body>
-<em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules.
-</em><br/><br/>
-  $arrsFiles1;separator="&nbsp;<br/>\n"$
 
-  <hr />
-$if(bAcnParamsMustBeExplained)$
-    <a name="ACN_PARAMS_EXPLAINED123"></a>
-    <em>ACN Parameters</em><br/>
-    In the standard ASN.1 encodings such as uPER, BER etc, the encoding and decoding of any type has no external dependencies. For example, the encoded data for a SEQUENCE OF depends on the number of items in the SEQUENCE OF (the length determinant) and the type of item contained in the SEQUENCE. On the other hand, ACN allows types to be parameterized. For instance, the length of a SEQUENCE OF may be determined by the value of an external field. In this case, the SEQUENCE OF is parameterized and the input parameter is the field providing the length.
-  <hr />
-    <br/>
-$endif$
+    <!-- Left Navigation Pane -->
+    <nav class="nav-pane">
+        <h3>Navigation</h3>
+        $navLinks;separator="&nbsp;<br/>\n"$
+    </nav>
 
-  $arrsFiles2;separator="\n"$
+    <!-- Scrollable Content Area -->
+    <div class="content">
+        <em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules.
+        </em><br/><br/>
+        $arrsFiles1;separator="&nbsp;<br/>\n"$
 
-  $arrsFiles3;separator="\n"$
+        <hr />
+        $if(bAcnParamsMustBeExplained)$
+            <a name="ACN_PARAMS_EXPLAINED123"></a>
+            <em>ACN Parameters</em><br/>
+            In the standard ASN.1 encodings such as uPER, BER etc, the encoding and decoding of any type has no external dependencies. For example, the encoded data for a SEQUENCE OF depends on the number of items in the SEQUENCE OF (the length determinant) and the type of item contained in the SEQUENCE. On the other hand, ACN allows types to be parameterized. For instance, the length of a SEQUENCE OF may be determined by the value of an external field. In this case, the SEQUENCE OF is parameterized and the input parameter is the field providing the length.
+        <hr />
+            <br/>
+        $endif$
+
+        $arrsFiles2;separator="\n"$
+
+        $arrsFiles3;separator="\n"$
+    </div>
 
 </body>
 </html>
