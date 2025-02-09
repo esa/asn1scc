@@ -670,6 +670,8 @@ type Asn1Type = {
     acnEncSpecPosition          : (SrcLoc*SrcLoc) option   //start pos, end pos
     acnEncSpecAntlrSubTree      : ITree option
     unitsOfMeasure : string option
+
+    referencedBy    : TypeAssignmentInfo list
 }
  with
     member this.externalDependencies: RelativePath list =
@@ -904,6 +906,7 @@ type AstRoot = {
     acnConstants : Map<string, BigInteger>
     args:CommandLineSettings
     acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with colors the initial ACN input
+    allDependencies : (TypeAssignmentInfo*TypeAssignmentInfo) list      //caller, callee
 }
 
 
@@ -959,4 +962,5 @@ type Asn1AcnMergeState = {
     allocatedTypeNames          : Map<(ProgrammingLanguage*string), string list>      //language, type definition name, program unit lists 
     allocatedFE_TypeDefinition  : Map<(ProgrammingLanguage*ReferenceToType), FE_TypeDefinition>
     temporaryTypesAllocation    : Map<(ProgrammingLanguage*ReferenceToType), string>
+    allDependencies             : (TypeAssignmentInfo*TypeAssignmentInfo) list      //caller, callee
 }

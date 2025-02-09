@@ -2535,6 +2535,10 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 | None -> us
                 | Some tasInfo ->
                     let caller = {Caller.typeId = tasInfo; funcType=AcnEncDecFunctionType}
+                        //match List.rev t.referencedBy with
+                        //| [] -> {Caller.typeId = tasInfo; funcType=AcnEncDecFunctionType}
+                        //| hd::_ -> {Caller.typeId = {TypeAssignmentInfo.modName = hd.modName; tasName=hd.tasName}; funcType=AcnEncDecFunctionType}
+                        
                     let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=AcnEncDecFunctionType}
                     addFunctionCallToState us caller callee
 
