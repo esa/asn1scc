@@ -782,6 +782,7 @@ let private createType (r:Asn1AcnAst.AstRoot) pi (t:Asn1AcnAst.Asn1Type) ((newKi
             inheritInfo = t.inheritInfo
             typeAssignmentInfo = t.typeAssignmentInfo
             unitsOfMeasure = t.unitsOfMeasure
+            referencedBy = t.referencedBy
             //newTypeDefName = DAstTypeDefinition2.getTypedefName r pi t
         }
     match us.newTypesMap.ContainsKey t.id with
@@ -1001,10 +1002,55 @@ let private reMapFile (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (files0:Asn
     let newModules, ns = f.Modules |> foldMap (fun cs m -> reMapModule r icdStgFileName files0 deps lm m cs) us
     {f with Modules = newModules}, ns
 
+let detectPDUs2 (r:Asn1AcnAst.AstRoot)  =
+    let callesMap = 
+        r.allDependencies |> 
+        List.groupBy(fun (a,_) -> a) |> //group by caller
+        List.map(fun (a,b) -> a, b |> List.map snd |> List.distinct) |>     //remove duplicates
+        Map.ofList
+
+    let callesSet = 
+        r.allDependencies |> 
+        List.map(fun (caller, callee) -> callee) |>
+        Set.ofList
+
+    let rec getCallesCount (tsInfo:TypeAssignmentInfo) =
+        match callesMap.TryFind tsInfo with
+        | None -> 0
+        | Some l -> 
+            let l1 = l.Length
+            let l2 = l |> List.map getCallesCount |> List.sum
+            l1 + l2
+
+    //PDUS are the types that are not called by any other types
+    let pdus = 
+        seq {
+            for f in r.Files do
+                for m in f.Modules do
+                    for tas in m.TypeAssignments do
+                        let tsInfo = {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}
+                        if not (callesSet.Contains tsInfo) then
+                            yield (tsInfo, getCallesCount tsInfo)
+        } |> Seq.toList  
+    
+    let pudsSorted = pdus |> List.sortByDescending(fun (tas, callesCnt) -> callesCnt) 
+    let maxToPrint = min 100 (pudsSorted.Length)
+    printfn "PDUs detected: %d. Printing the first %d" pudsSorted.Length maxToPrint
+    for (tas, callesCnt) in pudsSorted |> List.take maxToPrint do
+        printfn "%s.%s references %d types" tas.modName tas.tasName callesCnt
+
 let detectPDUs (r:Asn1AcnAst.AstRoot) (us:State) =
     let functionTypes =  Set.ofList [AcnEncDecFunctionType] 
     let functionCalls = us.functionCalls |> Map.filter(fun z _ -> z.funcType = AcnEncDecFunctionType)
     printfn "Detecting PDUs. Function calls: %d" functionCalls.Count
+
+    //print all calls
+    printfn "== Calls detected =="
+    functionCalls |> Seq.iter(fun fc ->
+        let calleesStr = sprintf "%s.%s" fc.Key.typeId.modName fc.Key.typeId.tasName
+        let callees = fc.Value |> List.map(fun c -> c.typeId) |> List.distinct |> List.map(fun z -> sprintf "%s.%s" z.modName z.tasName) |> Seq.StrJoin ", "
+        printfn "%s calls %s" calleesStr callees)
+    printfn "== End of calls =="
 
     let memo = System.Collections.Generic.Dictionary<Caller, Set<Caller> >()
     let rec getCallees2 bIsTass (c: Caller) =
@@ -1042,6 +1088,8 @@ let detectPDUs (r:Asn1AcnAst.AstRoot) (us:State) =
                             let tsInfo = {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}
                             let caller = {Caller.typeId = tsInfo; funcType = fncType}
                             //let calles = getCallees true caller |> List.map(fun c -> c.typeId) |> List.distinct
+                            if tas.Name.Value = "Observable-Event" then
+                                printfn "debug"
                             let calles = getCallees2 true caller |> Set.map(fun c -> c.typeId) 
                             //printfn "Calles detected: %d" calles.Length
                             yield calles
@@ -1062,13 +1110,11 @@ let detectPDUs (r:Asn1AcnAst.AstRoot) (us:State) =
                             let caller = {Caller.typeId = tsInfo; funcType = AcnEncDecFunctionType}
                             //let calles = getCallees true caller |> List.map(fun c -> c.typeId) |> List.distinct
                             let calles = getCallees2 true caller |> Set.map(fun c -> c.typeId)
-                            if (calles.Count > 0) then
-                                printfn "PDU %s.%s detected. It has %d callees" m.Name.Value tas.Name.Value calles.Count
-                                yield (tsInfo, calles)
+                            yield (tsInfo, calles)
         } |> Seq.toList  
     
     let pudsSorted = pdus |> List.sortByDescending(fun (tas, calles) -> calles.Count) 
-    let maxToPrint = min 5 (pudsSorted.Length)
+    let maxToPrint = min 100 (pudsSorted.Length)
     printfn "PDUs detected: %d. Printing the first %d" pudsSorted.Length maxToPrint
     for (tas, calles) in pudsSorted |> List.take maxToPrint do
         printfn "%s.%s references %d types" tas.modName tas.tasName calles.Count
@@ -1180,6 +1226,8 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
     let files0, ns = TL "mapFile" (fun () -> r.Files |> foldMap (fun cs f -> mapFile r newTasMap icdStgFileName deps lm f cs) ns0)
     let files, ns = TL "reMapFile" (fun () -> files0 |> foldMap (fun cs f -> reMapFile r icdStgFileName files0 deps lm f cs) ns)
     let icdTases = ns.icdHashes
+    if r.args.detectPdus then
+        detectPDUs2 r  //this function will print the PDUs detected
     {
         AstRoot.Files = files
         acnConstants = r.acnConstants
@@ -1189,7 +1237,5 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         acnParseResults = r.acnParseResults
         deps    = deps
         icdHashes   = ns.icdHashes
-        callersSet = 
-            detectPDUs r ns //this function will print the PDUs detected
-            calculateFunctionToBeGenerated r ns
+        callersSet = calculateFunctionToBeGenerated r ns
     }

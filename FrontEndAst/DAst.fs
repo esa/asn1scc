@@ -1024,6 +1024,7 @@ and Asn1Type = {
 
     Kind            : Asn1TypeKind
     unitsOfMeasure  : string option
+    referencedBy    : TypeAssignmentInfo list
 } with
     member this.toAsn1AcnAst: Asn1AcnAst.Asn1Type =
         {
@@ -1040,6 +1041,7 @@ and Asn1Type = {
             acnEncSpecPosition = None
             acnEncSpecAntlrSubTree = None
             unitsOfMeasure = this.unitsOfMeasure
+            referencedBy = this.referencedBy
         }
 
 
