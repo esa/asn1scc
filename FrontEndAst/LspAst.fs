@@ -108,6 +108,7 @@ let defaultCommandLineSettings  =
         objectIdentifierMaxLength = 20I
         generateConstInitGlobals = false
         icdPdus = None
+        detectPdus = false
         handleEmptySequences = false
         blm = []
         userRtlFunctionsToGenerate= []
