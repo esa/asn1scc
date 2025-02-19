@@ -22,7 +22,7 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         | SEQ_CHILD (chName, chOpt)  ->
             let isPresent =
                 match chOpt with
-                | true ->  [lm.lg.getSeqChildIsPresent pVal.arg chName] //[sprintf "%s%sexist.%s" pVal.arg.p (lm.lg.getAccess pVal.arg) chName]
+                | true ->  [lm.lg.getSeqChildIsPresent pVal.arg (ToC chName)] //[sprintf "%s%sexist.%s" pVal.arg.p (lm.lg.getAccess pVal.arg) chName]
                 | false -> []
             isPresent, {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString chOpt}
         | CH_CHILD (chName, pre_name, chParent)  ->
