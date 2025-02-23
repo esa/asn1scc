@@ -853,7 +853,6 @@ flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint*
 	byte tmp[10];
 	size_t sz = null_characters_size < 10 ? null_characters_size : 10;
 	memset(tmp, 0x0, 10);
-	asn1SccSint i = 0;
 
 	//read null_character_size characters into the tmp buffer
 	for (int j = 0; j < (int)null_characters_size; j++) {
@@ -863,7 +862,6 @@ flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint*
 
 	while (memcmp(null_characters, tmp, sz) != 0) {
 		digit = tmp[0];
-		i++;
 		for (int j = 0; j < (int)null_characters_size - 1; j++)
 			tmp[j] = tmp[j + 1];
 		if (!BitStream_ReadByte(pBitStrm, &(tmp[null_characters_size - 1])))
