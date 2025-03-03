@@ -69,6 +69,42 @@ let TL_report () = ()
 
 
 
+let nextFloat (x: float32) =
+    if Single.IsNaN(x) || Single.IsInfinity(x) then
+        x // NaN and Infinity do not have next representable values
+    else
+        let bits = BitConverter.SingleToInt32Bits(x)
+        let nextBits = if x > 0.0f then bits + 1 else bits - 1
+        BitConverter.Int32BitsToSingle(nextBits)
+
+let previousFloat (x: float32) =
+    if Single.IsNaN(x) || Single.IsInfinity(x) then
+        x // NaN and Infinity do not have previous representable values
+    else
+        let bits = BitConverter.SingleToInt32Bits(x)
+        let prevBits = if x > 0.0f then bits - 1 else bits + 1
+        BitConverter.Int32BitsToSingle(prevBits)
+
+let nearestFloat32 (value: double) : (float32*float32) option =
+    let converted = float32 value  // Convert to float32
+    let backToDouble = double converted  // Convert back to double to check precision
+
+    if backToDouble = value then
+        None
+    else
+        let f32_str = converted.ToString("G9")
+        let f64_str = value.ToString("G9")
+        if f32_str = f64_str then
+            None
+        else
+            if backToDouble < value then
+                Some (converted, (nextFloat converted))
+            else
+                Some (previousFloat converted, converted)
+
+
+
+
 type OptionBuilder() =
     member x.Bind(opt, f) =
         match opt with
