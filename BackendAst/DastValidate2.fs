@@ -269,8 +269,21 @@ let integerConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (lm:LanguageMac
         st
 
 
-let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (c:RealTypeConstraint) st =
-    let valToStrFunc (v:double) = v.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo)
+let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (acnEncodingClass : RealEncodingClass) (c:RealTypeConstraint) st =
+    let valToStrFunc (v:double) = 
+        let d2str (v:double) = v.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo)
+        let d2str_b (v:double) = v.ToString("G17", NumberFormatInfo.InvariantInfo)
+        let f2str (v:float32) = v.ToString("G9", NumberFormatInfo.InvariantInfo)
+        match acnEncodingClass with
+        | Real_IEEE754_32_big_endian
+        | Real_IEEE754_32_little_endian -> 
+            match FsUtils.nearestFloat32 v with
+            | None -> ()
+            | Some (nearestLow, nearestHi) ->
+                printfn "Warning: The constant %A cannot be precisely represented in IEEE754-1985-32 encoding.\n The closest representable values are %A and %A" (d2str_b v) (f2str nearestLow) (f2str nearestHi)
+        | _ -> ()
+
+        d2str v
     foldRangeTypeConstraint  (con_or l) (con_and l) (con_not l) (con_except l) con_root (con_root2 l)
         (fun _ v  s         -> (fun p -> VCBExpression(l.isvalid.ExpEqual (l.lg.getValue p.arg) (valToStrFunc  v))) ,s)
         (fun _ v1 v2  minIsIn maxIsIn s   ->
@@ -366,7 +379,7 @@ let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageM
 let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (erLoc:SrcLoc) (t:Asn1Type) (ac:AnyConstraint) st =
     match t.ActualType.Kind, ac with
     | Integer o, IntegerTypeConstraint c        -> integerConstraint2ValidationCodeBlock r l (o.baseInfo.intClass) c st
-    | Real o, RealTypeConstraint   c            -> realConstraint2ValidationCodeBlock l c st
+    | Real o, RealTypeConstraint   c            -> realConstraint2ValidationCodeBlock l o.baseInfo.acnEncodingClass c st
     | IA5String  o, IA5StringConstraint c       -> ia5StringConstraint2ValidationCodeBlock r l t.id  c st
     | OctetString o, OctetStringConstraint c    -> octetStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo  o.equalFunction c st
     | BitString o, BitStringConstraint c        -> bitStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo o.equalFunction c st
@@ -644,7 +657,7 @@ let createIntegerFunctionByCons (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) isUns
         Some funcExp
 
 let createRealFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference)  (us:State)  =
-    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> realConstraint2ValidationCodeBlock l c us) us
+    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> realConstraint2ValidationCodeBlock l o.acnEncodingClass c us) us
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t (funcBody l fncs) typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
@@ -947,9 +960,9 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
     | Integer rt ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IntegerTypeConstraint z -> Some z | _ -> None )
         cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (rt.baseInfo.intClass) c us) us
-    | Real _ ->
+    | Real o ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.RealTypeConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> realConstraint2ValidationCodeBlock l c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> realConstraint2ValidationCodeBlock l o.baseInfo.acnEncodingClass c us) us
     | Boolean _ ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.BoolConstraint z -> Some z | _ -> None )
         cons |> Asn1Fold.foldMap (fun us c -> booleanConstraint2ValidationCodeBlock l c us) us
