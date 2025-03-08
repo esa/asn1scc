@@ -23,7 +23,7 @@ jobs:
       env:
         GITHUB_ENV: ${{ github.workspace }}/.env
     - name: Upload Docker image ID
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: docker-image-id
         path: image_id.txt
@@ -40,7 +40,7 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
     - name: Download Docker image ID
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@v4
       with:
         name: docker-image-id
     - name: Tag and push Docker image to DockerHub
