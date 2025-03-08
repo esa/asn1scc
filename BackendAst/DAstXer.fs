@@ -211,7 +211,7 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let nullFunc = lm.xer.Null
     let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
-        let pp = match codec with CommonTypes.Encode -> lm.lg.getPointer p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
+        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "NULL")
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let totalSize = getMaxSizeInBytesForXER xmlTag 0I

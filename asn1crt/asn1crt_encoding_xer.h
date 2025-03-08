@@ -10,6 +10,7 @@ extern "C" {
 void Xer_EncodeXmlHeader(ByteStream* pByteStrm, const char* xmlHeader);
 flag Xer_EncodeComment(ByteStream* pByteStrm, const char* comment, int *pErrCode);
 
+flag Xer_EncodeNull(ByteStream* pByteStrm, const char* elementTag, NullType value, int *pErrCode, int level);
 flag Xer_EncodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSint value, int *pErrCode, int level);
 flag Xer_EncodePosInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccUint value, int *pErrCode, int level);
 flag Xer_EncodeBoolean(ByteStream* pByteStrm, const char* elementTag, flag value, int *pErrCode, int level);
@@ -20,7 +21,7 @@ flag Xer_EncodeOctetString(ByteStream* pByteStrm, const char* elementTag, const 
 flag Xer_EncodeBitString(ByteStream* pByteStrm, const char* elementTag, const byte value[], int nCount, int *pErrCode, int level);
 flag Xer_EncodeObjectIdentifier(ByteStream* pByteStrm, const char* elementTag, const Asn1ObjectIdentifier *pVal, int *pErrCode, int level);
 
-
+flag Xer_DecodeNull(ByteStream* pByteStrm, const char* elementTag, NullType* value, int *pErrCode);
 flag Xer_DecodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSint* value, int *pErrCode);
 flag Xer_DecodePosInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccUint* value, int *pErrCode);
 flag Xer_DecodeBoolean(ByteStream* pByteStrm, const char* elementTag, flag* value, int *pErrCode);
