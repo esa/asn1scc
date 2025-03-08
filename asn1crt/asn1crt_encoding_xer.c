@@ -506,6 +506,11 @@ flag Xer_DecodeComplexElementEnd(ByteStream* pByteStrm, const char* elementTag, 
 
 
 
+flag Xer_EncodeNull(ByteStream* pByteStrm, const char* elementTag, NullType value, int *pErrCode, int level)
+{
+	return Xer_EncodePrimitiveElement(pByteStrm, elementTag, NULL, pErrCode, level);
+}
+
 flag Xer_EncodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSint value, int *pErrCode, int level)
 {
 	return Xer_EncodePrimitiveElement(pByteStrm, elementTag, Int2String(value), pErrCode, level);
@@ -677,6 +682,15 @@ flag Xer_EncodeObjectIdentifier(ByteStream* pByteStrm, const char* elementTag, c
 
 
 
+flag Xer_DecodeNull(ByteStream* pByteStrm, const char* elementTag, NullType* value, int *pErrCode)
+{
+	char tmp[256];
+	memset(tmp, 0x0, sizeof(tmp));
+	if (!Xer_DecodePrimitiveElement(pByteStrm, elementTag, tmp, pErrCode))
+		return FALSE;
+	*value = 0;
+	return TRUE;
+}
 
 
 
