@@ -3,11 +3,12 @@ echo "****"
 echo $1
 echo "****"
 source "$HOME/.sdkman/bin/sdkman-init.sh"
-git config --global --add safe.directory /app//.git || exit
+git config --global --add safe.directory /app/.git || exit
 cd /workdir/ || exit
 git clone /app/ asn1scc || exit
 cd asn1scc || exit
 git checkout $1 || exit
+git config --global --add safe.directory /app/.git || exit
 git pull || exit
 git rev-parse --abbrev-ref HEAD || exit
 dotnet build Antlr/ || exit 1
