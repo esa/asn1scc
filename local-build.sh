@@ -4,8 +4,9 @@ echo $1
 echo "****"
 source "$HOME/.sdkman/bin/sdkman-init.sh"
 echo "git config --global --add safe.directory /app/.git"
-git config --global --add safe.directory /app/.git || exit
+
 cd /workdir/ || exit
+git config --global --add safe.directory /app/.git || exit
 echo "git clone /app/ asn1scc"
 git clone /app/ asn1scc || exit
 cd asn1scc || exit
