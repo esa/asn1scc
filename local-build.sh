@@ -7,6 +7,8 @@ echo "git config --global --add safe.directory /app/.git"
 
 cd /workdir/ || exit
 git config --global --add safe.directory /app/.git || exit
+git config --global --add safe.directory /app//.git || exit
+git config --global --add safe.directory /app/asn1scc/.git || exit
 echo "git clone /app/ asn1scc"
 git clone /app/ asn1scc || exit
 cd asn1scc || exit
