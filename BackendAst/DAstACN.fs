@@ -330,7 +330,14 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
 
                 let errCodStr = errCodes |> List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment) |> List.distinct
                 let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName2 lm.lg.hasModules) errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
-                func, funcDef, auxiliaries, icdResult, ns1a
+                let ns2a =
+                    match t.id.topLevelTas with
+                    | None -> ns1a
+                    | Some tasInfo ->
+                        let caller = {Caller.typeId = tasInfo; funcType= UperEncDecFunctionType}
+                        let callee = {Callee.typeId = tasInfo; funcType=IsValidFunctionType}
+                        addFunctionCallToState ns1a caller callee
+                func, funcDef, auxiliaries, icdResult, ns2a
 
     let icdAux, ns3 =
         match icdResult with
@@ -2523,9 +2530,20 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let funcBodyContent = callBaseTypeFunc lm pp baseFncName codec
                 Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd}), us)
 
+            let ns =
+                match t.id.topLevelTas with
+                | None -> us
+                | Some tasInfo ->
+                    let caller = {Caller.typeId = tasInfo; funcType=AcnEncDecFunctionType}
+                        //match List.rev t.referencedBy with
+                        //| [] -> {Caller.typeId = tasInfo; funcType=AcnEncDecFunctionType}
+                        //| hd::_ -> {Caller.typeId = {TypeAssignmentInfo.modName = hd.modName; tasName=hd.tasName}; funcType=AcnEncDecFunctionType}
+                        
+                    let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=AcnEncDecFunctionType}
+                    addFunctionCallToState us caller callee
 
             let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-            let a, ns = createAcnFunction r deps lm codec t typeDefinition  isValidFunc funcBody (fun atc -> true) soSparkAnnotations [] us
+            let a, ns = createAcnFunction r deps lm codec t typeDefinition  isValidFunc funcBody (fun atc -> true) soSparkAnnotations [] ns
             Some a, ns
 
     | Some encOptions ->

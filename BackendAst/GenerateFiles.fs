@@ -95,16 +95,23 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let typeDefs =
         tases |>
         List.map(fun tas ->
+            let typeAssignmentInfo = tas.Type.id.tasInfo.Value
+            let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
+
             let type_definition =
                 match tas.Type.typeDefinitionOrReference with
                 | TypeDefinition td -> td.typedefBody ()
                 | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Definition")
             let init_def        =
-                match lm.lg.initMethod with
-                | Procedure ->
-                    Some(getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n" )
-                | Function ->
-                    Some(getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initFunction) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n" )
+                match r.callersSet |> Set.contains (f InitFunctionType) with
+                | true -> 
+                    match lm.lg.initMethod with
+                    | Procedure ->
+                        Some(getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n" )
+                    | Function ->
+                        Some(getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initFunction) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n" )
+                | false -> None
+
             let init_globals    =
                 //we generate const globals only if requested by user and the init method is procedure
                 match r.args.generateConstInitGlobals && (lm.lg.initMethod  = Procedure) with
@@ -116,28 +123,32 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
 
             let equal_defs =
-                match r.args.GenerateEqualFunctions with
+                match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
                 | true  -> GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.equalFunction.isEqualFuncDef )
                 | false -> []
             let isValidFuncs =
-                match tas.Type.isValidFunction with
-                | None      -> []
-                | Some f    ->
-                    getValidFunctions f |> List.choose(fun f -> f.funcDef)
+                match r.callersSet |> Set.contains (f IsValidFunctionType) with
+                | false -> []
+                | true  ->
+                    match tas.Type.isValidFunction with
+                    | None      -> []
+                    | Some f    ->
+                        getValidFunctions f |> List.choose(fun f -> f.funcDef)
 
 
-            let uPerEncFunc = match requiresUPER with true -> tas.Type.uperEncFunction.funcDef | false -> None
-            let uPerDecFunc = match requiresUPER with true -> tas.Type.uperDecFunction.funcDef | false -> None
+            let uPerEncFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> tas.Type.uperEncFunction.funcDef | false -> None
+            let uPerDecFunc = match requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) with true -> tas.Type.uperDecFunction.funcDef | false -> None
 
             let xerEncFunc = match tas.Type.xerEncFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
             let xerDecFunc = match tas.Type.xerDecFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
 
+            let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
             let acnEncFunc =
-                match requiresAcn, tas.Type.acnEncFunction with
+                match hasAcnEncDec && requiresAcn, tas.Type.acnEncFunction with
                 | true, Some x -> x.funcDef
                 | _  -> None
             let acnDecFunc =
-                match requiresAcn, tas.Type.acnDecFunction with
+                match hasAcnEncDec && requiresAcn, tas.Type.acnDecFunction with
                 | true, Some x -> x.funcDef
                 | _ -> None
 
@@ -176,11 +187,16 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
         let typeDefs =
             seq {
                 for tas in tases do
-                    if r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
+                    let typeAssignmentInfo = tas.Type.id.tasInfo.Value
+                    let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
+                    let reqUPER = r.callersSet |> Set.contains (f UperEncDecFunctionType)
+                    let reqACN = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+
+                    if reqUPER && r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
                         yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.funcDef))
                     if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
                         yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.funcDef))
-                    if r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
+                    if reqACN && r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
                         yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef))
                 } |> Seq.choose id |> Seq.toList
         let testcase_specFileName = Path.Combine(outDir, pu.testcase_specFileName)
@@ -190,17 +206,23 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     //source file
     let arrsTypeAssignments =
         tases |> List.map(fun t ->
+            let typeAssignmentInfo = t.Type.id.tasInfo.Value
+            let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
+
             let privateDefinition =
                 match t.Type.typeDefinitionOrReference with
                 | TypeDefinition td -> td.privateTypeDefinition
                 | ReferenceToExistingDefinition _   -> None
 
             let initialize =
-                match lm.lg.initMethod with
-                | InitMethod.Procedure  ->
-                    Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
-                | InitMethod.Function  ->
-                    Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initFunction) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
+                match r.callersSet |> Set.contains (f InitFunctionType) with
+                | true -> 
+                    match lm.lg.initMethod with
+                    | InitMethod.Procedure  ->
+                        Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
+                    | InitMethod.Function  ->
+                        Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initFunction) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
+                | false -> None
 
             let init_globals    =
                 match r.args.generateConstInitGlobals  && (lm.lg.initMethod  = Procedure) with
@@ -212,18 +234,21 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 t.Type.initFunction.user_aux_functions |> List.map snd
 
             let eqFuncs =
-                match r.args.GenerateEqualFunctions with
+                match r.args.GenerateEqualFunctions && (r.callersSet |> Set.contains (f EqualFunctionType)) with
                 | true  -> GetMySelfAndChildren t.Type |> List.choose(fun y -> y.equalFunction.isEqualFunc)
                 | false -> []
 
             let isValidFuncs =
-                match t.Type.isValidFunction with
-                | None      -> []
-                | Some f    ->
-                    getValidFunctions f |> List.choose(fun f -> f.func)
+                match r.callersSet |> Set.contains (f IsValidFunctionType) with
+                | false -> []
+                | true  ->
+                    match t.Type.isValidFunction with
+                    | None      -> []
+                    | Some f    ->
+                        getValidFunctions f |> List.choose(fun f -> f.func)
 
             let uperEncDec =
-                if requiresUPER then
+                if requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType) then
                     ((t.Type.uperEncFunction.func |> Option.toList |> List.collect (fun f -> f :: t.Type.uperEncFunction.auxiliaries))) @
                     ((t.Type.uperDecFunction.func |> Option.toList |> List.collect (fun f ->  f :: t.Type.uperDecFunction.auxiliaries)))
                 else []
@@ -235,9 +260,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 (match t.Type.xerDecFunction with
                 | XerFunction z -> z.func |> Option.toList
                 | XerFunctionDummy -> [])
-
+            
+            let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
             let ancEncDec =
-                if requiresAcn then
+                if requiresAcn && hasAcnEncDec then
                     (t.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries)) @
                     (t.Type.acnDecFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries))
                 else []
@@ -288,12 +314,20 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
         let encDecFuncs =
             seq {
                 for tas in tases do
+                    let typeAssignmentInfo = tas.Type.id.tasInfo.Value
+                    let f cl = {Caller.typeId = typeAssignmentInfo; funcType = cl}
+                    let reqUPER = 
+                        r.args.encodings |> Seq.exists ((=) CommonTypes.UPER)
+                        && r.callersSet |> Set.contains (f UperEncDecFunctionType)
+                    let reqACN = 
+                        r.args.encodings |> Seq.exists ((=) CommonTypes.ACN)
+                        && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
 
-                    if r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
+                    if reqUPER then
                         yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.func))
                     if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
                         yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.func))
-                    if r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
+                    if reqACN  then
                         yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.func))
                 } |> Seq.choose id |> Seq.toList
 

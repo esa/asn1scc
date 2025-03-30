@@ -90,21 +90,20 @@ type FunctionType =
     | InitFunctionType
     | IsValidFunctionType
     | EqualFunctionType
-    | UperEncFunctionType
-    | UperDecFunctionType
-    | AcnEncFunctionType
-    | AcnDecFunctionType
+    | UperEncDecFunctionType
+    | AcnEncDecFunctionType
+    | XerEncDecFunctionType
+    | BerEncDecFunctionType
 
 
 type Caller = {
-    typeId : ReferenceToType
+    typeId : TypeAssignmentInfo
     funcType : FunctionType
 }
 
 type Callee = {
-    typeId : ReferenceToType
+    typeId : TypeAssignmentInfo
     funcType : FunctionType
-    funcName : string
 }
 
 type State = {
@@ -1025,6 +1024,7 @@ and Asn1Type = {
 
     Kind            : Asn1TypeKind
     unitsOfMeasure  : string option
+    referencedBy    : TypeAssignmentInfo list
 } with
     member this.toAsn1AcnAst: Asn1AcnAst.Asn1Type =
         {
@@ -1041,6 +1041,7 @@ and Asn1Type = {
             acnEncSpecPosition = None
             acnEncSpecAntlrSubTree = None
             unitsOfMeasure = this.unitsOfMeasure
+            referencedBy = this.referencedBy
         }
 
 
@@ -1180,6 +1181,7 @@ type AstRoot = {
     lang         : ProgrammingLanguage
     acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
     icdHashes   : Map<String, IcdTypeAss list>
+    callersSet  : Set<Caller>
 }
 
 
