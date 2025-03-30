@@ -1014,7 +1014,10 @@ let rec mapAnyConstraint (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (cons:Asn1A
         let oldBaseType  = Asn1Ast.GetBaseTypeByName rf.modName rf.tasName asn1
         mapAnyConstraint asn1 oldBaseType cons
 
-let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map<String,int>) (lms:(ProgrammingLanguage*LanguageMacros) list) (m:Asn1Ast.Asn1Module) (t:Asn1Ast.Asn1Type) (curPath : ScopeNode list)
+let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map<String,int>) (lms:(ProgrammingLanguage*LanguageMacros) list) 
+                           (m:Asn1Ast.Asn1Module) 
+                           (t:Asn1Ast.Asn1Type) 
+                           (curPath : ScopeNode list)
                            (typeDefPath : ScopeNode list)
                            (enmItemTypeDefPath : ScopeNode list)
                            (acnType:AcnTypeEncodingSpec option)
@@ -1026,6 +1029,8 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                            (acnParameters   : AcnParameter list)
                            (inheritInfo : InheritanceInfo option)
                            (typeAssignmentInfo : AssignmentInfo option)
+                           (referencedBy : TypeAssignmentInfo list)
+                           (caller : TypeAssignmentInfo option)
                            (us:Asn1AcnMergeState) : (Asn1Type*Asn1AcnMergeState)=
 
     let maxAlignmentOf (aligns: AcnAlignment option list): AcnAlignment option =
@@ -1133,7 +1138,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let acnArgsSubsted = substAcnArgs acnParamSubst (acnArgs @ Option.toList sizeDetArg)
 
             let typeDef, us1 = getSizeableTypeDefinition tfdArg us
-            let newChType, us2  = mergeType asn1 acn typeIdsSet lms m chType (curPath@[SQF]) (typeDefPath@[SQF]) (enmItemTypeDefPath@[SQF]) childEncSpec None [] childWithCons acnArgs acnParamSubst [] None None  us1
+            let newChType, us2  = mergeType asn1 acn typeIdsSet lms m chType (curPath@[SQF]) (typeDefPath@[SQF]) (enmItemTypeDefPath@[SQF]) childEncSpec None [] childWithCons acnArgs acnParamSubst [] None None  referencedBy caller us1
 
             let sizeUperRange = uPER.getSequenceOfUperRange cons t.Location
             let sizeUperAcnRange = uPER.getSequenceOfUperRange (cons@wcons) t.Location
@@ -1256,12 +1261,12 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
 
                 match cc with
                 | None      ->
-                    let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) None None [] childWithCons [] acnParamSubst [] None None us
+                    let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) None None [] childWithCons [] acnParamSubst [] None None referencedBy caller us
                     Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments=[]}), us1
                 | Some cc   ->
                     match cc.asn1Type with
                     | None  ->
-                        let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList acnParamSubst [] None None us
+                        let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList acnParamSubst [] None None referencedBy caller us
                         Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments}), us1
                     | Some xx  ->
                         let newType, us1 = mapAcnParamTypeToAcnAcnInsertedType asn1 lms acn xx cc.childEncodingSpec.acnProperties  (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) us
@@ -1414,14 +1419,14 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
 
                 match cc with
                 | None      ->
-                    let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) None None [] childWithCons [] acnParamSubst [] None  None  us
+                    let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) None None [] childWithCons [] acnParamSubst [] None  None  referencedBy caller us
                     {ChChildInfo.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments|> Seq.toList; acnComments = []; present_when_name = present_when_name; Optionality = newOptionality}, us1
                 | Some cc   ->
                     let enumClassName =
                         match us.args.targetLanguages with
                         | Scala::x -> typeDef[Scala].typeName
                         | _ -> ""
-                    let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList acnParamSubst [] None  None us
+                    let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList acnParamSubst [] None  None referencedBy caller us
                     {ChChildInfo.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments ; present_when_name = present_when_name; Optionality = newOptionality}, us1
             let mergedChildren, chus =
                 match acnType with
@@ -1521,7 +1526,14 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                     b1,b2
 
             let newSubst = addAcnSubst acnParamSubst baseTypeAcnParams acnArgs
-            let resolvedType, us2 = mergeType asn1 acn typeIdsSet lms m oldBaseType curPath newTypeDefPath newEnmItemTypeDefPath mergedAcnEncSpec (Some t.Location) restCons withCompCons acnArgs newSubst baseTypeAcnParams inheritanceInfo typeAssignmentInfo us1
+            let refTypeAssignInfo = {TypeAssignmentInfo.modName = rf.modName.Value; tasName = rf.tasName.Value}
+            let newReferencedBy = referencedBy @ [refTypeAssignInfo]
+            let us1a = 
+                match caller with
+                | None  -> us1
+                | Some caller ->
+                    {us1 with allDependencies = (caller,refTypeAssignInfo)::us1.allDependencies }
+            let resolvedType, us2 = mergeType asn1 acn typeIdsSet lms m oldBaseType curPath newTypeDefPath newEnmItemTypeDefPath mergedAcnEncSpec (Some t.Location) restCons withCompCons acnArgs newSubst baseTypeAcnParams inheritanceInfo typeAssignmentInfo newReferencedBy (Some refTypeAssignInfo) us1a
             let hasExtraConstrainsOrChildrenOrAcnArgs =
                 let b1 = hasAdditionalConstraints || hasChildren || acnArguments.Length > 0 || hasAcnProps
                 match resolvedType.Kind with
@@ -1589,6 +1601,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             | None -> None
             | Some st -> st.antlrSubTree
         unitsOfMeasure = t.unitsOfMeasure
+        referencedBy    = referencedBy    
 
     }, kindState
 
@@ -1641,7 +1654,8 @@ let private mergeTAS (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map<Strin
             | None -> [], []
             | Some acnTas -> acnTas.acnParameters, acnTas.comments
     let typeEncodingSpec = tas.Type.acnInfo
-    let newType, us1 = mergeType asn1 acn typeIdsSet lms m tas.Type [MD m.Name.Value; TA tas.Name.Value] [MD m.Name.Value; TA tas.Name.Value] [MD m.Name.Value; TA tas.Name.Value] typeEncodingSpec None [] [] [] Map.empty acnParameters None (Some (TypeAssignmentInfo {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}))  us
+    let tsInfo = {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}
+    let newType, us1 = mergeType asn1 acn typeIdsSet lms m tas.Type [MD m.Name.Value; TA tas.Name.Value] [MD m.Name.Value; TA tas.Name.Value] [MD m.Name.Value; TA tas.Name.Value] typeEncodingSpec None [] [] [] Map.empty acnParameters None (Some (TypeAssignmentInfo {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value})) [] (Some tsInfo) us
     let newTas =
             {
             TypeAssignment.Name = tas.Name
@@ -1659,7 +1673,7 @@ let private mergeValueAssignment (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet
         match vas.Type.Kind with
         | Asn1Ast.ReferenceType rf    -> (Some ({InheritanceInfo.modName = rf.modName.Value; tasName = rf.tasName.Value; hasAdditionalConstraints=false}))//(Some {InheritanceInfo.id = ReferenceToType [MD rf.modName.Value; TA rf.tasName.Value]; hasAdditionalConstraints=false})
         | _                           -> None
-    let newType, us1 = mergeType asn1 acn typeIdsSet lms m vas.Type [MD m.Name.Value; VA vas.Name.Value] [MD m.Name.Value; VA vas.Name.Value] [MD m.Name.Value; VA vas.Name.Value] None None [] [] [] Map.empty [] inheritInfo (Some (ValueAssignmentInfo {ValueAssignmentInfo.modName = m.Name.Value; vasName = vas.Name.Value})) us
+    let newType, us1 = mergeType asn1 acn typeIdsSet lms m vas.Type [MD m.Name.Value; VA vas.Name.Value] [MD m.Name.Value; VA vas.Name.Value] [MD m.Name.Value; VA vas.Name.Value] None None [] [] [] Map.empty [] inheritInfo (Some (ValueAssignmentInfo {ValueAssignmentInfo.modName = m.Name.Value; vasName = vas.Name.Value})) [] None us
     let newVas =
         {
             ValueAssignment.Name = vas.Name
@@ -1714,7 +1728,7 @@ let private mergeFile (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map<Stri
 //let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) getRtlDefinitionFunc : (FE_PrimitiveTypeDefinition*Asn1AcnMergeState)=
 let mergeAsn1WithAcnAst (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*LanguageMacros) list) (acn: AcnGenericTypes.AcnAst, acnParseResults: CommonTypes.AntlrParserResult list) =
     let typeIdsSet : Map<String,int> = calculateTypeIdsMap asn1
-    let initialState = {Asn1AcnMergeState.allocatedTypeNames = Map.empty; allocatedFE_TypeDefinition = Map.empty; args = asn1.args; temporaryTypesAllocation = Map.empty}
+    let initialState = {Asn1AcnMergeState.allocatedTypeNames = Map.empty; allocatedFE_TypeDefinition = Map.empty; args = asn1.args; temporaryTypesAllocation = Map.empty; allDependencies=[]}
     let state =
         seq {
             for l in ProgrammingLanguage.ActiveLanguages do
@@ -1743,4 +1757,4 @@ let mergeAsn1WithAcnAst (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Langua
                     for tas in m.TypeAssignments do
                         yield (m.Name.Value, tas.Name.Value), tas
         } |> Map.ofSeq
-    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; modulesMap = modulesMap; typeAssignmentsMap = typeAssignmentsMap}, acn
+    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; modulesMap = modulesMap; typeAssignmentsMap = typeAssignmentsMap; allDependencies= finalState.allDependencies}, acn
