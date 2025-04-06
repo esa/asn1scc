@@ -360,17 +360,29 @@ flag BitStream_AppendByteArray(BitStream* pBitStrm, const byte arr[], const int 
 
 flag BitStream_ReadByte(BitStream* pBitStrm, byte* v)
 {
-	int cb = pBitStrm->currentBit;
-	int ncb = 8 - pBitStrm->currentBit;
+    int cb = pBitStrm->currentBit;			//bit position in the current byte
+
+    //check if the available bytes are enough
+	int requiredBytes = (cb > 0) ? 2 : 1;
+	int availableBytes = pBitStrm->count - pBitStrm->currentByte;
+
+	if (availableBytes < requiredBytes) {
+		return FALSE;
+	}
+
 	*v = (byte)(pBitStrm->buf[pBitStrm->currentByte++] << cb);
 	bitstream_fetch_data_if_required(pBitStrm);
 
-	if (cb) {
+	if (cb > 0) {
+        // we need to read bits from the next byte
+		int ncb = 8 - cb;						
 		*v |= (byte)(pBitStrm->buf[pBitStrm->currentByte] >> ncb);
 	}
 
-	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
+	return TRUE;
 }
+
+
 
 
 flag BitStream_ReadByteArray(BitStream* pBitStrm, byte* arr, int arr_len) {
