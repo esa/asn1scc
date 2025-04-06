@@ -1182,7 +1182,6 @@ let calculateFunctionToBeGenerated (r:Asn1AcnAst.AstRoot) (us:State) =
                             | true   -> yield! getCallees caller
                             | false  -> yield caller
         } |> Set.ofSeq
-    printfn "Function calls detected: %d" ret.Count
     match r.args.icdPdus with
     | None -> ()
     | Some _ -> 
