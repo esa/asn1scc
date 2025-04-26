@@ -10,6 +10,9 @@ open AcnGenericTypes
 open AbstractMacros
 open System.Collections.Generic
 
+open System.Security.Cryptography
+open System.Text
+
 //open Constraints
 
 
@@ -1120,6 +1123,18 @@ let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string optio
 
     let errCode = getErrorCode (errCodeName.ToUpper())
     errCode, {cur with currErrorCode = cur.currErrorCode + 1; curErrCodeNames = cur.curErrCodeNames.Add errCode.errCodeName})
+
+
+let getStateHash (state:State) =
+    let getMd5Hash (input: string) =
+        use md5 = MD5.Create()
+        let inputBytes = Encoding.UTF8.GetBytes(input)
+        let hashBytes = md5.ComputeHash(inputBytes)
+        BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant()
+    let complete_state = state.curErrCodeNames |> Seq.StrJoin "#"
+    let hash = getMd5Hash complete_state
+    hash
+
 
 type TypeAssignment = {
     Name:StringLoc
