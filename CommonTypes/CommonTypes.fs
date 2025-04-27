@@ -18,11 +18,15 @@ type UserErrorSeverity =
     | WARNING
     | INFO
 
+/// Represents the kind of target (value, pointer, or array element) accessed during encoding/decoding.
+/// A more accurate name might be AccessTargetType.
 type SelectionType =
     | Value
     | Pointer
     | FixArray
 
+/// Represents a node in the access path from the function parameter to the current type.
+/// A more accurate name might be AccessStep.
 type Accessor =
     | ValueAccess of string * SelectionType * bool // selection identifier and its type
     | PointerAccess of string * SelectionType  * bool // selection identifier and its type
@@ -38,10 +42,12 @@ type Accessor =
         | PointerAccess _ -> Pointer
         | ArrayAccess _ -> FixArray
 
+/// Represents a path of accesses (fields, pointers, array elements) starting from a root object towards a nested element.
+/// A more accurate name might be AccessPath.
 type Selection = {
-    receiverId: string
-    receiverType: SelectionType
-    path: Accessor list
+    receiverId: string              // The name of the function parameter that holds the root ASN.1 type being processed (e.g., val, pVal, pVal1).
+    receiverType: SelectionType     // the access type of the function parameter
+    path: Accessor list             // in long fields, this is the path to the field
 } with
     static member emptyPath (receiverId: string) (receiverType: SelectionType): Selection =
         { Selection.receiverId = receiverId; receiverType = receiverType; path = []}
