@@ -1463,8 +1463,8 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                     | None -> ""
                     | Some a -> a.funcBody
                 | None -> ""
-
-            let updateStatement = sizeDep_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.arg Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner
+            let sLocalVarType = child.typeDefinitionBodyWithinSeq
+            let updateStatement = sizeDep_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.arg Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner sLocalVarType
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
