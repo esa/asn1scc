@@ -1,0 +1,203 @@
+CFDP-PROTOCOL DEFINITIONS ::=
+BEGIN
+
+DirectiveCode ::= INTEGER (0..255)
+
+DirectiveSubtypeCode ::= ENUMERATED {
+   ack-others (0),
+   ack-finished (1)
+}
+
+ConditionCode ::= ENUMERATED {
+   no-error (0),
+   positive-ack-limit-reached (1),
+   keep-alive-limit-reached (2),
+   invalid-transmission-mode (3),
+   filestore-rejection (4),
+   file-checksum-failure (5),
+   file-size-error (6),
+   nak-limit-reached (7),
+   inactivity-detected (8),
+   invalid-file-structure (9),
+   suspend-request-received (14),
+   cancel-request-received (15)
+}
+
+FileChecksum ::= OCTET STRING (SIZE(4))
+
+FileSize ::= INTEGER (0..4294967295)
+
+AckTransactionStatus ::= ENUMERATED {
+   undefined (0),
+   active (1),
+   terminated (2),
+   unrecognized (3)
+}
+
+DeliveryCode ::= ENUMERATED {data-complete (0), data-incomplete (1)}
+
+ClosureRequested ::= ENUMERATED {requested (0), not-requested (1)}
+
+ChecksumType ::= INTEGER (0..15)
+
+FileNameSize ::= INTEGER (0..32)
+
+FileName ::= OCTET STRING (SIZE(0..32))
+
+FileStatus ::= ENUMERATED {
+   discarted-deliberately (0),
+   discarted-file-rejection (1),
+   retained-successfully (2),
+   unreported (3)
+}
+
+SegmentOffset ::= INTEGER (0..4294967295)
+
+FileData ::= OCTET STRING (SIZE(0..254))
+
+ResponseRequired ::= ENUMERATED {nak (0), keep-alive (1)}
+
+Progress ::= INTEGER (0..4294967295)
+
+TransactionStatus ::= ENUMERATED {
+   discarted-deliberately (0),
+   discarted-file-rejection (1),
+   retained-successfully (2),
+   unreported (3)
+}
+
+TypeFieldCode ::= ENUMERATED {
+   filestore-request (0),
+   filestore-response (1),
+   message-to-user (2),
+   fault-handler-overrides (4),
+   flow-label (5),
+   entity-id (6)
+}
+
+MessageType ::= ENUMERATED {
+   proxy-put-request (0),
+   proxy-message-to-user (1),
+   proxy-filestore-request (2),
+   proxy-fault-handler-override (3),
+   proxy-transmission-mode (4),
+   proxy-flow-label (5),
+   proxy-segmentation-control (6),
+   proxy-put-response (7),
+   proxy-filestore-response (8),
+   proxy-put-cancel (9),
+   directory-listing-request (16),
+   directory-listing-response (17),
+   remote-status-report-request (32),
+   remote-status-report-response (33),
+   remote-suspend-request (48),
+   remote-suspend-response(49),
+   remote-resume-request (56),
+   remote-resume-response (57)
+}
+
+ProtocolVersion ::= INTEGER (0 .. 7)
+
+PDUType ::= INTEGER (0 .. 1)
+
+Direction ::= ENUMERATED {toward-receiver (0), toward-sender (1)}
+
+TransmissionMode ::= ENUMERATED {acknowledged (0), unacknowledged (1)}
+
+CRCFlag ::= ENUMERATED {crc-not-present (0), crc-present (1)}
+
+LargeFileFlag ::= INTEGER (0..1)
+
+PDUDataFieldLength ::= INTEGER (0 .. 65535)
+
+SegmentationControl ::= ENUMERATED {record-boundries-not-preserved (0), record-boundries-preserved (1)}
+
+LengthOfEntityIds ::= INTEGER (0 .. 7)
+
+SegmentMetadataFlag ::= ENUMERATED {flag-present (0), flag-not-present (1)}
+
+LengthOfTransactionSequenceNumber ::= INTEGER (0 .. 7)
+
+EntityId ::= OCTET STRING (SIZE(1..7))
+
+TransactionSequenceNumber ::= OCTET STRING (SIZE(1..7))
+
+Options ::= OCTET STRING (SIZE(0..32))
+
+PDUHeader ::= SEQUENCE {
+   version ProtocolVersion,
+   direction Direction,
+   transmission-mode TransmissionMode,
+   crc-flag CRCFlag,
+   large-file-flag LargeFileFlag,
+   segmentation-control SegmentationControl,
+   segment-metadata-flag SegmentMetadataFlag,
+   source-entity-id EntityId,
+   transaction-sequence-number TransactionSequenceNumber,
+   destination-entity-id EntityId
+}
+
+EofPDU ::= SEQUENCE {
+   condition-code ConditionCode,
+   file-checksum FileChecksum,
+   file-size FileSize
+}
+
+FinishedPDU ::= SEQUENCE {
+   condition-code ConditionCode,
+   delivery-code DeliveryCode,
+   file-status FileStatus
+}
+
+AckPDU ::= SEQUENCE {
+   directive-code-of-ack-pdu DirectiveCode,
+   directive-subtype-code DirectiveSubtypeCode,
+   condition-code ConditionCode,
+   transaction-status AckTransactionStatus
+}
+
+MetadataPDU ::= SEQUENCE {
+   closure-requested ClosureRequested,
+   checksum-type ChecksumType,
+   file-size FileSize,
+   source-file-name FileName,
+   destination-file-name FileName
+}
+
+FileDataPDU ::= SEQUENCE {
+   segment-offset SegmentOffset,
+   file-data FileData
+}
+
+FileDirectivePDU ::= CHOICE {
+   eof-pdu EofPDU,
+   finished-pdu FinishedPDU,
+   ack-pdu AckPDU,
+   metadata-pdu MetadataPDU
+}
+
+FileDataType ::= SEQUENCE {
+   file-data-pdu FileDataPDU
+}
+
+FileDirectiveType ::= SEQUENCE {
+   file-directive-pdu FileDirectivePDU
+}
+
+PayloadData ::= CHOICE {
+   file-directive FileDirectiveType,
+   file-data FileDataType
+}
+
+--CfdpPDU ::= SEQUENCE {
+MyPDU ::= SEQUENCE {
+   pdu-header PDUHeader,
+   payload OCTET STRING (CONTAINING PayloadData)
+   --payload PayloadData
+}
+
+
+
+END
+
+--TCFS     CFDP-PROTOCOL.acn

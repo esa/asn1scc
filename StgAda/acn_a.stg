@@ -1292,9 +1292,14 @@ end if;
 
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sComment) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner) ::= <<
 --first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string
-<sFuncName>_aux(<p>, tmpBs, result);
+declare
+    bs : adaasn1rtl.encoding.Bitstream := tmpBs;
+begin
+    <sInner>
+    tmpBs := bs;
+end;
 if result.success then
 	<v> := <rtlModuleName()>.Asn1UInt(<if(bIsOctet)>adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs)<else>tmpBs.Current_Bit_Pos<endif>);
 	<v>_is_initialized := True;
@@ -1307,20 +1312,20 @@ adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, tmpBs.Buffer,
 >>
 
 octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
---open new scope to declare some variables
-declare
-    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
-begin
-	--decode to a temporary bitstream
-	result := <rtlModuleName()>.ASN1_RESULT'(Success => Integer(<sExtField>) \<= <sReqBytesForUperEncoding>, ErrorCode => <sErrCode>);
+result := <rtlModuleName()>.ASN1_RESULT'(Success => Integer(<sExtField>) \<= <sReqBytesForUperEncoding>, ErrorCode => <sErrCode>);
+if result.success then
+    --decode to the temporary bitstream buffer
+	adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, tmpBs.Buffer, Integer(<sExtField>), result.success);
 	if result.success then
-		adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, tmpBs.Buffer, Integer(<sExtField>), result.success);
-		if result.success then
-			<sFuncName>_aux(<p>, tmpBs, result);
-		end if;
+        --open new scope to declare some variables
+        declare
+            bs : adaasn1rtl.encoding.Bitstream := tmpBs;
+        begin
+            <soInner>
+			--<sFuncName>_aux(<p>, tmpBs, result);
+        end;
 	end if;
-
-end;
+end if;
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<

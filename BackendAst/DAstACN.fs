@@ -1455,7 +1455,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
-            let sComment=
+            let sInner =
                 match asn1TypeD.acnEncFunction with
                 | Some f  ->
                     let fncBdRes, _ = f.funcBody us [] nestingScope pSizeable
@@ -1464,7 +1464,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                     | Some a -> a.funcBody
                 | None -> ""
 
-            let updateStatement = sizeDep_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.arg Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sComment
+            let updateStatement = sizeDep_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.arg Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
@@ -2599,12 +2599,11 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                             | Some r -> Some r.funcBody, r.errCodes, r.localVariables, ns
 
                     let fncBody = octet_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding extField errCode.errCodeName soInner codec
-                    // For some reasons, the `soInner` is not inlined in the Ada backend,
-                    // but instead calls a function. We therefore do not include the local vars.
+
                     let lvs =
-                        match ProgrammingLanguage.ActiveLanguages.Head with
-                        | Ada -> []
-                        | _ -> localVariables0
+                        let localVars2 = lm.lg.acn.getAcnContainingByLocVars sReqBytesForUperEncoding
+                        localVariables0@localVars2
+
                     fncBody, errCode::errCodes0,lvs, ns1
                 | SZ_EC_ExternalField    relPath    , ContainedInBitString  ->
                     let extField        = getExternalField r deps t.id

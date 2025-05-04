@@ -291,6 +291,7 @@ type LangGeneric_c() =
             {
                 Acn_parts.null_valIsUnReferenced = true
                 checkBitPatternPresentResult = true
+                getAcnContainingByLocVars = fun _ -> []
                 getAcnDepSizeDeterminantLocVars =
                     fun  sReqBytesForUperEncoding ->
                         [

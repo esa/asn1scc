@@ -293,6 +293,11 @@ type LangGeneric_a() =
             {
                 Acn_parts.null_valIsUnReferenced = false
                 checkBitPatternPresentResult = false
+                getAcnContainingByLocVars =
+                    fun  sReqBytesForUperEncoding ->
+                        [
+                            GenericLocalVariable {GenericLocalVariable.name = "tmpBs"; varType = "adaasn1rtl.encoding.BitStream"; arrSize = None; isStatic = false;initExp = Some (sprintf "adaasn1rtl.encoding.BitStream_init(%s)" sReqBytesForUperEncoding)}
+                        ]
                 getAcnDepSizeDeterminantLocVars =
                     fun  sReqBytesForUperEncoding ->
                         [

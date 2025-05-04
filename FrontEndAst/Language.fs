@@ -25,6 +25,7 @@ type Acn_parts = {
     null_valIsUnReferenced              : bool
     checkBitPatternPresentResult        : bool
     getAcnDepSizeDeterminantLocVars     : string -> LocalVariable list
+    getAcnContainingByLocVars           : string -> LocalVariable list
     createLocalVariableEnum             : string -> LocalVariable       //create a local integer variable that is used to store the value of an enumerated type. The input is the RTL integer type
     choice_handle_always_absent_child   : bool
     choice_requires_tmp_decoding        : bool
