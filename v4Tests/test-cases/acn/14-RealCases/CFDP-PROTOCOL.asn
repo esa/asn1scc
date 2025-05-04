@@ -1,6 +1,8 @@
 CFDP-PROTOCOL DEFINITIONS ::=
 BEGIN
 
+akdsjfASDKF;
+
 DirectiveCode ::= INTEGER (0..255)
 
 DirectiveSubtypeCode ::= ENUMERATED {
