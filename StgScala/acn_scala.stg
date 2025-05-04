@@ -1039,12 +1039,12 @@ val <v> =
 >>
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sComment) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner) ::= <<
 {
     /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
     val pBitStrm_save: BitStream = pBitStrm
     pBitStrm = BitStream_Init(arr.length)
-    <sComment>
+    <sInner>
     pBitStrm = pBitStrm_save
 }
 <v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;

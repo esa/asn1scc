@@ -503,6 +503,7 @@ type LangGeneric_scala() =
             {
                 Acn_parts.null_valIsUnReferenced = true
                 checkBitPatternPresentResult = true
+                getAcnContainingByLocVars = fun _ -> []
                 getAcnDepSizeDeterminantLocVars =
                     fun  sReqBytesForUperEncoding ->
                         [

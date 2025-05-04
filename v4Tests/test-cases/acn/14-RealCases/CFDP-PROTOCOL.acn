@@ -1,0 +1,123 @@
+--CFDPPDU_PAYLOAD_FILE_DIRECTIVE_DIRECTIVE_CODE
+CFDP-PROTOCOL DEFINITIONS ::= 
+BEGIN
+
+DirectiveCode                                [encoding pos-int, size 8]
+DirectiveSubtypeCode                         [encoding pos-int, size 4]
+ConditionCode                                [encoding pos-int, size 4]
+FileChecksum                                 []
+FileSize                                     [encoding pos-int, size 32]
+AckTransactionStatus                         [encoding pos-int, size 2]
+
+DeliveryCode                                 [encoding pos-int, size 1]
+ClosureRequested                             [encoding pos-int, size 1]
+ChecksumType                                 [encoding pos-int, size 4]
+FileNameSize                                 [encoding pos-int, size 8]
+FileName                                     []
+FileStatus                                   [encoding pos-int, size 2]
+SegmentOffset                                [encoding pos-int, size 32]
+FileData                                     []
+ResponseRequired                             [encoding pos-int, size 1]
+Progress                                     [encoding pos-int, size 32]
+TransactionStatus                            [encoding pos-int, size 2]
+TypeFieldCode                                [encoding pos-int, size 8]
+MessageType                                  [encoding pos-int, size 8]
+    
+ProtocolVersion                              [encoding pos-int, size 3]
+PDUType                                      [encoding pos-int, size 1]
+Direction                                    [encoding pos-int, size 1]
+TransmissionMode                             [encoding pos-int, size 1]
+CRCFlag                                      [encoding pos-int, size 1]
+LargeFileFlag                                [encoding pos-int, size 1]
+PDUDataFieldLength                           [encoding pos-int, size 16]
+SegmentationControl                          [encoding pos-int, size 1]
+LengthOfEntityIds                            [encoding pos-int, size 3]
+SegmentMetadataFlag                          [encoding pos-int, size 1]
+LengthOfTransactionSequenceNumber            [encoding pos-int, size 3]
+EntityId                                     []
+TransactionSequenceNumber                    []
+   
+PDUHeader []
+
+EofPDU [] {
+   condition-code                            [],
+   spare                                     NULL [pattern '0000'B],
+   file-checksum                             [],
+   file-size                                 []
+}
+
+FinishedPDU [] {
+   condition-code                            [],
+   end-system-status                         NULL [pattern '1'B],
+   delivery-code                             [],
+   file-status                               []
+}
+
+AckPDU [] {
+   directive-code-of-ack-pdu                 [],
+   directive-subtype-code                    [],
+   condition-code                            [],
+   spare                                     NULL [pattern '00'B],
+   transaction-status                        []
+}
+
+MetadataPDU [] {
+   reserved1                                 NULL [pattern '0'B],
+   closure-requested                         [],
+   reserved2                                 NULL [pattern '00'B],
+   checksum-type                             [],
+   file-size                                 [],
+   source-file-name-size                     FileNameSize [encoding pos-int, size 8],
+   source-file-name                          [size source-file-name-size],
+   destination-file-name-size                FileNameSize [encoding pos-int, size 8],
+   destination-file-name                     [size destination-file-name-size]
+}
+
+FileDataPDU [] {
+   segment-offset                            [],
+   file-data                                 []
+}
+
+FileDirectivePDU <DirectiveCode:directive-code> [] {
+   eof-pdu                                   [present-when directive-code==4],
+   finished-pdu                              [present-when directive-code==5],
+   ack-pdu                                   [present-when directive-code==6],
+   metadata-pdu                              [present-when directive-code==7]
+}
+
+FileDataType [] {
+   file-data-pdu                             []
+}
+
+FileDirectiveType [] {
+   directive-code                            DirectiveCode [],
+   file-directive-pdu                        <directive-code> []
+}
+
+MyPDU [] {
+   pdu-header                                [] {
+      version                                [],
+      pdu-type                               PDUType [],
+      direction                              [],
+      transmission-mode                      [],
+      crc-flag                               [],
+      large-file-flag                        [],
+      pdu-data-field-length                  PDUDataFieldLength [],
+      segmentation-control                   [],
+      length-of-entity-ids                   LengthOfEntityIds [], -- TODO add proper mapping function, 0 means 1 octet string
+      segment-metadata-flag                  [],
+      length-of-transaction-sequence-number  LengthOfTransactionSequenceNumber [], -- TODO add proper mapping function, 0 means 1 octet string
+      source-entity-id                       [size length-of-entity-ids],
+      transaction-sequence-number            [size length-of-transaction-sequence-number],
+      destination-entity-id                  [size length-of-entity-ids]
+   },
+   payload                                   [size pdu-header.pdu-data-field-length] {
+      file-directive                         [present-when pdu-header.pdu-type==0],
+      file-data                              [present-when pdu-header.pdu-type==1]
+   }
+}
+
+
+
+END
+
