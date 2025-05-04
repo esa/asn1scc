@@ -1,4 +1,4 @@
-export PATH:=$(realpath ../../../asn1scc/bin/Debug/net6.0/):$(PATH)
+export PATH:=$(realpath ../../../asn1scc/bin/Debug/net9.0/):$(PATH)
 
 $(info ${PATH})
 
