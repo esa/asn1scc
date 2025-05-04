@@ -1,6 +1,4 @@
---CFDPPDU_PAYLOAD_FILE_DIRECTIVE_DIRECTIVE_CODE
-CFDP-PROTOCOL DEFINITIONS ::= 
-BEGIN
+TEST-CASE DEFINITIONS ::= BEGIN
 
 DirectiveCode                                [encoding pos-int, size 8]
 DirectiveSubtypeCode                         [encoding pos-int, size 4]
