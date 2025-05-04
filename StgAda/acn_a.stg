@@ -1292,7 +1292,7 @@ end if;
 
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType) ::= <<
 --first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string
 declare
     bs : adaasn1rtl.encoding.Bitstream := tmpBs;
@@ -1301,7 +1301,7 @@ begin
     tmpBs := bs;
 end;
 if result.success then
-	<v> := <rtlModuleName()>.Asn1UInt(<if(bIsOctet)>adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs)<else>tmpBs.Current_Bit_Pos<endif>);
+	<v> := <sLocalVarType>(<if(bIsOctet)>adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs)<else>tmpBs.Current_Bit_Pos<endif>);
 	<v>_is_initialized := True;
 end if;
 >>
