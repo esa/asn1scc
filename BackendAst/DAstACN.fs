@@ -1937,7 +1937,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
         let handleChild (s: SequenceChildState) (childInfo: SeqChildInfo): SequenceChildResult * SequenceChildState =
             // This binding is suspect, isn't it
-            let stateHash = getStateHash s.us
+            //let stateHash = getStateHash s.us
             //printfn "child is %s" childInfo.Name
             //printf "State hash: %s\n" stateHash
             let us = s.us
