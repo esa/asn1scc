@@ -2050,7 +2050,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     if presentWhenStmts.IsNone && childBody.IsNone then [], None
                     else
                         let combinedBody (p: CallerScope) (existVar: string option): string =
-                            ((presentWhenStmts |> Option.toList) @ (childBody |> Option.toList) |> List.map (fun f -> f p existVar)).StrJoin "\n"
+                            ((presentWhenStmts |> Option.toList) @ (childBody |> Option.toList) |> List.map (fun f -> f p existVar)) |> Seq.StrJoin "\n"
                         let soc = {SequenceOptionalChild.t = t; sq = o; child = child; existVar = existVar; p = {p with arg = childSel}; nestingScope = childNestingScope; childBody = combinedBody}
                         let optAux, theCombinedBody = lm.lg.generateOptionalAuxiliaries r ACN soc codec
                         optAux, Some theCombinedBody

@@ -144,7 +144,7 @@ class TestCase:
         tmp_err = self.targetDir + os.sep + "tmp.err"
         #launcher = '' if sys.platform == 'cygwin' else 'mono '
         #path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
-        path_to_asn1scc = "../asn1scc/bin/Debug/net7.0/asn1scc"
+        path_to_asn1scc = "../asn1scc/bin/Debug/net9.0/asn1scc"
         res = mysystem(self.targetDir, tmp_err,
             path_to_asn1scc +
             " -" + self.language + " -x '"+resolvedir(astXml)+"' -uPER -ACN -typePrefix gmamais_ " +

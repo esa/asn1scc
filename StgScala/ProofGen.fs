@@ -964,7 +964,7 @@ let acnExternDependenciesVariableDecode (t: Asn1AcnAst.Asn1Type) (parents: Asn1A
     let acnDep = tryFindFirstParentACNDependency parents dep
     assert acnDep.IsSome
     let parent, acnParam = acnDep.Value
-    let nme = ToC (acnParam.id.dropModule.AcnAbsPath.StrJoin "_")
+    let nme = ToC (acnParam.id.dropModule.AcnAbsPath |> Seq.StrJoin "_")
     let tpe = fromAcnInsertedType acnParam.Type
     parent, acnParam, {Var.name = nme; tpe = tpe}
   ) |> List.distinctBy (fun (_, _, v) -> v)

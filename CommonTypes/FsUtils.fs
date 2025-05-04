@@ -407,16 +407,6 @@ type System.Int32 with
     member x.AsBigInt = BigInteger x
 
 
-type System.Collections.Generic.IEnumerable<'T> with
-    member t.StrJoin str =
-        if Seq.isEmpty(t) then
-            ""
-        else
-            t |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
-
-
-
-
 
 module List =
     let rec contains item lst =
