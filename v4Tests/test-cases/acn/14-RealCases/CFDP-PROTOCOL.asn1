@@ -1,7 +1,5 @@
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
-akdsjfASDKF;
-
 DirectiveCode ::= INTEGER (0..255)
 
 DirectiveSubtypeCode ::= ENUMERATED {
