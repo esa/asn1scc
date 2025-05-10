@@ -519,6 +519,7 @@ type AcnFunction = {
     func                : string option               // the body of the function
     funcDef             : string option               // function definition
     auxiliaries         : string list
+    encodingSizeConstant: string                 // this string contains the constants with the number of bytes and bits needed for encoding this type
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
     funcBody            : AcnFuncBody

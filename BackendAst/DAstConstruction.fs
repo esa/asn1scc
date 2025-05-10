@@ -84,8 +84,12 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
     let rec dealiasDeps (dep: Asn1AcnAst.AcnDependency): Asn1AcnAst.AcnDependency =
         match dep.dependencyKind with
         | Asn1AcnAst.AcnDepRefTypeArgument param ->
-            let dealiased = dealiasDeps (deps.acnDependencies |> List.find (fun dep -> dep.determinant.id = param.id))
-            {dep with dependencyKind = dealiased.dependencyKind}
+            match deps.acnDependencies |> List.tryFind (fun dep -> dep.determinant.id = param.id) with
+            | Some dep2 ->
+                let dealiased = dealiasDeps dep2
+                {dep with dependencyKind = dealiased.dependencyKind}
+            | None ->
+                raise (Exception(sprintf "Could not find dependency for parameter %s" param.id.AsString))
         | _ -> dep
 
     let dealiasedDeps = deps.acnDependencies |> List.filter(fun d -> d.determinant.id = ch.id) |> List.map dealiasDeps

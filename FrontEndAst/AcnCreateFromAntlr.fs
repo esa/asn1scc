@@ -1493,7 +1493,9 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 | None      -> []
                 | Some x    -> x.acnParameters
 
-            assert (baseTypeAcnParams.Length = acnArgs.Length)
+            if not (baseTypeAcnParams.Length = acnArgs.Length) then
+                let errMsg = sprintf "ACN parameters and arguments do not match. Expected %d parameters but got %d arguments. Reftype is %s" baseTypeAcnParams.Length acnArgs.Length rf.tasName.Value
+                raise(SemanticError(rf.tasName.Location, errMsg))
 
             let baseTypeAcnEncSpec =
                 match acnTypeAssign with
@@ -1525,7 +1527,10 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                     let b2 =acnEncSpec.acnProperties.Length>0
                     b1,b2
 
-            let newSubst = addAcnSubst acnParamSubst baseTypeAcnParams acnArgs
+            let newSubst = 
+                match baseTypeAcnParams.Length = acnArgs.Length with
+                | true -> addAcnSubst acnParamSubst baseTypeAcnParams acnArgs
+                | false -> acnParamSubst
             let refTypeAssignInfo = {TypeAssignmentInfo.modName = rf.modName.Value; tasName = rf.tasName.Value}
             let newReferencedBy = referencedBy @ [refTypeAssignInfo]
             let us1a = 
@@ -1667,7 +1672,7 @@ let private mergeTAS (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map<Strin
             acnComments = acnComments
         }
     newTas, us1
-
+            
 let private mergeValueAssignment (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map<String,int>) (lms:(ProgrammingLanguage*LanguageMacros) list) (m:Asn1Ast.Asn1Module) (am:AcnModule option)  (vas:Asn1Ast.ValueAssignment) (us:Asn1AcnMergeState) : (ValueAssignment * Asn1AcnMergeState)=
     let inheritInfo =
         match vas.Type.Kind with
