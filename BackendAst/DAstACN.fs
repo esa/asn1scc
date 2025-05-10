@@ -225,6 +225,54 @@ let adaptArgumentValue = DAstUPer.adaptArgumentValue
 
 let joinedOrAsIdentifier = DAstUPer.joinedOrAsIdentifier
 
+(*
+If the type assignment has acnParameters, then no function is generated. This function can only be inlined by the calling function
+(i.e. by the parent type encoding function).
+Now, we have to make this rule recursive: 
+A composite type (e.g SEQUENCE, choice etc ) may have references (i.e. reference types) to a type assignment that has acnParameters.
+In this case, the reference must have arguments in the acn in the form <arg1,arg2, ...>
+These argument can either ACN inserted fields or acnParameters.
+If the reference type is written explicitly in the acn, by the user, then the arguments must be checked to be inline with the acnParameters.
+If they are not, the user gets an error.
+
+However, there are cases where the reference type is not written explicitly by the user in the acn grammar, 
+but is infered by the compiler. For example, 
+
+The following asn1 grammar define two types:
+CfdpPDU ::= SEQUENCE {
+   pdu-header PDUHeader,
+   payload OCTET STRING (CONTAINING PayloadData)
+}
+PayloadData ::= CHOICE {
+   file-directive FileDirectiveType,
+   file-data FileDataType
+}
+FileDataType ::= SEQUENCE {
+   file-data-pdu FileDataPDU
+}
+
+However the acn grammar provides defintions only for CfdpPDU and FileDataType, not PayloadData. In fact, the PayloadData acn spec
+is provided inline in the CfdpPDU acn spec, not at the PayloadData Type Assignment Level. 
+CfdpPDU [] {
+   pdu-header                                [] {
+      pdu-type                               PDUType [encoding pos-int, size 1],
+      pdu-data-field-length                  PDUDataFieldLength [encoding pos-int, size 16]
+   },
+   payload                                   [size pdu-header.pdu-data-field-length] {
+      file-directive                         [present-when pdu-header.pdu-type==0],
+      file-data                              <pdu-header.pdu-data-field-length> [present-when pdu-header.pdu-type==1]
+   }
+}
+FileDataType <PDUDataFieldLength:pdu-data-field-length> [] {
+   file-data-pdu                             <pdu-data-field-length> []
+}
+
+Therefore, the compiler uses a defult acn specs for the PayloadData type assignment, which is not provided by the user.
+In this case the file-data reference type has no acnArgs. This means that no acn function must be generated for the FileDataType type assignment.
+
+*)
+
+
 let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                               (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
                               (lm: LanguageMacros)
@@ -257,7 +305,11 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
+    let EmitEncodingSizeConstants        =  lm.acn.EmitEncodingSizeConstants
 
+    let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let sEncodingSizeConstant = EmitEncodingSizeConstants typeDefinitionName nMaxBytesInACN t.acnMaxSizeInBits
+    
     let funcBodyAsSeqComp (st: State)
                           (prms: (RelativePath * AcnParameter) list)
                           (nestingScope: NestingScope)
@@ -327,14 +379,14 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
                 let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName (typeDefinition.longTypedefName2 lm.lg.hasModules) lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 
                 let errCodStr = 
                     errCodes |> 
                     List.groupBy (fun x -> x.errCodeName) |>
                     List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment}) |>
                     List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment) |> List.distinct
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName2 lm.lg.hasModules) errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
+                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
                 let ns2a =
                     match t.id.topLevelTas with
                     | None -> ns1a
@@ -367,6 +419,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
             funcBodyAsSeqComp          = funcBodyAsSeqComp
             isTestVaseValid            = isTestVaseValid
             icdTas                        = icdAux
+            encodingSizeConstant       = sEncodingSizeConstant
         }
     ret, ns3
 
@@ -866,7 +919,12 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedF
 
 
 let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
-    let dependency = deps.acnDependencies |> List.find(fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d )
+    let dependency = 
+        match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d ) with
+        | Some d -> d
+        | None   -> 
+            failwithf "getExternalField0: No dependency found for %A" asn1TypeIdWithDependency
+        
     let rec resolveParam (prmId:ReferenceToType) =
         let nodes = match prmId with ReferenceToType nodes -> nodes
         let lastNode = nodes |> List.rev |> List.head
@@ -1448,7 +1506,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | Some f  ->
                 let fncBdRes, ns = f.funcBody us [] (NestingScope.init asn1TypeD.acnMaxSizeInBits asn1TypeD.uperMaxSizeInBits []) {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
                 match fncBdRes with
-                | Some x -> x.errCodes, x.localVariables, ns
+                | Some x -> x.errCodes, [], ns
                 | None   -> [], [], us
             | None    -> [], [], us
 

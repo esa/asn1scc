@@ -143,16 +143,16 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let xerDecFunc = match tas.Type.xerDecFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
 
             let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
-            let acnEncFunc =
+            let acnEncFunc, sEncodingSizeConstant =
                 match hasAcnEncDec && requiresAcn, tas.Type.acnEncFunction with
-                | true, Some x -> x.funcDef
-                | _  -> None
+                | true, Some x -> x.funcDef, Some x.encodingSizeConstant
+                | _  -> None, None
             let acnDecFunc =
                 match hasAcnEncDec && requiresAcn, tas.Type.acnDecFunction with
                 | true, Some x -> x.funcDef
                 | _ -> None
 
-            let allProcs = equal_defs@isValidFuncs@special_init_funcs@([init_globals;init_def;uPerEncFunc;uPerDecFunc;acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
+            let allProcs = equal_defs@isValidFuncs@special_init_funcs@([init_globals;init_def;uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
             lm.typeDef.Define_TAS type_definition allProcs
         )
     let arrsValues =
