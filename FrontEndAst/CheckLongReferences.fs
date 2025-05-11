@@ -422,13 +422,15 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
             | arg1::_   -> arg1.location
 
         match ref.acnArguments.Length = ref.resolvedType.acnParameters.Length with
-        | true  -> ()
+        | true  -> 
+            let ziped = List.zip ref.acnArguments ref.resolvedType.acnParameters
+            let ns = ziped |> List.fold(fun s c -> checkArgument s c) curState
+            checkType r tasPositions parents curentPath ref.resolvedType ns
+
         | false ->
-            let errMgs = sprintf "Expecting %d ACN arguments, provide %d" ref.resolvedType.acnParameters.Length ref.acnArguments.Length
-            raise(SemanticError(acnLoc, errMgs))
-        let ziped = List.zip ref.acnArguments ref.resolvedType.acnParameters
-        let ns = ziped |> List.fold(fun s c -> checkArgument s c) curState
-        checkType r tasPositions parents curentPath ref.resolvedType ns
+            curState
+            //let errMgs = sprintf "Expecting %d ACN arguments, provide %d" ref.resolvedType.acnParameters.Length ref.acnArguments.Length
+            //raise(SemanticError(acnLoc, errMgs))
 
 
 let checkAst (r:AstRoot) =
