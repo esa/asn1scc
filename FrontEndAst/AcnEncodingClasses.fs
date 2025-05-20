@@ -66,12 +66,12 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (alignment: AcnAlignment
             | PosInt, Fixed(fixedSizeInBits) , BigEndianness     when fixedSizeInBits = 8I              ->
                 match p.endiannessProp with
                 | Some BigEndianness ->
-                    let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
+                    let errMsg = "endianness property has no effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
                     Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg)
                 | _                 -> ()
                 PositiveInteger_ConstSize_8, 8I, 8I
             | PosInt, Fixed(fixedSizeInBits) , LittleEndianness     when fixedSizeInBits = 8I              ->
-                let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
+                let errMsg = "endianness property has no effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
                 Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg)
                 PositiveInteger_ConstSize_8, 8I, 8I
             | PosInt, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 16I->  PositiveInteger_ConstSize_big_endian_16, 16I, 16I
@@ -87,12 +87,12 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (alignment: AcnAlignment
             | TwosComplement, Fixed(fixedSizeInBits) , BigEndianness      when fixedSizeInBits = 8I  ->
                 match p.endiannessProp with
                 | Some BigEndianness ->
-                    let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
+                    let errMsg = "endianness property has no effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
                     Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg)
                 | _                 -> ()
                 TwosComplement_ConstSize_8, 8I, 8I
             | TwosComplement, Fixed(fixedSizeInBits) , LittleEndianness   when fixedSizeInBits = 8I  ->
-                let errMsg = "endianness property has not effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
+                let errMsg = "endianness property has no effect here.\nLittle/big endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n"
                 Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg)
                 TwosComplement_ConstSize_8, 8I, 8I
             | TwosComplement, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 16I ->  TwosComplement_ConstSize_big_endian_16, 16I, 16I
