@@ -589,9 +589,15 @@ let PrintModule stgFileName (m:Asn1Module) (f:Asn1File) (r:AstRoot)   =
 
     icd_acn.EmitModule stgFileName title (Path.GetFileName(f.FileName)) acnFileName commentsTail tases
 
+let PrintNavLink stgFileName (m:Asn1Module) (f:Asn1File) (r:AstRoot)   =
+    let moduleName = m.Name.Value
+    icd_acn.EmitNavLink stgFileName moduleName moduleName
 
 let PrintTasses stgFileName (f:Asn1File)  (r:AstRoot)   =
     f.Modules |> Seq.map (fun  m -> PrintModule stgFileName m f r ) |> String.concat "\n"
+
+let PrintNavLinks stgFileName (f:Asn1File)  (r:AstRoot)   =
+    f.Modules |> Seq.map (fun  m -> PrintNavLink stgFileName m f r ) |> String.concat "\n"
 
 let emitCss (r:AstRoot) stgFileName   outFileName =
     let cssContent = icd_acn.RootCss stgFileName ()
@@ -848,9 +854,10 @@ let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileNa
         | Some x -> x
     let files2 = TL "GenerateAcnIcd_PrintAsn1FileInColorizedHtml" (fun () -> r.Files |> List.map (PrintAsn1FileInColorizedHtml asn1HtmlMacros r icdHashesToPrint))
     let files3 = TL "GenerateAcnIcd_PrintAcnAsHTML2" (fun () -> PrintAcnAsHTML2 stgFileName r icdHashesToPrint)
+    let navLinks = TL "GenerateAcnIcd_NavLinks" (fun () -> r.Files |> List.map (fun f -> PrintNavLinks stgFileName f r ) |> String.concat "\n")
     let cssFileName = Path.ChangeExtension(outFileName, ".css")
-    let htmlContent = TL "GenerateAcnIcd_RootHtml" (fun () -> icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName)))
-    let htmlContentb = TL "GenerateAcnIcd_RootHtml_b" (fun () -> icd_acn.RootHtml stgFileName files1b files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName)))
+    let htmlContent = TL "GenerateAcnIcd_RootHtml" (fun () -> icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName)) navLinks)
+    let htmlContentb = TL "GenerateAcnIcd_RootHtml_b" (fun () -> icd_acn.RootHtml stgFileName files1b files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName)) navLinks)
 
     File.WriteAllText(outFileName, htmlContent.Replace("\r",""))
     File.WriteAllText(outFileName.Replace(".html", "_new.html"), htmlContentb.Replace("\r",""))
