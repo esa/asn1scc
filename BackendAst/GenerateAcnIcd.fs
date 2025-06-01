@@ -589,15 +589,14 @@ let PrintModule stgFileName (m:Asn1Module) (f:Asn1File) (r:AstRoot)   =
 
     icd_acn.EmitModule stgFileName title (Path.GetFileName(f.FileName)) acnFileName commentsTail tases
 
-let PrintNavLink stgFileName (m:Asn1Module) (f:Asn1File) (r:AstRoot)   =
-    let moduleName = m.Name.Value
-    icd_acn.EmitNavLink stgFileName moduleName moduleName
+let PrintNavLink stgFileName sTitle sTarget   =
+    icd_acn.EmitNavLink stgFileName sTitle sTarget
 
 let PrintTasses stgFileName (f:Asn1File)  (r:AstRoot)   =
     f.Modules |> Seq.map (fun  m -> PrintModule stgFileName m f r ) |> String.concat "\n"
 
 let PrintNavLinks stgFileName (f:Asn1File)  (r:AstRoot)   =
-    f.Modules |> Seq.map (fun  m -> PrintNavLink stgFileName m f r ) |> String.concat "\n"
+    f.Modules |> Seq.map (fun  m -> PrintNavLink stgFileName m.Name.Value m.Name.Value ) |> String.concat "\n"
 
 let emitCss (r:AstRoot) stgFileName   outFileName =
     let cssContent = icd_acn.RootCss stgFileName ()
@@ -680,7 +679,7 @@ let rec getMySelfAndChildren (r:AstRoot) (icdTas:IcdTypeAss) =
                 | None -> ()
 
     } |> Seq.toList
-
+(*
 let PrintTasses2 stgFileName (r:AstRoot) : string list =
     let pdus = r.args.icdPdus |> Option.map Set.ofList
     r.icdHashes.Values |>
@@ -698,8 +697,8 @@ let PrintTasses2 stgFileName (r:AstRoot) : string list =
         | Some chIcdTas -> Some (emitTas2 stgFileName r (fun _ -> []) (selectTypeWithSameHash chIcdTas))
         | None -> None) |>
     Seq.toList
-
-let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list) =
+*)
+let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list)*(IcdTypeAss list) =
     let pdus = r.args.icdPdus |> Option.map Set.ofList
     let icdHashesToPrint =
         seq {
@@ -719,13 +718,18 @@ let printTasses3 stgFileName (r:DAst.AstRoot) : (string list)*(string list) =
     let content = icdHashesToPrint |> Seq.StrJoin "\n"
     let fileName = sprintf "%s_icdHashesToPrint.txt" stgFileName
     File.WriteAllText(fileName, content)
-    let files =
+    let files, navLinks =
         icdHashesToPrint
         |> Seq.choose(fun hash ->
             match r.icdHashes.TryFind hash with
-            | Some chIcdTas -> Some (emitTas2 stgFileName r (fun _ -> []) (selectTypeWithSameHash chIcdTas))
-            | None -> None) |> Seq.toList
-    (files, icdHashesToPrint)
+            | Some chIcdTas -> 
+                //let PrintNavLink stgFileName sTitle sTarget   =
+                let tas = selectTypeWithSameHash chIcdTas
+                let tasContent = emitTas2 stgFileName r (fun _ -> []) tas
+                //let tasLink = icd_acn.EmitNavLink stgFileName tas.name tas.hash
+                Some (tasContent, tas)
+            | None -> None) |> Seq.toList |> List.unzip
+    (files, icdHashesToPrint, navLinks)
 
 let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPrint:string list) (f:Asn1File) =
     let debug (tsName:string) =
@@ -846,7 +850,7 @@ let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (icdHashesToPr
 
 let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string) (asn1HtmlStgFileMacros:string option)   outFileName =
     let files1 =  TL "GenerateAcnIcd_PrintTasses" (fun () -> r.Files |> List.map (fun f -> PrintTasses stgFileName f r ))
-    let (files1b, icdHashesToPrint) = TL "GenerateAcnIcd_printTasses3" (fun () -> printTasses3 stgFileName r)
+    let (files1b, icdHashesToPrint, icdTasList ) = TL "GenerateAcnIcd_printTasses3" (fun () -> printTasses3 stgFileName r)
     let bAcnParamsMustBeExplained = true
     let asn1HtmlMacros =
         match asn1HtmlStgFileMacros with
@@ -854,7 +858,26 @@ let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileNa
         | Some x -> x
     let files2 = TL "GenerateAcnIcd_PrintAsn1FileInColorizedHtml" (fun () -> r.Files |> List.map (PrintAsn1FileInColorizedHtml asn1HtmlMacros r icdHashesToPrint))
     let files3 = TL "GenerateAcnIcd_PrintAcnAsHTML2" (fun () -> PrintAcnAsHTML2 stgFileName r icdHashesToPrint)
-    let navLinks = TL "GenerateAcnIcd_NavLinks" (fun () -> r.Files |> List.map (fun f -> PrintNavLinks stgFileName f r ) |> String.concat "\n")
+
+    let navLinks = 
+        seq {
+            for f in r.Files do
+                for m in f.Modules do
+                    let moduleLink = PrintNavLink stgFileName m.Name.Value m.Name.Value
+                    yield moduleLink
+                    let thisModuleTasses = 
+                        icdTasList |>
+                        List.choose(fun tas ->
+                            match tas.tasInfo with
+                            | None -> None
+                            | Some tsInfo when tsInfo.modName = m.Name.Value -> Some tas
+                            | Some _ -> None) |>
+                        List.sortBy (fun tas -> tas.name)
+                    for tas in thisModuleTasses do
+                        let tasLink = PrintNavLink stgFileName tas.name tas.hash
+                        yield tasLink
+        } |> Seq.distinct |> Seq.toList |> String.concat "\n"
+
     let cssFileName = Path.ChangeExtension(outFileName, ".css")
     let htmlContent = TL "GenerateAcnIcd_RootHtml" (fun () -> icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName)) navLinks)
     let htmlContentb = TL "GenerateAcnIcd_RootHtml_b" (fun () -> icd_acn.RootHtml stgFileName files1b files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName)) navLinks)
