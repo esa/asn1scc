@@ -578,9 +578,36 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot)
 
 let private mergeNullType (args: CommandLineSettings) (lms:(ProgrammingLanguage*LanguageMacros) list) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let getRtlTypeName  (l:ProgrammingLanguage) = (args.getBasicLang l).getNullRtlTypeName
+
+    //check for invalid properties
+    let checkInvalidProperties (acnErrLoc: SrcLoc) (props: GenericAcnProperty list) =
+        props |> Seq.iter(fun pr ->
+            match pr with
+            | SIZE  _   -> raise(SemanticError(acnErrLoc, "Acn property 'size' cannot be applied to NULL types"))
+            | ENCODING          _      -> raise(SemanticError(acnErrLoc, "Acn property 'encoding' cannot be applied to NULL types"))
+            | ALIGNTONEXT       _      -> ()
+            | ENCODE_VALUES            -> raise(SemanticError(acnErrLoc, "Acn property 'encode-values' cannot be applied to NULL types"))
+            | SAVE_POSITION            -> ()
+            | PRESENT_WHEN      _      -> ()
+            | PRESENT_WHEN_EXP  _      -> ()
+            | TRUE_VALUE        _      -> raise(SemanticError(acnErrLoc, "Acn property 'true-value' cannot be applied to NULL types"))
+            | FALSE_VALUE       _      -> raise(SemanticError(acnErrLoc, "Acn property 'false-value' cannot be applied to NULL types"))
+            | PATTERN           _      -> ()  
+            | CHOICE_DETERMINANT _     -> raise(SemanticError(acnErrLoc, "Acn property 'choice-determinant' cannot be applied to NULL types"))
+            | ENDIANNESS        _      -> raise(SemanticError(acnErrLoc, "Acn property 'endianness' cannot be applied to NULL types"))
+            | ENUM_SET_VALUE    _      -> raise(SemanticError(acnErrLoc, "Acn property 'enum-set-value' cannot be applied to NULL types"))
+            | TERMINATION_PATTERN _    -> raise(SemanticError(acnErrLoc, "Acn property 'termination-pattern' cannot be applied to NULL types"))
+            | MAPPING_FUNCTION  _      -> ()
+            | POST_ENCODING_FUNCTION _ -> ()
+            | PRE_DECODING_FUNCTION _  -> ())
+
+
+
     let acnProperties =
         match acnErrLoc with
-        | Some acnErrLoc    -> { NullTypeAcnProperties.encodingPattern  = tryGetProp props (fun x -> match x with PATTERN e -> Some e | _ -> None); savePosition = props |> Seq.exists(fun z -> match z with SAVE_POSITION -> true | _ -> false )}
+        | Some acnErrLoc    -> 
+            checkInvalidProperties acnErrLoc props
+            { NullTypeAcnProperties.encodingPattern  = tryGetProp props (fun x -> match x with PATTERN e -> Some e | _ -> None); savePosition = props |> Seq.exists(fun z -> match z with SAVE_POSITION -> true | _ -> false )}
         | None              -> {NullTypeAcnProperties.encodingPattern = None; savePosition = false }
 
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)

@@ -480,6 +480,7 @@ type GenericAcnProperty =
     | MAPPING_FUNCTION  of (StringLoc option)*StringLoc
     | POST_ENCODING_FUNCTION of (StringLoc option)*StringLoc
     | PRE_DECODING_FUNCTION of (StringLoc option)*StringLoc
+    
 
 
 
