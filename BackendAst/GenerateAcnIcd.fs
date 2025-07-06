@@ -860,6 +860,8 @@ let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileNa
     let files3 = TL "GenerateAcnIcd_PrintAcnAsHTML2" (fun () -> PrintAcnAsHTML2 stgFileName r icdHashesToPrint)
 
     let navLinks = 
+        icdTasList |> List.map(fun tas -> PrintNavLink stgFileName tas.name tas.hash) |> String.concat "\n"
+     (*
         seq {
             for f in r.Files do
                 for m in f.Modules do
@@ -876,7 +878,7 @@ let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileNa
                     for tas in thisModuleTasses do
                         let tasLink = PrintNavLink stgFileName tas.name tas.hash
                         yield tasLink
-        } |> Seq.distinct |> Seq.toList |> String.concat "\n"
+        } |> Seq.distinct |> Seq.toList |> String.concat "\n"*)
 
     let cssFileName = Path.ChangeExtension(outFileName, ".css")
     let htmlContent = TL "GenerateAcnIcd_RootHtml" (fun () -> icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName)) navLinks)
