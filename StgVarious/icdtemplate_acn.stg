@@ -659,6 +659,19 @@ RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFile
             border-right: 2px solid #ccc;
         }
 
+        .nav-pane h3 {
+            margin-bottom: 10px;
+        }
+        
+        #navFilterInput {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
         .nav-pane a {
             display: block;
             padding: 5px;
@@ -693,8 +706,9 @@ RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFile
 <body>
 
     <!-- Left Navigation Pane -->
-    <nav class="nav-pane">
+    <nav class="nav-pane" id="navigationMenu">
         <h3>Navigation</h3>
+        <input type="text" id="navFilterInput" placeholder="Filter messages..."/>
         $navLinks;separator="&nbsp;<br/>\n"$
     </nav>
 
@@ -717,6 +731,42 @@ RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFile
 
         $arrsFiles3;separator="\n"$
     </div>
+
+    <script>
+    // Self-executing function to avoid polluting the global scope
+    (function() {
+        // Wait for the DOM to be fully loaded before running the script
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            const filterInput = document.getElementById('navFilterInput');
+            const navigationMenu = document.getElementById('navigationMenu');
+            // Get all the navigation links (<a> tags) within the menu
+            const navLinks = navigationMenu.getElementsByTagName('a');
+
+            // Add an event listener to the input field that triggers on every key press
+            filterInput.addEventListener('keyup', function() {
+                // Get the search term and convert it to uppercase for case-insensitive comparison
+                const searchTerm = filterInput.value.toUpperCase();
+
+                // Loop through all the navigation links
+                for (let i = 0; i < navLinks.length; i++) {
+                    const link = navLinks[i];
+                    // Get the text content of the link
+                    const linkText = link.textContent || link.innerText;
+
+                    // Check if the link's text contains the search term
+                    if (linkText.toUpperCase().indexOf(searchTerm) > -1) {
+                        // If it matches, make sure the link is visible
+                        link.style.display = "";
+                    } else {
+                        // If it doesn't match, hide the link
+                        link.style.display = "none";
+                    }
+                }
+            });
+        });
+    })();
+    </script>
 
 </body>
 </html>
