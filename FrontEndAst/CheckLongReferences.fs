@@ -290,9 +290,14 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
     //the visible parameters of a type are this type parameters if type has parameters or the
     //next parent with parameters
     let visibleParameters =
-        match parents@[t] |> List.rev |> List.filter(fun x -> not x.acnParameters.IsEmpty) with
-        | []    -> []
-        | p1::_ -> p1.acnParameters |> List.map(fun p -> (p1.id, p))
+//        match parents@[t] |> List.rev |> List.filter(fun x -> not x.acnParameters.IsEmpty) with
+//        | []    -> []
+//        | p1::_ -> p1.acnParameters |> List.map(fun p -> (p1.id, p))
+        (parents@[t])
+        |> List.rev
+        |> List.collect (fun p -> p.acnParameters |> List.map (fun prm -> (p.id, prm)))
+        |> List.distinctBy (fun (_,prm) -> prm.name)
+
     match t.Kind with
     | Integer        _
     | Real           _
