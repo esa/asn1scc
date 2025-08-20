@@ -157,6 +157,9 @@ The following table lists the ASN.1 types where the fixed form can be applied as
 ! Asn1 Type
 ! Count unit of intExpr
 |-
+| Boolean
+| Bits
+|-
 | Integer
 | Bits
 |-
