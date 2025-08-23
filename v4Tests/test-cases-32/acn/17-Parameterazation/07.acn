@@ -18,7 +18,7 @@ Super[] {
 }
 
 Flux[] {
-    b [size 4, true-value '1111'B]
+    b [true-value '1111'B]
 }
 
 
