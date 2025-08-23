@@ -651,24 +651,14 @@ let createAcnBooleanProperties (props: GenericAcnProperty list) (acnErrLoc: SrcL
 
 let private mergeBooleanType (args: CommandLineSettings) (lms:(ProgrammingLanguage*LanguageMacros) list) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState)=
     let getRtlTypeName  (l:ProgrammingLanguage) = (args.getBasicLang l).getBoolRtlTypeName
-    let size =
-        match acnErrLoc with
-        | Some acnErrLoc    ->
-            match tryGetProp props (fun x -> match x with SIZE e -> Some e | _ -> None) with
-            | None                -> None
-            | Some (GP_Fixed v)   -> Some(v.Value)
-            | Some _              -> raise(SemanticError(acnErrLoc ,"Expecting an Integer value or an ACN constant as value for the size property"))
-        | None                    -> None
 
-    let alignWithZeros (bitVal: StringLoc) =
-        match size with
-        | None      -> bitVal
-        | Some sz  when sz >= bitVal.Value.Length.AsBigInt ->
-            let zeros = new String('0', ((int sz) - bitVal.Value.Length)  )
-            {StringLoc.Value = zeros + bitVal.Value; Location = bitVal.Location}
-        | Some sz          ->
-            let errMsg = sprintf "The size of the pattern '%s' is greater than the encoding size (%d)" bitVal.Value (int sz)
-            raise(SemanticError(bitVal.Location ,errMsg))
+    //if there is a size property, then raise an error. BOOLEAN types do not support size property
+    match acnErrLoc with
+    | Some acnErrLoc    ->
+        match tryGetProp props (fun x -> match x with SIZE e -> Some e | _ -> None) with
+        | None                -> ()
+        | Some _   -> raise(SemanticError(acnErrLoc ,"ACN property 'size' cannot be applied to BOOLEAN types"))
+    | None                    -> ()
 
     let acnProperties = createAcnBooleanProperties props acnErrLoc
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
