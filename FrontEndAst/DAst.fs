@@ -512,7 +512,7 @@ type XerFunction =
 
 
 type AcnFuncBody = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> AcnFuncBodyResult option * State
-type AcnFuncBodySeqComp = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> string -> AcnFuncBodyResult option * State
+type AcnFuncBodySeqComp = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> string -> string -> AcnFuncBodyResult option * State
 
 type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
@@ -834,7 +834,7 @@ and AcnChild = {
     id                          : ReferenceToType
     Type                        : Asn1AcnAst.AcnInsertedType
     typeDefinitionBodyWithinSeq : string
-    funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
+    funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> string-> (AcnFuncBodyResult option)            // returns a list of validations statements
     funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement
     Comments                    : string array
     deps                        : Asn1AcnAst.AcnInsertedFieldDependencies
