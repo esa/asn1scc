@@ -85,11 +85,12 @@ let getDeterminantTypeCheckEqual (lm:LanguageMacros) (det:Determinant) =
 
 
 type FuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> (AcnFuncBodyResult option) * State
-type FuncBodyStateless = Codec -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> AcnFuncBodyResult option
+type FuncBodyStateless = Codec -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> string -> AcnFuncBodyResult option
 
 let handleSavePosition (funcBody: FuncBody)
                        (savePosition: bool)
                        (c_name: string)
+                       (lvName: string) (* Bitsream position local variable name *)
                        (typeId:ReferenceToType)
                        (lm:LanguageMacros)
                        (codec:CommonTypes.Codec): FuncBody =
@@ -99,7 +100,6 @@ let handleSavePosition (funcBody: FuncBody)
         let newFuncBody st errCode prms nestingScope (p:CallerScope) =
             let content, ns1a = funcBody st errCode prms nestingScope p
             let sequence_save_bitstream                 = lm.acn.sequence_save_bitstream
-            let lvName = sprintf "bitStreamPositions_%d" (p.arg.SequenceOfLevel + 1)
             let savePositionStatement = sequence_save_bitstream lvName c_name codec
             let newContent =
                 match content with
@@ -161,8 +161,8 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
             | AcnGenericTypes.NextByte   -> "NextByte", 8I
             | AcnGenericTypes.NextWord   -> "NextWord", 16I
             | AcnGenericTypes.NextDWord  -> "NextDWord", 32I
-        let newFuncBody (codec:CommonTypes.Codec) (prms: (RelativePath * AcnParameter) list) (nestingScope: NestingScope) (p: CallerScope) =
-            let content = funcBody codec prms nestingScope p
+        let newFuncBody (codec:CommonTypes.Codec) (prms: (RelativePath * AcnParameter) list) (nestingScope: NestingScope) (p: CallerScope) (lvName:string) =
+            let content = funcBody codec prms nestingScope p lvName
             let newContent =
                 match content with
                 | Some bodyResult   ->
@@ -314,8 +314,10 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
                           (prms: (RelativePath * AcnParameter) list)
                           (nestingScope: NestingScope)
                           (p: CallerScope)
-                          (c_name: string): ((AcnFuncBodyResult option)*State) =
-        let funcBody = handleSavePosition funcBody t.SaveBitStreamPosition c_name t.id lm codec
+                          (c_name: string)
+                          (lvName: string): ((AcnFuncBodyResult option)*State) =
+        //t.SaveBitStreamPosition is false for all types except NULL types where the 'save-position' attribute can be used
+        let funcBody = handleSavePosition funcBody t.SaveBitStreamPosition c_name lvName t.id lm codec
         let ret = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
         let ret = lm.lg.adaptAcnFuncBody r deps ret isValidFuncName t codec
         ret st errCode prms nestingScope p
@@ -1912,7 +1914,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let icdResult =
             let dummyNestingScope = NestingScope.init 0I 0I []
             let p : CallerScope = {CallerScope.modName = ""; arg = Selection.valueEmptyPath ""}
-            let funcResult = c.funcBody Encode [] dummyNestingScope p
+            let funcResult = c.funcBody Encode [] dummyNestingScope p "Dummy_body_bitstreamPositions" 
             match funcResult with
             | None -> None
             | Some bodyResult -> bodyResult.icdResult
@@ -1960,10 +1962,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let localVariables = acnlocalVariables
         let td = lm.lg.getSequenceTypeDefinition o.typeDef
 
+        let bitStreamPositionsLocalVar = sprintf "bitStreamPositions_%s_%d" p.arg.lastIdOrArr (p.arg.SequenceOfLevel + 1)
 
         let localVariables, post_encoding_function, soBitStreamPositionsLocalVar, soSaveInitialBitStrmStatement =
-            let bitStreamPositionsLocalVar = sprintf "bitStreamPositions_%d" (p.arg.SequenceOfLevel + 1)
-            let bsPosStart = sprintf "bitStreamPositions_start%d" (p.arg.SequenceOfLevel + 1)
+            let bsPosStart = sprintf "bitStreamPositions_%s_start%d" p.arg.lastIdOrArr (p.arg.SequenceOfLevel + 1)
             match o.acnProperties.postEncodingFunction with
             | Some (PostEncodingFunction (modFncName, fncName)) when codec = Encode  ->
                 let actualFncName =
@@ -2021,7 +2023,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     {p with arg = newArg}
                 let childContentResult, ns1 =
                     match chFunc with
-                    | Some chFunc -> chFunc.funcBodyAsSeqComp us [] childNestingScope childP childName
+                    | Some chFunc -> chFunc.funcBodyAsSeqComp us [] childNestingScope childP childName bitStreamPositionsLocalVar
                     | None -> None, us
 
                 //handle present-when acn property
@@ -2137,7 +2139,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 //acn child encode/decode
                 let childEncDecStatement, auxiliaries, ns2 =
                     let chFunc = acnChild.funcBody codec
-                    let childContentResult = chFunc [] childNestingScope childP
+                    let childContentResult = chFunc [] childNestingScope childP bitStreamPositionsLocalVar
                     match childContentResult with
                     | None              -> None, [], ns1
                     | Some childContent ->

@@ -497,7 +497,7 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
         let arrsNullFieldsSavePos =
             let getBackendName ci =
                 match ci with
-                | Asn1AcnAst.AcnChild z    -> z.c_name
+                | Asn1AcnAst.AcnChild z    -> ToC (z.Name.Value)   //z.c_name
                 | Asn1AcnAst.Asn1Child z   -> lm.lg.getAsn1ChildBackendName0 z
 
             match acnProperties.postEncodingFunction.IsNone && acnProperties.preDecodingFunction.IsNone with
