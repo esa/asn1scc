@@ -1412,3 +1412,4 @@ stainless-stack-trace.txt
 Inputs/
 asn1scc/Properties/launchSettings_UPER.json
 /dotnet-debian.SENTINEL
+/.claude/settings.local.json
