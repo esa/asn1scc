@@ -121,8 +121,8 @@ let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
     let p1 = lm.lg.getParamTypeSuffix t "1" CommonTypes.Codec.Encode
     let p2 = lm.lg.getParamTypeSuffix t "2" CommonTypes.Codec.Encode
     let funcName            = getFuncName r lm  typeDefinition
-    let varName1 = p1.arg.receiverId
-    let varName2 = p2.arg.receiverId
+    let varName1 = p1.arg.rootId
+    let varName2 = p2.arg.rootId
     let sStar = lm.lg.getStar p1.arg
 
     let  isEqualFunc, isEqualFuncDef  =

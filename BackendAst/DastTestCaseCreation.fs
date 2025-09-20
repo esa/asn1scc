@@ -144,7 +144,7 @@ let getTypeDecl (r:DAst.AstRoot) (vasPU_name:string) (lm:LanguageMacros) (vas:Va
 let TestSuiteFileName = "testsuite"
 
 let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacros) (t:Asn1Type) =
-    let pdummy = {CallerScope.modName = ToC "MainProgram"; arg = Selection.valueEmptyPath "tmp0" }
+    let pdummy = {CallerScope.modName = ToC "MainProgram"; arg = AccessPath.valueEmptyPath "tmp0" }
     let rec getInitializationFunctions (n:InitFunction) =
         seq {
             for c in n.nonEmbeddedChildrenFuncs do
@@ -213,7 +213,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                                     let testCaseIsValid = e <> Asn1Encoding.ACN || (isTestCaseValid atc)
                                     if testCaseIsValid then
                                         let generateTcFun idx =
-                                            let p = {CallerScope.modName = ToC "MainProgram"; arg = Selection.valueEmptyPath "tc_data"}
+                                            let p = {CallerScope.modName = ToC "MainProgram"; arg = AccessPath.valueEmptyPath "tc_data"}
                                             let initStatement = atc.initTestCaseFunc p
                                             let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage lm t.Type)//t.Type.initFunction.initFuncName
 

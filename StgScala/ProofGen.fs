@@ -14,14 +14,14 @@ type SizeProps =
   | BitsNullTerminated of string
   | AsciiNullTerminated of byte list
 
-let getAccess (acc: Accessor) =
+let getAccess (acc: AccessStep) =
     match acc with
     | ValueAccess (sel, _, _) -> $".{sel}"
     | PointerAccess (sel, _, _) -> $".{sel}"
     | ArrayAccess (ix, _) -> $"({ix})"
 
-let joinedSelection (sel: Selection): string =
-  List.fold (fun str accessor -> $"{str}{getAccess accessor}") sel.receiverId sel.path
+let joinedSelection (sel: AccessPath): string =
+  List.fold (fun str accessor -> $"{str}{getAccess accessor}") sel.rootId sel.steps
 
 let getAcnDeterminantName (id : ReferenceToType) =
   match id with
@@ -791,7 +791,7 @@ let generateSequenceSubtypeDefinitions (dealiased: string) (typeDef:Map<Programm
 let generateEncodePostcondExprCommon (r: Asn1AcnAst.AstRoot)
                                      (tpe: Type)
                                      (maxSize: bigint)
-                                     (pVal: Selection)
+                                     (pVal: AccessPath)
                                      (resPostcond: Var)
                                      (acnTps: Type list)
                                      (sz: SizeExprRes)
@@ -801,7 +801,7 @@ let generateEncodePostcondExprCommon (r: Asn1AcnAst.AstRoot)
   let codecTpe = runtimeCodecTypeFor ACN
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
   let oldCdc = Old (Var cdc)
-  let szRecv = {Var.name = pVal.asLastOrSelf.receiverId; tpe = tpe}
+  let szRecv = {Var.name = pVal.asLastOrSelf.rootId; tpe = tpe}
 
   let acnVarsPatBdg = acnTps |> List.indexed |> List.map (fun (ix, tpe) -> {Var.name = $"acn{ix + 1}"; tpe = tpe})
 
@@ -892,12 +892,12 @@ let generateDecodePostcondExprCommon (r: Asn1AcnAst.AstRoot) (resPostcond: Var) 
   let rightBody = letsIn sz.bdgs rightBody
   eitherMutMatchExpr (Var resPostcond) None (BoolLit true) (Some resRightMut) rightBody
 
-let generateEncodePostcondExpr (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (pVal: Selection) (resPostcond: Var) (decodePureId: string): Expr =
+let generateEncodePostcondExpr (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (pVal: AccessPath) (resPostcond: Var) (decodePureId: string): Expr =
   let codecTpe = runtimeCodecTypeFor ACN
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
   let oldCdc = Old (Var cdc)
   let tpe = fromAsn1TypeKind t.Kind
-  let szRecv = {Var.name = pVal.asLastOrSelf.receiverId; tpe = tpe}
+  let szRecv = {Var.name = pVal.asLastOrSelf.rootId; tpe = tpe}
   let sz =
     match t.Kind with
     | Choice _ | Sequence _ | SequenceOf _ ->
@@ -2291,13 +2291,13 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
                     (nestingScope: NestingScope)
                     (outerSel: CallerScope)
                     (recSel: CallerScope): FunDef list * Expr =
-  assert recSel.arg.path.IsEmpty
+  assert recSel.arg.steps.IsEmpty
   let codecTpe = runtimeCodecTypeFor ACN
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
   let oldCdc = {Var.name = "oldCdc"; tpe = ClassType codecTpe}
   let tpe = fromAsn1TypeKind t.Kind
   let errTpe = IntegerType Int
-  let recPVal = {Var.name = recSel.arg.receiverId; tpe = tpe}
+  let recPVal = {Var.name = recSel.arg.rootId; tpe = tpe}
   let precond = [Precond (validateOffsetBitsACN (Var cdc) (longlit t.acnMaxSizeInBits))]
   let isValidFuncName = $"{t.FT_TypeDefinition.[Scala].typeName}_IsConstraintValid"
   let baseId = ToC t.id.dropModule.AsString
@@ -2332,7 +2332,7 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
     let acnExtVars = acnExternDependenciesVariableEncode t nestingScope |> Option.toList
     let resPostcond = {Var.name = "res"; tpe = eitherTpe errTpe retTpe}
     let decodePureId = $"{baseId}_ACN_Decode_pure"
-    let szRecv = {Var.name = recSel.arg.asLastOrSelf.receiverId; tpe = tpe}
+    let szRecv = {Var.name = recSel.arg.asLastOrSelf.rootId; tpe = tpe}
     let sz =
       match t.Kind with
       | Choice _ | SequenceOf _ -> {bdgs = []; resSize = callSize (Var szRecv) (bitIndexACN (Old (Var cdc)))}
@@ -2614,7 +2614,7 @@ let generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmt
       let exprStr = show (ExprTree expr)
       [exprStr]
 
-let generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): Expr option =
+let generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): Expr option =
   if sq.children.IsEmpty then None
   else
     let codecTpe = runtimeCodecTypeFor enc
@@ -2637,12 +2637,12 @@ let generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1Ac
 
     if codec = Decode || (not r.args.stainlessInvertibility) then sizeCheck
     else
-      assert sel.path.IsEmpty
+      assert sel.steps.IsEmpty
       let codecTpe = runtimeCodecTypeFor enc
       let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
       let oldCdc = {Var.name = "oldCdc"; tpe = ClassType codecTpe}
       let seqTpe = fromAsn1TypeKind t.Kind
-      let selVar = {Var.name = sel.receiverId; tpe = seqTpe}
+      let selVar = {Var.name = sel.rootId; tpe = seqTpe}
       let snapshots = [1 .. nbPresenceBits + sq.children.Length] |> List.map (fun i -> {Var.name = $"codec_0_{i}"; tpe = ClassType codecTpe})
       let fstSnap = snapshots.Head
       let transitiveLemmas =
@@ -2800,29 +2800,29 @@ let generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1Ac
       Some (Ghost (mkBlock ((sizeCheck |> Option.toList) @ transitiveLemmas @ subproofs @ [proof])))
 
 
-let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+let generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): FunDef list =
   if r.args.stainlessInvertibility && enc = ACN && codec = Decode then [generatePrefixLemmaSequence enc t nestingScope sq]
   else []
 
-let generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+let generateIntegerAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (int: Asn1AcnAst.Integer) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): FunDef list =
   // If `tasInfo` is Some, then there is a pair of encode/decode functions that are generated wrapping a call to encode/decode the integer
   // In such cases, we generate a "read prefix" lemma that is just an application of the appropriate ACN integer lemma
   if r.args.stainlessInvertibility && enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaInteger enc t nestingScope int]
   else []
 
-let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+let generateBooleanAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (boolean: Asn1AcnAst.Boolean) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): FunDef list =
   if r.args.stainlessInvertibility && enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaBool enc t nestingScope boolean]
   else []
 
-let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+let generateChoiceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): FunDef list =
   if r.args.stainlessInvertibility && enc = ACN && codec = Decode then [generatePrefixLemmaChoice enc t nestingScope ch]
   else []
 
-let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+let generateNullTypeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (nt: Asn1AcnAst.NullType) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): FunDef list =
   if r.args.stainlessInvertibility && enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaNullType enc t nestingScope nt]
   else []
 
-let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): FunDef list =
+let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (enm: Asn1AcnAst.Enumerated) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): FunDef list =
   if r.args.stainlessInvertibility && enc = ACN && codec = Decode && t.id.tasInfo.IsSome then [generatePrefixLemmaEnum enc t nestingScope enm]
   else []
 

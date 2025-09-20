@@ -326,7 +326,7 @@ let private createAcnFunction (r: Asn1AcnAst.AstRoot)
     let funcBody = lm.lg.adaptAcnFuncBody r deps funcBody isValidFuncName t codec
 
     let p : CallerScope = lm.lg.getParamType t codec
-    let varName = p.arg.receiverId
+    let varName = p.arg.rootId
     let sStar = lm.lg.getStar p.arg
     let sInitialExp = ""
     let func, funcDef, auxiliaries, icdResult, ns2  =
@@ -647,7 +647,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                 | Copy -> []
                 | InPlace -> [GenericLocalVariable {GenericLocalVariable.name = varName; varType= rtlIntType; arrSize= None; isStatic = false; initExp=None}]
             lv, varName
-        let pVal = {CallerScope.modName = typeId.ModName; arg = Selection.valueEmptyPath intVal}
+        let pVal = {CallerScope.modName = typeId.ModName; arg = AccessPath.valueEmptyPath intVal}
         let intFuncBody =
             let uperInt (errCode:ErrorCode) (nestingScope: NestingScope) (p:CallerScope) (fromACN: bool) =
                 let pp, resultExpr = adaptArgument lm codec p
@@ -1506,7 +1506,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let errCodes0, localVariables0, ns =
             match asn1TypeD.acnEncFunction with
             | Some f  ->
-                let fncBdRes, ns = f.funcBody us [] (NestingScope.init asn1TypeD.acnMaxSizeInBits asn1TypeD.uperMaxSizeInBits []) {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
+                let fncBdRes, ns = f.funcBody us [] (NestingScope.init asn1TypeD.acnMaxSizeInBits asn1TypeD.uperMaxSizeInBits []) {CallerScope.modName = ""; arg = AccessPath.valueEmptyPath "dummy"}
                 match fncBdRes with
                 | Some x -> x.errCodes, [], ns
                 | None   -> [], [], us
@@ -1711,7 +1711,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                 localUpdateFuns |>
                 List.mapi(fun i fn ->
                     let c_name = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
-                    let lv = {CallerScope.modName = vTarget.modName; arg = Selection.valueEmptyPath c_name}
+                    let lv = {CallerScope.modName = vTarget.modName; arg = AccessPath.valueEmptyPath c_name}
                     match fn with
                     | None      -> None
                     | Some fn   -> Some(fn.updateAcnChildFnc child nestingScope lv pSrcRoot)) |> // TODO: nestingScope?
@@ -1892,7 +1892,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 | None                                      -> $"when bit %d{sPresenceBitIndexMap[c.Name.Value]} is set in the uPER bit mask"
                 | Some(PresenceWhenBool relPath)            -> $"when %s{relPath.AsString} is true"
                 | Some(PresenceWhenBoolExpression acnExp)   ->
-                    let dummyScope = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
+                    let dummyScope = {CallerScope.modName = ""; arg = AccessPath.valueEmptyPath "dummy"}
                     let retExp = acnExpressionToBackendExpression o dummyScope acnExp
                     $"when %s{retExp}"
         let comments = (c.Comments |> Seq.toList)@extra_comments
@@ -1913,7 +1913,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     let icd_acn_child (c:AcnChild) (extra_comments:string list) : ((IcdRow list) * (IcdTypeAss list))=
         let icdResult =
             let dummyNestingScope = NestingScope.init 0I 0I []
-            let p : CallerScope = {CallerScope.modName = ""; arg = Selection.valueEmptyPath ""}
+            let p : CallerScope = {CallerScope.modName = ""; arg = AccessPath.valueEmptyPath ""}
             let funcResult = c.funcBody Encode [] dummyNestingScope p "Dummy_body_bitstreamPositions" 
             match funcResult with
             | None -> None
@@ -2123,7 +2123,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 res, newAcc
             | AcnChild acnChild ->
                 //handle updates
-                let childP = {CallerScope.modName = p.modName; arg= Selection.valueEmptyPath (getAcnDeterminantName acnChild.id)}
+                let childP = {CallerScope.modName = p.modName; arg= AccessPath.valueEmptyPath (getAcnDeterminantName acnChild.id)}
 
                 let updateStatement, ns1 =
                     match codec with
@@ -2402,7 +2402,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 | Some chFunc ->
                     let childP =
                         if lm.lg.acn.choice_requires_tmp_decoding && codec = Decode then
-                            {CallerScope.modName = p.modName; arg = Selection.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")}
+                            {CallerScope.modName = p.modName; arg = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")}
                         else {p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}
                     chFunc.funcBody us [] childNestingScope childP
                 | None -> None, us
@@ -2415,7 +2415,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     | Decode ->
                         let childp =
                             match lm.lg.acn.choice_requires_tmp_decoding with
-                            | true ->   ({CallerScope.modName = p.modName; arg = Selection.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
+                            | true ->   ({CallerScope.modName = p.modName; arg = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
                             | false ->  ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
                         let decStatement =
                             match child.chType.ActualType.Kind with

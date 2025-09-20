@@ -33,7 +33,7 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
             [], {pVal with arg = lm.lg.getArrayItem pVal.arg curIdx childTypeIsString}
 
     match nodes with
-    | (MD md)::(TA tas)::(PRM prm)::[]  -> ({CallerScope.modName = pVal.modName; arg = Selection.valueEmptyPath (ToC (md + "_" + tas + "_" + prm))}, [])
+    | (MD md)::(TA tas)::(PRM prm)::[]  -> ({CallerScope.modName = pVal.modName; arg = AccessPath.valueEmptyPath (ToC (md + "_" + tas + "_" + prm))}, [])
     | (MD md)::(TA tas):: xs            ->
         let length = Seq.length xs
         let ret =
@@ -921,7 +921,7 @@ let hasAcnEncodeFunction (encFunc: AcnFunction option) acnParameters (tasInfo: T
     | Some fnc ->
         match acnParameters, tasInfo with
         | [], Some _ ->
-            let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
+            let p = {CallerScope.modName = ""; arg = AccessPath.valueEmptyPath "dummy"}
             let ret,_ = fnc.funcBody emptyState [] (NestingScope.init 0I 0I []) p
             match ret with
             | None   -> false
@@ -932,7 +932,7 @@ let hasUperEncodeFunction (encFunc : UPerFunction option)  =
     match encFunc with
     | None  -> false
     | Some fnc ->
-            let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
+            let p = {CallerScope.modName = ""; arg = AccessPath.valueEmptyPath "dummy"}
             match fnc.funcBody (NestingScope.init 0I 0I []) p false with
             | None   -> false
             | Some _ -> true
@@ -941,7 +941,7 @@ let hasXerEncodeFunction (encFunc : XerFunction option)  =
     match encFunc with
     | None  -> false
     | Some (XerFunction fnc) ->
-            let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
+            let p = {CallerScope.modName = ""; arg = AccessPath.valueEmptyPath "dummy"}
             let errCode = {ErrorCode.errCodeName = "DUMMY_ERR"; errCodeValue=0; comment=None}
             match fnc.funcBody_e errCode p None  with
             | None   -> false

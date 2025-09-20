@@ -7,12 +7,12 @@ open Language
 open System.IO
 open System
 
-let getAccess_c (sel: Selection) =
+let getAccess_c (sel: AccessPath) =
     match sel.selectionType with
-    | Pointer -> "->"
+    | ByPointer -> "->"
     | _ -> "."
 
-let getAccess2_c (acc: Accessor) =
+let getAccess2_c (acc: AccessStep) =
     match acc with
     | ValueAccess (sel, _, _) -> $".{sel}"
     | PointerAccess (sel, _, _) -> $"->{sel}"
@@ -100,42 +100,42 @@ type LangGeneric_c() =
         override _.requiresHandlingOfZeroArrays = true
 
 
-        override this.getPointer (sel: Selection) =
+        override this.getPointer (sel: AccessPath) =
             let str = sel.joined this
             match sel.selectionType with
-            | Value -> $"(&({str}))"
+            | ByValue -> $"(&({str}))"
             | _ -> str
 
-        override this.getValue (sel: Selection) =
+        override this.getValue (sel: AccessPath) =
             let str = sel.joined this
             match sel.selectionType with
-            | Pointer -> $"(*({str}))"
+            | ByPointer -> $"(*({str}))"
             | _ -> str
 
-        override this.getValueUnchecked (sel: Selection) _ = this.getValue sel
-        override this.getPointerUnchecked (sel: Selection) _ = this.getPointer sel
-        override this.joinSelectionUnchecked (sel: Selection) _ = sel.joined this
-        override this.getAccess  (sel: Selection) = getAccess_c sel
+        override this.getValueUnchecked (sel: AccessPath) _ = this.getValue sel
+        override this.getPointerUnchecked (sel: AccessPath) _ = this.getPointer sel
+        override this.joinSelectionUnchecked (sel: AccessPath) _ = sel.joined this
+        override this.getAccess  (sel: AccessPath) = getAccess_c sel
 
-        override this.getAccess2 (acc: Accessor) = getAccess2_c acc
+        override this.getAccess2 (acc: AccessStep) = getAccess2_c acc
         override this.getPtrPrefix _ = ""
 
-        override this.getPtrSuffix (sel: Selection) =
+        override this.getPtrSuffix (sel: AccessPath) =
             match sel.selectionType with
-            | Pointer -> "*"
+            | ByPointer -> "*"
             | _ -> ""
 
-        override this.getStar (sel: Selection) =
+        override this.getStar (sel: AccessPath) =
             match sel.selectionType with
-            | Pointer -> "*"
+            | ByPointer -> "*"
             | _ -> ""
 
         override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
             {nm with c_name = newValue}
         override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem)  = nm.c_name
 
-        override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) =
-            (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
+        override this.getArrayItem (sel: AccessPath) (idx:string) (childTypeIsString: bool) =
+            (sel.appendSelection "arr" ArrayElem false).append (ArrayAccess (idx, if childTypeIsString then ArrayElem else ByValue))
 
         override this.getNamedItemBackendName (defOrRef:TypeDefinitionOrReference option) (nm:Asn1AcnAst.NamedItem) =
             ToC nm.c_name
@@ -207,14 +207,14 @@ type LangGeneric_c() =
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
 
-        override this.getSeqChildIsPresent (sel: Selection) (childName:string) =
+        override this.getSeqChildIsPresent (sel: AccessPath) (childName:string) =
             sprintf "%s%sexist.%s" (sel.joined this) (this.getAccess sel) childName
 
-        override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
-            sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
+        override this.getSeqChild (sel: AccessPath) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
+            sel.appendSelection childName (if childTypeIsString then ArrayElem else ByValue) childIsOptional
 
-        override this.getChChild (sel: Selection) (childName:string) (childTypeIsString: bool): Selection =
-            (sel.appendSelection "u" Value false).appendSelection childName (if childTypeIsString then FixArray else Value) false
+        override this.getChChild (sel: AccessPath) (childName:string) (childTypeIsString: bool): AccessPath =
+            (sel.appendSelection "u" ByValue false).appendSelection childName (if childTypeIsString then ArrayElem else ByValue) false
 
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =
             let prefix = ToC ((id.AcnAbsPath.Tail |> Seq.StrJoin("_")).Replace("#","elem"))
@@ -230,13 +230,13 @@ type LangGeneric_c() =
         override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
             let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
                 match kind with
-                | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> FixArray
+                | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem
                 | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
-                | _ -> Pointer
+                | _ -> ByPointer
             let recvId = "pVal" + suf
-            {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
+            {CallerScope.modName = t.id.ModName; arg = AccessPath.emptyPath recvId (getRecvType t.Kind) }
 
-        override this.getParamValue  (t:Asn1AcnAst.Asn1Type) (sel: Selection)  (c:Codec) =
+        override this.getParamValue  (t:Asn1AcnAst.Asn1Type) (sel: AccessPath)  (c:Codec) =
             match t.Kind with
             | Asn1AcnAst.IA5String    _  -> this.getValue sel //FIXARRAY "val"
             | Asn1AcnAst.NumericString _ -> this.getValue sel// FIXARRAY "val"
@@ -722,5 +722,5 @@ type LangGeneric_c() =
 
         override this.getTopLevelDirs (target:Targets option) = []
 
-        override this.getChChildIsPresent   (arg:Selection) (chParent:string) (pre_name:string) =
+        override this.getChChildIsPresent   (arg:AccessPath) (chParent:string) (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name

@@ -178,7 +178,7 @@ let createInitFunctionCommon (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (o: As
     let p = lm.lg.getParamType o CommonTypes.Codec.Decode
     let initTypeAssignment      = lm.init.initTypeAssignment
     let initTypeAssignment_def  = lm.init.initTypeAssignment_def
-    let varName = p.arg.receiverId
+    let varName = p.arg.rootId
     let sPtrPrefix = lm.lg.getPtrPrefix p.arg
     let sPtrSuffix = lm.lg.getPtrSuffix p.arg
     let sStar = lm.lg.getStar p.arg
@@ -553,7 +553,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
     let user_aux_functions =
         let funcName            = getFuncNameGeneric typeDefinition ""
         let p = lm.lg.getParamType t CommonTypes.Codec.Decode
-        let varName = p.arg.receiverId
+        let varName = p.arg.rootId
         let sStar = lm.lg.getStar p.arg
         let typeDefName = (lm.lg.getLongTypedefName typeDefinition)
         o.namedBitList |>
@@ -1109,7 +1109,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                             | false ->
                                 chChild.chType.initFunction.initByAsn1Value ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName chChild) chChild.chType.isIA5String}) iv.Value.kind
                             | true ->
-                                chChild.chType.initFunction.initByAsn1Value ({CallerScope.modName = t.id.ModName; arg = Selection.valueEmptyPath sChildTempVarName}) iv.Value.kind
+                                chChild.chType.initFunction.initByAsn1Value ({CallerScope.modName = t.id.ModName; arg = AccessPath.valueEmptyPath sChildTempVarName}) iv.Value.kind
                         Some (initChoice (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) chContent (lm.lg.presentWhenName (Some typeDefinition) chChild) sChildName sChildTypeName sChoiceTypeName sChildTempVarName (extractDefaultInitValue chChild.chType.Kind) lm.lg.init.choiceComponentTempInit)
                         )
 
@@ -1139,11 +1139,11 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                             | ProgrammingLanguage.Scala ->
                                 match lm.lg.init.choiceComponentTempInit with
                                 | false ->  fnc {p with arg = lm.lg.getChChild p.arg sChildTempVarName ch.chType.isIA5String}
-                                | true   -> fnc {p with arg = Selection.valueEmptyPath (sChildName + "_tmp")}
+                                | true   -> fnc {p with arg = AccessPath.valueEmptyPath (sChildName + "_tmp")}
                             | _ ->
                                 match lm.lg.init.choiceComponentTempInit with
                                 | false  -> fnc {p with arg = lm.lg.getChChild p.arg sChildName ch.chType.isIA5String}
-                                | true   -> fnc {p with arg = Selection.valueEmptyPath (sChildName + "_tmp")}
+                                | true   -> fnc {p with arg = AccessPath.valueEmptyPath (sChildName + "_tmp")}
                         childContent.funcBody, childContent.localVariables
 
                     let sChildTempDefaultInit =
@@ -1184,7 +1184,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                     let childContent =
                         match lm.lg.init.choiceComponentTempInit with
                         | false ->  fnc chp
-                        | true   -> fnc {p with arg = Selection.valueEmptyPath (sChildName + "_tmp")}
+                        | true   -> fnc {p with arg = AccessPath.valueEmptyPath (sChildName + "_tmp")}
                     childContent.funcBody, childContent.localVariables
                 | Some initProc  ->
                     match lm.lg.init.choiceComponentTempInit with

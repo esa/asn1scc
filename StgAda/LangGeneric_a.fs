@@ -10,7 +10,7 @@ open System
 (****** Ada Implementation ******)
 
 
-let getAccess2_a  (acc: Accessor) =
+let getAccess2_a  (acc: AccessStep) =
     match acc with
     | ValueAccess (sel, _, _) -> $".{sel}"
     | PointerAccess (sel, _, _) -> $".{sel}"
@@ -134,15 +134,15 @@ type LangGeneric_a() =
 
         override _.supportsInitExpressions = true
 
-        override this.getPointer (sel: Selection) = sel.joined this
+        override this.getPointer (sel: AccessPath) = sel.joined this
 
-        override this.getValue (sel: Selection) = sel.joined this
-        override this.getValueUnchecked (sel: Selection) _ = this.getValue sel
-        override this.getPointerUnchecked (sel: Selection) _ = this.getPointer sel
-        override this.joinSelectionUnchecked (sel: Selection) _ = sel.joined this
-        override this.getAccess (sel: Selection) = "."
+        override this.getValue (sel: AccessPath) = sel.joined this
+        override this.getValueUnchecked (sel: AccessPath) _ = this.getValue sel
+        override this.getPointerUnchecked (sel: AccessPath) _ = this.getPointer sel
+        override this.joinSelectionUnchecked (sel: AccessPath) _ = sel.joined this
+        override this.getAccess (sel: AccessPath) = "."
 
-        override this.getAccess2 (acc: Accessor) = getAccess2_a acc
+        override this.getAccess2 (acc: AccessStep) = getAccess2_a acc
 
         override this.getPtrPrefix _ = ""
 
@@ -150,8 +150,8 @@ type LangGeneric_a() =
 
         override this.getStar _ = ""
 
-        override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) =
-            (sel.appendSelection "Data" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
+        override this.getArrayItem (sel: AccessPath) (idx:string) (childTypeIsString: bool) =
+            (sel.appendSelection "Data" ArrayElem false).append (ArrayAccess (idx, if childTypeIsString then ArrayElem else ByValue))
 
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =
             let prefix = ToC ((id.AcnAbsPath.Tail |> Seq.StrJoin("_")).Replace("#","elem"))
@@ -209,14 +209,14 @@ type LangGeneric_a() =
             let encRtl = []//match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN || e = XER) with true -> [] | false -> ["adaasn1rtl.encoding"]
             encRtl@uperRtl@acnRtl@xerRtl |> List.distinct
 
-        override this.getSeqChildIsPresent (sel: Selection) (childName:string) =
+        override this.getSeqChildIsPresent (sel: AccessPath) (childName:string) =
             sprintf "%s%sexist.%s = 1" (sel.joined this) (this.getAccess sel) childName
 
-        override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
-            sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
+        override this.getSeqChild (sel: AccessPath) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
+            sel.appendSelection childName (if childTypeIsString then ArrayElem else ByValue) childIsOptional
 
-        override this.getChChild (sel: Selection) (childName:string) (childTypeIsString: bool) : Selection =
-            sel.appendSelection childName (if childTypeIsString then FixArray else Value) false
+        override this.getChChild (sel: AccessPath) (childName:string) (childTypeIsString: bool) : AccessPath =
+            sel.appendSelection childName (if childTypeIsString then ArrayElem else ByValue) false
 
         override this.presentWhenName (defOrRef:TypeDefinitionOrReference option) (ch:ChChildInfo) : string =
             match defOrRef with
@@ -227,7 +227,7 @@ type LangGeneric_a() =
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC ch.present_when_name) + "_PRESENT")
             | _       -> (ToC ch.present_when_name) + "_PRESENT"
         override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
-            {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath ("val" + suf) Value}
+            {CallerScope.modName = t.id.ModName; arg = AccessPath.emptyPath ("val" + suf) ByValue}
 
         override this.getLocalVariableDeclaration (lv:LocalVariable) : string  =
             match lv with
@@ -262,7 +262,7 @@ type LangGeneric_a() =
 
 
 
-        override this.getParamValue  (t:Asn1AcnAst.Asn1Type) (sel: Selection)  (c:Codec) =
+        override this.getParamValue  (t:Asn1AcnAst.Asn1Type) (sel: AccessPath)  (c:Codec) =
             sel.joined this
 
         override this.toHex n = sprintf "16#%x#" n
@@ -364,5 +364,5 @@ type LangGeneric_a() =
 
         override _.CreateAuxFiles (r:AstRoot)  (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             ()
-        override this.getChChildIsPresent   (arg:Selection) (chParent:string)  (pre_name:string) =
+        override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name
