@@ -184,4 +184,4 @@ SPARK_RTL/mainprogram.adb linguist-vendored
 SPARK_RTL/Test1.adb linguist-vendored
 SPARK_RTL/IO.adb linguist-vendored
 SPARK_RTL/adaasn1rtl.adb linguist-vendored
-* text eol=lf
+* text=auto eol=lf
