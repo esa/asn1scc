@@ -76,7 +76,7 @@ let createXerFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
 
     let funcName            = getFuncName r lm codec typeDefinition
     let p  =  lm.lg.getParamType t codec
-    let varName = p.arg.receiverId
+    let varName = p.arg.rootId
     let sStar = lm.lg.getStar p.arg
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
     let sInitialExp = ""

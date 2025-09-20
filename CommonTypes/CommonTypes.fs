@@ -18,19 +18,24 @@ type UserErrorSeverity =
     | WARNING
     | INFO
 
-/// Represents the kind of target (value, pointer, or array element) accessed during encoding/decoding.
-/// A more accurate name might be AccessTargetType.
-type SelectionType =
-    | Value
-    | Pointer
-    | FixArray
+/// Describes how the next target is accessed when emitting code.
+/// - `ByValue`: direct field access on a value (e.g., `.field`)
+/// - `ByPointer`: field access through a pointer (e.g., `->field`)
+/// - `ArrayElem`: an element inside a fixed-size array (e.g., `[i]`)
+type AccessTargetType =
+    | ByValue
+    | ByPointer
+    | ArrayElem
 
-/// Represents a node in the access path from the function parameter to the current type.
-/// A more accurate name might be AccessStep.
-type Accessor =
-    | ValueAccess of string * SelectionType * bool // selection identifier and its type
-    | PointerAccess of string * SelectionType  * bool // selection identifier and its type
-    | ArrayAccess of string * SelectionType // array index and the type of the array's element
+/// A single hop in an access path from the root function parameter to a nested element.
+/// Examples:
+/// - `FieldByValue("y", ByValue, isOptional)`   -> `.y`
+/// - `FieldByPtr("y", ByPointer, isOptional)`   -> `->y`
+/// - `ArrayIndex("i", ArrayElem)`         -> `[i]`
+type AccessStep =
+    | ValueAccess of name:string * AccessTargetType * isOptional:bool // selection identifier and its type
+    | PointerAccess of name:string * AccessTargetType  * isOptional:bool // selection identifier and its type
+    | ArrayAccess of indexExpr:string * AccessTargetType // array index and the type of the array's element
     member this.selectionType =
         match this with
         | ValueAccess (_, sel, _) -> sel
@@ -38,74 +43,77 @@ type Accessor =
         | ArrayAccess (_, sel) -> sel
     member this.accessorType =
         match this with
-        | ValueAccess _ -> Value
-        | PointerAccess _ -> Pointer
-        | ArrayAccess _ -> FixArray
+        | ValueAccess _ -> ByValue
+        | PointerAccess _ -> ByPointer
+        | ArrayAccess _ -> ArrayElem
 
-/// Represents a path of accesses (fields, pointers, array elements) starting from a root object towards a nested element.
-/// A more accurate name might be AccessPath.
-type Selection = {
-    receiverId: string              // The name of the function parameter that holds the root ASN.1 type being processed (e.g., val, pVal, pVal1).
-    receiverType: SelectionType     // the access type of the function parameter
-    path: Accessor list             // in long fields, this is the path to the field
+/// A full, ordered chain of `AccessStep`s from the root parameter to a nested target.
+/// Generators render concrete lvalues/rvalues from this structure in a deterministic way.
+type AccessPath = {
+    /// The identifier of the root function parameter holding the ASN.1 value (e.g., `val`, `pVal`, `pVal1`).
+    rootId: string              
+    /// How the root must be accessed (value, pointer, array element).
+    rootTargetType: AccessTargetType
+    /// The sequence of access steps leading to the target.
+    steps: AccessStep list             // in long fields, this is the path to the field
 } with
-    static member emptyPath (receiverId: string) (receiverType: SelectionType): Selection =
-        { Selection.receiverId = receiverId; receiverType = receiverType; path = []}
-    static member valueEmptyPath (receiverId: string): Selection = Selection.emptyPath receiverId Value
+    static member emptyPath (receiverId: string) (receiverType: AccessTargetType): AccessPath =
+        { AccessPath.rootId = receiverId; rootTargetType = receiverType; steps = []}
+    static member valueEmptyPath (receiverId: string): AccessPath = AccessPath.emptyPath receiverId ByValue
 
-    member this.append (acc: Accessor): Selection =
+    member this.append (acc: AccessStep): AccessPath =
         assert (this.selectionType = acc.accessorType)
-        { this with path = this.path @ [acc] }
+        { this with steps = this.steps @ [acc] }
 
-    member this.appendSelection (selectionId: string) (selTpe: SelectionType) (selOpt: bool): Selection =
+    member this.appendSelection (selectionId: string) (selTpe: AccessTargetType) (selOpt: bool): AccessPath =
         let currTpe = this.selectionType
-        assert (currTpe = Value || currTpe = Pointer)
+        assert (currTpe = ByValue || currTpe = ByPointer)
         assert (selectionId.Trim() <> "")
-        this.append (if currTpe = Value then ValueAccess (selectionId, selTpe, selOpt) else PointerAccess (selectionId, selTpe, selOpt))
+        this.append (if currTpe = ByValue then ValueAccess (selectionId, selTpe, selOpt) else PointerAccess (selectionId, selTpe, selOpt))
 
-    member this.selectionType: SelectionType =
-        if this.path.IsEmpty then this.receiverType
-        else (List.last this.path).selectionType
+    member this.selectionType: AccessTargetType =
+        if this.steps.IsEmpty then this.rootTargetType
+        else (List.last this.steps).selectionType
 
-    member this.dropLast: Selection =
-        if this.path.IsEmpty then this
-        else {this with path = List.initial this.path}
+    member this.dropLast: AccessPath =
+        if this.steps.IsEmpty then this
+        else {this with steps = List.initial this.steps}
 
     member this.isOptional: bool =
-        (not this.path.IsEmpty) &&
-        match List.last this.path with
+        (not this.steps.IsEmpty) &&
+        match List.last this.steps with
         | ValueAccess (_exist, _, isOptional) -> isOptional
         | PointerAccess (_, _, isOptional) -> isOptional
         | ArrayAccess _ -> false
 
     member this.lastId: string =
-        if this.path.IsEmpty then this.receiverId
+        if this.steps.IsEmpty then this.rootId
         else
-            match List.last this.path with
+            match List.last this.steps with
             | ValueAccess (id, _, _) -> id
             | PointerAccess (id, _, _) -> id
             | ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
 
     member this.lastIdOrArr: string =
-        if this.path.IsEmpty then this.receiverId
+        if this.steps.IsEmpty then this.rootId
         else
-            match List.last this.path with
+            match List.last this.steps with
             | ValueAccess (id, _, _) -> id
             | PointerAccess (id, _, _) -> id
             | ArrayAccess _ -> "arr"
 
-    member this.asLast: Selection =
-        assert (not this.path.IsEmpty)
-        match List.last this.path with
-        | ValueAccess (id, _, _) -> Selection.emptyPath id Value
-        | PointerAccess (id, _, _) -> Selection.emptyPath id Pointer
+    member this.asLast: AccessPath =
+        assert (not this.steps.IsEmpty)
+        match List.last this.steps with
+        | ValueAccess (id, _, _) -> AccessPath.emptyPath id ByValue
+        | PointerAccess (id, _, _) -> AccessPath.emptyPath id ByPointer
         | ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
 
-    member this.asLastOrSelf: Selection =
-        if this.path.IsEmpty then this
+    member this.asLastOrSelf: AccessPath =
+        if this.steps.IsEmpty then this
         else this.asLast
     member this.SequenceOfLevel =
-        this.path |> List.filter(fun n -> match n with ArrayAccess _ -> true | _ -> false) |> Seq.length
+        this.steps |> List.filter(fun n -> match n with ArrayAccess _ -> true | _ -> false) |> Seq.length
 
 
 type UserError = {

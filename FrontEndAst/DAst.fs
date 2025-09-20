@@ -21,7 +21,7 @@ open System.Text
 
 type CallerScope = {
     modName : string
-    arg     : Selection
+    arg     : AccessPath
 }
 
 type AlphaFunc   = {

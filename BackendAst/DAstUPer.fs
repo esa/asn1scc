@@ -84,7 +84,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
 
     let funcBody = (funcBody_e errCode)
     let p = lm.lg.getParamType t codec
-    let varName = p.arg.receiverId
+    let varName = p.arg.rootId
     let sStar = lm.lg.getStar p.arg
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
     let sInitialExp = ""
@@ -615,7 +615,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
 
             let chFunc = child.getUperFunction codec
             let chp =
-                let recv = if lm.lg.decodingKind = Copy then Selection.emptyPath p.arg.asIdentifier p.arg.selectionType else p.arg
+                let recv = if lm.lg.decodingKind = Copy then AccessPath.emptyPath p.arg.asIdentifier p.arg.selectionType else p.arg
                 {p with arg = lm.lg.getArrayItem recv i child.isIA5String}
             let internalItem = chFunc.funcBody childNestingScope chp fromACN
 
@@ -872,7 +872,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let uperChildRes =
                 match lm.lg.uper.catd with
                 | false   -> chFunc.funcBody childNestingScope ({p with arg =  lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) fromACN
-                | true when codec = CommonTypes.Decode -> chFunc.funcBody childNestingScope {p with arg = Selection.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")} fromACN
+                | true when codec = CommonTypes.Decode -> chFunc.funcBody childNestingScope {p with arg = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")} fromACN
                 | true -> chFunc.funcBody childNestingScope ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) fromACN
             let sChildName = (lm.lg.getAsn1ChChildBackendName child)
             let sChildTypeDef = child.chType.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
@@ -890,10 +890,10 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                     match lm.lg.uper.catd with
                     | false -> lm.lg.createSingleLineComment "no encoding/decoding is required"
                     | true when codec=Decode ->
-                        let childp = ({p with arg = Selection.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
+                        let childp = ({p with arg = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
                         match child.chType.ActualType.Kind with
-                        | NullType _    -> uper_a.decode_nullType childp.arg.receiverId
-                        | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.arg.receiverId
+                        | NullType _    -> uper_a.decode_nullType childp.arg.rootId
+                        | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.arg.rootId
                         | _             -> lm.lg.createSingleLineComment "no encoding/decoding is required"
                     | true   -> lm.lg.createSingleLineComment "no encoding/decoding is required"
                 mk_choice_child childContent, [], [], []

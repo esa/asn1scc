@@ -566,7 +566,7 @@ let getFuncName (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (typeDefinition:Type
 
 
 let str_p (lm:LanguageMacros) (typeid:ReferenceToType) =
-    ({CallerScope.modName = typeid.ModName; arg = (Selection.emptyPath "str" FixArray).append (ArrayAccess ("i", Value))})
+    ({CallerScope.modName = typeid.ModName; arg = (AccessPath.emptyPath "str" ArrayElem).append (ArrayAccess ("i", ByValue))})
 
 type IsValidAux = {
     isValidStatement  : CallerScope -> ValidationStatement
@@ -601,7 +601,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
     let funcBody = fncBodyE errCode
     let errCodes = errCode::childErrCodes
     let p  = lm.lg.getParamType t Encode
-    let varName = p.arg.receiverId
+    let varName = p.arg.rootId
     let sStar = lm.lg.getStar p.arg
     let sPtrPrefix = lm.lg.getPtrPrefix p.arg
     let sPtrSuffix = lm.lg.getPtrSuffix p.arg
