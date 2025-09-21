@@ -227,14 +227,14 @@ type LangGeneric_c() =
             (ToC ch._present_when_name_private) + "_PRESENT"
         override this.presentWhenName0 (defOrRef:TypeDefinitionOrReference option) (ch:Asn1AcnAst.ChChildInfo) : string =
             (ToC ch.present_when_name) + "_PRESENT"
-        override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
+        override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CodegenScope =
             let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
                 match kind with
                 | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem
                 | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
                 | _ -> ByPointer
             let recvId = "pVal" + suf
-            {CallerScope.modName = t.id.ModName; arg = AccessPath.emptyPath recvId (getRecvType t.Kind) }
+            {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
 
         override this.getParamValue  (t:Asn1AcnAst.Asn1Type) (sel: AccessPath)  (c:Codec) =
             match t.Kind with

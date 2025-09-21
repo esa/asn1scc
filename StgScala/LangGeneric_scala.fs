@@ -288,14 +288,14 @@ type LangGeneric_scala() =
                 | None -> ""
             parentName + (ToC ch.present_when_name) + "_PRESENT"
 
-        override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
+        override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CodegenScope =
             let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
                 match kind with
                 | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> ArrayElem // TODO: For Ada, this is Value no matter what?
                 | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
                 | _ -> ByPointer
             let recvId = "pVal" + suf
-            {CallerScope.modName = t.id.ModName; arg = AccessPath.emptyPath recvId (getRecvType t.Kind) }
+            {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.emptyPath recvId (getRecvType t.Kind) }
 
         override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:AccessPath) (c:Codec) =
             p.joined this
@@ -386,9 +386,9 @@ type LangGeneric_scala() =
                             (err: ErrorCode)
                             (prms: (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list)
                             (nestingScope: NestingScope)
-                            (p: CallerScope): (AcnFuncBodyResult option) * State =
+                            (p: CodegenScope): (AcnFuncBodyResult option) * State =
                 if not nestingScope.isInit && shouldWrap then
-                    let recP = {p with arg = p.arg.asLastOrSelf}
+                    let recP = {p with accessPath = p.accessPath.asLastOrSelf}
                     let recNS = NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits ((p, t) :: nestingScope.parents)
                     let res, s = funcBody s err prms recNS recP
                     match res with
@@ -400,7 +400,7 @@ type LangGeneric_scala() =
                         // TODO: Hack to determine how to change the "result variable"
                         let resultExpr =
                             match res.resultExpr with
-                            | Some res when res = recP.arg.asIdentifier -> Some p.arg.asIdentifier
+                            | Some res when res = recP.accessPath.asIdentifier -> Some p.accessPath.asIdentifier
                             | Some res -> Some res
                             | None -> None
                         Some {res with funcBody = callStr; resultExpr = resultExpr; auxiliaries = res.auxiliaries @ fdsStr}, s
@@ -413,7 +413,7 @@ type LangGeneric_scala() =
             let precond = generatePrecond r enc t codec
             [show (ExprTree precond)]
 
-        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
+        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (funcNameBase: string) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
             match enc with
             | ACN ->
                 let errTpe = IntegerType Int
@@ -422,7 +422,7 @@ type LangGeneric_scala() =
                     | Encode ->
                         let resPostcond = {Var.name = "res"; tpe = eitherTpe errTpe (IntegerType Int)}
                         let decodePureId = $"{t.FT_TypeDefinition.[Scala].typeName}_ACN_Decode_pure"
-                        generateEncodePostcondExpr r t p.arg resPostcond decodePureId
+                        generateEncodePostcondExpr r t p.accessPath resPostcond decodePureId
                     | Decode ->
                         let resPostcond = {Var.name = "res"; tpe = eitherMutTpe errTpe (fromAsn1TypeKind t.Kind)}
                         generateDecodePostcondExpr r t resPostcond
@@ -443,7 +443,7 @@ type LangGeneric_scala() =
         override this.generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
             generateSequenceOfLikeProof r enc o pg codec
 
-        override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CallerScope) (codec: Codec): string option =
+        override this.generateIntFullyConstraintRangeAssert (topLevelTd: string) (p: CodegenScope) (codec: Codec): string option =
             None
             // TODO: Need something better than that
             (*

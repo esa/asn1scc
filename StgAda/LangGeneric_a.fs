@@ -226,8 +226,8 @@ type LangGeneric_a() =
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC ch.present_when_name) + "_PRESENT")
             | _       -> (ToC ch.present_when_name) + "_PRESENT"
-        override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
-            {CallerScope.modName = t.id.ModName; arg = AccessPath.emptyPath ("val" + suf) ByValue}
+        override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CodegenScope =
+            {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.emptyPath ("val" + suf) ByValue}
 
         override this.getLocalVariableDeclaration (lv:LocalVariable) : string  =
             match lv with

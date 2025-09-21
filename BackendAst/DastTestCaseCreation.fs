@@ -144,7 +144,7 @@ let getTypeDecl (r:DAst.AstRoot) (vasPU_name:string) (lm:LanguageMacros) (vas:Va
 let TestSuiteFileName = "testsuite"
 
 let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacros) (t:Asn1Type) =
-    let pdummy = {CallerScope.modName = ToC "MainProgram"; arg = AccessPath.valueEmptyPath "tmp0" }
+    let pdummy = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tmp0" }
     let rec getInitializationFunctions (n:InitFunction) =
         seq {
             for c in n.nonEmbeddedChildrenFuncs do
@@ -164,8 +164,8 @@ let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacro
         let initProc = t.initFunction.initProcedure
         let dummyVarName =
             match t.isIA5String with
-            | true  ->  lm.lg.getValue p.arg
-            | false ->  lm.lg.getPointer p.arg
+            | true  ->  lm.lg.getValue p.accessPath
+            | false ->  lm.lg.getPointer p.accessPath
         let sTypeName = lm.lg.getLongTypedefName t.typeDefinitionOrReference
         let sTypeName =
             match lm.lg.hasModules with
@@ -213,7 +213,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                                     let testCaseIsValid = e <> Asn1Encoding.ACN || (isTestCaseValid atc)
                                     if testCaseIsValid then
                                         let generateTcFun idx =
-                                            let p = {CallerScope.modName = ToC "MainProgram"; arg = AccessPath.valueEmptyPath "tc_data"}
+                                            let p = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
                                             let initStatement = atc.initTestCaseFunc p
                                             let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage lm t.Type)//t.Type.initFunction.initFuncName
 
