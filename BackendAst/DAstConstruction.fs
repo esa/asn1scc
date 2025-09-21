@@ -63,7 +63,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
     let funcUpdateStatement, ns3 = DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
     let c_name         = ch.c_name //DAstACN.getAcnDeterminantName ch.id
 
-    let newFuncBody (codec:Codec) (prms:((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)) (nestingScope: NestingScope) (p:CallerScope) (lvName:string): AcnFuncBodyResult option=
+    let newFuncBody (codec:Codec) (prms:((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)) (nestingScope: NestingScope) (p:CodegenScope) (lvName:string): AcnFuncBodyResult option=
         let funBodyWithState st errCode prms nestingScope p =
             let funcBody codec = match codec with Codec.Encode -> funcBodyEncode | Codec.Decode -> funcBodyDecode
             funcBody codec prms nestingScope p, st

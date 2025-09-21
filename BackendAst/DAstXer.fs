@@ -76,8 +76,8 @@ let createXerFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
 
     let funcName            = getFuncName r lm codec typeDefinition
     let p  =  lm.lg.getParamType t codec
-    let varName = p.arg.rootId
-    let sStar = lm.lg.getStar p.arg
+    let varName = p.accessPath.rootId
+    let sStar = lm.lg.getStar p.accessPath
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
     let sInitialExp = ""
     let errCodeName         = ToC ("ERR_XER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
@@ -121,7 +121,7 @@ let orElse defaultValue optValue = match optValue with Some x -> x | None -> def
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (us:State)  =
     let Integer         = lm.xer.Integer
     let IntegerPos      = lm.xer.IntegerPos
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "INTEGER")
         let checkExp =
             match (DastValidate2.createIntegerFunctionByCons r lm (o.intClass) (o.cons@o.withcons)) with
@@ -135,7 +135,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
                 | VCBStatement (sStat,_)    -> Some sStat
 
                 //Some (expFunc p)
-        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
+        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.accessPath | CommonTypes.Decode -> lm.lg.getPointer p.accessPath
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_Integer ()
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
@@ -157,9 +157,9 @@ let checkExp (isValidFunc: IsValidFunction option) p =
 
 let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let Boolean =   lm.xer.Boolean
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "")
-        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
+        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.accessPath | CommonTypes.Decode -> lm.lg.getPointer p.accessPath
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_boolean ()
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
@@ -170,9 +170,9 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
 
 let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let Real = lm.xer.Real
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "REAL")
-        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
+        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.accessPath | CommonTypes.Decode -> lm.lg.getPointer p.accessPath
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_Real
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
@@ -184,9 +184,9 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let ObjectIdentifier = lm.xer.ObjectIdentifier
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "ObjectIdentifier")
-        let pp = match codec with CommonTypes.Encode -> lm.lg.getPointer p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
+        let pp = match codec with CommonTypes.Encode -> lm.lg.getPointer p.accessPath | CommonTypes.Decode -> lm.lg.getPointer p.accessPath
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_Real
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
@@ -197,9 +197,9 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (c
 
 let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let TimeType = lm.xer.TimeType
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "TIME")
-        let pp = match codec with CommonTypes.Encode -> lm.lg.getPointer p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
+        let pp = match codec with CommonTypes.Encode -> lm.lg.getPointer p.accessPath | CommonTypes.Decode -> lm.lg.getPointer p.accessPath
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_Real
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
@@ -210,8 +210,8 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let nullFunc = lm.xer.Null
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
-        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
+        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.accessPath | CommonTypes.Decode -> lm.lg.getPointer p.accessPath
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "NULL")
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let totalSize = getMaxSizeInBytesForXER xmlTag 0I
@@ -223,9 +223,9 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let Enumerated = lm.xer.Enumerated
     let Enumerated_item = lm.xer.Enumerated_item
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "")
-        let pp = lm.lg.getValue p.arg
+        let pp = lm.lg.getValue p.accessPath
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_Enumerated (o.items |> List.map (fun itm -> itm.Name.Value))
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
@@ -238,9 +238,9 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
 
 let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let String = lm.xer.String
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant (if o.isNumeric then "NumericString" else "IA5String"))
-        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
+        let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.accessPath | CommonTypes.Decode -> lm.lg.getPointer p.accessPath
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_IA5String o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
@@ -251,36 +251,36 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let OctetString = lm.xer.OctetString
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "OCTET-STRING")
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_OctetString o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = OctetString (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = OctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let BitString = lm.xer.BitString
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "BIT-STRING")
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_BitString o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = BitString (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = BitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefinitionOrReference)  (isValidFunc: IsValidFunction option) (child:Asn1Type) (us:State)  =
     let SequenceOf = lm.xer.SequenceOf
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "SEQUENCE-OF")
-        let ii = p.arg.SequenceOfLevel + 1
+        let ii = p.accessPath.SequenceOfLevel + 1
         let i = sprintf "i%d" ii
         let lv = SequenceOfIndex (ii, None)
-        let pp =  lm.lg.getPointer p.arg
+        let pp =  lm.lg.getPointer p.accessPath
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let chFunc =
             match child.getXerFunction codec with
@@ -298,11 +298,11 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                 (Some (XerLiteralConstant childTagName))
             | true  ->
                 None
-        let internalItem =  chFunc.funcBody ({p with arg = lm.lg.getArrayItem p.arg i child.isIA5String}) childTag
+        let internalItem =  chFunc.funcBody ({p with accessPath = lm.lg.getArrayItem p.accessPath i child.isIA5String}) childTag
         let internalItem_str, chLocalVars, chErrCodes, chSize = match internalItem with Some x -> x.funcBody, x.localVariables, x.errCodes, x.encodingSizeInBytes | None -> "",[],[],0I
         let contentSize = o.maxSize.uper * chSize
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = SequenceOf (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) xmlTag.p nLevel i o.maxSize.uper internalItem_str (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = SequenceOf (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel i o.maxSize.uper internalItem_str (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= errCode::chErrCodes; localVariables=lv::chLocalVars;encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
@@ -317,7 +317,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
     let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
 
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "SEQUENCE")
         let nonAcnChildren = children |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
 
@@ -326,7 +326,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 match child.Type.getXerFunction codec with
                 | XerFunction z -> z
                 | XerFunctionDummy  -> raise (BugErrorException "XerFunctionDummy")
-            let chP = {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String child.Optionality.IsSome}
+            let chP = {p with accessPath = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String child.Optionality.IsSome}
             let childContentResult = chFunc.funcBody chP (Some (XerLiteralConstant child.Name.Value))
             match childContentResult with
             | None              -> None
@@ -336,13 +336,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                     | None                          ->  sequence_mandatory_child (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
                     //| Some Asn1AcnAst.AlwaysAbsent  ->  match codec with CommonTypes.Encode -> None                        | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) child.c_name childContent.funcBody codec)
                         | Some Asn1AcnAst.AlwaysAbsent     //-> "", []
-                        | Some Asn1AcnAst.AlwaysPresent    -> sequence_optional_child (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
+                        | Some Asn1AcnAst.AlwaysPresent    -> sequence_optional_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
                         | Some (Asn1AcnAst.Optional opt)   ->
                             match opt.defaultValue with
-                            | None                   -> sequence_optional_child (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
+                            | None                   -> sequence_optional_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
                             | Some v                 ->
                                 let defInit= child.Type.initFunction.initByAsn1Value chP (mapValue v).kind
-                                sequence_default_child (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value defInit codec, childContent.localVariables
+                                sequence_default_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value defInit codec, childContent.localVariables
                 Some (childBody, child_localVariables, childContent.errCodes, childContent.encodingSizeInBytes)
 
 
@@ -351,7 +351,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
         let childrenLocalvars = childrenStatements0 |> List.collect(fun (_,s,_,_) -> s)
         let childrenErrCodes = childrenStatements0 |> List.collect(fun (_,_,s,_)  -> s)
         let contentSize = childrenStatements0 |> List.map(fun (_,_,_,s)    -> s) |> List.fold (+) 0I
-        let startTag    = sequence_start (p.arg.joined lm.lg) xmlTag.p nLevel errCode.errCodeName (childrenStatements |> Seq.isEmpty) codec
+        let startTag    = sequence_start (p.accessPath.joined lm.lg) xmlTag.p nLevel errCode.errCodeName (childrenStatements |> Seq.isEmpty) codec
         let endTag      = sequence_end xmlTag.p nLevel errCode.errCodeName codec
         let seqContent =
             let opt = (startTag::childrenStatements@[endTag]) |> nestChildItems lm codec
@@ -370,7 +370,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     let choice =        lm.xer.CHOICE
     let typeDefinitionName =  typeDefinition.longTypedefName2 lm.lg.hasModules
     let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
-    let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+    let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
         let handleChild childIndex (child:ChChildInfo) =
             let chFunc =
                 match child.chType.getXerFunction codec with
@@ -378,26 +378,26 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                 | XerFunctionDummy  -> raise (BugErrorException "XerFunctionDummy")
 
             let childContentResult =
-                chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
+                chFunc.funcBody ({p with accessPath = lm.lg.getChChild p.accessPath (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
             match childContentResult with
             | None  -> None
             | Some childContent ->
                 let sChildName = lm.lg.getAsn1ChChildBackendName child
                 let sChildTypeDef = lm.lg.getLongTypedefName child.chType.typeDefinitionOrReference
                 let sChoiceTypeName = typeDefinitionName
-                let childBody = choice_child (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) childContent.funcBody (childIndex = 0) child.Name.Value sChildName sChildTypeDef sChoiceTypeName codec
+                let childBody = choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) childContent.funcBody (childIndex = 0) child.Name.Value sChildName sChildTypeDef sChoiceTypeName codec
                 Some (childBody, childContent.localVariables, childContent.errCodes, childContent.encodingSizeInBytes)
         let childrenStatements0 = children |> List.mapi handleChild |> List.choose id
         let childrenStatements = childrenStatements0 |> List.map(fun (s,_,_,_)    -> s)
         let childrenLocalvars = childrenStatements0 |> List.collect(fun (_,s,_,_) -> s)
         let childrenErrCodes = childrenStatements0 |> List.collect(fun (_,_,s,_)  -> s)
         let contentSize = childrenStatements0 |> List.map(fun (_,_,_,s)    -> s) |> List.fold max 0I
-        let no_tag_body = choice_no_tag (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) childrenStatements errCode.errCodeName codec
+        let no_tag_body = choice_no_tag (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childrenStatements errCode.errCodeName codec
         let chContent, totalSize =
             match xmlTag with
             | None          -> no_tag_body, contentSize
             | Some xmlTag   ->
-                choice (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) xmlTag.p nLevel no_tag_body errCode.errCodeName codec, getMaxSizeInBytesForXER xmlTag contentSize
+                choice (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel no_tag_body errCode.errCodeName codec, getMaxSizeInBytesForXER xmlTag contentSize
 
         Some {XERFuncBodyResult.funcBody = chContent; errCodes= errCode::childrenErrCodes; localVariables=childrenLocalvars;encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
@@ -428,7 +428,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
 
     match TypesEquivalence.uperEquivalence t1 t1WithExtensions with
     | true  ->
-        let funcBody (errCode:ErrorCode) (p:CallerScope) (xmlTag:XerTag option) =
+        let funcBody (errCode:ErrorCode) (p:CodegenScope) (xmlTag:XerTag option) =
             let baseTypeXerFunc =
                 match baseType.getXerFunction codec with
                 | XerFunction z -> z
@@ -437,7 +437,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
             match baseTypeXerFunc.funcBody p xmlTag with
             | Some baseXerFunc    ->
                 let xmlTag = xmlTag |> orElse (XerLiteralConstant o.tasName.Value)
-                let funcBodyContent = callBaseTypeFunc (lm.lg.getParamValue t p.arg codec) xmlTag.p baseFncName codec
+                let funcBodyContent = callBaseTypeFunc (lm.lg.getParamValue t p.accessPath codec) xmlTag.p baseFncName codec
                 Some {XERFuncBodyResult.funcBody = funcBodyContent; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=baseXerFunc.encodingSizeInBytes}
             | None      -> None
 

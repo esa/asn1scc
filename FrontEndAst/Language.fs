@@ -170,7 +170,7 @@ type SequenceOfLikeProofGen = {
     acnMaxOffset: bigint
     uperMaxOffset: bigint
     nestingScope: NestingScope
-    cs: CallerScope
+    cs: CodegenScope
     encDec: string option
     elemDecodeFn: string option
     ixVariable: string
@@ -199,12 +199,12 @@ type SequenceOptionalChild = {
     sq: Asn1AcnAst.Sequence
     child: Asn1Child
     existVar: string option
-    p: CallerScope
+    p: CodegenScope
     nestingScope: NestingScope
-    childBody: CallerScope -> string option -> string
+    childBody: CodegenScope -> string option -> string
 }
 
-type AcnFuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> (AcnFuncBodyResult option) * State
+type AcnFuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CodegenScope -> (AcnFuncBodyResult option) * State
 
 [<AbstractClass>]
 type ILangGeneric () =
@@ -285,10 +285,10 @@ type ILangGeneric () =
     abstract member extractEnumClassName : string -> string -> string -> string
     abstract member presentWhenName : TypeDefinitionOrReference option -> ChChildInfo -> string;
     abstract member presentWhenName0 : TypeDefinitionOrReference option -> Asn1AcnAst.ChChildInfo -> string;
-    abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CallerScope;
+    abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CodegenScope;
     abstract member getParamValue   : Asn1AcnAst.Asn1Type -> AccessPath -> Codec -> string
 
-    abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope;
+    abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CodegenScope;
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
     abstract member allowsSrcFilesWithNoFunctions : bool
@@ -339,12 +339,12 @@ type ILangGeneric () =
     abstract member generateEnumAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> AccessPath -> Codec -> string list
 
     abstract member generatePrecond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
-    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
+    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> funcNameBase: string -> p: CodegenScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
     abstract member generateSequenceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateChoiceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> AccessPath -> Codec -> string
     abstract member generateSequenceOfLikeProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> SequenceOfLike -> SequenceOfLikeProofGen -> Codec -> SequenceOfLikeProofGenResult option
-    abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CallerScope -> Codec -> string option
+    abstract member generateIntFullyConstraintRangeAssert: topLevelTd: string -> CodegenScope -> Codec -> string option
 
     abstract member generateOctetStringInvariants: SIZE -> SIZE -> string list
     abstract member generateBitStringInvariants:  SIZE -> SIZE -> string list
@@ -358,7 +358,7 @@ type ILangGeneric () =
     abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> Asn1AcnAst.Asn1Child list -> string list
     abstract member real_annotations : string list
 
-    default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
+    default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         this.getParamTypeSuffix t "" c
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
@@ -381,7 +381,7 @@ type ILangGeneric () =
     default this.generateSequenceOfLikeAuxiliaries _ _ _ _ _ = [], None
     default this.generateOptionalAuxiliaries _ _ soc _ =
         // By default, languages do not have wrapped optional and have an `exist` field: they "attach" the child field themselves
-        [], soc.childBody {soc.p with arg = soc.p.arg.dropLast} soc.existVar
+        [], soc.childBody {soc.p with accessPath = soc.p.accessPath.dropLast} soc.existVar
     default this.generateChoiceAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateNullTypeAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateEnumAuxiliaries _ _ _ _ _ _ _ = []

@@ -19,14 +19,18 @@ open System.Text
 
 
 
-type CallerScope = {
+/// Code-generation scope threaded through backend lambdas (e.g., encode/decode, validation builders etc).
+/// It binds a name/module domain with the current access path, so generators can
+/// render path-aware expressions (e.g., `pVal->y.z[i]`)
+type CodegenScope = {
     modName : string
-    arg     : AccessPath
+    /// The current access path from the root parameter to the target.
+    accessPath     : AccessPath
 }
 
 type AlphaFunc   = {
     funcName            : string
-    funcBody            : CallerScope -> string
+    funcBody            : CodegenScope -> string
 }
 
 
@@ -310,7 +314,7 @@ is in order to generate valid ACN test cases. I.e. the ACN checks that test case
 generated.
 *)
 type AutomaticTestCase = {
-    initTestCaseFunc        : CallerScope  -> InitFunctionResult //returns a list of set the statement(s) that initialize this type accordingly
+    initTestCaseFunc        : CodegenScope  -> InitFunctionResult //returns a list of set the statement(s) that initialize this type accordingly
     testCaseTypeIDsMap      : Map<ReferenceToType, TestCaseValue>    //used by ACN to produce valid test cases
 }
 
@@ -333,8 +337,8 @@ type InitFunction = {
     initFunction            : InitProcedure0 option                      // an expression that initializes the given type to a default value.
     initGlobal              : InitGlobal option                      // an expression that initializes the given type to a default value.
 
-    initTas                 : (CallerScope  -> InitFunctionResult)              // returns the statement(s) that defaults initialize this type (used in the init function)
-    initByAsn1Value         : CallerScope  -> Asn1ValueKind -> string           // returns the statement(s) that initialize according to the asn1value
+    initTas                 : (CodegenScope  -> InitFunctionResult)              // returns the statement(s) that defaults initialize this type (used in the init function)
+    initByAsn1Value         : CodegenScope  -> Asn1ValueKind -> string           // returns the statement(s) that initialize according to the asn1value
     //initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list         // returns a list of set the statement(s). Each set that initialize this type according to a specific test case
     automaticTestCases      : AutomaticTestCase list
     user_aux_functions      : (string*string) list
@@ -345,8 +349,8 @@ type InitFunction = {
 
 
 type IsEqualBody =
-    | EqualBodyExpression       of (CallerScope -> CallerScope -> (string*(LocalVariable list)) option)
-    | EqualBodyStatementList    of (CallerScope -> CallerScope -> (string*(LocalVariable list)) option)
+    | EqualBodyExpression       of (CodegenScope -> CodegenScope -> (string*(LocalVariable list)) option)
+    | EqualBodyStatementList    of (CodegenScope -> CodegenScope -> (string*(LocalVariable list)) option)
 
 type EqualFunction = {
     isEqualFuncName     : string option               // the name of the equal function.
@@ -369,7 +373,7 @@ type IsValidFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
-    funcBody            : CallerScope -> ValidationStatement            //returns a list of validations statements
+    funcBody            : CodegenScope -> ValidationStatement            //returns a list of validations statements
 
     alphaFuncs          : AlphaFunc list
     localVariables      : LocalVariable list
@@ -437,9 +441,9 @@ type NestingScope = {
     acnSiblingMaxSize: bigint option
     uperSiblingMaxSize: bigint option
     // The parents are ordered in ascendant (i.e. the head is a child of the second parent etc.)
-    parents: (CallerScope * Asn1AcnAst.Asn1Type) list
+    parents: (CodegenScope * Asn1AcnAst.Asn1Type) list
 } with
-    static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint) (parents: (CallerScope * Asn1AcnAst.Asn1Type) list): NestingScope =
+    static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint) (parents: (CodegenScope * Asn1AcnAst.Asn1Type) list): NestingScope =
         {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I;
         acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None;
         parents = parents}
@@ -458,8 +462,8 @@ type UPerFunction = {
     funcName            : string option               // the name of the function
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
-    funcBody            : NestingScope -> CallerScope -> bool -> UPERFuncBodyResult option            // returns a list of validations statements. The bool indicates whether this was called from ACN context
-    funcBody_e          : ErrorCode -> NestingScope -> CallerScope -> bool -> UPERFuncBodyResult option // bool: whether called from ACN context
+    funcBody            : NestingScope -> CodegenScope -> bool -> UPERFuncBodyResult option            // returns a list of validations statements. The bool indicates whether this was called from ACN context
+    funcBody_e          : ErrorCode -> NestingScope -> CodegenScope -> bool -> UPERFuncBodyResult option // bool: whether called from ACN context
     auxiliaries         : string list
 }
 
@@ -499,8 +503,8 @@ type XerFunctionRec = {
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
     encodingSizeInBytes : BigInteger
-    funcBody            : CallerScope -> (XerTag option) -> (XERFuncBodyResult option)
-    funcBody_e          : ErrorCode -> CallerScope -> (XerTag option) -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
+    funcBody            : CodegenScope -> (XerTag option) -> (XERFuncBodyResult option)
+    funcBody_e          : ErrorCode -> CodegenScope -> (XerTag option) -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
 }
 
 type XerFunction =
@@ -511,8 +515,8 @@ type XerFunction =
 
 
 
-type AcnFuncBody = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> AcnFuncBodyResult option * State
-type AcnFuncBodySeqComp = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CallerScope -> string -> string -> AcnFuncBodyResult option * State
+type AcnFuncBody = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CodegenScope -> AcnFuncBodyResult option * State
+type AcnFuncBodySeqComp = State-> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CodegenScope -> string -> string -> AcnFuncBodyResult option * State
 
 type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
@@ -834,7 +838,7 @@ and AcnChild = {
     id                          : ReferenceToType
     Type                        : Asn1AcnAst.AcnInsertedType
     typeDefinitionBodyWithinSeq : string
-    funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CallerScope -> string-> (AcnFuncBodyResult option)            // returns a list of validations statements
+    funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> string-> (AcnFuncBodyResult option)            // returns a list of validations statements
     funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement
     Comments                    : string array
     deps                        : Asn1AcnAst.AcnInsertedFieldDependencies
@@ -863,7 +867,7 @@ and Asn1Child = {
     _c_name                     : string
     _scala_name                 : string
     _ada_name                   : string
-    isEqualBodyStats            : CallerScope -> CallerScope -> (string*(LocalVariable list)) option
+    isEqualBodyStats            : CodegenScope -> CodegenScope -> (string*(LocalVariable list)) option
     Type                        : Asn1Type
     Optionality                 : Asn1AcnAst.Asn1Optionality option
     Comments                    : string array
@@ -923,7 +927,7 @@ and ChChildInfo = {
     Optionality                 : Asn1AcnAst.Asn1ChoiceOptionality option
 
     //DAst properties
-    isEqualBodyStats    : CallerScope -> CallerScope  -> string*(LocalVariable list)
+    isEqualBodyStats    : CodegenScope -> CodegenScope  -> string*(LocalVariable list)
 }
 
 and AcnChoiceEncClass =
@@ -985,7 +989,7 @@ and ReferenceType = {
 
 and AcnChildUpdateResult = {
     icdComments              : string list
-    updateAcnChildFnc        : AcnChild -> NestingScope -> CallerScope -> CallerScope -> string
+    updateAcnChildFnc        : AcnChild -> NestingScope -> CodegenScope -> CodegenScope -> string
     //Given an automatic test case (which includes a map with the IDs of the involved types), this function
     //checks if the automatic test case contains a type which depends on this acn Child. If this is true
     // it returns the value of the dependency, otherwise none

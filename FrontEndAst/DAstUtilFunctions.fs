@@ -12,8 +12,8 @@ open System.Xml.Serialization
 open System.IO
 //open Newtonsoft.Json
 
-let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
-    let handleNode zeroBasedSequenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) =
+let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CodegenScope) =
+    let handleNode zeroBasedSequenceOfLevel (pVal : CodegenScope) (n:ScopeNode) (childTypeIsString: bool) =
         match n with
         | MD _
         | TA _
@@ -22,18 +22,18 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         | SEQ_CHILD (chName, chOpt)  ->
             let isPresent =
                 match chOpt with
-                | true ->  [lm.lg.getSeqChildIsPresent pVal.arg (ToC chName)] //[sprintf "%s%sexist.%s" pVal.arg.p (lm.lg.getAccess pVal.arg) chName]
+                | true ->  [lm.lg.getSeqChildIsPresent pVal.accessPath (ToC chName)] //[sprintf "%s%sexist.%s" pVal.arg.p (lm.lg.getAccess pVal.arg) chName]
                 | false -> []
-            isPresent, {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString chOpt}
+            isPresent, {pVal with accessPath = lm.lg.getSeqChild pVal.accessPath (ToC chName) childTypeIsString chOpt}
         | CH_CHILD (chName, pre_name, chParent)  ->
-            let chChildIsPresent = lm.lg.getChChildIsPresent pVal.arg chParent pre_name
-            [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString}
+            let chChildIsPresent = lm.lg.getChChildIsPresent pVal.accessPath chParent pre_name
+            [chChildIsPresent], {pVal with accessPath = lm.lg.getChChild pVal.accessPath (ToC chName) childTypeIsString}
         | SQF               ->
             let curIdx = sprintf "i%d" (zeroBasedSequenceOfLevel + 1)
-            [], {pVal with arg = lm.lg.getArrayItem pVal.arg curIdx childTypeIsString}
+            [], {pVal with accessPath = lm.lg.getArrayItem pVal.accessPath curIdx childTypeIsString}
 
     match nodes with
-    | (MD md)::(TA tas)::(PRM prm)::[]  -> ({CallerScope.modName = pVal.modName; arg = AccessPath.valueEmptyPath (ToC (md + "_" + tas + "_" + prm))}, [])
+    | (MD md)::(TA tas)::(PRM prm)::[]  -> ({CodegenScope.modName = pVal.modName; accessPath = AccessPath.valueEmptyPath (ToC (md + "_" + tas + "_" + prm))}, [])
     | (MD md)::(TA tas):: xs            ->
         let length = Seq.length xs
         let ret =
@@ -921,7 +921,7 @@ let hasAcnEncodeFunction (encFunc: AcnFunction option) acnParameters (tasInfo: T
     | Some fnc ->
         match acnParameters, tasInfo with
         | [], Some _ ->
-            let p = {CallerScope.modName = ""; arg = AccessPath.valueEmptyPath "dummy"}
+            let p = {CodegenScope.modName = ""; accessPath = AccessPath.valueEmptyPath "dummy"}
             let ret,_ = fnc.funcBody emptyState [] (NestingScope.init 0I 0I []) p
             match ret with
             | None   -> false
@@ -932,7 +932,7 @@ let hasUperEncodeFunction (encFunc : UPerFunction option)  =
     match encFunc with
     | None  -> false
     | Some fnc ->
-            let p = {CallerScope.modName = ""; arg = AccessPath.valueEmptyPath "dummy"}
+            let p = {CodegenScope.modName = ""; accessPath = AccessPath.valueEmptyPath "dummy"}
             match fnc.funcBody (NestingScope.init 0I 0I []) p false with
             | None   -> false
             | Some _ -> true
@@ -941,7 +941,7 @@ let hasXerEncodeFunction (encFunc : XerFunction option)  =
     match encFunc with
     | None  -> false
     | Some (XerFunction fnc) ->
-            let p = {CallerScope.modName = ""; arg = AccessPath.valueEmptyPath "dummy"}
+            let p = {CodegenScope.modName = ""; accessPath = AccessPath.valueEmptyPath "dummy"}
             let errCode = {ErrorCode.errCodeName = "DUMMY_ERR"; errCodeValue=0; comment=None}
             match fnc.funcBody_e errCode p None  with
             | None   -> false
@@ -972,20 +972,20 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
     } |> Seq.toList
 
 
-let rec GetMySelfAndChildren2 (lm:Language.LanguageMacros) (t:Asn1Type) (p:CallerScope)=
+let rec GetMySelfAndChildren2 (lm:Language.LanguageMacros) (t:Asn1Type) (p:CodegenScope)=
     seq {
         match t.Kind with
         | SequenceOf(conType) ->
             let ii = t.id.SequenceOfLevel + 1
             let i = "0" //sprintf "i%d" ii
 
-            yield! GetMySelfAndChildren2 lm conType.childType ({p with arg = lm.lg.getArrayItem p.arg i conType.childType.isIA5String})
+            yield! GetMySelfAndChildren2 lm conType.childType ({p with accessPath = lm.lg.getArrayItem p.accessPath i conType.childType.isIA5String})
         | Sequence seq ->
             for ch in seq.Asn1Children do
-                yield! GetMySelfAndChildren2 lm ch.Type ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome})
+                yield! GetMySelfAndChildren2 lm ch.Type ({p with accessPath = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome})
         | Choice(ch)->
             for ch in ch.children do
-                yield! GetMySelfAndChildren2 lm ch.chType ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String})
+                yield! GetMySelfAndChildren2 lm ch.chType ({p with accessPath = lm.lg.getChChild p.accessPath (lm.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String})
         |_ -> ()
         yield (t,p)
     } |> Seq.toList

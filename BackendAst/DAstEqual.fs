@@ -19,17 +19,17 @@ let callBaseTypeFunc (lm:LanguageMacros)          = lm.equal.call_base_type_func
 let makeExpressionToStatement (lm:LanguageMacros) = lm.equal.makeExpressionToStatement
 
 
-let isEqualBodyPrimitive (lm:LanguageMacros) (v1:CallerScope) (v2:CallerScope) =
-    Some (lm.equal.isEqual_Primitive (lm.lg.getValue v1.arg) (lm.lg.getValue v2.arg)  , [])
+let isEqualBodyPrimitive (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
+    Some (lm.equal.isEqual_Primitive (lm.lg.getValue v1.accessPath) (lm.lg.getValue v2.accessPath)  , [])
 
 
-let isEqualBodyString (lm:LanguageMacros) (v1:CallerScope) (v2:CallerScope) =
-    Some (lm.equal.isEqual_String (v1.arg.joined lm.lg) (v2.arg.joined lm.lg)  , [])
+let isEqualBodyString (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
+    Some (lm.equal.isEqual_String (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg)  , [])
 
-let isEqualBodyObjectIdentifier (lm:LanguageMacros) (v1:CallerScope) (v2:CallerScope) =
-    Some (lm.equal.isObjectIdentifier_equal (lm.lg.getPointer v1.arg) (lm.lg.getPointer v2.arg), [])
+let isEqualBodyObjectIdentifier (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
+    Some (lm.equal.isObjectIdentifier_equal (lm.lg.getPointer v1.accessPath) (lm.lg.getPointer v2.accessPath), [])
 
-let isEqualBodyTimeType (o:Asn1AcnAst.TimeType) (lm:LanguageMacros) (v1:CallerScope) (v2:CallerScope) =
+let isEqualBodyTimeType (o:Asn1AcnAst.TimeType) (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
     let namespacePrefix = lm.lg.rtlModuleName
     let getRtlTypeName  =
         match o.timeClass with
@@ -41,26 +41,26 @@ let isEqualBodyTimeType (o:Asn1AcnAst.TimeType) (lm:LanguageMacros) (v1:CallerSc
         |Asn1Date_UtcTime                   _ -> lm.typeDef.Declare_Asn1Date_UtcTimeNoRTL
         |Asn1Date_LocalTimeWithTimeZone     _ -> lm.typeDef.Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL
     let timeTypeName = getRtlTypeName ()
-    Some (sprintf "%s%s_equal(%s, %s)" namespacePrefix timeTypeName (lm.lg.getPointer v1.arg) (lm.lg.getPointer v2.arg)  , [])
+    Some (sprintf "%s%s_equal(%s, %s)" namespacePrefix timeTypeName (lm.lg.getPointer v1.accessPath) (lm.lg.getPointer v2.accessPath)  , [])
 
 
-let isEqualBodyOctetString (lm:LanguageMacros) sMin sMax (v1:CallerScope) (v2:CallerScope) =
-    let v1 = sprintf "%s%s" (v1.arg.joined lm.lg) (lm.lg.getAccess v1.arg)
-    let v2 = sprintf "%s%s" (v2.arg.joined lm.lg) (lm.lg.getAccess v2.arg)
+let isEqualBodyOctetString (lm:LanguageMacros) sMin sMax (v1:CodegenScope) (v2:CodegenScope) =
+    let v1 = sprintf "%s%s" (v1.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath)
+    let v2 = sprintf "%s%s" (v2.accessPath.joined lm.lg) (lm.lg.getAccess v2.accessPath)
     Some (lm.equal.isEqual_OctetString v1 v2 (sMin = sMax) sMax, [])
 
-let isEqualBodyBitString  (lm:LanguageMacros) sMin sMax (v1:CallerScope) (v2:CallerScope) =
-    let v1 = sprintf "%s%s" (v1.arg.joined lm.lg) (lm.lg.getAccess v1.arg)
-    let v2 = sprintf "%s%s" (v2.arg.joined lm.lg) (lm.lg.getAccess v2.arg)
+let isEqualBodyBitString  (lm:LanguageMacros) sMin sMax (v1:CodegenScope) (v2:CodegenScope) =
+    let v1 = sprintf "%s%s" (v1.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath)
+    let v2 = sprintf "%s%s" (v2.accessPath.joined lm.lg) (lm.lg.getAccess v2.accessPath)
     Some (lm.equal.isEqual_BitString v1 v2 (sMin = sMax) sMax, [])
 
 
-let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (newChild:Asn1Type) (v1:CallerScope) (v2:CallerScope)  =
+let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (newChild:Asn1Type) (v1:CodegenScope) (v2:CodegenScope)  =
     let c_name = lm.lg.getAsn1ChildBackendName0 o
     let callChildEqualFunc  = lm.equal.callChildEqualFunc
     let sInnerStatement =
-        let chp1 = {v1 with arg = lm.lg.getSeqChild v1.arg c_name newChild.isIA5String o.Optionality.IsSome}
-        let chp2 = {v2 with arg = lm.lg.getSeqChild v2.arg c_name newChild.isIA5String o.Optionality.IsSome}
+        let chp1 = {v1 with accessPath = lm.lg.getSeqChild v1.accessPath c_name newChild.isIA5String o.Optionality.IsSome}
+        let chp2 = {v2 with accessPath = lm.lg.getSeqChild v2.accessPath c_name newChild.isIA5String o.Optionality.IsSome}
         match newChild.equalFunction.isEqualFuncName with
         | None  ->
             match newChild.equalFunction.isEqualBody with
@@ -70,23 +70,23 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
                 | None      -> None
             | EqualBodyStatementList  func   -> func chp1 chp2
         | Some  fncName ->
-            Some ((callChildEqualFunc (lm.lg.getPointerUnchecked chp1.arg FullAccess) (lm.lg.getPointerUnchecked chp2.arg FullAccess) fncName), [])
+            Some ((callChildEqualFunc (lm.lg.getPointerUnchecked chp1.accessPath FullAccess) (lm.lg.getPointerUnchecked chp2.accessPath FullAccess) fncName), [])
 
     match sInnerStatement with
-    | None  when  o.Optionality.IsSome  -> Some (lm.equal.isEqual_Sequence_child (v1.arg.joined lm.lg) (v2.arg.joined lm.lg) (lm.lg.getAccess v1.arg) o.Optionality.IsSome c_name None, [])
+    | None  when  o.Optionality.IsSome  -> Some (lm.equal.isEqual_Sequence_child (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) o.Optionality.IsSome c_name None, [])
     | None                              -> None
-    | Some (sInnerStatement, lvars)     -> Some (lm.equal.isEqual_Sequence_child (v1.arg.joined lm.lg) (v2.arg.joined lm.lg) (lm.lg.getAccess v1.arg) o.Optionality.IsSome c_name (Some sInnerStatement), lvars)
+    | Some (sInnerStatement, lvars)     -> Some (lm.equal.isEqual_Sequence_child (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) o.Optionality.IsSome c_name (Some sInnerStatement), lvars)
 
 
-let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:Asn1AcnAst.ChChildInfo) (newChild:Asn1Type) (v1:CallerScope) (v2:CallerScope)  =
+let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:Asn1AcnAst.ChChildInfo) (newChild:Asn1Type) (v1:CodegenScope) (v2:CodegenScope)  =
     let p1,p2 =
         match ProgrammingLanguage.ActiveLanguages.Head with
         | ProgrammingLanguage.Scala ->
-            ({v1 with arg = lm.lg.getChChild v1.arg (sprintf "%s_%s_tmp" (v1.arg.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String}),
-            ({v2 with arg = lm.lg.getChChild v2.arg (sprintf "%s_%s_tmp" (v2.arg.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String})
+            ({v1 with accessPath = lm.lg.getChChild v1.accessPath (sprintf "%s_%s_tmp" (v1.accessPath.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String}),
+            ({v2 with accessPath = lm.lg.getChChild v2.accessPath (sprintf "%s_%s_tmp" (v2.accessPath.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String})
         | _ ->
-            ({v1 with arg = lm.lg.getChChild v1.arg (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String}),
-            ({v2 with arg = lm.lg.getChChild v2.arg (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String})
+            ({v1 with accessPath = lm.lg.getChChild v1.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String}),
+            ({v2 with accessPath = lm.lg.getChChild v2.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String})
 
     let sInnerStatement, lvars =
         match newChild.equalFunction.isEqualFuncName with
@@ -101,10 +101,10 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:A
                 | Some a    -> a
                 | None      -> sprintf "ret %s %s;" lm.lg.AssignOperator lm.lg.TrueLiteral, []
         | Some fncName  ->
-            let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) fncName p1.arg.isOptional p2.arg.isOptional
+            let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.accessPath) (lm.lg.getPointer p2.accessPath) fncName p1.accessPath.isOptional p2.accessPath.isOptional
             makeExpressionToStatement lm exp, []
 
-    lm.equal.isEqual_Choice_Child choiceTypeDefName o.presentWhenName sInnerStatement (p1.arg.joined lm.lg) (p2.arg.joined lm.lg), lvars
+    lm.equal.isEqual_Choice_Child choiceTypeDefName o.presentWhenName sInnerStatement (p1.accessPath.joined lm.lg) (p2.accessPath.joined lm.lg), lvars
 
 
 
@@ -121,9 +121,9 @@ let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
     let p1 = lm.lg.getParamTypeSuffix t "1" CommonTypes.Codec.Encode
     let p2 = lm.lg.getParamTypeSuffix t "2" CommonTypes.Codec.Encode
     let funcName            = getFuncName r lm  typeDefinition
-    let varName1 = p1.arg.rootId
-    let varName2 = p2.arg.rootId
-    let sStar = lm.lg.getStar p1.arg
+    let varName1 = p1.accessPath.rootId
+    let varName2 = p2.accessPath.rootId
+    let sStar = lm.lg.getStar p1.accessPath
 
     let  isEqualFunc, isEqualFuncDef  =
             match funcName  with
@@ -169,10 +169,10 @@ let createIntegerEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn
     createEqualFunction_any r lm   t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l)
 
 let createRealEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference) =
-    let isEqualBodyPrimitive (lm:LanguageMacros) (v1:CallerScope) (v2:CallerScope) =
+    let isEqualBodyPrimitive (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
         let castPp pp = castRPp lm Encode (o.getClass r.args) pp
-        let pp1 = (lm.lg.getValue v1.arg)
-        let pp2 = (lm.lg.getValue v2.arg)
+        let pp1 = (lm.lg.getValue v1.accessPath)
+        let pp2 = (lm.lg.getValue v2.accessPath)
         Some(lm.equal.isEqual_Real (castPp pp1) (castPp pp2), [])
     let isEqualBody         = EqualBodyExpression (isEqualBodyPrimitive lm)
     createEqualFunction_any r lm t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l)
@@ -215,9 +215,9 @@ let createBitStringEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:A
 
 
 let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefinitionOrReference) (childType:Asn1Type) =
-    let isEqualBodySequenceOf  (childType:Asn1Type) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf)  (lm:LanguageMacros) (v1:CallerScope) (v2:CallerScope)  =
+    let isEqualBodySequenceOf  (childType:Asn1Type) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf)  (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope)  =
         let getInnerStatement i =
-            let childAccesPath (p:CallerScope) =  {p with arg = lm.lg.getArrayItem p.arg i childType.isIA5String} //v + childAccess + l.ArrName + (l.ArrayAccess i) //"[" + i + "]"
+            let childAccesPath (p:CodegenScope) =  {p with accessPath = lm.lg.getArrayItem p.accessPath i childType.isIA5String} //v + childAccess + l.ArrName + (l.ArrayAccess i) //"[" + i + "]"
             match childType.equalFunction.isEqualFuncName with
             | None  ->
                 match childType.equalFunction.isEqualBody with
@@ -229,19 +229,19 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:
             | Some fncName  ->
                 let p1 = childAccesPath v1
                 let p2 = childAccesPath v2
-                let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) fncName p1.arg.isOptional p2.arg.isOptional
+                let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.accessPath) (lm.lg.getPointer p2.accessPath) fncName p1.accessPath.isOptional p2.accessPath.isOptional
                 Some(makeExpressionToStatement lm exp, [])
 
-        let i = sprintf "i%d" (v1.arg.SequenceOfLevel + 1)
-        let lv = SequenceOfIndex (v1.arg.SequenceOfLevel + 1, None)
+        let i = sprintf "i%d" (v1.accessPath.SequenceOfLevel + 1)
+        let lv = SequenceOfIndex (v1.accessPath.SequenceOfLevel + 1, None)
         match getInnerStatement i with
         | None when o.minSize.uper = o.maxSize.uper        -> None
         | None                                   ->
-            Some (lm.equal.isEqual_SequenceOf_var_size (v1.arg.joined lm.lg) (v2.arg.joined lm.lg) (lm.lg.getAccess v1.arg) i None, [])
+            Some (lm.equal.isEqual_SequenceOf_var_size (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) i None, [])
         | Some (innerStatement, lvars)           ->
             match (o.minSize.uper = o.maxSize.uper) with
-            | true  -> Some (lm.equal.isEqual_SequenceOf_fix_size (v1.arg.joined lm.lg) (v2.arg.joined lm.lg) (lm.lg.getAccess v1.arg) i  ( o.minSize.uper) innerStatement, lv::lvars)
-            | false -> Some (lm.equal.isEqual_SequenceOf_var_size (v1.arg.joined lm.lg) (v2.arg.joined lm.lg) (lm.lg.getAccess v1.arg) i  (Some innerStatement), lv::lvars)
+            | true  -> Some (lm.equal.isEqual_SequenceOf_fix_size (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) i  ( o.minSize.uper) innerStatement, lv::lvars)
+            | false -> Some (lm.equal.isEqual_SequenceOf_var_size (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) i  (Some innerStatement), lv::lvars)
 
 
     let isEqualBody         = isEqualBodySequenceOf childType t o lm
@@ -249,7 +249,7 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:
     //createCompositeEqualFunction r l lm  t typeDefinition isEqualBody (stgMacroCompDefFunc l)
 
 let createSequenceEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (children:SeqChildInfo list)  =
-    let isEqualBodySequence  (lm:LanguageMacros) (children:SeqChildInfo list) (v1:CallerScope) (v2:CallerScope)  =
+    let isEqualBodySequence  (lm:LanguageMacros) (children:SeqChildInfo list) (v1:CodegenScope) (v2:CodegenScope)  =
         let printChild (content:string, lvars:LocalVariable list) (sNestedContent:string option) =
             match sNestedContent with
             | None  -> content, lvars
@@ -274,13 +274,13 @@ let createSequenceEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:As
     //createCompositeEqualFunction r l lm  t typeDefinition isEqualBody (stgMacroCompDefFunc l)
 
 let createChoiceEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (typeDefinition:TypeDefinitionOrReference) (children:ChChildInfo list)  =
-    let isEqualBodyChoice  (typeDefinition:TypeDefinitionOrReference) (lm:LanguageMacros) (children:ChChildInfo list) (v1:CallerScope) (v2:CallerScope)  =
+    let isEqualBodyChoice  (typeDefinition:TypeDefinitionOrReference) (lm:LanguageMacros) (children:ChChildInfo list) (v1:CodegenScope) (v2:CodegenScope)  =
         let childrenConent,lvars =
             children |>
             List.map(fun c -> c.isEqualBodyStats v1 v2)  |>
             List.unzip
         let lvars = lvars |> List.collect id
-        Some(lm.equal.isEqual_Choice (v1.arg.joined lm.lg) (v2.arg.joined lm.lg) (lm.lg.getAccess v1.arg) childrenConent, lvars)
+        Some(lm.equal.isEqual_Choice (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) childrenConent, lvars)
     let isEqualBody         = isEqualBodyChoice typeDefinition lm children
     createEqualFunction_any r lm t typeDefinition (EqualBodyStatementList isEqualBody)
     //createCompositeEqualFunction r l lm  t typeDefinition isEqualBody (stgMacroCompDefFunc l)
@@ -335,8 +335,8 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
     | SequenceOf _
     | Sequence _
     | Choice _ ->
-        let isEqualBody (p1:CallerScope) (p2:CallerScope) =
-            let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) baseEqName p1.arg.isOptional p2.arg.isOptional
+        let isEqualBody (p1:CodegenScope) (p2:CodegenScope) =
+            let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.accessPath) (lm.lg.getPointer p2.accessPath) baseEqName p1.accessPath.isOptional p2.accessPath.isOptional
             Some(makeExpressionToStatement lm exp, [])
 
         let val1 = lm.lg.getParamTypeSuffix t "1" CommonTypes.Codec.Encode
