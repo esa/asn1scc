@@ -48,7 +48,7 @@ let findUnusedRtlFunctions (args:CommandLineSettings) (lm:LanguageMacros) (rtlCo
         lm.lg.RtlFuncNames |> List.filter (fun fn -> generatedContent.Contains(fn))
 
 
-    let allUsedFunctions = findAllUsedRtlFunctions lm rtlContent (lm.lg.AlwaysPresentRtlFuncNames@directlyUsedFunctions@args.userRtlFunctionsToGenerate) |> Set.ofList
+    let allUsedFunctions = findAllUsedRtlFunctions lm rtlContent ((lm.lg.getAlwaysPresentRtlFuncNames args)@directlyUsedFunctions@args.userRtlFunctionsToGenerate) |> Set.ofList
     lm.lg.RtlFuncNames |> List.filter (fun fn -> not (allUsedFunctions.Contains(fn)))
 
 

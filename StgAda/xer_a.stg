@@ -455,5 +455,5 @@ end if;
 
 
 
-call_base_type_func_encode(p, sXmlTag, sFuncName) ::= "<sFuncName>_aux(<p>, <sXmlTag>, bs, ret);"
-call_base_type_func_decode(p, sXmlTag, sFuncName) ::= "<sFuncName>_aux(<p>, <sXmlTag>, bs, ret);"
+call_base_type_func_encode(p, soXmlTag, sFuncName) ::= "<sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>null<endif>, bs, ret);"
+call_base_type_func_decode(p, soXmlTag, sFuncName) ::= "<sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>null<endif>, bs, ret);"

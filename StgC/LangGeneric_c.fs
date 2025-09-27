@@ -363,14 +363,18 @@ type LangGeneric_c() =
             CreateCMainFile r  di.srcDir
             generateVisualStudioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
         //AlwaysPresentRtlFuncNames
-        override this.AlwaysPresentRtlFuncNames : string list =
+        override this.getAlwaysPresentRtlFuncNames (args:CommandLineSettings) :  string list =
+            let xerFuncs = 
+                match args.encodings |> Seq.exists(fun e -> e = XER) with
+                | false -> []
+                | true  -> ["ByteStream_AttachBuffer";"ByteStream_Init"]
             [
                 "ByteStream_GetLength"
                 "BitStream_AttachBuffer2"
                 "BitStream_AttachBuffer"
                 "BitStream_Init"
                 "BitStream_GetLength"
-            ]
+            ]@xerFuncs
 
         override this.RtlFuncNames : string list =
             [

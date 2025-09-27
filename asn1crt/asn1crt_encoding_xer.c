@@ -417,6 +417,9 @@ flag Xer_DecodeComplexElementStart(ByteStream* pByteStrm, const char* elementTag
 {
 	Token t;
 
+	if (elementTag == NULL || strlen(elementTag) == 0)
+		return TRUE;
+
 	if (NT(pByteStrm).TokenID != '<') {
 		*pErrCode = ERR_INVALID_XML_FILE; /* +++ */
 		return FALSE;
@@ -479,6 +482,10 @@ flag Xer_EncodeComplexElementEnd(ByteStream* pByteStrm, const char* elementTag, 
 flag Xer_DecodeComplexElementEnd(ByteStream* pByteStrm, const char* elementTag, int *pErrCode)
 {
 	Token t;
+	
+	if (elementTag == NULL || strlen(elementTag) == 0)
+        return TRUE;
+
 	if (NT(pByteStrm).TokenID != '<') {
 		*pErrCode = ERR_INVALID_XML_FILE; /* +++ */
 		return FALSE;
@@ -508,6 +515,7 @@ flag Xer_DecodeComplexElementEnd(ByteStream* pByteStrm, const char* elementTag, 
 
 flag Xer_EncodeNull(ByteStream* pByteStrm, const char* elementTag, NullType value, int *pErrCode, int level)
 {
+	(void)value;
 	return Xer_EncodePrimitiveElement(pByteStrm, elementTag, NULL, pErrCode, level);
 }
 

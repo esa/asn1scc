@@ -295,7 +295,9 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
             match definedInRTL with
             | false ->
                 let childTagName = (child.typeDefinitionOrReference).getAsn1Name r.args.TypePrefix
-                (Some (XerLiteralConstant childTagName))
+                match child.ActualType.Kind with
+                | Choice(_) -> None
+                | _         ->  (Some (XerLiteralConstant childTagName))
             | true  ->
                 None
         let internalItem =  chFunc.funcBody ({p with accessPath = lm.lg.getArrayItem p.accessPath i child.isIA5String}) childTag
@@ -436,8 +438,14 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
 
             match baseTypeXerFunc.funcBody p xmlTag with
             | Some baseXerFunc    ->
-                let xmlTag = xmlTag |> orElse (XerLiteralConstant o.tasName.Value)
-                let funcBodyContent = callBaseTypeFunc (lm.lg.getParamValue t p.accessPath codec) xmlTag.p baseFncName codec
+                let soXmlTag = 
+                    match xmlTag with
+                    | Some x -> Some x.p
+                    | None  ->  
+                        match o.resolvedType.Kind with
+                        | Asn1AcnAst.Choice(_) -> None
+                        | _                    ->   Some ((XerLiteralConstant o.tasName.Value).p)
+                let funcBodyContent = callBaseTypeFunc (lm.lg.getParamValue t p.accessPath codec) soXmlTag baseFncName codec
                 Some {XERFuncBodyResult.funcBody = funcBodyContent; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=baseXerFunc.encodingSizeInBytes}
             | None      -> None
 
