@@ -101,7 +101,11 @@ ret = <sFuncName>(<sVal>, <sAmber>decodedPDU);
 >>
 
 Codec_write_CharstreamToFile() ::= <<
-<Codec_write_bitstreamToFile()>
+char buf[1024];
+strcpy(buf, filename);
+FILE* fp = fopen(strcat(buf,".xml"), "w");
+fwrite(bitStrm.buf, 1, bitStrm.currentByte, fp);
+fclose(fp);
 >>
 
 Codec_write_bitstreamToFile() ::= <<

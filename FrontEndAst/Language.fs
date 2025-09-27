@@ -241,7 +241,7 @@ type ILangGeneric () =
     abstract member isCaseSensitive : bool
 
     abstract member RtlFuncNames : string list
-    abstract member AlwaysPresentRtlFuncNames : string list
+    abstract member getAlwaysPresentRtlFuncNames : CommandLineSettings -> string list
 
     abstract member detectFunctionCalls : string -> string -> string list
     abstract member removeFunctionFromHeader : string -> string -> string
@@ -363,7 +363,7 @@ type ILangGeneric () =
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
-    default this.AlwaysPresentRtlFuncNames = []
+    default this.getAlwaysPresentRtlFuncNames args = []
     default this.detectFunctionCalls (sourceCode: string) (functionName: string) = []
     default this.removeFunctionFromHeader (sourceCode: string) (functionName: string) : string =
         sourceCode
