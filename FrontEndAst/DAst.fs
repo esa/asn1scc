@@ -330,9 +330,9 @@ type InitGlobal = {
 }
 
 type InitFunction = {
-    initExpressionFnc       : unit -> string               // an expression that provides the default initialization.
-    initExpressionGlobalFnc : unit -> string               // an expression that provides the default initialization.
-                                                          //It is usually present except of some rare cases such as an empty sequence (for C only) etc
+    initExpressionFnc       : unit -> string              // an expression that provides the default initialization.
+    initExpressionGlobalFnc : unit -> string              // an expression that provides the default initialization for global constants.
+                                                          // Always present; for empty sequences returns backend-specific syntax (C: "{}", Ada: "(null record)", Scala: "TypeName()").
     initProcedure           : InitProcedure0 option
     initFunction            : InitProcedure0 option                      // an expression that initializes the given type to a default value.
     initGlobal              : InitGlobal option                      // an expression that initializes the given type to a default value.
