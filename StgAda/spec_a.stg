@@ -210,7 +210,7 @@ subtype <td.alpha> is String(<td.alpha_index>);
 
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
-subtype <td.typeName> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.typeName>
+subtype <td.typeName> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.typeName>;
 subtype <td.encoding_range> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.encoding_range>;
 subtype <td.index> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.index>;
 <if(arrnAlphaChars)>
