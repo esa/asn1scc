@@ -31,7 +31,7 @@ PrintHT() ::= <<
 >>
 
 
-PrintStringValueNull()	::= "NULL"
+PrintStringValueNull()	::= <<"\0">>
 
 PrintCharValue(cValue)    ::= "'<cValue>'"
 

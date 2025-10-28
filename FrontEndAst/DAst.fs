@@ -149,7 +149,7 @@ let addFunctionCallToState (state:State) (caller:Caller) (callee:Callee) =
 
 type IntegerValue         = BigInteger
 type RealValue            = double
-type StringValue          = (SingleStringValue list*SrcLoc)
+type StringValue          = (SingleStringValue list*SrcLoc)         //see details-docs/asn1/IA5String-values.md for details about the representation of string values
 type BooleanValue         = bool
 type BitStringValue       = string
 type OctetStringValue     = list<byte>
