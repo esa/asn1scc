@@ -518,6 +518,8 @@ type LangGeneric_scala() =
         override this.init =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun _ -> []
+                zeroOctetString_localVars                   = fun _ -> []
+                zeroBitString_localVars                     = fun _ -> []
                 choiceComponentTempInit                     = false
                 initMethSuffix                              = initMethSuffix
             }

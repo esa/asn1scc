@@ -434,7 +434,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                 let ii = p.accessPath.SequenceOfLevel + 1
                 let i = sprintf "i%d" ii
                 let funcBody = initTestCaseOctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdName o.maxSize.uper i (isFixedSize) true o.minSize.uper (o.maxSize.uper = 0I) resVar
-                let lvars = lm.lg.init.zeroIA5String_localVars ii
+                let lvars = lm.lg.init.zeroOctetString_localVars ii
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
 
             testCaseFuncs, zero
@@ -536,7 +536,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                         | _                        -> raise(BugErrorException "UnexpectedType")
 
                 let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdName nSize (nSizeCeiled) i (isFixedSize) true o.minSize.uper p.accessPath.isOptional resVar
-                let lvars = lm.lg.init.zeroIA5String_localVars ii
+                let lvars = lm.lg.init.zeroBitString_localVars ii
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
             testCaseFuncs, zero
         | _ ->

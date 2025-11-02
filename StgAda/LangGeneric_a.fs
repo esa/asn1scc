@@ -311,6 +311,8 @@ type LangGeneric_a() =
         override this.init =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun ii -> [SequenceOfIndex (ii, None)]
+                zeroOctetString_localVars                   = fun ii -> [SequenceOfIndex (ii, None)]
+                zeroBitString_localVars                     = fun ii -> [SequenceOfIndex (ii, None)]
                 choiceComponentTempInit                     = false
                 initMethSuffix                              = fun _ -> ""
             }
