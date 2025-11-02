@@ -79,7 +79,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         | Asn1AcnAst.AcnReferenceToEnumerated e ->
             lm.lg.getNamedItemBackendName (Some (defOrRef r m e)) e.enumerated.items.Head
         | Asn1AcnAst.AcnReferenceToIA5String s ->
-            lm.lg.initializeString (int (s.str.maxSize.acn + 1I))
+            lm.lg.initializeString None (int (s.str.maxSize.acn + 1I))
 
     let rec dealiasDeps (dep: Asn1AcnAst.AcnDependency): Asn1AcnAst.AcnDependency =
         match dep.dependencyKind with

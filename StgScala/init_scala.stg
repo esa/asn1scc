@@ -113,7 +113,7 @@ val <sResVar>: NullType = 0
 <endif>
 >>
 
-initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar, sInitChar) ::= <<
 <if(bZero)>
 val <sResVar> = Vector.fill(<nMaxSizePlusOne>)(UByte.fromRaw(0))
 <else>

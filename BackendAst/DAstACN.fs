@@ -1077,7 +1077,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let str_VarSize         = lm.uper.str_VarSize
         let initExpr =
             match codec, lm.lg.decodingKind with
-            | Decode, Copy -> Some (lm.lg.initializeString (int o.maxSize.uper))
+            | Decode, Copy -> Some (lm.lg.initializeString None (int o.maxSize.uper))
             | _ -> None
         let pp, resultExpr = joinedOrAsIdentifier lm codec p
         let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
@@ -1438,7 +1438,7 @@ let initExpr (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module
     | AcnInteger int -> lm.lg.asn1SccIntValueToString 0I int.isUnsigned
     | AcnNullType _ -> lm.lg.asn1SccIntValueToString 0I true
     | AcnBoolean _ -> lm.lg.FalseLiteral
-    | AcnReferenceToIA5String s -> lm.lg.initializeString (int s.str.maxSize.uper)
+    | AcnReferenceToIA5String s -> lm.lg.initializeString None (int s.str.maxSize.uper)
     | AcnReferenceToEnumerated e ->
         lm.lg.getNamedItemBackendName (Some (defOrRef r m e)) e.enumerated.items.Head
 

@@ -93,7 +93,10 @@ type LangGeneric_c() =
         override _.doubleValueToString (v:double) =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-        override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 }" stringSize
+        override _.initializeString (asciiCode:BigInteger option) stringSize = 
+            match asciiCode with
+            | Some ac -> sprintf "{ [0 ... %d] = 0x%X, [%d] = 0x0}" (stringSize-1) (int ac) stringSize
+            | None ->   sprintf "{ [0 ... %d] = 0x0 }" stringSize
 
         override _.supportsInitExpressions = false
         override _.requiresHandlingOfEmptySequences = true
@@ -305,7 +308,7 @@ type LangGeneric_c() =
             }
         override this.init =
             {
-                Initialize_parts.zeroIA5String_localVars    = fun ii -> [SequenceOfIndex (ii, None)]
+                Initialize_parts.zeroIA5String_localVars    = fun _ -> []
                 zeroOctetString_localVars                   = fun _ -> []
                 zeroBitString_localVars                     = fun _ -> []
                 choiceComponentTempInit                     = false

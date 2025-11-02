@@ -84,9 +84,10 @@ initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= "strcpy(<sPtr>,<sValue>);"
 initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= "<sVal> = <sValue>;"
 initNull(sVal, bIsOptional, sResVar) ::= "<sVal> = 0;"
 
-initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar, sInitChar) ::= <<
 <if(bZero)>
-memset(<p>, 0x0, <nMaxSizePlusOne>);
+memset(<p>, <sInitChar>, <nSize>);
+<p>[<nSize>] = 0;
 
 <else>
 <i> = 0;

@@ -458,7 +458,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.uper - o.minSize.uper))
         let initExpr =
             match codec, lm.lg.decodingKind with
-            | Decode, Copy -> Some (lm.lg.initializeString (int o.maxSize.uper))
+            | Decode, Copy -> Some (lm.lg.initializeString None (int o.maxSize.uper))
             | _ -> None
         let pp, resultExpr = joinedOrAsIdentifier lm codec p
 
