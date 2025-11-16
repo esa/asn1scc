@@ -297,6 +297,8 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:Co
         match codec, lm.lg.decodingKind with
         | Decode, Copy ->
             Some ({UPERFuncBodyResult.funcBody = lm.uper.Null_declare pp; errCodes = []; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=Some pp; auxiliaries = []})
+        | Decode, InPlace ->
+            Some ({UPERFuncBodyResult.funcBody = lm.uper.decode_nullType pp; errCodes = []; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=true; resultExpr=None; auxiliaries = []})
         | _ -> None
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations [] us
