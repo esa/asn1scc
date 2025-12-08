@@ -311,6 +311,10 @@ type PostEncodingFunction  =
 type PreDecodingFunction  =
     | PreDecodingFunction of (StringLoc option)*StringLoc
 
+type UserDefinedFunction =
+    | UserMappingFunction       of string
+    | UserPostEncodingFunction  of string
+    | UserPreDecodingFunction   of string
 
 type IntegerAcnProperties = {
     encodingProp    : AcnIntEncoding        option

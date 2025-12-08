@@ -1,5 +1,7 @@
 group scala_acn;
 
+
+
 getStringSize(p) ::= "ULong.fromRaw(<p>.indexOfOrLength(0x00.toRawUByte))"
 
 getSizeableSize(p, sAcc, bIsUnsigned) ::= <<
@@ -87,6 +89,9 @@ MF(soMF) ::= /*nogen*/ <<
 <if(soMF)>
 <p> = <soMF>_decode(<p>)
 <endif>
+>>
+
+MappingFunctionDeclaration(sTypeName, sMF) ::= <<
 >>
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<

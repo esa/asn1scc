@@ -157,6 +157,10 @@ end if;
 MFen(soMF, soMFM, p) /*nogen*/ ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
 
 
+MappingFunctionDeclaration(sTypeName, sMF) ::= <<
+>>
+
+
 alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
 --align to next <sAlignmentValue>
 if (bs.Current_Bit_Pos mod <nAlignmentValue>) /= 0 then

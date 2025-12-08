@@ -485,6 +485,7 @@ type AcnFuncBodyResult = {
     resultExpr          : string option
     auxiliaries         : string list
     icdResult           : IcdArgAux option
+    userDefinedFunctions : UserDefinedFunction list
 }
 
 type XERFuncBodyResult = {
