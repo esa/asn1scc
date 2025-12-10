@@ -152,8 +152,8 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let sStar = lm.lg.getStar p.accessPath
     let sAmberDecode = getAmberDecode t
     let sAmberIsValid = getAmberDecode t
-
-    match hasAcnEncodeFunction encFunc t.acnParameters t.id.tasInfo with
+    let bHasAcnEncodeFunction = hasAcnEncodeFunction encFunc t.acnParameters t.id.tasInfo
+    match bHasAcnEncodeFunction with
     | false -> None, us
     | true  ->
         match funcName  with
@@ -189,7 +189,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                                                 }
                 joinItems (content.orElse "") sNestedContent
 
-            match hasAcnEncodeFunction encFunc t.acnParameters t.id.tasInfo with
+            match bHasAcnEncodeFunction with
             | true  ->
                 let sNestedStatements =
                     let rec printStatements statements : string option =

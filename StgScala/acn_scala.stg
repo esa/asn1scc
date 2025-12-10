@@ -91,7 +91,12 @@ MF(soMF) ::= /*nogen*/ <<
 <endif>
 >>
 
-MappingFunctionDeclaration(sTypeName, sMF) ::= <<
+MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
+extern <sTypeName> <sMF>_encode(<sTypeName>);
+>>
+
+MappingFunctionDeclaration_decode(sTypeName, sMF) ::= <<
+extern <sTypeName> <sMF>_decode(<sTypeName>);
 >>
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
@@ -845,6 +850,13 @@ sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStrea
     case Left(err) => return LeftMut(err)
     case Right(_) =>
 >>
+
+sequence_call_post_encoding_function_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+>>
+
+sequence_call_post_decoding_validator_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+>>
+
 
 /* SEQUENCE END */
 

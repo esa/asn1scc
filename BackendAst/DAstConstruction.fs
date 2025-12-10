@@ -55,7 +55,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
 
     let funcBodyDecode, ns2 =
         match ch.Type with
-        | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Decode ch.id a ns1
+        | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Decode ch.id a tdBodyWithinSeq ns1
         | Asn1AcnAst.AcnBoolean  a -> DAstACN.createAcnBooleanFunction r deps lm Codec.Decode ch.id a ns1
         | Asn1AcnAst.AcnNullType a -> DAstACN.createAcnNullTypeFunction r deps lm Codec.Decode ch.id a ns1
         | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r deps icdStgFileName lm Codec.Decode ch.id a (defOrRef r m a) ns1

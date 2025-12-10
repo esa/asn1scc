@@ -157,7 +157,10 @@ end if;
 MFen(soMF, soMFM, p) /*nogen*/ ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
 
 
-MappingFunctionDeclaration(sTypeName, sMF) ::= <<
+MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
+>>
+
+MappingFunctionDeclaration_decode(sTypeName, sMF) ::= <<
 >>
 
 
@@ -1074,6 +1077,12 @@ sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStream
 
 sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
 result := <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, bs);
+>>
+
+sequence_call_post_encoding_function_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+>>
+
+sequence_call_post_decoding_validator_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
 >>
 
 

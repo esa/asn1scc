@@ -267,6 +267,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     (t.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries)) @
                     (t.Type.acnDecFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries))
                 else []
+
             let allProcs =
                 (privateDefinition |> Option.toList) @
                 eqFuncs @ isValidFuncs @ special_init_funcs @
@@ -286,11 +287,18 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             [], []
     let rtlFiles = lm.lg.getRtlFiles r.args.encodings arrsTypeAssignments
     let arrsImportedFiles = rtlFiles@pu.importedUserModules@pu.importedProgramUnits |> List.distinct
+    let arrsUserDefinedFunctions =
+        tases |> List.collect(fun t ->
+                (t.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> x.userDefinedFunctions )) @
+                (t.Type.acnDecFunction |> Option.toList |> List.collect (fun x -> x.userDefinedFunctions ))   ) |> 
+                List.map(fun f -> f.functionProtype.Trim()) |>
+                List.filter (fun s -> s <> "") |>
+                List.distinct
     let puCorrName =
         match r.lang with
         | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
         | _ -> pu.name
-    let srcBody = lm.src.printSourceFile puCorrName arrsImportedFiles pu.importedTypes (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
+    let srcBody = lm.src.printSourceFile puCorrName arrsImportedFiles pu.importedTypes arrsUserDefinedFunctions (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
 
     let eqContntent =
         match lm.lg.allowsSrcFilesWithNoFunctions with

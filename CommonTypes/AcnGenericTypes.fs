@@ -315,6 +315,12 @@ type UserDefinedFunction =
     | UserMappingFunction       of string
     | UserPostEncodingFunction  of string
     | UserPreDecodingFunction   of string
+    with
+        member this.functionProtype =
+            match this with
+            | UserMappingFunction       fn
+            | UserPostEncodingFunction  fn
+            | UserPreDecodingFunction   fn -> fn
 
 type IntegerAcnProperties = {
     encodingProp    : AcnIntEncoding        option
