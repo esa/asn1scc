@@ -195,11 +195,11 @@ let rec compareRanges (r1:Range<'v>) (r2:Range<'v>) =
                     IntersectedRanges(Range_AB (a, x0.not.toRP), Range_AB (x0, b), Range_B_PI b.not.toLP)
         | Range_AB _, Range_NI_A _      -> compareRanges r2 r1
         | Range_AB _, Range_B_PI _      -> compareRanges r2 r1
-        | Range_AB (A1,A2), Range_AB (B1,B2) -> 
-            let a1 = LPoint A1
-            let b1 = LPoint B1
-            let a2 = RPoint A2
-            let b2 = RPoint B2
+        | Range_AB (_A1,_A2), Range_AB (_B1,_B2) -> 
+            let a1 = LPoint _A1
+            let b1 = LPoint _B1
+            let a2 = RPoint _A2
+            let b2 = RPoint _B2
               // case 1 :    a1------a2             , condition a2 < b1,         --> empty set
               //                         b1-----b2 
               // case 2 :    a1------a2
@@ -221,12 +221,12 @@ let rec compareRanges (r1:Range<'v>) (r2:Range<'v>) =
               //              b1-----b2             , condition b2 < a1,                       --> empty set
 
             if   a2 < b1 then NonIntersectedRanges (r1, r2)
-            elif a2 = b1 then IntersectedRanges(Range_AB (A1,A2.not), Range_AB (B1,A2), Range_AB (B1.not,B2))
-            elif a1 <= b1 && a2 <= b2 then IntersectedRanges(Range_AB (A1,B1.not.toRP), Range_AB (B1,A2), Range_AB (A2.not.toLP,B2))
-            elif a1 <= b1 && b2 <= a2 then IntersectedRanges(Range_AB (A1,B1.not.toRP), r2, Range_AB (B2.not.toLP,A2))
-            elif b1 <= a1 && a2 <= b2 then IntersectedRanges(Range_AB (B1,A1.not.toRP), r1, Range_AB (A2.not.toLP,B2))
-            elif b1 <= a1 && b2 <= a2 then IntersectedRanges(Range_AB (B1,A1.not.toRP), Range_AB(A1,B2), Range_AB (B2.not.toLP,A2))
-            elif a1 = b2 then IntersectedRanges(Range_AB (B1,A1.not.toRP), Range_AB(A1,B2), Range_AB (B2.not.toLP,A2))
+            elif a2 = b1 then IntersectedRanges(Range_AB (_A1,_A2.not), Range_AB (_B1,_A2), Range_AB (_B1.not,_B2))
+            elif a1 <= b1 && a2 <= b2 then IntersectedRanges(Range_AB (_A1,_B1.not.toRP), Range_AB (_B1,_A2), Range_AB (_A2.not.toLP,_B2))
+            elif a1 <= b1 && b2 <= a2 then IntersectedRanges(Range_AB (_A1,_B1.not.toRP), r2, Range_AB (_B2.not.toLP,_A2))
+            elif b1 <= a1 && a2 <= b2 then IntersectedRanges(Range_AB (_B1,_A1.not.toRP), r1, Range_AB (_A2.not.toLP,_B2))
+            elif b1 <= a1 && b2 <= a2 then IntersectedRanges(Range_AB (_B1,_A1.not.toRP), Range_AB(_A1,_B2), Range_AB (_B2.not.toLP,_A2))
+            elif a1 = b2 then IntersectedRanges(Range_AB (_B1,_A1.not.toRP), Range_AB(_A1,_B2), Range_AB (_B2.not.toLP,_A2))
             else NonIntersectedRanges(r2,r1)
 
 
@@ -376,11 +376,11 @@ type Range<'v when 'v : comparison> with
                 | V_LT -> One (this)
         | Range_AB _, Range_NI_A _      -> other.union this
         | Range_AB _, Range_B_PI _      -> other.union this
-        | Range_AB (A1,A2), Range_AB (B1,B2) -> 
-            let a1 = LPoint A1
-            let b1 = LPoint B1
-            let a2 = RPoint A2
-            let b2 = RPoint B2
+        | Range_AB (_A1,_A2), Range_AB (_B1,_B2) -> 
+            let a1 = LPoint _A1
+            let b1 = LPoint _B1
+            let a2 = RPoint _A2
+            let b2 = RPoint _B2
               // case 1 :    a1------a2             , condition a2 < b1,         --> empty set
               //                         b1-----b2 
               // case 2 :    a1------a2
@@ -402,12 +402,12 @@ type Range<'v when 'v : comparison> with
               //              b1-----b2             , condition b2 < a1,                       --> empty set
 
             if   a2 < b1 then Two(this, other)                             // case 1
-            elif a2 = b1 then One (Range_AB (A1,B2))                        // case 2
-            elif a1 <= b1 && a2 <= b2 then One (Range_AB (A1,B2))           // case 3
+            elif a2 = b1 then One (Range_AB (_A1,_B2))                        // case 2
+            elif a1 <= b1 && a2 <= b2 then One (Range_AB (_A1,_B2))           // case 3
             elif a1 <= b1 && b2 <= a2 then One (this)                       // case 4
             elif b1 <= a1 && a2 <= b2 then One (other)                      // case 5
-            elif b1 <= a1 && b2 <= a2 then One (Range_AB(B1,A2))            // case 6
-            elif a1 = b2 then One (Range_AB(B1,A2))                         // case 7
+            elif b1 <= a1 && b2 <= a2 then One (Range_AB(_B1,_A2))            // case 6
+            elif a1 = b2 then One (Range_AB(_B1,_A2))                         // case 7
             else Two(other, this)                                          // case 8
 
         member this.isBefore other =

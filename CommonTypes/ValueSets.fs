@@ -90,9 +90,9 @@ let value_set_union s1 s2=
     | SsValues       a  , SsExceptValues    b   -> 
         //Union (A, Complement(B)) = Complement (B -A)
         value_set_complement (value_set_difference (SsValues b) s1)
-    | SsExceptValues B , SsValues          A  -> 
+    | SsExceptValues _B , SsValues          _  -> 
         //Union (Complement(B), A ) = Complement (B -A)
-        value_set_complement (value_set_difference (SsValues B) s2)
+        value_set_complement (value_set_difference (SsValues _B) s2)
 
 type ValueSet<'v when 'v : equality>  with 
     member this.complement = value_set_complement this
