@@ -485,6 +485,7 @@ type AcnFuncBodyResult = {
     resultExpr          : string option
     auxiliaries         : string list
     icdResult           : IcdArgAux option
+    userDefinedFunctions : UserDefinedFunction list //a list of user defined functions prototypes used in this function body. Emitted at the begining of the source file
 }
 
 type XERFuncBodyResult = {
@@ -529,6 +530,7 @@ type AcnFunction = {
     funcBody            : AcnFuncBody
     funcBodyAsSeqComp   : AcnFuncBodySeqComp
     isTestVaseValid     : AutomaticTestCase -> bool
+    userDefinedFunctions : UserDefinedFunction list //a list of user defined functions prototypes used in this function body. Emitted at the begining of the source file
     icdTas              : IcdTypeAss option (* always present in Encode, always None in Decode *)
 }
 
@@ -998,6 +1000,7 @@ and AcnChildUpdateResult = {
     testCaseFnc : AutomaticTestCase -> TestCaseValue option
     errCodes    : ErrorCode list
     localVariables      : LocalVariable list
+    //userDefinedFunctions : UserDefinedFunction list //a list of user defined functions prototypes used in this function body. Emitted at the begining of the source file
 }
 
 and DastAcnParameter = {

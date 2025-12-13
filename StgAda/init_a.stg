@@ -32,14 +32,17 @@ initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= "<sVal> := 
 initNull(sVal, bIsOptional, sResVar) ::= "<sVal> := 0;"
 
 
-initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar, sInitChar) ::= <<
 <i> := 1;
 while <i>\<= <nMaxSizePlusOne> loop
     --  commented because it casues this warning
     --  warning: condition can only be False if invalid values present
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nMaxSizePlusOne>);
     <if(bZero)>
-    <p>(<i>) := <rtlModuleName()>.NUL;
+    if <i> \<= <nSize> then
+        <p>(<i>) := <sInitChar>;
+    else
+        <p>(<i>) := <rtlModuleName()>.NUL;
 
     <else>
     if <i> \<= <nSize> then

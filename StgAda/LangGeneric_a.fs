@@ -130,7 +130,10 @@ type LangGeneric_a() =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
         override _.intValueToString (i:BigInteger) _ = i.ToString()
         override _.asn1SccIntValueToString (i: BigInteger) _ = i.ToString()
-        override _.initializeString (_) = "(others => adaasn1rtl.NUL)"
+        override _.initializeString (asciiCode:BigInteger option) stringSize = 
+            match asciiCode with
+            | Some ac -> sprintf "(1 .. %d => '%c', %d => adaasn1rtl.NUL)" (stringSize) (char (int ac)) (stringSize+1)
+            | None ->   sprintf "(others => adaasn1rtl.NUL)"
 
         override _.supportsInitExpressions = true
 
@@ -311,6 +314,8 @@ type LangGeneric_a() =
         override this.init =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun ii -> [SequenceOfIndex (ii, None)]
+                zeroOctetString_localVars                   = fun ii -> [SequenceOfIndex (ii, None)]
+                zeroBitString_localVars                     = fun ii -> [SequenceOfIndex (ii, None)]
                 choiceComponentTempInit                     = false
                 initMethSuffix                              = fun _ -> ""
             }

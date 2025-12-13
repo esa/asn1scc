@@ -35,7 +35,8 @@ let private mapAcnParameter (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     }, ns1
 
 let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (ch:Asn1AcnAst.AcnChild) (us:State) =
-
+    
+    let tdBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnChildDeterminant ch)
     let acnAlignment =
         match ch.Type with
         | Asn1AcnAst.AcnInteger  a -> a.acnAlignment
@@ -46,7 +47,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
 
     let funcBodyEncode, ns1=
         match ch.Type with
-        | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Encode ch.id a us
+        | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Encode ch.id a tdBodyWithinSeq us
         | Asn1AcnAst.AcnBoolean  a -> DAstACN.createAcnBooleanFunction r deps lm Codec.Encode ch.id a us
         | Asn1AcnAst.AcnNullType a -> DAstACN.createAcnNullTypeFunction r deps lm Codec.Encode ch.id a us
         | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r deps icdStgFileName lm Codec.Encode ch.id a (defOrRef r m a) us
@@ -54,7 +55,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
 
     let funcBodyDecode, ns2 =
         match ch.Type with
-        | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Decode ch.id a ns1
+        | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r deps lm Codec.Decode ch.id a tdBodyWithinSeq ns1
         | Asn1AcnAst.AcnBoolean  a -> DAstACN.createAcnBooleanFunction r deps lm Codec.Decode ch.id a ns1
         | Asn1AcnAst.AcnNullType a -> DAstACN.createAcnNullTypeFunction r deps lm Codec.Decode ch.id a ns1
         | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r deps icdStgFileName lm Codec.Decode ch.id a (defOrRef r m a) ns1
@@ -70,7 +71,6 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         let retFunc = DAstACN.handleSavePosition funBodyWithState ch.Type.savePosition (ToC ch.Name.Value) lvName ch.id lm codec
         retFunc emptyState {ErrorCode.errCodeName = ""; ErrorCode.errCodeValue=0; comment=None} prms nestingScope p |> fst
 
-    let tdBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnChildDeterminant ch)
     let initExpression =
         match ch.Type with
         | Asn1AcnAst.AcnInteger _ -> "0"
@@ -79,7 +79,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         | Asn1AcnAst.AcnReferenceToEnumerated e ->
             lm.lg.getNamedItemBackendName (Some (defOrRef r m e)) e.enumerated.items.Head
         | Asn1AcnAst.AcnReferenceToIA5String s ->
-            lm.lg.initializeString (int (s.str.maxSize.acn + 1I))
+            lm.lg.initializeString None (int (s.str.maxSize.acn + 1I))
 
     let rec dealiasDeps (dep: Asn1AcnAst.AcnDependency): Asn1AcnAst.AcnDependency =
         match dep.dependencyKind with

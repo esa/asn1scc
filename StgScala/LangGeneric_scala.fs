@@ -145,7 +145,8 @@ type LangGeneric_scala() =
         override _.doubleValueToString (v:double) =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-        override _.initializeString stringSize = sprintf "Vector.fill[UByte](%d.toInt+1)(0x0.toRawUByte)" stringSize
+        override _.initializeString (asciiCode:BigInteger option) stringSize = 
+            sprintf "Vector.fill[UByte](%d.toInt+1)(0x0.toRawUByte)" stringSize
 
         override _.supportsInitExpressions = false
 
@@ -518,6 +519,8 @@ type LangGeneric_scala() =
         override this.init =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun _ -> []
+                zeroOctetString_localVars                   = fun _ -> []
+                zeroBitString_localVars                     = fun _ -> []
                 choiceComponentTempInit                     = false
                 initMethSuffix                              = initMethSuffix
             }

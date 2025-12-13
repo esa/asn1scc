@@ -98,6 +98,9 @@ flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pEr
 
 
 
+
+
+
 A(sErrCode) /*nogen*/ ::= "*pErrCode = ret ? 0 : <sErrCode>;"
 
 MF(soMF) ::= /*nogen*/ <<
@@ -109,7 +112,13 @@ if (ret) {
 <endif>
 >>
 
+MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
+extern <sTypeName> <sMF>_encode(<sTypeName>);
+>>
 
+MappingFunctionDeclaration_decode(sTypeName, sMF) ::= <<
+extern <sTypeName> <sMF>_decode(<sTypeName>);
+>>
 
 
 
@@ -879,6 +888,15 @@ sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStream
 sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
 ret = <sFncName>(<p>, &<sBitStreamStartPos>, &<sBitStreamPositionsNullPos>, pBitStrm, pErrCode);
 >>
+
+sequence_call_post_encoding_function_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+extern void <sFncName>(const <sTypedefName>* pPDU, BitStream* pStartBitStrm, <sExtFuncsPositionsTypeName>*, BitStream* pEndBitStrm);
+>>
+
+sequence_call_post_decoding_validator_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+extern flag <sFncName>(const <sTypedefName>* pPDU, BitStream* pStartBitStrm, <sExtFuncsPositionsTypeName>*, BitStream* pEndBitStrm, int* pErrorCode);
+>>
+
 
 /* SEQUENCE END */
 
