@@ -27,7 +27,7 @@ flag Xer_DecodePosInteger(ByteStream* pByteStrm, const char* elementTag, asn1Scc
 flag Xer_DecodeBoolean(ByteStream* pByteStrm, const char* elementTag, flag* value, int *pErrCode);
 flag Xer_DecodeEnumerated(ByteStream* pByteStrm, const char* elementTag, char* value, int *pErrCode);
 flag Xer_DecodeReal(ByteStream* pByteStrm, const char* elementTag, asn1Real* value, int *pErrCode);
-flag Xer_DecodeString(ByteStream* pByteStrm, const char* elementTag, char* value, int *pErrCode);
+flag Xer_DecodeString(ByteStream* pByteStrm, const char* elementTag, char* value, size_t valSize, int *pErrCode);
 flag Xer_DecodeOctetString(ByteStream* pByteStrm, const char* elementTag, byte value[], int bufferMaxSize, int* nCount, int *pErrCode);
 flag Xer_DecodeBitString(ByteStream* pByteStrm, const char* elementTag, byte value[], int bufferMaxSize, int* nCount, int *pErrCode);
 flag Xer_DecodeObjectIdentifier(ByteStream* pByteStrm, const char* elementTag, Asn1ObjectIdentifier *pVal, int *pErrCode);
