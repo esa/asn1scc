@@ -1,0 +1,5 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+	MyPDU ::= IA5String (SIZE(0..10)) (FROM  ("A" .. "Z"))	
+END
+
+--TCLFC    MyPDU[encoding ASCII, size null-terminated, termination-pattern '0102030405060708090A0B0C'H]               $$$ sample1.acn:4:65: error: termination-pattern cannot exceed 10 bytes

@@ -855,16 +855,16 @@ flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint*
 	memset(tmp, 0x0, 10);
 
 	//read null_character_size characters into the tmp buffer
-	for (int j = 0; j < (int)null_characters_size; j++) {
+	for (int j = 0; j < (int)sz; j++) {
 		if (!BitStream_ReadByte(pBitStrm, &(tmp[j])))
 			return FALSE;
 	}
 
 	while (memcmp(null_characters, tmp, sz) != 0) {
 		digit = tmp[0];
-		for (int j = 0; j < (int)null_characters_size - 1; j++)
+		for (int j = 0; j < (int)sz - 1; j++)
 			tmp[j] = tmp[j + 1];
-		if (!BitStream_ReadByte(pBitStrm, &(tmp[null_characters_size - 1])))
+		if (!BitStream_ReadByte(pBitStrm, &(tmp[sz - 1])))
 			return FALSE;
 
 		digit = (byte)((int)digit - '0');
@@ -1324,7 +1324,7 @@ flag Acn_Dec_String_Ascii_Null_Terminated_mult(BitStream* pBitStrm, asn1SccSint 
 	memset(tmp, 0x0, 10);
 	memset(strVal, 0x0, (size_t)max + 1);
 	//read null_character_size characters into the tmp buffer
-	for (int j = 0; j < (int)null_character_size; j++) {
+	for (int j = 0; j < (int)sz; j++) {
 		if (!BitStream_ReadByte(pBitStrm, &(tmp[j])))
 			return FALSE;
 	}
@@ -1333,9 +1333,9 @@ flag Acn_Dec_String_Ascii_Null_Terminated_mult(BitStream* pBitStrm, asn1SccSint 
 	while (i <= max && (memcmp(null_character, tmp, sz) != 0)) {
 		strVal[i] = tmp[0];
 		i++;
-		for (int j = 0; j < (int)null_character_size - 1; j++)
+		for (int j = 0; j < (int)sz - 1; j++)
 			tmp[j] = tmp[j + 1];
-		if (!BitStream_ReadByte(pBitStrm, &(tmp[null_character_size - 1])))
+		if (!BitStream_ReadByte(pBitStrm, &(tmp[sz - 1])))
 			return FALSE;
 	}
 

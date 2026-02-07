@@ -1,0 +1,26 @@
+MOD-A DEFINITIONS ::=
+BEGIN
+
+	MyInt ::= INTEGER (0..40)
+	BYTE  ::= INTEGER (0..255) 
+	RGB ::= SEQUENCE {
+		r BYTE,
+		g BYTE,
+		c BYTE
+	} 
+
+	PDU ::= SEQUENCE {
+		a INTEGER (0..10),
+		b INTEGER (0..10),
+		c MyInt,
+		d BYTE
+		
+	}
+
+	DUMMY ::= SEQUENCE {
+		c INTEGER (0..10),
+		d INTEGER (0..10)
+	}
+
+END
+

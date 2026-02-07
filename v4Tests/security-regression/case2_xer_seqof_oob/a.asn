@@ -1,0 +1,8 @@
+MOD-A DEFINITIONS ::=
+BEGIN
+
+	MyInt ::= INTEGER (0..40)
+	TestSeq ::= SEQUENCE (SIZE(1..5)) OF INTEGER
+	
+END
+

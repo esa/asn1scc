@@ -282,6 +282,11 @@ adaasn1rtl.encoding.xer.Xer_DecodeComplexElementStart(bs, <sTag>, ret);
 if ret.Success then
     <sI> := 1;
     while ret.Success and  not adaasn1rtl.encoding.xer.Xer_NextEndElementIs(bs, <sTag>) loop
+        if <sI> > <nSizeMax> then
+            ret.Success := False;
+            ret.ErrorCode := <sErrCode>;
+            exit;
+        end if;
 	    <sChildBody>
 	    <sI> := <sI> + 1;
     end loop;

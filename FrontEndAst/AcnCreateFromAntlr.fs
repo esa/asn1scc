@@ -43,10 +43,14 @@ let private getIntSizeProperty  errLoc (props:GenericAcnProperty list) =
     | Some (GP_NullTerminated   )   ->
         match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
         | Some bitPattern    ->
+            printfn "bitPattern: %A" bitPattern
+            printfn "bitPattern.Value.Length: %A" bitPattern.Value.Length
             match bitPattern.Value.Length % 8 <> 0 with
             | true  -> raise(SemanticError(bitPattern.Location, sprintf "termination-pattern value must be a sequence of bytes"  ))
             | false ->
                 let ba = bitStringValueToByteArray bitPattern |> Seq.toList
+                if ba.Length > 10 then
+                    raise(SemanticError(bitPattern.Location, "termination-pattern cannot exceed 10 bytes"))
                 Some(AcnGenericTypes.IntNullTerminated ba)
         | None      -> Some(AcnGenericTypes.IntNullTerminated ([byte 0]))
     | Some (GP_SizeDeterminant _)   -> raise(SemanticError(errLoc ,"Expecting an Integer value or an ACN constant as value for the size property"))
@@ -70,6 +74,8 @@ let private getStringSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errL
             | true  -> raise(SemanticError(bitPattern.Location, sprintf "termination-pattern value must be a sequence of bytes"  ))
             | false ->
                 let ba = bitStringValueToByteArray bitPattern |> Seq.toList
+                if ba.Length > 10 then
+                    raise(SemanticError(bitPattern.Location, "termination-pattern cannot exceed 10 bytes"))
                 Some(AcnGenericTypes.StrNullTerminated ba)
         | None      -> Some(AcnGenericTypes.StrNullTerminated ([byte 0]))
     | Some (GP_SizeDeterminant fld)   -> (Some (AcnGenericTypes.StrExternalField fld))

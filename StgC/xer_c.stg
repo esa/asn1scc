@@ -263,6 +263,11 @@ if (ret) {
     <sI> = 0;
     while(ret && !Xer_NextEndElementIs(pByteStrm, <sTag>))
     {
+        if (<sI> >= <nSizeMax>) {
+            ret = FALSE;
+            *pErrCode = <sErrCode>;
+            break;
+        }
 	    <sChildBody>
 	    <sI>++;
 	    <if(!bFixedSize)><p><sAcc>nCount++;<endif>
