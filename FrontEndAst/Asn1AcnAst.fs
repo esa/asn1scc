@@ -803,7 +803,7 @@ and Choice = {
 
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
-    acnParameters       : AcnParameter list
+    //acnParameters       : AcnParameter list
     // detArg              : RelativePath option
     acnArgs             : RelativePath list
     acnLoc              : SrcLoc option
