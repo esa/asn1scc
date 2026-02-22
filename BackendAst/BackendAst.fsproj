@@ -20,6 +20,7 @@
     <Compile Include="DAstUPer.fs" />
     <Compile Include="DAstXer.fs" />
     <Compile Include="DAstACN.fs" />
+    <Compile Include="DAstACNDeferred.fs" />
     <Compile Include="DAstProgramUnit.fs" />
     <Compile Include="DastTestCaseCreation.fs" />
     <Compile Include="DAstConstruction.fs" />
