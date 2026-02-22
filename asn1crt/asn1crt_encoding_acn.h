@@ -297,6 +297,123 @@ asn1SccSint milbus_encode(asn1SccSint val);
 asn1SccSint milbus_decode(asn1SccSint val);
 
 
+/*
+   ACN Deferred Patching — types and helpers for reserve-space + patch-later pattern.
+   Used when --acn-deferred flag is enabled.
+*/
+
+/* Position in a bitstream — used to remember where to patch later */
+typedef struct {
+    long currentByte;
+    int  currentBit;   /* 0..7 */
+} AcnBitStreamPos;
+
+/* Reference to an ACN-inserted field that will be patched later.
+ * is_set + value enable consistency checking for shared determinants. */
+typedef struct {
+    AcnBitStreamPos pos;      /* where in the bitstream the field was reserved */
+    flag            is_set;   /* TRUE after first PatchDet call */
+    asn1SccUint     value;    /* the value that was written (for consistency checking) */
+} AcnInsertedFieldRef;
+
+static inline AcnBitStreamPos Acn_BitStream_GetPos(const BitStream* bs) {
+    AcnBitStreamPos p;
+    p.currentByte = bs->currentByte;
+    p.currentBit = bs->currentBit;
+    return p;
+}
+
+static inline void Acn_BitStream_SetPos(BitStream* bs, AcnBitStreamPos p) {
+    bs->currentByte = p.currentByte;
+    bs->currentBit = p.currentBit;
+}
+
+static inline asn1SccUint Acn_BitStream_DistanceInBytes(AcnBitStreamPos start, AcnBitStreamPos end) {
+    long startBits = start.currentByte * 8 + start.currentBit;
+    long endBits = end.currentByte * 8 + end.currentBit;
+    return (asn1SccUint)((endBits - startBits + 7) / 8);
+}
+
+/*
+ * DEFINE_ACN_DET_ENCODERS(name, encoder_fn, size_bits)
+ *
+ * Generates InitDet/PatchDet wrappers for a specific integer encoding class.
+ * - InitDet: saves current bitstream position, writes placeholder zeros
+ * - PatchDet: seeks back to saved position, writes the actual value, restores position.
+ *   For shared determinants (same field referenced by multiple children),
+ *   the first call writes the value; subsequent calls verify consistency.
+ */
+#define DEFINE_ACN_DET_ENCODERS(name, encoder_fn, size_bits)                    \
+static inline void Acn_InitDet_##name(BitStream* bs,                            \
+                                      AcnInsertedFieldRef* det) {               \
+    det->pos = Acn_BitStream_GetPos(bs);                                        \
+    det->is_set = FALSE;                                                        \
+    det->value = 0;                                                             \
+    encoder_fn(bs, 0);                                                          \
+}                                                                               \
+static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs,            \
+                                       AcnInsertedFieldRef* det, int* err) {    \
+    if (!det->is_set) {                                                         \
+        AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                         \
+        Acn_BitStream_SetPos(bs, det->pos);                                     \
+        encoder_fn(bs, v);                                                      \
+        Acn_BitStream_SetPos(bs, cur);                                          \
+        det->value = v;                                                         \
+        det->is_set = TRUE;                                                     \
+        return TRUE;                                                            \
+    } else {                                                                    \
+        if (det->value != v) {                                                  \
+            if (err) *err = ERR_ACN_DET_CONSISTENCY_MISMATCH;                   \
+            return FALSE;                                                       \
+        }                                                                       \
+        return TRUE;                                                            \
+    }                                                                           \
+}
+
+/* Unsigned integer encoding classes */
+DEFINE_ACN_DET_ENCODERS(U8,      Acn_Enc_Int_PositiveInteger_ConstSize_8, 8)
+DEFINE_ACN_DET_ENCODERS(U16_BE,  Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16, 16)
+DEFINE_ACN_DET_ENCODERS(U32_BE,  Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32, 32)
+DEFINE_ACN_DET_ENCODERS(U64_BE,  Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64, 64)
+DEFINE_ACN_DET_ENCODERS(U16_LE,  Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16, 16)
+DEFINE_ACN_DET_ENCODERS(U32_LE,  Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32, 32)
+DEFINE_ACN_DET_ENCODERS(U64_LE,  Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64, 64)
+
+/* Variant for signed (two's complement) encoder functions that take asn1SccSint */
+#define DEFINE_ACN_DET_ENCODERS_SIGNED(name, encoder_fn, size_bits)             \
+static inline void Acn_InitDet_##name(BitStream* bs,                            \
+                                      AcnInsertedFieldRef* det) {               \
+    det->pos = Acn_BitStream_GetPos(bs);                                        \
+    det->is_set = FALSE;                                                        \
+    det->value = 0;                                                             \
+    encoder_fn(bs, 0);                                                          \
+}                                                                               \
+static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs,            \
+                                       AcnInsertedFieldRef* det, int* err) {    \
+    if (!det->is_set) {                                                         \
+        AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                         \
+        Acn_BitStream_SetPos(bs, det->pos);                                     \
+        encoder_fn(bs, (asn1SccSint)v);                                         \
+        Acn_BitStream_SetPos(bs, cur);                                          \
+        det->value = v;                                                         \
+        det->is_set = TRUE;                                                     \
+        return TRUE;                                                            \
+    } else {                                                                    \
+        if (det->value != v) {                                                  \
+            if (err) *err = ERR_ACN_DET_CONSISTENCY_MISMATCH;                   \
+            return FALSE;                                                       \
+        }                                                                       \
+        return TRUE;                                                            \
+    }                                                                           \
+}
+
+/* Signed (two's complement) integer encoding classes */
+DEFINE_ACN_DET_ENCODERS_SIGNED(I8,      Acn_Enc_Int_TwosComplement_ConstSize_8, 8)
+DEFINE_ACN_DET_ENCODERS_SIGNED(I16_BE,  Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16, 16)
+DEFINE_ACN_DET_ENCODERS_SIGNED(I32_BE,  Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32, 32)
+DEFINE_ACN_DET_ENCODERS_SIGNED(I64_BE,  Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64, 64)
+
+
 #ifdef  __cplusplus
 }
 #endif

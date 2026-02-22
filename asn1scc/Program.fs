@@ -50,6 +50,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-let")>]    Log_Execution_Time
     | [<AltCommandLine("-if")>] Include_Func of string
     | [<Unique; AltCommandLine("-invertibility")>] StainlessInvertibility
+    | [<Unique; AltCommandLine("-acnDeferred")>] Acn_V2
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -117,6 +118,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | Include_Func _    -> "Include a function from the RTL. The function name is expected as argument. This argument can be repeated many times. This argument is supported only for C"
             | Log_Execution_Time           -> "Enables detailed logging of execution time."
             | StainlessInvertibility -> "(Scala backend only) Generate invertibility conditions and lemmas"
+            | Acn_V2 -> "(Experimental, C only) Enable ACN deferred patching: separate functions for reference types with ACN parameters, reserve+patch determinants instead of temporary buffers."
 
 
 let printVersion () =
@@ -287,6 +289,10 @@ let checkArgument (cliArgs : CliArguments list) arg =
                 raise (UserException (sprintf "Function '%s' does not exist in the C RTL.\nThe available functions to choose are:\n\n%s" fnName availableFunctions))
         | false -> raise (UserException ("The -if option is supported only for C."))
     | StainlessInvertibility -> ()
+    | Acn_V2 ->
+        match cliArgs |> List.exists (fun a -> a = Ada_Lang) || cliArgs |> List.exists (fun a -> a = Scala_Lang) with
+        | true  -> raise (UserException ("The --acn-deferred option is supported only for C."))
+        | false -> ()
 
 let createInput (fileName:string) : Input =
     {
@@ -377,6 +383,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
 
         blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala()) ]
         stainlessInvertibility = args |> List.exists (fun a -> match a with StainlessInvertibility -> true | _ -> false)
+        acnDeferred = parserResults.Contains <@ Acn_V2 @>
     }
 
 let setActiveLanguages args =
