@@ -115,9 +115,18 @@ let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*Langua
         (*
             check acn references
         *)
-        let acnDeps = 
+        let acnDeps =
             TL "CheckLongReferences.checkAst" (fun () ->
                 CheckLongReferences.checkAst acnAst)
+
+        // When acnDeferred is enabled, transform implicit cross-scope ACN references
+        // into explicit acnParameters/acnArguments (closure conversion)
+        let acnAst =
+            if args.acnDeferred then
+                TL "AcnClosureConversion.closureConvertAcnReferences" (fun () ->
+                    AcnClosureConversion.closureConvertAcnReferences acnAst acnDeps)
+            else
+                acnAst
 
         Ok (acnAst, acnDeps)
     | xx1::xs ->  
