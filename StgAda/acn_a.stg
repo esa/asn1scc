@@ -1561,3 +1561,37 @@ begin
     <endif>
 end;
 >>
+
+
+-- ========================================================================
+-- ACN Deferred Patching Templates (stubs — Ada not supported yet)
+-- ========================================================================
+
+acn_deferred_det_declare_encode(sDetName) ::= "-- TODO: ACN deferred patching not supported for Ada"
+acn_deferred_det_declare_decode(sDetName) ::= "-- TODO: ACN deferred patching not supported for Ada"
+
+acn_deferred_det_init_encode(sInitFuncName, sDetName) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_init_decode(sInitFuncName, sDetName) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+
+acn_deferred_det_patch_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+
+acn_deferred_det_formal_param_encode(sDetName) ::= "-- TODO"
+acn_deferred_det_formal_param_decode(sDetName) ::= "-- TODO"
+
+acn_deferred_det_actual_param_encode(sDetName) ::= "-- TODO"
+acn_deferred_det_actual_param_decode(sDetName) ::= "-- TODO"
+
+acn_deferred_det_save_pos_encode(sVarName) ::= "-- TODO: ACN deferred patching not supported for Ada"
+acn_deferred_det_save_pos_decode(sVarName) ::= "-- TODO: ACN deferred patching not supported for Ada"
+
+acn_deferred_det_distance_bytes_encode(sStart, sEnd) ::= "0"
+acn_deferred_det_distance_bytes_decode(sStart, sEnd) ::= "0"

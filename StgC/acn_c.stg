@@ -1325,3 +1325,47 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 	<endif>
 }
 >>
+
+
+/* ========================================================================
+   ACN Deferred Patching Templates
+   Used when --acn-deferred flag is enabled.
+   ======================================================================== */
+
+/* Declare an AcnInsertedFieldRef local variable */
+acn_deferred_det_declare_encode(sDetName) ::= "AcnInsertedFieldRef <sDetName> = {0};"
+acn_deferred_det_declare_decode(sDetName) ::= "AcnInsertedFieldRef <sDetName> = {0};"
+
+/* Reserve space in the bitstream (calls Acn_InitDet_XXX) */
+acn_deferred_det_init_encode(sInitFuncName, sDetName) ::= <<
+<sInitFuncName>(pBitStrm, &<sDetName>);
+>>
+acn_deferred_det_init_decode(sInitFuncName, sDetName) ::= <<
+/* decode: no init needed */
+>>
+
+/* Patch the value at the saved position (calls Acn_PatchDet_XXX) */
+acn_deferred_det_patch_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, &<sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if (!ret) return FALSE;
+>>
+acn_deferred_det_patch_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+
+/* Extra formal parameter for a function receiving a deferred determinant */
+acn_deferred_det_formal_param_encode(sDetName) ::= "AcnInsertedFieldRef* <sDetName>"
+acn_deferred_det_formal_param_decode(sDetName) ::= "AcnInsertedFieldRef* <sDetName>"
+
+/* Pass a deferred determinant as actual parameter in a function call */
+acn_deferred_det_actual_param_encode(sDetName) ::= "&<sDetName>"
+acn_deferred_det_actual_param_decode(sDetName) ::= "&<sDetName>"
+
+/* Save current bitstream position */
+acn_deferred_det_save_pos_encode(sVarName) ::= "AcnBitStreamPos <sVarName> = Acn_BitStream_GetPos(pBitStrm);"
+acn_deferred_det_save_pos_decode(sVarName) ::= "AcnBitStreamPos <sVarName> = Acn_BitStream_GetPos(pBitStrm);"
+
+/* Compute distance in bytes between two positions */
+acn_deferred_det_distance_bytes_encode(sStart, sEnd) ::= "Acn_BitStream_DistanceInBytes(<sStart>, <sEnd>)"
+acn_deferred_det_distance_bytes_decode(sStart, sEnd) ::= "Acn_BitStream_DistanceInBytes(<sStart>, <sEnd>)"
