@@ -20,8 +20,10 @@ let private isPathPrefix (prefix: ScopeNode list) (full: ScopeNode list) : bool 
 
 /// For a ReferenceType boundary at 'boundaryPath', find all AcnChild determinants
 /// that are referenced by dependencies INSIDE the boundary but live OUTSIDE it.
-/// These are the cross-scope references that need to become explicit parameters.
-let private findCrossScopeDeterminants (boundaryPath: ScopeNode list) (deps: AcnInsertedFieldDependencies) : AcnChild list =
+/// These are the "consumer" cross-scope references: the type inside needs the
+/// determinant value (e.g., for size, presence).  In the deferred model the
+/// specialized function will call PatchDet on the received AcnInsertedFieldRef*.
+let private findConsumerDeterminants (boundaryPath: ScopeNode list) (deps: AcnInsertedFieldDependencies) : AcnChild list =
     deps.acnDependencies
     |> List.choose (fun dep ->
         let depTypePath = dep.asn1Type.ToScopeNodeList
@@ -31,6 +33,28 @@ let private findCrossScopeDeterminants (boundaryPath: ScopeNode list) (deps: Acn
         // AND the determinant must be an ACN inserted child (not already a parameter)
         if isPathPrefix boundaryPath depTypePath
            && not (isPathPrefix boundaryPath detPath) then
+            match dep.determinant with
+            | AcnChildDeterminant acnChild -> Some acnChild
+            | AcnParameterDeterminant _ -> None
+        else
+            None)
+    |> List.distinctBy (fun ac -> ac.id)
+
+
+/// For a ReferenceType boundary at 'boundaryPath', find all AcnChild determinants
+/// that are DEFINED inside the boundary but USED by types OUTSIDE it.
+/// These are the "producer" cross-scope references: the type inside contains
+/// the determinant (e.g., a length field in a header) and needs to receive an
+/// AcnInsertedFieldRef* so it can call InitDet instead of normal encoding.
+let private findProducerDeterminants (boundaryPath: ScopeNode list) (deps: AcnInsertedFieldDependencies) : AcnChild list =
+    deps.acnDependencies
+    |> List.choose (fun dep ->
+        let depTypePath = dep.asn1Type.ToScopeNodeList
+        let detPath = dep.determinant.id.ToScopeNodeList
+        // The determinant must be inside the boundary
+        // AND the dependent type must be outside the boundary
+        if isPathPrefix boundaryPath detPath
+           && not (isPathPrefix boundaryPath depTypePath) then
             match dep.determinant with
             | AcnChildDeterminant acnChild -> Some acnChild
             | AcnParameterDeterminant _ -> None
@@ -100,7 +124,11 @@ let rec private transformType (deps: AcnInsertedFieldDependencies) (t: Asn1Type)
     match t'.Kind with
     | Asn1TypeKind.ReferenceType rt ->
         let boundaryPath = t'.id.ToScopeNodeList
-        let crossDets = findCrossScopeDeterminants boundaryPath deps
+        // Consumer: determinant OUTSIDE, dependent type INSIDE (e.g., payload uses hdr.buffers-length)
+        let consumerDets = findConsumerDeterminants boundaryPath deps
+        // Producer: determinant INSIDE, dependent type OUTSIDE (e.g., hdr contains buffers-length)
+        let producerDets = findProducerDeterminants boundaryPath deps
+        let allCrossDets = (consumerDets @ producerDets) |> List.distinctBy (fun ac -> ac.id)
 
         // Filter out determinants that already have a parameter with the same name
         let existingParamNames =
@@ -108,7 +136,7 @@ let rec private transformType (deps: AcnInsertedFieldDependencies) (t: Asn1Type)
             |> List.map (fun p -> p.name)
             |> Set.ofList
         let newDets =
-            crossDets
+            allCrossDets
             |> List.filter (fun d -> not (Set.contains d.Name.Value existingParamNames))
 
         if newDets.IsEmpty then
