@@ -1503,7 +1503,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
 
             Choice ({Choice.children = mergedChildren; acnProperties = acnProperties; cons=cons; withcons = wcons;
                 uperMaxSizeInBits=indexSize+maxChildSize; uperMinSizeInBits=indexSize+minChildSize; acnMinSizeInBits =acnMinSizeInBits;
-                acnMaxSizeInBits=acnMaxSizeInBits; acnParameters = acnParameters; acnArgs = allAcnArgsSubsted; acnLoc = acnLoc; typeDef=typeDef; definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}), chus
+                acnMaxSizeInBits=acnMaxSizeInBits; (*acnParameters = acnParameters;*) acnArgs = allAcnArgsSubsted; acnLoc = acnLoc; typeDef=typeDef; definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}), chus
 
         | Asn1Ast.ReferenceType rf    ->
             let acnArguments = acnArgs
