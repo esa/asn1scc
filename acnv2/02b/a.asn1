@@ -1,0 +1,19 @@
+MyModule DEFINITIONS ::= BEGIN
+
+BUFFER-LENGTH-TYPE ::= INTEGER (0..100)
+
+PDU ::= SEQUENCE {
+   hdr  Header,
+   payload PayloadData
+}
+
+Header ::= SEQUENCE {
+   -- empty in ASN.1 (ACN will insert fields here)
+}
+
+PayloadData ::= SEQUENCE {
+   int-field  INTEGER (-2147483648..2147483647),
+   buffer OCTET STRING (SIZE(0..100))
+}
+
+END
