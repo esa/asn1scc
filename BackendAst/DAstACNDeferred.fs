@@ -359,25 +359,36 @@ let private createDeferredReferenceFunction
                                     d.determinant.id = prm.id
                                     && (match d.determinant with
                                         | Asn1AcnAst.AcnParameterDeterminant _ -> true
-                                        | _ -> false))
+                                        | _ -> false)
+                                    // Exclude RefTypeArgDep — these are intermediate
+                                    // chain links (e.g., CHOICE→case boundary), not
+                                    // actual consumer deps with data fields.
+                                    && (match d.dependencyKind with
+                                        | AcnDepRefTypeArgument _ -> false
+                                        | _ -> true))
                             match consumerDep with
                             | None -> None
                             | Some dep ->
                                 // Find the PatchDet function name from the original
-                                // ACN child's encoding class.  We look up the
-                                // RefTypeArgumentDependency to find the original det.
-                                let originalDetType =
+                                // ACN child's encoding class.  Follow the
+                                // RefTypeArgumentDependency chain upward through
+                                // intermediate boundaries (e.g., CHOICE→parent)
+                                // until reaching the AcnChildDeterminant.
+                                let rec findOriginalDetFunctions (paramId: ReferenceToType) =
                                     deps.acnDependencies |> List.tryPick (fun d ->
                                         match d.dependencyKind with
-                                        | AcnDepRefTypeArgument p when p.id = prm.id ->
+                                        | AcnDepRefTypeArgument p when p.id = paramId ->
                                             match d.determinant with
                                             | Asn1AcnAst.AcnChildDeterminant ac ->
                                                 match ac.Type with
                                                 | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
                                                     mapIntEncodingClassToDetFunctions ai.acnEncodingClass
                                                 | _ -> None
-                                            | _ -> None
+                                            | Asn1AcnAst.AcnParameterDeterminant parentPrm ->
+                                                // Intermediate boundary: follow chain upward
+                                                findOriginalDetFunctions parentPrm.id
                                         | _ -> None)
+                                let originalDetType = findOriginalDetFunctions prm.id
                                 match originalDetType with
                                 | None -> None
                                 | Some (_initFn, patchFn) ->
@@ -488,8 +499,20 @@ let private createDeferredReferenceFunction
                 let extraActualParams =
                     o.acnArguments |> List.map (fun arg ->
                         let (AcnGenericTypes.RelativePath parts) = arg
-                        let detName = parts |> List.map (fun sl -> sl.Value) |> List.last |> ToC
-                        lm.acn.acn_deferred_det_actual_param detName codec)
+                        let argName = parts |> List.last |> fun sl -> sl.Value
+                        // Check if this argument maps to a parent parameter
+                        // (intermediate level, e.g., inside a CHOICE specialized
+                        // function).  If so, pass the parent's formal param
+                        // directly (pointer pass-through, no &).
+                        let parentParam =
+                            acnArgs |> List.tryFind (fun (_, prm) -> prm.name = argName)
+                        match parentParam with
+                        | Some (_, prm) ->
+                            // Intermediate level: pass parent's formal param name
+                            DAstACN.getAcnDeterminantName prm.id
+                        | None ->
+                            // Declaration level: address of local variable
+                            lm.acn.acn_deferred_det_actual_param (ToC argName) codec)
 
                 let baseFuncCall = callBaseTypeFunc lm pp specFuncName codec
                 let funcBodyContent = insertActualParams baseFuncCall extraActualParams
