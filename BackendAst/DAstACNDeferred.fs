@@ -336,12 +336,80 @@ let private createDeferredReferenceFunction
             let specP : CodegenScope = lm.lg.getParamType t codec
             let bodyContent, ns2 = baseAcnFunc.funcBody ns1 paramsArgsPairs (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) specP
 
-            let bodyResult_funcBody, bodyResult_errCodes, bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, bodyResult_udfcs, bodyResult_auxiliaries =
+            let bodyResult_funcBody0, bodyResult_errCodes, bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, bodyResult_udfcs, bodyResult_auxiliaries =
                 match bodyContent with
                 | None ->
                     lm.lg.emptyStatement, [], [], true, true, [], []
                 | Some br ->
                     br.funcBody, br.errCodes, br.localVariables, br.bBsIsUnReferenced, br.bValIsUnReferenced, br.userDefinedFunctions, br.auxiliaries
+
+            // Step 2b (Encode only): Append PatchDet calls for each consumer-side
+            // acnParameter.  The consumer has encoded the data; now it patches
+            // the determinant value back at the saved bitstream position.
+            let bodyResult_funcBody =
+                match codec with
+                | CommonTypes.Codec.Decode -> bodyResult_funcBody0
+                | CommonTypes.Codec.Encode ->
+                    let patchCalls =
+                        o.resolvedType.acnParameters |> List.choose (fun prm ->
+                            // Find the dep inside this boundary where the determinant
+                            // is this parameter (consumer-side dependency)
+                            let consumerDep =
+                                deps.acnDependencies |> List.tryFind (fun d ->
+                                    d.determinant.id = prm.id
+                                    && (match d.determinant with
+                                        | Asn1AcnAst.AcnParameterDeterminant _ -> true
+                                        | _ -> false))
+                            match consumerDep with
+                            | None -> None
+                            | Some dep ->
+                                // Find the PatchDet function name from the original
+                                // ACN child's encoding class.  We look up the
+                                // RefTypeArgumentDependency to find the original det.
+                                let originalDetType =
+                                    deps.acnDependencies |> List.tryPick (fun d ->
+                                        match d.dependencyKind with
+                                        | AcnDepRefTypeArgument p when p.id = prm.id ->
+                                            match d.determinant with
+                                            | Asn1AcnAst.AcnChildDeterminant ac ->
+                                                match ac.Type with
+                                                | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                                                    mapIntEncodingClassToDetFunctions ai.acnEncodingClass
+                                                | _ -> None
+                                            | _ -> None
+                                        | _ -> None)
+                                match originalDetType with
+                                | None -> None
+                                | Some (_initFn, patchFn) ->
+                                    // Compute the value expression from the dep kind
+                                    let valueExpr =
+                                        match dep.dependencyKind with
+                                        | Asn1AcnAst.AcnDepSizeDeterminant _ ->
+                                            // For size dependency: the value is the count
+                                            // of the dependent field (OCTET STRING / SEQ OF).
+                                            // The dep's asn1Type identifies the field.
+                                            let fieldPath = dep.asn1Type.ToScopeNodeList
+                                            let boundaryPath = t.id.ToScopeNodeList
+                                            // Get the relative path from boundary to field
+                                            let relParts = fieldPath |> List.skip boundaryPath.Length
+                                            let fieldAccessParts =
+                                                relParts |> List.map (fun node ->
+                                                    match node with
+                                                    | SEQ_CHILD (name, _) -> name
+                                                    | CH_CHILD (name, _, _) -> name
+                                                    | _ -> failwithf "BUG: unexpected scope node %A in size dep path" node)
+                                            let fieldAccess = fieldAccessParts |> List.map ToC |> String.concat "."
+                                            sprintf "%s->%s.nCount" specP.accessPath.rootId fieldAccess
+                                        | _ ->
+                                            failwithf "BUG: PatchDet not yet implemented for dependency kind %A" dep.dependencyKind
+                                    let detParamName = DAstACN.getAcnDeterminantName prm.id
+                                    let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
+                                    Some (lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch codec))
+                    match patchCalls with
+                    | [] -> bodyResult_funcBody0
+                    | calls ->
+                        let patchCode = calls |> String.concat "\n"
+                        bodyResult_funcBody0 + "\n" + patchCode
 
             // Step 3: Build the specialized function's formal parameters.
             // Standard params come from EmitTypeAssignment_primitive; the extra
