@@ -61,7 +61,14 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r deps icdStgFileName lm Codec.Decode ch.id a (defOrRef r m a) ns1
         | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps lm Codec.Decode ch.id a ns1
 
-    let funcUpdateStatement, ns3 = DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
+    let funcUpdateStatement, ns3 =
+        if r.args.acnDeferred then
+            // In deferred mode, funcUpdateStatement is not used — determinant
+            // values are handled by InitDet/PatchDet.  Skip computation to
+            // avoid crashes from closure-converted dep chains.
+            None, ns2
+        else
+            DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
     let c_name         = ch.c_name //DAstACN.getAcnDeterminantName ch.id
 
     let newFuncBody (codec:Codec) (prms:((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)) (nestingScope: NestingScope) (p:CodegenScope) (lvName:string): AcnFuncBodyResult option=

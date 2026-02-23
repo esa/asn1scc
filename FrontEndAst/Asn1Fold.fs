@@ -435,7 +435,7 @@ let getSeqChildrenWithPriority (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (t
         deps.acnDependencies |>
         List.choose(fun d ->
             match d.dependencyKind with
-            | AcnDepSizeDeterminant_bit_oct_str_contain _ when d.asn1Type.AsString.StartsWith (id)  &&   d.determinant.id.AsString.StartsWith (id) &&                (getChildNameFromId d.asn1Type.AsString) <> (getChildNameFromId d.determinant.id.AsString) -> Some (getChildNameFromId d.asn1Type.AsString )
+            | AcnDepSizeDeterminant_bit_oct_str_contain _ when d.asn1Type.AsString.StartsWith (id)  &&   d.determinant.id.AsString.StartsWith (id) && d.asn1Type.AsString.Length > id.Length + 1 && d.determinant.id.AsString.Length > id.Length + 1 &&                (getChildNameFromId d.asn1Type.AsString) <> (getChildNameFromId d.determinant.id.AsString) -> Some (getChildNameFromId d.asn1Type.AsString )
             | _ -> None    )
 
     childrenWithPriority
