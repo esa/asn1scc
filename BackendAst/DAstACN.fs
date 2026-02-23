@@ -2455,7 +2455,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         if lm.lg.acn.choice_requires_tmp_decoding && codec = Decode then
                             {CodegenScope.modName = p.modName; accessPath = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")}
                         else {p with accessPath = lm.lg.getChChild p.accessPath (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}
-                    chFunc.funcBody us [] childNestingScope childP
+                    chFunc.funcBody us acnArgs childNestingScope childP
                 | None -> None, us
 
             let childContent_funcBody, childContent_localVariables, childContent_userDefFuncs, childContent_errCodes, auxiliaries =

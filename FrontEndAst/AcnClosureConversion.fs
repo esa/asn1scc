@@ -256,7 +256,25 @@ let private applyDepRewrites (deps: AcnInsertedFieldDependencies) (rewrites: Dep
                   determinant = AcnChildDeterminant rw.originalDet
                   dependencyKind = AcnDepRefTypeArgument rw.newParam })
 
-        { acnDependencies = rewrittenDeps @ newRefTypeArgDeps }
+        // Step 3: rewrite the newly added RefTypeArgDeps by outer boundary
+        // rewrites.  Inner boundary deps (e.g., case1 → hdr.buffers-length)
+        // must be rewritten to point to the outer boundary's parameter
+        // (e.g., case1 → payload.PRM.buffers-length).
+        // Self-rewrites are excluded: a dep created at boundary X is not
+        // rewritten by X's own rewrite (asn1Type = boundaryPath → skip).
+        let rewrittenNewDeps =
+            newRefTypeArgDeps |> List.map (fun dep ->
+                let matchingRewrite =
+                    rewrites |> List.tryFind (fun rw ->
+                        dep.determinant.id = rw.originalDet.id
+                        && isPathPrefix rw.boundaryPath (dep.asn1Type.ToScopeNodeList)
+                        && rw.boundaryPath <> (dep.asn1Type.ToScopeNodeList))
+                match matchingRewrite with
+                | Some rw ->
+                    { dep with determinant = AcnParameterDeterminant rw.newParam }
+                | None -> dep)
+
+        { acnDependencies = rewrittenDeps @ rewrittenNewDeps }
 
 
 /// Transform a module's type assignments
