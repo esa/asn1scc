@@ -130,14 +130,33 @@ let rec private transformType (deps: AcnInsertedFieldDependencies) (t: Asn1Type)
         let producerDets = findProducerDeterminants boundaryPath deps
         let allCrossDets = (consumerDets @ producerDets) |> List.distinctBy (fun ac -> ac.id)
 
-        // Filter out determinants that already have a parameter with the same name
+        // Filter out determinants that are already covered.
+        // A determinant is covered if:
+        //   (a) a parameter with the same name already exists, OR
+        //   (b) a RefTypeArgumentDependency already connects this determinant
+        //       to an existing parameter at this boundary (covers the case
+        //       where the ACN file uses a different parameter name, e.g.,
+        //       explicit "buffer-len" for determinant "buffers-length").
         let existingParamNames =
             rt.resolvedType.acnParameters
             |> List.map (fun p -> p.name)
             |> Set.ofList
+        let deterministsCoveredByRefTypeArg =
+            deps.acnDependencies
+            |> List.choose (fun dep ->
+                match dep.dependencyKind with
+                | AcnDepRefTypeArgument _prm
+                    when dep.asn1Type = t'.id ->
+                    // This dep says: the boundary type (t'.id) receives
+                    // determinant dep.determinant via a RefTypeArgument.
+                    Some dep.determinant.id
+                | _ -> None)
+            |> Set.ofList
         let newDets =
             allCrossDets
-            |> List.filter (fun d -> not (Set.contains d.Name.Value existingParamNames))
+            |> List.filter (fun d ->
+                not (Set.contains d.Name.Value existingParamNames)
+                && not (Set.contains d.id deterministsCoveredByRefTypeArg))
 
         if newDets.IsEmpty then
             t'
