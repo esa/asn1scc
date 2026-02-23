@@ -187,7 +187,13 @@ let private createDeferredSequenceFunction
                         let isOwnParam = Set.contains ac.Name.Value deferredDetNamesFromOwnParams
                         let deferredFuncBody : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> string -> (AcnFuncBodyResult option) =
                             fun _codec _acnArgs _nestingScope _p _bsPos ->
-                                let initCode = lm.acn.acn_deferred_det_init initFuncName detVarName codec
+                                // "value" variant: det is a local variable → pass &name
+                                // "ptr" variant: det is a formal parameter → pass name as-is
+                                let initCode =
+                                    if isOwnParam then
+                                        lm.acn.acn_deferred_det_init_ptr initFuncName detVarName codec
+                                    else
+                                        lm.acn.acn_deferred_det_init_value initFuncName detVarName codec
                                 Some {
                                     AcnFuncBodyResult.funcBody = initCode
                                     errCodes = []

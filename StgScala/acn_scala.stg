@@ -1243,10 +1243,16 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 acn_deferred_det_declare_encode(sDetName) ::= "// TODO: ACN deferred patching not supported for Scala"
 acn_deferred_det_declare_decode(sDetName) ::= "// TODO: ACN deferred patching not supported for Scala"
 
-acn_deferred_det_init_encode(sInitFuncName, sDetName) ::= <<
+acn_deferred_det_init_value_encode(sInitFuncName, sDetName) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_init_decode(sInitFuncName, sDetName) ::= <<
+acn_deferred_det_init_value_decode(sInitFuncName, sDetName) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_init_ptr_encode(sInitFuncName, sDetName) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
 

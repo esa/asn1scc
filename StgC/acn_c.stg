@@ -1336,11 +1336,19 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 acn_deferred_det_declare_encode(sDetName) ::= "AcnInsertedFieldRef <sDetName> = {0};"
 acn_deferred_det_declare_decode(sDetName) ::= "AcnInsertedFieldRef <sDetName> = {0};"
 
-/* Reserve space in the bitstream (calls Acn_InitDet_XXX) */
-acn_deferred_det_init_encode(sInitFuncName, sDetName) ::= <<
+/* Reserve space in the bitstream (calls Acn_InitDet_XXX).
+   "value" variant: det is a local AcnInsertedFieldRef variable — pass address.
+   "ptr" variant: det is an AcnInsertedFieldRef* formal parameter — pass as-is. */
+acn_deferred_det_init_value_encode(sInitFuncName, sDetName) ::= <<
 <sInitFuncName>(pBitStrm, &<sDetName>);
 >>
-acn_deferred_det_init_decode(sInitFuncName, sDetName) ::= <<
+acn_deferred_det_init_value_decode(sInitFuncName, sDetName) ::= <<
+/* decode: no init needed */
+>>
+acn_deferred_det_init_ptr_encode(sInitFuncName, sDetName) ::= <<
+<sInitFuncName>(pBitStrm, <sDetName>);
+>>
+acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
 /* decode: no init needed */
 >>
 
