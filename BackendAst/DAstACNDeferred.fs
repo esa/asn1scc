@@ -42,33 +42,108 @@ let mapIntEncodingClassToDetFunctions (enc: IntEncodingClass) : (string * string
     | _ -> None
 
 
+/// Map an AcnInsertedType to the corresponding InitDet/PatchDet function names.
+/// Shared helper used by getDetFunctionsForAcnChild and findDetFunctionsForParam.
+let getDetFunctionsForAcnInsertedType (acnType: Asn1AcnAst.AcnInsertedType) : (string * string) option =
+    match acnType with
+    | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+        mapIntEncodingClassToDetFunctions ai.acnEncodingClass
+    | Asn1AcnAst.AcnInsertedType.AcnBoolean bln ->
+        match bln.acnProperties.encodingPattern with
+        | None -> Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1")
+        | Some _ -> None  // Custom true-value/false-value patterns: not yet supported
+    | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
+        mapIntEncodingClassToDetFunctions enm.enumerated.acnEncodingClass
+    | _ -> None
+
 /// Get the InitDet/PatchDet function names for an ACN child determinant.
 /// Returns None if the determinant type doesn't support deferred patching.
 let getDetFunctionsForAcnChild (acnChild: DAst.AcnChild) : (string * string) option =
-    match acnChild.Type with
-    | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
-        mapIntEncodingClassToDetFunctions ai.acnEncodingClass
-    | _ -> None
+    getDetFunctionsForAcnInsertedType acnChild.Type
+
+
+/// Build a C access expression from relative scope nodes and the root pointer.
+/// Returns (accessExpr, accessor) where accessor is "->" if result is a pointer,
+/// "." if result is a struct member.
+/// E.g., [] + "pVal" → ("pVal", "->")
+///       [SEQ_CHILD("buffer",_)] + "pVal" → ("pVal->buffer", ".")
+let buildRelativeAccess (relParts: ScopeNode list) (rootId: string) : (string * string) =
+    match relParts with
+    | [] -> (rootId, "->")
+    | _ ->
+        let parts = relParts |> List.map (fun node ->
+            match node with
+            | SEQ_CHILD (name, _) -> ToC name
+            | CH_CHILD (name, _, _) -> ToC name
+            | _ -> failwithf "BUG: unexpected scope node %A in relative access" node)
+        let fieldAccess = sprintf "%s->%s" rootId (parts |> String.concat ".")
+        (fieldAccess, ".")
 
 
 /// Compute the C value expression for a PatchDet call, based on the
-/// dependency kind.  E.g., for AcnDepSizeDeterminant on an OCTET STRING
-/// field at path PDU.payload.buffer, with boundary at PDU.payload and
-/// rootId "pVal", returns "pVal->buffer.nCount".
-/// TODO: handle other dep kinds (PresenceBool, ChoiceDeterminant, etc.)
-let computePatchDetValueExpr (dep: Asn1AcnAst.AcnDependency) (boundaryPath: ScopeNode list) (rootId: string) : string =
+/// dependency kind.  Returns (preBlock option, valueExpr) where preBlock
+/// is an optional block of C code to prepend (e.g., a switch statement
+/// that computes the value into a local variable).
+///
+/// E.g., for AcnDepSizeDeterminant:     (None, "pVal->buffer.nCount")
+///       for AcnDepPresenceBool:         (None, "(pVal->exist.extra_data == 1)")
+///       for AcnDepPresence:             (Some "asn1SccUint _patchDetVal;\nswitch(...){...}", "_patchDetVal")
+///       for AcnDepChoiceDeterminant:    (Some "asn1SccUint _patchDetVal;\nswitch(...){...}", "_patchDetVal")
+let computePatchDetValueExpr
+    (lm: LanguageMacros)
+    (dep: Asn1AcnAst.AcnDependency)
+    (boundaryPath: ScopeNode list)
+    (rootId: string)
+    : (string option * string) =
+    let fieldPath = dep.asn1Type.ToScopeNodeList
+    let relParts = fieldPath |> List.skip boundaryPath.Length
     match dep.dependencyKind with
     | Asn1AcnAst.AcnDepSizeDeterminant _ ->
-        let fieldPath = dep.asn1Type.ToScopeNodeList
-        let relParts = fieldPath |> List.skip boundaryPath.Length
-        let fieldAccessParts =
-            relParts |> List.map (fun node ->
-                match node with
-                | SEQ_CHILD (name, _) -> name
-                | CH_CHILD (name, _, _) -> name
-                | _ -> failwithf "BUG: unexpected scope node %A in size dep path" node)
-        let fieldAccess = fieldAccessParts |> List.map ToC |> String.concat "."
-        sprintf "%s->%s.nCount" rootId fieldAccess
+        let (fieldExpr, acc) = buildRelativeAccess relParts rootId
+        (None, sprintf "%s%snCount" fieldExpr acc)
+
+    | Asn1AcnAst.AcnDepIA5StringSizeDeterminant _ ->
+        let (fieldExpr, acc) = buildRelativeAccess relParts rootId
+        (None, sprintf "strlen(%s%sarr)" fieldExpr acc)
+
+    | Asn1AcnAst.AcnDepPresenceBool ->
+        // dep.asn1Type points to the OPTIONAL child; parent is one level up
+        let parentRelParts = relParts |> List.rev |> List.tail |> List.rev
+        let (parentExpr, pAcc) = buildRelativeAccess parentRelParts rootId
+        let childName = ToC (dep.asn1Type.lastItem)
+        (None, sprintf "(%s%sexist.%s == 1)" parentExpr pAcc childName)
+
+    | Asn1AcnAst.AcnDepPresence (relPath, chc) ->
+        let (choiceExpr, acc) = buildRelativeAccess relParts rootId
+        let kindAccess = sprintf "%s%skind" choiceExpr acc
+        let varName = "_patchDetVal"
+        let switchItems = chc.children |> List.map (fun ch ->
+            let pres = ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath)
+            let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+            match pres with
+            | AcnGenericTypes.PresenceInt (_, intVal) ->
+                sprintf "    case %s: %s = %s; break;" presentWhenName varName (intVal.Value.ToString())
+            | AcnGenericTypes.PresenceStr _ ->
+                failwithf "BUG: PresenceStr not supported for deferred patching")
+        let switchBlock =
+            sprintf "asn1SccUint %s;\nswitch(%s) {\n%s\n    default: ret = FALSE; break;\n}\nif (!ret) return FALSE;"
+                varName kindAccess (switchItems |> String.concat "\n")
+        (Some switchBlock, varName)
+
+    | Asn1AcnAst.AcnDepChoiceDeterminant (enm, chc, _isOptional) ->
+        let (choiceExpr, acc) = buildRelativeAccess relParts rootId
+        let kindAccess = sprintf "%s%skind" choiceExpr acc
+        let varName = "_patchDetVal"
+        let switchItems = chc.children |> List.map (fun ch ->
+            let enmItem = enm.enm.items |> List.find (fun itm -> itm.Name.Value = ch.Name.Value)
+            let presentWhenName = ch.presentWhenName
+            let enumCName = lm.lg.getNamedItemBackendName None enmItem
+            sprintf "    case %s: %s = %s; break;" presentWhenName varName enumCName)
+        let switchBlock =
+            sprintf "asn1SccUint %s;\nswitch(%s) {\n%s\n    default: ret = FALSE; break;\n}\nif (!ret) return FALSE;"
+                varName kindAccess (switchItems |> String.concat "\n")
+        (Some switchBlock, varName)
+
     | _ ->
         failwithf "BUG: PatchDet not yet implemented for dependency kind %A" dep.dependencyKind
 
@@ -83,10 +158,7 @@ let findDetFunctionsForParam (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (pa
             | AcnDepRefTypeArgument p when p.id = pid ->
                 match d.determinant with
                 | Asn1AcnAst.AcnChildDeterminant ac ->
-                    match ac.Type with
-                    | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
-                        mapIntEncodingClassToDetFunctions ai.acnEncodingClass
-                    | _ -> None
+                    getDetFunctionsForAcnInsertedType ac.Type
                 | Asn1AcnAst.AcnParameterDeterminant parentPrm ->
                     follow parentPrm.id
             | _ -> None)
@@ -269,19 +341,55 @@ let private createDeferredSequenceFunction
                                     // By changing childP's accessPath to "det->value",
                                     // the decode writes into the struct's value field:
                                     //   Acn_Dec_Int_...(pBitStrm, &(det->value))
-                                    let valueTarget =
-                                        if isOwnParam then detVarName + "->value"
-                                        else detVarName + ".value"
-                                    let modifiedP = {p with accessPath = AccessPath.valueEmptyPath valueTarget}
-                                    let result = originalFuncBody innerCodec acnArgs nestingScope modifiedP bsPos
-                                    // Add AcnInsertedFieldRef local variable for decode too
-                                    match result with
-                                    | Some r ->
-                                        let extraLvars =
-                                            if isOwnParam then []
-                                            else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
-                                        Some { r with localVariables = extraLvars @ r.localVariables }
-                                    | None -> None
+                                    //
+                                    // For AcnInteger this works directly (asn1SccUint matches).
+                                    // For AcnBoolean and AcnReferenceToEnumerated, the
+                                    // funcBody generates intermediate variables with names
+                                    // derived from the target path.  A path containing
+                                    // "->" or "." corrupts those variable names, so we
+                                    // decode to a clean temp variable and copy afterward.
+                                    let useDirectRedirect =
+                                        match ac.Type with
+                                        | Asn1AcnAst.AcnInsertedType.AcnInteger _ -> true
+                                        | _ -> false
+                                    if useDirectRedirect then
+                                        let valueTarget =
+                                            if isOwnParam then detVarName + "->value"
+                                            else detVarName + ".value"
+                                        let modifiedP = {p with accessPath = AccessPath.valueEmptyPath valueTarget}
+                                        let result = originalFuncBody innerCodec acnArgs nestingScope modifiedP bsPos
+                                        match result with
+                                        | Some r ->
+                                            let extraLvars =
+                                                if isOwnParam then []
+                                                else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
+                                            Some { r with localVariables = extraLvars @ r.localVariables }
+                                        | None -> None
+                                    else
+                                        // Decode to a clean temp variable, then copy to det.value
+                                        let tmpName = detVarName + "_tmp"
+                                        let tmpVarDecl =
+                                            match ac.Type with
+                                            | Asn1AcnAst.AcnInsertedType.AcnBoolean _ ->
+                                                FlagLocalVariable (tmpName, None)
+                                            | _ ->
+                                                GenericLocalVariable { name = tmpName; varType = ac.typeDefinitionBodyWithinSeq; arrSize = None; isStatic = false; initExp = None }
+                                        let modifiedP = {p with accessPath = AccessPath.valueEmptyPath tmpName}
+                                        let result = originalFuncBody innerCodec acnArgs nestingScope modifiedP bsPos
+                                        match result with
+                                        | Some r ->
+                                            let detAccess =
+                                                if isOwnParam then detVarName + "->value"
+                                                else detVarName + ".value"
+                                            let assignStmt = sprintf "%s = (asn1SccUint)%s;" detAccess tmpName
+                                            let extraLvars =
+                                                [tmpVarDecl] @
+                                                (if isOwnParam then []
+                                                 else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }])
+                                            Some { r with
+                                                        funcBody = r.funcBody + "\n" + assignStmt
+                                                        localVariables = extraLvars @ r.localVariables }
+                                        | None -> None
                         let dummyNullType = Asn1AcnAst.AcnInsertedType.AcnNullType {
                             Asn1AcnAst.AcnNullType.acnProperties = { NullTypeAcnProperties.encodingPattern = None; savePosition = false }
                             acnAlignment = None
@@ -307,9 +415,12 @@ let private createDeferredSequenceFunction
         // create synthetic AcnChild entries that only declare the
         // AcnInsertedFieldRef local variable.  These are prepended so the
         // variable is in scope when child function calls reference &name.
+        // Exclude own parameters — they arrive as formal AcnInsertedFieldRef*
+        // parameters and don't need a local variable declaration.
         let missingDetNames =
             deferredDetNamesFromChildren
             |> Set.filter (fun name -> not (Set.contains name directAcnChildNames))
+            |> Set.filter (fun name -> not (Set.contains name deferredDetNamesFromOwnParams))
         let syntheticChildren =
             missingDetNames
             |> Set.toList
@@ -446,7 +557,18 @@ let private createDeferredReferenceFunction
                     | None ->
                         lm.lg.emptyStatement, [], [], true, true, [], [], ns2
                     | Some br ->
-                        br.funcBody, br.errCodes, br.localVariables, br.bBsIsUnReferenced, br.bValIsUnReferenced, br.userDefinedFunctions, br.auxiliaries, ns2
+                        // For intermediate boundaries (SEQUENCEs that receive params
+                        // and forward them to children): the SEQUENCE body passes []
+                        // as acnArgs to children, so child callerFuncBodies generate
+                        // &argName (local variable).  Replace these with the formal
+                        // parameter name for pointer pass-through.
+                        let funcBody0 =
+                            o.resolvedType.acnParameters |> List.fold (fun (body: string) prm ->
+                                let localRef = lm.acn.acn_deferred_det_actual_param (ToC prm.name) codec
+                                let paramRef = DAstACN.getAcnDeterminantName prm.id
+                                body.Replace(localRef, paramRef)
+                            ) br.funcBody
+                        funcBody0, br.errCodes, br.localVariables, br.bBsIsUnReferenced, br.bValIsUnReferenced, br.userDefinedFunctions, br.auxiliaries, ns2
 
             // Step 2b (Encode only): Append PatchDet calls for each consumer-side
             // acnParameter.  Skip for CONTAINING — PatchDet is already in the STG template.
@@ -480,10 +602,15 @@ let private createDeferredReferenceFunction
                                     match originalDetType with
                                     | None -> None
                                     | Some (_initFn, patchFn) ->
-                                        let valueExpr = computePatchDetValueExpr dep (t.id.ToScopeNodeList) specP.accessPath.rootId
+                                        let (preBlock, valueExpr) = computePatchDetValueExpr lm dep (t.id.ToScopeNodeList) specP.accessPath.rootId
                                         let detParamName = DAstACN.getAcnDeterminantName prm.id
                                         let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
-                                        Some (lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch codec))
+                                        let patchCall = lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch codec
+                                        let fullBlock =
+                                            match preBlock with
+                                            | None -> patchCall
+                                            | Some pre -> sprintf "{\n%s\n%s\n}" pre patchCall
+                                        Some fullBlock)
                         match patchCalls with
                         | [] -> bodyResult_funcBody0
                         | calls ->

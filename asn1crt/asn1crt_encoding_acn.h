@@ -413,6 +413,12 @@ DEFINE_ACN_DET_ENCODERS_SIGNED(I16_BE,  Acn_Enc_Int_TwosComplement_ConstSize_big
 DEFINE_ACN_DET_ENCODERS_SIGNED(I32_BE,  Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32, 32)
 DEFINE_ACN_DET_ENCODERS_SIGNED(I64_BE,  Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64, 64)
 
+/* Boolean determinant: 1-bit default encoding (writes 0 or 1 as a single bit) */
+static inline void Acn_Enc_Bool_1bit(BitStream* bs, asn1SccUint v) {
+    BitStream_AppendBit(bs, v ? 1 : 0);
+}
+DEFINE_ACN_DET_ENCODERS(BOOL1, Acn_Enc_Bool_1bit, 1)
+
 
 #ifdef  __cplusplus
 }
