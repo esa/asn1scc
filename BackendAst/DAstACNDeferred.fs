@@ -51,6 +51,28 @@ let getDetFunctionsForAcnChild (acnChild: DAst.AcnChild) : (string * string) opt
     | _ -> None
 
 
+/// Compute the C value expression for a PatchDet call, based on the
+/// dependency kind.  E.g., for AcnDepSizeDeterminant on an OCTET STRING
+/// field at path PDU.payload.buffer, with boundary at PDU.payload and
+/// rootId "pVal", returns "pVal->buffer.nCount".
+/// TODO: handle other dep kinds (PresenceBool, ChoiceDeterminant, etc.)
+let computePatchDetValueExpr (dep: Asn1AcnAst.AcnDependency) (boundaryPath: ScopeNode list) (rootId: string) : string =
+    match dep.dependencyKind with
+    | Asn1AcnAst.AcnDepSizeDeterminant _ ->
+        let fieldPath = dep.asn1Type.ToScopeNodeList
+        let relParts = fieldPath |> List.skip boundaryPath.Length
+        let fieldAccessParts =
+            relParts |> List.map (fun node ->
+                match node with
+                | SEQ_CHILD (name, _) -> name
+                | CH_CHILD (name, _, _) -> name
+                | _ -> failwithf "BUG: unexpected scope node %A in size dep path" node)
+        let fieldAccess = fieldAccessParts |> List.map ToC |> String.concat "."
+        sprintf "%s->%s.nCount" rootId fieldAccess
+    | _ ->
+        failwithf "BUG: PatchDet not yet implemented for dependency kind %A" dep.dependencyKind
+
+
 /// Follow the RefTypeArgumentDependency chain from a parameter upward
 /// through intermediate boundaries until reaching the original
 /// AcnChildDeterminant.  Returns the (InitDet, PatchDet) function names.
@@ -434,27 +456,7 @@ let private createDeferredReferenceFunction
                                 match originalDetType with
                                 | None -> None
                                 | Some (_initFn, patchFn) ->
-                                    // Compute the value expression from the dep kind
-                                    let valueExpr =
-                                        match dep.dependencyKind with
-                                        | Asn1AcnAst.AcnDepSizeDeterminant _ ->
-                                            // For size dependency: the value is the count
-                                            // of the dependent field (OCTET STRING / SEQ OF).
-                                            // The dep's asn1Type identifies the field.
-                                            let fieldPath = dep.asn1Type.ToScopeNodeList
-                                            let boundaryPath = t.id.ToScopeNodeList
-                                            // Get the relative path from boundary to field
-                                            let relParts = fieldPath |> List.skip boundaryPath.Length
-                                            let fieldAccessParts =
-                                                relParts |> List.map (fun node ->
-                                                    match node with
-                                                    | SEQ_CHILD (name, _) -> name
-                                                    | CH_CHILD (name, _, _) -> name
-                                                    | _ -> failwithf "BUG: unexpected scope node %A in size dep path" node)
-                                            let fieldAccess = fieldAccessParts |> List.map ToC |> String.concat "."
-                                            sprintf "%s->%s.nCount" specP.accessPath.rootId fieldAccess
-                                        | _ ->
-                                            failwithf "BUG: PatchDet not yet implemented for dependency kind %A" dep.dependencyKind
+                                    let valueExpr = computePatchDetValueExpr dep (t.id.ToScopeNodeList) specP.accessPath.rootId
                                     let detParamName = DAstACN.getAcnDeterminantName prm.id
                                     let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                                     Some (lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch codec))
