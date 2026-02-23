@@ -311,11 +311,16 @@ let private createDeferredReferenceFunction
             // Step 3: Build the specialized function's formal parameters.
             // Standard params come from EmitTypeAssignment_primitive; the extra
             // AcnInsertedFieldRef* params are appended via the prms list.
+            // Use getAcnDeterminantName for parameter names so they match
+            // what getExternalField0 / resolveParam produces inside the body.
+            // E.g., prm.id = MyModule.PDU.payload.buffers-length
+            //   → getAcnDeterminantName → "PDU_payload_buffers_length"
+            //   → formal param: "AcnInsertedFieldRef* PDU_payload_buffers_length"
             let deferredFormalParams =
                 o.resolvedType.acnParameters |> List.map (fun prm ->
-                    lm.acn.acn_deferred_det_formal_param (ToC prm.c_name) codec)
+                    lm.acn.acn_deferred_det_formal_param (DAstACN.getAcnDeterminantName prm.id) codec)
             let deferredParamNames =
-                o.resolvedType.acnParameters |> List.map (fun prm -> ToC prm.c_name)
+                o.resolvedType.acnParameters |> List.map (fun prm -> DAstACN.getAcnDeterminantName prm.id)
 
             // Step 4: Emit the specialized function using EmitTypeAssignment_primitive.
             let varName = specP.accessPath.rootId
