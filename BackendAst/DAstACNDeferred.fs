@@ -300,189 +300,6 @@ let private insertActualParams (baseFuncCall: string) (extraActualParams: string
             baseFuncCall
 
 
-/// Deferred CONTAINING reference function.
-/// For OCTET STRING (CONTAINING X) with SZ_EC_ExternalField:
-/// - Encode: call contained type directly into pBitStrm (no temp buffer),
-///   measure byte distance, PatchDet with measured value.
-/// - Decode: read length from AcnInsertedFieldRef->value, limit stream
-///   view, decode contained type directly.
-let private createDeferredContainingReferenceFunction
-        (r:Asn1AcnAst.AstRoot)
-        (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
-        (lm:LanguageMacros)
-        (codec:CommonTypes.Codec)
-        (t:Asn1AcnAst.Asn1Type)
-        (o:Asn1AcnAst.ReferenceType)
-        (typeDefinition:TypeDefinitionOrReference)
-        (isValidFunc: IsValidFunction option)
-        (baseType:Asn1Type)
-        (us:State) =
-
-    if o.resolvedType.acnParameters.Length = 0 then
-        // No deferred params — fall back to inline
-        DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us
-    else
-        // --- Generate specialized function for CONTAINING ---
-
-        let specFuncName =
-            let pathStr = t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin "_"
-            ToC2(r.args.TypePrefix + pathStr) + "_ACN" + codec.suffix
-
-        let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
-
-        let errCodeName = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-        let errCode, ns1 = getNextValidErrorCode us errCodeName None
-
-        let specP : CodegenScope = lm.lg.getParamType t codec
-        let pp =
-            let str = lm.lg.getParamValue t specP.accessPath codec
-            match codec, lm.lg.decodingKind with
-            | Decode, Copy -> ToC str
-            | _ -> str
-
-        // Find the size determinant parameter and its PatchDet function
-        let sizePrmAndPatchFn =
-            o.resolvedType.acnParameters |> List.tryPick (fun prm ->
-                let consumerDep =
-                    deps.acnDependencies |> List.tryFind (fun d ->
-                        d.determinant.id = prm.id
-                        && (match d.determinant with
-                            | Asn1AcnAst.AcnParameterDeterminant _ -> true
-                            | _ -> false)
-                        && (match d.dependencyKind with
-                            | AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
-                            | _ -> false))
-                match consumerDep with
-                | None -> None
-                | Some _ ->
-                    let rec findOriginalDetFunctions (paramId: ReferenceToType) =
-                        deps.acnDependencies |> List.tryPick (fun d ->
-                            match d.dependencyKind with
-                            | AcnDepRefTypeArgument p when p.id = paramId ->
-                                match d.determinant with
-                                | Asn1AcnAst.AcnChildDeterminant ac ->
-                                    match ac.Type with
-                                    | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
-                                        mapIntEncodingClassToDetFunctions ai.acnEncodingClass
-                                    | _ -> None
-                                | Asn1AcnAst.AcnParameterDeterminant parentPrm ->
-                                    findOriginalDetFunctions parentPrm.id
-                            | _ -> None)
-                    match findOriginalDetFunctions prm.id with
-                    | Some (_initFn, patchFn) -> Some (prm, patchFn)
-                    | None -> None)
-
-        // Build the specialized function body
-        let bodyResult_funcBody =
-            match codec with
-            | CommonTypes.Codec.Encode ->
-                // save_pos → encode contained type directly → save_pos → distance → PatchDet
-                let saveStart = lm.acn.acn_deferred_det_save_pos "acn_data_start" codec
-                let encodeCall = callBaseTypeFunc lm pp baseFncName codec
-                let saveEnd = lm.acn.acn_deferred_det_save_pos "acn_data_end" codec
-                let distanceExpr = lm.acn.acn_deferred_det_distance_bytes "acn_data_start" "acn_data_end" codec
-                let patchCode =
-                    match sizePrmAndPatchFn with
-                    | Some (prm, patchFn) ->
-                        let detParamName = DAstACN.getAcnDeterminantName prm.id
-                        lm.acn.acn_deferred_det_patch_ptr patchFn ("acn_nCount") detParamName "ERR_ACN_DET_CONSISTENCY_MISMATCH" codec
-                    | None -> ""
-                sprintf "%s\n%s\nif (ret) {\n%s\nasn1SccUint acn_nCount = %s;\n%s\n}" saveStart encodeCall saveEnd distanceExpr patchCode
-            | CommonTypes.Codec.Decode ->
-                // Read length from param->value, limit stream, decode directly
-                match sizePrmAndPatchFn with
-                | Some (prm, _) ->
-                    let detParamName = DAstACN.getAcnDeterminantName prm.id
-                    sprintf "{\nlong acn_saved_count = pBitStrm->count;\nlong acn_expected_end = pBitStrm->currentByte + (long)%s->value;\npBitStrm->count = acn_expected_end;\n%s\npBitStrm->count = acn_saved_count;\npBitStrm->currentByte = acn_expected_end;\npBitStrm->currentBit = 0;\n}" detParamName (callBaseTypeFunc lm pp baseFncName codec)
-                | None ->
-                    callBaseTypeFunc lm pp baseFncName codec
-
-        let bodyResult_errCodes = [errCode]
-        let bodyResult_localVariables : LocalVariable list = []
-
-        // Build formal params and function definition (same as createDeferredReferenceFunction)
-        let deferredFormalParams =
-            o.resolvedType.acnParameters |> List.map (fun prm ->
-                lm.acn.acn_deferred_det_formal_param (DAstACN.getAcnDeterminantName prm.id) codec)
-        let deferredParamNames =
-            o.resolvedType.acnParameters |> List.map (fun prm -> DAstACN.getAcnDeterminantName prm.id)
-
-        let varName = specP.accessPath.rootId
-        let sStar = lm.lg.getStar specP.accessPath
-        let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
-        let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
-        let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
-        let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
-        let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-
-        let specFuncBody =
-            lm.acn.EmitTypeAssignment_primitive
-                varName sStar specFuncName isValidFuncName typeDefinitionName
-                lvars bodyResult_funcBody
-                None ""
-                deferredFormalParams deferredParamNames
-                (t.acnMaxSizeInBits = 0I) false false
-                soInitFuncName [] [] None
-                codec
-
-        let specErrCodStr =
-            bodyResult_errCodes
-            |> List.groupBy (fun x -> x.errCodeName)
-            |> List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment})
-            |> List.map (fun x -> lm.acn.EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment)
-            |> List.distinct
-
-        let specFuncDef =
-            lm.acn.EmitTypeAssignment_primitive_def
-                varName sStar specFuncName typeDefinitionName
-                specErrCodStr
-                (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits
-                deferredFormalParams
-                None
-                codec
-
-        let allAuxiliaries = [specFuncDef; specFuncBody]
-
-        // Caller funcBody (same pattern as createDeferredReferenceFunction)
-        let callerFuncBody (callerUs:State) (callerErrCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
-            let callerPp, resultExpr =
-                let str = lm.lg.getParamValue t p.accessPath codec
-                match codec, lm.lg.decodingKind with
-                | Decode, Copy ->
-                    let toc = ToC str
-                    toc, Some toc
-                | _ -> str, None
-
-            let extraActualParams =
-                o.acnArguments |> List.map (fun arg ->
-                    let (AcnGenericTypes.RelativePath parts) = arg
-                    let argName = parts |> List.last |> fun sl -> sl.Value
-                    let parentParam =
-                        acnArgs |> List.tryFind (fun (_, prm) -> prm.name = argName)
-                    match parentParam with
-                    | Some (_, prm) ->
-                        DAstACN.getAcnDeterminantName prm.id
-                    | None ->
-                        lm.acn.acn_deferred_det_actual_param (ToC argName) codec)
-
-            let baseFuncCall = callBaseTypeFunc lm callerPp specFuncName codec
-            let funcBodyContent = insertActualParams baseFuncCall extraActualParams
-
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [callerErrCode]; localVariables = []; userDefinedFunctions = []; bValIsUnReferenced = false; bBsIsUnReferenced = false; resultExpr = resultExpr; auxiliaries = allAuxiliaries; icdResult = None}), callerUs
-
-        let ns2 =
-            match t.id.topLevelTas with
-            | None -> ns1
-            | Some tasInfo ->
-                let caller = {Caller.typeId = tasInfo; funcType=AcnEncDecFunctionType}
-                let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=AcnEncDecFunctionType}
-                addFunctionCallToState ns1 caller callee
-
-        let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-        let a, ns3 = DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc callerFuncBody (fun _atc -> true) soSparkAnnotations [] ns2
-        Some a, ns3
-
-
 /// Deferred version of createReferenceFunction.
 /// When the resolved type has acnParameters (from closure conversion),
 /// generates a specialized function per reference site with
@@ -500,60 +317,98 @@ let private createDeferredReferenceFunction
         (baseType:Asn1Type)
         (us:State) =
 
-    match o.encodingOptions with
-    | Some encOptions ->
-        match encOptions.acnEncodingClass, encOptions.octOrBitStr with
-        | Asn1AcnAst.SZ_EC_ExternalField _, CommonTypes.ContainedInOctString ->
-            // CONTAINING with external size field — direct encoding (no temp buffer)
-            createDeferredContainingReferenceFunction r deps lm codec t o typeDefinition isValidFunc baseType us
-        | _ ->
-            // Other CONTAINING variants — fall back to inline for now
-            DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us
-    | None ->
-        if o.resolvedType.acnParameters.Length = 0 then
-            // No deferred params — use inline behavior
-            DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us
-        else
-            // --- Generate specialized function per reference site ---
+    // Check if this is a CONTAINING with external size field that we can handle
+    let isContainingExternalField =
+        match o.encodingOptions with
+        | Some encOptions ->
+            match encOptions.acnEncodingClass, encOptions.octOrBitStr with
+            | Asn1AcnAst.SZ_EC_ExternalField _, CommonTypes.ContainedInOctString -> true
+            | _ -> false
+        | None -> false
 
-            // Step 1: Determine the specialized function name.
-            // Derived from the reference site's id path (e.g., MyModule.PDU.hdr
-            // → "PDU_hdr" → "PDU_hdr_ACN_Encode").  We skip the module name
-            // and join the remaining components with "_".
-            let specFuncName =
-                let pathStr = t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin "_"
-                ToC2(r.args.TypePrefix + pathStr) + "_ACN" + codec.suffix
+    if o.encodingOptions.IsSome && not isContainingExternalField then
+        // Other CONTAINING variants (LENGTH_EMBEDDED, FIXED_SIZE, BitString) — fall back to inline
+        DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us
+    elif o.resolvedType.acnParameters.Length = 0 then
+        // No deferred params — use inline behavior
+        DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us
+    else
+        // --- Generate specialized function per reference site ---
 
-            // Step 2: Get the base type's encoding body by calling its funcBody.
-            // The base type (e.g., Header) has a standalone AcnFunction with
-            // funcBody closure that produces the encoding body string.
-            let baseTypeAcnFunction = baseType.getAcnFunction codec
-            match baseTypeAcnFunction with
-            | None -> None, us
-            | Some baseAcnFunc ->
+        let specFuncName =
+            let pathStr = t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin "_"
+            ToC2(r.args.TypePrefix + pathStr) + "_ACN" + codec.suffix
+
+        let baseTypeAcnFunction = baseType.getAcnFunction codec
+        match baseTypeAcnFunction with
+        | None -> None, us
+        | Some baseAcnFunc ->
 
             // Generate an error code for the specialized function
             let errCodeName = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
             let errCode, ns1 = getNextValidErrorCode us errCodeName None
 
-            // Call the base type's funcBody to get the encoding body content.
-            // Pass the acnParameters as acnArgs so the body can resolve
-            // determinant references through them.
-            let paramsArgsPairs = List.zip o.acnArguments o.resolvedType.acnParameters
             let specP : CodegenScope = lm.lg.getParamType t codec
-            let bodyContent, ns2 = baseAcnFunc.funcBody ns1 paramsArgsPairs (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) specP
 
-            let bodyResult_funcBody0, bodyResult_errCodes, bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, bodyResult_udfcs, bodyResult_auxiliaries =
-                match bodyContent with
-                | None ->
-                    lm.lg.emptyStatement, [], [], true, true, [], []
-                | Some br ->
-                    br.funcBody, br.errCodes, br.localVariables, br.bBsIsUnReferenced, br.bValIsUnReferenced, br.userDefinedFunctions, br.auxiliaries
+            // Generate body content: either from base type's funcBody closure
+            // (normal case) or from STG template (CONTAINING case).
+            let bodyResult_funcBody0, bodyResult_errCodes, bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, bodyResult_udfcs, bodyResult_auxiliaries, ns2 =
+                if isContainingExternalField then
+                    // CONTAINING with external size field: use STG template
+                    // that encodes directly (no temp buffer) and patches the
+                    // size determinant with the measured byte distance.
+                    let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
+                    let pp =
+                        let str = lm.lg.getParamValue t specP.accessPath codec
+                        match codec, lm.lg.decodingKind with
+                        | Decode, Copy -> ToC str
+                        | _ -> str
+                    // Find the size determinant parameter and its PatchDet function name
+                    let detParamName, patchFnName =
+                        o.resolvedType.acnParameters |> List.tryPick (fun prm ->
+                            let hasSizeContainDep =
+                                deps.acnDependencies |> List.exists (fun d ->
+                                    d.determinant.id = prm.id
+                                    && (match d.dependencyKind with
+                                        | AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
+                                        | _ -> false))
+                            if not hasSizeContainDep then None
+                            else
+                                let rec findOrigFn (paramId: ReferenceToType) =
+                                    deps.acnDependencies |> List.tryPick (fun d ->
+                                        match d.dependencyKind with
+                                        | AcnDepRefTypeArgument p when p.id = paramId ->
+                                            match d.determinant with
+                                            | Asn1AcnAst.AcnChildDeterminant ac ->
+                                                match ac.Type with
+                                                | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                                                    mapIntEncodingClassToDetFunctions ai.acnEncodingClass
+                                                | _ -> None
+                                            | Asn1AcnAst.AcnParameterDeterminant parentPrm ->
+                                                findOrigFn parentPrm.id
+                                        | _ -> None)
+                                match findOrigFn prm.id with
+                                | Some (_initFn, patchFn) -> Some (DAstACN.getAcnDeterminantName prm.id, patchFn)
+                                | None -> None)
+                        |> Option.defaultValue ("", "")
+                    let fncBody = lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName errCode.errCodeName codec
+                    fncBody, [errCode], [], false, false, [], [], ns1
+                else
+                    // Normal case: call base type's funcBody closure
+                    let paramsArgsPairs = List.zip o.acnArguments o.resolvedType.acnParameters
+                    let bodyContent, ns2 = baseAcnFunc.funcBody ns1 paramsArgsPairs (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) specP
+                    match bodyContent with
+                    | None ->
+                        lm.lg.emptyStatement, [], [], true, true, [], [], ns2
+                    | Some br ->
+                        br.funcBody, br.errCodes, br.localVariables, br.bBsIsUnReferenced, br.bValIsUnReferenced, br.userDefinedFunctions, br.auxiliaries, ns2
 
             // Step 2b (Encode only): Append PatchDet calls for each consumer-side
-            // acnParameter.  The consumer has encoded the data; now it patches
-            // the determinant value back at the saved bitstream position.
+            // acnParameter.  Skip for CONTAINING — PatchDet is already in
+            // the STG template (uses measured byte distance, not a field value).
             let bodyResult_funcBody =
+                if isContainingExternalField then bodyResult_funcBody0
+                else
                 match codec with
                 | CommonTypes.Codec.Decode -> bodyResult_funcBody0
                 | CommonTypes.Codec.Encode ->
