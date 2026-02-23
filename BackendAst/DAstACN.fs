@@ -944,17 +944,39 @@ let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDe
         let lastNode = nodes |> List.rev |> List.head
         match lastNode with
         | PRM prmName   ->
-            let newDeterminantId =
-                deps.acnDependencies |>
-                List.choose(fun d ->
-                    match d.dependencyKind with
-                    | AcnDepRefTypeArgument prm when prm.id = prmId -> Some d.determinant
-                    | _                                             -> None)
-            match newDeterminantId with
-            | det1::_   -> resolveParam det1.id
-            | _         -> prmId
+            if r.args.acnDeferred then
+                // In deferred mode, the parameter IS the value — it arrives
+                // as an AcnInsertedFieldRef* formal parameter.  Do NOT follow
+                // RefTypeArgumentDependency chains; stop here.
+                prmId
+            else
+                let newDeterminantId =
+                    deps.acnDependencies |>
+                    List.choose(fun d ->
+                        match d.dependencyKind with
+                        | AcnDepRefTypeArgument prm when prm.id = prmId -> Some d.determinant
+                        | _                                             -> None)
+                match newDeterminantId with
+                | det1::_   -> resolveParam det1.id
+                | _         -> prmId
         | _             -> prmId
-    getAcnDeterminantName  (resolveParam dependency.determinant.id)
+
+    let resolvedId = resolveParam dependency.determinant.id
+    // In deferred mode, a PRM determinant MUST resolve to a PRM node
+    // (the parameter itself).  If it resolves to something else, it means
+    // the dep rewrite is wrong or a RefTypeArgumentDependency was followed
+    // when it shouldn't have been.
+    if r.args.acnDeferred then
+        match dependency.determinant with
+        | Asn1AcnAst.AcnParameterDeterminant _ ->
+            let resolvedNodes = match resolvedId with ReferenceToType nodes -> nodes
+            let resolvedLastNode = resolvedNodes |> List.rev |> List.head
+            match resolvedLastNode with
+            | PRM _ -> ()  // correct — resolved to a parameter
+            | _ -> failwithf "BUG: In deferred mode, parameter determinant %A resolved to non-PRM node %A" dependency.determinant.id resolvedId
+        | _ -> ()  // AcnChildDeterminant — resolves to the ACN child, which is fine
+
+    getAcnDeterminantName resolvedId
 
 let getExternalField0Type (r: Asn1AcnAst.AstRoot)
                           (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
