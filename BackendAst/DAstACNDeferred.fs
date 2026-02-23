@@ -64,9 +64,14 @@ let collectDeferredDetNames (children: SeqChildInfo list) : Set<string> =
         match ac.Type.Kind with
         | DAst.ReferenceType rt ->
             rt.baseInfo.acnArguments
-            |> List.collect (fun arg ->
+            |> List.choose (fun arg ->
                 let (AcnGenericTypes.RelativePath parts) = arg
-                parts |> List.map (fun sl -> sl.Value))
+                // Only the last part is the determinant name.
+                // Earlier parts are sibling navigation (e.g., "hdr" in
+                // "hdr.buffers-length" is the sibling, not a determinant).
+                match parts with
+                | [] -> None
+                | _  -> Some (parts |> List.last |> fun sl -> sl.Value))
         | _ -> [])
     |> Set.ofList
 
