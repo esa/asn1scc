@@ -359,23 +359,52 @@ let private createDeferredReferenceFunction
         (baseType:Asn1Type)
         (us:State) =
 
-    // Check if this is a CONTAINING with external size field that we can handle
+    let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
+
     let isContainingExternalField =
+        match o.encodingOptions with
+        | Some enc -> match enc.acnEncodingClass, enc.octOrBitStr with
+                      | Asn1AcnAst.SZ_EC_ExternalField _, CommonTypes.ContainedInOctString -> true
+                      | _ -> false
+        | None -> false
+
+    // Helper: create a simple funcBody from an STG template call (for CONTAINING FIXED/EMBEDDED)
+    let makeContainingFuncBody (stgCall: string -> string -> (AcnFuncBodyResult option) * State) =
+        let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
+        let funcBody (us:State) (errCode:ErrorCode) (_acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (_nestingScope: NestingScope) (p:CodegenScope) =
+            let pp = lm.lg.getParamValue t p.accessPath codec
+            stgCall pp baseFncName
+        DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc
+            (fun us e acnArgs nestingScope p -> funcBody us e acnArgs nestingScope p)
+            (fun _atc -> true) soSparkAnnotations [] us
+        |> fun (a, ns) -> Some a, ns
+
+    // Early return for CONTAINING cases that don't need a specialized function
+    let earlyReturn =
         match o.encodingOptions with
         | Some encOptions ->
             match encOptions.acnEncodingClass, encOptions.octOrBitStr with
-            | Asn1AcnAst.SZ_EC_ExternalField _, CommonTypes.ContainedInOctString -> true
-            | _ -> false
-        | None -> false
+            | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInOctString ->
+                Some (makeContainingFuncBody (fun pp fncName ->
+                    let fncBody = lm.acn.octet_string_containing_deferred_fixed_func pp fncName codec
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = None}), us))
+            | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInOctString ->
+                Some (makeContainingFuncBody (fun pp fncName ->
+                    let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn codec
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = None}), us))
+            | _ when not isContainingExternalField ->
+                Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
+            | _ -> None  // ExternalField with params → specialized function below
+        | None when o.resolvedType.acnParameters.Length = 0 ->
+            Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
+        | _ -> None  // has params → specialized function below
 
-    if o.encodingOptions.IsSome && not isContainingExternalField then
-        // Other CONTAINING variants (LENGTH_EMBEDDED, FIXED_SIZE, BitString) — fall back to inline
-        DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us
-    elif o.resolvedType.acnParameters.Length = 0 then
-        // No deferred params — use inline behavior
-        DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us
-    else
+    match earlyReturn with
+    | Some result -> result
+    | None ->
+
         // --- Generate specialized function per reference site ---
+        // ExternalField CONTAINING (with params) OR normal reference (with params)
 
         let specFuncName =
             let pathStr = t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin "_"
@@ -386,26 +415,21 @@ let private createDeferredReferenceFunction
         | None -> None, us
         | Some baseAcnFunc ->
 
-            // Generate an error code for the specialized function
             let errCodeName = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
             let errCode, ns1 = getNextValidErrorCode us errCodeName None
 
             let specP : CodegenScope = lm.lg.getParamType t codec
 
-            // Generate body content: either from base type's funcBody closure
-            // (normal case) or from STG template (CONTAINING case).
+            // Generate body content
             let bodyResult_funcBody0, bodyResult_errCodes, bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, bodyResult_udfcs, bodyResult_auxiliaries, ns2 =
-                if isContainingExternalField then
-                    // CONTAINING with external size field: use STG template
-                    // that encodes directly (no temp buffer) and patches the
-                    // size determinant with the measured byte distance.
-                    let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
+                match isContainingExternalField with
+                | true ->
+                    // CONTAINING ExternalField: STG template for direct encode + PatchDet
                     let pp =
                         let str = lm.lg.getParamValue t specP.accessPath codec
                         match codec, lm.lg.decodingKind with
                         | Decode, Copy -> ToC str
                         | _ -> str
-                    // The CONTAINING reference has one parameter: the size determinant
                     let sizePrm = o.resolvedType.acnParameters.Head
                     let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
                     let patchFnName =
@@ -414,8 +438,8 @@ let private createDeferredReferenceFunction
                         | None -> ""
                     let fncBody = lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName errCode.errCodeName codec
                     fncBody, [errCode], [], false, false, [], [], ns1
-                else
-                    // Normal case: call base type's funcBody closure
+                | false ->
+                    // Normal: call base type's funcBody closure
                     let paramsArgsPairs = List.zip o.acnArguments o.resolvedType.acnParameters
                     let bodyContent, ns2 = baseAcnFunc.funcBody ns1 paramsArgsPairs (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) specP
                     match bodyContent with
@@ -425,46 +449,46 @@ let private createDeferredReferenceFunction
                         br.funcBody, br.errCodes, br.localVariables, br.bBsIsUnReferenced, br.bValIsUnReferenced, br.userDefinedFunctions, br.auxiliaries, ns2
 
             // Step 2b (Encode only): Append PatchDet calls for each consumer-side
-            // acnParameter.  Skip for CONTAINING — PatchDet is already in
-            // the STG template (uses measured byte distance, not a field value).
+            // acnParameter.  Skip for CONTAINING — PatchDet is already in the STG template.
             let bodyResult_funcBody =
-                if isContainingExternalField then bodyResult_funcBody0
-                else
-                match codec with
-                | CommonTypes.Codec.Decode -> bodyResult_funcBody0
-                | CommonTypes.Codec.Encode ->
-                    let patchCalls =
-                        o.resolvedType.acnParameters |> List.choose (fun prm ->
-                            // Find the dep inside this boundary where the determinant
-                            // is this parameter (consumer-side dependency)
-                            let consumerDep =
-                                deps.acnDependencies |> List.tryFind (fun d ->
-                                    d.determinant.id = prm.id
-                                    && (match d.determinant with
-                                        | Asn1AcnAst.AcnParameterDeterminant _ -> true
-                                        | _ -> false)
-                                    // Exclude RefTypeArgDep — these are intermediate
-                                    // chain links (e.g., CHOICE→case boundary), not
-                                    // actual consumer deps with data fields.
-                                    && (match d.dependencyKind with
-                                        | AcnDepRefTypeArgument _ -> false
-                                        | _ -> true))
-                            match consumerDep with
-                            | None -> None
-                            | Some dep ->
-                                let originalDetType = findDetFunctionsForParam deps prm.id
-                                match originalDetType with
+                match isContainingExternalField with
+                | true -> bodyResult_funcBody0
+                | false ->
+                    match codec with
+                    | CommonTypes.Codec.Decode -> bodyResult_funcBody0
+                    | CommonTypes.Codec.Encode ->
+                        let patchCalls =
+                            o.resolvedType.acnParameters |> List.choose (fun prm ->
+                                // Find the dep inside this boundary where the determinant
+                                // is this parameter (consumer-side dependency)
+                                let consumerDep =
+                                    deps.acnDependencies |> List.tryFind (fun d ->
+                                        d.determinant.id = prm.id
+                                        && (match d.determinant with
+                                            | Asn1AcnAst.AcnParameterDeterminant _ -> true
+                                            | _ -> false)
+                                        // Exclude RefTypeArgDep — these are intermediate
+                                        // chain links (e.g., CHOICE→case boundary), not
+                                        // actual consumer deps with data fields.
+                                        && (match d.dependencyKind with
+                                            | AcnDepRefTypeArgument _ -> false
+                                            | _ -> true))
+                                match consumerDep with
                                 | None -> None
-                                | Some (_initFn, patchFn) ->
-                                    let valueExpr = computePatchDetValueExpr dep (t.id.ToScopeNodeList) specP.accessPath.rootId
-                                    let detParamName = DAstACN.getAcnDeterminantName prm.id
-                                    let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
-                                    Some (lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch codec))
-                    match patchCalls with
-                    | [] -> bodyResult_funcBody0
-                    | calls ->
-                        let patchCode = calls |> String.concat "\n"
-                        bodyResult_funcBody0 + "\n" + patchCode
+                                | Some dep ->
+                                    let originalDetType = findDetFunctionsForParam deps prm.id
+                                    match originalDetType with
+                                    | None -> None
+                                    | Some (_initFn, patchFn) ->
+                                        let valueExpr = computePatchDetValueExpr dep (t.id.ToScopeNodeList) specP.accessPath.rootId
+                                        let detParamName = DAstACN.getAcnDeterminantName prm.id
+                                        let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
+                                        Some (lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch codec))
+                        match patchCalls with
+                        | [] -> bodyResult_funcBody0
+                        | calls ->
+                            let patchCode = calls |> String.concat "\n"
+                            bodyResult_funcBody0 + "\n" + patchCode
 
             // Step 3: Build the specialized function's formal parameters.
             // Standard params come from EmitTypeAssignment_primitive; the extra
