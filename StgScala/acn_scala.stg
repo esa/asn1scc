@@ -1256,10 +1256,16 @@ acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
 
-acn_deferred_det_patch_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
 

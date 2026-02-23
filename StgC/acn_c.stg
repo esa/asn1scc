@@ -1353,12 +1353,22 @@ acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
 >>
 
 /* Patch the value at the saved position (calls Acn_PatchDet_XXX) */
-acn_deferred_det_patch_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+/* "value" variant: det is a local AcnInsertedFieldRef variable — pass address.
+   "ptr" variant: det is an AcnInsertedFieldRef* formal parameter — pass as-is. */
+acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
 ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, &<sDetName>, pErrCode);
 *pErrCode = <sErrCode>;
 if (!ret) return FALSE;
 >>
-acn_deferred_det_patch_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if (!ret) return FALSE;
+>>
+acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
 /* decode: no patch needed */
 >>
 
