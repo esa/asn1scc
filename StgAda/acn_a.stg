@@ -1344,6 +1344,15 @@ if result.success then
 end if;
 >>
 
+/* CONTAINING with deferred patching — TODO Ada implementation */
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada deferred CONTAINING encode
+>>
+
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada deferred CONTAINING decode
+>>
+
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
 adaasn1rtl.encoding.BitStream_AppendBits(bs, tmpBs.Buffer, Integer(<sExtField>));
 >>

@@ -1193,7 +1193,33 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 }
 >>
 
+/* CONTAINING with deferred patching: encode directly, PatchDet with measured distance */
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
+    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
+    if (ret) {
+        AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
+        asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+        ret = <sPatchFuncName>((asn1SccUint)acn_nCount, pBitStrm, <sDetParamName>, pErrCode);
+        *pErrCode = <sErrCode>;
+        if (!ret) return FALSE;
+    }
+}
+>>
 
+/* CONTAINING with deferred patching: limit stream view, decode directly */
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    long acn_saved_count = pBitStrm->count;
+    long acn_expected_end = pBitStrm->currentByte + (long)<sDetParamName>->value;
+    pBitStrm->count = acn_expected_end;
+    ret = <sFuncName>(<p>, pBitStrm, pErrCode);
+    pBitStrm->count = acn_saved_count;
+    pBitStrm->currentByte = acn_expected_end;
+    pBitStrm->currentBit = 0;
+}
+>>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
 BitStream_AppendBits(pBitStrm, arr, (int)<sExtField>);

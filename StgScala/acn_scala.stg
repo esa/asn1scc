@@ -1094,6 +1094,15 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 }
 >>
 
+/* CONTAINING with deferred patching — TODO Scala implementation */
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+// TODO: Scala deferred CONTAINING encode
+>>
+
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+// TODO: Scala deferred CONTAINING decode
+>>
+
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
 codec.base.bitStream.appendBitsMSBFirstVec(arr, <sExtField>.toInt)
 >>
