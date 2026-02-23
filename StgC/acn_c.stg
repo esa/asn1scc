@@ -1221,6 +1221,48 @@ octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatch
 }
 >>
 
+/* CONTAINING with deferred patching, FIXED_SIZE: just call directly, no temp buffer */
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
+ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
+>>
+
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
+ret = <sFuncName>(<p>, pBitStrm, pErrCode);
+>>
+
+/* CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure + patch */
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+{
+    AcnBitStreamPos acn_len_pos = Acn_BitStream_GetPos(pBitStrm);
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, <nMinSize>, <nMinSize>, <nMaxSize>);
+    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
+    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
+    if (ret) {
+        AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
+        asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+        Acn_BitStream_SetPos(pBitStrm, acn_len_pos);
+        BitStream_EncodeConstraintWholeNumber(pBitStrm, acn_nCount, <nMinSize>, <nMaxSize>);
+        Acn_BitStream_SetPos(pBitStrm, acn_data_end);
+    }
+}
+>>
+
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+{
+    asn1SccSint acn_nCount;
+    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
+    if (ret) {
+        long acn_saved_count = pBitStrm->count;
+        long acn_expected_end = pBitStrm->currentByte + (long)acn_nCount;
+        pBitStrm->count = acn_expected_end;
+        ret = <sFuncName>(<p>, pBitStrm, pErrCode);
+        pBitStrm->count = acn_saved_count;
+        pBitStrm->currentByte = acn_expected_end;
+        pBitStrm->currentBit = 0;
+    }
+}
+>>
+
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
 BitStream_AppendBits(pBitStrm, arr, (int)<sExtField>);
 >>
