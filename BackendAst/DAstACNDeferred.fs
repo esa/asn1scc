@@ -174,44 +174,53 @@ let private createDeferredSequenceFunction
                     let detFuncs = getDetFunctionsForAcnChild ac
                     match detFuncs with
                     | Some (initFuncName, _patchFuncName) ->
-                        // Replace encoding with InitDet:
-                        // - funcBody emits Acn_InitDet_XXX call using the determinant's
-                        //   full name (matching the formal parameter name)
-                        // - funcUpdateStatement = None (value patched by consumer function)
-                        // - Type = AcnNullType (bypasses _is_initialized check and
-                        //   existsAcnChildWithNoUpdates error)
-                        // - NO local variable declared (the value is a formal parameter
-                        //   when this is a producer-side specialized function, or an
-                        //   AcnInsertedFieldRef declared at the parent level)
+                        // Replace encoding with InitDet, keep original decode:
+                        // - Encode: emits Acn_InitDet_XXX call
+                        // - Decode: keeps original funcBody but redirects target
+                        //   to det->value (so decode writes into the struct's
+                        //   value field, not into a nonexistent local variable)
+                        // - funcUpdateStatement = None (value patched by consumer)
+                        // - Type = AcnNullType (bypasses _is_initialized check)
                         let detVarName = DAstACN.getAcnDeterminantName ac.id
                         let isOwnParam = Set.contains ac.Name.Value deferredDetNamesFromOwnParams
+                        let originalFuncBody = ac.funcBody
                         let deferredFuncBody : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> string -> (AcnFuncBodyResult option) =
-                            fun _codec _acnArgs _nestingScope _p _bsPos ->
-                                // "value" variant: det is a local variable → pass &name
-                                // "ptr" variant: det is a formal parameter → pass name as-is
-                                let initCode =
-                                    if isOwnParam then
-                                        lm.acn.acn_deferred_det_init_ptr initFuncName detVarName codec
-                                    else
-                                        lm.acn.acn_deferred_det_init_value initFuncName detVarName codec
-                                Some {
-                                    AcnFuncBodyResult.funcBody = initCode
-                                    errCodes = []
-                                    // When the determinant is an own parameter (producer-side
-                                    // specialized function), the value arrives as a formal
-                                    // parameter — do NOT declare a local variable.
-                                    // When it is from child acnArguments (parent level),
-                                    // the synthetic AcnChild handles the declaration.
-                                    localVariables =
-                                        if isOwnParam then []
-                                        else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
-                                    bValIsUnReferenced = false
-                                    bBsIsUnReferenced = false
-                                    resultExpr = None
-                                    auxiliaries = []
-                                    icdResult = None
-                                    userDefinedFunctions = []
-                                }
+                            fun innerCodec acnArgs nestingScope p bsPos ->
+                                match innerCodec with
+                                | CommonTypes.Codec.Encode ->
+                                    // "value" variant: det is a local variable → pass &name
+                                    // "ptr" variant: det is a formal parameter → pass name as-is
+                                    let initCode =
+                                        if isOwnParam then
+                                            lm.acn.acn_deferred_det_init_ptr initFuncName detVarName innerCodec
+                                        else
+                                            lm.acn.acn_deferred_det_init_value initFuncName detVarName innerCodec
+                                    Some {
+                                        AcnFuncBodyResult.funcBody = initCode
+                                        errCodes = []
+                                        localVariables =
+                                            if isOwnParam then []
+                                            else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
+                                        bValIsUnReferenced = false
+                                        bBsIsUnReferenced = false
+                                        resultExpr = None
+                                        auxiliaries = []
+                                        icdResult = None
+                                        userDefinedFunctions = []
+                                    }
+                                | CommonTypes.Codec.Decode ->
+                                    // Keep original decode funcBody but redirect
+                                    // the target to det->value.  The original
+                                    // funcBody generates e.g.
+                                    //   Acn_Dec_Int_...(pBitStrm, &(<childP>))
+                                    // By changing childP's accessPath to "det->value",
+                                    // the decode writes into the struct's value field:
+                                    //   Acn_Dec_Int_...(pBitStrm, &(det->value))
+                                    let valueTarget =
+                                        if isOwnParam then detVarName + "->value"
+                                        else detVarName + ".value"
+                                    let modifiedP = {p with accessPath = AccessPath.valueEmptyPath valueTarget}
+                                    originalFuncBody innerCodec acnArgs nestingScope modifiedP bsPos
                         let dummyNullType = Asn1AcnAst.AcnInsertedType.AcnNullType {
                             Asn1AcnAst.AcnNullType.acnProperties = { NullTypeAcnProperties.encodingPattern = None; savePosition = false }
                             acnAlignment = None
