@@ -51,6 +51,26 @@ let getDetFunctionsForAcnChild (acnChild: DAst.AcnChild) : (string * string) opt
     | _ -> None
 
 
+/// Follow the RefTypeArgumentDependency chain from a parameter upward
+/// through intermediate boundaries until reaching the original
+/// AcnChildDeterminant.  Returns the (InitDet, PatchDet) function names.
+let findDetFunctionsForParam (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (paramId: ReferenceToType) : (string * string) option =
+    let rec follow (pid: ReferenceToType) =
+        deps.acnDependencies |> List.tryPick (fun d ->
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument p when p.id = pid ->
+                match d.determinant with
+                | Asn1AcnAst.AcnChildDeterminant ac ->
+                    match ac.Type with
+                    | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                        mapIntEncodingClassToDetFunctions ai.acnEncodingClass
+                    | _ -> None
+                | Asn1AcnAst.AcnParameterDeterminant parentPrm ->
+                    follow parentPrm.id
+            | _ -> None)
+    follow paramId
+
+
 /// Collect the names of determinants that are passed as acnArguments
 /// by child reference types within a SEQUENCE.  These are the ACN children
 /// that need deferred handling (InitDet instead of normal encoding).
@@ -363,34 +383,13 @@ let private createDeferredReferenceFunction
                         match codec, lm.lg.decodingKind with
                         | Decode, Copy -> ToC str
                         | _ -> str
-                    // Find the size determinant parameter and its PatchDet function name
-                    let detParamName, patchFnName =
-                        o.resolvedType.acnParameters |> List.tryPick (fun prm ->
-                            let hasSizeContainDep =
-                                deps.acnDependencies |> List.exists (fun d ->
-                                    d.determinant.id = prm.id
-                                    && (match d.dependencyKind with
-                                        | AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
-                                        | _ -> false))
-                            if not hasSizeContainDep then None
-                            else
-                                let rec findOrigFn (paramId: ReferenceToType) =
-                                    deps.acnDependencies |> List.tryPick (fun d ->
-                                        match d.dependencyKind with
-                                        | AcnDepRefTypeArgument p when p.id = paramId ->
-                                            match d.determinant with
-                                            | Asn1AcnAst.AcnChildDeterminant ac ->
-                                                match ac.Type with
-                                                | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
-                                                    mapIntEncodingClassToDetFunctions ai.acnEncodingClass
-                                                | _ -> None
-                                            | Asn1AcnAst.AcnParameterDeterminant parentPrm ->
-                                                findOrigFn parentPrm.id
-                                        | _ -> None)
-                                match findOrigFn prm.id with
-                                | Some (_initFn, patchFn) -> Some (DAstACN.getAcnDeterminantName prm.id, patchFn)
-                                | None -> None)
-                        |> Option.defaultValue ("", "")
+                    // The CONTAINING reference has one parameter: the size determinant
+                    let sizePrm = o.resolvedType.acnParameters.Head
+                    let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
+                    let patchFnName =
+                        match findDetFunctionsForParam deps sizePrm.id with
+                        | Some (_initFn, patchFn) -> patchFn
+                        | None -> ""
                     let fncBody = lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName errCode.errCodeName codec
                     fncBody, [errCode], [], false, false, [], [], ns1
                 else
@@ -431,26 +430,7 @@ let private createDeferredReferenceFunction
                             match consumerDep with
                             | None -> None
                             | Some dep ->
-                                // Find the PatchDet function name from the original
-                                // ACN child's encoding class.  Follow the
-                                // RefTypeArgumentDependency chain upward through
-                                // intermediate boundaries (e.g., CHOICE→parent)
-                                // until reaching the AcnChildDeterminant.
-                                let rec findOriginalDetFunctions (paramId: ReferenceToType) =
-                                    deps.acnDependencies |> List.tryPick (fun d ->
-                                        match d.dependencyKind with
-                                        | AcnDepRefTypeArgument p when p.id = paramId ->
-                                            match d.determinant with
-                                            | Asn1AcnAst.AcnChildDeterminant ac ->
-                                                match ac.Type with
-                                                | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
-                                                    mapIntEncodingClassToDetFunctions ai.acnEncodingClass
-                                                | _ -> None
-                                            | Asn1AcnAst.AcnParameterDeterminant parentPrm ->
-                                                // Intermediate boundary: follow chain upward
-                                                findOriginalDetFunctions parentPrm.id
-                                        | _ -> None)
-                                let originalDetType = findOriginalDetFunctions prm.id
+                                let originalDetType = findDetFunctionsForParam deps prm.id
                                 match originalDetType with
                                 | None -> None
                                 | Some (_initFn, patchFn) ->
