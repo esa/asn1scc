@@ -262,10 +262,13 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 | XerFunctionDummy -> [])
             
             let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
+            // Auxiliaries (e.g., specialized deferred-patching functions) are
+            // emitted BEFORE the main function so that forward declarations
+            // are not needed in the .c file.
             let ancEncDec =
                 if requiresAcn && hasAcnEncDec then
-                    (t.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries)) @
-                    (t.Type.acnDecFunction |> Option.toList |> List.collect (fun x -> (x.func |> Option.toList) @ x.auxiliaries))
+                    (t.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> x.auxiliaries @ (x.func |> Option.toList))) @
+                    (t.Type.acnDecFunction |> Option.toList |> List.collect (fun x -> x.auxiliaries @ (x.func |> Option.toList)))
                 else []
 
             let allProcs =
