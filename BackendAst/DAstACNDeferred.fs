@@ -434,6 +434,16 @@ let private createDeferredReferenceFunction
             let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
             let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
 
+            // In deferred mode, pVal may be unreferenced if the resolved type
+            // has only ACN-inserted children and no ASN.1 data fields (e.g., Header
+            // with only version pattern + buffers-length determinant).
+            let hasAsn1Children =
+                match o.resolvedType.Kind with
+                | Asn1AcnAst.Asn1TypeKind.Sequence sq ->
+                    sq.children |> List.exists (fun c -> match c with Asn1AcnAst.Asn1Child _ -> true | _ -> false)
+                | _ -> true
+            let bVarNameIsUnreferenced = bVarNameIsUnreferenced || not hasAsn1Children
+
             let specFuncBody =
                 lm.acn.EmitTypeAssignment_primitive
                     varName sStar specFuncName isValidFuncName typeDefinitionName
