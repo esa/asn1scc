@@ -976,7 +976,18 @@ let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDe
             | _ -> failwithf "BUG: In deferred mode, parameter determinant %A resolved to non-PRM node %A" dependency.determinant.id resolvedId
         | _ -> ()  // AcnChildDeterminant — resolves to the ACN child, which is fine
 
-    getAcnDeterminantName resolvedId
+    let baseName = getAcnDeterminantName resolvedId
+    // In deferred mode, when the determinant resolved to a PRM (parameter),
+    // the formal parameter is AcnInsertedFieldRef*.  Code that reads the
+    // integer value must access the ->value field of the struct.
+    if r.args.acnDeferred then
+        let resolvedNodes = match resolvedId with ReferenceToType nodes -> nodes
+        let resolvedLastNode = resolvedNodes |> List.rev |> List.head
+        match resolvedLastNode with
+        | PRM _ -> baseName + "->value"
+        | _     -> baseName
+    else
+        baseName
 
 let getExternalField0Type (r: Asn1AcnAst.AstRoot)
                           (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
