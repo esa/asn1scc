@@ -145,7 +145,16 @@ let private createDeferredSequenceFunction
         (acnPrms:DastAcnParameter list)
         (us:State) =
 
-    let deferredDetNames = collectDeferredDetNames children
+    // Deferred determinant names come from two sources:
+    //   (a) child ReferenceTypes' acnArguments — the parent SEQUENCE declares
+    //       AcnInsertedFieldRef variables and passes them to children
+    //   (b) the sequence's own acnParameters — the sequence receives
+    //       AcnInsertedFieldRef* formal parameters (producer or consumer)
+    //       and its direct ACN children matching those params need InitDet
+    let deferredDetNamesFromChildren = collectDeferredDetNames children
+    let deferredDetNamesFromOwnParams =
+        t.acnParameters |> List.map (fun p -> p.name) |> Set.ofList
+    let deferredDetNames = Set.union deferredDetNamesFromChildren deferredDetNamesFromOwnParams
 
     // If no deferred determinants, use the inline version as-is
     if deferredDetNames.IsEmpty then
@@ -166,19 +175,30 @@ let private createDeferredSequenceFunction
                     match detFuncs with
                     | Some (initFuncName, _patchFuncName) ->
                         // Replace encoding with InitDet:
-                        // - funcBody emits Acn_InitDet_XXX call
-                        // - funcUpdateStatement = None (value patched later by child functions)
+                        // - funcBody emits Acn_InitDet_XXX call using the determinant's
+                        //   full name (matching the formal parameter name)
+                        // - funcUpdateStatement = None (value patched by consumer function)
                         // - Type = AcnNullType (bypasses _is_initialized check and
                         //   existsAcnChildWithNoUpdates error)
-                        // The AcnInsertedFieldRef local variable is declared via
-                        // funcBody's localVariables return.
+                        // - NO local variable declared (the value is a formal parameter
+                        //   when this is a producer-side specialized function, or an
+                        //   AcnInsertedFieldRef declared at the parent level)
+                        let detVarName = DAstACN.getAcnDeterminantName ac.id
+                        let isOwnParam = Set.contains ac.Name.Value deferredDetNamesFromOwnParams
                         let deferredFuncBody : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> string -> (AcnFuncBodyResult option) =
                             fun _codec _acnArgs _nestingScope _p _bsPos ->
-                                let initCode = lm.acn.acn_deferred_det_init initFuncName ac.c_name codec
+                                let initCode = lm.acn.acn_deferred_det_init initFuncName detVarName codec
                                 Some {
                                     AcnFuncBodyResult.funcBody = initCode
                                     errCodes = []
-                                    localVariables = [GenericLocalVariable { name = ac.c_name; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
+                                    // When the determinant is an own parameter (producer-side
+                                    // specialized function), the value arrives as a formal
+                                    // parameter — do NOT declare a local variable.
+                                    // When it is from child acnArguments (parent level),
+                                    // the synthetic AcnChild handles the declaration.
+                                    localVariables =
+                                        if isOwnParam then []
+                                        else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
                                     bValIsUnReferenced = false
                                     bBsIsUnReferenced = false
                                     resultExpr = None
@@ -212,7 +232,7 @@ let private createDeferredSequenceFunction
         // AcnInsertedFieldRef local variable.  These are prepended so the
         // variable is in scope when child function calls reference &name.
         let missingDetNames =
-            deferredDetNames
+            deferredDetNamesFromChildren
             |> Set.filter (fun name -> not (Set.contains name directAcnChildNames))
         let syntheticChildren =
             missingDetNames
