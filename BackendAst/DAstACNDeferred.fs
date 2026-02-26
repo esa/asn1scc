@@ -732,7 +732,14 @@ let private createDeferredReferenceFunction
                                     match originalDetType with
                                     | None -> None
                                     | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                        let (preBlock, rawValueExpr) = computePatchDetValueExpr lm dep (t.id.ToScopeNodeList) specP.accessPath.rootId
+                                        let boundaryPath = o.resolvedType.id.ToScopeNodeList
+                                        // Skip PresenceBool deps where the OPTIONAL field IS
+                                        // the boundary type itself (fieldLen <= boundaryLen).
+                                        // The presence check (parent.exist.childName) belongs
+                                        // to the parent function, not this child function.
+                                        if (match dep.dependencyKind with Asn1AcnAst.AcnDepPresenceBool -> true | _ -> false) && dep.asn1Type.ToScopeNodeList.Length <= boundaryPath.Length then None
+                                        else
+                                        let (preBlock, rawValueExpr) = computePatchDetValueExpr lm dep boundaryPath specP.accessPath.rootId
                                         // For Integer_uPER with min > 0, UPER encodes (value - min)
                                         // but ConstSize encodes value directly, so subtract the offset.
                                         let valueExpr =
