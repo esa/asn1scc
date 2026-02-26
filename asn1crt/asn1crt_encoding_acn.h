@@ -420,6 +420,73 @@ static inline void Acn_Enc_Bool_1bit(BitStream* bs, asn1SccUint v) {
 }
 DEFINE_ACN_DET_ENCODERS(BOOL1, Acn_Enc_Bool_1bit, 1)
 
+/* Generic ConstSize — arbitrary bit width.
+ * Like DEFINE_ACN_DET_ENCODERS but the encoder takes 3 args (bs, value, nBits)
+ * instead of 2.  The extra nBits parameter is forwarded by InitDet/PatchDet.
+ * Uses macro approach so that function names (Acn_InitDet_##name) are created
+ * via token pasting — this keeps them invisible to the line-based RTL header
+ * pruning, avoiding collateral damage from removeFunctionFromHeader. */
+#define DEFINE_ACN_DET_ENCODERS_CONSTSIZE(name, encoder_fn)                     \
+static inline void Acn_InitDet_##name(BitStream* bs, int nBits,                 \
+                                      AcnInsertedFieldRef* det) {               \
+    (void)nBits;                                                                \
+    det->pos = Acn_BitStream_GetPos(bs);                                        \
+    det->is_set = FALSE;                                                        \
+    det->value = 0;                                                             \
+    encoder_fn(bs, 0, nBits);                                                   \
+}                                                                               \
+static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs, int nBits, \
+                                       AcnInsertedFieldRef* det, int* err) {    \
+    (void)nBits;                                                                \
+    if (!det->is_set) {                                                         \
+        AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                         \
+        Acn_BitStream_SetPos(bs, det->pos);                                     \
+        encoder_fn(bs, v, nBits);                                               \
+        Acn_BitStream_SetPos(bs, cur);                                          \
+        det->value = v;                                                         \
+        det->is_set = TRUE;                                                     \
+        return TRUE;                                                            \
+    } else {                                                                    \
+        if (det->value != v) {                                                  \
+            if (err) *err = ERR_ACN_DET_CONSISTENCY_MISMATCH;                   \
+            return FALSE;                                                       \
+        }                                                                       \
+        return TRUE;                                                            \
+    }                                                                           \
+}
+
+#define DEFINE_ACN_DET_ENCODERS_SIGNED_CONSTSIZE(name, encoder_fn)              \
+static inline void Acn_InitDet_##name(BitStream* bs, int nBits,                 \
+                                      AcnInsertedFieldRef* det) {               \
+    (void)nBits;                                                                \
+    det->pos = Acn_BitStream_GetPos(bs);                                        \
+    det->is_set = FALSE;                                                        \
+    det->value = 0;                                                             \
+    encoder_fn(bs, 0, nBits);                                                   \
+}                                                                               \
+static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs, int nBits, \
+                                       AcnInsertedFieldRef* det, int* err) {    \
+    (void)nBits;                                                                \
+    if (!det->is_set) {                                                         \
+        AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                         \
+        Acn_BitStream_SetPos(bs, det->pos);                                     \
+        encoder_fn(bs, (asn1SccSint)v, nBits);                                  \
+        Acn_BitStream_SetPos(bs, cur);                                          \
+        det->value = v;                                                         \
+        det->is_set = TRUE;                                                     \
+        return TRUE;                                                            \
+    } else {                                                                    \
+        if (det->value != v) {                                                  \
+            if (err) *err = ERR_ACN_DET_CONSISTENCY_MISMATCH;                   \
+            return FALSE;                                                       \
+        }                                                                       \
+        return TRUE;                                                            \
+    }                                                                           \
+}
+
+DEFINE_ACN_DET_ENCODERS_CONSTSIZE(ConstSize, Acn_Enc_Int_PositiveInteger_ConstSize)
+DEFINE_ACN_DET_ENCODERS_SIGNED_CONSTSIZE(TwosComplement_ConstSize, Acn_Enc_Int_TwosComplement_ConstSize)
+
 
 #ifdef  __cplusplus
 }

@@ -1468,6 +1468,39 @@ acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::
 /* decode: no patch needed */
 >>
 
+/* _with_size variants: InitDet/PatchDet for arbitrary bit widths (nBits parameter) */
+acn_deferred_det_init_value_with_size_encode(sInitFuncName, nBits, sDetName) ::= <<
+<sInitFuncName>(pBitStrm, <nBits>, &<sDetName>);
+>>
+acn_deferred_det_init_value_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
+/* decode: no init needed */
+>>
+
+acn_deferred_det_init_ptr_with_size_encode(sInitFuncName, nBits, sDetName) ::= <<
+<sInitFuncName>(pBitStrm, <nBits>, <sDetName>);
+>>
+acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
+/* decode: no init needed */
+>>
+
+acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <nBits>, &<sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if (!ret) return FALSE;
+>>
+acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+
+acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <nBits>, <sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if (!ret) return FALSE;
+>>
+acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+
 /* Extra formal parameter for a function receiving a deferred determinant */
 acn_deferred_det_formal_param_encode(sDetName) ::= "AcnInsertedFieldRef* <sDetName>"
 acn_deferred_det_formal_param_decode(sDetName) ::= "AcnInsertedFieldRef* <sDetName>"
