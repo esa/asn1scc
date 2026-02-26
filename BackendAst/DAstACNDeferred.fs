@@ -573,14 +573,25 @@ let private createDeferredReferenceFunction
         // --- Generate specialized function per reference site ---
         // ExternalField CONTAINING (with params) OR normal reference (with params)
 
-        let specFuncName =
-            let pathStr = t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin "_"
-            ToC2(r.args.TypePrefix + pathStr) + "_ACN" + codec.suffix
-
         let baseTypeAcnFunction = baseType.getAcnFunction codec
         match baseTypeAcnFunction with
         | None -> None, us
         | Some baseAcnFunc ->
+
+            let specFuncName =
+                let pathStr = t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin "_"
+                let candidate = ToC2(r.args.TypePrefix + pathStr) + "_ACN" + codec.suffix
+                // Disambiguate: if the base type's standalone function has the
+                // same name, insert "_D" to avoid conflicting types in generated C.
+                // This happens when a TAS name with dashes (e.g. MyPDU-a → MyPDU_a)
+                // collides with a reference site path (e.g. MyPDU.a → MyPDU_a).
+                // Note: baseFncName (computed at the top of createDeferredReferenceFunction
+                // from getBaseFuncName) gives the TAS's standalone function name.
+                // baseAcnFunc.funcName is None when the resolved type has acnParameters
+                // (closure conversion), so we use baseFncName instead.
+                if baseFncName = candidate then
+                    candidate.Replace("_ACN" + codec.suffix, "_D_ACN" + codec.suffix)
+                else candidate
 
             let errCodeName = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
             let errCode, ns1 = getNextValidErrorCode us errCodeName None
