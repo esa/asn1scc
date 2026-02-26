@@ -1369,6 +1369,14 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 -- TODO: Ada deferred CONTAINING embedded decode
 >>
 
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada deferred CONTAINING wrapper encode
+>>
+
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada deferred CONTAINING wrapper decode
+>>
+
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
 adaasn1rtl.encoding.BitStream_AppendBits(bs, tmpBs.Buffer, Integer(<sExtField>));
 >>
