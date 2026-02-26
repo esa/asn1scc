@@ -165,6 +165,25 @@ let findDetFunctionsForParam (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (pa
     follow paramId
 
 
+/// Collect deferred determinant names from the original AST (before the fold).
+/// Used by preSeqFunc to provide parent context to createAcnChild.
+let collectDeferredDetNamesFromAst (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (seq: Asn1AcnAst.Sequence) : Set<string> =
+    if not r.args.acnDeferred then Set.empty
+    else
+        let fromChildren =
+            seq.children
+            |> List.choose (fun c -> match c with Asn1AcnAst.Asn1Child ac -> Some ac | _ -> None)
+            |> List.collect (fun ac ->
+                match ac.Type.Kind with
+                | Asn1AcnAst.ReferenceType rt ->
+                    rt.acnArguments
+                    |> List.choose (fun (AcnGenericTypes.RelativePath parts) ->
+                        match parts with [] -> None | _ -> Some (parts |> List.last).Value)
+                | _ -> [])
+            |> Set.ofList
+        let fromOwnParams = t.acnParameters |> List.map (fun p -> p.name) |> Set.ofList
+        Set.union fromChildren fromOwnParams
+
 /// Collect the names of determinants that are passed as acnArguments
 /// by child reference types within a SEQUENCE.  These are the ACN children
 /// that need deferred handling (InitDet instead of normal encoding).

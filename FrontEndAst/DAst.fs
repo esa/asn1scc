@@ -136,6 +136,13 @@ type State = {
 
 let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty}
 
+/// Parent context passed from the fold's pre-functions to child callbacks.
+/// Allows seqAcnChildFunc to know about the parent SEQUENCE's deferred children.
+type ParentData =
+    | SequenceParentData of deferredAcnChildren: Set<string>
+    | ChoiceParentData
+    | SequenceOfParentData
+
 let addFunctionCallToState (state:State) (caller:Caller) (callee:Callee) =
     match state.functionCalls.TryFind caller  with
     | Some lst -> {state with functionCalls = state.functionCalls.Add(caller, callee::lst)}

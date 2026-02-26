@@ -34,7 +34,7 @@ let private mapAcnParameter (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         //funcUpdateStatement00 = funcUpdateStatement
     }, ns1
 
-let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (ch:Asn1AcnAst.AcnChild) (us:State) =
+let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (ch:Asn1AcnAst.AcnChild) (parentData:DAst.ParentData) (us:State) =
     
     let tdBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnChildDeterminant ch)
     let acnAlignment =
@@ -62,10 +62,15 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps lm Codec.Decode ch.id a ns1
 
     let funcUpdateStatement, ns3 =
-        if r.args.acnDeferred then
-            // In deferred mode, funcUpdateStatement is not used — determinant
-            // values are handled by InitDet/PatchDet.  Skip computation to
-            // avoid crashes from closure-converted dep chains.
+        // In deferred mode (--acn-v2), ACN children that will use InitDet/PatchDet
+        // (Περίπτωση Β) don't need funcUpdateStatement — their value is patched
+        // later by PatchDet inside child functions.  Same-level determinants
+        // (Περίπτωση Α) still need funcUpdateStatement for the inline path.
+        let isDeferred =
+            match parentData with
+            | DAst.SequenceParentData deferredNames -> Set.contains ch.Name.Value deferredNames
+            | _ -> false
+        if isDeferred then
             None, ns2
         else
             DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
@@ -115,7 +120,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         }
     AcnChild ret, ns3
 
-type ParentInfoData = unit
+type ParentInfoData = DAst.ParentData
 
 let private createInteger (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (us:State) =
     //let defOrRef =  TL "DAstTypeDefinition" (fun () -> DAstTypeDefinition.createInteger_u r lm t o )
@@ -824,7 +829,7 @@ let private mapType (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1Acn
 
         (fun pi t ti newChildren -> TL "createSequence" (fun () -> createSequence r deps lm m pi t ti newChildren))
         (fun ch newChild -> TL "createAsn1Child" (fun () -> createAsn1Child r lm m ch newChild))
-        (fun ch us -> TL "createAcnChild" (fun () -> createAcnChild r icdStgFileName deps lm m ch us))
+        (fun ch parentData us -> TL "createAcnChild" (fun () -> createAcnChild r icdStgFileName deps lm m ch parentData us))
 
 
         (fun pi t ti newChildren -> TL "createChoice" (fun () -> createChoice r deps lm m pi t ti newChildren))
@@ -841,9 +846,11 @@ let private mapType (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1Acn
             )
         (fun pi t ((newKind, newPrms),us)        -> TL "createType" (fun () -> createType r pi t ((newKind, newPrms),us)))
 
-        (fun pi t ti us -> (),us)
-        (fun pi t ti us -> (),us)
-        (fun pi t ti us -> (),us)
+        (fun pi t ti us -> DAst.SequenceOfParentData, us)
+        (fun pi t ti us ->
+            let deferredNames = DAstACNDeferred.collectDeferredDetNamesFromAst r t ti
+            DAst.SequenceParentData deferredNames, us)
+        (fun pi t ti us -> DAst.ChoiceParentData, us)
 
         deps
         None
