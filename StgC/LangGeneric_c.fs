@@ -672,6 +672,10 @@ type LangGeneric_c() =
                 "Acn_PatchDet_I64_BE"
                 "Acn_InitDet_BOOL1"
                 "Acn_PatchDet_BOOL1"
+                "Acn_InitDet_ConstSize"
+                "Acn_PatchDet_ConstSize"
+                "Acn_InitDet_TwosComplement_ConstSize"
+                "Acn_PatchDet_TwosComplement_ConstSize"
              ]
         override this.detectFunctionCalls (sourceCode: string) (functionName: string) : string list =
             let knownCases =
@@ -714,6 +718,11 @@ type LangGeneric_c() =
                     ("Acn_PatchDet_I64_BE",["Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64"])
                     ("Acn_InitDet_BOOL1",  ["BitStream_AppendBit"])
                     ("Acn_PatchDet_BOOL1", ["BitStream_AppendBit"])
+                    // Generic ConstSize: hand-written functions calling 3-arg encoders
+                    ("Acn_InitDet_ConstSize",                    ["Acn_Enc_Int_PositiveInteger_ConstSize"])
+                    ("Acn_PatchDet_ConstSize",                   ["Acn_Enc_Int_PositiveInteger_ConstSize"])
+                    ("Acn_InitDet_TwosComplement_ConstSize",     ["Acn_Enc_Int_TwosComplement_ConstSize"])
+                    ("Acn_PatchDet_TwosComplement_ConstSize",    ["Acn_Enc_Int_TwosComplement_ConstSize"])
                 ] |> Map.ofList
             match knownCases |> Map.tryFind functionName  with
             | None ->

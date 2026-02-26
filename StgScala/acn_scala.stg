@@ -1302,6 +1302,31 @@ acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::
 // TODO: ACN deferred patching not supported for Scala
 >>
 
+acn_deferred_det_init_value_with_size_encode(sInitFuncName, nBits, sDetName) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_init_value_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_init_ptr_with_size_encode(sInitFuncName, nBits, sDetName) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+// TODO: ACN deferred patching not supported for Scala
+>>
+
 acn_deferred_det_formal_param_encode(sDetName) ::= "// TODO"
 acn_deferred_det_formal_param_decode(sDetName) ::= "// TODO"
 
