@@ -52,7 +52,13 @@ let mapIntEncodingClassToDetFunctions (enc: IntEncodingClass) : (string * string
 let getDetFunctionsForAcnInsertedType (acnType: Asn1AcnAst.AcnInsertedType) : (string * string * BigInteger option) option =
     match acnType with
     | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
-        mapIntEncodingClassToDetFunctions ai.acnEncodingClass
+        match ai.acnEncodingClass with
+        | Integer_uPER when ai.acnMinSizeInBits = ai.acnMaxSizeInBits ->
+            // Fixed-size UPER encoding: for constrained integers starting at 0
+            // (all practical ACN size/presence determinants), UPER is identical
+            // to ConstSize because the offset (value - min) equals value when min=0.
+            Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some ai.acnMaxSizeInBits)
+        | _ -> mapIntEncodingClassToDetFunctions ai.acnEncodingClass
     | Asn1AcnAst.AcnInsertedType.AcnBoolean bln ->
         match bln.acnProperties.encodingPattern with
         | None -> Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None)
