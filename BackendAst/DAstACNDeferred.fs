@@ -25,62 +25,67 @@ open Language
 /// Maps an ACN integer encoding class (from AcnInteger.acnEncodingClass)
 /// to the corresponding Acn_InitDet_XXX / Acn_PatchDet_XXX wrapper names
 /// defined by the DEFINE_ACN_DET_ENCODERS macro in asn1crt_encoding_acn.h.
-/// Returns (initFuncName, patchFuncName, nBitsOpt) where nBitsOpt is Some nBits
-/// for generic ConstSize encodings that require an extra bit-width argument,
-/// or None for fixed-size encodings (U8, U16, etc.).
-let mapIntEncodingClassToDetFunctions (enc: IntEncodingClass) : (string * string * BigInteger option) option =
+/// Returns (initFuncName, patchFuncName, nBitsOpt, uperMinOffset) where:
+/// - nBitsOpt is Some nBits for generic ConstSize encodings that require an
+///   extra bit-width argument, or None for fixed-size encodings (U8, U16, etc.)
+/// - uperMinOffset is the UPER minimum value offset (0I for non-UPER encodings).
+///   When non-zero, PatchDet must encode (value - offset) instead of value.
+let mapIntEncodingClassToDetFunctions (enc: IntEncodingClass) : (string * string * BigInteger option * BigInteger) option =
     match enc with
-    | PositiveInteger_ConstSize_8                    -> Some ("Acn_InitDet_U8",     "Acn_PatchDet_U8", None)
-    | PositiveInteger_ConstSize_big_endian_16        -> Some ("Acn_InitDet_U16_BE", "Acn_PatchDet_U16_BE", None)
-    | PositiveInteger_ConstSize_big_endian_32        -> Some ("Acn_InitDet_U32_BE", "Acn_PatchDet_U32_BE", None)
-    | PositiveInteger_ConstSize_big_endian_64        -> Some ("Acn_InitDet_U64_BE", "Acn_PatchDet_U64_BE", None)
-    | PositiveInteger_ConstSize_little_endian_16     -> Some ("Acn_InitDet_U16_LE", "Acn_PatchDet_U16_LE", None)
-    | PositiveInteger_ConstSize_little_endian_32     -> Some ("Acn_InitDet_U32_LE", "Acn_PatchDet_U32_LE", None)
-    | PositiveInteger_ConstSize_little_endian_64     -> Some ("Acn_InitDet_U64_LE", "Acn_PatchDet_U64_LE", None)
-    | TwosComplement_ConstSize_8                     -> Some ("Acn_InitDet_I8",     "Acn_PatchDet_I8", None)
-    | TwosComplement_ConstSize_big_endian_16         -> Some ("Acn_InitDet_I16_BE", "Acn_PatchDet_I16_BE", None)
-    | TwosComplement_ConstSize_big_endian_32         -> Some ("Acn_InitDet_I32_BE", "Acn_PatchDet_I32_BE", None)
-    | TwosComplement_ConstSize_big_endian_64         -> Some ("Acn_InitDet_I64_BE", "Acn_PatchDet_I64_BE", None)
-    | PositiveInteger_ConstSize nBits                -> Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some nBits)
-    | TwosComplement_ConstSize nBits                 -> Some ("Acn_InitDet_TwosComplement_ConstSize", "Acn_PatchDet_TwosComplement_ConstSize", Some nBits)
+    | PositiveInteger_ConstSize_8                    -> Some ("Acn_InitDet_U8",     "Acn_PatchDet_U8", None, 0I)
+    | PositiveInteger_ConstSize_big_endian_16        -> Some ("Acn_InitDet_U16_BE", "Acn_PatchDet_U16_BE", None, 0I)
+    | PositiveInteger_ConstSize_big_endian_32        -> Some ("Acn_InitDet_U32_BE", "Acn_PatchDet_U32_BE", None, 0I)
+    | PositiveInteger_ConstSize_big_endian_64        -> Some ("Acn_InitDet_U64_BE", "Acn_PatchDet_U64_BE", None, 0I)
+    | PositiveInteger_ConstSize_little_endian_16     -> Some ("Acn_InitDet_U16_LE", "Acn_PatchDet_U16_LE", None, 0I)
+    | PositiveInteger_ConstSize_little_endian_32     -> Some ("Acn_InitDet_U32_LE", "Acn_PatchDet_U32_LE", None, 0I)
+    | PositiveInteger_ConstSize_little_endian_64     -> Some ("Acn_InitDet_U64_LE", "Acn_PatchDet_U64_LE", None, 0I)
+    | TwosComplement_ConstSize_8                     -> Some ("Acn_InitDet_I8",     "Acn_PatchDet_I8", None, 0I)
+    | TwosComplement_ConstSize_big_endian_16         -> Some ("Acn_InitDet_I16_BE", "Acn_PatchDet_I16_BE", None, 0I)
+    | TwosComplement_ConstSize_big_endian_32         -> Some ("Acn_InitDet_I32_BE", "Acn_PatchDet_I32_BE", None, 0I)
+    | TwosComplement_ConstSize_big_endian_64         -> Some ("Acn_InitDet_I64_BE", "Acn_PatchDet_I64_BE", None, 0I)
+    | PositiveInteger_ConstSize nBits                -> Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some nBits, 0I)
+    | TwosComplement_ConstSize nBits                 -> Some ("Acn_InitDet_TwosComplement_ConstSize", "Acn_PatchDet_TwosComplement_ConstSize", Some nBits, 0I)
     // Encoding classes without a deferred patching implementation
     | _ -> None
 
 
 /// Map an AcnInsertedType to the corresponding InitDet/PatchDet function names.
 /// Shared helper used by getDetFunctionsForAcnChild and findDetFunctionsForParam.
-let getDetFunctionsForAcnInsertedType (acnType: Asn1AcnAst.AcnInsertedType) : (string * string * BigInteger option) option =
+let getDetFunctionsForAcnInsertedType (acnType: Asn1AcnAst.AcnInsertedType) : (string * string * BigInteger option * BigInteger) option =
     match acnType with
     | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
         match ai.acnEncodingClass with
         | Integer_uPER when ai.acnMinSizeInBits = ai.acnMaxSizeInBits ->
-            // Fixed-size UPER encoding: for constrained integers starting at 0
-            // (all practical ACN size/presence determinants), UPER is identical
-            // to ConstSize because the offset (value - min) equals value when min=0.
-            Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some ai.acnMaxSizeInBits)
+            // Fixed-size UPER encoding → use ConstSize deferred patching.
+            // UPER encodes (value - min), so PatchDet must subtract the min offset.
+            let uperMinOffset =
+                match ai.uperRange with
+                | Concrete (minVal, _) -> minVal
+                | _ -> 0I
+            Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some ai.acnMaxSizeInBits, uperMinOffset)
         | _ -> mapIntEncodingClassToDetFunctions ai.acnEncodingClass
     | Asn1AcnAst.AcnInsertedType.AcnBoolean bln ->
         match bln.acnProperties.encodingPattern with
-        | None -> Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None)
+        | None -> Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
         | Some _ -> None  // Custom true-value/false-value patterns: not yet supported
     | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
         match enm.enumerated.acnEncodingClass with
         | Integer_uPER ->
             // For enums with UPER encoding: indices are always [0, N-1],
-            // so ConstSize with ceil(log2(N)) bits is equivalent.
+            // so ConstSize with ceil(log2(N)) bits is equivalent (offset = 0).
             let nItems = enm.enumerated.items.Length
             if nItems <= 1 then
-                Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some 0I)
+                Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some 0I, 0I)
             else
                 let nBits = bigint (int (System.Math.Ceiling(System.Math.Log(float nItems, 2.0))))
-                Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some nBits)
+                Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some nBits, 0I)
         | _ ->
             mapIntEncodingClassToDetFunctions enm.enumerated.acnEncodingClass
     | _ -> None
 
 /// Get the InitDet/PatchDet function names for an ACN child determinant.
 /// Returns None if the determinant type doesn't support deferred patching.
-let getDetFunctionsForAcnChild (acnChild: DAst.AcnChild) : (string * string * BigInteger option) option =
+let getDetFunctionsForAcnChild (acnChild: DAst.AcnChild) : (string * string * BigInteger option * BigInteger) option =
     getDetFunctionsForAcnInsertedType acnChild.Type
 
 
@@ -173,7 +178,7 @@ let computePatchDetValueExpr
 /// Follow the RefTypeArgumentDependency chain from a parameter upward
 /// through intermediate boundaries until reaching the original
 /// AcnChildDeterminant.  Returns the (InitDet, PatchDet, nBitsOpt) function names.
-let findDetFunctionsForParam (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (paramId: ReferenceToType) : (string * string * BigInteger option) option =
+let findDetFunctionsForParam (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (paramId: ReferenceToType) : (string * string * BigInteger option * BigInteger) option =
     let rec follow (pid: ReferenceToType) =
         deps.acnDependencies |> List.tryPick (fun d ->
             match d.dependencyKind with
@@ -333,7 +338,7 @@ let private createDeferredSequenceFunction
                 | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames ->
                     let detFuncs = getDetFunctionsForAcnChild ac
                     match detFuncs with
-                    | Some (initFuncName, _patchFuncName, nBitsOpt) ->
+                    | Some (initFuncName, _patchFuncName, nBitsOpt, _uperMinOffset) ->
                         // Replace encoding with InitDet, keep original decode:
                         // - Encode: emits Acn_InitDet_XXX call
                         // - Decode: keeps original funcBody but redirects target
@@ -636,7 +641,7 @@ let private createDeferredReferenceFunction
                                 let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
                                 let patchFnName =
                                     match findDetFunctionsForParam deps sizePrm.id with
-                                    | Some (_, patchFn, _) -> patchFn
+                                    | Some (_, patchFn, _, _) -> patchFn
                                     | None -> ""
                                 lm.acn.octet_string_containing_deferred_wrapper funcBody0 detParamName patchFnName errCode.errCodeName codec
                             | None ->
@@ -657,7 +662,7 @@ let private createDeferredReferenceFunction
                     let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
                     let patchFnName =
                         match findDetFunctionsForParam deps sizePrm.id with
-                        | Some (_initFn, patchFn, _) -> patchFn
+                        | Some (_initFn, patchFn, _, _) -> patchFn
                         | None -> ""
                     let fncBody = lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName errCode.errCodeName codec
                     fncBody, [errCode], [], false, false, [], [], ns1
@@ -726,8 +731,13 @@ let private createDeferredReferenceFunction
                                     let originalDetType = findDetFunctionsForParam deps prm.id
                                     match originalDetType with
                                     | None -> None
-                                    | Some (_initFn, patchFn, nBitsOpt) ->
-                                        let (preBlock, valueExpr) = computePatchDetValueExpr lm dep (t.id.ToScopeNodeList) specP.accessPath.rootId
+                                    | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
+                                        let (preBlock, rawValueExpr) = computePatchDetValueExpr lm dep (t.id.ToScopeNodeList) specP.accessPath.rootId
+                                        // For Integer_uPER with min > 0, UPER encodes (value - min)
+                                        // but ConstSize encodes value directly, so subtract the offset.
+                                        let valueExpr =
+                                            if uperMinOffset = 0I then rawValueExpr
+                                            else sprintf "(%s - %s)" rawValueExpr (uperMinOffset.ToString())
                                         let detParamName = DAstACN.getAcnDeterminantName prm.id
                                         let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                                         let patchCall =

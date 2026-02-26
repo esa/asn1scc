@@ -439,9 +439,14 @@ static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs, int nBits, 
                                        AcnInsertedFieldRef* det, int* err) {    \
     (void)nBits;                                                                \
     if (!det->is_set) {                                                         \
+        int _i;                                                                 \
         AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                         \
         Acn_BitStream_SetPos(bs, det->pos);                                     \
-        encoder_fn(bs, v, nBits);                                               \
+        /* Bit-by-bit overwrite: encoder_fn uses AppendPartialByte which   */ \
+        /* clears adjacent bits when crossing a byte boundary — unsafe   */ \
+        /* for patching in the middle of a stream. AppendBit is safe.    */ \
+        for (_i = 0; _i < nBits; _i++)                                          \
+            BitStream_AppendBit(bs, (byte)((v >> (nBits - 1 - _i)) & 1));       \
         Acn_BitStream_SetPos(bs, cur);                                          \
         det->value = v;                                                         \
         det->is_set = TRUE;                                                     \
@@ -468,9 +473,12 @@ static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs, int nBits, 
                                        AcnInsertedFieldRef* det, int* err) {    \
     (void)nBits;                                                                \
     if (!det->is_set) {                                                         \
+        int _i;                                                                 \
         AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                         \
         Acn_BitStream_SetPos(bs, det->pos);                                     \
-        encoder_fn(bs, (asn1SccSint)v, nBits);                                  \
+        /* Bit-by-bit write (same rationale as unsigned CONSTSIZE variant) */    \
+        for (_i = 0; _i < nBits; _i++)                                          \
+            BitStream_AppendBit(bs, (byte)((v >> (nBits - 1 - _i)) & 1));       \
         Acn_BitStream_SetPos(bs, cur);                                          \
         det->value = v;                                                         \
         det->is_set = TRUE;                                                     \
