@@ -36,9 +36,17 @@ let private findConsumerDeterminants (boundaryPath: ScopeNode list) (deps: AcnIn
         // AND the determinant must be an ACN inserted child (not already a parameter)
         if isPathPrefix boundaryPath depTypePath
            && not (isPathPrefix boundaryPath detPath) then
-            match dep.determinant with
-            | AcnChildDeterminant acnChild -> Some acnChild
-            | AcnParameterDeterminant _ -> None
+            // Skip boundary-level PresenceBool: when the OPTIONAL field IS the
+            // boundary type itself, the presence check belongs to the parent
+            // function (parent.exist.childName), not the child.
+            let isBoundaryLevelPresence =
+                (match dep.dependencyKind with AcnDepPresenceBool -> true | _ -> false)
+                && depTypePath.Length <= boundaryPath.Length
+            if isBoundaryLevelPresence then None
+            else
+                match dep.determinant with
+                | AcnChildDeterminant acnChild -> Some acnChild
+                | AcnParameterDeterminant _ -> None
         else
             None)
     |> List.distinctBy (fun ac -> ac.id)
@@ -58,9 +66,19 @@ let private findProducerDeterminants (boundaryPath: ScopeNode list) (deps: AcnIn
         // AND the dependent type must be outside the boundary
         if isPathPrefix boundaryPath detPath
            && not (isPathPrefix boundaryPath depTypePath) then
-            match dep.determinant with
-            | AcnChildDeterminant acnChild -> Some acnChild
-            | AcnParameterDeterminant _ -> None
+            // Skip sibling PresenceBool: when the dependent type is a sibling
+            // of the boundary (same parent SEQUENCE), the presence check is a
+            // same-level operation handled by the parent — no deferral needed.
+            let isSiblingPresence =
+                (match dep.dependencyKind with AcnDepPresenceBool -> true | _ -> false)
+                && depTypePath.Length = boundaryPath.Length
+                && boundaryPath.Length >= 1
+                && (List.take (boundaryPath.Length - 1) depTypePath) = (List.take (boundaryPath.Length - 1) boundaryPath)
+            if isSiblingPresence then None
+            else
+                match dep.determinant with
+                | AcnChildDeterminant acnChild -> Some acnChild
+                | AcnParameterDeterminant _ -> None
         else
             None)
     |> List.distinctBy (fun ac -> ac.id)
