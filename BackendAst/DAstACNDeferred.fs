@@ -453,6 +453,20 @@ let private insertActualParams (baseFuncCall: string) (extraActualParams: string
             baseFuncCall
 
 
+/// Find which acnParameter is the CONTAINING size determinant by checking
+/// the dependency list for AcnDepSizeDeterminant_bit_oct_str_contain.
+/// Returns the parameter, or None if not found.
+let private findContainingSizeParam
+        (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
+        (o: Asn1AcnAst.ReferenceType) : AcnGenericTypes.AcnParameter option =
+    o.resolvedType.acnParameters |> List.tryFind (fun prm ->
+        deps.acnDependencies |> List.exists (fun d ->
+            d.determinant.id = prm.id
+            && (match d.dependencyKind with
+                | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
+                | _ -> false)))
+
+
 /// Deferred version of createReferenceFunction.
 /// When the resolved type has acnParameters (from closure conversion),
 /// generates a specialized function per reference site with
@@ -533,9 +547,48 @@ let private createDeferredReferenceFunction
 
             // Generate body content
             let bodyResult_funcBody0, bodyResult_errCodes, bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, bodyResult_udfcs, bodyResult_auxiliaries, ns2 =
-                match isContainingExternalField with
-                | true ->
-                    // CONTAINING ExternalField: STG template for direct encode + PatchDet
+                match isContainingExternalField, baseAcnFunc.funcName.IsNone with
+                | true, true ->
+                    // CONTAINING ExternalField where base type has no standalone function
+                    // (parameterized type): use funcBody closure + CONTAINING wrapper.
+                    // The CONTAINING size parameter was added by closure conversion and
+                    // is NOT in o.acnArguments.  The arguments correspond to the first
+                    // N parameters (the original ones); extra params from closure
+                    // conversion are at the end.
+                    let containingSizePrm = findContainingSizeParam deps o
+                    let nArgs = o.acnArguments.Length
+                    let paramsArgsPairs = List.zip o.acnArguments (o.resolvedType.acnParameters |> List.take nArgs)
+                    let bodyContent, ns2 = baseAcnFunc.funcBody ns1 paramsArgsPairs (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) specP
+                    match bodyContent with
+                    | None ->
+                        lm.lg.emptyStatement, [], [], true, true, [], [], ns2
+                    | Some br ->
+                        // Apply intermediate boundary post-processing (same as non-CONTAINING)
+                        let funcBody0 =
+                            o.resolvedType.acnParameters |> List.fold (fun (body: string) prm ->
+                                let localRef = lm.acn.acn_deferred_det_actual_param (ToC prm.name) codec
+                                let paramRef = DAstACN.getAcnDeterminantName prm.id
+                                body.Replace(localRef, paramRef)
+                            ) br.funcBody
+
+                        let wrappedBody =
+                            match containingSizePrm with
+                            | Some sizePrm ->
+                                let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
+                                let patchFnName =
+                                    match findDetFunctionsForParam deps sizePrm.id with
+                                    | Some (_, patchFn) -> patchFn
+                                    | None -> ""
+                                lm.acn.octet_string_containing_deferred_wrapper funcBody0 detParamName patchFnName errCode.errCodeName codec
+                            | None ->
+                                funcBody0  // fallback: no wrapping if size param not found
+
+                        wrappedBody, br.errCodes @ [errCode], br.localVariables,
+                            br.bBsIsUnReferenced, br.bValIsUnReferenced,
+                            br.userDefinedFunctions, br.auxiliaries, ns2
+                | true, false ->
+                    // CONTAINING ExternalField with standalone base function (e.g., TC01b):
+                    // use existing STG template approach
                     let pp =
                         let str = lm.lg.getParamValue t specP.accessPath codec
                         match codec, lm.lg.decodingKind with
@@ -549,7 +602,7 @@ let private createDeferredReferenceFunction
                         | None -> ""
                     let fncBody = lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName errCode.errCodeName codec
                     fncBody, [errCode], [], false, false, [], [], ns1
-                | false ->
+                | _ ->
                     // Normal: call base type's funcBody closure
                     let paramsArgsPairs = List.zip o.acnArguments o.resolvedType.acnParameters
                     let bodyContent, ns2 = baseAcnFunc.funcBody ns1 paramsArgsPairs (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) specP
@@ -571,16 +624,29 @@ let private createDeferredReferenceFunction
                         funcBody0, br.errCodes, br.localVariables, br.bBsIsUnReferenced, br.bValIsUnReferenced, br.userDefinedFunctions, br.auxiliaries, ns2
 
             // Step 2b (Encode only): Append PatchDet calls for each consumer-side
-            // acnParameter.  Skip for CONTAINING — PatchDet is already in the STG template.
+            // acnParameter.  For CONTAINING ExternalField with standalone base function
+            // (old approach), skip — PatchDet is already in the STG template.
+            // For CONTAINING ExternalField with funcBody closure (new approach),
+            // allow PatchDet but exclude the CONTAINING size parameter (already in wrapper).
             let bodyResult_funcBody =
-                match isContainingExternalField with
-                | true -> bodyResult_funcBody0
-                | false ->
+                match isContainingExternalField, baseAcnFunc.funcName.IsNone with
+                | true, false -> bodyResult_funcBody0  // old approach: PatchDet is in STG template
+                | _ ->
                     match codec with
                     | CommonTypes.Codec.Decode -> bodyResult_funcBody0
                     | CommonTypes.Codec.Encode ->
+                        // Identify CONTAINING size param to exclude from step 2b
+                        let containingSizePrmId =
+                            if isContainingExternalField then
+                                findContainingSizeParam deps o
+                                |> Option.map (fun prm -> prm.id)
+                            else None
                         let patchCalls =
                             o.resolvedType.acnParameters |> List.choose (fun prm ->
+                                // Skip CONTAINING size param (already handled by wrapper)
+                                match containingSizePrmId with
+                                | Some csId when csId = prm.id -> None
+                                | _ ->
                                 // Find the dep inside this boundary where the determinant
                                 // is this parameter (consumer-side dependency)
                                 let consumerDep =

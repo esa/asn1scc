@@ -1263,6 +1263,34 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 }
 >>
 
+/* CONTAINING ExternalField wrapper: wraps an inline body with save-pos/measure/PatchDet
+   Used when the contained type has ACN parameters (no standalone ACN function). */
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
+    <sBody>
+    if (ret) {
+        AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
+        asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+        ret = <sPatchFuncName>((asn1SccUint)acn_nCount, pBitStrm, <sDetParamName>, pErrCode);
+        *pErrCode = <sErrCode>;
+        if (!ret) return FALSE;
+    }
+}
+>>
+
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    long acn_saved_count = pBitStrm->count;
+    long acn_expected_end = pBitStrm->currentByte + (long)<sDetParamName>->value;
+    pBitStrm->count = acn_expected_end;
+    <sBody>
+    pBitStrm->count = acn_saved_count;
+    pBitStrm->currentByte = acn_expected_end;
+    pBitStrm->currentBit = 0;
+}
+>>
+
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
 BitStream_AppendBits(pBitStrm, arr, (int)<sExtField>);
 >>
