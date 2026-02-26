@@ -720,9 +720,9 @@ type LangGeneric_c() =
                     ("Acn_PatchDet_BOOL1", ["BitStream_AppendBit"])
                     // Generic ConstSize: hand-written functions calling 3-arg encoders
                     ("Acn_InitDet_ConstSize",                    ["Acn_Enc_Int_PositiveInteger_ConstSize"])
-                    ("Acn_PatchDet_ConstSize",                   ["Acn_Enc_Int_PositiveInteger_ConstSize"])
+                    ("Acn_PatchDet_ConstSize",                   ["BitStream_AppendBit"])
                     ("Acn_InitDet_TwosComplement_ConstSize",     ["Acn_Enc_Int_TwosComplement_ConstSize"])
-                    ("Acn_PatchDet_TwosComplement_ConstSize",    ["Acn_Enc_Int_TwosComplement_ConstSize"])
+                    ("Acn_PatchDet_TwosComplement_ConstSize",    ["BitStream_AppendBit"])
                 ] |> Map.ofList
             match knownCases |> Map.tryFind functionName  with
             | None ->
