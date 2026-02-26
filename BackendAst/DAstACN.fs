@@ -2225,8 +2225,10 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         // For those fields we should generated no anc encode/decode function
         // Otherwise, the encoding function is wrong since an uninitialized value is encoded.
         let existsAcnChildWithNoUpdates =
-            acnChildren |>
-            List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> acnChild.funcUpdateStatement.IsNone)
+            if r.args.acnDeferred then []
+            else
+                acnChildren |>
+                List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> acnChild.funcUpdateStatement.IsNone)
         let saveInitialBitStrmStatements = soSaveInitialBitStrmStatement |> Option.toList
         let nbPresenceBits = asn1Children |> List.sumBy (fun c ->
             match c.Optionality with
