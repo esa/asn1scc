@@ -1531,7 +1531,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 match t.Constraints@refTypeCons |> Seq.exists(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> true | Asn1Ast.WithComponentsConstraint _ -> true | _ -> false) with
                 | true  -> acnType
                 | false -> mergeAcnEncodingSpecs acnType baseTypeAcnEncSpec
-            let hasAdditionalConstraints = restCons.Length > 0
+            let hasAdditionalConstraints = restCons.Length > 0 || withCompCons.Length > 0
             let inheritanceInfo = (Some {InheritanceInfo.modName = rf.modName.Value; tasName = rf.tasName.Value; hasAdditionalConstraints=hasAdditionalConstraints})
 
             //The current type definition path changes to this referenced type path, if this referenced type has no constraints (with component constraints are ignored)
