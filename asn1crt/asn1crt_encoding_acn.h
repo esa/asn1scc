@@ -335,6 +335,12 @@ static inline asn1SccUint Acn_BitStream_DistanceInBytes(AcnBitStreamPos start, A
     return (asn1SccUint)((endBits - startBits + 7) / 8);
 }
 
+static inline asn1SccUint Acn_BitStream_DistanceInBits(AcnBitStreamPos start, AcnBitStreamPos end) {
+    long startBits = start.currentByte * 8 + start.currentBit;
+    long endBits = end.currentByte * 8 + end.currentBit;
+    return (asn1SccUint)(endBits - startBits);
+}
+
 /*
  * DEFINE_ACN_DET_ENCODERS(name, encoder_fn, size_bits)
  *
