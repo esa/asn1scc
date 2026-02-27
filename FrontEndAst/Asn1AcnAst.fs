@@ -930,6 +930,7 @@ type AcnDependencyKind =
         member this.isString =
             match this with
             | AcnDepIA5StringSizeDeterminant _ -> true
+            | AcnDepPresenceStr _ -> true
             | _ -> false
 
 type Determinant =

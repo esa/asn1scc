@@ -314,6 +314,7 @@ typedef struct {
     AcnBitStreamPos pos;      /* where in the bitstream the field was reserved */
     flag            is_set;   /* TRUE after first PatchDet call */
     asn1SccUint     value;    /* the value that was written (for consistency checking) */
+    char            str_value[256]; /* for IA5String determinants (consistency checking) */
 } AcnInsertedFieldRef;
 
 static inline AcnBitStreamPos Acn_BitStream_GetPos(const BitStream* bs) {
@@ -494,6 +495,53 @@ static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs, int nBits, 
 
 DEFINE_ACN_DET_ENCODERS_CONSTSIZE(ConstSize, Acn_Enc_Int_PositiveInteger_ConstSize)
 DEFINE_ACN_DET_ENCODERS_SIGNED_CONSTSIZE(TwosComplement_ConstSize, Acn_Enc_Int_TwosComplement_ConstSize)
+
+/* IA5String determinant: fixed-size ASCII string (7 bits per character).
+ * nChars is the number of characters (not bits).
+ * Uses macro approach to keep function names invisible to header pruning. */
+#define DEFINE_ACN_DET_ENCODERS_IA5STRING(name)                                  \
+static inline void Acn_InitDet_##name(BitStream* bs, int nChars,                 \
+                                      AcnInsertedFieldRef* det) {                \
+    int _i;                                                                      \
+    (void)nChars;                                                                \
+    det->pos = Acn_BitStream_GetPos(bs);                                         \
+    det->is_set = FALSE;                                                         \
+    det->value = 0;                                                              \
+    det->str_value[0] = '\0';                                                    \
+    /* Write nChars * 7 placeholder zero bits via BitStream_AppendBit */          \
+    for (_i = 0; _i < nChars * 7; _i++)                                          \
+        BitStream_AppendBit(bs, 0);                                              \
+}                                                                                \
+static inline flag Acn_PatchDet_##name(const char* strVal, BitStream* bs,        \
+                                       int nChars,                               \
+                                       AcnInsertedFieldRef* det, int* err) {     \
+    int _i, _b;                                                                  \
+    (void)nChars;                                                                \
+    if (!det->is_set) {                                                          \
+        int _slen = (int)strlen(strVal);                                         \
+        AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                          \
+        Acn_BitStream_SetPos(bs, det->pos);                                      \
+        /* Write each char as 7-bit value, bit by bit */                          \
+        for (_i = 0; _i < nChars; _i++) {                                        \
+            byte _ch = (_i < _slen) ? (byte)strVal[_i] : 0x20;                  \
+            for (_b = 6; _b >= 0; _b--)                                          \
+                BitStream_AppendBit(bs, (byte)((_ch >> _b) & 1));                \
+        }                                                                        \
+        Acn_BitStream_SetPos(bs, cur);                                           \
+        strncpy(det->str_value, strVal, sizeof(det->str_value) - 1);             \
+        det->str_value[sizeof(det->str_value) - 1] = '\0';                       \
+        det->is_set = TRUE;                                                      \
+        return TRUE;                                                             \
+    } else {                                                                     \
+        if (strncmp(det->str_value, strVal, (size_t)nChars) != 0) {              \
+            if (err) *err = ERR_ACN_DET_CONSISTENCY_MISMATCH;                    \
+            return FALSE;                                                        \
+        }                                                                        \
+        return TRUE;                                                             \
+    }                                                                            \
+}
+
+DEFINE_ACN_DET_ENCODERS_IA5STRING(IA5String_FixSize)
 
 
 #ifdef  __cplusplus

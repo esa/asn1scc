@@ -980,11 +980,16 @@ let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDe
     // In deferred mode, when the determinant resolved to a PRM (parameter),
     // the formal parameter is AcnInsertedFieldRef*.  Code that reads the
     // integer value must access the ->value field of the struct.
+    // For IA5String determinants, use ->str_value instead of ->value.
     if r.args.acnDeferred then
         let resolvedNodes = match resolvedId with ReferenceToType nodes -> nodes
         let resolvedLastNode = resolvedNodes |> List.rev |> List.head
         match resolvedLastNode with
-        | PRM _ -> baseName + "->value"
+        | PRM _ ->
+            // Check if the dependency is string-typed
+            let isStringDep = dependency.dependencyKind.isString
+            if isStringDep then baseName + "->str_value"
+            else baseName + "->value"
         | _     -> baseName
     else
         baseName

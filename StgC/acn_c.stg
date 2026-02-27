@@ -1501,6 +1501,24 @@ acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetN
 /* decode: no patch needed */
 >>
 
+/* IA5String PatchDet variants: pass string value directly (no asn1SccUint cast) */
+acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>(<sValue>, pBitStrm, <nBits>, &<sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if (!ret) return FALSE;
+>>
+acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>(<sValue>, pBitStrm, <nBits>, <sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if (!ret) return FALSE;
+>>
+acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+
 /* Extra formal parameter for a function receiving a deferred determinant */
 acn_deferred_det_formal_param_encode(sDetName) ::= "AcnInsertedFieldRef* <sDetName>"
 acn_deferred_det_formal_param_decode(sDetName) ::= "AcnInsertedFieldRef* <sDetName>"

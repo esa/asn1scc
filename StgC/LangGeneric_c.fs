@@ -676,6 +676,8 @@ type LangGeneric_c() =
                 "Acn_PatchDet_ConstSize"
                 "Acn_InitDet_TwosComplement_ConstSize"
                 "Acn_PatchDet_TwosComplement_ConstSize"
+                "Acn_InitDet_IA5String_FixSize"
+                "Acn_PatchDet_IA5String_FixSize"
              ]
         override this.detectFunctionCalls (sourceCode: string) (functionName: string) : string list =
             let knownCases =
@@ -723,6 +725,9 @@ type LangGeneric_c() =
                     ("Acn_PatchDet_ConstSize",                   ["BitStream_AppendBit"])
                     ("Acn_InitDet_TwosComplement_ConstSize",     ["Acn_Enc_Int_TwosComplement_ConstSize"])
                     ("Acn_PatchDet_TwosComplement_ConstSize",    ["BitStream_AppendBit"])
+                    // IA5String deferred patching: bit-by-bit 7-bit char encoding
+                    ("Acn_InitDet_IA5String_FixSize",            ["BitStream_AppendBit"])
+                    ("Acn_PatchDet_IA5String_FixSize",           ["BitStream_AppendBit"])
                 ] |> Map.ofList
             match knownCases |> Map.tryFind functionName  with
             | None ->
