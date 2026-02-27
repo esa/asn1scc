@@ -757,6 +757,7 @@ let private createDeferredReferenceFunction
         match o.encodingOptions with
         | Some enc -> match enc.acnEncodingClass, enc.octOrBitStr with
                       | Asn1AcnAst.SZ_EC_ExternalField _, CommonTypes.ContainedInOctString -> true
+                      | Asn1AcnAst.SZ_EC_ExternalField _, CommonTypes.ContainedInBitString -> true
                       | _ -> false
         | None -> false
 
@@ -783,6 +784,14 @@ let private createDeferredReferenceFunction
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInOctString ->
                 Some (makeContainingFuncBody (fun pp fncName ->
                     let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn codec
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = None}), us))
+            | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInBitString ->
+                Some (makeContainingFuncBody (fun pp fncName ->
+                    let fncBody = lm.acn.bit_string_containing_deferred_fixed_func pp fncName codec
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = None}), us))
+            | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInBitString ->
+                Some (makeContainingFuncBody (fun pp fncName ->
+                    let fncBody = lm.acn.bit_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn codec
                     Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = None}), us))
             | _ when not isContainingExternalField ->
                 Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
@@ -864,7 +873,11 @@ let private createDeferredReferenceFunction
                                     match findDetFunctionsForParam deps sizePrm.id with
                                     | Some (_, patchFn, _, _) -> patchFn
                                     | None -> ""
-                                lm.acn.octet_string_containing_deferred_wrapper funcBody0 detParamName patchFnName errCode.errCodeName codec
+                                match o.encodingOptions.Value.octOrBitStr with
+                                | CommonTypes.ContainedInOctString ->
+                                    lm.acn.octet_string_containing_deferred_wrapper funcBody0 detParamName patchFnName errCode.errCodeName codec
+                                | CommonTypes.ContainedInBitString ->
+                                    lm.acn.bit_string_containing_deferred_wrapper funcBody0 detParamName patchFnName errCode.errCodeName codec
                             | None ->
                                 funcBody0  // fallback: no wrapping if size param not found
 
@@ -885,7 +898,12 @@ let private createDeferredReferenceFunction
                         match findDetFunctionsForParam deps sizePrm.id with
                         | Some (_initFn, patchFn, _, _) -> patchFn
                         | None -> ""
-                    let fncBody = lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName errCode.errCodeName codec
+                    let fncBody =
+                        match o.encodingOptions.Value.octOrBitStr with
+                        | CommonTypes.ContainedInOctString ->
+                            lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName errCode.errCodeName codec
+                        | CommonTypes.ContainedInBitString ->
+                            lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName errCode.errCodeName codec
                     fncBody, [errCode], [], false, false, [], [], ns1
                 | _ ->
                     // Normal: call base type's funcBody closure
