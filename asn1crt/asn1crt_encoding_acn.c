@@ -2052,3 +2052,41 @@ flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32(BitStream* pBitStrm, uint32
 }
 
 
+/* IA5String deferred patching: reserve space for nChars x 7-bit characters */
+void Acn_InitDet_IA5String_FixSize(BitStream* bs, int nChars, AcnInsertedFieldRef* det) {
+    int i;
+    det->pos = Acn_BitStream_GetPos(bs);
+    det->is_set = FALSE;
+    det->value = 0;
+    det->str_value[0] = '\0';
+    for (i = 0; i < nChars * 7; i++)
+        BitStream_AppendBit(bs, 0);
+}
+
+/* IA5String deferred patching: write string value at saved position */
+flag Acn_PatchDet_IA5String_FixSize(const char* strVal, BitStream* bs, int nChars, AcnInsertedFieldRef* det, int* err) {
+    if (!det->is_set) {
+        int i, b;
+        int slen = (int)strlen(strVal);
+        AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);
+        Acn_BitStream_SetPos(bs, det->pos);
+        for (i = 0; i < nChars; i++) {
+            byte ch = (i < slen) ? (byte)strVal[i] : 0x20;
+            for (b = 6; b >= 0; b--)
+                BitStream_AppendBit(bs, (byte)((ch >> b) & 1));
+        }
+        Acn_BitStream_SetPos(bs, cur);
+        strncpy(det->str_value, strVal, sizeof(det->str_value) - 1);
+        det->str_value[sizeof(det->str_value) - 1] = '\0';
+        det->is_set = TRUE;
+        return TRUE;
+    } else {
+        if (strncmp(det->str_value, strVal, (size_t)nChars) != 0) {
+            if (err) *err = ERR_ACN_DET_CONSISTENCY_MISMATCH;
+            return FALSE;
+        }
+        return TRUE;
+    }
+}
+
+
