@@ -206,8 +206,8 @@ let computePatchDetValueExpr
         (None, sprintf "%s%snCount" fieldExpr acc)
 
     | Asn1AcnAst.AcnDepIA5StringSizeDeterminant _ ->
-        let (fieldExpr, acc) = buildRelativeAccess relParts rootId
-        (None, sprintf "strlen(%s%sarr)" fieldExpr acc)
+        let (fieldExpr, _acc) = buildRelativeAccess relParts rootId
+        (None, sprintf "strlen(%s)" fieldExpr)
 
     | Asn1AcnAst.AcnDepPresenceBool ->
         // dep.asn1Type points to the OPTIONAL child; parent is one level up
