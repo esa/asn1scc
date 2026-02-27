@@ -92,9 +92,8 @@ let private mapInsertedTypeToParamType (insType: AcnInsertedType) (loc: SrcLoc) 
     | AcnInsertedType.AcnNullType _ -> AcnPrmNullType loc
     | AcnInsertedType.AcnReferenceToEnumerated r ->
         AcnPrmRefType (r.modName, r.tasName)
-    | AcnInsertedType.AcnReferenceToIA5String _ ->
-        // IA5String determinants are unlikely but fallback to integer
-        AcnPrmInteger loc
+    | AcnInsertedType.AcnReferenceToIA5String r ->
+        AcnPrmRefType (r.modName, r.tasName)
 
 
 /// Create an AcnParameter for a cross-scope determinant

@@ -81,6 +81,12 @@ let getDetFunctionsForAcnInsertedType (acnType: Asn1AcnAst.AcnInsertedType) : (s
                 Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some nBits, 0I)
         | _ ->
             mapIntEncodingClassToDetFunctions enm.enumerated.acnEncodingClass
+    | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String ref ->
+        // IA5String determinant: fixed-size ASCII, 7 bits per character.
+        // nChars is passed via the nBits slot of the _with_size calling convention.
+        // maxSize.acn is already the character count (not bits).
+        let nChars = ref.str.maxSize.acn
+        Some ("Acn_InitDet_IA5String_FixSize", "Acn_PatchDet_IA5String_FixSize", Some nChars, 0I)
     | _ -> None
 
 /// Get the InitDet/PatchDet function names for an ACN child determinant.
@@ -151,9 +157,26 @@ let computePatchDetValueExpr
             | AcnGenericTypes.PresenceInt (_, intVal) ->
                 sprintf "    case %s: %s = %s; break;" presentWhenName varName (intVal.Value.ToString())
             | AcnGenericTypes.PresenceStr _ ->
-                failwithf "BUG: PresenceStr not supported for deferred patching")
+                failwithf "BUG: PresenceStr in AcnDepPresence (should be AcnDepPresenceStr)")
         let switchBlock =
             sprintf "asn1SccUint %s;\nswitch(%s) {\n%s\n    default: ret = FALSE; break; /*COVERAGE_IGNORE*/\n}\nif (!ret) return FALSE;"
+                varName kindAccess (switchItems |> String.concat "\n")
+        (Some switchBlock, varName)
+
+    | Asn1AcnAst.AcnDepPresenceStr (relPath, chc, _strType) ->
+        let (choiceExpr, acc) = buildRelativeAccess relParts rootId
+        let kindAccess = sprintf "%s%skind" choiceExpr acc
+        let varName = "_patchDetStrVal"
+        let switchItems = chc.children |> List.map (fun ch ->
+            let pres = ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath)
+            let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+            match pres with
+            | AcnGenericTypes.PresenceStr (_, strVal) ->
+                sprintf "    case %s: %s = \"%s\"; break;" presentWhenName varName strVal.Value
+            | AcnGenericTypes.PresenceInt _ ->
+                failwithf "BUG: PresenceInt in AcnDepPresenceStr")
+        let switchBlock =
+            sprintf "const char* %s;\nswitch(%s) {\n%s\n    default: ret = FALSE; break; /*COVERAGE_IGNORE*/\n}\nif (!ret) return FALSE;"
                 varName kindAccess (switchItems |> String.concat "\n")
         (Some switchBlock, varName)
 
@@ -401,11 +424,13 @@ let private createDeferredSequenceFunction
                                     // derived from the target path.  A path containing
                                     // "->" or "." corrupts those variable names, so we
                                     // decode to a clean temp variable and copy afterward.
-                                    let useDirectRedirect =
+                                    let redirectKind =
                                         match ac.Type with
-                                        | Asn1AcnAst.AcnInsertedType.AcnInteger _ -> true
-                                        | _ -> false
-                                    if useDirectRedirect then
+                                        | Asn1AcnAst.AcnInsertedType.AcnInteger _ -> "direct_value"
+                                        | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "direct_str_value"
+                                        | _ -> "temp_copy"
+                                    match redirectKind with
+                                    | "direct_value" ->
                                         let valueTarget =
                                             if isOwnParam then detVarName + "->value"
                                             else detVarName + ".value"
@@ -418,7 +443,21 @@ let private createDeferredSequenceFunction
                                                 else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
                                             Some { r with localVariables = extraLvars @ r.localVariables }
                                         | None -> None
-                                    else
+                                    | "direct_str_value" ->
+                                        // IA5String: decode directly into det.str_value / det->str_value
+                                        let strTarget =
+                                            if isOwnParam then detVarName + "->str_value"
+                                            else detVarName + ".str_value"
+                                        let modifiedP = {p with accessPath = AccessPath.valueEmptyPath strTarget}
+                                        let result = originalFuncBody innerCodec acnArgs nestingScope modifiedP bsPos
+                                        match result with
+                                        | Some r ->
+                                            let extraLvars =
+                                                if isOwnParam then []
+                                                else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
+                                            Some { r with localVariables = extraLvars @ r.localVariables }
+                                        | None -> None
+                                    | _ ->
                                         // Decode to a clean temp variable, then copy to det.value
                                         let tmpName = detVarName + "_tmp"
                                         let tmpVarDecl =
@@ -741,12 +780,20 @@ let private createDeferredReferenceFunction
                                             else sprintf "(%s - %s)" rawValueExpr (uperMinOffset.ToString())
                                         let detParamName = DAstACN.getAcnDeterminantName prm.id
                                         let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
+                                        let isIA5StringDet = patchFn.Contains("IA5String")
                                         let patchCall =
-                                            match nBitsOpt with
-                                            | Some nBits ->
-                                                lm.acn.acn_deferred_det_patch_ptr_with_size patchFn nBits valueExpr detParamName errCodePatch codec
-                                            | None ->
-                                                lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch codec
+                                            if isIA5StringDet then
+                                                match nBitsOpt with
+                                                | Some nBits ->
+                                                    lm.acn.acn_deferred_det_patch_ptr_str patchFn nBits valueExpr detParamName errCodePatch codec
+                                                | None ->
+                                                    failwithf "BUG: IA5String PatchDet requires nChars (nBits) parameter"
+                                            else
+                                                match nBitsOpt with
+                                                | Some nBits ->
+                                                    lm.acn.acn_deferred_det_patch_ptr_with_size patchFn nBits valueExpr detParamName errCodePatch codec
+                                                | None ->
+                                                    lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch codec
                                         let fullBlock =
                                             match preBlock with
                                             | None -> patchCall
