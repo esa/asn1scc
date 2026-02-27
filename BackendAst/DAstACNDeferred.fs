@@ -789,7 +789,14 @@ let private createDeferredReferenceFunction
             | _ -> None  // ExternalField with params → specialized function below
         | None when o.resolvedType.acnParameters.Length = 0 ->
             Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
-        | _ -> None  // has params → specialized function below
+        | _ ->
+            // Named type alias wrapping another ReferenceType with extra args:
+            // the inner ref will generate the specialized function at the same path.
+            // Return inner ref's AcnFunction to avoid duplicate function definition.
+            match o.resolvedType.Kind with
+            | Asn1AcnAst.ReferenceType innerRef when innerRef.hasExtraConstrainsOrChildrenOrAcnArgs ->
+                Some (baseType.getAcnFunction codec, us)
+            | _ -> None  // has params → specialized function below
 
     match earlyReturn with
     | Some result -> result
@@ -914,11 +921,12 @@ let private createDeferredReferenceFunction
                     | CommonTypes.Codec.Decode -> bodyResult_funcBody0
                     | CommonTypes.Codec.Encode ->
                         // Identify CONTAINING size param to exclude from step 2b
+                        // Always check (not just when isContainingExternalField) because
+                        // named CONTAINING aliases have two ref levels — the outer ref
+                        // has no encodingOptions but still carries the same size parameter.
                         let containingSizePrmId =
-                            if isContainingExternalField then
-                                findContainingSizeParam deps o
-                                |> Option.map (fun prm -> prm.id)
-                            else None
+                            findContainingSizeParam deps o
+                            |> Option.map (fun prm -> prm.id)
                         let patchCalls =
                             o.resolvedType.acnParameters |> List.choose (fun prm ->
                                 // Skip CONTAINING size param (already handled by wrapper)
@@ -942,6 +950,10 @@ let private createDeferredReferenceFunction
                                 match consumerDep with
                                 | None -> None
                                 | Some dep ->
+                                    // Skip CONTAINING size deps — handled by CONTAINING wrapper
+                                    match dep.dependencyKind with
+                                    | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> None
+                                    | _ ->
                                     let originalDetType = findDetFunctionsForParam deps prm.id
                                     match originalDetType with
                                     | None -> None
