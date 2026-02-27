@@ -95,6 +95,76 @@ let getDetFunctionsForAcnChild (acnChild: DAst.AcnChild) : (string * string * Bi
     getDetFunctionsForAcnInsertedType acnChild.Type
 
 
+/// Compute a valid default wire value for a deferred determinant that was
+/// never patched at runtime — i.e., no PatchDet call was executed during
+/// encoding.
+///
+/// This can happen whenever every code path that would call PatchDet is
+/// skipped at runtime: an OPTIONAL child guarded by present-when is
+/// absent, or the determinant's consumer sits inside a CHOICE branch
+/// that was not taken, etc.
+///
+/// DEVIATION FROM INLINE MODE:
+/// In the legacy (inline) encoding, the determinant value is always
+/// computed in the parent function from the ASN.1 data (e.g., .nCount
+/// for a size determinant, .exist.field for a presence boolean,
+/// .kind for a CHOICE determinant, etc.).  Even when the consumer is
+/// absent, the parent still derives a value from the struct — which
+/// may be the field's default/zero initialization — and writes it to
+/// the bitstream.
+///
+/// In deferred patching mode, PatchDet lives inside the consumer's
+/// own function.  If that function is never called, no value is
+/// written over the InitDet placeholder.  We must therefore supply a
+/// fallback value explicitly.  The value chosen here is arbitrary but
+/// must be valid for the determinant's wire encoding (otherwise the
+/// decoder will reject the bitstream).  Since no consumer will
+/// actually inspect this value, any valid value is semantically
+/// correct — but the bitstream bytes may differ from inline mode in
+/// the "no consumer executed" case.
+///
+/// Example (from 21-PresentWhenExpression/002):
+///
+///   -- ASN.1
+///   MyTopMostSeq ::= SEQUENCE {
+///       myChoice1 MyChoice OPTIONAL,
+///       myChoice2 MyChoice OPTIONAL
+///   }
+///   -- ACN
+///   MyTopMostSeq [] {
+///       myDeterminant MyChoiceEnum [],
+///       myBool1 BOOLEAN [],
+///       myBool2 BOOLEAN [],
+///       myChoice1 <myDeterminant> [present-when myBool1],
+///       myChoice2 <myDeterminant> [present-when myBool2]
+///   }
+///
+/// When both myChoice1 and myChoice2 are absent (myBool1=myBool2=FALSE),
+/// no child calls PatchDet on myDeterminant.  Without this fallback, the
+/// InitDet placeholder (all zeros) remains, but 0 is not a valid
+/// MyChoiceEnum wire value (valid: 1=choice1, 2=choice2) -> decode fails.
+/// The fallback patches with the first valid enum value (MyChoiceEnum_choice1).
+///
+/// NOTE (Ada / Scala portability):
+/// This function currently uses language-specific helpers (e.g.
+/// lm.lg.getNamedItemBackendName) to obtain C enum constant names.
+/// When Ada / Scala backends gain deferred patching support, this
+/// logic should be replaced with STG macros that emit the correct
+/// default value expression per target language.
+let computeFallbackDetValue (lm: LanguageMacros) (acnType: Asn1AcnAst.AcnInsertedType) (uperMinOffset: BigInteger) : string =
+    match acnType with
+    | Asn1AcnAst.AcnInsertedType.AcnInteger _ ->
+        if uperMinOffset > 0I then uperMinOffset.ToString()
+        else "0"
+    | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> "0"
+    | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
+        match enm.enumerated.items with
+        | firstItem :: _ -> lm.lg.getNamedItemBackendName None firstItem
+        | [] -> "0"
+    | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "\"\""
+    | _ -> "0"
+
+
 /// Build a C access expression from relative scope nodes and the root pointer.
 /// Returns (accessExpr, accessor) where accessor is "->" if result is a pointer,
 /// "." if result is a struct member.
@@ -310,6 +380,67 @@ let private makeDeferredDetDeclaration
         initExpression = "{0}"
     }
 
+/// Create a **synthetic** AcnChild node that emits fallback PatchDet code.
+///
+/// This is NOT a real ASN.1 or ACN field.  It is a fake child node injected
+/// at the END of the children list so that the fold in
+/// createSequenceFunction_inline includes the fallback code inside the
+/// nested if(ret) chain — and, critically, inside the TAS function text
+/// that is baked by createAcnFunction (which cannot be modified after the
+/// fact via closure wrapping).
+///
+/// For Encode, the funcBody emits the fallback PatchDet checks.
+/// For Decode, it emits nothing (empty string).
+///
+/// See computeFallbackDetValue for the rationale behind the fallback
+/// mechanism and the choice of default values.
+let private makeFallbackPatchChild
+        (lm: LanguageMacros)
+        (codec: CommonTypes.Codec)
+        (parentType: Asn1AcnAst.Asn1Type)
+        (fallbackCode: string) : SeqChildInfo =
+    let syntheticName = "_fallback_patch"
+    let (ReferenceToType parentPath) = parentType.id
+    let syntheticId = ReferenceToType (parentPath @ [SQF])
+    let dummyLoc = parentType.Location
+    let dummyNullType = Asn1AcnAst.AcnInsertedType.AcnNullType {
+        Asn1AcnAst.AcnNullType.acnProperties = { NullTypeAcnProperties.encodingPattern = None; savePosition = false }
+        acnAlignment = None
+        acnMaxSizeInBits = 0I
+        acnMinSizeInBits = 0I
+        Location = dummyLoc
+        defaultValue = ""
+    }
+    let funcBody : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> string -> (AcnFuncBodyResult option) =
+        fun innerCodec _acnArgs _nestingScope _p _bsPos ->
+            let body =
+                match innerCodec with
+                | CommonTypes.Codec.Encode -> fallbackCode
+                | CommonTypes.Codec.Decode -> ""
+            Some {
+                AcnFuncBodyResult.funcBody = body
+                errCodes = []
+                localVariables = []
+                bValIsUnReferenced = false
+                bBsIsUnReferenced = false
+                resultExpr = None
+                auxiliaries = []
+                icdResult = None
+                userDefinedFunctions = []
+            }
+    DAst.AcnChild {
+        DAst.AcnChild.Name = { StringLoc.Value = syntheticName; Location = dummyLoc }
+        c_name = syntheticName
+        id = syntheticId
+        Type = dummyNullType
+        typeDefinitionBodyWithinSeq = ""
+        funcBody = funcBody
+        funcUpdateStatement = None
+        Comments = [||]
+        deps = { Asn1AcnAst.AcnInsertedFieldDependencies.acnDependencies = [] }
+        initExpression = ""
+    }
+
 
 /// Deferred version of createSequenceFunction.
 /// Pre-processes the children list:
@@ -518,7 +649,51 @@ let private createDeferredSequenceFunction
             |> Set.toList
             |> List.map (makeDeferredDetDeclaration lm codec t)
 
-        let allChildren = syntheticChildren @ modifiedChildren
+        // Collect fallback PatchDet info for local deferred dets (encode only).
+        // When all consumers of a shared determinant are absent at runtime
+        // (e.g., present-when booleans are false, or a CHOICE branch was not
+        // taken), no PatchDet is called and the InitDet placeholder (zeros)
+        // remains.  The fallback patches with a valid default so the decoder
+        // does not reject the bitstream.  See computeFallbackDetValue for
+        // detailed rationale.
+        //
+        // We inject this as a **synthetic child** appended at the END of the
+        // children list.  This is NOT a real ASN.1 or ACN field — it is a
+        // fake AcnChild node whose sole purpose is to emit the fallback code
+        // inside the fold's nested if(ret) chain, which is the only way to
+        // get it into the TAS function text (baked inside createAcnFunction).
+        let fallbackChildren =
+            match codec with
+            | CommonTypes.Codec.Encode ->
+                let fallbackDets =
+                    children |> List.choose (fun child ->
+                        match child with
+                        | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames
+                                             && not (Set.contains ac.Name.Value deferredDetNamesFromOwnParams) ->
+                            match getDetFunctionsForAcnChild ac with
+                            | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
+                                let detVarName = ToC ac.Name.Value
+                                let defaultVal = computeFallbackDetValue lm ac.Type uperMinOffset
+                                Some (detVarName, patchFn, nBitsOpt, defaultVal)
+                            | None -> None
+                        | _ -> None)
+                match fallbackDets with
+                | [] -> []
+                | _ ->
+                    let fallbackCode =
+                        fallbackDets |> List.map (fun (detVarName, patchFn, nBitsOpt, defaultVal) ->
+                            let patchCall =
+                                match nBitsOpt with
+                                | None ->
+                                    sprintf "%s((asn1SccUint)%s, pBitStrm, &%s, pErrCode)" patchFn defaultVal detVarName
+                                | Some nBits ->
+                                    sprintf "%s((asn1SccUint)%s, pBitStrm, %s, &%s, pErrCode)" patchFn defaultVal (nBits.ToString()) detVarName
+                            sprintf "if (!%s.is_set) {\n    %s;\n}" detVarName patchCall
+                        ) |> String.concat "\n"
+                    [makeFallbackPatchChild lm codec t fallbackCode]
+            | CommonTypes.Codec.Decode -> []
+
+        let allChildren = syntheticChildren @ modifiedChildren @ fallbackChildren
 
         DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc allChildren acnPrms us
 
