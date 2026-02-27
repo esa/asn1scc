@@ -987,7 +987,10 @@ let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDe
         match resolvedLastNode with
         | PRM _ ->
             // Check if the dependency is string-typed
-            let isStringDep = dependency.dependencyKind.isString
+            let isStringDep =
+                match dependency.dependencyKind with
+                | Asn1AcnAst.AcnDepPresenceStr _ -> true
+                | _ -> false
             if isStringDep then baseName + "->str_value"
             else baseName + "->value"
         | _     -> baseName
