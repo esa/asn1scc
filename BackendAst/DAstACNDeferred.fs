@@ -674,20 +674,32 @@ let private createDeferredSequenceFunction
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 let detVarName = ToC ac.Name.Value
                                 let defaultVal = computeFallbackDetValue lm ac.Type uperMinOffset
-                                Some (detVarName, patchFn, nBitsOpt, defaultVal)
+                                Some (detVarName, patchFn, nBitsOpt, defaultVal, ac.Type)
                             | None -> None
                         | _ -> None)
                 match fallbackDets with
                 | [] -> []
                 | _ ->
                     let fallbackCode =
-                        fallbackDets |> List.map (fun (detVarName, patchFn, nBitsOpt, defaultVal) ->
+                        fallbackDets |> List.map (fun (detVarName, patchFn, nBitsOpt, defaultVal, acnType) ->
                             let patchCall =
-                                match nBitsOpt with
-                                | None ->
-                                    sprintf "%s((asn1SccUint)%s, pBitStrm, &%s, pErrCode)" patchFn defaultVal detVarName
-                                | Some nBits ->
-                                    sprintf "%s((asn1SccUint)%s, pBitStrm, %s, &%s, pErrCode)" patchFn defaultVal (nBits.ToString()) detVarName
+                                match acnType with
+                                | Asn1AcnAst.AcnInsertedType.AcnInteger _
+                                | Asn1AcnAst.AcnInsertedType.AcnBoolean _
+                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated _ ->
+                                    match nBitsOpt with
+                                    | None ->
+                                        sprintf "%s((asn1SccUint)%s, pBitStrm, &%s, pErrCode)" patchFn defaultVal detVarName
+                                    | Some nBits ->
+                                        sprintf "%s((asn1SccUint)%s, pBitStrm, %s, &%s, pErrCode)" patchFn defaultVal (nBits.ToString()) detVarName
+                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ ->
+                                    match nBitsOpt with
+                                    | Some nBits ->
+                                        sprintf "%s(%s, pBitStrm, %s, &%s, pErrCode)" patchFn defaultVal (nBits.ToString()) detVarName
+                                    | None ->
+                                        failwithf "BUG: IA5String fallback PatchDet requires nChars (nBits) parameter"
+                                | Asn1AcnAst.AcnInsertedType.AcnNullType _ ->
+                                    failwithf "BUG: AcnNullType should not appear as a deferred determinant"
                             sprintf "if (!%s.is_set) {\n    %s; /*COVERAGE_IGNORE*/\n}" detVarName patchCall
                         ) |> String.concat "\n"
                     [makeFallbackPatchChild lm codec t fallbackCode]
