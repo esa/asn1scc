@@ -104,7 +104,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | IcdAcn  _         -> "Produces an Interface Control Document for the input ASN.1 and ACN grammars for ACN encoding"
             | CustomIcdAcn  _   -> "Invokes the custom stg file 'stgFile.stg' using the icdAcn backend and produces the output file 'outputFile'"
             | DetectPdus        -> "Automatically detects the Protocol Data Units (PDUs) in the input ASN.1 grammar and prints them to the console. PDUs are defined as top-level types, i.e., types that are not referenced by any other type."
-            | IcdPdus       _   -> "A list of type assignments to be included in the generated ICD. If there are multiple type assignments, please separate them with commas and enclose them in double quotes."
+            | IcdPdus       _   -> "A comma-separated list of top-level type assignments (PDUs). Only these types and their transitive dependencies will have encode/decode functions generated. Also limits ICD output to the listed types. Enclose in double quotes if multiple, e.g. -icdPdus \"TypeA,TypeB\"."
             | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
             | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
             | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
