@@ -16,6 +16,7 @@ targetDir = None
 nTests = None
 slim = None
 acnV2 = None
+icdPdus = None
 
 def CreateACNFile(content):
     str_start = "TEST-CASE DEFINITIONS ::= BEGIN\n"
@@ -69,7 +70,7 @@ def PrintWarning(mssg):
 # behavior 1 :test case must fail in the asn1f.exe, with specific error message
 # behavior 2 :test case must fail during execution of the generated executable
 def RunTestCase(asn1, acn, behavior, expErrMsg):
-    global nTests, slim, acnV2
+    global nTests, slim, acnV2, icdPdus
 
     print(asn1, acn)
 
@@ -82,7 +83,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     path_to_asn1scc = "../asn1scc/bin/Debug/net9.0/asn1scc"
     res = mysystem(
         path_to_asn1scc +
-        " -" + language + " -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ " + acnV2 + slim +
+        " -" + language + " -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ " + acnV2 + slim + icdPdus +
         "-renamePolicy 3 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
         "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +
         "' 2>tmp.err"+"_"+language, True)
@@ -410,11 +411,13 @@ def usage():
     print("     --acn-v2          use ACN v2 deferred patching mode")
     print("     -o, --output-dir <dir>")
     print("           override the output/working directory (default: tmp_<lang>)")
+    print("     --icd-pdus <types>")
+    print("           comma-separated list of PDU type names (passed as -icdPdus to asn1scc)")
     sys.exit(1)
 
 
 def main():
-    global rootDir, nTests, slim, acnV2
+    global rootDir, nTests, slim, acnV2, icdPdus
 
     rootDir = os.path.abspath(
         os.path.dirname(os.path.abspath(sys.argv[0])) + os.sep + "..")
@@ -426,7 +429,7 @@ def main():
     try:
         args = sys.argv[1:]
         optlist, args = getopt.gnu_getopt(
-            args, "al:t:cso:", ['all', 'lang=', 'testCaseSet=','cntTest','slim','acn-v2','output-dir='])
+            args, "al:t:cso:", ['all', 'lang=', 'testCaseSet=','cntTest','slim','acn-v2','output-dir=','icd-pdus='])
     except:
         usage()
     if args != []:
@@ -439,6 +442,7 @@ def main():
     cntTest = False
     slim = ""
     acnV2 = ""
+    icdPdus = ""
     workDir = None
     for opt, arg in optlist:
         if opt in ("-a", "--all"):
@@ -455,6 +459,8 @@ def main():
             acnV2 = " --acn-v2 "
         elif opt in ("-o", "--output-dir"):
             workDir = arg
+        elif opt in ("--icd-pdus",):
+            icdPdus = ' -icdPdus "' + arg + '" '
     if bAll:
         f = open(language+"_log.txt", 'a')
         f.write("==========================================\n")
