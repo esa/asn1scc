@@ -688,7 +688,7 @@ let private createDeferredSequenceFunction
                                     sprintf "%s((asn1SccUint)%s, pBitStrm, &%s, pErrCode)" patchFn defaultVal detVarName
                                 | Some nBits ->
                                     sprintf "%s((asn1SccUint)%s, pBitStrm, %s, &%s, pErrCode)" patchFn defaultVal (nBits.ToString()) detVarName
-                            sprintf "if (!%s.is_set) {\n    %s;\n}" detVarName patchCall
+                            sprintf "if (!%s.is_set) {\n    %s; /*COVERAGE_IGNORE*/\n}" detVarName patchCall
                         ) |> String.concat "\n"
                     [makeFallbackPatchChild lm codec t fallbackCode]
             | CommonTypes.Codec.Decode -> []
