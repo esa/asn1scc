@@ -543,7 +543,10 @@ let private createDeferredSequenceFunction
                                     // the decode writes into the struct's value field:
                                     //   Acn_Dec_Int_...(pBitStrm, &(det->value))
                                     //
-                                    // For AcnInteger this works directly (asn1SccUint matches).
+                                    // For AcnInteger with fat types (asn1SccUint/asn1SccSint)
+                                    // this works directly.  Slim types (uint8_t, uint16_t, etc.)
+                                    // need temp_copy because the decode function suffix
+                                    // selects a variant expecting the slim pointer type.
                                     // For AcnBoolean and AcnReferenceToEnumerated, the
                                     // funcBody generates intermediate variables with names
                                     // derived from the target path.  A path containing
@@ -551,7 +554,14 @@ let private createDeferredSequenceFunction
                                     // decode to a clean temp variable and copy afterward.
                                     let redirectKind =
                                         match ac.Type with
-                                        | Asn1AcnAst.AcnInsertedType.AcnInteger _ -> "direct_value"
+                                        | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                                            let intClass = Asn1AcnAstUtilFunctions.getAcnIntegerClass r.args ai
+                                            match intClass with
+                                            | Asn1AcnAst.ASN1SCC_UInt _
+                                            | Asn1AcnAst.ASN1SCC_UInt64 _
+                                            | Asn1AcnAst.ASN1SCC_Int _
+                                            | Asn1AcnAst.ASN1SCC_Int64 _ -> "direct_value"
+                                            | _ -> "temp_copy"
                                         | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "direct_str_value"
                                         | _ -> "temp_copy"
                                     match redirectKind with
