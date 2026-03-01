@@ -170,7 +170,7 @@ let computeFallbackDetValue (lm: LanguageMacros) (acnType: Asn1AcnAst.AcnInserte
 /// "." if result is a struct member.
 /// E.g., [] + "pVal" → ("pVal", "->")
 ///       [SEQ_CHILD("buffer",_)] + "pVal" → ("pVal->buffer", ".")
-let buildRelativeAccess (relParts: ScopeNode list) (rootId: string) : (string * string) =
+let buildRelativeAccess (lm: LanguageMacros) (relParts: ScopeNode list) (rootId: string) : (string * string) =
     match relParts with
     | [] -> (rootId, "->")
     | _ ->
@@ -179,7 +179,7 @@ let buildRelativeAccess (relParts: ScopeNode list) (rootId: string) : (string * 
             | SEQ_CHILD (name, _) -> ToC name
             | CH_CHILD (name, _, _) -> ToC name
             | _ -> failwithf "BUG: unexpected scope node %A in relative access" node)
-        let fieldAccess = sprintf "%s->%s" rootId (parts |> String.concat ".")
+        let fieldAccess = lm.acn.acn_deferred_det_relative_access rootId (parts |> String.concat ".")
         (fieldAccess, ".")
 
 
@@ -202,66 +202,60 @@ let computePatchDetValueExpr
     let relParts = fieldPath |> List.skip boundaryPath.Length
     match dep.dependencyKind with
     | Asn1AcnAst.AcnDepSizeDeterminant _ ->
-        let (fieldExpr, acc) = buildRelativeAccess relParts rootId
-        (None, sprintf "%s%snCount" fieldExpr acc)
+        let (fieldExpr, acc) = buildRelativeAccess lm relParts rootId
+        (None, lm.acn.getSizeableSize fieldExpr acc false)
 
     | Asn1AcnAst.AcnDepIA5StringSizeDeterminant _ ->
-        let (fieldExpr, _acc) = buildRelativeAccess relParts rootId
-        (None, sprintf "strlen(%s)" fieldExpr)
+        let (fieldExpr, _acc) = buildRelativeAccess lm relParts rootId
+        (None, lm.acn.getStringSize fieldExpr)
 
     | Asn1AcnAst.AcnDepPresenceBool ->
         // dep.asn1Type points to the OPTIONAL child; parent is one level up
         let parentRelParts = relParts |> List.rev |> List.tail |> List.rev
-        let (parentExpr, pAcc) = buildRelativeAccess parentRelParts rootId
+        let (parentExpr, pAcc) = buildRelativeAccess lm parentRelParts rootId
         let childName = ToC (dep.asn1Type.lastItem)
-        (None, sprintf "(%s%sexist.%s == 1)" parentExpr pAcc childName)
+        (None, lm.acn.acn_deferred_det_value_presence_bool parentExpr pAcc childName)
 
     | Asn1AcnAst.AcnDepPresence (relPath, chc) ->
-        let (choiceExpr, acc) = buildRelativeAccess relParts rootId
-        let kindAccess = sprintf "%s%skind" choiceExpr acc
+        let (choiceExpr, acc) = buildRelativeAccess lm relParts rootId
+        let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
         let varName = "_patchDetVal"
         let switchItems = chc.children |> List.map (fun ch ->
             let pres = ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath)
             let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
             match pres with
             | AcnGenericTypes.PresenceInt (_, intVal) ->
-                sprintf "    case %s: %s = %s; break;" presentWhenName varName (intVal.Value.ToString())
+                lm.acn.acn_deferred_det_switch_case_int presentWhenName varName (intVal.Value.ToString())
             | AcnGenericTypes.PresenceStr _ ->
                 failwithf "BUG: PresenceStr in AcnDepPresence (should be AcnDepPresenceStr)")
-        let switchBlock =
-            sprintf "asn1SccUint %s;\nswitch(%s) {\n%s\n    default: ret = FALSE; break; /*COVERAGE_IGNORE*/\n}\nif (!ret) return FALSE;"
-                varName kindAccess (switchItems |> String.concat "\n")
+        let switchBlock = lm.acn.acn_deferred_det_switch_int varName kindAccess switchItems
         (Some switchBlock, varName)
 
     | Asn1AcnAst.AcnDepPresenceStr (relPath, chc, _strType) ->
-        let (choiceExpr, acc) = buildRelativeAccess relParts rootId
-        let kindAccess = sprintf "%s%skind" choiceExpr acc
+        let (choiceExpr, acc) = buildRelativeAccess lm relParts rootId
+        let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
         let varName = "_patchDetStrVal"
         let switchItems = chc.children |> List.map (fun ch ->
             let pres = ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath)
             let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
             match pres with
             | AcnGenericTypes.PresenceStr (_, strVal) ->
-                sprintf "    case %s: %s = \"%s\"; break;" presentWhenName varName strVal.Value
+                lm.acn.acn_deferred_det_switch_case_str presentWhenName varName strVal.Value
             | AcnGenericTypes.PresenceInt _ ->
                 failwithf "BUG: PresenceInt in AcnDepPresenceStr")
-        let switchBlock =
-            sprintf "const char* %s;\nswitch(%s) {\n%s\n    default: ret = FALSE; break; /*COVERAGE_IGNORE*/\n}\nif (!ret) return FALSE;"
-                varName kindAccess (switchItems |> String.concat "\n")
+        let switchBlock = lm.acn.acn_deferred_det_switch_str varName kindAccess switchItems
         (Some switchBlock, varName)
 
     | Asn1AcnAst.AcnDepChoiceDeterminant (enm, chc, _isOptional) ->
-        let (choiceExpr, acc) = buildRelativeAccess relParts rootId
-        let kindAccess = sprintf "%s%skind" choiceExpr acc
+        let (choiceExpr, acc) = buildRelativeAccess lm relParts rootId
+        let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
         let varName = "_patchDetVal"
         let switchItems = chc.children |> List.map (fun ch ->
             let enmItem = enm.enm.items |> List.find (fun itm -> itm.Name.Value = ch.Name.Value)
             let presentWhenName = ch.presentWhenName
             let enumCName = lm.lg.getNamedItemBackendName None enmItem
-            sprintf "    case %s: %s = %s; break;" presentWhenName varName enumCName)
-        let switchBlock =
-            sprintf "asn1SccUint %s;\nswitch(%s) {\n%s\n    default: ret = FALSE; break; /*COVERAGE_IGNORE*/\n}\nif (!ret) return FALSE;"
-                varName kindAccess (switchItems |> String.concat "\n")
+            lm.acn.acn_deferred_det_switch_case_int presentWhenName varName enumCName)
+        let switchBlock = lm.acn.acn_deferred_det_switch_int varName kindAccess switchItems
         (Some switchBlock, varName)
 
     | _ ->
@@ -359,7 +353,7 @@ let private makeDeferredDetDeclaration
             Some {
                 AcnFuncBodyResult.funcBody = ""
                 errCodes = []
-                localVariables = [GenericLocalVariable { name = c_name; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
+                localVariables = [GenericLocalVariable { name = c_name; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }]
                 bValIsUnReferenced = false
                 bBsIsUnReferenced = false
                 resultExpr = None
@@ -372,12 +366,12 @@ let private makeDeferredDetDeclaration
         c_name = c_name
         id = syntheticId
         Type = dummyNullType
-        typeDefinitionBodyWithinSeq = "AcnInsertedFieldRef"
+        typeDefinitionBodyWithinSeq = lm.acn.acn_deferred_det_type_name()
         funcBody = funcBody
         funcUpdateStatement = None
         Comments = [||]
         deps = { Asn1AcnAst.AcnInsertedFieldDependencies.acnDependencies = [] }
-        initExpression = "{0}"
+        initExpression = lm.acn.acn_deferred_det_init_expr()
     }
 
 /// Create a **synthetic** AcnChild node that emits fallback PatchDet code.
@@ -532,7 +526,7 @@ let private createDeferredSequenceFunction
                                         errCodes = []
                                         localVariables =
                                             if isOwnParam then []
-                                            else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
+                                            else [GenericLocalVariable { name = detVarName; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }]
                                         bValIsUnReferenced = false
                                         bBsIsUnReferenced = false
                                         resultExpr = None
@@ -563,29 +557,29 @@ let private createDeferredSequenceFunction
                                     match redirectKind with
                                     | "direct_value" ->
                                         let valueTarget =
-                                            if isOwnParam then detVarName + "->value"
-                                            else detVarName + ".value"
+                                            if isOwnParam then lm.acn.acn_deferred_det_access_ptr detVarName
+                                            else lm.acn.acn_deferred_det_access_value detVarName
                                         let modifiedP = {p with accessPath = AccessPath.valueEmptyPath valueTarget}
                                         let result = originalFuncBody innerCodec acnArgs nestingScope modifiedP bsPos
                                         match result with
                                         | Some r ->
                                             let extraLvars =
                                                 if isOwnParam then []
-                                                else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
+                                                else [GenericLocalVariable { name = detVarName; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }]
                                             Some { r with localVariables = extraLvars @ r.localVariables }
                                         | None -> None
                                     | "direct_str_value" ->
                                         // IA5String: decode directly into det.str_value / det->str_value
                                         let strTarget =
-                                            if isOwnParam then detVarName + "->str_value"
-                                            else detVarName + ".str_value"
+                                            if isOwnParam then lm.acn.acn_deferred_det_access_str_ptr detVarName
+                                            else lm.acn.acn_deferred_det_access_str_value detVarName
                                         let modifiedP = {p with accessPath = AccessPath.valueEmptyPath strTarget}
                                         let result = originalFuncBody innerCodec acnArgs nestingScope modifiedP bsPos
                                         match result with
                                         | Some r ->
                                             let extraLvars =
                                                 if isOwnParam then []
-                                                else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }]
+                                                else [GenericLocalVariable { name = detVarName; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }]
                                             Some { r with localVariables = extraLvars @ r.localVariables }
                                         | None -> None
                                     | _ ->
@@ -602,13 +596,13 @@ let private createDeferredSequenceFunction
                                         match result with
                                         | Some r ->
                                             let detAccess =
-                                                if isOwnParam then detVarName + "->value"
-                                                else detVarName + ".value"
-                                            let assignStmt = sprintf "%s = (asn1SccUint)%s;" detAccess tmpName
+                                                if isOwnParam then lm.acn.acn_deferred_det_access_ptr detVarName
+                                                else lm.acn.acn_deferred_det_access_value detVarName
+                                            let assignStmt = lm.acn.acn_deferred_det_copy_tmp detAccess tmpName CommonTypes.Codec.Decode
                                             let extraLvars =
                                                 [tmpVarDecl] @
                                                 (if isOwnParam then []
-                                                 else [GenericLocalVariable { name = detVarName; varType = "AcnInsertedFieldRef"; arrSize = None; isStatic = false; initExp = Some "{0}" }])
+                                                 else [GenericLocalVariable { name = detVarName; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }])
                                             Some { r with
                                                         funcBody = r.funcBody + "\n" + assignStmt
                                                         localVariables = extraLvars @ r.localVariables }
@@ -682,25 +676,23 @@ let private createDeferredSequenceFunction
                 | _ ->
                     let fallbackCode =
                         fallbackDets |> List.map (fun (detVarName, patchFn, nBitsOpt, defaultVal, acnType) ->
-                            let patchCall =
-                                match acnType with
-                                | Asn1AcnAst.AcnInsertedType.AcnInteger _
-                                | Asn1AcnAst.AcnInsertedType.AcnBoolean _
-                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated _ ->
-                                    match nBitsOpt with
-                                    | None ->
-                                        sprintf "%s((asn1SccUint)%s, pBitStrm, &%s, pErrCode)" patchFn defaultVal detVarName
-                                    | Some nBits ->
-                                        sprintf "%s((asn1SccUint)%s, pBitStrm, %s, &%s, pErrCode)" patchFn defaultVal (nBits.ToString()) detVarName
-                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ ->
-                                    match nBitsOpt with
-                                    | Some nBits ->
-                                        sprintf "%s(%s, pBitStrm, %s, &%s, pErrCode)" patchFn defaultVal (nBits.ToString()) detVarName
-                                    | None ->
-                                        failwithf "BUG: IA5String fallback PatchDet requires nChars (nBits) parameter"
-                                | Asn1AcnAst.AcnInsertedType.AcnNullType _ ->
-                                    failwithf "BUG: AcnNullType should not appear as a deferred determinant"
-                            sprintf "if (!%s.is_set) {\n    %s; /*COVERAGE_IGNORE*/\n}" detVarName patchCall
+                            match acnType with
+                            | Asn1AcnAst.AcnInsertedType.AcnInteger _
+                            | Asn1AcnAst.AcnInsertedType.AcnBoolean _
+                            | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated _ ->
+                                match nBitsOpt with
+                                | None ->
+                                    lm.acn.acn_deferred_det_fallback_value patchFn defaultVal detVarName codec
+                                | Some nBits ->
+                                    lm.acn.acn_deferred_det_fallback_value_with_size patchFn defaultVal nBits detVarName codec
+                            | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ ->
+                                match nBitsOpt with
+                                | Some nBits ->
+                                    lm.acn.acn_deferred_det_fallback_value_str patchFn defaultVal nBits detVarName codec
+                                | None ->
+                                    failwithf "BUG: IA5String fallback PatchDet requires nChars (nBits) parameter"
+                            | Asn1AcnAst.AcnInsertedType.AcnNullType _ ->
+                                failwithf "BUG: AcnNullType should not appear as a deferred determinant"
                         ) |> String.concat "\n"
                     [makeFallbackPatchChild lm codec t fallbackCode]
             | CommonTypes.Codec.Decode -> []
@@ -994,7 +986,7 @@ let private createDeferredReferenceFunction
                                         // but ConstSize encodes value directly, so subtract the offset.
                                         let valueExpr =
                                             if uperMinOffset = 0I then rawValueExpr
-                                            else sprintf "(%s - %s)" rawValueExpr (uperMinOffset.ToString())
+                                            else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
                                         let detParamName = DAstACN.getAcnDeterminantName prm.id
                                         let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                                         let isIA5StringDet = patchFn.Contains("IA5String")
@@ -1014,7 +1006,7 @@ let private createDeferredReferenceFunction
                                         let fullBlock =
                                             match preBlock with
                                             | None -> patchCall
-                                            | Some pre -> sprintf "{\n%s\n%s\n}" pre patchCall
+                                            | Some pre -> lm.acn.acn_deferred_det_preblock_wrap pre patchCall
                                         Some fullBlock)
                         match patchCalls with
                         | [] -> bodyResult_funcBody0

@@ -1634,3 +1634,109 @@ acn_deferred_det_save_pos_decode(sVarName) ::= "AcnBitStreamPos <sVarName> = Acn
 /* Compute distance in bytes between two positions */
 acn_deferred_det_distance_bytes_encode(sStart, sEnd) ::= "Acn_BitStream_DistanceInBytes(<sStart>, <sEnd>)"
 acn_deferred_det_distance_bytes_decode(sStart, sEnd) ::= "Acn_BitStream_DistanceInBytes(<sStart>, <sEnd>)"
+
+/* ========================================================================
+   ACN Deferred Patching — Value Expression & Structural Templates
+   ======================================================================== */
+
+/* Group A: PatchDet value expressions (codec-independent) */
+
+/* CHOICE kind field access */
+acn_deferred_det_kind_access(p, sAcc) ::= "<p><sAcc>kind"
+
+/* Presence-bool value expression: (parent->exist.child == 1) */
+acn_deferred_det_value_presence_bool(p, sAcc, sChildName) ::= "(<p><sAcc>exist.<sChildName> == 1)"
+
+/* Switch case item for integer/enum presence or choice determinant */
+acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "    case <sCaseName>: <sVarName> = <sValue>; break;"
+
+/* Full switch block for integer presence or choice determinant */
+acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= <<
+asn1SccUint <sVarName>;
+switch(<sKindAccess>) {
+<arrsCaseItems; separator="\n">
+    default: ret = FALSE; break; /*COVERAGE_IGNORE*/
+}
+if (!ret) return FALSE;
+>>
+
+/* Switch case item for string presence */
+acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= <<    case <sCaseName>: <sVarName> = "<sValue>"; break;>>
+
+/* Full switch block for string presence */
+acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= <<
+const char* <sVarName>;
+switch(<sKindAccess>) {
+<arrsCaseItems; separator="\n">
+    default: ret = FALSE; break; /*COVERAGE_IGNORE*/
+}
+if (!ret) return FALSE;
+>>
+
+/* Group B: Fallback PatchDet (encode-only, decode is empty) */
+
+/* Fallback patch without nBits */
+acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= <<
+if (!<sDetName>.is_set) {
+    <sPatchFuncName>((asn1SccUint)<sDefaultVal>, pBitStrm, &<sDetName>, pErrCode); /*COVERAGE_IGNORE*/
+}
+>>
+acn_deferred_det_fallback_value_decode(sPatchFuncName, sDefaultVal, sDetName) ::= ""
+
+/* Fallback patch with nBits */
+acn_deferred_det_fallback_value_with_size_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= <<
+if (!<sDetName>.is_set) {
+    <sPatchFuncName>((asn1SccUint)<sDefaultVal>, pBitStrm, <nBits>, &<sDetName>, pErrCode); /*COVERAGE_IGNORE*/
+}
+>>
+acn_deferred_det_fallback_value_with_size_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
+
+/* Fallback patch for IA5String */
+acn_deferred_det_fallback_value_str_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= <<
+if (!<sDetName>.is_set) {
+    <sPatchFuncName>(<sDefaultVal>, pBitStrm, <nBits>, &<sDetName>, pErrCode); /*COVERAGE_IGNORE*/
+}
+>>
+acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
+
+/* Group C: Decode redirect */
+
+/* Assignment after temp-variable decode: det.value = (asn1SccUint)tmp; */
+acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> = (asn1SccUint)<sTmpName>;"
+
+/* Group D: Access paths (codec-independent) */
+
+/* Local det value access: det.value */
+acn_deferred_det_access_value(sDetName) ::= "<sDetName>.value"
+
+/* Pointer det value access: det->value */
+acn_deferred_det_access_ptr(sDetName) ::= "<sDetName>->value"
+
+/* Local det string value access: det.str_value */
+acn_deferred_det_access_str_value(sDetName) ::= "<sDetName>.str_value"
+
+/* Pointer det string value access: det->str_value */
+acn_deferred_det_access_str_ptr(sDetName) ::= "<sDetName>->str_value"
+
+/* Struct field access via pointer: rootId->field.field */
+acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "<sRootId>-><sFieldPath>"
+
+/* Group E: Miscellaneous */
+
+/* UPER offset subtraction expression */
+acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
+
+/* Wrap a preBlock and patchCall in braces */
+acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<
+{
+<sPreBlock>
+<sPatchCall>
+}
+>>
+
+/* AcnInsertedFieldRef type name */
+acn_deferred_det_type_name() ::= "AcnInsertedFieldRef"
+
+/* AcnInsertedFieldRef zero initializer */
+acn_deferred_det_init_expr() ::= "{0}"
