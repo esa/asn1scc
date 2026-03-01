@@ -1383,3 +1383,36 @@ acn_deferred_det_save_pos_decode(sVarName) ::= "// TODO: ACN deferred patching n
 
 acn_deferred_det_distance_bytes_encode(sStart, sEnd) ::= "0"
 acn_deferred_det_distance_bytes_decode(sStart, sEnd) ::= "0"
+
+/* Group A: PatchDet value expressions */
+acn_deferred_det_kind_access(p, sAcc) ::= "// TODO"
+acn_deferred_det_value_presence_bool(p, sAcc, sChildName) ::= "// TODO"
+acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "// TODO"
+acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= "// TODO"
+acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= "// TODO"
+acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= "// TODO"
+
+/* Group B: Fallback PatchDet */
+acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= "// TODO"
+acn_deferred_det_fallback_value_decode(sPatchFuncName, sDefaultVal, sDetName) ::= ""
+acn_deferred_det_fallback_value_with_size_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= "// TODO"
+acn_deferred_det_fallback_value_with_size_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
+acn_deferred_det_fallback_value_str_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= "// TODO"
+acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
+
+/* Group C: Decode redirect */
+acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
+
+/* Group D: Access paths */
+acn_deferred_det_access_value(sDetName) ::= "// TODO"
+acn_deferred_det_access_ptr(sDetName) ::= "// TODO"
+acn_deferred_det_access_str_value(sDetName) ::= "// TODO"
+acn_deferred_det_access_str_ptr(sDetName) ::= "// TODO"
+acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "// TODO"
+
+/* Group E: Miscellaneous */
+acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "// TODO"
+acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= "// TODO"
+acn_deferred_det_type_name() ::= "// TODO"
+acn_deferred_det_init_expr() ::= "// TODO"
