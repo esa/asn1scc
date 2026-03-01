@@ -358,16 +358,18 @@ knownIssues = {
 }
 
 
-def submain(lang, encoding, testCaseSet, cntTest):
+def submain(lang, encoding, testCaseSet, cntTest, workDir):
     global language, targetDir
 
     language = lang
-    tmpDir = "tmp_" + lang
-    targetDir = rootDir + os.sep + tmpDir
+    if workDir:
+        targetDir = os.path.abspath(workDir)
+    else:
+        targetDir = rootDir + os.sep + "tmp_" + lang
 
-    if os.path.exists(tmpDir):
-        shutil.rmtree(tmpDir)
-    os.mkdir(tmpDir)
+    if os.path.exists(targetDir):
+        shutil.rmtree(targetDir)
+    os.mkdir(targetDir)
     
     testCaseStart = testCaseSet
     if testCaseSet == "" or cntTest:
@@ -406,6 +408,8 @@ def usage():
     print("     -t, --testCaseSet  <asn1File> or <testcaseDir>")
     print("     -s, --slim")
     print("     --acn-v2          use ACN v2 deferred patching mode")
+    print("     -o, --output-dir <dir>")
+    print("           override the output/working directory (default: tmp_<lang>)")
     sys.exit(1)
 
 
@@ -422,7 +426,7 @@ def main():
     try:
         args = sys.argv[1:]
         optlist, args = getopt.gnu_getopt(
-            args, "al:t:cs", ['all', 'lang=', 'testCaseSet=','cntTest','slim','acn-v2'])
+            args, "al:t:cso:", ['all', 'lang=', 'testCaseSet=','cntTest','slim','acn-v2','output-dir='])
     except:
         usage()
     if args != []:
@@ -435,6 +439,7 @@ def main():
     cntTest = False
     slim = ""
     acnV2 = ""
+    workDir = None
     for opt, arg in optlist:
         if opt in ("-a", "--all"):
             bAll = True
@@ -448,13 +453,15 @@ def main():
             slim = " -slim "
         elif opt in ("--acn-v2",):
             acnV2 = " --acn-v2 "
+        elif opt in ("-o", "--output-dir"):
+            workDir = arg
     if bAll:
         f = open(language+"_log.txt", 'a')
         f.write("==========================================\n")
         f.close()
-        submain("c", "ACN", "", cntTest)
-        submain("Ada", "ACN", "", cntTest)
-        submain("Scala", "ACN", "", cntTest)
+        submain("c", "ACN", "", cntTest, workDir)
+        submain("Ada", "ACN", "", cntTest, workDir)
+        submain("Scala", "ACN", "", cntTest, workDir)
     else:
         if lang not in ["c", "Ada", 'Scala']:
             print("Invalid language argument")
@@ -469,7 +476,7 @@ def main():
         #f = open(language+"_log.txt", 'a')
         #f.write("==========================================\n")
         #f.close()
-        submain(lang, "ACN", testCaseSet, cntTest)
+        submain(lang, "ACN", testCaseSet, cntTest, workDir)
     print("Test run ended succesfully. Number of test cases run :", nTests)
 
 
