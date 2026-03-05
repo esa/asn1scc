@@ -1627,10 +1627,11 @@ begin
 end;
 >>
 
-
--- ========================================================================
--- ACN Deferred Patching Templates (stubs — Ada not supported yet)
--- ========================================================================
+/*
+========================================================================
+ACN Deferred Patching Templates (stubs — Ada not supported yet)
+========================================================================
+*/
 
 acn_deferred_det_declare_encode(sDetName) ::= "-- TODO: ACN deferred patching not supported for Ada"
 acn_deferred_det_declare_decode(sDetName) ::= "-- TODO: ACN deferred patching not supported for Ada"
