@@ -302,6 +302,8 @@ flag Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(BitStream* pBitStrm, asn
 	asn1SccUint v = 0;
 	if (!BitStream_ReadByte(pBitStrm, &nBytes))
 		return FALSE;
+	if (nBytes > WORD_SIZE)
+		return FALSE;
 	for (i = 0; i<nBytes; i++) {
 		byte b = 0;
 		if (!BitStream_ReadByte(pBitStrm, &b))
@@ -498,6 +500,8 @@ flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1
 	flag isNegative = 0;
 	if (!BitStream_ReadByte(pBitStrm, &nBytes))
 		return FALSE;
+	if (nBytes > WORD_SIZE)
+		return FALSE;
 	for (i = 0; i<nBytes; i++) {
 		byte b = 0;
 		if (!BitStream_ReadByte(pBitStrm, &b))
@@ -598,11 +602,11 @@ void Acn_Enc_Int_BCD_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccUint int
 flag Acn_Dec_Int_BCD_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccUint* pIntVal)
 {
 	byte nNibbles = 0;
-	if (BitStream_ReadByte(pBitStrm, &nNibbles))
-		return Acn_Dec_Int_BCD_ConstSize(pBitStrm, pIntVal, nNibbles);
-
-	return FALSE;
-
+	if (!BitStream_ReadByte(pBitStrm, &nNibbles))
+		return FALSE;
+	if (nNibbles > 2 * WORD_SIZE)
+		return FALSE;
+	return Acn_Dec_Int_BCD_ConstSize(pBitStrm, pIntVal, nNibbles);
 }
 
 
@@ -1372,6 +1376,8 @@ static flag Acn_Dec_String_CharIndex_private(BitStream* pBitStrm,
 	while (i<charactersToDecode) {
 		asn1SccSint charIndex = 0;
 		if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, &charIndex, 0, charSetSize - 1))
+			return FALSE;
+		if (charIndex < 0 || charIndex >= charSetSize)
 			return FALSE;
 		strVal[i] = allowedCharSet[charIndex];
 		i++;

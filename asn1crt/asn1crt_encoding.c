@@ -818,6 +818,8 @@ flag BitStream_DecodeConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v, 
 
 	if (BitStream_DecodeNonNegativeInteger(pBitStrm, &uv, nRangeBits))
 	{
+		if (uv > range)
+			return FALSE;
 		*v = ((asn1SccSint)uv) + min;
 		return TRUE;
 	}
@@ -902,6 +904,8 @@ flag BitStream_DecodeConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint* 
 
 	if (BitStream_DecodeNonNegativeInteger(pBitStrm, &uv, nRangeBits))
 	{
+		if (uv > range)
+			return FALSE;
 		*v = uv + min;
 		return TRUE;
 	}
@@ -945,6 +949,8 @@ flag BitStream_DecodeSemiConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint*
 	*v = 0;
 	if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, &nBytes, 0, 255))
 		return FALSE;
+	if (nBytes > WORD_SIZE)
+		return FALSE;
 	for (i = 0; i<nBytes; i++) {
 		byte b = 0;
 		if (!BitStream_ReadByte(pBitStrm, &b))
@@ -961,6 +967,8 @@ flag BitStream_DecodeSemiConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUi
 	int i;
 	*v = 0;
 	if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, &nBytes, 0, 255))
+		return FALSE;
+	if (nBytes > WORD_SIZE)
 		return FALSE;
 	for (i = 0; i<nBytes; i++) {
 		byte b = 0;
@@ -998,6 +1006,8 @@ flag BitStream_DecodeUnConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v
 
 
 	if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, &nBytes, 0, 255))
+		return FALSE;
+	if (nBytes > WORD_SIZE)
 		return FALSE;
 
 	valIsNegative = BitStream_PeekBit(pBitStrm);

@@ -131,31 +131,44 @@ Token NT(ByteStream* pByteStrm) {
 	Token ret;
 	char spChrs[] = { '<', '>', '/', '=', '"', 0 };
 	char *tmp;
+	size_t written = 0;
 	memset(&ret, 0x0, sizeof(Token));
 
-	while (isspace(pByteStrm->buf[pByteStrm->currentByte]))
+	while (pByteStrm->currentByte < pByteStrm->count && isspace(pByteStrm->buf[pByteStrm->currentByte]))
 		pByteStrm->currentByte++;
 
-	if ((pByteStrm->buf[pByteStrm->currentByte] == '<') && (pByteStrm->buf[pByteStrm->currentByte + 1] == '?')) {
+	if (pByteStrm->currentByte >= pByteStrm->count)
+		return ret;
+
+	if (pByteStrm->currentByte + 1 < pByteStrm->count &&
+		(pByteStrm->buf[pByteStrm->currentByte] == '<') && (pByteStrm->buf[pByteStrm->currentByte + 1] == '?')) {
 		pByteStrm->currentByte++;
-		while (!((pByteStrm->buf[pByteStrm->currentByte - 1] == '?') && (pByteStrm->buf[pByteStrm->currentByte] == '>')))
+		while (pByteStrm->currentByte < pByteStrm->count &&
+			!((pByteStrm->buf[pByteStrm->currentByte - 1] == '?') && (pByteStrm->buf[pByteStrm->currentByte] == '>')))
 			pByteStrm->currentByte++;
 		pByteStrm->currentByte++;
-		while (isspace(pByteStrm->buf[pByteStrm->currentByte]))
+		while (pByteStrm->currentByte < pByteStrm->count && isspace(pByteStrm->buf[pByteStrm->currentByte]))
 			pByteStrm->currentByte++;
 	}
 
-	if ((pByteStrm->buf[pByteStrm->currentByte] == '<') && (pByteStrm->buf[pByteStrm->currentByte + 1] == '!') && (pByteStrm->buf[pByteStrm->currentByte + 2] == '-') && (pByteStrm->buf[pByteStrm->currentByte + 3] == '-')) {
+	if (pByteStrm->currentByte >= pByteStrm->count)
+		return ret;
+
+	if (pByteStrm->currentByte + 3 < pByteStrm->count &&
+		(pByteStrm->buf[pByteStrm->currentByte] == '<') && (pByteStrm->buf[pByteStrm->currentByte + 1] == '!') && (pByteStrm->buf[pByteStrm->currentByte + 2] == '-') && (pByteStrm->buf[pByteStrm->currentByte + 3] == '-')) {
 		pByteStrm->currentByte++;
 		pByteStrm->currentByte++;
-		while (!((pByteStrm->buf[pByteStrm->currentByte - 2] == '-') && (pByteStrm->buf[pByteStrm->currentByte - 1] == '-') && (pByteStrm->buf[pByteStrm->currentByte] == '>')))
+		while (pByteStrm->currentByte < pByteStrm->count &&
+			!((pByteStrm->buf[pByteStrm->currentByte - 2] == '-') && (pByteStrm->buf[pByteStrm->currentByte - 1] == '-') && (pByteStrm->buf[pByteStrm->currentByte] == '>')))
 			pByteStrm->currentByte++;
 		pByteStrm->currentByte++;
-		while (isspace(pByteStrm->buf[pByteStrm->currentByte]))
+		while (pByteStrm->currentByte < pByteStrm->count && isspace(pByteStrm->buf[pByteStrm->currentByte]))
 			pByteStrm->currentByte++;
 	}
 
-	//if (pByteStrm->buf[pByteStrm->currentByte] =
+	if (pByteStrm->currentByte >= pByteStrm->count)
+		return ret;
+
 	tmp = strchr(spChrs, pByteStrm->buf[pByteStrm->currentByte]);
 	if (tmp != NULL) {
 		ret.TokenID = pByteStrm->buf[pByteStrm->currentByte];
@@ -165,10 +178,13 @@ Token NT(ByteStream* pByteStrm) {
 	}
 
 	tmp = &ret.Value[0];
-	while (isPartOfID((char)pByteStrm->buf[pByteStrm->currentByte])) {
+	while (pByteStrm->currentByte < pByteStrm->count &&
+		isPartOfID((char)pByteStrm->buf[pByteStrm->currentByte]) &&
+		written < sizeof(ret.Value) - 1) {
 		ret.TokenID = WORD_ID;
 		*tmp = (char)pByteStrm->buf[pByteStrm->currentByte];
 		tmp++;
+		written++;
 		pByteStrm->currentByte++;
 	}
 
