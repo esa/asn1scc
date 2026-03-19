@@ -222,7 +222,7 @@ let computePatchDetValueExpr
         let varName = "_patchDetVal"
         let switchItems = chc.children |> List.map (fun ch ->
             let pres = ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath)
-            let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+            let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch dep.asn1Type.ModName
             match pres with
             | AcnGenericTypes.PresenceInt (_, intVal) ->
                 lm.acn.acn_deferred_det_switch_case_int presentWhenName varName (intVal.Value.ToString())
@@ -237,7 +237,7 @@ let computePatchDetValueExpr
         let varName = "_patchDetStrVal"
         let switchItems = chc.children |> List.map (fun ch ->
             let pres = ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath)
-            let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+            let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch dep.asn1Type.ModName
             match pres with
             | AcnGenericTypes.PresenceStr (_, strVal) ->
                 lm.acn.acn_deferred_det_switch_case_str presentWhenName varName strVal.Value
@@ -765,7 +765,7 @@ let private createDeferredReferenceFunction
         (baseType:Asn1Type)
         (us:State) =
 
-    let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
+    let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "_ACN" codec
 
     let isContainingExternalField =
         match o.encodingOptions with
@@ -777,13 +777,13 @@ let private createDeferredReferenceFunction
 
     // Helper: create a simple funcBody from an STG template call (for CONTAINING FIXED/EMBEDDED)
     let makeContainingFuncBody (stgCall: string -> string -> (AcnFuncBodyResult option) * State) =
-        let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
+        let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules "") codec)
         let funcBody (us:State) (errCode:ErrorCode) (_acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (_nestingScope: NestingScope) (p:CodegenScope) =
             let pp = lm.lg.getParamValue t p.accessPath codec
             stgCall pp baseFncName
         DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc
             (fun us e acnArgs nestingScope p -> funcBody us e acnArgs nestingScope p)
-            (fun _atc -> true) soSparkAnnotations [] us
+            (fun _atc -> true) soSparkAnnotations [] [] us
         |> fun (a, ns) -> Some a, ns
 
     // Early return for CONTAINING cases that don't need a specialized function
@@ -808,10 +808,10 @@ let private createDeferredReferenceFunction
                     let fncBody = lm.acn.bit_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn codec
                     Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = None}), us))
             | _ when not isContainingExternalField ->
-                Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
+                Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType [] us)
             | _ -> None  // ExternalField with params → specialized function below
         | None when o.resolvedType.acnParameters.Length = 0 ->
-            Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
+            Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType [] us)
         | _ ->
             // Named type alias wrapping another ReferenceType with extra args:
             // the inner ref will generate the specialized function at the same path.
@@ -1041,9 +1041,9 @@ let private createDeferredReferenceFunction
             // Step 4: Emit the specialized function using EmitTypeAssignment_primitive.
             let varName = specP.accessPath.rootId
             let sStar = lm.lg.getStar specP.accessPath
-            let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
+            let typeDefinitionName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
             let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
-            let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
+            let soInitFuncName = lm.lg.getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
             let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
             let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
 
@@ -1064,6 +1064,7 @@ let private createDeferredReferenceFunction
                     None ""  // soSparkAnnotations, sInitialExp
                     deferredFormalParams deferredParamNames
                     (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced
+                    false
                     soInitFuncName [] [] None  // funcDefAnnots, precondAnnots, postcondAnnots
                     codec
 
@@ -1131,8 +1132,8 @@ let private createDeferredReferenceFunction
                     addFunctionCallToState ns2 caller callee
 
             // Wrap the caller funcBody into an AcnFunction using createAcnFunction
-            let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-            let a, ns4 = DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc callerFuncBody (fun _atc -> true) soSparkAnnotations [] ns3
+            let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
+            let a, ns4 = DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc callerFuncBody (fun _atc -> true) soSparkAnnotations [] [] ns3
             Some a, ns4
 
 
@@ -1180,4 +1181,4 @@ let createReferenceFunction
         (us:State) =
     match r.args.acnDeferred with
     | true  -> createDeferredReferenceFunction r deps lm codec t o typeDefinition isValidFunc baseType us
-    | false -> DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us
+    | false -> DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType [] us

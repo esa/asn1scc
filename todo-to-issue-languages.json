@@ -1,0 +1,44 @@
+[
+  {
+    "language": "StringTemplate",
+    "extensions": [
+      ".stg"
+    ],
+    "markers": [
+      {
+        "type": "line",
+        "pattern": "//"
+      },
+      {
+        "type": "line",
+        "pattern": "#"
+      },
+      {
+        "type": "block",
+        "pattern": {
+          "start": "/\\*",
+          "end": "\\*/"
+        }
+      }
+    ]
+  },
+  {
+    "language": "F#",
+    "extensions": [
+      ".fs"
+    ],
+    "markers": [
+      {
+        "type": "line",
+        "pattern": "//"
+      },
+      {
+        "type": "block",
+        "pattern": {
+          "start": "/\\*",
+          "end": "\\*/"
+        }
+      }
+    ]
+  }
+]

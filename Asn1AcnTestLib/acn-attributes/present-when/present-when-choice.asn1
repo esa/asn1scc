@@ -1,0 +1,59 @@
+-- Requirement 49: present-when ACN attribute for conditional encoding of choice alternatives
+-- Tests ACN present-when attribute for conditional field presence in choices
+
+PresentWhenChoice DEFINITIONS ::= BEGIN
+
+    MessageType ::= ENUMERATED {
+        command(0),
+        telemetry(1),
+        event(2),
+        extended(3)
+    }
+
+    MessagePayload ::= CHOICE {
+        command SEQUENCE {
+            commandId INTEGER,
+            parameters OCTET STRING (SIZE(16))
+        },
+        telemetry SEQUENCE {
+            sensorId INTEGER,
+            value REAL
+        },
+        event SEQUENCE {
+            eventId INTEGER,
+            severity INTEGER (0..3)
+        },
+        extended SEQUENCE {
+            extType INTEGER,
+            extData OCTET STRING (SIZE(32))
+        }
+    }
+
+    DataTypeEnum ::= ENUMERATED {
+        intValue(0),
+        realValue(1),
+        stringValue(2),
+        nullValue(3)
+    }
+
+    ConditionalChoice ::= CHOICE {
+        intValue INTEGER,
+        realValue REAL,
+        stringValue IA5String (SIZE(32)),
+        nullValue NULL
+    }
+
+    Message ::= SEQUENCE {
+        payload MessagePayload OPTIONAL
+    }
+
+    DataContainer ::= SEQUENCE {
+        data ConditionalChoice
+    }
+
+    TestStruct ::= SEQUENCE {
+        message Message,
+        container DataContainer
+    }
+
+END

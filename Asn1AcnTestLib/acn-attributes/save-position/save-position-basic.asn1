@@ -1,0 +1,35 @@
+-- Requirement 51: save-position ACN attribute
+-- Tests save-position attribute that saves current bitstream position during decoding
+
+SavePositionBasic DEFINITIONS ::= BEGIN
+
+    DataWithPosition ::= SEQUENCE {
+        header INTEGER (0..255),
+        data OCTET STRING (SIZE(16)),
+        footer INTEGER (0..255)
+    }
+
+    MultiplePositions ::= SEQUENCE {
+        section1 OCTET STRING (SIZE(8)),
+        section2 OCTET STRING (SIZE(16)),
+        section3 OCTET STRING (SIZE(32))
+    }
+
+    NestedPositions ::= SEQUENCE {
+        outer SEQUENCE {
+            field1 INTEGER (0..255),
+            inner SEQUENCE {
+                field2 INTEGER (0..65535),
+                data OCTET STRING (SIZE(8))
+            }
+        },
+        trailer INTEGER (0..255)
+    }
+
+    TestStruct ::= SEQUENCE {
+        data DataWithPosition,
+        multiple MultiplePositions,
+        nested NestedPositions
+    }
+
+END

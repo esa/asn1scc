@@ -69,26 +69,17 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
             | None -> ""
         | _ -> initAmper
     let curProgramUnitName = ""  //Main program has no module
+    let valueType = match v.Type.typeDefinitionOrReference with
+                    | TypeDefinition  td -> modName + "." + td.typedefName
+                    | ReferenceToExistingDefinition ref -> modName + "." + ref.typedefName
+    
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
     let initStatement =
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Scala ->
-            match resolveReferenceType v.Type.Kind with
-             | Integer v -> "val tc_data = " + initStatement
-             | Real v -> initStatement
-             | IA5String v -> initStatement
-             | OctetString v -> initStatement
-             | NullType v -> initStatement
-             | BitString v -> initStatement
-             | Boolean v -> initStatement
-             | Enumerated v -> initStatement
-             | ObjectIdentifier v -> initStatement
-             | SequenceOf v -> initStatement
-             | Sequence v -> initStatement
-             | Choice v -> initStatement
-             | TimeType v -> initStatement
-             | ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
-        | _ -> initStatement
+        match ProgrammingLanguage.ActiveLanguages.Head, resolveReferenceType v.Type.Kind with
+        | Scala, Integer _ -> "val tc_data = " + initStatement
+        | Python, Integer _ -> "tc_data = " + valueType + "(" + initStatement + ")"
+        | (Scala | Python), ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
+        | _, _ -> initStatement
     let sTestCaseIndex = idx.ToString()
     let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = GetDatFile r lm v modName sTasName encAmper
@@ -268,7 +259,10 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
         let contentH = printTestCaseFileDef testCaseFileName (includedPackages r lm) arrsTestFunctionDefs
         let outHFileName = Path.Combine(outDir, testCaseFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension)
-        File.WriteAllText(outHFileName, contentH.Replace("\r",""))  )
+        match r.lang with
+            | Python -> File.AppendAllText(outHFileName, contentH.Replace("\r",""))
+            | _ -> File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+        )
 
     let _, _, func_invocations =
         tcFunctors |>
@@ -291,7 +285,11 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
     if hasTestSuiteRunner then
         let outHFileName = Path.Combine(outDir, TestSuiteFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension)
-        File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+        match r.lang with
+        | Python ->
+            File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+            File.AppendAllText(outHFileName, contentC.Replace("\r", ""))
+        | _ -> File.WriteAllText(outHFileName, contentH.Replace("\r",""))
 
 
     arrsSrcTstFiles, arrsHdrTstFiles

@@ -9,15 +9,15 @@ open System.Resources
 open Language
 
 let writeTextFile fileName (content:String) =
-    System.IO.File.WriteAllText(fileName, content.Replace("\r",""))
+    File.WriteAllText(fileName, content.Replace("\r",""))
 
 
 let getResourceAsString (rsName:string) =
-    FsUtils.getResourceAsString0 "asn1scc" (System.Reflection.Assembly.GetExecutingAssembly ()) rsName
+    getResourceAsString0 "asn1scc" (System.Reflection.Assembly.GetExecutingAssembly ()) rsName
 
 
 let getResourceAsByteArray (rsName:string) =
-    FsUtils.getResourceAsByteArray0 "asn1scc" (System.Reflection.Assembly.GetExecutingAssembly ()) rsName
+    getResourceAsByteArray0 "asn1scc" (System.Reflection.Assembly.GetExecutingAssembly ()) rsName
 
 
 let writeResource (di:DirInfo) (rsName:string) (fn) : unit=
@@ -113,7 +113,6 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
                 writeResource di "asn1crt_encoding_ber.c" None
                 writeResource di "asn1crt_encoding_ber.h" None
 
-    // TODO: Scala
     | ProgrammingLanguage.Scala ->
         File.WriteAllBytes(
             Path.Combine(rootDir, "lib", "stainless-library_3-0.9.8.7.jar"),
@@ -154,6 +153,29 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
 //                writeResource di "asn1crt_encoding_ber.h" None
 //                //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding_ber.c")) (rm.GetString("asn1crt_encoding_ber_c",null))
 //                //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding_ber.h")) (rm.GetString("asn1crt_encoding_ber_h",null))
+    
+    | ProgrammingLanguage.Python ->
+        // We create a subdirectory in the output to bundle the template as a python package "asn1python"
+        writeResource di "__init__.py" None
+        writeResource di "asn1_types.py" None
+        writeResource di "bitstream.py" None
+        
+        match args.encodings with
+        | []    -> ()
+        | _     ->
+
+        writeResource di "codec.py" None
+        writeResource di "helper.py" None
+        writeResource di "verification.py" None
+        writeResource di "codec_uper.py" None
+        // writeResource di "codec.py" None
+        writeResource di "decoder.py" None
+        writeResource di "encoder.py" None
+        writeResource di "acn_decoder.py" None
+        writeResource di "acn_encoder.py" None
+        writeResource di "uper_encoder.py" None
+        writeResource di "uper_decoder.py" None
+          
     | ProgrammingLanguage.Ada ->
         writeResource di "adaasn1rtl.adb" None
         match args.floatingPointSizeInBytes  = 4I with

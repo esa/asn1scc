@@ -1,0 +1,38 @@
+-- Tests importing from multiple modules simultaneously
+
+ImportsMultiModule DEFINITIONS ::= BEGIN
+
+    -- Import from multiple modules
+    IMPORTS
+        Timestamp,
+        Header,
+        Coordinates
+    FROM ImportsBaseTypes
+
+        Priority,
+        EventRecord,
+        Command
+    FROM ImportsExtendedTypes;
+
+    -- Combine types from multiple modules
+    SystemEvent ::= SEQUENCE {
+        header Header,
+        timestamp Timestamp,
+        event EventRecord,
+        priority Priority,
+        location Coordinates OPTIONAL
+    }
+
+    ControlMessage ::= SEQUENCE {
+        header Header,
+        command Command,
+        timestamp Timestamp
+    }
+
+    TestStruct ::= SEQUENCE {
+        event SystemEvent,
+        control ControlMessage,
+        events SEQUENCE (SIZE(1..16)) OF EventRecord
+    }
+
+END

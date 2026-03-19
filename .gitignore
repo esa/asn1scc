@@ -940,6 +940,7 @@ xml
 /v4Tests/tmp - Copy
 /StgAda/test_cases_a.stg.fs
 /StgC/test_cases_c.stg.fs
+/StgPython/*.stg.fs
 /StgVarious/xml_outputs.stg.fs
 /mantis/0000703/o2
 /mantis/0000703/o
@@ -1415,4 +1416,13 @@ Inputs/
 asn1scc/Properties/launchSettings_UPER.json
 /dotnet-debian.SENTINEL
 /.claude/settings.local.json
+details-docs/
+/asn1python/src/asn1python.egg-info/
+/asn1python/build/
+**/__pycache__/
+/generated-python-output/
+/generated-testlib-output/
+/generated-scala-output/
+/generated-c-output/
+/output
 acnv2/*

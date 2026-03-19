@@ -1,0 +1,44 @@
+-- ACN encoding with present-when for choice alternatives
+
+PresentWhenChoice DEFINITIONS ::= BEGIN
+
+    MessageType [] {}
+
+    MessagePayload <MessageType: msgType> [determinant msgType]
+    {
+        command [],
+        telemetry [],
+        event [],
+        extended []
+    }
+
+    DataTypeEnum [] {}
+
+    ConditionalChoice <DataTypeEnum: dataType> [determinant dataType]
+    {
+        intValue [],
+        realValue [],
+        stringValue [],
+        nullValue []
+    }
+
+    Message []
+    {
+        hasPayload BOOLEAN [],
+        msgType MessageType [],
+        payload <msgType> [present-when hasPayload]
+    }
+
+    DataContainer []
+    {
+        dataType DataTypeEnum [size 2, encoding pos-int],
+        data <dataType> []
+    }
+
+    TestStruct []
+    {
+        message [],
+        container []
+    }
+
+END

@@ -78,6 +78,11 @@ let internal getChildDefinition (childDefinition:TypeDefinitionOrReference) =
     | TypeDefinition  td -> Some (td.typedefBody ())
     | ReferenceToExistingDefinition ref -> None
 
+let internal getChildDefinitionOnly (childDefinition:TypeDefinitionOrReference) =
+    match childDefinition with
+    | TypeDefinition  td -> Some (td.typedefBodyOnly ())
+    | ReferenceToExistingDefinition ref -> None
+
 
 
 
@@ -96,10 +101,10 @@ let createInteger_u  (lm:LanguageMacros) (id : ReferenceToType) (typeDef : Map<P
     let td = lm.lg.typeDef typeDef
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
     | PrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
     | PrimitiveReference2RTL                  ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
     | PrimitiveReference2OtherType            ->
@@ -128,10 +133,10 @@ let createReal_u (args:CommandLineSettings) (lm:LanguageMacros) (id: ReferenceTo
     let td = lm.lg.typeDef typeDef
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
     | PrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
     | PrimitiveReference2RTL                  ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
     | PrimitiveReference2OtherType            ->
@@ -160,10 +165,10 @@ let createObjectIdentifier_u (lm:LanguageMacros)   (id:ReferenceToType) (typeDef
     let td = lm.lg.typeDef  typeDef
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
     | PrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
     | PrimitiveReference2RTL                  ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
     | PrimitiveReference2OtherType            ->
@@ -204,10 +209,10 @@ let createTimeType_u (lm:LanguageMacros)   (id:ReferenceToType) (typeDef: Map<Pr
     let td = lm.lg.typeDef  typeDef
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
     | PrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
     | PrimitiveReference2RTL                  ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
     | PrimitiveReference2OtherType            ->
@@ -236,10 +241,10 @@ let createBoolean_u (lm:LanguageMacros)   (id:ReferenceToType) (typeDef: Map<Pro
     let td = lm.lg.typeDef  typeDef
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
     | PrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
     | PrimitiveReference2RTL                  ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
     | PrimitiveReference2OtherType            ->
@@ -269,10 +274,10 @@ let createNull_u  (lm:LanguageMacros)   (id:ReferenceToType) (typeDef: Map<Progr
     let td = lm.lg.typeDef  typeDef
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
     | PrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
     | PrimitiveReference2RTL                ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
     | PrimitiveReference2OtherType            ->
@@ -298,10 +303,10 @@ let createOctetString_u (lm:LanguageMacros)   (id:ReferenceToType) (typeDef : Ma
     let td = lm.lg.getSizeableTypeDefinition  typeDef
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
     | NonPrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
     | NonPrimitiveReference2OtherType            ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
@@ -329,9 +334,9 @@ let createBitString_u (lm:LanguageMacros)   (id:ReferenceToType) (typeDef : Map<
             let invariants = lm.lg.generateBitStringInvariants minSize maxSize 
             let completeDefinition = define_new_bit_string td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (BigInteger (getBitStringMaxOctets maxSize)) nblist invariants
             Some completeDefinition
-        | NonPrimitiveNewSubTypeDefinition subDef     ->
-            let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-            let completeDefinition = define_subType_bit_string td subDef otherProgramUnit (minSize.uper = maxSize.uper)
+        | NonPrimitiveNewSubTypeDefinition parentDef     ->
+            let otherProgramUnit = if td.programUnit = parentDef.programUnit then None else (Some parentDef.programUnit)
+            let completeDefinition = define_subType_bit_string td parentDef otherProgramUnit minSize.uper maxSize.uper (minSize.uper = maxSize.uper)
             Some completeDefinition
         | NonPrimitiveReference2OtherType            -> None
     let aaa = createBitString ()
@@ -339,10 +344,10 @@ let createBitString_u (lm:LanguageMacros)   (id:ReferenceToType) (typeDef : Map<
     let td = lm.lg.getSizeableTypeDefinition  typeDef
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
     | NonPrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
     | NonPrimitiveReference2OtherType            ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
@@ -368,10 +373,10 @@ let createString_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef: Map<Progr
     let td = lm.lg.getStrTypeDefinition typeDef
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=None}
     | NonPrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=None; baseType=Some baseType}
     | NonPrimitiveReference2OtherType            ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
@@ -427,14 +432,14 @@ let createEnumerated_u (args:CommandLineSettings) (lm:LanguageMacros)  (id:Refer
             match createEnumerated ()  with
             | Some (a, b) -> Some a, b
             | None -> None, None
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=priv; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=priv; baseType=None}
     | NonPrimitiveNewSubTypeDefinition subDef     ->
         let (aaa, priv) =
             match createEnumerated ()  with
             | Some (a, b) -> Some a, b
             | None -> None, None
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=priv; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaa.Value); privateTypeDefinition=priv; baseType=Some baseType}
     | NonPrimitiveReference2OtherType            ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
@@ -449,7 +454,7 @@ let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<
         | NonPrimitiveNewTypeDefinition ->
             let invariants = lm.lg.generateSequenceOfInvariants minSize maxSize 
             let sizeClsDefinitions, sizeObjDefinitions = lm.lg.generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  maxAlignment child
-            let completeDefinition = define_new_sequence_of td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (childTypeDefinitionOrReference.longTypedefName2 lm.lg.hasModules) (getChildDefinition childTypeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
+            let completeDefinition = define_new_sequence_of td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (childTypeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName)) (getChildDefinition childTypeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
             let privateDefinition =
                 match childTypeDefinitionOrReference with
                 | TypeDefinition  td -> td.privateTypeDefinition
@@ -464,19 +469,37 @@ let createSequenceOf_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef : Map<
                 | ReferenceToExistingDefinition ref -> None
             Some (completeDefinition, privateDefinition)
         | NonPrimitiveReference2OtherType -> None
+
+    let createSequenceOfOnly ()  =
+        let define_new_sequence_of        = lm.typeDef.Define_new_sequence_of
+        let define_subType_sequence_of    = lm.typeDef.Define_subType_sequence_of
+        let td = lm.lg.getSizeableTypeDefinition typeDef
+
+        match td.kind with
+        | NonPrimitiveNewTypeDefinition ->
+            let invariants = lm.lg.generateSequenceOfInvariants minSize maxSize 
+            let sizeClsDefinitions, sizeObjDefinitions = lm.lg.generateSequenceOfSizeDefinitions typeDef  acnMinSizeInBits  acnMaxSizeInBits  maxSize  acnEncodingClass  acnAlignment  maxAlignment child
+            let completeDefinition = define_new_sequence_of td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (childTypeDefinitionOrReference.longTypedefName2  (Some lm.lg) lm.lg.hasModules (ToC id.ModName)) (getChildDefinitionOnly childTypeDefinitionOrReference) sizeClsDefinitions sizeObjDefinitions invariants
+            Some completeDefinition
+        | NonPrimitiveNewSubTypeDefinition subDef ->
+            let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
+            let completeDefinition = define_subType_sequence_of td subDef otherProgramUnit (minSize.uper = maxSize.uper) (getChildDefinitionOnly childTypeDefinitionOrReference)
+            Some completeDefinition
+        | NonPrimitiveReference2OtherType -> None
     
     let aaa, privateDef =
         match createSequenceOf ()  with
         | Some (a, b) -> Some a, b
         | None -> None, None
+    let aaaOnly = createSequenceOfOnly ()
     let programUnit = ToC id.ModName
     let td = lm.lg.getSizeableTypeDefinition typeDef
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition = privateDef; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaaOnly.Value); privateTypeDefinition = privateDef; baseType=None}
     | NonPrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition = privateDef; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaaOnly.Value); privateTypeDefinition = privateDef; baseType=Some baseType}
     | NonPrimitiveReference2OtherType            ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
@@ -507,11 +530,13 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
                 List.choose (fun c -> if c.savePosition then Some (getBackendName c) else None ) |>
                 List.map(fun childName -> define_new_sequence_save_pos_child td childName acnMaxSizeInBits)
 
-
         let arrsChildren =
             match args.handleEmptySequences && lm.lg.requiresHandlingOfEmptySequences && children.IsEmpty with
             | true  -> [define_new_sequence_child "dummy" "int" false] //define a dummy child for empty sequences
-            | false -> children |> List.map (fun o -> define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 lm.lg.hasModules) o.Optionality.IsSome)
+            | false -> children |> List.map (fun o ->
+                let typedefName = ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName))
+                // let typedefName = if typedefName.StartsWith(modName + ".") then typedefName.Substring(modName.Length + 1) else typedefName
+                define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) typedefName o.Optionality.IsSome)
 
         let childrenPrivatePart =
             children |>
@@ -538,18 +563,69 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
             let completeDefinition = define_subType_sequence td subDef otherProgramUnit arrsOptionalChildren extraDefs
             Some (completeDefinition, None)
         | NonPrimitiveReference2OtherType -> None
+    
+    let createSequenceOnly  (allchildren: Asn1AcnAst.SeqChildInfo list)  =
+        let define_new_sequence             = lm.typeDef.Define_new_sequence
+        let define_new_sequence_child       = lm.typeDef.Define_new_sequence_child
+        let define_new_sequence_child_bit   = lm.typeDef.Define_new_sequence_child_bit
+        let define_subType_sequence         = lm.typeDef.Define_subType_sequence
+
+        let define_new_sequence_save_pos_child         = lm.typeDef.Define_new_sequence_save_pos_child
+
+        let children = allchildren |> List.choose (fun c -> match c with Asn1AcnAst.Asn1Child z -> Some z | _ -> None)
+        let optionalChildren = children |> List.choose(fun c -> match c.Optionality with Some _ -> Some c | None -> None)
+        let childrenCompleteDefinitions = children |> List.choose (fun c -> getChildDefinitionOnly (lm.lg.definitionOrRef c.Type.typeDefinitionOrReference))
+        let td = lm.lg.getSequenceTypeDefinition typeDef
+        let arrsNullFieldsSavePos =
+            let getBackendName ci =
+                match ci with
+                | Asn1AcnAst.AcnChild z    -> z.c_name
+                | Asn1AcnAst.Asn1Child z   -> lm.lg.getAsn1ChildBackendName0 z
+
+            match acnProperties.postEncodingFunction.IsNone && acnProperties.preDecodingFunction.IsNone with
+            | true -> []
+            | false  ->
+                allchildren |>
+                List.choose (fun c -> if c.savePosition then Some (getBackendName c) else None ) |>
+                List.map(fun childName -> define_new_sequence_save_pos_child td childName acnMaxSizeInBits)
+
+        let modName = ToC id.ModName
+        let arrsChildren =
+            match args.handleEmptySequences && lm.lg.requiresHandlingOfEmptySequences && children.IsEmpty with
+            | true  -> [define_new_sequence_child "dummy" "int" false] //define a dummy child for empty sequences
+            | false -> children |> List.map (fun o ->
+                let typedefName = ( (lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName))
+                // let typedefName = if typedefName.StartsWith(modName + ".") then typedefName.Substring(modName.Length + 1) else typedefName
+                define_new_sequence_child (lm.lg.getAsn1ChildBackendName0 o) typedefName o.Optionality.IsSome)
+
+        let arrsOptionalChildren  = optionalChildren |> List.map(fun c -> define_new_sequence_child_bit (lm.lg.getAsn1ChildBackendName0 c))
+
+        match td.kind with
+        | NonPrimitiveNewTypeDefinition ->
+            let invariants = lm.lg.generateSequenceInvariants children
+            let sizeDefinitions = lm.lg.generateSequenceSizeDefinitions acnAlignment maxAlignment  acnMinSizeInBits acnMaxSizeInBits allchildren 
+            let completeDefinition = define_new_sequence td arrsChildren arrsOptionalChildren [""] arrsNullFieldsSavePos sizeDefinitions invariants
+            Some completeDefinition
+        | NonPrimitiveNewSubTypeDefinition subDef ->
+            let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
+            let extraDefs = lm.lg.generateSequenceSubtypeDefinitions subDef.typeName typeDef  children
+            let completeDefinition = define_subType_sequence td subDef otherProgramUnit arrsOptionalChildren extraDefs
+            Some completeDefinition
+        | NonPrimitiveReference2OtherType -> None
+
     let aaa, private_part =
         match createSequence children  with
         | Some (a, b) -> Some a, b
         | None -> None, None
+    let aaaOnly = createSequenceOnly children
     let programUnit = ToC id.ModName
     let td = lm.lg.getSequenceTypeDefinition   typeDef
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=private_part;  baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaaOnly.Value); privateTypeDefinition=private_part;  baseType=None}
     | NonPrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=private_part; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaaOnly.Value); privateTypeDefinition=private_part; baseType=Some baseType}
     | NonPrimitiveReference2OtherType            ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
@@ -563,7 +639,7 @@ let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm
         let td = lm.lg.getChoiceTypeDefinition typeDef
         let childrenCompleteDefinitions = children |> List.choose (fun c -> getChildDefinition (lm.lg.definitionOrRef c.Type.typeDefinitionOrReference))
         let arrsPresent = children |> List.map(fun c -> lm.lg.presentWhenName0 None c)
-        let arrsChildren = children |> List.map (fun o -> define_new_choice_child (lm.lg.getAsn1ChChildBackendName0 o) ((lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 lm.lg.hasModules) (lm.lg.presentWhenName0 None o))
+        let arrsChildren = children |> List.map (fun o -> define_new_choice_child (lm.lg.getAsn1ChChildBackendName0 o) ((lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName)) (lm.lg.presentWhenName0 None o))
         let arrsCombined = List.map2 (fun x y -> x + "(" + y + ")") arrsPresent arrsChildren
         let nIndexMax = BigInteger ((Seq.length children)-1)
 
@@ -588,18 +664,42 @@ let createChoice_u (args:CommandLineSettings) (typeIdsSet : Map<String,int>) (lm
             let completeDefinition = define_subType_choice td subDef otherProgramUnit
             Some (completeDefinition, None)
         | NonPrimitiveReference2OtherType -> None
+
+    let createChoiceOnly (children:Asn1AcnAst.ChChildInfo list)  =
+        let define_new_choice             = lm.typeDef.Define_new_choice
+        let define_new_choice_child       = lm.typeDef.Define_new_choice_child
+        let define_subType_choice         = lm.typeDef.Define_subType_choice
+
+        let td = lm.lg.getChoiceTypeDefinition typeDef
+        let arrsPresent = children |> List.map(fun c -> lm.lg.presentWhenName0 None c)
+        let arrsChildren = children |> List.map (fun o -> define_new_choice_child (lm.lg.getAsn1ChChildBackendName0 o) ((lm.lg.definitionOrRef o.Type.typeDefinitionOrReference).longTypedefName2 (Some lm.lg) lm.lg.hasModules (ToC id.ModName)) (lm.lg.presentWhenName0 None o))
+        let arrsCombined = List.map2 (fun x y -> x + "(" + y + ")") arrsPresent arrsChildren
+        let nIndexMax = BigInteger ((Seq.length children)-1)
+
+        match td.kind with
+        | NonPrimitiveNewTypeDefinition ->
+            let sizeDefinitions = lm.lg.generateChoiceSizeDefinitions acnAlignment maxAlignment acnMinSizeInBits     acnMaxSizeInBits typeDef  children
+            let completeDefinition = define_new_choice td (lm.lg.choiceIDForNone typeIdsSet id) (lm.lg.presentWhenName0 None children.Head) arrsChildren arrsPresent arrsCombined nIndexMax [""] sizeDefinitions
+            Some completeDefinition
+        | NonPrimitiveNewSubTypeDefinition subDef ->
+            let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
+            let completeDefinition = define_subType_choice td subDef otherProgramUnit
+            Some completeDefinition
+        | NonPrimitiveReference2OtherType -> None
+
     let aaa, private_part =
-        match createChoice children   with
+        match createChoice children with
         | Some (a, b) -> Some a, b
         | None -> None, None
+    let aaaOnly = createChoiceOnly children
     let programUnit = ToC id.ModName
     let td = lm.lg.getChoiceTypeDefinition  typeDef
     match td.kind with
     | NonPrimitiveNewTypeDefinition              ->
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=private_part; baseType=None}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaaOnly.Value); privateTypeDefinition=private_part; baseType=None}
     | NonPrimitiveNewSubTypeDefinition subDef     ->
         let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
-        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); privateTypeDefinition=private_part; baseType=Some baseType}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); typedefBodyOnly = (fun () -> aaaOnly.Value); privateTypeDefinition=private_part; baseType=Some baseType}
     | NonPrimitiveReference2OtherType            ->
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 

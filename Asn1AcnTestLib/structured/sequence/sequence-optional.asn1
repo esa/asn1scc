@@ -1,0 +1,33 @@
+-- Requirement 27: SEQUENCE with OPTIONAL components
+-- Tests SEQUENCE with OPTIONAL elements
+
+SequenceOptional DEFINITIONS ::= BEGIN
+
+    SequenceWithOptionals ::= SEQUENCE {
+        mandatoryField1 INTEGER,
+        optionalField1 INTEGER OPTIONAL,
+        mandatoryField2 BOOLEAN,
+        optionalField2 OCTET STRING (SIZE(24)) OPTIONAL,
+        optionalField3 REAL OPTIONAL,
+        mandatoryField3 IA5String (SIZE(24))
+    }
+
+    AllOptionalSequence ::= SEQUENCE {
+        field1 INTEGER OPTIONAL,
+        field2 BOOLEAN OPTIONAL,
+        field3 OCTET STRING (SIZE(24)) OPTIONAL
+    }
+
+    NestedOptionalSequence ::= SEQUENCE {
+        id INTEGER,
+        optionalData SequenceWithOptionals OPTIONAL,
+        status INTEGER
+    }
+
+    TestStruct ::= SEQUENCE {
+        seq1 SequenceWithOptionals,
+        seq2 AllOptionalSequence,
+        seq3 NestedOptionalSequence
+    }
+
+END

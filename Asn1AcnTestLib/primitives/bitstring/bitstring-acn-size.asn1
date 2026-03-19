@@ -1,0 +1,18 @@
+-- Requirement 20: BIT STRING with ACN size attribute
+-- Tests ACN size attribute to specify bit string length
+
+BitstringAcnSize DEFINITIONS ::= BEGIN
+
+    DynamicBitString1 ::= BIT STRING (SIZE(0..255))
+
+    DynamicBitString2 ::= BIT STRING (SIZE(0..1024))
+
+    DynamicBitString3 ::= BIT STRING (SIZE(0..65535))
+
+    TestStruct ::= SEQUENCE {
+        data1 DynamicBitString1,
+        data2 DynamicBitString2,
+        data3 DynamicBitString3
+    }
+
+END

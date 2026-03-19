@@ -1,0 +1,24 @@
+-- Requirement 19: BIT STRING with size constraints (fixed size)
+-- Tests BIT STRING with SIZE(n) constraints
+
+BitstringSizeFixed DEFINITIONS ::= BEGIN
+
+    BitString8 ::= BIT STRING (SIZE(8))
+
+    BitString16 ::= BIT STRING (SIZE(16))
+
+    BitString32 ::= BIT STRING (SIZE(32))
+
+    BitString64 ::= BIT STRING (SIZE(64))
+
+    BitString128 ::= BIT STRING (SIZE(128))
+
+    TestStruct ::= SEQUENCE {
+        byte BitString8,
+        word BitString16,
+        dword BitString32,
+        qword BitString64,
+        large BitString128
+    }
+
+END

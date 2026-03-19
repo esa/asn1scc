@@ -1,0 +1,15 @@
+-- ACN encoding with IEEE 754-1985-64 format
+
+RealIeee754-64 DEFINITIONS ::= BEGIN
+
+    Float64 [encoding IEEE754-1985-64]
+
+    TestStruct []
+    {
+        latitude [],
+        longitude [],
+        altitude [],
+        velocity []
+
+    }
+END

@@ -1,0 +1,25 @@
+name: Local Tests
+
+on:
+  push:
+  workflow_dispatch: 
+
+jobs:
+  build-and-test:
+    runs-on: server-manu
+
+    steps:
+    - name: Set owner of working dir recurively (Hotfix)
+      run: sudo chown -R $(id -u):$(id -g) .
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build Docker image
+      run: docker build -t asn1scc .
+
+    - name: Make build script executable
+      run: chmod +x ./run-ci-tests.sh
+
+    - name: Run container to build and test
+      run: docker run --rm -v ${{ github.workspace }}:/app asn1scc bash -c "./run-ci-tests.sh"

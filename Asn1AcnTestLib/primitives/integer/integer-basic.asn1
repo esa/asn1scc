@@ -1,0 +1,14 @@
+-- Requirement 4: Basic INTEGER support
+-- Tests fundamental ASN.1 INTEGER type without range constraints
+
+IntegerBasic DEFINITIONS ::= BEGIN
+
+    UnconstrainedInt ::= INTEGER
+
+    TestStruct ::= SEQUENCE {
+        value1 INTEGER,
+        value2 INTEGER,
+        value3 UnconstrainedInt
+    }
+
+END

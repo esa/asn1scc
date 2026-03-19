@@ -41,7 +41,7 @@
         <Compile Include="LspAst.fs" />
         <Compile Include="LspAutoComplete.fs" />
         <Compile Include="Lsp.fs" />
-        <Compile Include="FrontEntMain.fs" />
+        <Compile Include="FrontEndMain.fs" />
 
 	</ItemGroup>
     <ItemGroup>

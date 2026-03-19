@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asn1python"
+version = "1.0.0"
+description = "ASN.1 runtime library for Python"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = "ASN.1 SCC Team", email = "noreply@example.com"},
+]
+keywords = ["asn1", "encoding", "decoding", "uper", "acn", "xer", "ber", "protocol"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Communications",
+    "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
+]
+dependencies = [
+    # No external dependencies - pure Python implementation
+    "pytest>=8.3.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=21.0",
+    "mypy>=0.800",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]

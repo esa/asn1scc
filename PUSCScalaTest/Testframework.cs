@@ -1,14 +1,7 @@
 global using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Antlr;
-using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
-
-using Microsoft.Build.Evaluation;
-using Microsoft.Build.Execution;
-using Microsoft.Build.Logging;
-using System.Text;
+using System.Text.RegularExpressions;
 
 namespace PUS_C_Scala_Test
 {
@@ -29,7 +22,8 @@ namespace PUS_C_Scala_Test
         CREATE_TESTS =      0b0000_0100,
         CREATE_SCALA =      0b0000_1000,
         CREATE_C =          0b0001_0000,
-        COMPARE_ENCODINGS = 0b0010_0000
+        COMPARE_ENCODINGS = 0b0010_0000,
+        CREATE_PYTHON =     0b0100_0000,
     }
 
     class TestBasics
@@ -38,10 +32,11 @@ namespace PUS_C_Scala_Test
 
         private readonly string scalaLang = "-Scala";
         private readonly string cLang = "-c";
+        private readonly string pythonLang = "-python";
         private readonly string uperEnc = "--uper-enc";
-        private readonly string acnEnc = "--acn-enc";
+        private readonly string acnEnc = "-ACN";
         private readonly string genTests = "-atc";
-        private readonly List<string> stdArgs = new List<string> { "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
+        private readonly List<string> stdArgs = ["-fp", "AUTO", "-typePrefix", "T", "-o"];
 
         private readonly string outFolderPrefix = "../../../../PUSCScalaTest/GenTests/";
         private readonly string outFolderTestFix = "Test/";
@@ -49,6 +44,7 @@ namespace PUS_C_Scala_Test
         private readonly string outFolderSuffixACN = "ACN/PUSC_";
         private readonly string outFolderSuffixScala = "/Scala";
         private readonly string outFolderSuffixC = "/C";
+        private readonly string outFolderSuffixPython = "/Python";
         private readonly string inputFilePrefix = "../../../../PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/";
 
         private readonly string asn1FileEnding = ".asn1";
@@ -65,6 +61,9 @@ namespace PUS_C_Scala_Test
 
             if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
                 parList.Add(cLang);
+            
+            if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
+                parList.Add(pythonLang);
 
             if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
                 parList.Add(uperEnc);
@@ -82,7 +81,7 @@ namespace PUS_C_Scala_Test
             var asn1Files = files.Select(s => inputFilePrefix + s + asn1FileEnding);
             parList.AddRange(asn1Files.Where(s => File.Exists(s)));
             var missingASNFiles = asn1Files.Where(s => !File.Exists(s));
-            if (missingASNFiles.Count() > 0)
+            if (missingASNFiles.Any())
                 Console.WriteLine("WARNING: ASN1 Files not found: " + String.Join(",", missingASNFiles));
 
             // add acn file input
@@ -91,14 +90,14 @@ namespace PUS_C_Scala_Test
                 parList.AddRange(acnFiles.Where(s => File.Exists(s)));
 
                 var missingACNFiles = acnFiles.Where(s => !File.Exists(s));
-                if (missingACNFiles.Count() > 0)
+                if (missingACNFiles.Any())
                     Console.WriteLine("WARNING: ACN Files not found: " + String.Join(",", missingACNFiles));
             }
 
             return parList.ToArray();
         }
 
-        public string GetOutputFolder(string serviceName, ServiceVariation sv)
+        private string GetOutputFolder(string serviceName, ServiceVariation sv)
         {
             var ret = outFolderPrefix;
 
@@ -117,6 +116,8 @@ namespace PUS_C_Scala_Test
                 ret += outFolderSuffixScala;
             else if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
                 ret += outFolderSuffixC;
+            else if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
+                ret += outFolderSuffixPython;
             else
                 Assert.IsTrue(false, "can not do both");
 
@@ -128,53 +129,61 @@ namespace PUS_C_Scala_Test
             if (sv == 0 || (sv & ServiceVariation.UPER) != 0 && (sv & ServiceVariation.ACN) != 0)
                 throw new InvalidOperationException("can't do nothing or both UPER and ACN");
 
-            if ((sv & ScalaAndC) == ScalaAndC)
+            List<string> folders = [];
+            
+            if ((sv & ServiceVariation.CREATE_SCALA) == ServiceVariation.CREATE_SCALA)
             {
                 // create Scala Files
-                var scalaOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_C);
-                Run_Test(service, scalaOutputDir, sv & ~ServiceVariation.CREATE_C);
-
-                // create C Files
-                var cOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA);
-                Run_Test(service, cOutputDir, sv & ~ServiceVariation.CREATE_SCALA);
-
-                if ((sv & ServiceVariation.COMPARE_ENCODINGS) == ServiceVariation.COMPARE_ENCODINGS)
-                    compareTestCases(service, sv, scalaOutputDir, cOutputDir);
+                var scalaOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_C & ~ServiceVariation.CREATE_PYTHON);
+                Run_Test(service, scalaOutputDir, sv & ~ServiceVariation.CREATE_C & ~ServiceVariation.CREATE_PYTHON);
+                folders.Append(scalaOutputDir);
             }
-            else
+
+            if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
             {
-                var outDir = getCleanWorkingFolderPath(folderSuffix, sv);
-                Run_Test(service, outDir, sv);
+                // create C Files
+                var cOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_PYTHON);
+                Run_Test(service, cOutputDir, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_PYTHON);
+                folders.Append(cOutputDir);
+            }
+
+            if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
+            { 
+                // create Python Files
+                var pythonOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_C);
+                Run_Test(service, pythonOutputDir, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_C);
+                folders.Append(pythonOutputDir);
+            }
+
+            if ((sv & ServiceVariation.COMPARE_ENCODINGS) == ServiceVariation.COMPARE_ENCODINGS)
+            {
+                Assert.IsTrue(folders.Count > 1);
+                CompareTestCases(service, sv, folders[0], folders[1]);
             }
         }
 
-        private void compareTestCases(PUS_C_Service service, ServiceVariation sv, string folderA, string folderB)
+        private void CompareTestCases(PUS_C_Service service, ServiceVariation sv, string folderA, string folderB)
         {
             var binsA = Directory.GetFiles(folderA, "*.dat").Order().ToArray();
             var binsB = Directory.GetFiles(folderB, "*.dat").Order().ToArray();
 
-            Assert.IsTrue(binsA.Select(x => Path.GetFileName(x))
-                .SequenceEqual(binsB.Select(x => Path.GetFileName(x))), "output did not create the same files");
+            Assert.IsTrue(binsA.Select(Path.GetFileName).SequenceEqual(binsB.Select(Path.GetFileName)), "output did not create the same files");
 
             for(var i = 0; i<binsA.Length; ++i)
             {
-                using (var f1 = File.OpenRead(binsA[i]))
-                using (var f2 = File.OpenRead(binsB[i]))
+                using var f1 = File.OpenRead(binsA[i]);
+                using var f2 = File.OpenRead(binsB[i]);
+                using var r1 = new BinaryReader(f1);
+                using var r2 = new BinaryReader(f2);
+                Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, $"file length for {binsA[i]} and {binsB[i]} are different");
+
+                var isSame = true;
+                while (r1.BaseStream.Position < r1.BaseStream.Length && isSame)
                 {
-                    using (var r1 = new BinaryReader(f1))
-                    using (var r2 = new BinaryReader(f2))
-                    {
-                        Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, $"file length for {binsA[i]} and {binsB[i]} are different");
-
-                        var isSame = true;
-                        while (r1.BaseStream.Position < r1.BaseStream.Length && isSame)
-                        {
-                            isSame &= (r1.ReadByte() == r2.ReadByte());
-                        }
-
-                        Assert.IsTrue(isSame, $"file {binsA[i]} contents are not equal to {binsB[i]}");
-                    }
+                    isSame &= r1.ReadByte() == r2.ReadByte();
                 }
+
+                Assert.IsTrue(isSame, $"file {binsA[i]} contents are not equal to {binsB[i]}");
             }
         }
 
@@ -258,7 +267,7 @@ namespace PUS_C_Scala_Test
 
         private string getCleanWorkingFolderPath(string folderSuffix, ServiceVariation sv)
         {
-            string outDir = GetOutputFolder(folderSuffix, sv);
+            var outDir = GetOutputFolder(folderSuffix, sv);
             //if (Directory.Exists(outDir))
             //    Directory.Delete(outDir, true);
 
@@ -274,6 +283,7 @@ namespace PUS_C_Scala_Test
             Console.WriteLine("Called Compiler with args:");
             foreach (var a in args)
                 Console.WriteLine(a);
+            Console.WriteLine("============= END OF ARGS =============");
 
             CompileASN(args);
 
@@ -281,6 +291,8 @@ namespace PUS_C_Scala_Test
                 CompileScala(folderPath, !createAndRunTests);
             else if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
                 CompileC(folderPath, !createAndRunTests);
+            else if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
+                Console.WriteLine("Python does not need compilation.");
             else
                 Assert.IsTrue(false, "no input created that could be tested");
 
@@ -290,6 +302,8 @@ namespace PUS_C_Scala_Test
                     RunScalaTests(folderPath, createAndRunTests);
                 else if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
                     RunCTests(folderPath, createAndRunTests);
+                else if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
+                    RunPythonTests(folderPath, createAndRunTests);
             }
         }
 
@@ -342,29 +356,75 @@ namespace PUS_C_Scala_Test
 
         private void RunCTests(string outDir, bool printOutput)
         {
-            using (var proc = new Process
+            using var proc = new Process();
+            proc.StartInfo = new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {cConfig}\\{cProject}.exe" : $"-c ./mainprogram",
+                FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
+                Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {cConfig}\\{cProject}.exe" : $"-c ./mainprogram",
 
-                    WorkingDirectory = outDir,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardInput = false,
-                    CreateNoWindow = false,
-                }
-            })
+                WorkingDirectory = outDir,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardInput = false,
+                CreateNoWindow = false,
+            };
+            proc.Start();
+            var stdout = proc.StandardOutput.ReadToEnd();
+            var worked = stdout.Contains("All test cases (") && stdout.Contains(") run successfully.");
+            if (!worked)
+                Console.WriteLine(stdout);
+
+            Assert.IsTrue(worked, "C test cases failed");
+        }
+
+        private void RunPythonTests(string outDir, bool printOutput)
+        {
+            using var proc = new Process();
+            proc.StartInfo = new ProcessStartInfo
             {
-                proc.Start();
-                var stdout = proc.StandardOutput.ReadToEnd();
-                var worked = stdout.Contains("All test cases (") && stdout.Contains(") run successfully.");
-                if (!worked)
-                    Console.WriteLine(stdout);
+                FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
+                Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "/C uvx pytest" : "--login -c \"uvx pytest\"",
 
-                Assert.IsTrue(worked, "C test cases failed");
+                WorkingDirectory = outDir,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                RedirectStandardInput = false,
+                CreateNoWindow = false,
+            };
+            proc.Start();
+            var stdout = proc.StandardOutput.ReadToEnd();
+            var stderr = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
+
+            // Parse pytest output for test results
+            var failedMatch = Regex.Match(stdout, @"(\d+)\s+failed");
+            var passedMatch = Regex.Match(stdout, @"(\d+)\s+passed");
+
+            var failedCount = failedMatch.Success ? failedMatch.Groups[1].Value : "0";
+            var passedCount = passedMatch.Success ? passedMatch.Groups[1].Value : "0";
+
+            if (printOutput)
+            {
+                Console.WriteLine(stdout);
+                if (!string.IsNullOrEmpty(stderr))
+                    Console.WriteLine("STDERR: " + stderr);
             }
+
+            var worked = proc.ExitCode == 0;
+            if (!worked)
+            {
+                Console.WriteLine(stdout);
+                if (!string.IsNullOrEmpty(stderr))
+                    Console.WriteLine("STDERR: " + stderr);
+            }
+
+            if (failedMatch.Success || passedMatch.Success)
+            {
+                Console.WriteLine($"Python Tests: {passedCount} passed, {failedCount} failed");
+            }
+            
+            Assert.IsTrue(worked, "python test cases failed");
         }
 
         private void RunMake(string outDir)
@@ -441,35 +501,31 @@ namespace PUS_C_Scala_Test
 
         private void StartSBTWithArg(string outDir, string arg, string check, bool printOutput)
         {
-            Console.WriteLine("StartSBTWithArg Files: " + String.Join(",", Directory.GetFiles(outDir)) + " / " + String.Join(",", Directory.GetDirectories(outDir)));
+            Console.WriteLine("StartSBTWithArg Files: " + string.Join(",", Directory.GetFiles(outDir)) + " / " + string.Join(",", Directory.GetDirectories(outDir)));
             Console.WriteLine("Windows? " + RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
-            using (var proc = new Process
+            using var proc = new Process();
+            proc.StartInfo = new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {arg}" : $"-c \"{arg}\"",
-                    WorkingDirectory = outDir,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardInput = false,
-                    CreateNoWindow = false,
-                }
-            })
-            {
-                proc.Start();
-                var outp = proc.StandardOutput.ReadToEnd();
-                Console.WriteLine("OUTPUT " + outp);
-                var outputList = outp.Split("\n").ToList();
-                var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
-                Console.WriteLine("WORKED? " + worked);
+                FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
+                Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {arg}" : $"-c \"{arg}\"",
+                WorkingDirectory = outDir,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardInput = false,
+                CreateNoWindow = false,
+            };
+            proc.Start();
+            var outp = proc.StandardOutput.ReadToEnd();
+            Console.WriteLine("OUTPUT " + outp);
+            var outputList = outp.Split("\n").ToList();
+            var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
+            Console.WriteLine("WORKED? " + worked);
 
-                // print sbt output
-                if (printOutput)
-                    Console.WriteLine(outp);
+            // print sbt output
+            if (printOutput)
+                Console.WriteLine(outp);
 
-                Assert.IsTrue(worked);
-            }
+            Assert.IsTrue(worked);
         }
 
         private string[] GetService01FileNames() =>

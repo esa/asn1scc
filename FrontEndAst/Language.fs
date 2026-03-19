@@ -1,4 +1,7 @@
 ﻿module Language
+
+open AcnGenericTypes
+open Asn1AcnAst
 open CommonTypes
 open System.Numerics
 open DAst
@@ -206,6 +209,14 @@ type SequenceOptionalChild = {
     childBody: CodegenScope -> string option -> string
 }
 
+type public SequenceChildStmt = {
+    body: string option
+    lvs: LocalVariable list
+    errCodes: ErrorCode list
+    userDefinedFunctions : UserDefinedFunction list
+    icdComments : string list
+}
+
 type AcnFuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CodegenScope -> (AcnFuncBodyResult option) * State
 
 [<AbstractClass>]
@@ -214,10 +225,14 @@ type ILangGeneric () =
     abstract member getPointer      : AccessPath -> string;
     abstract member getPointerUnchecked: AccessPath -> UncheckedAccessKind -> string;
     abstract member getValue        : AccessPath -> string;
-    abstract member getValueUnchecked: AccessPath -> UncheckedAccessKind -> string;
+    abstract member getValueUnchecked: AccessPath -> UncheckedAccessKind -> string
+    abstract member joinSelection: AccessPath -> string;
+    abstract member joinSelectionEnum: AccessPath -> string;
     abstract member joinSelectionUnchecked: AccessPath -> UncheckedAccessKind -> string;
+    abstract member asSelectionIdentifier: AccessPath -> string;
     abstract member getAccess       : AccessPath -> string;
     abstract member getAccess2      : AccessStep  -> string;
+    abstract member getAccess3      : AccessStep  -> string;
     abstract member getStar         : AccessPath -> string;
     abstract member getPtrPrefix    : AccessPath -> string;
     abstract member getPtrSuffix    : AccessPath -> string;
@@ -241,7 +256,15 @@ type ILangGeneric () =
     abstract member BodyExtension : string
     abstract member Keywords : string Set
     abstract member isCaseSensitive : bool
+    abstract member isFilenameCaseSensitive : bool
 
+    abstract member constructFuncName           : string -> string -> string -> string
+    abstract member constructReferenceFuncName  : string -> string -> string -> string
+    abstract member getFuncNameGeneric          : TypeDefinitionOrReference -> string -> string option
+    abstract member getFuncNameGeneric2         : TypeDefinitionOrReference -> string option
+    abstract member getUPerFuncName             : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
+    abstract member getACNFuncName              : Asn1AcnAst.AstRoot -> CommonTypes.Codec -> Asn1AcnAst.Asn1Type -> FE_TypeDefinition -> string option
+    
     abstract member RtlFuncNames : string list
     abstract member getAlwaysPresentRtlFuncNames : CommandLineSettings -> string list
 
@@ -257,7 +280,7 @@ type ILangGeneric () =
 
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
     abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
-    abstract member getChoiceChildPresentWhenName : Asn1AcnAst.Choice -> Asn1AcnAst.ChChildInfo -> string
+    abstract member getChoiceChildPresentWhenName : Asn1AcnAst.Choice -> Asn1AcnAst.ChChildInfo -> string -> string
 
     abstract member getAsn1ChildBackendName  : Asn1Child -> string
     abstract member getAsn1ChChildBackendName: ChChildInfo -> string
@@ -275,22 +298,47 @@ type ILangGeneric () =
     abstract member getSequenceTypeDefinition :Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> FE_SequenceTypeDefinition
     abstract member getSizeableTypeDefinition : Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> FE_SizeableTypeDefinition
 
-    abstract member getSeqChild: sel: AccessPath -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> AccessPath;
+    abstract member getSeqChild: sel: AccessPath -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> AccessPath
+    abstract member getSeqChildDependingOnChoiceParent: parents: (CodegenScope * Asn1AcnAst.Asn1Type) list -> sel: AccessPath -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> AccessPath
     //return a string that contains code with a boolean expression that is true if the child is present
     abstract member getSeqChildIsPresent   : AccessPath -> string -> string
     abstract member getChChildIsPresent   : AccessPath -> string -> string-> string
     abstract member getChChild      : AccessPath -> string -> bool -> AccessPath;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
-    abstract member getLongTypedefName : TypeDefinitionOrReference -> string;
+    abstract member getLongTypedefName : TypeDefinitionOrReference -> string
+    abstract member getLongTypedefNameBasedOnModule : FE_TypeDefinition -> string -> string
+    abstract member getLongTypedefNameFromReferenceToTypeAndCodegenScope : ReferenceToType -> TypeDefinitionOrReference -> CodegenScope -> string option
+    abstract member longTypedefName2 : TypeDefinitionOrReference -> bool -> string -> string
+    abstract member adjustTypedefWithFullPath : string -> string -> string;
     abstract member getEmptySequenceInitExpression : string -> string
     abstract member callFuncWithNoArgs : unit -> string
     abstract member extractEnumClassName : string -> string -> string -> string
     abstract member presentWhenName : TypeDefinitionOrReference option -> ChChildInfo -> string;
     abstract member presentWhenName0 : TypeDefinitionOrReference option -> Asn1AcnAst.ChChildInfo -> string;
     abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CodegenScope;
+    abstract member getParamTypeSuffixForEquals : Asn1AcnAst.Asn1Type -> string -> Codec -> CodegenScope;
     abstract member getParamValue   : Asn1AcnAst.Asn1Type -> AccessPath -> Codec -> string
 
-    abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CodegenScope;
+    abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CodegenScope
+    abstract member getParamTypeAtc : Asn1AcnAst.Asn1Type -> Codec -> CodegenScope
+    
+    // Additional Methods for ACN Deep Field Access for Object Oriented Languages
+    abstract member getAcnChildrenForDeepFieldAccess : Asn1Child list -> AcnChild list -> AcnInsertedFieldDependencies -> Map<string, (string * AcnChild) list>
+    default this.getAcnChildrenForDeepFieldAccess _ _ _ = Map.empty
+    abstract member getExternalField : ((AcnDependency -> bool) -> string) -> RelativePath -> Asn1AcnAst.Sequence -> CodegenScope -> string
+    default this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) _ _ _ =
+        let filterDependency (d:AcnDependency) =
+            match d.dependencyKind with
+            | AcnDepPresenceBool   -> true
+            | _                    -> false
+        getExternalField0 filterDependency
+    abstract member getAcnChildrenDictStatements : Codec -> (string * AcnChild) list -> CodegenScope -> (string list * string option)
+    default this.getAcnChildrenDictStatements _ _ _= [], None
+    abstract member updateStateForCrossSequenceAcnParams : Asn1AcnAst.AstRoot -> State -> CodegenScope -> Asn1AcnAst.SeqChildInfo list -> Asn1Child -> NestingScope -> AcnInsertedFieldDependencies -> Asn1AcnAst.Asn1Type -> Codec -> (Asn1AcnAst.Asn1Module -> ReferenceToType -> State -> (AcnChildUpdateResult option*State)) -> (Determinant -> string) -> (Asn1AcnAst.Asn1Module -> Asn1AcnAst.AcnInsertedType -> string) -> (SequenceChildStmt list * string list * State)
+    default this.updateStateForCrossSequenceAcnParams _ s _ _ _ _ _ _ _ _ _ _ = [], [], s
+        
+    // End of additional methods
+    
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
     abstract member allowsSrcFilesWithNoFunctions : bool
@@ -331,6 +379,7 @@ type ILangGeneric () =
     abstract member getBoardDirs : Targets option -> string list
 
     abstract member adaptAcnFuncBody: Asn1AcnAst.AstRoot -> Asn1AcnAst.AcnInsertedFieldDependencies -> AcnFuncBody -> isValidFuncName: string option -> Asn1AcnAst.Asn1Type -> Codec -> AcnFuncBody
+    abstract member adaptFuncBodyChoice: Asn1TypeKind -> Codec -> IUper -> string -> string -> string
     abstract member generateSequenceAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateIntegerAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Integer -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateBooleanAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Boolean -> NestingScope -> AccessPath -> Codec -> string list
@@ -341,7 +390,7 @@ type ILangGeneric () =
     abstract member generateEnumAuxiliaries: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Enumerated -> NestingScope -> AccessPath -> Codec -> string list
 
     abstract member generatePrecond: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Codec -> string list
-    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> funcNameBase: string -> p: CodegenScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
+    abstract member generatePostcond: Asn1AcnAst.AstRoot -> Asn1Encoding -> p: CodegenScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
     abstract member generateSequenceChildProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
     abstract member generateSequenceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Sequence -> NestingScope -> AccessPath -> Codec -> string list
     abstract member generateChoiceProof: Asn1AcnAst.AstRoot -> Asn1Encoding -> Asn1AcnAst.Asn1Type -> Asn1AcnAst.Choice -> stmt: string -> AccessPath -> Codec -> string
@@ -359,12 +408,35 @@ type ILangGeneric () =
     abstract member generateSequenceOfSizeDefinitions: Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> BigInteger -> BigInteger-> SIZE -> Asn1AcnAst.SizeableAcnEncodingClass -> AcnGenericTypes.AcnAlignment option -> AcnGenericTypes.AcnAlignment option -> Asn1AcnAst.Asn1Type -> string list * string list
     abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> Asn1AcnAst.Asn1Child list -> string list
     abstract member real_annotations : string list
+    abstract member getTypeBasedSuffix: FunctionType -> Asn1AcnAst.Asn1TypeKind -> string
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         this.getParamTypeSuffix t "" c
+    
+    default this.getParamTypeSuffixForEquals (t:Asn1AcnAst.Asn1Type) (s: string) (c:Codec) =
+        this.getParamTypeSuffix t s c
+    
+    default this.getParamTypeAtc (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
+        this.getParamType t c
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
+    default this.getLongTypedefNameBasedOnModule (fe:FE_TypeDefinition) (currentModule: string) = fe.typeName
+    default this.getLongTypedefNameFromReferenceToTypeAndCodegenScope (rf: ReferenceToType) (typeDefinition: TypeDefinitionOrReference) (p: CodegenScope) = Some rf.AsString
+    default this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
+        match td with
+        | TypeDefinition  td ->
+            td.typedefName
+        | ReferenceToExistingDefinition ref ->
+            match ref.programUnit with
+            | Some pu ->
+                match hasModules with
+                | true   ->
+                    match pu with
+                    | "" -> ref.typedefName
+                    | _ -> pu + "." + ref.typedefName
+                | false     -> ref.typedefName
+            | None    -> ref.typedefName
     default this.getAlwaysPresentRtlFuncNames args = []
     default this.detectFunctionCalls (sourceCode: string) (functionName: string) = []
     default this.removeFunctionFromHeader (sourceCode: string) (functionName: string) : string =
@@ -375,8 +447,41 @@ type ILangGeneric () =
 
     default this.extractEnumClassName (prefix: string) (varName: string) (internalName: string): string = ""
         
+    default this.constructFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
+        baseTypeDefinitionName + codecName + methodSuffix
 
+    default this.constructReferenceFuncName (baseTypeDefinitionName: string) (codecName: string) (methodSuffix: string): string =
+        this.constructFuncName baseTypeDefinitionName codecName methodSuffix
+
+    default this.getFuncNameGeneric (typeDefinition: TypeDefinitionOrReference) (nameSuffix: string): string option  =
+        match typeDefinition with
+        | ReferenceToExistingDefinition  refEx  -> None
+        | TypeDefinition   td                   -> Some (td.typedefName + nameSuffix)
+
+    default this.getFuncNameGeneric2 (typeDefinition: TypeDefinitionOrReference): string option=
+        match typeDefinition with
+        | ReferenceToExistingDefinition  refEx  -> None
+        | TypeDefinition   td                   -> Some td.typedefName
+
+    default this.getUPerFuncName (r: Asn1AcnAst.AstRoot) (codec: CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td: FE_TypeDefinition): string option =
+        match t.id.tasInfo with
+        | None -> None
+        | Some _ -> Some (td.typeName + codec.suffix)
+
+    default this.getACNFuncName (r: Asn1AcnAst.AstRoot) (codec: CommonTypes.Codec) (t: Asn1AcnAst.Asn1Type) (td: FE_TypeDefinition): string option = 
+        match t.acnParameters with
+        | []    ->
+            match t.id.tasInfo with
+            | None -> None
+            | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
+        | _     -> None
+     
+    default this.adjustTypedefWithFullPath (typeName: string) (moduleName: string) = typeName
+
+    default this.getSeqChildDependingOnChoiceParent (parents: (CodegenScope * Asn1AcnAst.Asn1Type) list) (p: AccessPath) (childName: string) (childTypeIsString: bool) (childIsOptional: bool) =
+        this.getSeqChild p childName childTypeIsString childIsOptional
     default this.adaptAcnFuncBody _ _ f _ _ _ = f
+    default this.adaptFuncBodyChoice _ _ _ f _ = f
     default this.generateSequenceAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateIntegerAuxiliaries _ _ _ _ _ _ _ = []
     default this.generateBooleanAuxiliaries _ _ _ _ _ _ _ = []
@@ -389,7 +494,7 @@ type ILangGeneric () =
     default this.generateEnumAuxiliaries _ _ _ _ _ _ _ = []
 
     default this.generatePrecond _ _ _ _ = []
-    default this.generatePostcond _ _ _ _ _ _ = None
+    default this.generatePostcond _ _ _ _ _ = None
     default this.generateSequenceChildProof _ _ stmts _ _ = stmts |> List.choose id
     default this.generateSequenceProof _ _ _ _ _ _ _ = []
     default this.generateChoiceProof _ _ _ _ stmt _ _ = stmt
@@ -405,12 +510,28 @@ type ILangGeneric () =
     default this.generateChoiceSizeDefinitions _ _ _ _ _ _ = []
     default this.generateSequenceOfSizeDefinitions _ _ _ _ _ _ _ _ = [], []
     default this.generateSequenceSubtypeDefinitions _ _ _ = []
+    default this.joinSelection sel = List.fold (fun str accessor -> $"{str}{this.getAccess2 accessor}") sel.rootId sel.steps
+    
+    default this.joinSelectionEnum sel = List.fold (fun str accessor -> $"{str}{this.getAccess3 accessor}") sel.rootId sel.steps
 
+    default this.getAccess3(acc: AccessStep) = ""
+    
     //most programming languages are case sensitive
     default _.isCaseSensitive = true
+    default _.isFilenameCaseSensitive = false
     default _.getBoardNames _ = []
     default _.getBoardDirs  _ = []
-
+    default _.getTypeBasedSuffix _ _ = ""
+       
+    default _.asSelectionIdentifier sel: string = 
+        List.fold (fun str accessor ->
+            let acc =
+                match accessor with
+                | ValueAccess (id, _, _) -> ToC id
+                | PointerAccess (id, _, _) -> ToC id
+                | ArrayAccess (id, _) -> "arr"
+            $"{str}_{acc}") sel.rootId sel.steps
+    
 
 type LanguageMacros = {
     lg      : ILangGeneric;
@@ -428,14 +549,15 @@ type LanguageMacros = {
 
 type AccessPath with
     member this.joined (lg: ILangGeneric): string =
-        List.fold (fun str accessor -> $"{str}{lg.getAccess2 accessor}") this.rootId this.steps
+        lg.joinSelection this
+        
+    member this.joinedEnum (lg: ILangGeneric): string =
+        if ProgrammingLanguage.ActiveLanguages.Head = Python then 
+            lg.joinSelectionEnum this
+        else
+            lg.joinSelection this
+        
     member this.joinedUnchecked (lg: ILangGeneric) (kind: UncheckedAccessKind): string =
         lg.joinSelectionUnchecked this kind
-    member this.asIdentifier: string =
-        List.fold (fun str accessor ->
-            let acc =
-                match accessor with
-                | ValueAccess (id, _, _) -> ToC id
-                | PointerAccess (id, _, _) -> ToC id
-                | ArrayAccess _ -> "arr"
-            $"{str}_{acc}") this.rootId this.steps
+    member this.asIdentifier (lg: ILangGeneric): string =
+        lg.asSelectionIdentifier this

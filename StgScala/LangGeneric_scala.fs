@@ -217,7 +217,7 @@ type LangGeneric_scala() =
         override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with scala_name = newValue}
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._scala_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._scala_name
-        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) : string =
+        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) (_currentModule:string) : string =
             ch.typeDef[Scala].typeName + "." + (ToC c.present_when_name) + "_PRESENT"
 
         override this.getRtlFiles  (encodings:Asn1Encoding list) (_ :string list) =
@@ -346,11 +346,11 @@ type LangGeneric_scala() =
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
 
         override this.generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (o: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): string list * string option =
-            let fds, call = generateSequenceOfLikeAuxiliaries r enc o pg codec
+            let fds, call = generateSequenceOfLikeAuxiliaries r enc o pg codec this
             fds |> List.collect (fun fd -> [show (FunDefTree fd); ""]), Some (show (ExprTree call))
 
         override this.generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc: SequenceOptionalChild) (codec: Codec): string list * string =
-            let fds, call = generateOptionalAuxiliaries r enc soc codec
+            let fds, call = generateOptionalAuxiliaries r enc soc codec this
             let innerFns = fds |> List.collect (fun fd -> [show (FunDefTree fd); ""])
             innerFns, show (ExprTree call)
 
@@ -395,13 +395,13 @@ type LangGeneric_scala() =
                     match res with
                     | Some res ->
                         assert (not nestingScope.parents.IsEmpty)
-                        let fds, call = wrapAcnFuncBody r deps t res.funcBody codec nestingScope p recP
+                        let fds, call = wrapAcnFuncBody r deps t res.funcBody codec nestingScope p recP this
                         let fdsStr = fds |> List.map (fun fd -> show (FunDefTree fd))
                         let callStr = show (ExprTree call)
                         // TODO: Hack to determine how to change the "result variable"
                         let resultExpr =
                             match res.resultExpr with
-                            | Some res when res = recP.accessPath.asIdentifier -> Some p.accessPath.asIdentifier
+                            | Some res when res = (recP.accessPath.asIdentifier this) -> Some (p.accessPath.asIdentifier this)
                             | Some res -> Some res
                             | None -> None
                         Some {res with funcBody = callStr; resultExpr = resultExpr; auxiliaries = res.auxiliaries @ fdsStr}, s
@@ -414,7 +414,7 @@ type LangGeneric_scala() =
             let precond = generatePrecond r enc t codec
             [show (ExprTree precond)]
 
-        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (funcNameBase: string) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
+        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
             match enc with
             | ACN ->
                 let errTpe = IntegerType Int
@@ -431,10 +431,10 @@ type LangGeneric_scala() =
             | _ -> Some (show (ExprTree (BoolLit true)))
 
         override this.generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
-            generateSequenceChildProof r enc stmts pg codec
+            generateSequenceChildProof r enc stmts pg codec this
 
         override this.generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): string list =
-            let proof = generateSequenceProof r enc t sq nestingScope sel codec
+            let proof = generateSequenceProof r enc t sq nestingScope sel codec this
             proof |> Option.map (fun p -> show (ExprTree p)) |> Option.toList
 
         // override this.generateChoiceProof (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (ch: Asn1AcnAst.Choice) (stmt: string) (sel: Selection) (codec: Codec): string =

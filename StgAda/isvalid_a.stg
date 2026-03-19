@@ -1,7 +1,7 @@
 group a_isvalid;
 
 rtlModuleName() ::= "adaasn1rtl"
-
+methodNameSuffix() ::= "_IsConstraintValid"
 
 always_true_statement ()::= <<
 ret := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
@@ -204,13 +204,16 @@ end <sFuncName>;
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" AND \">"
 
 callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
-
+callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<sFuncName>_CharsAreValid_<nIdx>(<p>)"
+alphaFuncBaseName(p) ::= "<p>_CharsAreValid"
+alphaFuncNameWithIndex(p, nIdx) ::= "<p>_CharsAreValid_<nIdx>"
 
 stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.encoding.stringContainsChar(\"\" & <sStrVal>, <p>)"
 
 
 
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret := <sFuncName>(<if(soTypeCasting)><soTypeCasting>(<p>)<else><p><endif>);"
+call_superclass_func(p, sFuncName, soTypeCasting) ::= "<call_base_type_func(p=p, sFuncName=sFuncName, soTypeCasting=soTypeCasting)>"
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>).Success"
 
 

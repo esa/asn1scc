@@ -1,0 +1,24 @@
+-- Requirement 7: INTEGER range starting with non-zero positive number
+-- Tests INTEGER ranges like (100..1000) or (1..31)
+
+IntegerRangePositive DEFINITIONS ::= BEGIN
+
+    DayOfMonth ::= INTEGER (1..31)
+
+    MonthOfYear ::= INTEGER (1..12)
+
+    Percentage ::= INTEGER (1..100)
+
+    CustomRange ::= INTEGER (100..1000)
+
+    LargeRange ::= INTEGER (1000..999999)
+
+    TestStruct ::= SEQUENCE {
+        day DayOfMonth,
+        month MonthOfYear,
+        percent Percentage,
+        custom CustomRange,
+        large LargeRange
+    }
+
+END

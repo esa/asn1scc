@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
   </PropertyGroup>
+  
   <ItemGroup>
     <Compile Include="ProofAst.fs" />
     <Compile Include="ProofGen.fs" />
@@ -27,12 +29,13 @@
     <Compile Include="IIsValid_scala.stg.fs" />
     <Compile Include="IInit_scala.stg.fs" />
     <Compile Include="IUper_scala.stg.fs" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="IAcn_scala.stg.fs" />
     <Compile Include="ITestCases_scala.stg.fs" />
     <Compile Include="ISrcBody_scala.stg.fs" />
     <Compile Include="LangGeneric_scala.fs" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <None Include="acn_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -70,12 +73,14 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
     <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
     <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
     <ProjectReference Include="..\ST\ST.fsproj" />
   </ItemGroup>
+  
   <ItemGroup>
     <Reference Include="antlr.runtime">
       <HintPath>..\Antlr\antlr313\antlr.runtime.dll</HintPath>
@@ -90,10 +95,13 @@
       <HintPath>..\Antlr\antlr313\StringTemplate.dll</HintPath>
     </Reference>
   </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="9.0.300-beta.25079.4" />
   </ItemGroup>
+  
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="dotnet ../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll backends.xml 3" WorkingDirectory="$(ProjectDir)" />
   </Target>
+  
 </Project>

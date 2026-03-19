@@ -1,0 +1,24 @@
+-- Requirement 8: INTEGER range starting with negative number
+-- Tests INTEGER ranges like (-128..127) or (-1000..1000)
+
+IntegerRangeNegative DEFINITIONS ::= BEGIN
+
+    Int8 ::= INTEGER (-128..127)
+
+    Int16 ::= INTEGER (-32768..32767)
+
+    Int32 ::= INTEGER (-2147483648..2147483647)
+
+    Temperature ::= INTEGER (-273..1000)
+
+    SymmetricRange ::= INTEGER (-1000..1000)
+
+    TestStruct ::= SEQUENCE {
+        signedByte Int8,
+        signedWord Int16,
+        signedDword Int32,
+        temp Temperature,
+        symmetric SymmetricRange
+    }
+
+END

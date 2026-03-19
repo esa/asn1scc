@@ -1,0 +1,14 @@
+-- Requirement 24: Basic IA5String support
+-- Tests fundamental ASN.1 IA5String character string type
+
+Ia5stringBasic DEFINITIONS ::= BEGIN
+
+    UnconstrainedIA5String ::= IA5String (SIZE(24))
+
+    TestStruct ::= SEQUENCE {
+        message IA5String (SIZE(8)),
+        name IA5String (SIZE(16)),
+        description UnconstrainedIA5String
+    }
+
+END

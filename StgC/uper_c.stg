@@ -3,7 +3,12 @@
 rtlModuleName() ::= ""
 
 
-
+call_superclass_func_encode(p, sFuncName) ::= <<
+<call_base_type_func_encode(p=p, sFuncName=sFuncName)>
+>>
+call_superclass_func_decode(p, sFuncName) ::= <<
+<call_base_type_func_decode(p=p, sFuncName=sFuncName)>
+>>
 call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);"
 call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, pErrCode);"
 
@@ -145,23 +150,23 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127);
 
 
 /*case: A:: = INTEGER (-5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= "BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= "BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= "BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 ret = BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, soType) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= <<
 ret = BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>);   <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
 *pErrCode = ret ? 0 : <sErrCode>;                               <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
 >>
@@ -192,11 +197,11 @@ ret = BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);
 
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode) ::=<<
+IntNoneRequired_encode(p, sConst, sErrCode, soType) ::=<<
 /* No need to encode value since it will always be <sConst> */
 (void)pBitStrm;
 >>
-IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, soType) ::= <<
 <p>=<sConst>;
 (void)pBitStrm;
 ret = TRUE;
@@ -229,18 +234,18 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
 if (<sRootBaseConstraint>) {
     BitStream_AppendBitZero(pBitStrm); /* write extension bit, value within root range, so ext bit is zero */
     <sIntBody>
 } else {
     /* value is not within root range, so ext bit is one and value is encoded as unconstrained */
     BitStream_AppendBitOne(pBitStrm);
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, sType=sType)>
 };
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
 
 
 /* INTETEGER END*/
@@ -248,15 +253,15 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRo
 
 
 
-Boolean_encode(p, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p>);"
+Boolean_encode(p, sErrCode, sType) ::= "BitStream_AppendBit(pBitStrm,<p>);"
 
-Boolean_decode(p, sErrCode) ::= <<
+Boolean_decode(p, sErrCode, sType) ::= <<
 ret = BitStream_ReadBit(pBitStrm, <p>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
-Real_encode(p, sSuffix, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>);"
-Real_decode(p, sSuffix, sErrCode) ::= <<
+Real_encode(p, sSuffix, sErrCode, sType) ::= "BitStream_EncodeReal(pBitStrm, <p>);"
+Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 ret = BitStream_DecodeReal<sSuffix>(pBitStrm, <p>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
@@ -398,12 +403,12 @@ sequence_presence_bit_fix_decode(p, sAcc, sChName, soExistVar, sErrCode, sVal) :
 >>
 
 
-sequence_mandatory_child_encode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
 /*Encode <sChName> */
 <sChildContent>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
 /*Decode <sChName> */
 <sChildContent>
 >>
@@ -462,7 +467,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 <p>[<nFixedSize>] = 0x0;
 >>
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 nStringLength = strlen(<p>);
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
 BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSizeMax>);
@@ -470,7 +475,7 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSiz
 
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nStringLength, <nSizeMin>, <nSizeMax>);
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 <p>[nStringLength] = 0x0;

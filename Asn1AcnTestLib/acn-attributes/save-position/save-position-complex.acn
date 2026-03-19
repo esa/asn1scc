@@ -1,0 +1,34 @@
+-- ACN encoding with save-position combined with other attributes
+
+SavePositionComplex DEFINITIONS ::= BEGIN
+
+    DynamicDataWithPosition []
+    {
+        length INTEGER [size 8, save-position, encoding pos-int],
+        data [size length]
+    }
+
+    ConditionalWithPosition []
+    {
+        hasExtension BOOLEAN [save-position],
+        baseData [],
+        extension [present-when hasExtension, save-position]
+        {
+            extData []
+        }
+    }
+
+    ArrayWithPosition []
+    {
+        count INTEGER [size 6, save-position, encoding pos-int],
+        items [size count]
+    }
+
+    TestStruct []
+    {
+        dynamic [],
+        conditional [],
+        array []
+    }
+
+END

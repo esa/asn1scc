@@ -402,3 +402,8 @@ import stainless.collection._
 <arrsTestFunctionBodies;separator="\n\n">
 
 >>
+
+decodingCaseKind(sBody, sIdentifier) ::= <<
+<sBody>
+<sIdentifier>
+>>

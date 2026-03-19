@@ -1,0 +1,26 @@
+-- Requirement 44: ENUMERATED with encode-values ACN attribute
+-- Tests ACN encode-values to control encoding of values vs indices
+
+EnumeratedEncodeValues DEFINITIONS ::= BEGIN
+
+    SparseEnum ::= ENUMERATED {
+        first(10),
+        second(20),
+        third(30),
+        fourth(100),
+        fifth(200)
+    }
+
+    NonSequentialEnum ::= ENUMERATED {
+        alpha(1),
+        beta(5),
+        gamma(10),
+        delta(50)
+    }
+
+    TestStruct ::= SEQUENCE {
+        sparse SparseEnum,
+        nonseq NonSequentialEnum
+    }
+
+END

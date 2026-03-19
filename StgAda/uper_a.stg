@@ -3,6 +3,13 @@ group a_uper;
 
 rtlModuleName() ::= "adaasn1rtl"
 
+call_superclass_func_encode(p, sFuncName) ::= <<
+<call_base_type_func_encode(p=p, sFuncName=sFuncName)>
+>>
+call_superclass_func_decode(p, sFuncName) ::= <<
+<call_base_type_func_decode(p=p, sFuncName=sFuncName)>
+>>
+
 call_base_type_func_encode(p, sFuncName) ::= "<sFuncName>_aux(<p>, bs, result);"
 call_base_type_func_decode(p, sFuncName) ::= "<sFuncName>_aux(<p>, bs, result);"
 
@@ -145,33 +152,33 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 >>
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode) ::= <<
+IntNoneRequired_encode(p, sConst, sErrCode, soType) ::= <<
 -- No need to encode value since it will always be <sConst> --
 null;
 >>
 
-IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, soType) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 <p> := <sConst>;
 >>
 
 
 /*case: A:: = INTEGER (5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <p>, <nMin>, <nBits>);"
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <p>, <nMin>, <nBits>);"
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber<sSsuffix>(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
 >>
 
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nBits>);"
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nBits>);"
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber<sSsuffix>(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
 >>
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, soType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_UnConstraintWholeNumber(bs, <p>, result.Success);
 >>
@@ -227,30 +234,30 @@ end;
 
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
 if <sRootBaseConstraint> then
     <rtlModuleName()>.encoding.BitStream_AppendBit(bs, 0); -- value within root range, so ext bit is zero
     <sIntBody>
 else
     -- value is not within root range, so ext bit is one and value is encoded as unconstrained
     <rtlModuleName()>.encoding.BitStream_AppendBit(bs, 1);
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, sType=sType)>
 end if;
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRootExt_decode(p=p, nMin=nMin, sIntBody = sIntBody, sErrCode=sErrCode)>"
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::= "<IntRootExt_decode(p=p, nMin=nMin, sIntBody = sIntBody, sErrCode=sErrCode)>"
 
 
 
-Boolean_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Boolean(bs, <p>);"
+Boolean_encode(p, sErrCode, sType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Boolean(bs, <p>);"
 
-Boolean_decode(p, sErrCode) ::= <<
+Boolean_decode(p, sErrCode, sType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_boolean(bs, <p>, result.Success);
 >>
 
-Real_encode(p, sSuffix, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Real(bs, <p>);"
-Real_decode(p, sSuffix, sErrCode) ::= <<
+Real_encode(p, sSuffix, sErrCode, sType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Real(bs, <p>);"
+Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 adaasn1rtl.encoding.uper.UPER_Dec_Real<sSuffix>(bs, <p>, result);
 >>
 
@@ -339,12 +346,12 @@ sequence_presence_bit_fix_decode(p, sAcc, sChName, soExistVar, sErrCode, sVal) :
 >>
 
 
-sequence_mandatory_child_encode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
 --Encode <sChName>
 <sChildContent>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
 --Decode <sChName>
 <sChildContent>
 >>
@@ -512,7 +519,7 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 <p>(<nFixedSize> + 1) := adaasn1rtl.NUL;
 >>
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 nStringLength := <rtlModuleName()>.getStringSize(<p>);
 result.Success := nStringLength >= <nSizeMin> AND nStringLength \<= <nSizeMax>;
 <i> := 1;
@@ -522,7 +529,7 @@ if result.Success then
 end if;
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 --val := <sTasName>_Init;
 result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);

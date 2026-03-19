@@ -1,0 +1,16 @@
+-- Requirement 3: BOOLEAN with true-value ACN attribute
+-- Tests arbitrary true-value pattern encoding
+
+BooleanTrueValue DEFINITIONS ::= BEGIN
+
+    BoolWithTrueValue ::= BOOLEAN
+
+    MultiBitTrueValue ::= BOOLEAN
+
+    TestStruct ::= SEQUENCE {
+        standardBool BOOLEAN,
+        customTrueBool BoolWithTrueValue,
+        multiBitBool MultiBitTrueValue
+    }
+
+END

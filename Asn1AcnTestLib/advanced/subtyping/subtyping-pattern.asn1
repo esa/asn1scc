@@ -1,0 +1,26 @@
+-- Requirement 37 & 52: Subtyping with pattern constraints
+-- Tests ASN.1 subtyping with permitted alphabet and pattern constraints
+
+SubtypingPattern DEFINITIONS ::= BEGIN
+
+    -- Permitted alphabet constraints
+    DigitString ::= IA5String (FROM("0123456789")) (SIZE(10..100))
+
+    AlphaString ::= IA5String (FROM("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")) (SIZE(10..100))
+
+    AlphaNumericString ::= IA5String (FROM("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")) (SIZE(10..100))
+
+    -- Combined size and alphabet constraints
+    PhoneNumber ::= IA5String (SIZE(10..15)) (FROM("0123456789+- "))
+
+    PostalCode ::= IA5String (SIZE(5..10)) (FROM("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-"))
+
+    TestStruct ::= SEQUENCE {
+        digits DigitString,
+        letters AlphaString,
+        alphaNum AlphaNumericString,
+        phone PhoneNumber,
+        zip PostalCode
+    }
+
+END

@@ -1,0 +1,18 @@
+-- ACN encoding with twos-complement encoding attribute
+
+IntegerEncodingTwosComplement DEFINITIONS ::= BEGIN
+
+    TwosComplementInt8 [size 8, encoding twos-complement]
+
+    TwosComplementInt16 [size 16, encoding twos-complement]
+
+    TwosComplementInt32 [size 32, encoding twos-complement]
+
+    TestStruct []
+    {
+        byte [],
+        word [],
+        dword []
+
+    }
+END

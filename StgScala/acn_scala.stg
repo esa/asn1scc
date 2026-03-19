@@ -27,7 +27,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 @inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 @opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN, bCheckConstraints: Boolean): Either[ErrorCode, Int] =  // acn:21
 {
@@ -52,7 +52,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 @opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN): EitherMut[ErrorCode, <sTypeDefName>] =
 {
@@ -132,7 +132,7 @@ locally {
 <sMainBody>
 >>
 
-PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 locally {
     ghostExpr {
         @opaque @inlineOnce
@@ -144,24 +144,24 @@ locally {
 }
 codec.enc_Int_PositiveInteger_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)
 >>
-PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_PositiveInteger_ConstSize<sSsuffix>(<nFixedSize>)
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_8(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_PositiveInteger_ConstSize_8(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_PositiveInteger_ConstSize_8<sSsuffix>()
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_big_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_PositiveInteger_ConstSize_big_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_PositiveInteger_ConstSize_big_endian_16<sSsuffix>()
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 locally {
     ghostExpr {
         @opaque @inlineOnce
@@ -173,173 +173,173 @@ locally {
 }
 codec.enc_Int_PositiveInteger_ConstSize_big_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)
 >>
-PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_PositiveInteger_ConstSize_big_endian_32<sSsuffix>()
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_big_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_PositiveInteger_ConstSize_big_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_PositiveInteger_ConstSize_big_endian_64<sSsuffix>()
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_little_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_PositiveInteger_ConstSize_little_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_PositiveInteger_ConstSize_little_endian_16<sSsuffix>()
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_little_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_PositiveInteger_ConstSize_little_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_PositiveInteger_ConstSize_little_endian_32<sSsuffix>()
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_little_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_PositiveInteger_ConstSize_little_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_PositiveInteger_ConstSize_little_endian_64<sSsuffix>()
 <MF(soMF)>
 >>
 // TODO: Seems unused?
-PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= "codec.enc_Int_PositiveInteger_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
+PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, sType) ::= "codec.enc_Int_PositiveInteger_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, sType) ::= <<
 val <p> = codec.dec_Int_PositiveInteger_VarSize_LengthEmbedded<sSsuffix>()
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)"
-TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax, sType) ::= "codec.enc_Int_TwosComplement_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)"
+TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_TwosComplement_ConstSize<psSsuffix>(<nFixedSize>)
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_8(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_TwosComplement_ConstSize_8(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_TwosComplement_ConstSize_8<sSsuffix>()
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_big_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_TwosComplement_ConstSize_big_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_TwosComplement_ConstSize_big_endian_16<sSsuffix>()
 >>
 
-TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_big_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_TwosComplement_ConstSize_big_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_TwosComplement_ConstSize_big_endian_32<sSsuffix>()
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_big_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_TwosComplement_ConstSize_big_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_TwosComplement_ConstSize_big_endian_64<sSsuffix>()
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_little_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_TwosComplement_ConstSize_little_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_TwosComplement_ConstSize_little_endian_16<sSsuffix>()
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_little_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_TwosComplement_ConstSize_little_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_TwosComplement_ConstSize_little_endian_32<sSsuffix>()
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_little_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_TwosComplement_ConstSize_little_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_TwosComplement_ConstSize_little_endian_64<sSsuffix>()
 <MF(soMF)>
 >>
 
-TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "codec.enc_Int_TwosComplement_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= "codec.enc_Int_TwosComplement_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 val <p> = codec.dec_Int_TwosComplement_VarSize_LengthEmbedded<sSsuffix>()
 <MF(soMF)>
 >>
 
-BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= "codec.enc_Int_BCD_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nNibbles>)"
-BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
+BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles, sType) ::= "codec.enc_Int_BCD_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nNibbles>)"
+BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles, sType) ::= <<
 val <p> = codec.dec_Int_BCD_ConstSize<sSsuffix>(<nNibbles>)
 <MF(soMF)>
 >>
 
-BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "codec.enc_Int_BCD_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= "codec.enc_Int_BCD_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 val <p> = codec.dec_Int_BCD_VarSize_LengthEmbedded<sSsuffix>()
 <MF(soMF)>
 >>
 
-BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_BCD_VarSize_NullTerminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "codec.enc_Int_BCD_VarSize_NullTerminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 val <p> = codec.dec_Int_BCD_VarSize_NullTerminated<sSsuffix>()
 <MF(soMF)>
 >>
 
-ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "codec.enc_SInt_ASCII_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>) "
-ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= "codec.enc_SInt_ASCII_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>) "
+ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= <<
 val <p> = codec.dec_SInt_ASCII_ConstSize<sSsuffix>(<nSizeInBytes>)
 <MF(soMF)>
 >>
 
-ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "codec.enc_SInt_ASCII_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
-ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= "codec.enc_SInt_ASCII_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 val <p> = codec.dec_SInt_ASCII_VarSize_LengthEmbedded<sSsuffix>()
 <MF(soMF)>
 >>
 
-ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 codec.enc_SInt_ASCII_VarSize_NullTerminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
 >>
 
-ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 val <p> = codec.dec_SInt_ASCII_VarSize_NullTerminated<sSsuffix>((byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
 <MF(soMF)>
 >>
 
-ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= <<
 codec.enc_UInt_ASCII_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>)
 >>
 
-ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= <<
 val <p> = codec.dec_UInt_ASCII_ConstSize<sSsuffix>(<nSizeInBytes>)
 <MF(soMF)>
 >>
 
-ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 codec.enc_UInt_ASCII_VarSize_NullTerminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
 >>
 
-ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 val <p> = codec.dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(<p>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
 <MF(soMF)>
 >>
 
-Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "codec.enc_Real_IEEE754_32_big_endian(<p>.toFloat)"
-Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
+Real_32_big_endian_encode(p, sSuffix, sErrCode, sType) ::= "codec.enc_Real_IEEE754_32_big_endian(<p>.toFloat)"
+Real_32_big_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 val <p> = codec.dec_Real_IEEE754_32_big_endian<sSsuffix>()
 >>
 
-Real_64_big_endian_encode(p, sErrCode) ::= "codec.enc_Real_IEEE754_64_big_endian(<p>)"
-Real_64_big_endian_decode(p, sErrCode) ::= <<
+Real_64_big_endian_encode(p, sErrCode, sType) ::= "codec.enc_Real_IEEE754_64_big_endian(<p>)"
+Real_64_big_endian_decode(p, sErrCode, sType) ::= <<
 val <p> = codec.dec_Real_IEEE754_64_big_endian()
 >>
 
-Real_32_little_endian_encode(p, sSuffix, sErrCode) ::= "codec.enc_Real_IEEE754_32_little_endian(<p>)"
-Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
+Real_32_little_endian_encode(p, sSuffix, sErrCode, sType) ::= "codec.enc_Real_IEEE754_32_little_endian(<p>)"
+Real_32_little_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 val <p> = codec.dec_Real_IEEE754_32_little_endian<sSsuffix>()
 >>
 
-Real_64_little_endian_encode(p, sErrCode) ::= "codec.enc_Real_IEEE754_64_little_endian(<p>)"
-Real_64_little_endian_decode(p, sErrCode) ::= <<
+Real_64_little_endian_encode(p, sErrCode, sType) ::= "codec.enc_Real_IEEE754_64_little_endian(<p>)"
+Real_64_little_endian_decode(p, sErrCode, sType) ::= <<
 val <p> = codec.dec_Real_IEEE754_64_little_endian()
 >>
 
 
-Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
+Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode, sType) ::= <<
 locally {
     val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
     val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
@@ -347,7 +347,7 @@ locally {
 }
 >>
 
-Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
+Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode, sType) ::= <<
 val <p> = {
     <if(bEncValIsTrue)>
     val tmp: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
@@ -363,7 +363,7 @@ val <p> = {
 }
 >>
 
-BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode) ::= <<
+BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits,  sErrCode, sType) ::= <<
 locally {
     val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
     val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
@@ -371,7 +371,7 @@ locally {
 }
 >>
 
-BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
+BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode, sType) ::= <<
 val <p> = locally {
     val true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
     val false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.toUnsignedByte}; separator=", ">)
@@ -383,7 +383,7 @@ val <p> = locally {
 >>
 
 
-Null_declare(p) ::= "val <p>: NullType = 0"
+Null_declare(p, sType) ::= "val <p>: NullType = 0"
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>
@@ -461,24 +461,24 @@ Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 val <p> = codec.dec_String_Ascii_FixSize(<nAsn1Max>)
 >>
 
-Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
+Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 codec.enc_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>, <p>)
 >>
 
-Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
+Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 val <p> = codec.dec_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>)
 >>
 
-Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "codec.enc_String_Ascii_External_Field_Determinant(<nAsn1Max>, <p>)"
-Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld) ::= <<
+Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= "codec.enc_String_Ascii_External_Field_Determinant(<nAsn1Max>, <p>)"
+Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
 val <p> = codec.dec_String_Ascii_External_Field_Determinant(<nAsn1Max>, <sExtFld>)
 >>
 
-Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
+Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
 codec.enc_String_Ascii_Internal_Field_Determinant(<nAsn1Max>, <nAsn1Min>, <p>)
 >>
 
-Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
+Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
 val <p> = codec.dec_String_Ascii_Internal_Field_Determinant(<nAsn1Max>, <nAsn1Min>)
 >>
 
@@ -486,28 +486,28 @@ PrintAlphabet2(arrnCharSet) /*nogen*/ ::= <<
 val allowedCharSet: Array[Byte] = Array(<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">)
 >>
 
-Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 codec.enc_String_CharIndex_FixSize(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
 >>
 
-Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 val <p> = codec.dec_String_CharIndex_FixSize(<nAsn1Max>, allowedCharSet, <nCharSetSize>)
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 codec.enc_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 val <p> = codec.dec_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>)
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 locally {
     val bix = codec.base.bitStream.bitIndex
     codec.enc_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <p>)
@@ -516,7 +516,7 @@ locally {
 }
 >>
 
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 val <p> = locally {
     val bix = codec.base.bitStream.bitIndex
     if <sExtFld>.toRaw \< 0L then
@@ -551,7 +551,7 @@ val <p> =
     else return LeftMut(<sErrCode>)
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -571,7 +571,7 @@ locally {
 <soCallAux>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -633,12 +633,12 @@ val <p> =
     else return LeftMut(<sErrCode>)
 >>
 
-oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 codec.base.bitStream.appendBitsMSBFirstVec(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
-oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
 // TODO: check if it works as intended
 <i> = 0
 
@@ -751,31 +751,31 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 <sBitStreamPositionsLocalVar>.<sChName> = pBitStrm // save position of the bit stream
 >>
 
-sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
+sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 /* Encode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
+sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 /* Encode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 /* Encode <sChName> */
 /* marked as ALWAYS PRESENT, so it must be Some */
 <p> match
@@ -785,7 +785,7 @@ sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildEx
     case NoneMut() => return Left(628)
 >>
 
-sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 /* Decode <sChName> */
 /* marked as ALWAYS PRESENT */
 <soSaveBitStrmPosStatement>
@@ -794,19 +794,19 @@ val <p>: OptionMut[<sChildTypedef>] =
     SomeMut(<soChildExpr>)
 >>
 
-sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 /* Encode <sChName> */
 /* marked as ALWAYS ABSENT, so do not encode anything */
 <soSaveBitStrmPosStatement>
 >>
-sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 /* Decode <sChName> */
 /* marked as ALWAYS ABSENT, so do not decode anything */
 <soSaveBitStrmPosStatement>
 val <p>: OptionMut[<sChildTypedef>] = NoneMut[<sChildTypedef>]()
 >>
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 /* Encode <sChName> */
 <soSaveBitStrmPosStatement>
 <p> match
@@ -815,7 +815,7 @@ sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soCh
     case NoneMut() =>
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
 val <p>: OptionMut[<sChildTypedef>] =
@@ -825,12 +825,12 @@ val <p>: OptionMut[<sChildTypedef>] =
     else NoneMut[<sChildTypedef>]()
 >>
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, bChildHasAcnChildrenToReturn) ::= <<
 <soSaveBitStrmPosStatement>
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement)>
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement, bIsPrimitive=bIsPrimitive, bChildHasAcnChildrenToReturn=bChildHasAcnChildrenToReturn)>
 >>
 
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, bChildHasAcnChildrenToReturn) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
 val <p>_<sChName> =
@@ -897,7 +897,7 @@ val <p> = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match
 
 /* Choice with presence determinants */
 
-ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
 case <sChildID>(<sChildName>) =>
     <sChildBody>
 >>
@@ -908,7 +908,7 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
 (<sExtFld>.sameElements(Vector.fromList(List[UByte](<arruVal:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))))
 >>
 
-ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
 <if(bFirst)>val <p> = if (<arrsConditions; separator=" && ">) {
 <else>
 else if (<arrsConditions; separator=" && ">) {
@@ -919,12 +919,12 @@ else if (<arrsConditions; separator=" && ">) {
 }
 >>
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 <p> match
     <arrsChildren; separator="\n">
 >>
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 <arrsChildren; separator="\n">
 else return LeftMut(<sErrCode>)
 >>
@@ -941,12 +941,12 @@ case <sEnmName> =>
     <sChildID>(<sChildName>)
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 <p> match
     <arrsChildren; separator="\n">
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 val <p> = <sEnmExtFld> match
     <arrsChildren; separator="\n">
 >>
@@ -962,7 +962,7 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 val <v> = <nFixedSize>
 >>
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
 <if(bIsOptional)>
 case SomeMut(<sChildCIDHolder>.<sChildCID>(_)) =>
 <else>
@@ -988,7 +988,7 @@ case _: <sChildNamePresent> =>
     <sChildRetVal>
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChildTypeName) ::= <<
 case _: <sChildNamePresent> =>
     Vector.fromList(List(<arruChildRetValBytes:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))
 >>
