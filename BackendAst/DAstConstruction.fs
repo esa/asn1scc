@@ -826,8 +826,8 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
     let isValidFunction, s1     = DastValidate2.createReferenceTypeFunction r lm t o defOrRef newResolvedType s0
     let uperEncFunction, s2     = DAstUPer.createReferenceFunction r lm Codec.Encode t o defOrRef isValidFunction newResolvedType s1
     let uperDecFunction, s3     = DAstUPer.createReferenceFunction r lm Codec.Decode t o defOrRef isValidFunction newResolvedType s2
-    let acnEncFunction, s4      = DAstACNDeferred.createReferenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction newResolvedType newPrms s3
-    let acnDecFunction, s5      = DAstACNDeferred.createReferenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction newResolvedType newPrms s4
+    let acnEncFunction, s4      = DAstACNDeferred.createReferenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction newResolvedType s3
+    let acnDecFunction, s5      = DAstACNDeferred.createReferenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction newResolvedType s4
 
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction acnEncFunction acnDecFunction s6
