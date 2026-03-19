@@ -52,6 +52,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-let")>]    Log_Execution_Time
     | [<AltCommandLine("-if")>] Include_Func of string
     | [<Unique; AltCommandLine("-invertibility")>] StainlessInvertibility
+    | [<Unique; AltCommandLine("-acnDeferred")>] Acn_V2
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -106,7 +107,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | IcdAcn  _         -> "Produces an Interface Control Document for the input ASN.1 and ACN grammars for ACN encoding"
             | CustomIcdAcn  _   -> "Invokes the custom stg file 'stgFile.stg' using the icdAcn backend and produces the output file 'outputFile'"
             | DetectPdus        -> "Automatically detects the Protocol Data Units (PDUs) in the input ASN.1 grammar and prints them to the console. PDUs are defined as top-level types, i.e., types that are not referenced by any other type."
-            | IcdPdus       _   -> "A list of type assignments to be included in the generated ICD. If there are multiple type assignments, please separate them with commas and enclose them in double quotes."
+            | IcdPdus       _   -> "A comma-separated list of top-level type assignments (PDUs). Only these types and their transitive dependencies will have encode/decode functions generated. Also limits ICD output to the listed types. Enclose in double quotes if multiple, e.g. -icdPdus \"TypeA,TypeB\"."
             | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
             | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
             | PrintTemplateInfo  -> "Add line number comments to generated code indicating the source location that generated each line"
@@ -121,6 +122,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | Include_Func _    -> "Include a function from the RTL. The function name is expected as argument. This argument can be repeated many times. This argument is supported only for C"
             | Log_Execution_Time           -> "Enables detailed logging of execution time."
             | StainlessInvertibility -> "(Scala backend only) Generate invertibility conditions and lemmas"
+            | Acn_V2 -> "(Experimental, C only) Enable ACN deferred patching: separate functions for reference types with ACN parameters, reserve+patch determinants instead of temporary buffers."
 
 
 let printVersion () =
@@ -128,7 +130,7 @@ let printVersion () =
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
 
-    let version = "4.6.0.19"
+    let version = "4.7.0.1"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -308,6 +310,10 @@ let checkArgument (cliArgs : CliArguments list) arg =
                 raise (UserException (sprintf "Function '%s' does not exist in the C RTL.\nThe available functions to choose are:\n\n%s" fnName availableFunctions))
         | false -> raise (UserException ("The -if option is supported only for C."))
     | StainlessInvertibility -> ()
+    | Acn_V2 ->
+        match cliArgs |> List.exists (fun a -> a = Ada_Lang) || cliArgs |> List.exists (fun a -> a = Scala_Lang) with
+        | true  -> raise (UserException ("The --acn-deferred option is supported only for C."))
+        | false -> ()
 
 let createInput (fileName:string) : Input =
     {
@@ -399,6 +405,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
 
         blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala());(ProgrammingLanguage.Python, new LangGeneric_python.LangBasic_python()) ]
         stainlessInvertibility = args |> List.exists (fun a -> match a with StainlessInvertibility -> true | _ -> false)
+        acnDeferred = parserResults.Contains <@ Acn_V2 @>
     }
 
 let setActiveLanguages args =

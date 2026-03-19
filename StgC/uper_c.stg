@@ -130,6 +130,7 @@ InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition
 asn1SccSint charIndex = 0;
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charIndex, 0, <nLastItemIndex>);
 *pErrCode = ret ? 0 : <sErrCode>;
+if (ret && (charIndex \< 0 || charIndex \> <nLastItemIndex>)) { ret = FALSE; *pErrCode = <sErrCode>; }
 <p>[<i>] = ret ? allowedCharSet[charIndex] : '\0' ;
 >>
 

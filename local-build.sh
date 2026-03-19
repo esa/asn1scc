@@ -26,10 +26,32 @@ dotnet build parseStg2/ || exit 1
 dotnet build "asn1scc.sln" || exit 1
 cd v4Tests || exit 1
 echo "run local tests"
+
+
+echo "run c tests, with word-size=4, slim-mode=false, acnv2"
+../regression/bin/Debug/net9.0/regression -l c -ws 4 -s false -p 48 -acnv2 || exit 1
+
+
+echo "run c tests, with word-size=8, slim-mode=true, acnv2"
+../regression/bin/Debug/net9.0/regression -l c -ws 8 -s true -p 48 -acnv2 || exit 1
+
+
+echo "run c tests, with word-size=8, slim-mode=false, acnv2"
+../regression/bin/Debug/net9.0/regression -l c -ws 8 -s false -p 48 -acnv2 || exit 1
+
+echo "run c tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net9.0/regression -l c -ws 4 -s false -p 48 || exit 1
+
+echo "run Ada tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net9.0/regression -l Ada -ws 4 -s false -p 48 || exit 1
+
+echo "run c tests, with word-size=8, slim-mode=true, -ig"
 ../regression/bin/Debug/net9.0/regression -l c -ws 8 -s true -p 48 -ig || exit 1
+
+echo "run c tests, with word-size=8, slim-mode=true"
 ../regression/bin/Debug/net9.0/regression -l c -ws 8 -s true -p 48 || exit 1
+
+echo "run Ada tests, with word-size=8, slim-mode=true"
 ../regression/bin/Debug/net9.0/regression -l Ada -ws 8 -s true -p 48 || exit 1
 
 #scala tests

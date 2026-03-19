@@ -1,0 +1,15 @@
+MyModule DEFINITIONS ::= BEGIN
+
+PDU ::= SEQUENCE {
+   rgb OCTET STRING (CONTAINING RGB-t)
+}
+
+
+RGB-t ::= SEQUENCE {
+   r  INTEGER (0 .. 255),
+   g  INTEGER (0 .. 255),
+   b  INTEGER (0 .. 255),
+   opacity INTEGER (0 .. 255) OPTIONAL
+}
+
+END

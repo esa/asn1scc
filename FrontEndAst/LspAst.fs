@@ -114,6 +114,7 @@ let defaultCommandLineSettings  =
         userRtlFunctionsToGenerate= []
         enum_Items_To_Enable_Efficient_Enumerations = System.UInt32.MaxValue
         stainlessInvertibility = false
+        acnDeferred = false
     }
 
 type LspWorkSpace = {

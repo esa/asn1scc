@@ -275,7 +275,7 @@ In this case the file-data reference type has no acnArgs. This means that no acn
 *)
 
 
-let private createAcnFunction (r: Asn1AcnAst.AstRoot)
+let createAcnFunction (r: Asn1AcnAst.AstRoot)
                               (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
                               (lm: LanguageMacros)
                               (codec: CommonTypes.Codec)
@@ -1099,17 +1099,58 @@ let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDe
         let lastNode = nodes |> List.rev |> List.head
         match lastNode with
         | PRM prmName   ->
-            let newDeterminantId =
-                deps.acnDependencies |>
-                List.choose(fun d ->
-                    match d.dependencyKind with
-                    | AcnDepRefTypeArgument prm when prm.id = prmId -> Some d.determinant
-                    | _                                             -> None)
-            match newDeterminantId with
-            | det1::_   -> resolveParam det1.id
-            | _         -> prmId
+            if r.args.acnDeferred then
+                // In deferred mode, the parameter IS the value — it arrives
+                // as an AcnInsertedFieldRef* formal parameter.  Do NOT follow
+                // RefTypeArgumentDependency chains; stop here.
+                prmId
+            else
+                let newDeterminantId =
+                    deps.acnDependencies |>
+                    List.choose(fun d ->
+                        match d.dependencyKind with
+                        | AcnDepRefTypeArgument prm when prm.id = prmId -> Some d.determinant
+                        | _                                             -> None)
+                match newDeterminantId with
+                | det1::_   -> resolveParam det1.id
+                | _         -> prmId
         | _             -> prmId
-    getAcnDeterminantName  (resolveParam dependency.determinant.id)
+
+    let resolvedId = resolveParam dependency.determinant.id
+    // In deferred mode, a PRM determinant MUST resolve to a PRM node
+    // (the parameter itself).  If it resolves to something else, it means
+    // the dep rewrite is wrong or a RefTypeArgumentDependency was followed
+    // when it shouldn't have been.
+    if r.args.acnDeferred then
+        match dependency.determinant with
+        | Asn1AcnAst.AcnParameterDeterminant _ ->
+            let resolvedNodes = match resolvedId with ReferenceToType nodes -> nodes
+            let resolvedLastNode = resolvedNodes |> List.rev |> List.head
+            match resolvedLastNode with
+            | PRM _ -> ()  // correct — resolved to a parameter
+            | _ -> failwithf "BUG: In deferred mode, parameter determinant %A resolved to non-PRM node %A" dependency.determinant.id resolvedId
+        | _ -> ()  // AcnChildDeterminant — resolves to the ACN child, which is fine
+
+    let baseName = getAcnDeterminantName resolvedId
+    // In deferred mode, when the determinant resolved to a PRM (parameter),
+    // the formal parameter is AcnInsertedFieldRef*.  Code that reads the
+    // integer value must access the ->value field of the struct.
+    // For IA5String determinants, use ->str_value instead of ->value.
+    if r.args.acnDeferred then
+        let resolvedNodes = match resolvedId with ReferenceToType nodes -> nodes
+        let resolvedLastNode = resolvedNodes |> List.rev |> List.head
+        match resolvedLastNode with
+        | PRM _ ->
+            // Check if the dependency is string-typed
+            let isStringDep =
+                match dependency.dependencyKind with
+                | Asn1AcnAst.AcnDepPresenceStr _ -> true
+                | _ -> false
+            if isStringDep then baseName + "->str_value"
+            else baseName + "->value"
+        | _     -> baseName
+    else
+        baseName
 
 let getExternalField0Type (r: Asn1AcnAst.AstRoot)
                           (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
@@ -2004,8 +2045,7 @@ type private SequenceChildResult = {
     member this.joinedBodies (lm:LanguageMacros) (codec:CommonTypes.Codec): string option =
         this.stmts |> List.choose (fun s -> s.body) |> nestChildItems lm codec
 
-
-let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (acnPrms:DastAcnParameter list) (us:State)  =
+let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (acnPrms:DastAcnParameter list) (us:State)  =
     (*
         1. all Acn inserted children are declared as local variables in the encoded and decode functions (declaration step)
         2. all Acn inserted children must be initialized appropriately in the encoding phase
@@ -2589,8 +2629,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         // For those fields we should generated no anc encode/decode function
         // Otherwise, the encoding function is wrong since an uninitialized value is encoded.
         let existsAcnChildWithNoUpdates =
-            acnChildren |>
-            List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> acnChild.funcUpdateStatement.IsNone)
+            if r.args.acnDeferred then []
+            else
+                acnChildren |>
+                List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> acnChild.funcUpdateStatement.IsNone)
         let saveInitialBitStrmStatements = soSaveInitialBitStrmStatement |> Option.toList
         let nbPresenceBits = asn1Children |> List.sumBy (fun c ->
             match c.Optionality with
@@ -2854,6 +2896,10 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                           | _ -> None
                       )
                     chFunc.funcBody us acnArgsForChild childNestingScope childP
+                    
+                    // upstream:
+                    // todo: check if that is ok
+                    // chFunc.funcBody us acnArgs childNestingScope childP
                 | None -> None, us
 
             let childContent_funcBody, childContent_localVariables, childContent_userDefFuncs, childContent_errCodes, auxiliaries =
@@ -2991,7 +3037,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 let emptyIcdFnc fieldName sPresent comments  = [],[]
 
-let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (acnPrms:DastAcnParameter list) (us:State)  =
+let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (acnPrms:DastAcnParameter list) (us:State)  =
   let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "_ACN" codec
 
   //let td = lm.lg.getTypeDefinition t.FT_TypeDefinition

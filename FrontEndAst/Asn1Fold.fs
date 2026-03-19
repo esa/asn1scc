@@ -435,7 +435,7 @@ let getSeqChildrenWithPriority (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (t
         deps.acnDependencies |>
         List.choose(fun d ->
             match d.dependencyKind with
-            | AcnDepSizeDeterminant_bit_oct_str_contain _ when d.asn1Type.AsString.StartsWith (id)  &&   d.determinant.id.AsString.StartsWith (id) &&                (getChildNameFromId d.asn1Type.AsString) <> (getChildNameFromId d.determinant.id.AsString) -> Some (getChildNameFromId d.asn1Type.AsString )
+            | AcnDepSizeDeterminant_bit_oct_str_contain _ when d.asn1Type.AsString.StartsWith (id)  &&   d.determinant.id.AsString.StartsWith (id) && d.asn1Type.AsString.Length > id.Length + 1 && d.determinant.id.AsString.Length > id.Length + 1 &&                (getChildNameFromId d.asn1Type.AsString) <> (getChildNameFromId d.determinant.id.AsString) -> Some (getChildNameFromId d.asn1Type.AsString )
             | _ -> None    )
 
     childrenWithPriority
@@ -455,7 +455,7 @@ let foldType2
     (seqOfFunc: ParentInfo<'T> option -> Asn1Type -> SequenceOf -> 'b -> 'a)
     (seqFunc: ParentInfo<'T> option -> Asn1Type -> Sequence -> 'c list * 'UserState -> 'a)
     (seqAsn1ChildFunc: Asn1Child -> 'b -> 'c * 'UserState)
-    (seqAcnChildFunc: AcnChild -> 'UserState -> 'c * 'UserState)
+    (seqAcnChildFunc: AcnChild -> 'T -> 'UserState -> 'c * 'UserState)
     (choiceFunc: ParentInfo<'T> option -> Asn1Type -> Choice -> 'd list * 'UserState -> 'a)
     (chChildFunc: ChChildInfo -> 'b -> 'd * 'UserState)
     (refType: ParentInfo<'T> option -> Asn1Type -> ReferenceType -> 'b -> 'a)
@@ -505,7 +505,7 @@ let foldType2
                             let newChild, ns = seqAsn1ChildFunc asn1Child (loopType (Some {ParentInfo.parent = t ; name=Some asn1Child.Name.Value; parentData=parentData}) asn1Child.Type curState)
                             (asn1Child.Name.Value, newChild), ns
                         | AcnChild  acnChild    ->
-                            let newChild, ns = seqAcnChildFunc  acnChild curState
+                            let newChild, ns = seqAcnChildFunc  acnChild parentData curState
                             (acnChild.Name.Value, newChild), ns) ns
                 let newChildren =
                     newChildren |> List.sortBy(fun (nm, _)  -> initialOrder[nm]) |> List.map snd

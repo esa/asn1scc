@@ -197,6 +197,7 @@ typedef struct {
 #define ERR_INVALID_XML_FILE	200
 #define ERR_INVALID_BER_FILE	201
 #define ERR_BER_LENGTH_MISMATCH	202
+#define ERR_ACN_DET_CONSISTENCY_MISMATCH	203
 
 int GetCharIndex(char ch, byte allowedCharSet[], int setLen);
 

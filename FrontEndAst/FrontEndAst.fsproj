@@ -31,6 +31,7 @@
         <Compile Include="XER.fs" />
         <Compile Include="AcnEncodingClasses.fs" />
         <Compile Include="CheckLongReferences.fs" />
+        <Compile Include="AcnClosureConversion.fs" />
         <Compile Include="FE_TypeDefinition.fs" />
         <Compile Include="DAstTypeDefinition.fs" />
         

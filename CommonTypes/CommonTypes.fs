@@ -1046,6 +1046,7 @@ type CommandLineSettings = {
     userRtlFunctionsToGenerate : string list
     enum_Items_To_Enable_Efficient_Enumerations : uint
     stainlessInvertibility: bool
+    acnDeferred: bool
 }
 with
   member this.SIntMax =

@@ -1344,6 +1344,71 @@ if result.success then
 end if;
 >>
 
+/* CONTAINING with deferred patching — TODO Ada implementation */
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada deferred CONTAINING encode
+>>
+
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada deferred CONTAINING decode
+>>
+
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
+-- TODO: Ada deferred CONTAINING fixed encode
+>>
+
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
+-- TODO: Ada deferred CONTAINING fixed decode
+>>
+
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+-- TODO: Ada deferred CONTAINING embedded encode
+>>
+
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+-- TODO: Ada deferred CONTAINING embedded decode
+>>
+
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada deferred CONTAINING wrapper encode
+>>
+
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada deferred CONTAINING wrapper decode
+>>
+
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada bit_string_containing_deferred_func
+>>
+
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada bit_string_containing_deferred_func
+>>
+
+bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
+-- TODO: Ada bit_string_containing_deferred_fixed_func
+>>
+
+bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
+-- TODO: Ada bit_string_containing_deferred_fixed_func
+>>
+
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+-- TODO: Ada bit_string_containing_deferred_embedded_func
+>>
+
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+-- TODO: Ada bit_string_containing_deferred_embedded_func
+>>
+
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada bit_string_containing_deferred_wrapper
+>>
+
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+-- TODO: Ada bit_string_containing_deferred_wrapper
+>>
+
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
 adaasn1rtl.encoding.BitStream_AppendBits(bs, tmpBs.Buffer, Integer(<sExtField>));
 >>
@@ -1561,3 +1626,121 @@ begin
     <endif>
 end;
 >>
+
+/*
+========================================================================
+ACN Deferred Patching Templates (stubs — Ada not supported yet)
+========================================================================
+*/
+
+acn_deferred_det_declare_encode(sDetName) ::= "-- TODO: ACN deferred patching not supported for Ada"
+acn_deferred_det_declare_decode(sDetName) ::= "-- TODO: ACN deferred patching not supported for Ada"
+
+acn_deferred_det_init_value_encode(sInitFuncName, sDetName) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_init_value_decode(sInitFuncName, sDetName) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_init_ptr_encode(sInitFuncName, sDetName) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+
+acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+
+acn_deferred_det_init_value_with_size_encode(sInitFuncName, nBits, sDetName) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_init_value_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_init_ptr_with_size_encode(sInitFuncName, nBits, sDetName) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+
+acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+-- TODO: ACN deferred patching not supported for Ada
+>>
+
+acn_deferred_det_formal_param_encode(sDetName) ::= "-- TODO"
+acn_deferred_det_formal_param_decode(sDetName) ::= "-- TODO"
+
+acn_deferred_det_actual_param_encode(sDetName) ::= "-- TODO"
+acn_deferred_det_actual_param_decode(sDetName) ::= "-- TODO"
+
+acn_deferred_det_save_pos_encode(sVarName) ::= "-- TODO: ACN deferred patching not supported for Ada"
+acn_deferred_det_save_pos_decode(sVarName) ::= "-- TODO: ACN deferred patching not supported for Ada"
+
+acn_deferred_det_distance_bytes_encode(sStart, sEnd) ::= "0"
+acn_deferred_det_distance_bytes_decode(sStart, sEnd) ::= "0"
+
+/* Group A: PatchDet value expressions */
+acn_deferred_det_kind_access(p, sAcc) ::= "-- TODO"
+acn_deferred_det_value_presence_bool(p, sAcc, sChildName) ::= "-- TODO"
+acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "-- TODO"
+acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= "-- TODO"
+acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= "-- TODO"
+acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= "-- TODO"
+
+/* Group B: Fallback PatchDet */
+acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= "-- TODO"
+acn_deferred_det_fallback_value_decode(sPatchFuncName, sDefaultVal, sDetName) ::= ""
+acn_deferred_det_fallback_value_with_size_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= "-- TODO"
+acn_deferred_det_fallback_value_with_size_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
+acn_deferred_det_fallback_value_str_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= "-- TODO"
+acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
+
+/* Group C: Decode redirect */
+acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "-- TODO"
+
+/* Group D: Access paths */
+acn_deferred_det_access_value(sDetName) ::= "-- TODO"
+acn_deferred_det_access_ptr(sDetName) ::= "-- TODO"
+acn_deferred_det_access_str_value(sDetName) ::= "-- TODO"
+acn_deferred_det_access_str_ptr(sDetName) ::= "-- TODO"
+acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "-- TODO"
+
+/* Group E: Miscellaneous */
+acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "-- TODO"
+acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= "-- TODO"
+acn_deferred_det_type_name() ::= "-- TODO"
+acn_deferred_det_init_expr() ::= "-- TODO"

@@ -35,7 +35,7 @@ let private mapAcnParameter (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         //funcUpdateStatement00 = funcUpdateStatement
     }, ns1
 
-let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (ch:Asn1AcnAst.AcnChild) (us:State) =
+let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (ch:Asn1AcnAst.AcnChild) (parentData:DAst.ParentData) (us:State) =
     
     let tdBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnChildDeterminant ch)
     let acnAlignment =
@@ -66,7 +66,19 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r deps icdStgFileName lm Codec.Decode ch.id a (defOrRef r m a) ns1
         | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps lm Codec.Decode ch.id a ns1
 
-    let funcUpdateStatement, ns3 = DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
+    let funcUpdateStatement, ns3 =
+        // In deferred mode (--acn-v2), ACN children that will use InitDet/PatchDet
+        // (Περίπτωση Β) don't need funcUpdateStatement — their value is patched
+        // later by PatchDet inside child functions.  Same-level determinants
+        // (Περίπτωση Α) still need funcUpdateStatement for the inline path.
+        let isDeferred =
+            match parentData with
+            | DAst.SequenceParentData deferredNames -> Set.contains ch.Name.Value deferredNames
+            | _ -> false
+        if isDeferred then
+            None, ns2
+        else
+            DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
     let c_name         = ch.c_name //DAstACN.getAcnDeterminantName ch.id
 
     let newFuncBody (codec:Codec) (prms:((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)) (nestingScope: NestingScope) (p:CodegenScope) (lvName:string): AcnFuncBodyResult option=
@@ -113,7 +125,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         }
     AcnChild ret, ns3
 
-type ParentInfoData = unit
+type ParentInfoData = DAst.ParentData
 
 let private createInteger (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (us:State) =
     //let defOrRef =  TL "DAstTypeDefinition" (fun () -> DAstTypeDefinition.createInteger_u r lm t o )
@@ -709,8 +721,8 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
     let uperEncFunction, s2     = TL "SQ_DAstUPer_encode" (fun () ->DAstUPer.createSequenceFunction r lm Codec.Encode t o defOrRef isValidFunction children s1)
     let uperDecFunction, s3     = TL "SQ_DAstUPer_decode" (fun () ->DAstUPer.createSequenceFunction r lm Codec.Decode t o defOrRef isValidFunction children s2)
-    let acnEncFunction, s4      = TL "SQ_DAstACN_encode" (fun () ->DAstACN.createSequenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction children encNewPrms s3)
-    let acnDecFunction, s5      = TL "SQ_DAstACN_decode" (fun () ->DAstACN.createSequenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction children decNewPrms s4)
+    let acnEncFunction, s4      = TL "SQ_DAstACN_encode" (fun () ->DAstACNDeferred.createSequenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction children encNewPrms s3)
+    let acnDecFunction, s5      = TL "SQ_DAstACN_decode" (fun () ->DAstACNDeferred.createSequenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction children decNewPrms s4)
     let uperEncDecTestFunc,s6         = TL "SQ_EncodeDecodeTestCase" (fun () ->EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5)
     let acnEncDecTestFunc ,s7         = TL "SQ_EncodeDecodeTestCase" (fun () ->EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6)
     let xerEncFunction, s8      = TL "SQ_DAstXer" (fun () ->XER r (fun () ->   DAstXer.createSequenceFunction  r lm Codec.Encode t o defOrRef isValidFunction children s7) s7)
@@ -814,8 +826,8 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
     let isValidFunction, s1     = DastValidate2.createReferenceTypeFunction r lm t o defOrRef newResolvedType s0
     let uperEncFunction, s2     = DAstUPer.createReferenceFunction r lm Codec.Encode t o defOrRef isValidFunction newResolvedType s1
     let uperDecFunction, s3     = DAstUPer.createReferenceFunction r lm Codec.Decode t o defOrRef isValidFunction newResolvedType s2
-    let acnEncFunction, s4      = DAstACN.createReferenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction newResolvedType newPrms s3
-    let acnDecFunction, s5      = DAstACN.createReferenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction newResolvedType newPrms s4
+    let acnEncFunction, s4      = DAstACNDeferred.createReferenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction newResolvedType newPrms s3
+    let acnDecFunction, s5      = DAstACNDeferred.createReferenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction newResolvedType newPrms s4
 
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction acnEncFunction acnDecFunction s6
@@ -893,7 +905,7 @@ let private mapType (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1Acn
 
         (fun pi t ti newChildren -> TL "createSequence" (fun () -> createSequence r deps lm m pi t ti newChildren))
         (fun ch newChild -> TL "createAsn1Child" (fun () -> createAsn1Child r lm m ch newChild))
-        (fun ch us -> TL "createAcnChild" (fun () -> createAcnChild r icdStgFileName deps lm m ch us))
+        (fun ch parentData us -> TL "createAcnChild" (fun () -> createAcnChild r icdStgFileName deps lm m ch parentData us))
 
 
         (fun pi t ti newChildren -> TL "createChoice" (fun () -> createChoice r deps lm m pi t ti newChildren))
@@ -910,9 +922,11 @@ let private mapType (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1Acn
             )
         (fun pi t ((newKind, newPrms),us)        -> TL "createType" (fun () -> createType r pi t ((newKind, newPrms),us)))
 
-        (fun pi t ti us -> (),us)
-        (fun pi t ti us -> (),us)
-        (fun pi t ti us -> (),us)
+        (fun pi t ti us -> DAst.SequenceOfParentData, us)
+        (fun pi t ti us ->
+            let deferredNames = DAstACNDeferred.collectDeferredDetNamesFromAst r t ti
+            DAst.SequenceParentData deferredNames, us)
+        (fun pi t ti us -> DAst.ChoiceParentData, us)
 
         deps
         None

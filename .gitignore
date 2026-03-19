@@ -409,6 +409,8 @@ Asn1.userprefs
 /SPARK_RTL/adaasn1rtl.o
 /SPARK_RTL/spark_io_05.ali
 /SPARK_RTL/spark_io_05.o
+/.claude
+/q
 /mantis/0000411/out_c
 /mantis/0000411/out_ada
 /mantis/0000444 - Custom templates/custom_icd_acn.html
@@ -1423,3 +1425,4 @@ details-docs/
 /generated-scala-output/
 /generated-c-output/
 /output
+acnv2/*

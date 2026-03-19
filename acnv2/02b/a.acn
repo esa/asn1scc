@@ -1,0 +1,16 @@
+MyModule DEFINITIONS ::= BEGIN
+
+PDU [] {
+   hdr [] {
+      version NULL [pattern '01'H],
+      buffers-length BUFFER-LENGTH-TYPE [encoding pos-int, size 8]
+   },
+   payload <hdr.buffers-length>[] 
+}
+PayloadData <BUFFER-LENGTH-TYPE:buffer-len>  [] {
+      int-field [encoding twos-complement, size 32],
+      buffer [size  buffer-len]
+   }
+
+
+END
