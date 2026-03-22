@@ -1247,10 +1247,23 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | Some (AcnInsertedType.AcnInteger int) -> int.isUnsigned
                     | Some (AcnInsertedType.AcnNullType _) -> true
                     | _ -> false
+                let detMaxOpt =
+                    match tp with
+                    | Some (AcnInsertedType.AcnInteger int) ->
+                        match int.uperRange with
+                        | Concrete (_, detMax) -> Some detMax
+                        | NegInf detMax        -> Some detMax
+                        | _                    -> None
+                    | _ -> None
+                let noSizeMin = if o.minSize.acn = 0I then None else Some o.minSize.acn
+                let noSizeMax =
+                    match detMaxOpt with
+                    | Some detMax when detMax <= o.maxSize.acn -> None
+                    | _ -> Some o.maxSize.acn
                 let fncBody =
                     match o.isFixedSize with
-                    | true  -> oct_external_field_fix_size td pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
-                    | false -> oct_external_field td pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
+                    | true  -> oct_external_field_fix_size td pp access noSizeMin ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
+                    | false -> oct_external_field td pp access noSizeMin noSizeMax extField unsigned nAlignSize errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
             | SZ_EC_TerminationPattern bitPattern  ->
                 let mod8 = bitPattern.Value.Length % 8
@@ -1290,10 +1303,24 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match o.acnEncodingClass with
             | SZ_EC_ExternalField   _    ->
                 let extField = getExternalField r deps t.id
+                let tp = getExternalFieldType r deps t.id
+                let detMaxOpt =
+                    match tp with
+                    | Some (AcnInsertedType.AcnInteger int) ->
+                        match int.uperRange with
+                        | Concrete (_, detMax) -> Some detMax
+                        | NegInf detMax        -> Some detMax
+                        | _                    -> None
+                    | _ -> None
+                let noSizeMin = if o.minSize.acn = 0I then None else Some o.minSize.acn
+                let noSizeMax =
+                    match detMaxOpt with
+                    | Some detMax when detMax <= o.maxSize.acn -> None
+                    | _ -> Some o.maxSize.acn
                 let fncBody =
                     match o.minSize.uper = o.maxSize.uper with
-                    | true  -> lm.acn.bit_string_external_field_fixed_size td pp errCode.errCodeName access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
-                    | false  -> lm.acn.bit_string_external_field td pp errCode.errCodeName access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
+                    | true  -> lm.acn.bit_string_external_field_fixed_size td pp errCode.errCodeName access noSizeMin ( o.maxSize.acn) extField codec
+                    | false  -> lm.acn.bit_string_external_field td pp errCode.errCodeName access noSizeMin noSizeMax extField codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_TerminationPattern   bitPattern    ->
                 let mod8 = bitPattern.Value.Length % 8
