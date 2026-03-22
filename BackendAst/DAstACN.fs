@@ -2045,7 +2045,15 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         let localVariables = acnlocalVariables
         let td = lm.lg.getSequenceTypeDefinition o.typeDef
 
-        let bitStreamPositionsLocalVar = sprintf "bitStreamPositions_%s_%d" p.accessPath.lastIdOrArr (p.accessPath.SequenceOfLevel + 1)
+        let hasOwnPostEncoding =
+            o.acnProperties.postEncodingFunction.IsSome || o.acnProperties.preDecodingFunction.IsSome
+        let bitStreamPositionsLocalVar =
+            match hasOwnPostEncoding with
+            | true  -> sprintf "bitStreamPositions_%s_%d" p.accessPath.lastIdOrArr (p.accessPath.SequenceOfLevel + 1)
+            | false ->
+                match nestingScope.parentSavePositionVar with
+                | Some parentVar -> parentVar
+                | None -> sprintf "bitStreamPositions_%s_%d" p.accessPath.lastIdOrArr (p.accessPath.SequenceOfLevel + 1)
 
         let localVariables, post_encoding_function, soBitStreamPositionsLocalVar, soSaveInitialBitStrmStatement =
             let bsPosStart = sprintf "bitStreamPositions_%s_start%d" p.accessPath.lastIdOrArr (p.accessPath.SequenceOfLevel + 1)
@@ -2095,7 +2103,11 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     uperOffset = nestingScope.uperOffset + s.uperAccBits
                     acnRelativeOffset = s.acnAccBits
                     acnOffset = nestingScope.acnOffset + s.acnAccBits
-                    parents = (p, t) :: nestingScope.parents}
+                    parents = (p, t) :: nestingScope.parents
+                    parentSavePositionVar =
+                        match hasOwnPostEncoding with
+                        | true  -> Some bitStreamPositionsLocalVar
+                        | false -> nestingScope.parentSavePositionVar}
 
             match childInfo with
             | Asn1Child child   ->
