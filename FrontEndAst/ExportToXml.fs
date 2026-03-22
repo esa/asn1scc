@@ -603,6 +603,9 @@ let private exportType (t:Asn1Type) =
                                     XAttribute(xname "File", loc.srcFilename),
                                     XAttribute(xname "Line", loc.srcLine),
                                     XAttribute(xname "CharPositionInLine", loc.charPos))),
+                            (match t.unitsOfMeasure with
+                             | Some u -> XAttribute(xname "unitsOfMeasure", u)
+                             | None   -> null),
                             (exportAcnAlignment t.acnAlignment),
                             (match t.acnParameters with
                             | []    -> []

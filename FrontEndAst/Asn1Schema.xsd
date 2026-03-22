@@ -254,6 +254,7 @@
             <xsd:attribute name="tasInfoModule" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="tasInfoName" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="align-to-next" use="optional"><xsd:simpleType><xsd:restriction base="AcnAlignment"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="unitsOfMeasure" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
 
         </xsd:complexType>
     </xsd:element>
