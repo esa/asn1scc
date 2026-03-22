@@ -1003,7 +1003,7 @@ package body adaasn1rtl.encoding.xer is
       end if;
 
       I := I + 1;
-      while Strm.Data (I) /= '>' loop
+      while Strm.Data (I) /= '>' and then Strm.Data (I) /= '/' loop
          if J > elementTag'Last then
             return False;
          end if;
@@ -1016,6 +1016,10 @@ package body adaasn1rtl.encoding.xer is
          I := I + 1;
          J := J + 1;
       end loop;
+
+      if J <= elementTag'Last then
+         return False;
+      end if;
 
       return True;
    end Xer_NextStartElementIs;
