@@ -99,7 +99,7 @@ while (<i>\< <nSize>) {
     <p>[<i>] = allowedCharSet[<i> % <nAlphabetLength>];
 
     <else>
-    <p>[<i>] = (char)(<i> % 128 == 0 ? 'A' : <i> % 128);
+    <p>[<i>] = (char)('A' + (<i> % 26));
 
     <endif>
     <i> = <i> + 1;
