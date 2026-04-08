@@ -25,6 +25,8 @@ Backend2.ST/ACN.fs
 Backend2.ST/ASN.fs
 Backend2.ST/bin/
 Asn1.userprefs
+*.orig
+*.rej
 */bin/
 */obj/
 *.suo
