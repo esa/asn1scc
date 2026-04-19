@@ -23,15 +23,15 @@ TEST-CASE DEFINITIONS ::= BEGIN
         alt-20-3 [present-when service==20 message==3]
     }
 
-    MyHeader [] {
-        flags [],
-        serviceType ServiceType-ID [],
-        messageSubtype MessageSubtype-ID [],
-        sourceId []
-    }
+    MyHeader []
 
     MyPDU [] {
-        header [],
+        header [] {
+            flags [],
+            serviceType ServiceType-ID [],
+            messageSubtype MessageSubtype-ID [],
+            sourceId []
+        },
         payload <header.serviceType, header.messageSubtype> [],
         crc []
     }
