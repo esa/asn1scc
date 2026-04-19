@@ -2674,9 +2674,22 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
   | None          ->
       match o.hasExtraConstrainsOrChildrenOrAcnArgs with
       | true  ->
-          // TODO: this is where stuff gets inlined
           TL "ACN_REF_01" (fun () ->
           match codec with
+            | Codec.Encode when r.args.acnDeferred ->
+                let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
+                    let pp, resultExpr =
+                        let str = lm.lg.getParamValue t p.accessPath codec
+                        match codec, lm.lg.decodingKind with
+                        | Decode, Copy ->
+                            let toc = ToC str
+                            toc, Some toc
+                        | _ -> str, None
+                    let funcBodyContent = callBaseTypeFunc lm pp baseFncName codec
+                    Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd}), us
+                let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
+                let a, ns = createAcnFunction r deps lm codec t typeDefinition isValidFunc funcBody (fun atc -> true) soSparkAnnotations [] us
+                Some a, ns
             | Codec.Encode  -> baseType.getAcnFunction codec, us
             | Codec.Decode  ->
                 let paramsArgsPairs = List.zip o.acnArguments o.resolvedType.acnParameters
