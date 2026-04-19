@@ -1,0 +1,45 @@
+--NOCOVERAGE
+-- Issue #379: nested CHOICE with ACN present-when determinants
+-- passed from parent SEQUENCE via ACN parameters.
+-- Verifies that deferred patching generates correct access paths
+-- (function call, not inlined encoding) for CHOICE children.
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+    MyUInt8 ::= INTEGER (0..255)
+
+    ServiceType-ID ::= MyUInt8
+    MessageSubtype-ID ::= MyUInt8
+
+    Parameter-ID ::= INTEGER (0..65535)
+
+    Payload-17-1 ::= NULL
+
+    Payload-20-1 ::= SEQUENCE {
+        parameterIds SEQUENCE (SIZE(1..10)) OF Parameter-ID
+    }
+
+    Payload-20-3 ::= SEQUENCE {
+        parameterIds SEQUENCE (SIZE(1..10)) OF Parameter-ID
+    }
+
+    MyPayload ::= CHOICE {
+        alt-17-1 Payload-17-1,
+        alt-20-1 Payload-20-1,
+        alt-20-3 Payload-20-3
+    }
+
+    MyHeader ::= SEQUENCE {
+        flags BIT STRING (SIZE(4)),
+        sourceId MyUInt8
+    }
+
+    MyPDU ::= SEQUENCE {
+        header MyHeader,
+        payload MyPayload,
+        crc MyUInt8
+    }
+
+END
+
+--TCFS     013.acn

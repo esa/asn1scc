@@ -1,0 +1,39 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+    MyUInt8 [encoding pos-int, size 8]
+    ServiceType-ID [encoding pos-int, size 8]
+    MessageSubtype-ID [encoding pos-int, size 8]
+    Parameter-ID [encoding pos-int, size 16]
+
+    Payload-17-1 []
+
+    Payload-20-1 [] {
+        n MyUInt8 [],
+        parameterIds [size n]
+    }
+
+    Payload-20-3 [] {
+        n MyUInt8 [],
+        parameterIds [size n]
+    }
+
+    MyPayload <ServiceType-ID:service, MessageSubtype-ID:message> [] {
+        alt-17-1 [present-when service==17 message==1],
+        alt-20-1 [present-when service==20 message==1],
+        alt-20-3 [present-when service==20 message==3]
+    }
+
+    MyHeader []
+
+    MyPDU [] {
+        header [] {
+            flags [],
+            serviceType ServiceType-ID [],
+            messageSubtype MessageSubtype-ID [],
+            sourceId []
+        },
+        payload <header.serviceType, header.messageSubtype> [],
+        crc []
+    }
+
+END
