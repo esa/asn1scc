@@ -717,12 +717,12 @@ if codec.get_bit_index() > bix + <nAsn1Max> * <nCharSize> or codec.get_bit_index
 >>
 
 
-oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, noSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 # acn_python.stg 553
 codec.encode_octet_string_no_length_vec(<p><sAcc>arr, <sExtFld>)
 >>
 
-oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, noSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 # acn_python.stg 558
 
 if <if(noSizeMin)>(<if(bIsUnsigned)><noSizeMin><else><noSizeMin><endif> \<= <sExtFld>) and <endif>(<sExtFld> \<= <if(bIsUnsigned)><nSizeMax><else><nSizeMax><endif>):
@@ -830,12 +830,12 @@ elif checkBitPatternPresentResult == 2:
     <p><sAcc>nCount = <i>
 >>
 
-bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
 # acn_python.stg 654
 codec.append_bits(bytearray(<p><sAcc>arr), <p><sAcc>nCount)
 >>
 
-bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
 # acn_python.stg 659
 if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) and <endif>(<sExtFld>\<=<nSizeMax>):
     decode_result = codec.read_bits(<sExtFld>)
