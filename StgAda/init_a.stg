@@ -50,7 +50,7 @@ while <i>\<= <nMaxSizePlusOne> loop
         <p>(<i>) := <td.alpha_set>( ((<i>-1) mod <td.alpha_set>'Last) + 1 );
 
     <else>
-        <p>(<i>) := Character'Val(Integer'Pos( if ((<i>-1) mod 128) = 0 then 65 else (<i>-1) mod 128));
+        <p>(<i>) := Character'Val(Character'Pos('A') + ((<i>-1) mod 26));
 
     <endif>
     else

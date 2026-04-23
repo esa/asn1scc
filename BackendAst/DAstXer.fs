@@ -63,7 +63,7 @@ let getMaxSizeInBytesForXER  (xmlTag:XerTag) (contentSize:BigInteger) : BigInteg
 
     match tagValue with
     | null  -> contentSize
-    | _     -> (2I * (BigInteger(tagValue.Length + 2))) + 1I + contentSize
+    | _     -> (2I * (BigInteger(tagValue.Length + 2))) + 1I + contentSize + 1I  // +1 for NUL terminator used by ByteStream_AppendString/strcat
 
 
 let getFuncName (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (codec:CommonTypes.Codec) (typeDefinition:TypeDefinitionOrReference) =

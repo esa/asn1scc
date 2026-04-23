@@ -518,16 +518,26 @@ let createSequence_u (args:CommandLineSettings) (lm:LanguageMacros) (typeDef:Map
         let childrenCompleteDefinitions = children |> List.choose (fun c -> getChildDefinition (lm.lg.definitionOrRef c.Type.typeDefinitionOrReference))
         let td = lm.lg.getSequenceTypeDefinition typeDef
         let arrsNullFieldsSavePos =
-            let getBackendName ci =
+            let getBackendName (ci:Asn1AcnAst.SeqChildInfo) =
                 match ci with
                 | Asn1AcnAst.AcnChild z    -> ToC (z.Name.Value)   //z.c_name
                 | Asn1AcnAst.Asn1Child z   -> lm.lg.getAsn1ChildBackendName0 z
 
+            let rec collectSavePositionChildren (children:Asn1AcnAst.SeqChildInfo list) : string list =
+                children |> List.collect (fun c ->
+                    if c.savePosition then [getBackendName c]
+                    else
+                        match c with
+                        | Asn1AcnAst.Asn1Child z ->
+                            match z.Type.Kind with
+                            | Asn1AcnAst.Sequence sq -> collectSavePositionChildren sq.children
+                            | _ -> []
+                        | _ -> [])
+
             match acnProperties.postEncodingFunction.IsNone && acnProperties.preDecodingFunction.IsNone with
             | true -> []
             | false  ->
-                allchildren |>
-                List.choose (fun c -> if c.savePosition then Some (getBackendName c) else None ) |>
+                collectSavePositionChildren allchildren |>
                 List.map(fun childName -> define_new_sequence_save_pos_child td childName acnMaxSizeInBits)
 
         let arrsChildren =

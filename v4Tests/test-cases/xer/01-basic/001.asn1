@@ -1,0 +1,19 @@
+--NOCOVERAGE
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+MyInt ::= INTEGER (0..255)
+
+MyEnum ::= ENUMERATED { red, green, blue }
+
+MySeq ::= SEQUENCE {
+    id     MyInt,
+    color  MyEnum,
+    name   IA5String (SIZE (1..20))
+}
+
+MyChoice ::= CHOICE {
+    num    MyInt,
+    seq    MySeq
+}
+
+END

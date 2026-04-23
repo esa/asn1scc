@@ -449,11 +449,14 @@ type NestingScope = {
     uperSiblingMaxSize: bigint option
     // The parents are ordered in ascendant (i.e. the head is a child of the second parent etc.)
     parents: (CodegenScope * Asn1AcnAst.Asn1Type) list
+    // When a parent SEQUENCE has a post-encoding/pre-decoding function, this holds its
+    // bitStreamPositions local variable name so nested SEQUENCEs can use it for save-position fields.
+    parentSavePositionVar: string option
 } with
     static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint) (parents: (CodegenScope * Asn1AcnAst.Asn1Type) list): NestingScope =
         {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I;
         acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None;
-        parents = parents}
+        parents = parents; parentSavePositionVar = None}
     member this.isInit: bool = this.nestingLevel = 0I && this.nestingIx = 0I
 
 type UPERFuncBodyResult = {

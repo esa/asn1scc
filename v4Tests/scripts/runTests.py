@@ -17,6 +17,7 @@ nTests = None
 slim = None
 acnV2 = None
 icdPdus = None
+xerMode = False
 
 def CreateACNFile(content):
     str_start = "TEST-CASE DEFINITIONS ::= BEGIN\n"
@@ -70,7 +71,7 @@ def PrintWarning(mssg):
 # behavior 1 :test case must fail in the asn1f.exe, with specific error message
 # behavior 2 :test case must fail during execution of the generated executable
 def RunTestCase(asn1, acn, behavior, expErrMsg):
-    global nTests, slim, acnV2, icdPdus
+    global nTests, slim, acnV2, icdPdus, xerMode
 
     print(asn1, acn)
 
@@ -81,12 +82,18 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     #launcher = '' if sys.platform == 'cygwin' else 'mono '
     #path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
     path_to_asn1scc = "../asn1scc/bin/Debug/net9.0/asn1scc"
+    if xerMode:
+        encodingFlags = " -XER "
+        inputFiles = "'" + resolvedir(asn1File) + "'"
+    else:
+        encodingFlags = " -uPER -ACN "
+        inputFiles = "'" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) + "'"
     res = mysystem(
         path_to_asn1scc +
-        " -" + language + " -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ " + acnV2 + slim + icdPdus +
+        " -" + language + " -x ast.xml" + encodingFlags + "-ig -typePrefix ASN1SCC_ " + acnV2 + slim + icdPdus +
         "-renamePolicy 3 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
-        "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +
-        "' 2>tmp.err"+"_"+language, True)
+        "' " + inputFiles +
+        " 2>tmp.err"+"_"+language, True)
     ferr = open("tmp.err"+"_"+language, 'r')
     #print("str to replace '" + resolvedir(targetDir) + resolvesep() + "'")
     err_msg = ferr.read()
@@ -320,6 +327,21 @@ def DoWork_ACN(asn1file):
             continue
 
 
+def DoWork_XER(asn1file):
+    print(language, "XER", asn1file)
+
+    fnameASN = asn1file.strip()
+    if not os.path.exists(fnameASN):
+        print("File '" + fnameASN + "' does not exist! ")
+        sys.exit(1)
+
+    shutil.rmtree(targetDir, ignore_errors=True)
+    os.mkdir(targetDir)
+    shutil.copyfile(fnameASN, targetDir + os.sep + "sample1.asn1")
+    RunTestCase(
+        os.sep.join(asn1file.split(os.sep)[-2:]), "(no acn)", 0, "")
+
+
 def GetBehavior(asn1File):
     if asn1File.find("FAIL") != -1:
         f = open(asn1File, 'r')
@@ -374,7 +396,10 @@ def submain(lang, encoding, testCaseSet, cntTest, workDir):
     
     testCaseStart = testCaseSet
     if testCaseSet == "" or cntTest:
-        testCaseSet = rootDir + os.sep + "test-cases" + os.sep + "acn"
+        if encoding == "XER":
+            testCaseSet = rootDir + os.sep + "test-cases" + os.sep + "xer"
+        else:
+            testCaseSet = rootDir + os.sep + "test-cases" + os.sep + "acn"
 
     funcName = "DoWork_" + encoding
     if os.path.isfile(testCaseSet):
@@ -409,6 +434,7 @@ def usage():
     print("     -t, --testCaseSet  <asn1File> or <testcaseDir>")
     print("     -s, --slim")
     print("     --acn-v2          use ACN v2 deferred patching mode")
+    print("     --xer             run XER tests (uses -XER instead of -uPER -ACN)")
     print("     -o, --output-dir <dir>")
     print("           override the output/working directory (default: tmp_<lang>)")
     print("     --icd-pdus <types>")
@@ -417,7 +443,7 @@ def usage():
 
 
 def main():
-    global rootDir, nTests, slim, acnV2, icdPdus
+    global rootDir, nTests, slim, acnV2, icdPdus, xerMode
 
     rootDir = os.path.abspath(
         os.path.dirname(os.path.abspath(sys.argv[0])) + os.sep + "..")
@@ -429,7 +455,7 @@ def main():
     try:
         args = sys.argv[1:]
         optlist, args = getopt.gnu_getopt(
-            args, "al:t:cso:", ['all', 'lang=', 'testCaseSet=','cntTest','slim','acn-v2','output-dir=','icd-pdus='])
+            args, "al:t:cso:", ['all', 'lang=', 'testCaseSet=','cntTest','slim','acn-v2','xer','output-dir=','icd-pdus='])
     except:
         usage()
     if args != []:
@@ -443,6 +469,7 @@ def main():
     slim = ""
     acnV2 = ""
     icdPdus = ""
+    xerMode = False
     workDir = None
     for opt, arg in optlist:
         if opt in ("-a", "--all"):
@@ -457,6 +484,8 @@ def main():
             slim = " -slim "
         elif opt in ("--acn-v2",):
             acnV2 = " --acn-v2 "
+        elif opt in ("--xer",):
+            xerMode = True
         elif opt in ("-o", "--output-dir"):
             workDir = arg
         elif opt in ("--icd-pdus",):
@@ -482,7 +511,8 @@ def main():
         #f = open(language+"_log.txt", 'a')
         #f.write("==========================================\n")
         #f.close()
-        submain(lang, "ACN", testCaseSet, cntTest, workDir)
+        encoding = "XER" if xerMode else "ACN"
+        submain(lang, encoding, testCaseSet, cntTest, workDir)
     print("Test run ended succesfully. Number of test cases run :", nTests)
 
 

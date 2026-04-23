@@ -1416,10 +1416,23 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | Some (AcnInsertedType.AcnInteger int) -> int.isUnsigned
                     | Some (AcnInsertedType.AcnNullType _) -> true
                     | _ -> false
+                let detMaxOpt =
+                    match tp with
+                    | Some (AcnInsertedType.AcnInteger int) ->
+                        match int.uperRange with
+                        | Concrete (_, detMax) -> Some detMax
+                        | NegInf detMax        -> Some detMax
+                        | _                    -> None
+                    | _ -> None
+                let noSizeMin = if o.minSize.acn = 0I then None else Some o.minSize.acn
+                let noSizeMax =
+                    match detMaxOpt with
+                    | Some detMax when detMax <= o.maxSize.acn -> None
+                    | _ -> Some o.maxSize.acn
                 let fncBody =
                     match o.isFixedSize with
-                    | true  -> oct_external_field_fix_size td pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
-                    | false -> oct_external_field td pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
+                    | true  -> oct_external_field_fix_size td pp access noSizeMin ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
+                    | false -> oct_external_field td pp access noSizeMin noSizeMax extField unsigned nAlignSize errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
             | SZ_EC_TerminationPattern bitPattern  ->
                 let mod8 = bitPattern.Value.Length % 8
@@ -1486,10 +1499,24 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match o.acnEncodingClass with
             | SZ_EC_ExternalField   _    ->
                 let extField = getExternalField r deps t.id
+                let tp = getExternalFieldType r deps t.id
+                let detMaxOpt =
+                    match tp with
+                    | Some (AcnInsertedType.AcnInteger int) ->
+                        match int.uperRange with
+                        | Concrete (_, detMax) -> Some detMax
+                        | NegInf detMax        -> Some detMax
+                        | _                    -> None
+                    | _ -> None
+                let noSizeMin = if o.minSize.acn = 0I then None else Some o.minSize.acn
+                let noSizeMax =
+                    match detMaxOpt with
+                    | Some detMax when detMax <= o.maxSize.acn -> None
+                    | _ -> Some o.maxSize.acn
                 let fncBody =
                     match o.minSize.uper = o.maxSize.uper with
-                    | true  -> lm.acn.bit_string_external_field_fixed_size td pp errCode.errCodeName access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
-                    | false  -> lm.acn.bit_string_external_field td pp errCode.errCodeName access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
+                    | true  -> lm.acn.bit_string_external_field_fixed_size td pp errCode.errCodeName access noSizeMin ( o.maxSize.acn) extField codec
+                    | false  -> lm.acn.bit_string_external_field td pp errCode.errCodeName access noSizeMin noSizeMax extField codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_TerminationPattern   bitPattern    ->
                 let mod8 = bitPattern.Value.Length % 8
@@ -1695,6 +1722,31 @@ let initExpr (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module
     | AcnReferenceToEnumerated e ->
         lm.lg.getNamedItemBackendName (Some (defOrRef r m e)) e.enumerated.items.Head
 
+// Choose the right base scope for folding a dependency path.
+// In --acn-v2, a reference type's funcBody may be inlined into a specialized
+// function whose runtime pVal does not correspond to the captured type's TAS.
+// To generate correct access paths, walk the enclosing scopes (current SEQUENCE
+// + ancestors from nestingScope.parents) and pick the DEEPEST whose type id is
+// a prefix of depPath.  Fold the remaining nodes from that scope.
+//
+// Intra-sequence deps resolve to the current SEQUENCE (shortest fold).
+// Sibling/outer deps resolve to an ancestor whose scope matches the dep's
+// outer TA, giving the correct base pVal for the fold.
+let private resolveDepScope (nestingScope: NestingScope) (pSrcRoot: CodegenScope) (depPath: ReferenceToType) : CodegenScope * ReferenceToType =
+    let (ReferenceToType depNodes) = depPath
+    let candidates = nestingScope.parents |> List.map (fun (p, t) -> (p, t.id))
+    let matching =
+        candidates |> List.tryFind (fun (_, ReferenceToType scopeNodes) ->
+            let n = List.length scopeNodes
+            n >= 2 && List.length depNodes >= n && List.take n depNodes = scopeNodes)
+    match matching with
+    | Some (scope, ReferenceToType scopeNodes) ->
+        let n = List.length scopeNodes
+        let remaining = ReferenceToType (List.take 2 scopeNodes @ List.skip n depNodes)
+        scope, remaining
+    | None ->
+        pSrcRoot, depPath
+
 let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (d:AcnDependency)  (us:State) =
     let presenceDependency              = lm.acn.PresenceDependency
     let sizeDependency                  = lm.acn.SizeDependency
@@ -1715,16 +1767,17 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         match prmUpdateStatement with
         | None  -> None, ns1
         | Some prmUpdateStatement   ->
-            let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope)  =
+            let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
                 prmUpdateStatement.updateAcnChildFnc child nestingScope vTarget pSrcRoot
             let icdComments =
                 let aaa = sprintf "reference determinant for %s " (acnPrm.id.AsString)
                 [aaa]
             Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=prmUpdateStatement.errCodes; testCaseFnc = prmUpdateStatement.testCaseFnc; localVariables=[]}), ns1
     | AcnDepSizeDeterminant (minSize, maxSize, szAcnProp)        ->
-        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
             let v = lm.lg.getValue vTarget.accessPath
-            let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+            let pSizeable, checkPath = getAccessFromScopeNodeList relPath false lm pBase
             let unsigned =
                 match child.Type with
                 | AcnInteger int -> int.isUnsigned
@@ -1765,9 +1818,10 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 | None   -> [], [], us
             | None    -> [], [], us
 
-        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
             let v = lm.lg.getValue vTarget.accessPath
-            let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+            let pSizeable, checkPath = getAccessFromScopeNodeList relPath false lm pBase
             let sInner =
                 match asn1TypeD.acnEncFunction with
                 | Some f  ->
@@ -1790,9 +1844,10 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=errCodes0; testCaseFnc=testCaseFnc; localVariables= localVariables0@localVars}), ns
     | AcnDepIA5StringSizeDeterminant (minSize, maxSize, szAcnProp)   ->
 
-        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
             let v = lm.lg.getValue vTarget.accessPath
-            let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type true lm pSrcRoot
+            let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+            let pSizeable, checkPath = getAccessFromScopeNodeList relPath true lm pBase
             let updateStatement = sizeDependency v (getStringSize (pSizeable.accessPath.joined lm.lg))  minSize.uper maxSize.uper true child.typeDefinitionBodyWithinSeq
             match checkPath with
             | []    -> updateStatement
@@ -1804,12 +1859,13 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             [aaa]
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
     | AcnDepPresenceBool              ->
-        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
             let v = lm.lg.getValue vTarget.accessPath
             let parDecTypeSeq =
                 match d.asn1Type with
                 | ReferenceToType (nodes) -> ReferenceToType (nodes |> List.rev |> List.tail |> List.rev)
-            let pDecParSeq, checkPath = getAccessFromScopeNodeList parDecTypeSeq false lm pSrcRoot
+            let pBase, relPath = resolveDepScope nestingScope pSrcRoot parDecTypeSeq
+            let pDecParSeq, checkPath = getAccessFromScopeNodeList relPath false lm pBase
             let updateStatement = presenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC d.asn1Type.lastItem)
             match checkPath with
             | []    -> updateStatement
@@ -1826,9 +1882,10 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let icdComments =
             let aaa = sprintf "Used as a presence determinant for %s " (chc.typeDef[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)
             [aaa]
-        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
             let v = lm.lg.getValue vTarget.accessPath
-            let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type
+            let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
             let arrsChildUpdates =
                 chc.children |>
                 List.map(fun ch ->
@@ -1860,9 +1917,10 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | _         -> None
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
     | AcnDepPresenceStr   (relPath, chc, str)               ->
-        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
             let v = lm.lg.getValue vTarget.accessPath
-            let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type
+            let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
             let arrsChildUpdates =
                 chc.children |>
                 List.map(fun ch ->
@@ -1903,9 +1961,10 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let icdComments = []
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc = testCaseFnc; localVariables=[]}), us
     | AcnDepChoiceDeterminant (enm, chc, isOptional) ->
-        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope)  =
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
             let v = lm.lg.getValue vTarget.accessPath
-            let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+            let choicePath, checkPath = getAccessFromScopeNodeList relPath false lm pBase
             let arrsChildUpdates =
                 chc.children |>
                 List.mapi(fun idx ch ->
@@ -1968,7 +2027,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
         let restErrCodes = localUpdateFuns |> List.choose id |> List.collect(fun z -> z.errCodes)
         let restLocalVariables = localUpdateFuns |> List.choose id |> List.collect(fun z -> z.localVariables)
         let icdComments = localUpdateFuns |> List.choose id |> List.collect(fun z -> z.icdComments)
-        let multiUpdateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope)  =
+        let multiUpdateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
             let v = lm.lg.getValue vTarget.accessPath
             let arrsLocalUpdateStatements =
                 localUpdateFuns |>
@@ -1977,7 +2036,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                     let lv = {CodegenScope.modName = vTarget.modName; accessPath = AccessPath.valueEmptyPath c_name}
                     match fn with
                     | None      -> None
-                    | Some fn   -> Some(fn.updateAcnChildFnc child nestingScope lv pSrcRoot)) |> // TODO: nestingScope?
+                    | Some fn   -> Some(fn.updateAcnChildFnc child nestingScope lv pSrcRoot)) |>
                 List.choose id
 
             let isAlwaysInit (d: AcnDependency): bool =
@@ -1998,14 +2057,16 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                 List.mapi (fun i d ->
                     let cmp = getDeterminantTypeUpdateMacro lm d.determinant
                     let vi = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
-                    let choicePath, _ = getAccessFromScopeNodeList d.asn1Type d.dependencyKind.isString lm pSrcRoot
+                    let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+                    let choicePath, _ = getAccessFromScopeNodeList relPath d.dependencyKind.isString lm pBase
                     cmp v vi (choicePath.accessPath.joined lm.lg) (i=0) (ds2.Length = 1))
             let arrsLocalCheckEquality =
                 ds |>
                 List.mapi (fun i d ->
                     let cmp = getDeterminantTypeCheckEqual lm d.determinant
                     let vi = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
-                    let choicePath, _ = getAccessFromScopeNodeList d.asn1Type d.dependencyKind.isString lm pSrcRoot
+                    let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+                    let choicePath, _ = getAccessFromScopeNodeList relPath d.dependencyKind.isString lm pBase
                     cmp v vi (choicePath.accessPath.joined lm.lg) (isAlwaysInit d))
             let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) arrsLocalUpdateStatements arrsGetFirstIntValue firstAlwaysInit.IsSome arrsLocalCheckEquality (initExpr r lm m child.Type)
             updateStatement
@@ -2224,7 +2285,15 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         let localVariables = acnlocalVariables
         let td = lm.lg.getSequenceTypeDefinition o.typeDef
 
-        let bitStreamPositionsLocalVar = sprintf "bitStreamPositions_%s_%d" p.accessPath.lastIdOrArr (p.accessPath.SequenceOfLevel + 1)
+        let hasOwnPostEncoding =
+            o.acnProperties.postEncodingFunction.IsSome || o.acnProperties.preDecodingFunction.IsSome
+        let bitStreamPositionsLocalVar =
+            match hasOwnPostEncoding with
+            | true  -> sprintf "bitStreamPositions_%s_%d" p.accessPath.lastIdOrArr (p.accessPath.SequenceOfLevel + 1)
+            | false ->
+                match nestingScope.parentSavePositionVar with
+                | Some parentVar -> parentVar
+                | None -> sprintf "bitStreamPositions_%s_%d" p.accessPath.lastIdOrArr (p.accessPath.SequenceOfLevel + 1)
 
         let localVariables, post_encoding_function, soBitStreamPositionsLocalVar, soSaveInitialBitStrmStatement =
             let bsPosStart = sprintf "bitStreamPositions_%s_start%d" p.accessPath.lastIdOrArr (p.accessPath.SequenceOfLevel + 1)
@@ -2276,8 +2345,12 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     uperOffset = nestingScope.uperOffset + s.uperAccBits
                     acnRelativeOffset = s.acnAccBits
                     acnOffset = nestingScope.acnOffset + s.acnAccBits
-                    parents = (p, t) :: nestingScope.parents}
-            
+                    parents = (p, t) :: nestingScope.parents
+                    parentSavePositionVar =
+                        match hasOwnPostEncoding with
+                        | true  -> Some bitStreamPositionsLocalVar
+                        | false -> nestingScope.parentSavePositionVar}
+
             // Build ACN parameters for child that has dependencies
             let acnParamsForTemplate =
                 match childInfo with
@@ -2386,7 +2459,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                                 None
                         )
                 | AcnChild _ -> []
-
+                
             match childInfo with
             | Asn1Child child   ->
                 printfn "[DEBUG] handleChild: Processing Asn1Child %s in sequence %s" (child.Name.Value) (t.id.AsString)
@@ -2573,7 +2646,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                             printfn "[DEBUG] handleChild: Skipping update code for ACN child %s (has external dependency, will be provided as parameter)" acnChild.Name.Value
                             None, us
                         else
-                            let pRoot : CodegenScope = lm.lg.getParamType t codec  //????
+                            let pRoot : CodegenScope = p
                             let updateStatement, lvs, errCodes, icdComments =
                                 match acnChild.funcUpdateStatement with
                                 | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild childNestingScope childP pRoot), funcUpdateStatement.localVariables, funcUpdateStatement.errCodes, funcUpdateStatement.icdComments

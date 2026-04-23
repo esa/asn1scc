@@ -529,15 +529,26 @@ val <p> = locally {
 >>
 
 
-oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, noSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 codec.base.encodeOctetString_no_length_vec(<p><sAcc>arr, <p><sAcc>nCount.toInt)
 >>
 
-oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, noSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+<if(noSizeMin)>
 val <p> =
-    if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
+    if (<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld><if(noSizeMax)> && <sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<noSizeMax>)<else><noSizeMax><endif><endif>) then
         <sTypedefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, codec.base.decodeOctetString_no_length_vec(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>))
     else return LeftMut(<sErrCode>)
+<else>
+<if(noSizeMax)>
+val <p> =
+    if (<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<noSizeMax>)<else><noSizeMax><endif>) then
+        <sTypedefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, codec.base.decodeOctetString_no_length_vec(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>))
+    else return LeftMut(<sErrCode>)
+<else>
+val <p> = <sTypedefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, codec.base.decodeOctetString_no_length_vec(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>))
+<endif>
+<endif>
 >>
 
 oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
@@ -657,15 +668,26 @@ else if checkBitPatternPresentResult.get then
     <p><sAcc>nCount = <i>
 >>
 
-bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
 codec.base.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <p><sAcc>nCount)
 >>
 
-bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
+<if(noSizeMin)>
 val <p> =
-    if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>) then
+    if (<noSizeMin>\<=<sExtFld><if(noSizeMax)> && <sExtFld>\<=<noSizeMax><endif>) then
         <sTypedefName>(<sExtFld>, codec.base.bitStream.readBits(<sExtFld>))
     else return LeftMut(<sErrCode>)
+<else>
+<if(noSizeMax)>
+val <p> =
+    if (<sExtFld>\<=<noSizeMax>) then
+        <sTypedefName>(<sExtFld>, codec.base.bitStream.readBits(<sExtFld>))
+    else return LeftMut(<sErrCode>)
+<else>
+val <p> = <sTypedefName>(<sExtFld>, codec.base.bitStream.readBits(<sExtFld>))
+<endif>
+<endif>
 >>
 
 bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<

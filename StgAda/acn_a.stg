@@ -1432,16 +1432,29 @@ end;
 >>
 
 
-oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, noSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
 >>
 
-oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
-result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
+oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, noSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+<if(noSizeMin)>
+result := <rtlModuleName()>.ASN1_RESULT'(Success => <noSizeMin>\<=<sExtFld><if(noSizeMax)> AND <sExtFld>\<=<noSizeMax><endif>, ErrorCode => <sErrCode>);
 if result.Success then
     <p>.Length := Integer(<sExtFld>);
     adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length), result.success);
 end if;
+<else>
+<if(noSizeMax)>
+result := <rtlModuleName()>.ASN1_RESULT'(Success => <sExtFld>\<=<noSizeMax>, ErrorCode => <sErrCode>);
+if result.Success then
+    <p>.Length := Integer(<sExtFld>);
+    adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length), result.success);
+end if;
+<else>
+<p>.Length := Integer(<sExtFld>);
+adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length), result.success);
+<endif>
+<endif>
 >>
 
 oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
@@ -1457,16 +1470,29 @@ end if;
 >>
 
 
-bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>));
 >>
 
-bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
-result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
+bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
+<if(noSizeMin)>
+result := <rtlModuleName()>.ASN1_RESULT'(Success => <noSizeMin>\<=<sExtFld><if(noSizeMax)> AND <sExtFld>\<=<noSizeMax><endif>, ErrorCode => <sErrCode>);
 if result.Success then
    <p>.Length := Integer(<sExtFld>);
     adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
 end if;
+<else>
+<if(noSizeMax)>
+result := <rtlModuleName()>.ASN1_RESULT'(Success => <sExtFld>\<=<noSizeMax>, ErrorCode => <sErrCode>);
+if result.Success then
+   <p>.Length := Integer(<sExtFld>);
+    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
+end if;
+<else>
+<p>.Length := Integer(<sExtFld>);
+adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
+<endif>
+<endif>
 >>
 
 bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<

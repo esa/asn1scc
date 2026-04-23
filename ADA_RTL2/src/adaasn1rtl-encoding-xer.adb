@@ -398,16 +398,27 @@ package body adaasn1rtl.encoding.xer is
       spTokens : constant String := "<>/=""";
       s1       : String          := " ";
    begin
-      while Is_Space (Strm.Data (Strm.CurrentByte)) loop
+      tok.TokenID     := Character'Val (0);
+      tok.ValueLength := 0;
+      tok.Value       := (others => ' ');
+
+      while Strm.CurrentByte <= Strm.Data'Last
+        and then Is_Space (Strm.Data (Strm.CurrentByte))
+      loop
          Strm.CurrentByte := Strm.CurrentByte + 1;
       end loop;
+
+      if Strm.CurrentByte > Strm.Data'Last then
+         return;
+      end if;
 
       if Strm.CurrentByte + 1 <= Strm.Data'Last then
          if Strm.Data (Strm.CurrentByte) = '<' and
            Strm.Data (Strm.CurrentByte + 1) = '?'
          then
             Strm.CurrentByte := Strm.CurrentByte + 1;
-            while not
+            while Strm.CurrentByte <= Strm.Data'Last
+              and then not
               (Strm.Data (Strm.CurrentByte - 1) = '?' and
                Strm.Data (Strm.CurrentByte) = '>')
             loop
@@ -415,20 +426,27 @@ package body adaasn1rtl.encoding.xer is
             end loop;
             Strm.CurrentByte := Strm.CurrentByte + 1;
 
-            while Is_Space (Strm.Data (Strm.CurrentByte)) loop
+            while Strm.CurrentByte <= Strm.Data'Last
+              and then Is_Space (Strm.Data (Strm.CurrentByte))
+            loop
                Strm.CurrentByte := Strm.CurrentByte + 1;
             end loop;
          end if;
       end if;
 
-      if Strm.CurrentByte + 2 <= Strm.Data'Last then
+      if Strm.CurrentByte > Strm.Data'Last then
+         return;
+      end if;
+
+      if Strm.CurrentByte + 3 <= Strm.Data'Last then
          if Strm.Data (Strm.CurrentByte) = '<' and
            Strm.Data (Strm.CurrentByte + 1) = '!' and
            Strm.Data (Strm.CurrentByte + 2) = '-' and
-           Strm.Data (Strm.CurrentByte + 1) = '-'
+           Strm.Data (Strm.CurrentByte + 3) = '-'
          then
             Strm.CurrentByte := Strm.CurrentByte + 2;
-            while not
+            while Strm.CurrentByte <= Strm.Data'Last
+              and then not
               (Strm.Data (Strm.CurrentByte - 2) = '-' and
                Strm.Data (Strm.CurrentByte - 1) = '-' and
                Strm.Data (Strm.CurrentByte) = '>')
@@ -437,10 +455,16 @@ package body adaasn1rtl.encoding.xer is
             end loop;
             Strm.CurrentByte := Strm.CurrentByte + 1;
 
-            while Is_Space (Strm.Data (Strm.CurrentByte)) loop
+            while Strm.CurrentByte <= Strm.Data'Last
+              and then Is_Space (Strm.Data (Strm.CurrentByte))
+            loop
                Strm.CurrentByte := Strm.CurrentByte + 1;
             end loop;
          end if;
+      end if;
+
+      if Strm.CurrentByte > Strm.Data'Last then
+         return;
       end if;
 
       s1 (1) := Strm.Data (Strm.CurrentByte);
@@ -452,7 +476,10 @@ package body adaasn1rtl.encoding.xer is
       end if;
 
       tok.ValueLength := 1;
-      while IsPartOfID (Strm.Data (Strm.CurrentByte)) loop
+      while Strm.CurrentByte <= Strm.Data'Last
+        and then IsPartOfID (Strm.Data (Strm.CurrentByte))
+        and then tok.ValueLength <= tok.Value'Last
+      loop
          tok.TokenID                 := WORD_ID;
          tok.Value (tok.ValueLength) := Strm.Data (Strm.CurrentByte);
          Strm.CurrentByte            := Strm.CurrentByte + 1;
@@ -976,7 +1003,7 @@ package body adaasn1rtl.encoding.xer is
       end if;
 
       I := I + 1;
-      while Strm.Data (I) /= '>' loop
+      while Strm.Data (I) /= '>' and then Strm.Data (I) /= '/' loop
          if J > elementTag'Last then
             return False;
          end if;
@@ -989,6 +1016,10 @@ package body adaasn1rtl.encoding.xer is
          I := I + 1;
          J := J + 1;
       end loop;
+
+      if J <= elementTag'Last then
+         return False;
+      end if;
 
       return True;
    end Xer_NextStartElementIs;

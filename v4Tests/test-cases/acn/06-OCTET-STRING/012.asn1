@@ -1,0 +1,22 @@
+-- Issue #360: Superfluous size decoding constraint checks for string types
+-- When an ACN determinant's range already covers the SIZE constraint,
+-- the generated range check should be omitted.
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    MyLen ::= INTEGER(0..255)
+
+    -- Variable-size OCTET STRING with untyped ACN determinant
+    MyPDU ::= SEQUENCE {
+        data OCTET STRING (SIZE (0..255))
+    }
+
+    -- Same but with typed determinant (produces uint8_t in --slim mode)
+    MyPDU2 ::= SEQUENCE {
+        data OCTET STRING (SIZE (0..255))
+    }
+
+END
+
+--TCLS     MyPDU[] {length INTEGER [size 8, encoding pos-int], data [size length]}
+--TCLS     MyPDU2[] {length MyLen [size 8, encoding pos-int], data [size length]}

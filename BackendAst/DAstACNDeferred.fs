@@ -594,7 +594,7 @@ let private createDeferredSequenceFunction
                                         | None -> None
                                     | _ ->
                                         // Decode to a clean temp variable, then copy to det.value
-                                        let tmpName = detVarName + "_tmp"
+                                        let tmpName = ac.c_name + "_tmp"
                                         let tmpVarDecl =
                                             match ac.Type with
                                             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ ->

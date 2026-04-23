@@ -1015,11 +1015,23 @@ flag Xer_NextStartElementIs(ByteStream* pByteStrm, const char* elementTag)
 		return FALSE;
 	}
 
-	if (NT(pByteStrm).TokenID != '>') {
-		pByteStrm->currentByte = save;
-		return FALSE;
+	t = NT(pByteStrm);
+	if (t.TokenID == '/') {
+		if (NT(pByteStrm).TokenID == '>') {
+			pByteStrm->currentByte = save;
+			return TRUE;
+		}
+		else {
+			pByteStrm->currentByte = save;
+			return FALSE;
+		}
 	}
-
+	else {
+		if (t.TokenID != '>') {
+			pByteStrm->currentByte = save;
+			return FALSE;
+		}
+	}
 
 	pByteStrm->currentByte = save;
 	return TRUE;
