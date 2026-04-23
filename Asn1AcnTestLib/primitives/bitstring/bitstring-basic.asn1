@@ -1,0 +1,14 @@
+-- Requirement 18: Basic BIT STRING support
+-- Tests fundamental ASN.1 BIT STRING type for bit-oriented data
+
+BitstringBasic DEFINITIONS ::= BEGIN
+
+    UnconstrainedBitString ::= BIT STRING (SIZE(24))
+
+    TestStruct ::= SEQUENCE {
+        flags BIT STRING (SIZE(8)),
+        mask BIT STRING (SIZE(16)),
+        pattern UnconstrainedBitString
+    }
+
+END

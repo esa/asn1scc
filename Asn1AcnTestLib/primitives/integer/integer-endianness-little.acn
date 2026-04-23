@@ -1,0 +1,18 @@
+-- ACN encoding with little-endian byte ordering
+
+IntegerEndiannessLittle DEFINITIONS ::= BEGIN
+
+    LittleEndianInt16 [size 16, encoding pos-int, endianness little]
+
+    LittleEndianInt32 [size 32, encoding pos-int, endianness little]
+
+    LittleEndianInt64 [size 64, encoding pos-int, endianness little]
+
+    TestStruct []
+    {
+        value16 [],
+        value32 [],
+        value64 []
+    }
+
+END

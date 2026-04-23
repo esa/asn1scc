@@ -1,0 +1,16 @@
+-- Requirement 17: REAL with little-endian encoding
+-- Tests little-endian byte ordering in REAL encoding
+
+RealEndiannessLittle DEFINITIONS ::= BEGIN
+
+    LittleEndianFloat32 ::= REAL
+
+    LittleEndianFloat64 ::= REAL
+
+    TestStruct ::= SEQUENCE {
+        value32 LittleEndianFloat32,
+        value64 LittleEndianFloat64,
+        anotherFloat32 LittleEndianFloat32
+    }
+
+END

@@ -1,0 +1,19 @@
+-- Requirement 36: Basic NULL support
+-- Tests fundamental ASN.1 NULL type representing absence of value
+
+NullBasic DEFINITIONS ::= BEGIN
+
+    NullType ::= NULL
+
+    TestStruct ::= SEQUENCE {
+        marker1 NULL,
+        marker2 NULL,
+        marker3 NullType
+    }
+
+    TestStructWithOptionalNull ::= SEQUENCE {
+        data INTEGER,
+        nullMarker NULL OPTIONAL
+    }
+
+END

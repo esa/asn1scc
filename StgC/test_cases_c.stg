@@ -464,4 +464,6 @@ printTestCaseFileBody(sThisFile, arrsIncludedModules, arrsTestFunctionBodies) ::
 
 >>
 
-
+decodingCaseKind(sBody, sIdentifier) ::= <<
+<sBody>
+>>

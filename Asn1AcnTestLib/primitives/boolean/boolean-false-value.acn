@@ -1,0 +1,16 @@
+-- ACN encoding for BOOLEAN with false-value attribute
+
+BooleanFalseValue DEFINITIONS ::= BEGIN
+
+    BoolWithFalseValue [false-value '0'B]
+
+    MultiBitFalseValue [false-value '00'B]
+
+    TestStruct []
+    {
+        standardBool [],
+        customFalseBool [],
+        multiBitBool []
+    }
+
+END

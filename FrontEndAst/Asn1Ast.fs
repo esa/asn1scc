@@ -103,6 +103,7 @@ type NamedItem = {
     Name:StringLoc
     c_name:string
     scala_name:string
+    python_name:string
     ada_name:string
     _value:Asn1Value option
     Comments: string array
@@ -163,6 +164,7 @@ and ChildInfo = {
     Name                        : StringLoc;
     c_name                      : string
     scala_name                  : string
+    python_name                 : string
     ada_name                    : string
     present_when_name           : string // used only by choices. Does not contain the "_PRESENT". Not to be used directly by backends.
     Type                        : Asn1Type
@@ -175,6 +177,7 @@ type TypeAssignment = {
     Name:StringLoc
     c_name:string
     scala_name:string
+    python_name:string
     ada_name:string
     Type:Asn1Type
     Comments: string array
@@ -185,6 +188,7 @@ type ValueAssignment = {
     Name:StringLoc
     c_name:string
     scala_name:string
+    python_name:string
     ada_name:string
     Type:Asn1Type
     Value:Asn1Value
@@ -399,6 +403,7 @@ type NamedItem with
         |Ada    -> ToC2 (r.args.TypePrefix + c.ada_name)
         |C      -> ToC2 (r.args.TypePrefix + c.c_name)
         |Scala  -> ToC2 (r.args.TypePrefix + c.scala_name)
+        |Python  -> ToC2 (r.args.TypePrefix + c.python_name)
 
 type Asn1Constraint with
     member this.Asn1Con =

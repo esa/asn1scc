@@ -1,0 +1,373 @@
+group isvalid_python;
+
+rtlModuleName() ::= ""
+methodNameSuffix() ::= "is_constraint_valid"
+
+JoinItems(sPart, soNestedPart) ::= <<
+# isvalid_python.stg 6
+<sPart>
+<if(soNestedPart)>
+if ret:
+    <soNestedPart>
+<endif>
+>>
+
+JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
+# isvalid_python.stg 15
+<sStr1>
+if ret:
+    <sStr2>
+>>
+
+JoinItems2(sPart, sNestedPart) ::= <<
+# isvalid_python.stg 22 sPart
+<sPart>
+# isvalid_python.stg 11 sNestedPart
+<sNestedPart>
+>>
+
+always_true_statement ()::= <<
+# isvalid_python.stg 28
+return Asn1ConstraintValidResult(is_valid=True)
+>>
+
+always_false_statement(sErrorCodeName)::= <<
+# isvalid_python.stg 33
+return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
+>>
+
+makeExpressionToStatement0(sIsValidExp) ::= <<
+# isvalid_python.stg 38
+if <sIsValidExp>:
+    ret = Asn1ConstraintValidResult(is_valid=True)
+else:
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=88888)
+>>
+
+convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
+# isvalid_python.stg 43
+ret = <sIsValidExp>
+if not ret:
+    return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
+>>
+
+convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
+# isvalid_python.stg 48
+<sStatement>
+if not ret:
+    return Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCode>)
+>>
+
+convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
+# isvalid_python.stg 53
+ret = Asn1ConstraintValidResult(is_valid=True)
+>>
+
+convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
+# isvalid_python.stg 58
+ret = Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
+>>
+
+/*
+*****************************************************************************************
+ C H E C K   C O N S T R A I N T S      F U N C T I O N S
+*****************************************************************************************
+*/
+
+EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
+# isvalid_python.stg 69
+<sErrCode> = <nErrValue>  # <arrsErrorCodeComments : {x|<x>}; separator = ", ">
+>>
+
+EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
+# isvalid_python.stg 74
+class ErrorCodes(IntEnum):
+    <arrsErrcodes; separator="\n">
+>>
+
+EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
+# isvalid_python.stg 79
+<arrsAlphaFuncs; separator="\n">
+def <sFuncName>(self) -> Asn1ConstraintValidResult:
+    <arrsLocalVars; separator="\n">
+    <sContent>
+    # isvalid_python.stg 85
+    return ret
+>>
+
+GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
+>>
+
+
+ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
+ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
+ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
+ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)"
+ExpOr(sExp1, sExp2) ::= "(<sExp1> or <sExp2>)"
+ExpAnd(sExp1, sExp2) ::= "(<sExp1> and <sExp2>)"
+ExpAndMulti(arrsExp) ::= <<
+<arrsExp; separator=" and ">
+>>
+ExpNot(sExp) ::= "(not <sExp>)"
+StrLen(sExp) ::= "len(<sExp>.arr)"
+ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
+
+ExpressionToStatement(sExp1) ::=<<
+# isvalid_python.stg 109
+ret = <sExp1>
+>>
+
+StatementOrStatement(sStat1, sStat2) ::= <<
+# isvalid_python.stg 114
+<sStat1>
+if not ret:
+    <sStat2>
+>>
+
+ExpressionOrStatement(sExp1, sStat2) ::= <<
+# isvalid_python.stg 121
+ret = <sExp1>
+if not ret:
+    <sStat2>
+>>
+
+StatementOrExpression(sStat1, sExp2) ::= <<
+# isvalid_python.stg 128
+<sStat1>
+if not ret:
+    ret = <sExp2>
+>>
+
+StatementAndStatement(sStat1, sStat2) ::= <<
+# isvalid_python.stg 135
+<sStat1>
+if ret:
+    <sStat2>
+>>
+
+ExpressionAndStatement(sExp1, sStat2) ::= <<
+# isvalid_python.stg 142
+ret = <sExp1>
+if ret:
+    <sStat2>
+>>
+
+StatementAndExpression(sStat1, sExp2) ::= <<
+# isvalid_python.stg 149
+<sStat1>
+if ret:
+    ret = <sExp2>
+>>
+
+StatementNot(sStat) ::= <<
+# isvalid_python.stg 156
+<sStat>
+if ret:
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=142)
+else:
+    ret = Asn1ConstraintValidResult(is_valid=True)
+>>
+
+StatementExceptStatement(sStat1, sStat2) ::= <<
+# isvalid_python.stg 165
+<sStat1>
+if ret:
+    <sStat2>
+    if ret:
+        ret = Asn1ConstraintValidResult(is_valid=False, error_code=152)
+    else:
+        ret = Asn1ConstraintValidResult(is_valid=True)
+>>
+
+ExpressionExceptStatement(sExp1, sStat2) ::= <<
+# isvalid_python.stg 176
+ret = <sExp1>
+if ret:
+    <sStat2>
+    if ret:
+        ret = Asn1ConstraintValidResult(is_valid=False, error_code=162)
+    else:
+        ret = Asn1ConstraintValidResult(is_valid=True)
+>>
+
+StatementExceptExpression(sStat1, sExp2) ::= <<
+# isvalid_python.stg 187
+<sStat1>
+if ret:
+    <sExp2>
+    if not x:
+        ret = Asn1ConstraintValidResult(is_valid=False, error_code=171)
+    else:
+        ret = Asn1ConstraintValidResult(is_valid=True)
+>>
+
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+# isvalid_python.stg 198
+<i>: int = 0
+while ret and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>:
+    <sInnerStatement>
+    <i> += 1
+>>
+
+Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
+# isvalid_python.stg 208
+def chars_are_valid(self) -> Asn1ConstraintValidResult:
+    valid: bool = True
+    i: int = 0
+    while valid and i \< len(self.arr) and self.arr[i] != 0x0:
+        valid = valid and (<arrsAlphaConBody; separator=" and ">)
+        i += 1
+    if valid:
+        return Asn1ConstraintValidResult(is_valid=valid)
+    else:
+        return Asn1ConstraintValidResult(is_valid=valid, error_code=4444)
+
+>>
+
+
+
+SingleValConstraint(p, v) ::= "(<p> == <v>)"
+
+
+
+
+
+stringContainsChar(sStrVal, p) ::= "chr(<p>) in <sStrVal>"
+
+RangeConstraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> and <p> \<<if(bMax)>=<endif> <v2>)"
+
+RangeConstraint_val_MAX(p, v, bMin) ::= "(<p> ><if(bMin)>=<endif> <v>)"
+
+RangeConstraint_MIN_val(p, v, bMax) ::= "(<p> \<<if(bMax)>=<endif> <v>)"
+
+
+AND_Constraint(sCon1, sCon2) ::= "(<sCon1> and <sCon2>)"
+
+OR_Constraint(sCon1, sCon2) ::= "(<sCon1> or <sCon2>)"
+
+AllExceptConstraint(sCon)  ::= "(not <sCon>)"
+
+ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> and not <sCon2>)"
+
+callAlphaFunc(sFuncName, p) ::= "<p>.chars_are_valid()"
+callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<p>.chars_are_valid()"
+alphaFuncBaseName(p) ::= "<p>.chars_are_valid"
+alphaFuncNameWithIndex(p, nIdx) ::= "<p>.chars_are_valid_<nIdx>"
+
+PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" and \">"
+
+Emit_type(arrsConstraints, sErrCodeName) ::= <<
+# isvalid_python.stg 251
+ret = <arrsConstraints; separator=" and ">;
+ret = <sErrCodeName>;
+>>
+
+call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = super().<sFuncName>()"
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <p>.<sFuncName>()"
+call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
+
+
+/* SEQUENCE start*/
+
+
+Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
+# isvalid_python.stg 264
+if not issubclass(type(<p><sAcc><sChName>), Asn1Boolean) and not issubclass(type(<p><sAcc><sChName>), int) and not issubclass(type(<p><sAcc><sChName>), float) and <p><sAcc><sChName>:
+    <sInnerStatement>
+else:
+    ret = Asn1ConstraintValidResult(is_valid=True)
+>>
+
+
+Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
+# isvalid_python.stg 271
+ret = Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
+>>
+
+Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
+<p><sAcc><sChName> is not None if <sPresOrAbs> else <p><sAcc><sChName> is None
+>>
+
+/* SEQUENCE end*/
+
+
+/* CHOICE start*/
+
+Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement) ::= <<
+# isvalid_python.stg 286
+if self.kind == <sChPresent>:
+    <sInnerStatement>
+>>
+
+Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= "self.kind == <sChPresent>"
+
+Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= "self.kind != <sChPresent>"
+
+choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
+if self.kind == <sChPresent>:
+    # isvalid_python.stg 302
+    <sChildBody>
+>>
+
+choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
+# isvalid_python.stg 308
+<arrsChildren; separator="\nel">
+else:
+    ret = Asn1ConstraintValidResult(is_valid=False, error_code=self.ErrorCodes.<sErrCodeForInvalidCase>, message=f"Invalid Choice Case in {type(self).__name__}: {self.kind}")
+>>
+
+/* CHOICE end*/
+
+sequenceOf(p,sAcc, i, bIsFixedSize, nFixedSize, soIsValidSizeExp, soErrCode, soInnerStatement) ::= <<
+# isvalid_python.stg 316
+<if(!bIsFixedSize)>
+ret = <soIsValidSizeExp>
+ret = <soErrCode> # todo: this overwrites the above assignment?
+
+<endif>
+<if (soInnerStatement)>
+for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
+    if not ret:
+        break
+    <soInnerStatement>
+
+<endif>
+>>
+
+sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+# isvalid_python.stg 332
+ret = Asn1ConstraintValidResult(is_valid=True)
+for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
+    <sInnerStatement>
+    if not ret:
+        return ret
+>>
+
+
+octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
+# isvalid_python.stg 341
+OctetString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
+# isvalid_python.stg 346
+OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+# isvalid_python.stg 351
+BitString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+# isvalid_python.stg 356
+BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+
+objId_equal(p, sObjIdLiteral)::=<<
+# isvalid_python.stg 362
+ObjectIdentifier_equal(<p>, &<sObjIdLiteral>)
+>>

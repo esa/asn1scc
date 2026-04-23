@@ -1,0 +1,18 @@
+-- Requirement 12: INTEGER with pos-int ACN encoding
+-- Tests positive integer encoding attribute
+
+IntegerEncodingPosint DEFINITIONS ::= BEGIN
+
+    PosIntEncoded ::= INTEGER (0..4294967295)
+
+    PosIntSmall ::= INTEGER (0..255)
+
+    PosIntLarge ::= INTEGER (0..18446744073709551615)
+
+    TestStruct ::= SEQUENCE {
+        small PosIntSmall,
+        medium PosIntEncoded,
+        large PosIntLarge
+    }
+
+END

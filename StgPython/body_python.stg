@@ -1,0 +1,16 @@
+group body_python;
+
+rtlModuleName() ::= ""
+
+printSourceFile(sPackageName, arrsIncludedModules, arrsAdaUseTypes, arrsUserDefinedFunctions, arrsValueAndTypeAssignments) ::= <<
+"""
+Body Implementation
+"""
+
+<arrsValueAndTypeAssignments: {uv|<uv>}; separator="\n">
+>>
+
+printTass(arrsAllProcs) ::= <<
+
+    <arrsAllProcs: {a|<a>}; separator="\n\n">
+>>

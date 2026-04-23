@@ -1,0 +1,28 @@
+-- Requirement 28: SEQUENCE with DEFAULT components
+-- Tests SEQUENCE with DEFAULT value elements
+
+SequenceDefault DEFINITIONS ::= BEGIN
+
+    SequenceWithDefaults ::= SEQUENCE {
+        counter INTEGER DEFAULT 0,
+        enabled BOOLEAN DEFAULT TRUE,
+        priority INTEGER (0..10) DEFAULT 5,
+        mode ENUMERATED { off(0), on(1), auto(2) } DEFAULT auto,
+        multiplier REAL DEFAULT 1.0
+    }
+
+    MixedDefaultsOptionals ::= SEQUENCE {
+        id INTEGER,
+        name IA5String (SIZE(16)) DEFAULT "UnknownIa5String",
+        status ENUMERATED { idle(0), active(1) } DEFAULT idle,
+        optionalField INTEGER OPTIONAL,
+        timeout INTEGER DEFAULT 100,
+        retries INTEGER OPTIONAL
+    }
+
+    TestStruct ::= SEQUENCE {
+        seq1 SequenceWithDefaults,
+        seq2 MixedDefaultsOptionals
+    }
+
+END

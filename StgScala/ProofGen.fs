@@ -2290,7 +2290,8 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
                     (codec: Codec)
                     (nestingScope: NestingScope)
                     (outerSel: CodegenScope)
-                    (recSel: CodegenScope): FunDef list * Expr =
+                    (recSel: CodegenScope)
+                    (lg: ILangGeneric): FunDef list * Expr =
   assert recSel.accessPath.steps.IsEmpty
   let codecTpe = runtimeCodecTypeFor ACN
   let cdc = {Var.name = "codec"; tpe = ClassType codecTpe}
@@ -2378,7 +2379,7 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
             }
           ]
         }
-        let resVar = {Var.name = $"res_{outerSel.accessPath.asIdentifier}"; tpe = retTpe}
+        let resVar = {Var.name = $"res_{(outerSel.accessPath.asIdentifier lg)}"; tpe = retTpe}
         let acnVarsBdg =
           if acnsVars.Tail.IsEmpty then [(acnsVars.Head, Var resVar)]
           else acnsVars |> List.indexed |> List.map (fun (ix, v) -> (v, TupleSelect (Var resVar, ix + 1)))
@@ -2388,7 +2389,7 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
   | Decode ->
     let retTpe = tupleType (tpe :: acnTps)
     let fnRetTpe = eitherMutTpe errTpe retTpe
-    let outerPVal = {Var.name = outerSel.accessPath.asIdentifier; tpe = tpe}
+    let outerPVal = {Var.name = (outerSel.accessPath.asIdentifier lg); tpe = tpe}
     let retInnerFd =
       let retVal = mkTuple (Var recPVal :: (acnsVars |> List.map Var))
       let scrut = FunctionCall {prefix = []; id = isValidFuncName; tps = []; args = [Var recPVal]; parameterless = true}
@@ -2488,7 +2489,7 @@ let wrapAcnFuncBody (r: Asn1AcnAst.AstRoot)
 
     [fd; fdPure], ret
 
-let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc: Var) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (rest: Expr): Expr =
+let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (oldCdc: Var) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (rest: Expr) (lg: ILangGeneric): Expr =
   let nbPresenceBits = countNbPresenceBits pg.sq.children
   let nbTotalChildren = nbPresenceBits + pg.sq.children.Length
   assert (snapshots.Length = nbTotalChildren)
@@ -2536,7 +2537,7 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
         let recv =
           match codec with
           | Encode -> SelectionExpr (joinedSelection info.sel)
-          | Decode -> SelectionExpr info.sel.asIdentifier
+          | Decode -> SelectionExpr (info.sel.asIdentifier lg)
         let resSize = seqSizeExprHelperChild info.info (bigint ix) (Some recv) (bitIndexACN (Var snapshots.[ix])) pg.nestingLevel pg.nestingIx
         {extraBdgs = resSize.bdgs; childVar = childVar; childSize = resSize.resSize}
       | None ->
@@ -2593,7 +2594,7 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
   let stmts = List.zip3 snapshots childrenWithPresenceBits stmts |> List.indexed
   List.foldBack annotate stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd
 
-let generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
+let generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (lg: ILangGeneric): string list =
   if stmts.IsEmpty then stmts |> List.choose id
   else
     let codecTpe = runtimeCodecTypeFor enc
@@ -2606,7 +2607,7 @@ let generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmt
       let postCondLemmas =
         let cond = Leq (bitIndexACN (Var cdc), plus [bitIndexACN (Var snapshots.Head); longlit (pg.outerMaxSize enc)])
         Ghost (Check cond)
-      let expr = wrappedStmts (mkBlock [postCondLemmas])
+      let expr = wrappedStmts (mkBlock [postCondLemmas]) lg
       let exprStr = show (ExprTree expr)
       [exprStr]
     else
@@ -2614,7 +2615,7 @@ let generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmt
       let exprStr = show (ExprTree expr)
       [exprStr]
 
-let generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec): Expr option =
+let generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): Expr option =
   if sq.children.IsEmpty then None
   else
     let codecTpe = runtimeCodecTypeFor enc
@@ -2622,7 +2623,7 @@ let generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1Ac
     let recv =
       match codec with
       | Encode -> SelectionExpr (joinedSelection sel)
-      | Decode -> SelectionExpr sel.asIdentifier
+      | Decode -> SelectionExpr (sel.asIdentifier lg)
 
     let nbPresenceBits = countNbPresenceBits sq.children
     let childrenSizes = [0 .. nbPresenceBits + sq.children.Length - 1] |> List.map (fun i -> {name = $"size_{i}"; tpe = IntegerType Long})
@@ -2829,7 +2830,7 @@ let generateEnumAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1
 let generateSequenceOfLikeProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): SequenceOfLikeProofGenResult option =
   None
 
-let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec): FunDef list * Expr =
+let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (sqf: SequenceOfLike) (pg: SequenceOfLikeProofGen) (codec: Codec) (lg: ILangGeneric): FunDef list * Expr =
   let sqfTpe = fromSequenceOfLike sqf
   let elemTpe = fromSequenceOfLikeElemTpe sqf
   let codecTpe = runtimeCodecTypeFor enc
@@ -2839,7 +2840,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
   let cdcSnap1 = {Var.name = "codecSnap1"; tpe = ClassType codecTpe}
   let cdcSnap2 = {Var.name = "codecSnap2"; tpe = ClassType codecTpe}
   let from = {Var.name = pg.ixVariable; tpe = IntegerType Int}
-  let sqfVar = {Var.name = pg.cs.accessPath.asIdentifier; tpe = sqfTpe}
+  let sqfVar = {Var.name = (pg.cs.accessPath.asIdentifier lg); tpe = sqfTpe}
   let count = {Var.name = "nCount"; tpe = IntegerType Int}
   let outerSqf =
     if enc = ACN || codec = Decode then Var sqfVar
@@ -2998,7 +2999,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
     let call =
       let count =
         match sqf with
-        | StrType _ when not sqf.isFixedSize -> [Var {Var.name = pg.cs.accessPath.asIdentifier + "_nCount"; tpe = IntegerType Int}]
+        | StrType _ when not sqf.isFixedSize -> [Var {Var.name = (pg.cs.accessPath.asIdentifier lg) + "_nCount"; tpe = IntegerType Int}]
         | _ -> []
       let scrut = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc] @ count @ [outerSqf; int32lit 0I]; parameterless = true}
       let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
@@ -3013,7 +3014,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
   let mkDecodeRecursiveFn (): FunDef * Expr =
     let countParam = if sqf.isFixedSize then [] else [count]
     let fnRetTpe = eitherMutTpe (IntegerType Int) collTpe
-    let sqfVecVar = {Var.name = pg.cs.accessPath.asIdentifier; tpe = collTpe}
+    let sqfVecVar = {Var.name = (pg.cs.accessPath.asIdentifier lg); tpe = collTpe}
     let thnCase =
       let ret =
         match sqf with
@@ -3029,7 +3030,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
     let elseCase =
       let reccallRes = {Var.name = "res"; tpe = fnRetTpe}
       let newVec = {Var.name = "newVec"; tpe = collTpe}
-      let decodedElemVar = {Var.name = $"{pg.cs.accessPath.asIdentifier}_arr_{pg.ixVariable}_"; tpe = elemTpe}
+      let decodedElemVar = {Var.name = $"{(pg.cs.accessPath.asIdentifier lg)}_arr_{pg.ixVariable}_"; tpe = elemTpe}
       let appended = vecAppend (Var sqfVecVar) (Var decodedElemVar)
       let postrecProofSuccess = mkBlock ([
         vecRangesAppendDropEq (Var sqfVecVar) (Var newVec) (Var decodedElemVar) (int32lit 0I) (Var from)
@@ -3083,7 +3084,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
     let call =
       let count =
         if sqf.isFixedSize then []
-        else [Var {Var.name = pg.cs.accessPath.asIdentifier + "_nCount"; tpe = IntegerType Int}]
+        else [Var {Var.name = (pg.cs.accessPath.asIdentifier lg) + "_nCount"; tpe = IntegerType Int}]
       let scrut = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc] @ count @ [vecEmpty elemTpe; int32lit 0I]; parameterless = true}
       let leftBdg = {Var.name = "l"; tpe = IntegerType Int}
       // TODO: FIXME: the right type must be the outside type!!!
@@ -3119,7 +3120,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
         | StrType str -> str
         | _ -> failwith "ACN reference to string but not a StrType?"
       let countParam, countAcnVar =
-        if not strType.isFixedSize then [count], [Var {Var.name = pg.cs.accessPath.asIdentifier + "_nCount"; tpe = IntegerType Int}]
+        if not strType.isFixedSize then [count], [Var {Var.name = (pg.cs.accessPath.asIdentifier lg) + "_nCount"; tpe = IntegerType Int}]
         else [], []
       let fromBounds =
         if sqf.isFixedSize then []
@@ -3194,7 +3195,7 @@ let generateSequenceOfLikeAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding
           body = FunctionCall {prefix = []; id = fnid; tps = []; args = [Var cdc] @ (countParam |> List.map Var) @ [vecEmpty elemTpe; int32lit 0I]; parameterless = true}
         }
         let countAcnVar =
-          if not strType.isFixedSize then [Var {Var.name = pg.cs.accessPath.asIdentifier + "_nCount"; tpe = IntegerType Int}]
+          if not strType.isFixedSize then [Var {Var.name = (pg.cs.accessPath.asIdentifier lg) + "_nCount"; tpe = IntegerType Int}]
           else []
         let fdWrapperCall =
           let scrut = FunctionCall {prefix = []; id = fdWrapper.id; tps = []; args = [Var cdc] @ countAcnVar; parameterless = true}
@@ -3336,7 +3337,7 @@ let generateOptionalPrefixLemma (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
   generatePrefixLemmaCommon enc tpe soc.child.Type.toAsn1AcnAst.acnMaxSizeInBits baseId ((existVar |> Option.toList) @ paramsAcn) [] mkSizeExpr soc.nestingScope mkProof
 
 
-let generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc: SequenceOptionalChild) (codec: Codec): FunDef list * Expr =
+let generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc: SequenceOptionalChild) (codec: Codec) (lg: ILangGeneric): FunDef list * Expr =
   if soc.child.Optionality.IsNone then [], EncDec (soc.childBody soc.p soc.existVar)
   else
     let codecTpe = runtimeCodecTypeFor enc
@@ -3414,7 +3415,7 @@ let generateOptionalAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (soc
       // The `existVar` does not exist for always present/absent
       let existVar = soc.existVar |> Option.map (fun v -> {Var.name = v; tpe = BooleanType})
       let rightTpe = optChildTpe
-      let outerPVal = {Var.name = soc.p.accessPath.asIdentifier; tpe = rightTpe}
+      let outerPVal = {Var.name = (soc.p.accessPath.asIdentifier lg); tpe = rightTpe}
       let encDec = EncDec (soc.childBody {soc.p with accessPath = soc.p.accessPath.asLastOrSelf} soc.existVar)
       let fnRetTpe = eitherMutTpe errTpe rightTpe
       let retVal = {Var.name = soc.p.accessPath.lastId; tpe = childTpe}

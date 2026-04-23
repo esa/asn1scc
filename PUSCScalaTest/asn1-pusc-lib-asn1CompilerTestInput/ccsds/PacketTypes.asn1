@@ -44,7 +44,7 @@ Packet-ID {PacketType-Type} ::= SEQUENCE
     applicationProcess-ID ApplicationProcess-ID
 }
 
-SecondaryHeaderFlag ::= INTEGER (0 .. 1)
+SecondaryHeaderFlag ::= INTEGER (0 .. 6)
 
 PacketSequenceControl ::= SEQUENCE
 {

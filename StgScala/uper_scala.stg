@@ -2,6 +2,12 @@
 
 rtlModuleName() ::= ""
 
+call_superclass_func_encode(p, sFuncName) ::= <<
+<call_base_type_func_encode(p=p, sFuncName=sFuncName)>
+>>
+call_superclass_func_decode(p, sFuncName) ::= <<
+<call_base_type_func_decode(p=p, sFuncName=sFuncName)>
+>>
 call_base_type_func_encode(p, sFuncName) ::= <<
 <sFuncName>(<p>, codec, false) match // uper:6
     case Right(_) =>
@@ -123,16 +129,16 @@ val <p>_arr_<i>_ = UByte.fromRaw(codec.base.decodeConstrainedWholeNumberByte(0, 
 /* INTEGER START*/
 
 /*case: A:: = INTEGER (-5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 codec.base.encodeConstrainedWholeNumber(<p>, <nMin>, <nMax>)
 >>
 
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 val <p> = codec.base.decodeConstrainedWholeNumber<sSsuffix>(<nMin>, <nMax>) // uper:122
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 locally {
     ghostExpr {
         @opaque @inlineOnce
@@ -144,7 +150,7 @@ locally {
 codec.base.encodeConstrainedPosWholeNumber(<p>, <nMin>.toRawULong, <nMax>.toRawULong)
 >>
 
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 locally {
     ghostExpr {
         @opaque @inlineOnce
@@ -156,8 +162,8 @@ val <p> = codec.base.decodeConstrainedPosWholeNumber<sSsuffix>(ULong.fromRaw(<nM
 >>
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= "codec.base.encodeUnconstrainedWholeNumber(<p>)"
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, soType) ::= "codec.base.encodeUnconstrainedWholeNumber(<p>)"
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= <<
 val <p> = codec.base.decodeUnconstrainedWholeNumber() match {
     case None() => return LeftMut(<sErrCode>)
     case Some(v) => v
@@ -190,11 +196,11 @@ if !codec.base.decodeSemiConstrainedPosWholeNumber(<nMin>) then
 >>
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode) ::=<<
+IntNoneRequired_encode(p, sConst, sErrCode, soType) ::=<<
 /* No need to encode the val <p>, it will always be <sConst> */
 ; // NOP
 >>
-IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, soType) ::= <<
 val <p> = <sConst>
 >>
 
@@ -221,31 +227,31 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 >>
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
 if <sRootBaseConstraint> then
     codec.base.appendBitZero() /* write extension bit, value within root range, so ext bit is zero */
     <sIntBody>
 else
     /* value is not within root range, so ext bit is one and value is encoded as unconstrained */
     codec.base.appendBitOne()
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, sType=sType)>
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::="<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::="<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
 
 
 /* INTEGER END*/
 
-Boolean_encode(p, sErrCode) ::= <<
+Boolean_encode(p, sErrCode, sType) ::= <<
 codec.base.bitStream.appendBit(<p>)
 >>
 
-Boolean_decode(p, sErrCode) ::= <<
+Boolean_decode(p, sErrCode, sType) ::= <<
 val <p> = codec.base.bitStream.readBit() // uper:225
 >>
 
-Real_encode(p, sSuffix, sErrCode) ::= "codec.base.encodeReal(<p>)"
-Real_decode(p, sSuffix, sErrCode) ::= <<
+Real_encode(p, sSuffix, sErrCode, sType) ::= "codec.base.encodeReal(<p>)"
+Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 val <p> = codec.base.decodeReal<sSuffix>().toDouble // uper:234
 >>
 
@@ -346,12 +352,12 @@ sequence_presence_bit_fix_decode(p, sAcc, sChName, soExistVar, sErrCode, sVal) :
 <sequence_presence_bit_decode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, sErrCode=sErrCode)>
 >>
 
-sequence_mandatory_child_encode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
 /*Encode <sChName> sequence_mandatory_child_encode */
 <sChildContent>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
 /* Decode <sChName> sequence_mandatory_child_decode  */
 <sChildContent>
 
@@ -430,7 +436,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 >>
 
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 nStringLength = <p>.indexOfOrLength(0x00.toRawUByte)
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
 codec.base.encodeConstrainedWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
@@ -438,7 +444,7 @@ val <sPIden>_nCount = nStringLength
 <soCallAux>
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 nStringLength = codec.base.decodeConstrainedWholeNumberInt(<nSizeMin>, <nSizeMax>)
 val <p>_nCount = nStringLength
 <soCallAux>

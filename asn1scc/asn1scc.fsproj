@@ -29,6 +29,20 @@
       <EmbeddedResource Include="..\asn1scala\lib\stainless-library_3-0.9.8.7.jar">
       <Link>stainless-library_3-0.9.8.7.jar</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_types.py" Link="asn1_types.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\bitstream.py" Link="bitstream.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\codec.py" Link="codec.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\encoder.py" Link="encoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\acn_encoder.py" Link="acn_encoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\uper_encoder.py" Link="uper_encoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\decoder.py" Link="decoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\acn_decoder.py" Link="acn_decoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\uper_decoder.py" Link="uper_decoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\codec_uper.py" Link="codec_uper.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\helper.py" Link="helper.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\verification.py" Link="verification.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\__init__.py" Link="__init__.py" />
+    
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
 
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />
@@ -77,6 +91,7 @@
     <ProjectReference Include="..\BackendAst\BackendAst.fsproj" />
     <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
     <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
+    <ProjectReference Include="..\StgPython\StgPython.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

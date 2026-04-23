@@ -23,13 +23,13 @@ assignAny(p, sValue, sTypeDecl) ::= "<p> := <sValue>;"
 assignString(p, sValue) ::= "<p> := <sValue>;"
 
 
-initInteger(p, sValue, bIsOptional, sResVar) ::= "<p> := <sValue>;"
-initReal(p, dValue, bIsOptional, sResVar) ::= "<p> := <dValue>;"
-initBoolean(p, bValue, bIsOptional, sResVar) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
+initInteger(p, sValue, bIsOptional, sResVar, sType) ::= "<p> := <sValue>;"
+initReal(p, dValue, bIsOptional, sResVar, sType) ::= "<p> := <dValue>;"
+initBoolean(p, bValue, bIsOptional, sResVar, sType) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
 
 initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= "<sPtr> := <sValue>;"
 initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= "<sVal> := <sValue>;"
-initNull(sVal, bIsOptional, sResVar) ::= "<sVal> := 0;"
+initNull(sVal, bIsOptional, sResVar, sType) ::= "<sVal> := 0;"
 
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar, sInitChar) ::= <<

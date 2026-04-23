@@ -1,0 +1,340 @@
+group init_python;
+
+rtlModuleName() ::= "pythonasn1rtl"
+methodNameSuffix() ::= "__init__"
+
+initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
+
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
+# python init is done by the dataclass
+>>
+
+initInteger(sVal, sValue, bIsOptional, sResVar, sType) ::= <<
+# init_python.stg 15
+<if(bIsOptional)>
+<sResVar>: Optional[<sType>] = <sType>(<sValue>)
+<else>
+<sResVar>: <sType> = <sType>(<sValue>)
+<endif>
+>>
+
+initReal(sVal, dValue, bIsOptional, sResVar, sType) ::= <<
+# init_python.stg 24
+<if(bIsOptional)>
+<sResVar>: Optional[<sType>] = <sType>(<dValue>)
+<else>
+<sResVar>: <sType> = <sType>(<dValue>)
+<endif>
+>>
+
+initBoolean(sVal, bValue, bIsOptional, sResVar, sType) ::= <<
+# init_python.stg 33
+<if(bIsOptional)>
+<sResVar>: Optional[<sType>] = <sType>(<if(bValue)>True<else>False<endif>)
+<else>
+<sResVar>: <sType> = <sType>(<if(bValue)>True<else>False<endif>)
+<endif>
+>>
+
+initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>"
+initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
+# init_python.stg 43
+<p><sAcc>nCount = <nSize>
+<arrsValues; separator="\n">
+>>
+
+init_Asn1LocalTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
+# init_python.stg 49
+<p><sAcc>hours = <tv.hours>
+<p><sAcc>mins = <tv.mins>
+<p><sAcc>sec = <tv.secs>
+<p><sAcc>fraction = <tv.secsFraction>
+>>
+
+init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
+# init_python.stg 57
+<p><sAcc>hours = <tv.hours>
+<p><sAcc>mins = <tv.mins>
+<p><sAcc>sec = <tv.secs>
+<p><sAcc>fraction = <tv.secsFraction>
+>>
+
+
+init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+# init_python.stg 66
+<p><sAcc>hours = <tv.hours>
+<p><sAcc>mins = <tv.mins>
+<p><sAcc>sec = <tv.secs>
+<p><sAcc>fraction = <tv.secsFraction>
+<p><sAcc>tz.sign = <tz.sign>
+<p><sAcc>tz.hours = <tz.hours>
+<p><sAcc>tz.mins = <tz.mins>
+>>
+
+init_Asn1Date(p, sAcc, dt/*:Asn1DateValue*/) ::= <<
+# init_python.stg 77
+<p><sAcc>years = <dt.years>
+<p><sAcc>months = <dt.months>
+<p><sAcc>days = <dt.days>
+>>
+
+init_Asn1Date_LocalTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+# init_python.stg 84
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1LocalTime(p=p, sAcc=sAcc, tv=tv)>
+>>
+
+init_Asn1Date_UtcTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+# init_python.stg 90
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv)>
+>>
+
+init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+# init_python.stg 96
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv, tz=tz)>
+>>
+
+assignAny(p, sValue, sTypeDecl) ::= "<p> = <sValue>"
+assignString(p, sValue) ::= "<p> = <sValue>"
+
+
+initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= <<
+# init_python.stg 106
+<if(bIsOptional)>
+<sResVar> : Optional[str] = <sValue>
+<else>
+<sResVar> = <sValue>
+<endif>
+>>
+
+initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= <<
+# init_python.stg 115
+<if(bIsOptional)>
+<sResVar>: Optional[<sTypeDefName>] = <sTypeDefName>(<sValue>)
+<else>
+<sResVar>: <sTypeDefName> = <sTypeDefName>(<sValue>)
+<endif>
+>>
+
+initNull(sVal, bIsOptional, sResVar, sType) ::= <<
+# init_python.stg 124
+<if(bIsOptional)>
+<sResVar>: Optional[<sType>] = <sType>()
+<else>
+<sResVar>: <sType> = <sType>()
+<endif>
+>>
+
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar, sInitChar) ::= <<
+# init_python.stg 133
+<if(bZero)>
+<sResVar> = [0] * (<nMaxSizePlusOne> - 1)
+<else>
+<if(bAlpha)>
+allowed_char_set = [<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=", ">]
+<sResVar> = <td.typeName>([allowed_char_set[<i> % <nAlphabetLength>] for <i> in range(<nSize>)])
+<else>
+<sResVar> = <td.typeName>([ord('A') if <i> % 128 == 0 else <i> % 128 for <i> in range(<nSize>)])
+<endif>
+<endif>
+>>
+
+/* BIT AND OCTET STRINGS */
+
+initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> = <sCompLiteral>"
+
+initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>arr[<sI>] = 0x<sByteHexVal>"
+initFixSizeBitOrOctString(p, sAcc,arrsBytes) ::= <<
+<arrsBytes; separator="\n"> # init_python.stg 152
+>>
+
+initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
+# init_python.stg 156
+<p><sAcc>nCount = <nSize>
+<arrsBytes; separator="\n">
+>>
+
+initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray, sResVar) ::= <<
+# init_python.stg 162
+<if(bZero)>
+<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>[0] * <nSize>)
+<else>
+<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>[<i> % 256 for <i> in range(<nSize>)])
+<endif>
+>>
+
+
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize, bIsOptionalField, sResVar) ::= <<
+# init_python.stg 172
+<if(bZero)>
+<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>[0] * (<nSizeCeiled> // 8))
+<else>
+<if(bIsOptionalField)>
+<sResVar>: Optional[<sArrayHolderName>] = <sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>[0x55] * (<nSizeCeiled> // 8))
+<else>
+<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><nSize>, <endif>[0x55] * (<nSizeCeiled> // 8))
+<endif>
+<endif>
+>>
+
+
+
+/*SEQUENCE OF */
+
+/*dummy in C*/
+initSequence_pragma(p) ::= ""
+
+
+initFixedSequenceOf(arrsInnerValues) ::= <<
+# init_python.stg 193
+<arrsInnerValues; separator="\n">
+>>
+
+
+initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
+# init_python.stg 199
+<p><sAcc>nCount = <nSize>
+<arrsInnerValues; separator="\n">
+>>
+
+
+initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen, sResVar) ::= <<
+# init_python.stg 206
+<if(!bLastItem)><if(bFirst)>if<else>elif<endif> <i> % <nCaseLen> == <nCaseIdx>:<else>else:<endif>
+    <sChildCaseInit>
+>>
+
+initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i, sResVar) ::= <<
+# init_python.stg 213
+<sResVar>_arr: list = [None] * <nSize>
+for <i> in range(<nSize>):
+    <arrsInnerItems; separator="\n">
+<sResVar> = <sArrayHolderName>(<if(!bIsFixedSize)><if(noMinSize)><noMinSize><else><nSize><endif>, <endif><sResVar>_arr)
+>>
+
+
+/*SEQUENCE*/
+
+initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
+# init_python.stg 225
+<p><sAcc>exist.<sChName> = False if <sPresentFlag> == 0 else True
+<sChildContent>
+>>
+
+initSequence(arrsInnerValues) ::= <<
+# init_python.stg 231
+<arrsInnerValues; separator="\n">
+>>
+
+initSequence_emptySeq(p) ::= ""
+
+initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExpr) ::= <<
+# init_python.stg 238
+<sChildContent>
+>>
+
+initTestCase_sequence_child_opt(p, sAcc, sChName, sChildTypedef, sResVar) ::= <<
+# init_python.stg 243
+<sResVar>: Optional[<sChildTypedef>] = None
+>>
+
+initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
+# init_python.stg 248
+<sChildTempVarName>: <sChildTypeName> = <sChildTempDefaultInit>
+<sChildContent>
+<p> = <sChildID>(<sChildTempVarName>)
+>>
+
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional, sResVar) ::= <<
+# init_python.stg 255
+<sChildContent>
+# init_python.stg 257
+<sResVar>: <sChoiceTypeName> = <sChoiceTypeName>(kind=<sChildID>, data=<sResVar>_data)
+>>
+
+initChildWithInitFunc(p, sChildInitFuncName) ::= <<
+<p> = <sChildInitFuncName>() # init_python.stg 265
+>>
+
+
+initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<
+# init_python.stg 270
+def <sFuncName>_set_<sNamedBit>(<sVarName>: <sTypeDefName>) -> None:
+    <sVarName>.arr[<nZeroBasedByteIndex>] |= <sHexByteMax>
+>>
+
+initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
+# init_python.stg 276
+def <sFuncName>_set_<sNamedBit>(<sVarName>: <sTypeDefName>) -> None: ...
+>>
+
+initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<
+<sConstantName>: <sTypeDecl> = <sValue> # init_python.stg 281
+>>
+
+initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
+<sConstantName>: <sTypeDecl> = <sValue> # init_python.stg 285
+>>
+
+initFixSizeOctetString(sTypeDefName, nMax, bZeroSizedArray) ::= "<sTypeDefName>([0] * <nMax>)"
+initVarSizeOctetString(sTypeDefName, nMin, nMax) ::= "<sTypeDefName>(<nMin>, [0] * <nMax>)"
+
+initFixSizeBitString(sTypeDefName, nMax, nMaxOctets) ::= "<sTypeDefName>([0] * <nMaxOctets>)"
+initVarSizeBitString(sTypeDefName, nMin, nMax, nMaxOctets) ::= "<sTypeDefName>(<nMin>, [0] * <nMaxOctets>)"
+
+initFixSizeSequenceOfExpr(sTypeDefName, nMax, sChildExp) ::= "<sTypeDefName>([<sChildExp>] * <nMax>)"
+initVarSizeSequenceOfExpr(sTypeDefName, nMin, nMax, sChildExp) ::= "<sTypeDefName>(<nMin>, [<sChildExp>] * <nMax>)"
+
+
+initObjectIdentifierAsExpr() ::= <<
+{"nCount": 0, "values": [0] * OBJECT_IDENTIFIER_MAX_LENGTH}
+>>
+
+init_Asn1LocalTimeExpr() ::= <<
+{"hours": 0, "mins": 0, "sec": 0, "fraction": 0}
+>>
+
+init_Asn1UtcTimeExpr() ::= <<
+{"hours": 0, "mins": 0, "sec": 0, "fraction": 0}
+>>
+
+
+init_Asn1LocalTimeWithTimeZoneExpr() ::= <<
+{"hours": 0, "mins": 0, "sec": 0, "fraction": 0, "tz": {"sign": 0, "hours": 0, "mins": 0}}
+>>
+
+init_Asn1DateExpr() ::= <<
+{"years": 0, "months": 0, "days": 0}
+>>
+
+init_Asn1Date_LocalTimeExpr() ::= <<
+{"years": 0, "months": 0, "days": 0, "hours": 0, "mins": 0, "sec": 0, "fraction": 0}
+>>
+
+init_Asn1Date_UtcTimeExpr() ::= <<
+{"years": 0, "months": 0, "days": 0, "hours": 0, "mins": 0, "sec": 0, "fraction": 0}
+>>
+
+init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
+{"years": 0, "months": 0, "days": 0, "hours": 0, "mins": 0, "sec": 0, "fraction": 0, "tz": {"sign": 0, "hours": 0, "mins": 0}}
+>>
+
+initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= <<
+<if(bIsOptional)>
+<if(bIsAbsent)>
+<sChildName> = None
+<else>
+<sChildName> = <sChildExpr>
+<endif>
+<else>
+<sChildName> = <sChildExpr>
+<endif>
+>>
+initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= "<sChildName> = False if <nPresenceBit> == 0 else True"
+initSequenceExpr(sTypeDefName, arrsChildren, arrsOptionalChildren) ::= <<
+<sTypeDefName>(<arrsChildren; separator=", ">)
+>>
+
+initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "<sChildKind>(<sChildExpr>)"

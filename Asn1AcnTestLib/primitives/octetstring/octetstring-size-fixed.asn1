@@ -1,0 +1,27 @@
+-- Requirement 22: OCTET STRING with size constraints (fixed size)
+-- Tests OCTET STRING with SIZE(n) constraints
+
+OctetstringSizeFixed DEFINITIONS ::= BEGIN
+
+    OctetString4 ::= OCTET STRING (SIZE(4))
+
+    OctetString8 ::= OCTET STRING (SIZE(8))
+
+    OctetString16 ::= OCTET STRING (SIZE(16))
+
+    OctetString32 ::= OCTET STRING (SIZE(32))
+
+    OctetString64 ::= OCTET STRING (SIZE(64))
+
+    OctetString256 ::= OCTET STRING (SIZE(256))
+
+    TestStruct ::= SEQUENCE {
+        small OctetString4,
+        byte OctetString8,
+        word OctetString16,
+        dword OctetString32,
+        qword OctetString64,
+        large OctetString256
+    }
+
+END

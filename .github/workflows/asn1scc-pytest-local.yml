@@ -1,0 +1,87 @@
+name: Python Unit Tests
+
+on:
+  push:
+  workflow_dispatch: 
+
+jobs:
+  build-and-test:
+    runs-on: self-hosted
+
+    steps:
+      - name: Set owner of working dir recursively (Hotfix)
+        run: sudo chown -R $(id -u):$(id -g) .
+        
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Build Docker image
+        run: docker build -t asn1scc .
+      
+      - name: Generate Python Output
+        run: | 
+          docker run --rm \
+          -v ${{ github.workspace }}:/app \
+          -w /app \
+          asn1scc \
+          bash -c 'source "$HOME/.sdkman/bin/sdkman-init.sh" && dotnet build Antlr && dotnet build parseStg2 && ./generate-local-tests.sh'
+  
+      - name: Install python & pytest
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            asn1scc \
+            bash -c "uv venv --python 3.10 && uv init && uv add pytest pytest-xdist"
+          
+      - name: Run ASN1 Tests
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            asn1scc \
+            uv run pytest -n $(nproc) --junitxml=test-results-asn1.xml generated-python-output/asn1
+
+      - name: Run Testlib Tests
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            asn1scc \
+            uv run pytest -n $(nproc) --junitxml=test-results-testlib.xml -k "not (test_case_ACN_000519 or test_case_ACN_000520 or test_case_ACN_000527 or test_case_ACN_000528 or test_case_ACN_000794 or test_case_ACN_000796 or test_case_ACN_000798 or test_case_ACN_000800 or test_case_ACN_000802 or test_case_ACN_000804 or test_case_ACN_000806 or test_case_ACN_000808 or test_case_ACN_000810 or test_case_ACN_000812 or test_case_ACN_000814 or test_case_ACN_000816)" generated-python-output/testlib
+      
+      - name: Run ACN Tests
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            asn1scc \
+            uv run pytest -n $(nproc) --junitxml=test-results-acn.xml -k "not (test_case_ACN_000464 or test_case_ACN_000473 or test_case_ACN_000478 or test_case_ACN_000788 or test_case_ACN_000789 or test_case_ACN_000797 or test_case_ACN_000798)" generated-python-output/acn
+          
+      - name: Run uPER Testlib Tests
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            asn1scc \
+            uv run pytest -n $(nproc) --junitxml=test-results-acn.xml generated-python-output/testlib_uper
+          
+      - name: Run uPER ASN1 Tests
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            asn1scc \
+            uv run pytest -n $(nproc) --junitxml=test-results-acn.xml generated-python-output/asn1_uper
+  
+      - name: Upload test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            test-results-asn1.xml
+            test-results-acn.xml
+            test-results-testlib.xml

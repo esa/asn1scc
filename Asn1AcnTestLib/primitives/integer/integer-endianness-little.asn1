@@ -1,0 +1,18 @@
+-- Requirement 11: INTEGER with little-endian encoding
+-- Tests little-endian byte ordering in INTEGER encoding
+
+IntegerEndiannessLittle DEFINITIONS ::= BEGIN
+
+    LittleEndianInt16 ::= INTEGER (0..65535)
+
+    LittleEndianInt32 ::= INTEGER (0..4294967295)
+
+    LittleEndianInt64 ::= INTEGER (0..18446744073709551615)
+
+    TestStruct ::= SEQUENCE {
+        value16 LittleEndianInt16,
+        value32 LittleEndianInt32,
+        value64 LittleEndianInt64
+    }
+
+END

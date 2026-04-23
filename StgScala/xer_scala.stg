@@ -84,7 +84,7 @@ ret = Xer_EncodeInteger(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 Integer_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = Xer_DecodeInteger(pByteStrm, <sTag>, <p>, pErrCode);
 <if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
+*pErrCode = ret ? 0 : <sErrCode>;
 >>
 
 IntegerPos_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<

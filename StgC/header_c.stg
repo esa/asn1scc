@@ -209,7 +209,7 @@ typedef struct {
 } <td.typeName>;
 >>
 
-Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize) ::= <<
 typedef <prTd.typeName> <td.typeName>;
 >>
 

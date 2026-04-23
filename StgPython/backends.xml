@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Settings generateInterfacesSignature="ILang.fs">
+  <run mode="single">
+    <input>header_python.stg</input>
+    <output>header_python.stg.fs</output>
+    <modName>header_python</modName>
+	<lang>python</lang>
+    <abctractInterface   modMame="ITypeDefinition">ITypeDefinition.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.ITypeDefinition" modMame="ITypeDefinition_python">ITypeDefinition_python.stg.fs</implementationClass>
+  </run>
+  <run mode="single">
+    <input>body_python.stg</input>
+    <output>body_python.stg.fs</output>
+    <modName>body_python</modName>
+	<lang>python</lang>
+    <abctractInterface   modMame="ISrcBody">ISrcBody.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.ISrcBody" modMame="ISrcBody_python">ISrcBody_python.stg.fs</implementationClass>
+  </run>
+  <run mode="single">
+    <input>variables_python.stg</input>
+    <output>variables_python.stg.fs</output>
+    <modName>variables_python</modName>
+    <abctractInterface   modMame="IVariables">IVariables.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IVariables" modMame="IVariables_python">IVariables_python.stg.fs</implementationClass>
+	<lang>python</lang>
+  </run>
+
+  <run mode="single">
+    <input>equal_python.stg</input>
+    <output>equal_python.stg.fs</output>
+    <modName>equal_python</modName>
+	<lang>python</lang>
+    <abctractInterface   modMame="IEqual">IEqual.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IEqual" modMame="IEqual_python">IEqual_python.stg.fs</implementationClass>
+  </run>
+  <run mode="single" >
+    <input>isvalid_python.stg</input>
+    <output>isvalid_python.stg.fs</output>
+    <modName>isvalid_python</modName>
+	<lang>python</lang>
+    <abctractInterface   modMame="IIsValid">IIsValid.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IIsValid" modMame="IIsValid_python">IIsValid_python.stg.fs</implementationClass>
+   </run>
+    <run mode="single">
+        <input>init_python.stg</input>
+        <output>init_python.stg.fs</output>
+        <modName>init_python</modName>
+	    <lang>python</lang>
+        <abctractInterface   modMame="IInit">IInit.stg.fs</abctractInterface>
+		<implementationClass ifModMame="AbstractMacros.IInit" modMame="IInit_python">IInit_python.stg.fs</implementationClass>
+	</run>
+  <run mode="single">
+    <input>uper_python.stg</input>
+    <output>uper_python.stg.fs</output>
+    <modName>uper_python</modName>
+	<lang>python</lang>
+    <abctractInterface   modMame="IUper">IUper.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IUper" modMame="IUper_python">IUper_python.stg.fs</implementationClass>
+  </run>
+  <run mode="single">
+    <input>acn_python.stg</input>
+    <output>acn_python.stg.fs</output>
+    <modName>acn_python</modName>
+	<interfaces_def></interfaces_def>
+	<lang>python</lang>
+	
+    <abctractInterface   modMame="IAcn">IAcn.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IAcn" modMame="IAcn_python">IAcn_python.stg.fs</implementationClass>
+
+  </run>
+  <run mode="single">
+        <input>xer_python.stg</input>
+        <output>xer_python.stg.fs</output>
+        <modName>xer_python</modName>
+        <lang>python</lang>
+    <abctractInterface   modMame="IXer">IXer.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IXer" modMame="IXer_python">IXer_python.stg.fs</implementationClass>
+  </run>
+  <run mode="single">
+      <input>test_cases_python.stg</input>
+      <output>test_cases_python.stg.fs</output>
+      <modName>test_cases_python</modName>
+      <lang>python</lang>
+      <abctractInterface   modMame="ITestCases">ITestCases.stg.fs</abctractInterface>
+	  <implementationClass ifModMame="AbstractMacros.ITestCases" modMame="ITestCases_python">ITestCases_python.stg.fs</implementationClass>
+  </run>
+  <run mode="single">
+      <input>aux_python.stg</input>
+      <output>aux_python.stg.fs</output>
+      <modName>aux_python</modName>
+      <lang>python</lang>
+    <abctractInterface   modMame="IAux">IAux.stg.fs</abctractInterface>
+  </run>
+
+</Settings>

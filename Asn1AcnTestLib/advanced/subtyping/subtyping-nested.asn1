@@ -1,0 +1,37 @@
+-- Requirement 37 & 52: Nested subtyping constraints
+-- Tests complex nested subtyping scenarios
+
+SubtypingNested DEFINITIONS ::= BEGIN
+
+    -- Base types with progressive refinement
+    PositiveInt ::= INTEGER (0..2147483647)
+    SmallPositiveInt ::= PositiveInt (0..1000)
+    TinyPositiveInt ::= SmallPositiveInt (0..100)
+
+    -- Sequence with constrained components
+    DataRecord ::= SEQUENCE {
+        id INTEGER,
+        value REAL,
+        status ENUMERATED { idle(0), active(1), error(2) }
+    }
+
+    -- Subtype with nested constraints on components
+    ActiveDataRecord ::= DataRecord (WITH COMPONENTS {
+        id (1..1000),
+        value (0.0..100.0),
+        status (active)
+    })
+
+    -- Array with element constraints
+    NumberArray ::= SEQUENCE (SIZE(1..100)) OF INTEGER
+
+    -- Subtype with additional size and element constraints
+    SmallNumberArray ::= NumberArray (SIZE(1..10)) (WITH COMPONENT (0..255))
+
+    TestStruct ::= SEQUENCE {
+        tiny TinyPositiveInt,
+        record ActiveDataRecord,
+        numbers SmallNumberArray
+    }
+
+END
