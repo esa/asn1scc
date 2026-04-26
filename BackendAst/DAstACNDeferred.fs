@@ -330,68 +330,6 @@ let collectDeferredDetNames (children: SeqChildInfo list) : Set<string> =
 //  Deferred SEQUENCE function
 // ---------------------------------------------------------------------------
 
-/// Create a **synthetic** AcnChild node that emits fallback PatchDet code.
-///
-/// This is NOT a real ASN.1 or ACN field.  It is a fake child node injected
-/// at the END of the children list so that the fold in
-/// createSequenceFunction_inline includes the fallback code inside the
-/// nested if(ret) chain — and, critically, inside the TAS function text
-/// that is baked by createAcnFunction (which cannot be modified after the
-/// fact via closure wrapping).
-///
-/// For Encode, the funcBody emits the fallback PatchDet checks.
-/// For Decode, it emits nothing (empty string).
-///
-/// See computeFallbackDetValue for the rationale behind the fallback
-/// mechanism and the choice of default values.
-let private makeFallbackPatchChild
-        (lm: LanguageMacros)
-        (codec: CommonTypes.Codec)
-        (parentType: Asn1AcnAst.Asn1Type)
-        (fallbackCode: string) : SeqChildInfo =
-    let syntheticName = "_fallback_patch"
-    let (ReferenceToType parentPath) = parentType.id
-    let syntheticId = ReferenceToType (parentPath @ [SQF])
-    let dummyLoc = parentType.Location
-    let dummyNullType = Asn1AcnAst.AcnInsertedType.AcnNullType {
-        Asn1AcnAst.AcnNullType.acnProperties = { NullTypeAcnProperties.encodingPattern = None; savePosition = false }
-        acnAlignment = None
-        acnMaxSizeInBits = 0I
-        acnMinSizeInBits = 0I
-        Location = dummyLoc
-        defaultValue = ""
-    }
-    let funcBody : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> string -> (AcnFuncBodyResult option) =
-        fun innerCodec _acnArgs _nestingScope _p _bsPos ->
-            let body =
-                match innerCodec with
-                | CommonTypes.Codec.Encode -> fallbackCode
-                | CommonTypes.Codec.Decode -> ""
-            Some {
-                AcnFuncBodyResult.funcBody = body
-                errCodes = []
-                localVariables = []
-                bValIsUnReferenced = false
-                bBsIsUnReferenced = false
-                resultExpr = None
-                auxiliaries = []
-                icdResult = None
-                userDefinedFunctions = []
-            }
-    DAst.AcnChild {
-        DAst.AcnChild.Name = { StringLoc.Value = syntheticName; Location = dummyLoc }
-        c_name = syntheticName
-        id = syntheticId
-        Type = dummyNullType
-        typeDefinitionBodyWithinSeq = ""
-        funcBody = funcBody
-        funcUpdateStatement = None
-        Comments = [||]
-        deps = { Asn1AcnAst.AcnInsertedFieldDependencies.acnDependencies = [] }
-        initExpression = ""
-    }
-
-
 /// Deferred version of createSequenceFunction.
 /// Pre-processes the children list:
 ///   1. For each unique argument name referenced by child ReferenceTypes'
@@ -427,7 +365,7 @@ let private createDeferredSequenceFunction
 
     // If no deferred determinants, use the inline version as-is
     if deferredDetNames.IsEmpty then
-        DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc children acnPrms us
+        DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc children acnPrms None us
     else
         // Collect the names of direct ACN children in this SEQUENCE
         let directAcnChildNames =
@@ -598,7 +536,7 @@ let private createDeferredSequenceFunction
         // funcBody (createDeferredReferenceFunction), via its localVariables
         // result.  Nothing to do here.
 
-        // Collect fallback PatchDet info for local deferred dets (encode only).
+        // Compute fallback PatchDet code for local deferred dets (encode only).
         // When all consumers of a shared determinant are absent at runtime
         // (e.g., present-when booleans are false, or a CHOICE branch was not
         // taken), no PatchDet is called and the InitDet placeholder (zeros)
@@ -606,12 +544,10 @@ let private createDeferredSequenceFunction
         // does not reject the bitstream.  See computeFallbackDetValue for
         // detailed rationale.
         //
-        // We inject this as a **synthetic child** appended at the END of the
-        // children list.  This is NOT a real ASN.1 or ACN field — it is a
-        // fake AcnChild node whose sole purpose is to emit the fallback code
-        // inside the fold's nested if(ret) chain, which is the only way to
-        // get it into the TAS function text (baked inside createAcnFunction).
-        let fallbackChildren =
+        // The string is passed to createSequenceFunction_inline via its
+        // fallbackEpilogue parameter — appended verbatim inside the encode
+        // body's nested if(ret) chain.
+        let fallbackEpilogue =
             match codec with
             | CommonTypes.Codec.Encode ->
                 let fallbackDets =
@@ -627,7 +563,7 @@ let private createDeferredSequenceFunction
                             | None -> None
                         | _ -> None)
                 match fallbackDets with
-                | [] -> []
+                | [] -> None
                 | _ ->
                     let fallbackCode =
                         fallbackDets |> List.map (fun (detVarName, patchFn, nBitsOpt, defaultVal, acnType) ->
@@ -649,12 +585,10 @@ let private createDeferredSequenceFunction
                             | Asn1AcnAst.AcnInsertedType.AcnNullType _ ->
                                 failwithf "BUG: AcnNullType should not appear as a deferred determinant"
                         ) |> String.concat "\n"
-                    [makeFallbackPatchChild lm codec t fallbackCode]
-            | CommonTypes.Codec.Decode -> []
+                    Some fallbackCode
+            | CommonTypes.Codec.Decode -> None
 
-        let allChildren = modifiedChildren @ fallbackChildren
-
-        DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc allChildren acnPrms us
+        DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc modifiedChildren acnPrms fallbackEpilogue us
 
 
 // ---------------------------------------------------------------------------
@@ -1241,7 +1175,7 @@ let createSequenceFunction
         (us:State) =
     match r.args.acnDeferred with
     | true  -> createDeferredSequenceFunction r deps lm codec t o typeDefinition isValidFunc children acnPrms us
-    | false -> DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc children acnPrms us
+    | false -> DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc children acnPrms None us
 
 
 // ---------------------------------------------------------------------------
