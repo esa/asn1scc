@@ -29,6 +29,11 @@
     <Compile Include="Acn/AcnEnum.fs" />
     <Compile Include="Acn/AcnStrings.fs" />
     <Compile Include="Acn/AcnOctetBitStrings.fs" />
+    <Compile Include="Acn/AcnSequenceOf.fs" />
+    <Compile Include="Acn/AcnDependencies.fs" />
+    <Compile Include="Acn/AcnSequence.fs" />
+    <Compile Include="Acn/AcnChoice.fs" />
+    <Compile Include="Acn/AcnReference.fs" />
     <Compile Include="DAstACN.fs" />
     <Compile Include="DAstACNDeferred.fs" />
     <Compile Include="DAstProgramUnit.fs" />
