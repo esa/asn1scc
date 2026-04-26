@@ -20,6 +20,7 @@
     <Compile Include="DAstUPer.fs" />
     <Compile Include="DAstXer.fs" />
     <Compile Include="Acn/AcnHelpers.fs" />
+    <Compile Include="Acn/AcnExpression.fs" />
     <Compile Include="Acn/AcnDeterminantDef.fs" />
     <Compile Include="Acn/AcnAlignment.fs" />
     <Compile Include="Acn/AcnIcd.fs" />
