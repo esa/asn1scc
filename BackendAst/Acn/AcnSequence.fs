@@ -41,6 +41,32 @@ type private SequenceChildResult = {
     member this.joinedBodies (lm:LanguageMacros) (codec:CommonTypes.Codec): string option =
         this.stmts |> List.choose (fun s -> s.body) |> nestChildItems lm codec
 
+// Emit the uPER presence-bit statement for an optional ASN.1 child whose
+// presence is *not* governed by an ACN `present-when` clause.  Returns
+// `None` if the child has no uPER presence bit (mandatory, AlwaysPresent,
+// AlwaysAbsent, or ACN-driven optional).
+let private printPresenceBit
+    (lm:LanguageMacros)
+    (p:CodegenScope)
+    (errCode:ErrorCode)
+    (codec:CommonTypes.Codec)
+    (child:Asn1Child)
+    (existVar:string option) : string option =
+    match child.Optionality with
+    | Some (Asn1AcnAst.Optional opt) ->
+        match opt.acnPresentWhen with
+        | None ->
+            assert (codec = Encode || existVar.IsSome)
+            Some (lm.acn.sequence_presence_optChild
+                    (p.accessPath.joined lm.lg)
+                    (lm.lg.getAccess p.accessPath)
+                    (lm.lg.getAsn1ChildBackendName child)
+                    existVar
+                    errCode.errCodeName
+                    codec)
+        | Some _ -> None
+    | _ -> None
+
 let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (acnPrms:DastAcnParameter list) (us:State)  =
     (*
         1. all Acn inserted children are declared as local variables in the encoded and decode functions (declaration step)
@@ -149,16 +175,6 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             | None    -> [] // acnPrms |>  List.map(fun x -> AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq))
         let acnlocalVariables = acnlocalVariablesCh @ acnlocalVariablesPrms
         //let acnParams =  r.acnParameters |> List.filter(fun  prm -> prm.ModName )
-
-        let printPresenceBit (child:Asn1Child) (existVar: string option)=
-            match child.Optionality with
-            | Some (Asn1AcnAst.Optional opt)   ->
-                match opt.acnPresentWhen with
-                | None ->
-                    assert (codec = Encode || existVar.IsSome)
-                    Some (sequence_presence_optChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName child) existVar errCode.errCodeName codec)
-                | Some _ -> None
-            | _ -> None
 
         let localVariables = acnlocalVariables
         let td = lm.lg.getSequenceTypeDefinition o.typeDef
@@ -403,7 +419,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         let presenceBits = ((List.zip children childrenStatements00)
             |> List.choose (fun (child, res) ->
                 match child with
-                | Asn1Child asn1 -> printPresenceBit asn1 res.existVar
+                | Asn1Child asn1 -> printPresenceBit lm p errCode codec asn1 res.existVar
                 | AcnChild _ -> None))
         let seqProofGen =
             let children = childrenStatements00 |> List.map (fun xs -> xs.props)
