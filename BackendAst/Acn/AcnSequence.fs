@@ -123,8 +123,6 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
 
         ret
 
-    //let baseFuncName =  match baseTypeUperFunc  with None -> None | Some baseFunc -> baseFunc.funcName
-
     let acnChildren = children |>  List.choose(fun x -> match x with AcnChild z -> Some z | Asn1Child _ -> None)
     let asn1Children = children |>  List.choose(fun x -> match x with Asn1Child z -> Some z | AcnChild _ -> None)
     let sPresenceBitIndexMap  =
@@ -263,10 +261,6 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 | _ ->  localVariables, None, None, None
 
         let handleChild (s: SequenceChildState) (childInfo: SeqChildInfo): SequenceChildResult * SequenceChildState =
-            // This binding is suspect, isn't it
-            //let stateHash = getStateHash s.us
-            //printfn "child is %s" childInfo.Name
-            //printf "State hash: %s\n" stateHash
             let us = s.us
             let soSaveBitStrmPosStatement = None
             let childNestingScope =

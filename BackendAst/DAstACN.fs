@@ -101,56 +101,6 @@ let createChoiceFunction = AcnChoice.createChoiceFunction
 let emptyIcdFnc = AcnReference.emptyIcdFnc
 let createReferenceFunction_inline = AcnReference.createReferenceFunction_inline
 
-(*
-If the type assignment has acnParameters, then no function is generated. This function can only be inlined by the calling function
-(i.e. by the parent type encoding function).
-Now, we have to make this rule recursive: 
-A composite type (e.g SEQUENCE, choice etc ) may have references (i.e. reference types) to a type assignment that has acnParameters.
-In this case, the reference must have arguments in the acn in the form <arg1,arg2, ...>
-These argument can either ACN inserted fields or acnParameters.
-If the reference type is written explicitly in the acn, by the user, then the arguments must be checked to be inline with the acnParameters.
-If they are not, the user gets an error.
-
-However, there are cases where the reference type is not written explicitly by the user in the acn grammar, 
-but is infered by the compiler. For example, 
-
-The following asn1 grammar define two types:
-CfdpPDU ::= SEQUENCE {
-   pdu-header PDUHeader,
-   payload OCTET STRING (CONTAINING PayloadData)
-}
-PayloadData ::= CHOICE {
-   file-directive FileDirectiveType,
-   file-data FileDataType
-}
-FileDataType ::= SEQUENCE {
-   file-data-pdu FileDataPDU
-}
-
-However the acn grammar provides defintions only for CfdpPDU and FileDataType, not PayloadData. In fact, the PayloadData acn spec
-is provided inline in the CfdpPDU acn spec, not at the PayloadData Type Assignment Level. 
-CfdpPDU [] {
-   pdu-header                                [] {
-      pdu-type                               PDUType [encoding pos-int, size 1],
-      pdu-data-field-length                  PDUDataFieldLength [encoding pos-int, size 16]
-   },
-   payload                                   [size pdu-header.pdu-data-field-length] {
-      file-directive                         [present-when pdu-header.pdu-type==0],
-      file-data                              <pdu-header.pdu-data-field-length> [present-when pdu-header.pdu-type==1]
-   }
-}
-FileDataType <PDUDataFieldLength:pdu-data-field-length> [] {
-   file-data-pdu                             <pdu-data-field-length> []
-}
-
-Therefore, the compiler uses a defult acn specs for the PayloadData type assignment, which is not provided by the user.
-In this case the file-data reference type has no acnArgs. This means that no acn function must be generated for the FileDataType type assignment.
-
-*)
-
-
-
-
 // External-field / determinant lookup helpers — moved to BackendAst/Acn/AcnExternalField.fs.
 let getExternalField0 = AcnExternalField.getExternalField0
 let getExternalField0Type = AcnExternalField.getExternalField0Type
