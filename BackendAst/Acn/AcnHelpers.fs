@@ -23,3 +23,18 @@ let getAcnDeterminantName = AcnCreateFromAntlr.getAcnDeterminantName
 let adaptArgument = DAstUPer.adaptArgument
 let adaptArgumentValue = DAstUPer.adaptArgumentValue
 let joinedOrAsIdentifier = DAstUPer.joinedOrAsIdentifier
+
+/// Build a function-call string and insert extra actual parameters before
+/// the closing ");".  For example:
+///   "ret = Fn(pVal, pBitStrm, pErrCode, FALSE);"
+/// becomes:
+///   "ret = Fn(pVal, pBitStrm, pErrCode, FALSE, &det1);"
+let insertActualParams (baseFuncCall: string) (extraActualParams: string list) : string =
+    if extraActualParams.IsEmpty then
+        baseFuncCall
+    else
+        let insertIdx = baseFuncCall.LastIndexOf(")")
+        if insertIdx > 0 then
+            baseFuncCall.[..insertIdx-1] + ", " + (extraActualParams |> String.concat ", ") + baseFuncCall.[insertIdx..]
+        else
+            baseFuncCall

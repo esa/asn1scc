@@ -17,6 +17,9 @@ open DAst
 open DAstUtilFunctions
 open Language
 
+open AcnHelpers
+open AcnDependencies
+
 
 // ---------------------------------------------------------------------------
 //  Helper: map IntEncodingClass → C runtime InitDet/PatchDet function names
@@ -657,38 +660,6 @@ let private createDeferredSequenceFunction
 // ---------------------------------------------------------------------------
 //  Deferred REFERENCE function
 // ---------------------------------------------------------------------------
-
-let private callBaseTypeFunc (lm:LanguageMacros) = lm.uper.call_base_type_func
-
-/// Build a function-call string and insert extra actual parameters before
-/// the closing ");".  For example:
-///   "ret = Fn(pVal, pBitStrm, pErrCode, FALSE);"
-/// becomes:
-///   "ret = Fn(pVal, pBitStrm, pErrCode, FALSE, &det1);"
-let private insertActualParams (baseFuncCall: string) (extraActualParams: string list) : string =
-    if extraActualParams.IsEmpty then
-        baseFuncCall
-    else
-        let insertIdx = baseFuncCall.LastIndexOf(")")
-        if insertIdx > 0 then
-            baseFuncCall.[..insertIdx-1] + ", " + (extraActualParams |> String.concat ", ") + baseFuncCall.[insertIdx..]
-        else
-            baseFuncCall
-
-
-/// Find which acnParameter is the CONTAINING size determinant by checking
-/// the dependency list for AcnDepSizeDeterminant_bit_oct_str_contain.
-/// Returns the parameter, or None if not found.
-let private findContainingSizeParam
-        (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
-        (o: Asn1AcnAst.ReferenceType) : AcnGenericTypes.AcnParameter option =
-    o.resolvedType.acnParameters |> List.tryFind (fun prm ->
-        deps.acnDependencies |> List.exists (fun d ->
-            d.determinant.id = prm.id
-            && (match d.dependencyKind with
-                | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
-                | _ -> false)))
-
 
 /// After boundary post-processing rewrites &name → formal param name in the
 /// body text, the matching AcnInsertedFieldRef local variable declarations

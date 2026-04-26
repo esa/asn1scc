@@ -47,6 +47,20 @@ let resolveDepScope (nestingScope: NestingScope) (pSrcRoot: CodegenScope) (depPa
     | None ->
         pSrcRoot, depPath
 
+/// Find which acnParameter is the CONTAINING size determinant by checking
+/// the dependency list for AcnDepSizeDeterminant_bit_oct_str_contain.
+/// Returns the parameter, or None if not found.
+let findContainingSizeParam
+        (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
+        (o: Asn1AcnAst.ReferenceType) : AcnGenericTypes.AcnParameter option =
+    o.resolvedType.acnParameters |> List.tryFind (fun prm ->
+        deps.acnDependencies |> List.exists (fun d ->
+            d.determinant.id = prm.id
+            && (match d.dependencyKind with
+                | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
+                | _ -> false)))
+
+
 // Context bundle threaded through every per-case handler in
 // handleSingleUpdateDependency.  Five fields — well below the >12 threshold
 // at which the split would be the wrong shape (per refactor plan §5).
