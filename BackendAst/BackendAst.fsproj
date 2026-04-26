@@ -19,6 +19,12 @@
     <Compile Include="DAstInitialize.fs" />
     <Compile Include="DAstUPer.fs" />
     <Compile Include="DAstXer.fs" />
+    <Compile Include="Acn/AcnHelpers.fs" />
+    <Compile Include="Acn/AcnDeterminantDef.fs" />
+    <Compile Include="Acn/AcnAlignment.fs" />
+    <Compile Include="Acn/AcnIcd.fs" />
+    <Compile Include="Acn/AcnExternalField.fs" />
+    <Compile Include="Acn/AcnFunctionWrapper.fs" />
     <Compile Include="DAstACN.fs" />
     <Compile Include="DAstACNDeferred.fs" />
     <Compile Include="DAstProgramUnit.fs" />

@@ -15,215 +15,38 @@ open System.Globalization
 open Language
 
 
-let foldMap = Asn1Fold.foldMap
+// --- Re-exports from extracted modules (see BackendAst/Acn/) ---
+// The helpers below were moved to BackendAst/Acn/Acn{Helpers,DeterminantDef,Alignment,Icd}.fs.
+// They are re-exported here so external callers that reference them as
+// `DAstACN.foo` keep working unchanged.
+let foldMap = AcnHelpers.foldMap
+let callBaseTypeFunc = AcnHelpers.callBaseTypeFunc
+let sparkAnnotations = AcnHelpers.sparkAnnotations
+let THREE_DOTS = AcnHelpers.THREE_DOTS
+let getAcnDeterminantName = AcnHelpers.getAcnDeterminantName
+let adaptArgument = AcnHelpers.adaptArgument
+let adaptArgumentValue = AcnHelpers.adaptArgumentValue
+let joinedOrAsIdentifier = AcnHelpers.joinedOrAsIdentifier
 
+let getDeterminantTypeDefinitionBodyWithinSeq = AcnDeterminantDef.getDeterminantTypeDefinitionBodyWithinSeq
+let getDeterminant_macro = AcnDeterminantDef.getDeterminant_macro
+let getDeterminantTypeUpdateMacro = AcnDeterminantDef.getDeterminantTypeUpdateMacro
+let getDeterminantTypeCheckEqual = AcnDeterminantDef.getDeterminantTypeCheckEqual
 
-let callBaseTypeFunc (lm:LanguageMacros) = lm.uper.call_base_type_func
+type FuncBody = AcnAlignment.FuncBody
+type FuncBodyStateless = AcnAlignment.FuncBodyStateless
+let handleSavePosition = AcnAlignment.handleSavePosition
+let handleAlignmentForAsn1Types = AcnAlignment.handleAlignmentForAsn1Types
+let handleAlignmentForAcnTypes = AcnAlignment.handleAlignmentForAcnTypes
 
-let sparkAnnotations (lm:LanguageMacros)  = lm.acn.sparkAnnotations
+let md5 = AcnIcd.md5
+let createIcdTas = AcnIcd.createIcdTas
 
-let THREE_DOTS = {IcdRow.fieldName = ""; comments = []; sPresent="";sType= IcdPlainType ""; sConstraint=None; minLengthInBits = 0I; maxLengthInBits=0I;sUnits=None; rowType = IcdRowType.ThreeDOTs; idxOffset = None}
-
-let getAcnDeterminantName = AcnCreateFromAntlr.getAcnDeterminantName
-
-
-let getDeterminantTypeDefinitionBodyWithinSeq (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (det:Determinant) =
-    let createPrmAcnInteger (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  =
-        let Declare_Integer     =  lm.typeDef.Declare_Integer
-        Declare_Integer ()
-
-    let createAcnInteger (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (a:Asn1AcnAst.AcnInteger) =
-        let intClass = getAcnIntegerClass r.args a
-        let stgMacro = DAstTypeDefinition.getIntegerTypeByClass lm intClass
-        stgMacro ()
-
-    let createAcnBoolean (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) =
-        lm.typeDef.Declare_Boolean ()
-
-    let createAcnNull (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) =
-        lm.typeDef.Declare_Null ()
-
-    let getTypeDefinitionName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (id : ReferenceToType) =
-        let longName = id.AcnAbsPath.Tail |> Seq.StrJoin "_"
-        ToC2(r.args.TypePrefix + longName.Replace("#","elem"))
-
-    match det with
-    | AcnChildDeterminant       ch ->
-        match ch.Type with
-        | Asn1AcnAst.AcnInteger  a -> createAcnInteger r lm a
-        | Asn1AcnAst.AcnNullType _ -> createAcnNull r lm
-        | Asn1AcnAst.AcnBoolean  _ -> createAcnBoolean r lm
-        | Asn1AcnAst.AcnReferenceToEnumerated a -> ToC2(r.args.TypePrefix + a.tasName.Value)
-        | Asn1AcnAst.AcnReferenceToIA5String a -> ToC2(r.args.TypePrefix + a.tasName.Value)
-
-    | AcnParameterDeterminant   prm ->
-        match prm.asn1Type with
-        | AcnGenericTypes.AcnPrmInteger  _       -> createPrmAcnInteger r lm
-        | AcnGenericTypes.AcnPrmBoolean  _       -> createAcnBoolean r lm
-        | AcnGenericTypes.AcnPrmNullType _       -> createAcnNull r lm
-        | AcnGenericTypes.AcnPrmRefType (md,ts)  ->
-            getTypeDefinitionName r lm (ReferenceToType [MD md.Value; TA ts.Value])
-
-
-let getDeterminant_macro (det:Determinant) pri_macro str_macro =
-    match det with
-    | AcnChildDeterminant ch ->
-        match ch.Type with
-        | Asn1AcnAst.AcnReferenceToIA5String _ -> str_macro
-        | _ -> pri_macro
-    | AcnParameterDeterminant prm -> pri_macro
-
-let getDeterminantTypeUpdateMacro (lm:LanguageMacros) (det:Determinant) =
-    let MultiAcnUpdate_get_first_init_value_pri     =  lm.acn.MultiAcnUpdate_get_first_init_value_pri
-    let MultiAcnUpdate_get_first_init_value_str     =  lm.acn.MultiAcnUpdate_get_first_init_value_str
-    getDeterminant_macro det MultiAcnUpdate_get_first_init_value_pri MultiAcnUpdate_get_first_init_value_str
-
-let getDeterminantTypeCheckEqual (lm:LanguageMacros) (det:Determinant) =
-    let multiAcnUpdate_checkEqual_pri     =  lm.acn.MultiAcnUpdate_checkEqual_pri
-    let multiAcnUpdate_checkEqual_str     =  lm.acn.MultiAcnUpdate_checkEqual_str
-    getDeterminant_macro det multiAcnUpdate_checkEqual_pri multiAcnUpdate_checkEqual_str
-
-
-type FuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CodegenScope -> (AcnFuncBodyResult option) * State
-type FuncBodyStateless = Codec -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CodegenScope -> string -> AcnFuncBodyResult option
-
-let handleSavePosition (funcBody: FuncBody)
-                       (savePosition: bool)
-                       (c_name: string)
-                       (lvName: string) (* Bitsream position local variable name *)
-                       (typeId:ReferenceToType)
-                       (lm:LanguageMacros)
-                       (codec:CommonTypes.Codec): FuncBody =
-    match savePosition with
-    | false -> funcBody
-    | true  ->
-        let newFuncBody st errCode prms nestingScope (p:CodegenScope) =
-            let content, ns1a = funcBody st errCode prms nestingScope p
-            let sequence_save_bitstream                 = lm.acn.sequence_save_bitstream
-            let savePositionStatement = sequence_save_bitstream lvName c_name codec
-            let newContent =
-                match content with
-                | Some bodyResult   ->
-                    let funcBodyStr = sprintf "%s\n%s" savePositionStatement bodyResult.funcBody
-                    Some {bodyResult with funcBody  = funcBodyStr}
-                | None              ->
-                    let funcBodyStr = savePositionStatement
-                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; auxiliaries = []; icdResult = None }
-            newContent, ns1a
-        newFuncBody
-
-let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
-                                (lm:LanguageMacros)
-                                (codec:CommonTypes.Codec)
-                                (acnAlignment: AcnAlignment option)
-                                (funcBody: FuncBody): FuncBody  =
-    let alignToNext =  lm.acn.alignToNext
-    match acnAlignment with
-    | None      -> funcBody
-    | Some al   ->
-        let alStr, nAlignmentVal =
-            match al with
-            | AcnGenericTypes.NextByte ->
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> "Byte", 8I
-                | _ -> "NextByte", 8I
-            | AcnGenericTypes.NextWord ->
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> "Short", 16I
-                | _ -> "NextWord", 16I
-            | AcnGenericTypes.NextDWord ->
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> "Int", 32I
-                | _ -> "NextDWord", 32I
-        let newFuncBody st errCode prms nestingScope p =
-            let content, ns1a = funcBody st errCode prms nestingScope p
-            let newContent =
-                match content with
-                | Some bodyResult   ->
-                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
-                    Some {bodyResult with funcBody  = funcBodyStr}
-                | None              ->
-                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
-                    Some {funcBody = funcBodyStr; errCodes =[errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; auxiliaries = []; icdResult=None}
-            newContent, ns1a
-        newFuncBody
-
-let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
-                               (lm:LanguageMacros)
-                               (acnAlignment : AcnAlignment option)
-                               (funcBody: FuncBodyStateless): FuncBodyStateless =
-    let alignToNext = lm.acn.alignToNext
-    match acnAlignment with
-    | None      -> funcBody
-    | Some al   ->
-        let alStr, nAlignmentVal =
-            match al with
-            | AcnGenericTypes.NextByte   -> "NextByte", 8I
-            | AcnGenericTypes.NextWord   -> "NextWord", 16I
-            | AcnGenericTypes.NextDWord  -> "NextDWord", 32I
-        let newFuncBody (codec:CommonTypes.Codec) (prms: (RelativePath * AcnParameter) list) (nestingScope: NestingScope) (p: CodegenScope) (lvName:string) =
-            let content = funcBody codec prms nestingScope p lvName
-            let newContent =
-                match content with
-                | Some bodyResult   ->
-                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
-                    Some {bodyResult with funcBody  = funcBodyStr}
-                | None              ->
-                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
-                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; auxiliaries = []; icdResult= None}
-            newContent
-        newFuncBody
-
-let md5 = System.Security.Cryptography.MD5.Create()
-
-let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) (td:FE_TypeDefinition) (typeDefinition:TypeDefinitionOrReference) nMinBytesInACN nMaxBytesInACN hasAcnDefinition =
-    let icdRows, compositeChildren = icdAux.rowsFunc "" "" [];
-    let icdTas =
-        {
-            IcdTypeAss.typeId = id
-            tasInfo = id.tasInfo
-            asn1Link = None;
-            acnLink = None;
-            name =
-                match icdAux.name with
-                | Some n -> n
-                | None   -> td.asn1Name
-            kind = icdAux.baseAsn1Kind;
-            canBeEmbedded  = icdAux.canBeEmbedded
-            createRowsFunc = icdAux.rowsFunc
-            comments =
-                let asn1Comments =
-                    match id.tasInfo with
-                    | None -> []
-                    | Some tasInfo ->
-                        (*
-                        match r.Modules |> Seq.tryFind(fun m -> m.Name.Value = tasInfo.modName) with
-                        | None -> []
-                        | Some m ->
-                            match m.TypeAssignments |> Seq.tryFind(fun ts -> ts.Name.Value = tasInfo.tasName) with
-                            | None -> []
-                            | Some ts -> ts.Comments |> Seq.toList
-                            *)
-                        match r.typeAssignmentsMap.TryFind (tasInfo.modName, tasInfo.tasName) with
-                        | None -> []
-                        | Some ts -> ts.Comments |> Seq.toList
-
-                asn1Comments@icdAux.commentsForTas
-            rows  = icdRows
-            compositeChildren = compositeChildren
-            minLengthInBytes = nMinBytesInACN;
-            maxLengthInBytes = nMaxBytesInACN
-            hasAcnDefinition = hasAcnDefinition
-            hash = "" // will be calculated later
-        }
-    let icdHash = CalculateIcdHash.calcIcdTypeAssHash icdTas
-    {icdTas with hash = icdHash}
-
-
-let adaptArgument = DAstUPer.adaptArgument
-let adaptArgumentValue = DAstUPer.adaptArgumentValue
-
-let joinedOrAsIdentifier = DAstUPer.joinedOrAsIdentifier
+// `createAcnFunction` is the generic dispatcher that wraps a per-type
+// `funcBody` with alignment, save-position handling, error-code generation,
+// ICD support, Spark annotations and test-case validation.  See
+// BackendAst/Acn/AcnFunctionWrapper.fs for the implementation.
+let createAcnFunction = AcnFunctionWrapper.createAcnFunction
 
 (*
 If the type assignment has acnParameters, then no function is generated. This function can only be inlined by the calling function
@@ -272,159 +95,6 @@ In this case the file-data reference type has no acnArgs. This means that no acn
 
 *)
 
-
-let createAcnFunction (r: Asn1AcnAst.AstRoot)
-                              (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
-                              (lm: LanguageMacros)
-                              (codec: CommonTypes.Codec)
-                              (t: Asn1AcnAst.Asn1Type)
-                              (typeDefinition: TypeDefinitionOrReference)
-                              (isValidFunc: IsValidFunction option)
-                              (funcBody: FuncBody)
-                              isTestVaseValid
-                              (soSparkAnnotations: string option)
-                              (funcDefAnnots: string list)
-                              (us: State) =
-    let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
-    let funcNameBase = td.typeName + "_ACN"
-    let funcNameAndtasInfo   =
-        match t.acnParameters with
-        | []    ->
-            match t.id.tasInfo with
-            | None -> None
-            | Some _ -> Some (funcNameBase  + codec.suffix)
-        | _     -> None
-    let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    let errCode, ns = getNextValidErrorCode us errCodeName None
-    //if t.id.AsString.EndsWith "ALPHA-DELETE-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURES-GENERIC" then
-    //    printfn "debug"
-    let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
-    let nMinBytesInACN = BigInteger (ceil ((double t.acnMinSizeInBits)/8.0))
-    let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
-    let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
-    let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
-    let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
-    let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
-    let EmitEncodingSizeConstants        =  lm.acn.EmitEncodingSizeConstants
-
-    let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
-    let sEncodingSizeConstant = EmitEncodingSizeConstants typeDefinitionName nMaxBytesInACN t.acnMaxSizeInBits
-    
-    let funcBodyAsSeqComp (st: State)
-                          (prms: (RelativePath * AcnParameter) list)
-                          (nestingScope: NestingScope)
-                          (p: CodegenScope)
-                          (c_name: string)
-                          (lvName: string): ((AcnFuncBodyResult option)*State) =
-        //t.SaveBitStreamPosition is false for all types except NULL types where the 'save-position' attribute can be used
-        let funcBody = handleSavePosition funcBody t.SaveBitStreamPosition c_name lvName t.id lm codec
-        let ret = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
-        let ret = lm.lg.adaptAcnFuncBody r deps ret isValidFuncName t codec
-        ret st errCode prms nestingScope p
-
-    let funcBody = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
-    let funcBody = lm.lg.adaptAcnFuncBody r deps funcBody isValidFuncName t codec
-
-    let p : CodegenScope = lm.lg.getParamType t codec
-    let varName = p.accessPath.rootId
-    let sStar = lm.lg.getStar p.accessPath
-    let sInitialExp = ""
-    let func, funcDef, userDefinedFunctions, auxiliaries, icdResult, ns2  =
-            match funcNameAndtasInfo  with
-            | None -> 
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> 
-                    None, None, [], [], None, ns
-                | _ ->
-                    match r.args.generateAcnIcd with
-                    | false -> 
-                        None, None, [], [], None, ns
-                    | true ->
-                        //the call to funcBody is necessary to get the correct nesting scope
-                        //however, it is expensive to call so we only call it if we need to generate the ICD
-                        let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
-                        let icdResult, udfcs =
-                            match content with
-                            | None -> None, []
-                            | Some bodyResult -> bodyResult.icdResult, bodyResult.userDefinedFunctions
-                        None, None, udfcs, [], icdResult, ns1a
-            | Some funcName ->
-                let precondAnnots = lm.lg.generatePrecond r ACN t codec
-                let postcondAnnots = lm.lg.generatePostcond r ACN funcNameBase p t codec
-                let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
-                let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, udfcs, auxiliaries, icdResult =
-                    match content with
-                    | None ->
-                        let emptyStatement = lm.lg.emptyStatement
-                        emptyStatement, [], [], true, isValidFuncName.IsNone, [], [], None
-                    | Some bodyResult ->
-                        bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, bodyResult.icdResult
-
-                let handleAcnParameter (p:AcnGenericTypes.AcnParameter) =
-                    let intType  = lm.typeDef.Declare_Integer ()
-                    let boolType = lm.typeDef.Declare_Boolean ()
-                    let emitPrm  = lm.acn.EmitAcnParameter
-                    match p.asn1Type with
-                    | AcnGenericTypes.AcnPrmInteger    loc          -> emitPrm p.c_name intType
-                    | AcnGenericTypes.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType
-                    | AcnGenericTypes.AcnPrmNullType   loc          -> raise(SemanticError (loc, "Invalid type for parameter"))
-                    | AcnGenericTypes.AcnPrmRefType(md,ts)          ->
-                        let prmTypeName =
-                            match lm.lg.hasModules with
-                            | false         -> ToC2(r.args.TypePrefix + ts.Value)
-                            | true       ->
-                                match md.Value = t.id.ModName with
-                                | true  -> ToC2(r.args.TypePrefix + ts.Value)
-                                | false -> (ToC2 md.Value) + "." + ToC2(r.args.TypePrefix + ts.Value)
-                        emitPrm p.c_name prmTypeName
-
-                let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let prms = t.acnParameters |> List.map handleAcnParameter
-                let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
-
-                let errCodStr = 
-                    errCodes |> 
-                    List.groupBy (fun x -> x.errCodeName) |>
-                    List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment}) |>
-                    List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment) |> List.distinct
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
-                let ns2a =
-                    match t.id.topLevelTas with
-                    | None -> ns1a
-                    | Some tasInfo ->
-                        let caller = {Caller.typeId = tasInfo; funcType= UperEncDecFunctionType}
-                        let callee = {Callee.typeId = tasInfo; funcType=IsValidFunctionType}
-                        addFunctionCallToState ns1a caller callee
-                func, funcDef, udfcs, auxiliaries, icdResult, ns2a
-
-    let icdAux, ns3 =
-        match icdResult with
-        | Some icdAux ->
-            let foo () =
-                let hasAcnDefinition = t.typeAssignmentInfo.IsSome && t.acnLocation.IsSome
-                let icdTas = createIcdTas r t.id icdAux td typeDefinition nMinBytesInACN nMaxBytesInACN hasAcnDefinition
-                let ns3 =
-                    match ns2.icdHashes.TryFind icdTas.hash with
-                    | None -> {ns2 with icdHashes = ns2.icdHashes.Add(icdTas.hash, [icdTas])}
-                    | Some exList -> {ns2 with icdHashes = ns2.icdHashes.Add(icdTas.hash, icdTas::exList)}
-                Some icdTas, ns3
-            TL "createIcdTas" foo
-        | None -> None, ns2
-    let ret =
-        {
-            AcnFunction.funcName       = funcNameAndtasInfo
-            func                       = func
-            funcDef                    = funcDef
-            auxiliaries                = auxiliaries
-            funcBody                   = fun us acnArgs p -> funcBody us errCode acnArgs p
-            funcBodyAsSeqComp          = funcBodyAsSeqComp
-            isTestVaseValid            = isTestVaseValid
-            icdTas                        = icdAux
-            userDefinedFunctions       = userDefinedFunctions
-            encodingSizeConstant       = sEncodingSizeConstant
-        }
-    ret, ns3
 
 type AcnIntegerFuncBody = ErrorCode -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> (AcnFuncBodyResult option)
 
@@ -932,119 +602,13 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedF
     createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
 
 
-let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
-    let dependency = 
-        match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d ) with
-        | Some d -> d
-        | None   -> 
-            failwithf "getExternalField0: No dependency found for %A" asn1TypeIdWithDependency
-        
-    let rec resolveParam (prmId:ReferenceToType) =
-        let nodes = match prmId with ReferenceToType nodes -> nodes
-        let lastNode = nodes |> List.rev |> List.head
-        match lastNode with
-        | PRM prmName   ->
-            if r.args.acnDeferred then
-                // In deferred mode, the parameter IS the value — it arrives
-                // as an AcnInsertedFieldRef* formal parameter.  Do NOT follow
-                // RefTypeArgumentDependency chains; stop here.
-                prmId
-            else
-                let newDeterminantId =
-                    deps.acnDependencies |>
-                    List.choose(fun d ->
-                        match d.dependencyKind with
-                        | AcnDepRefTypeArgument prm when prm.id = prmId -> Some d.determinant
-                        | _                                             -> None)
-                match newDeterminantId with
-                | det1::_   -> resolveParam det1.id
-                | _         -> prmId
-        | _             -> prmId
-
-    let resolvedId = resolveParam dependency.determinant.id
-    // In deferred mode, a PRM determinant MUST resolve to a PRM node
-    // (the parameter itself).  If it resolves to something else, it means
-    // the dep rewrite is wrong or a RefTypeArgumentDependency was followed
-    // when it shouldn't have been.
-    if r.args.acnDeferred then
-        match dependency.determinant with
-        | Asn1AcnAst.AcnParameterDeterminant _ ->
-            let resolvedNodes = match resolvedId with ReferenceToType nodes -> nodes
-            let resolvedLastNode = resolvedNodes |> List.rev |> List.head
-            match resolvedLastNode with
-            | PRM _ -> ()  // correct — resolved to a parameter
-            | _ -> failwithf "BUG: In deferred mode, parameter determinant %A resolved to non-PRM node %A" dependency.determinant.id resolvedId
-        | _ -> ()  // AcnChildDeterminant — resolves to the ACN child, which is fine
-
-    let baseName = getAcnDeterminantName resolvedId
-    // In deferred mode, when the determinant resolved to a PRM (parameter),
-    // the formal parameter is AcnInsertedFieldRef*.  Code that reads the
-    // integer value must access the ->value field of the struct.
-    // For IA5String determinants, use ->str_value instead of ->value.
-    if r.args.acnDeferred then
-        let resolvedNodes = match resolvedId with ReferenceToType nodes -> nodes
-        let resolvedLastNode = resolvedNodes |> List.rev |> List.head
-        match resolvedLastNode with
-        | PRM _ ->
-            // Check if the dependency is string-typed
-            let isStringDep =
-                match dependency.dependencyKind with
-                | Asn1AcnAst.AcnDepPresenceStr _ -> true
-                | _ -> false
-            if isStringDep then baseName + "->str_value"
-            else baseName + "->value"
-        | _     -> baseName
-    else
-        baseName
-
-let getExternalField0Type (r: Asn1AcnAst.AstRoot)
-                          (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
-                          (asn1TypeIdWithDependency: ReferenceToType)
-                          (filter: AcnDependency -> bool) : AcnInsertedType option =
-    let dependency = deps.acnDependencies |> List.find(fun d -> d.asn1Type = asn1TypeIdWithDependency && filter d)
-    let nodes = match dependency.determinant.id with ReferenceToType nodes -> nodes
-    let lastNode = nodes |> List.rev |> List.head
-    match lastNode with
-    | PRM _   ->
-        let tp =
-            deps.acnDependencies |>
-            List.choose(fun d ->
-                match d.dependencyKind with
-                | AcnDepRefTypeArgument prm when prm.id = dependency.determinant.id ->
-                    match d.determinant with
-                    | AcnChildDeterminant child -> Some child.Type
-                    | _ -> None
-                | _ -> None)
-        match tp with
-        | tp :: _ -> Some tp
-        | _ ->
-            match dependency.determinant with
-            | AcnChildDeterminant child -> Some child.Type
-            | _ -> None
-    | _ ->
-        match dependency.determinant with
-        | AcnChildDeterminant child -> Some child.Type
-        | _ -> None
-
-let getExternalFieldChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency  relPath=
-    let filterDependency (d:AcnDependency) =
-        match d.dependencyKind with
-        | AcnDepPresence (relPath0, _)   -> relPath = relPath0
-        | _                              -> true
-    getExternalField0 r deps asn1TypeIdWithDependency filterDependency
-
-let getExternalFieldTypeChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency  relPath=
-    let filterDependency (d:AcnDependency) =
-        match d.dependencyKind with
-        | AcnDepPresence (relPath0, _)   -> relPath = relPath0
-        | _                              -> true
-    getExternalField0Type r deps asn1TypeIdWithDependency filterDependency
-
-let getExternalField (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
-    getExternalField0 r deps asn1TypeIdWithDependency (fun z -> true)
-
-let getExternalFieldType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
-    getExternalField0Type r deps asn1TypeIdWithDependency (fun z -> true)
+// External-field / determinant lookup helpers — moved to BackendAst/Acn/AcnExternalField.fs.
+let getExternalField0 = AcnExternalField.getExternalField0
+let getExternalField0Type = AcnExternalField.getExternalField0Type
+let getExternalFieldChoicePresentWhen = AcnExternalField.getExternalFieldChoicePresentWhen
+let getExternalFieldTypeChoicePresentWhen = AcnExternalField.getExternalFieldTypeChoicePresentWhen
+let getExternalField = AcnExternalField.getExternalField
+let getExternalFieldType = AcnExternalField.getExternalFieldType
 
 let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefinitionOrReference)  (defOrRef:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let Acn_String_Ascii_FixSize                            = lm.acn.Acn_String_Ascii_FixSize
