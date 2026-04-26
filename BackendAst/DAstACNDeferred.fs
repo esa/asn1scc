@@ -941,6 +941,176 @@ let private appendPatchDetCalls
                 body + "\n" + patchCode
 
 
+/// Step 3 — build the specialized function's deferred-determinant formal
+/// parameters.  Returns (formal-param declarations, formal-param names) in
+/// the same order, both derived from o.resolvedType.acnParameters via
+/// getAcnDeterminantName.
+let private buildSpecializedFormalParams
+        (lm: LanguageMacros)
+        (codec: CommonTypes.Codec)
+        (acnParameters: AcnGenericTypes.AcnParameter list)
+        : string list * string list =
+    let names = acnParameters |> List.map (fun prm -> DAstACN.getAcnDeterminantName prm.id)
+    let formals = names |> List.map (fun n -> lm.acn.acn_deferred_det_formal_param n codec)
+    formals, names
+
+
+/// Step 4 — emit the specialized function (definition + body) and assemble
+/// the auxiliaries list.  The returned list is bodyResult_auxiliaries
+/// followed by the function's def + body strings.
+let private emitSpecializedFunctionDecl
+        (lm: LanguageMacros)
+        (codec: CommonTypes.Codec)
+        (t: Asn1AcnAst.Asn1Type)
+        (o: Asn1AcnAst.ReferenceType)
+        (specP: CodegenScope)
+        (typeDefinition: TypeDefinitionOrReference)
+        (isValidFunc: IsValidFunction option)
+        (errCode: ErrorCode)
+        (specFuncName: string)
+        (deferredFormalParams: string list)
+        (deferredParamNames: string list)
+        (finalBody: AcnFuncBodyResult)
+        : string list =
+    let varName = specP.accessPath.rootId
+    let sStar = lm.lg.getStar specP.accessPath
+    let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
+    let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
+    let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
+    let lvars = finalBody.localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
+
+    // In deferred mode, pVal may be unreferenced if the resolved type has
+    // only ACN-inserted children and no ASN.1 data fields (e.g., Header
+    // with only version pattern + buffers-length determinant).
+    let hasAsn1Children =
+        match o.resolvedType.Kind with
+        | Asn1AcnAst.Asn1TypeKind.Sequence sq ->
+            sq.children |> List.exists (fun c -> match c with Asn1AcnAst.Asn1Child _ -> true | _ -> false)
+        | _ -> true
+    let bVarNameIsUnreferenced = finalBody.bValIsUnReferenced || not hasAsn1Children
+
+    let specFuncBody =
+        lm.acn.EmitTypeAssignment_primitive
+            varName sStar specFuncName isValidFuncName typeDefinitionName
+            lvars finalBody.funcBody
+            None ""  // soSparkAnnotations, sInitialExp
+            deferredFormalParams deferredParamNames
+            (t.acnMaxSizeInBits = 0I) finalBody.bBsIsUnReferenced bVarNameIsUnreferenced
+            soInitFuncName [] [] None  // funcDefAnnots, precondAnnots, postcondAnnots
+            codec
+
+    let specErrCodStr =
+        (errCode :: finalBody.errCodes)
+        |> List.groupBy (fun x -> x.errCodeName)
+        |> List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment})
+        |> List.map (fun x -> lm.acn.EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment)
+        |> List.distinct
+
+    let specFuncDef =
+        lm.acn.EmitTypeAssignment_primitive_def
+            varName sStar specFuncName typeDefinitionName
+            specErrCodStr
+            (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits
+            deferredFormalParams
+            None  // soSparkAnnotations
+            codec
+
+    finalBody.auxiliaries @ [specFuncDef; specFuncBody]
+
+
+/// Step 5 — build the caller's funcBody (a simple call to the specialized
+/// function with &det actual parameters), record the cross-TAS function-call
+/// dependency, and wrap the result in an AcnFunction via createAcnFunction.
+let private buildCallerWrapper
+        (r: Asn1AcnAst.AstRoot)
+        (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
+        (lm: LanguageMacros)
+        (codec: CommonTypes.Codec)
+        (t: Asn1AcnAst.Asn1Type)
+        (o: Asn1AcnAst.ReferenceType)
+        (typeDefinition: TypeDefinitionOrReference)
+        (isValidFunc: IsValidFunction option)
+        (specFuncName: string)
+        (allAuxiliaries: string list)
+        (udfcs: UserDefinedFunction list)
+        (ns: State)
+        : AcnFunction option * State =
+    let callerFuncBody (callerUs:State) (callerErrCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (_nestingScope: NestingScope) (p:CodegenScope) =
+        let pp, resultExpr =
+            let str = lm.lg.getParamValue t p.accessPath codec
+            match codec, lm.lg.decodingKind with
+            | Decode, Copy ->
+                let toc = ToC str
+                toc, Some toc
+            | _ -> str, None
+
+        // For each acnArgument, classify the call site:
+        //   - Intermediate level (parent param exists) → pass parent's
+        //     formal param name (pointer pass-through).  No local
+        //     declaration needed; the parent already has it.
+        //   - Declaration level (no parent param) → pass &localName.
+        //     The local AcnInsertedFieldRef must be declared in the
+        //     caller's scope, so emit a localVariable for it.
+        let extraActualParams, declLevelLocalNames =
+            o.acnArguments |> List.fold (fun (paramsAcc, localsAcc) arg ->
+                let (AcnGenericTypes.RelativePath parts) = arg
+                let argName = parts |> List.last |> fun sl -> sl.Value
+                let parentParam =
+                    acnArgs |> List.tryFind (fun (_, prm) -> prm.name = argName)
+                match parentParam with
+                | Some (_, prm) ->
+                    let pStr = DAstACN.getAcnDeterminantName prm.id
+                    paramsAcc @ [pStr], localsAcc
+                | None ->
+                    let cName = ToC argName
+                    let pStr = lm.acn.acn_deferred_det_actual_param cName codec
+                    paramsAcc @ [pStr], localsAcc @ [cName]
+            ) ([], [])
+
+        let baseFuncCall = callBaseTypeFunc lm pp specFuncName codec
+        let funcBodyContent = insertActualParams baseFuncCall extraActualParams
+
+        // Declaration-level AcnInsertedFieldRef locals.  Distinct by name in
+        // case the same determinant is referenced via multiple acnArguments
+        // paths (e.g. hdr.x and direct x); duplicates would be deduped later
+        // anyway, but we save work by deduping here.
+        let extraLocals =
+            declLevelLocalNames
+            |> List.distinct
+            |> List.map (fun cName ->
+                GenericLocalVariable {
+                    name = cName
+                    varType = lm.acn.acn_deferred_det_type_name()
+                    arrSize = None
+                    isStatic = false
+                    initExp = Some (lm.acn.acn_deferred_det_init_expr())
+                })
+
+        Some ({AcnFuncBodyResult.funcBody = funcBodyContent
+               errCodes = [callerErrCode]
+               localVariables = extraLocals
+               userDefinedFunctions = udfcs
+               bValIsUnReferenced = false
+               bBsIsUnReferenced = false
+               resultExpr = resultExpr
+               auxiliaries = allAuxiliaries
+               icdResult = None}), callerUs
+
+    // Record the function-call dependency (caller → callee)
+    let ns3 =
+        match t.id.topLevelTas with
+        | None -> ns
+        | Some tasInfo ->
+            let caller = {Caller.typeId = tasInfo; funcType=AcnEncDecFunctionType}
+            let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=AcnEncDecFunctionType}
+            addFunctionCallToState ns caller callee
+
+    let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
+    let a, ns4 = DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc callerFuncBody (fun _atc -> true) soSparkAnnotations [] ns3
+    Some a, ns4
+
+
 /// Deferred version of createReferenceFunction.
 /// When the resolved type has acnParameters (from closure conversion),
 /// generates a specialized function per reference site with
@@ -1054,151 +1224,29 @@ let private createDeferredReferenceFunction
                 | true, true  -> buildContainingClosureBody    deps lm codec t o specP errCode baseAcnFunc stripLocals ns1
                 | true, false -> buildContainingStandaloneBody deps lm codec t o specP errCode baseFncName ns1
                 | _           -> buildNormalReferenceBody          lm codec t o specP          baseAcnFunc stripLocals ns1
-            let bodyResult_funcBody0    = bodyResult.funcBody
-            let bodyResult_errCodes     = bodyResult.errCodes
-            let bodyResult_localVariables = bodyResult.localVariables
-            let bBsIsUnreferenced       = bodyResult.bBsIsUnReferenced
-            let bVarNameIsUnreferenced  = bodyResult.bValIsUnReferenced
-            let bodyResult_udfcs        = bodyResult.userDefinedFunctions
-            let bodyResult_auxiliaries  = bodyResult.auxiliaries
 
-            // Step 2b: Append PatchDet calls (encode only) — see appendPatchDetCalls.
-            let bodyResult_funcBody =
-                appendPatchDetCalls deps lm codec o specP
-                    isContainingExternalField (not baseAcnFunc.funcName.IsNone) bodyResult_funcBody0
+            // Step 2b: append PatchDet calls (encode only) onto the body.
+            let finalBody =
+                let body =
+                    appendPatchDetCalls deps lm codec o specP
+                        isContainingExternalField (not baseAcnFunc.funcName.IsNone) bodyResult.funcBody
+                { bodyResult with funcBody = body }
 
-            // Step 3: Build the specialized function's formal parameters.
-            // Standard params come from EmitTypeAssignment_primitive; the extra
-            // AcnInsertedFieldRef* params are appended via the prms list.
-            // Use getAcnDeterminantName for parameter names so they match
-            // what getExternalField0 / resolveParam produces inside the body.
-            // E.g., prm.id = MyModule.PDU.payload.buffers-length
-            //   → getAcnDeterminantName → "PDU_payload_buffers_length"
-            //   → formal param: "AcnInsertedFieldRef* PDU_payload_buffers_length"
-            let deferredFormalParams =
-                o.resolvedType.acnParameters |> List.map (fun prm ->
-                    lm.acn.acn_deferred_det_formal_param (DAstACN.getAcnDeterminantName prm.id) codec)
-            let deferredParamNames =
-                o.resolvedType.acnParameters |> List.map (fun prm -> DAstACN.getAcnDeterminantName prm.id)
+            // Step 3: build the specialized function's deferred formal params.
+            let deferredFormalParams, deferredParamNames =
+                buildSpecializedFormalParams lm codec o.resolvedType.acnParameters
 
-            // Step 4: Emit the specialized function using EmitTypeAssignment_primitive.
-            let varName = specP.accessPath.rootId
-            let sStar = lm.lg.getStar specP.accessPath
-            let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
-            let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
-            let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
-            let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
-            let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
+            // Step 4: emit the specialized function (def + body) into auxiliaries.
+            let allAuxiliaries =
+                emitSpecializedFunctionDecl
+                    lm codec t o specP typeDefinition isValidFunc errCode
+                    specFuncName deferredFormalParams deferredParamNames finalBody
 
-            // In deferred mode, pVal may be unreferenced if the resolved type
-            // has only ACN-inserted children and no ASN.1 data fields (e.g., Header
-            // with only version pattern + buffers-length determinant).
-            let hasAsn1Children =
-                match o.resolvedType.Kind with
-                | Asn1AcnAst.Asn1TypeKind.Sequence sq ->
-                    sq.children |> List.exists (fun c -> match c with Asn1AcnAst.Asn1Child _ -> true | _ -> false)
-                | _ -> true
-            let bVarNameIsUnreferenced = bVarNameIsUnreferenced || not hasAsn1Children
-
-            let specFuncBody =
-                lm.acn.EmitTypeAssignment_primitive
-                    varName sStar specFuncName isValidFuncName typeDefinitionName
-                    lvars bodyResult_funcBody
-                    None ""  // soSparkAnnotations, sInitialExp
-                    deferredFormalParams deferredParamNames
-                    (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced
-                    soInitFuncName [] [] None  // funcDefAnnots, precondAnnots, postcondAnnots
-                    codec
-
-            let specErrCodStr =
-                (errCode :: bodyResult_errCodes)
-                |> List.groupBy (fun x -> x.errCodeName)
-                |> List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment})
-                |> List.map (fun x -> lm.acn.EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment)
-                |> List.distinct
-
-            let specFuncDef =
-                lm.acn.EmitTypeAssignment_primitive_def
-                    varName sStar specFuncName typeDefinitionName
-                    specErrCodStr
-                    (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits
-                    deferredFormalParams
-                    None  // soSparkAnnotations
-                    codec
-
-            // All auxiliary strings: the specialized function definition + body,
-            // plus any auxiliaries from the base type's encoding body.
-            let allAuxiliaries = bodyResult_auxiliaries @ [specFuncDef; specFuncBody]
-
-            // Step 5: Build the caller's funcBody — a simple function call to
-            // the specialized function with &det actual parameters.
-            let callerFuncBody (callerUs:State) (callerErrCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
-                let pp, resultExpr =
-                    let str = lm.lg.getParamValue t p.accessPath codec
-                    match codec, lm.lg.decodingKind with
-                    | Decode, Copy ->
-                        let toc = ToC str
-                        toc, Some toc
-                    | _ -> str, None
-
-                // For each acnArgument, classify the call site:
-                //   - Intermediate level (parent param exists) → pass parent's
-                //     formal param name (pointer pass-through).  No local
-                //     declaration needed; the parent already has it.
-                //   - Declaration level (no parent param) → pass &localName.
-                //     The local AcnInsertedFieldRef must be declared in the
-                //     caller's scope, so emit a localVariable for it.
-                let extraActualParams, declLevelLocalNames =
-                    o.acnArguments |> List.fold (fun (paramsAcc, localsAcc) arg ->
-                        let (AcnGenericTypes.RelativePath parts) = arg
-                        let argName = parts |> List.last |> fun sl -> sl.Value
-                        let parentParam =
-                            acnArgs |> List.tryFind (fun (_, prm) -> prm.name = argName)
-                        match parentParam with
-                        | Some (_, prm) ->
-                            let pStr = DAstACN.getAcnDeterminantName prm.id
-                            paramsAcc @ [pStr], localsAcc
-                        | None ->
-                            let cName = ToC argName
-                            let pStr = lm.acn.acn_deferred_det_actual_param cName codec
-                            paramsAcc @ [pStr], localsAcc @ [cName]
-                    ) ([], [])
-
-                let baseFuncCall = callBaseTypeFunc lm pp specFuncName codec
-                let funcBodyContent = insertActualParams baseFuncCall extraActualParams
-
-                // Declaration-level AcnInsertedFieldRef locals.  Distinct
-                // by name in case the same determinant is referenced via
-                // multiple acnArguments paths (e.g. hdr.x and direct x);
-                // duplicates would be deduped later anyway, but we save
-                // work by deduping here.
-                let extraLocals =
-                    declLevelLocalNames
-                    |> List.distinct
-                    |> List.map (fun cName ->
-                        GenericLocalVariable {
-                            name = cName
-                            varType = lm.acn.acn_deferred_det_type_name()
-                            arrSize = None
-                            isStatic = false
-                            initExp = Some (lm.acn.acn_deferred_det_init_expr())
-                        })
-
-                Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [callerErrCode]; localVariables = extraLocals; userDefinedFunctions = bodyResult_udfcs; bValIsUnReferenced = false; bBsIsUnReferenced = false; resultExpr = resultExpr; auxiliaries = allAuxiliaries; icdResult = None}), callerUs
-
-            // Record the function call dependency (caller → callee)
-            let ns3 =
-                match t.id.topLevelTas with
-                | None -> ns2
-                | Some tasInfo ->
-                    let caller = {Caller.typeId = tasInfo; funcType=AcnEncDecFunctionType}
-                    let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=AcnEncDecFunctionType}
-                    addFunctionCallToState ns2 caller callee
-
-            // Wrap the caller funcBody into an AcnFunction using createAcnFunction
-            let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-            let a, ns4 = DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc callerFuncBody (fun _atc -> true) soSparkAnnotations [] ns3
-            Some a, ns4
+            // Step 5: build the caller's funcBody, record the cross-TAS call,
+            // and wrap into an AcnFunction.
+            buildCallerWrapper
+                r deps lm codec t o typeDefinition isValidFunc
+                specFuncName allAuxiliaries finalBody.userDefinedFunctions ns2
 
 
 // ---------------------------------------------------------------------------
