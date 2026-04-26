@@ -86,56 +86,52 @@ let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
         let castPp encFuncBits = DAstUPer.castPp r lm codec pp intClass encFuncBits
         let word_size_in_bits = (int r.args.integerSizeInBytes)*8
 
+        // Helpers that absorb the common argument shape of the integer macros.
+        // The macros fall into 6 shapes; collapsing them here turns each match
+        // arm into a one-line lookup.  The match itself stays exhaustive so
+        // the F# compiler still catches a missing case on future DU additions.
+        let unsignedFixedWidth macro width =
+            Some (macro (castPp width) sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax width) codec, [errCode], false, false)
+        let signedFixedWidth macro width =
+            Some (macro (castPp width) sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin width) (sIntActualMax width) codec, [errCode], false, false)
+        let unsignedVarWidth (bitSize: BigInteger) =
+            Some (PositiveInteger_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName bitSize soMF soMFM (max 0I nUperMin) (uIntActualMax (int bitSize)) codec, [errCode], false, false)
+        let signedVarWidth (bitSize: BigInteger) =
+            Some (TwosComplement_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM bitSize (sIntActualMin (int bitSize)) (sIntActualMax (int bitSize)) codec, [errCode], false, false)
+        let asciiOrBcdConst macro (size: BigInteger) bitsPerDigit =
+            Some (macro (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax (size / bitsPerDigit) codec, [errCode], false, false)
+        let asciiVarSize macro (nullBytes: byte list) =
+            Some (macro (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax nullBytes codec, [errCode], false, false)
+        let bcdVarSize () =
+            Some (BCD_VarSize_NullTerminated (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax codec, [errCode], false, false)
+
         let funcBodyContent  =
             match acnEncodingClass with
-            |Asn1AcnAst.Integer_uPER ->
-                uperfuncBody errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.bValIsUnReferenced, x.bBsIsUnReferenced)
-            |Asn1AcnAst.PositiveInteger_ConstSize_8 ->
-                Some(PositiveInteger_ConstSize_8 (castPp 8) sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 8)  codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize_big_endian_16 ->
-                Some(PositiveInteger_ConstSize_big_endian_16 (castPp 16) sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 16) codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize_little_endian_16 ->
-                Some(PositiveInteger_ConstSize_little_endian_16 (castPp 16) sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 16) codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize_big_endian_32 ->
-                Some(PositiveInteger_ConstSize_big_endian_32 (castPp 32) sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 32) codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize_little_endian_32 ->
-                Some(PositiveInteger_ConstSize_little_endian_32 (castPp 32) sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 32) codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize_big_endian_64 ->
-                Some(PositiveInteger_ConstSize_big_endian_64 (castPp 64) sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 64) codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize_little_endian_64 ->
-                Some(PositiveInteger_ConstSize_little_endian_64 (castPp 64) sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 64) codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize bitSize ->
-                Some(PositiveInteger_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName ( bitSize) soMF soMFM (max 0I nUperMin) (uIntActualMax (int bitSize)) codec, [errCode], false, false)
+            | Asn1AcnAst.Integer_uPER                                  -> uperfuncBody errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.bValIsUnReferenced, x.bBsIsUnReferenced)
+            | Asn1AcnAst.PositiveInteger_ConstSize_8                   -> unsignedFixedWidth PositiveInteger_ConstSize_8                  8
+            | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_16       -> unsignedFixedWidth PositiveInteger_ConstSize_big_endian_16     16
+            | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_16    -> unsignedFixedWidth PositiveInteger_ConstSize_little_endian_16  16
+            | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_32       -> unsignedFixedWidth PositiveInteger_ConstSize_big_endian_32     32
+            | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_32    -> unsignedFixedWidth PositiveInteger_ConstSize_little_endian_32  32
+            | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_64       -> unsignedFixedWidth PositiveInteger_ConstSize_big_endian_64     64
+            | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_64    -> unsignedFixedWidth PositiveInteger_ConstSize_little_endian_64  64
+            | Asn1AcnAst.PositiveInteger_ConstSize bitSize             -> unsignedVarWidth bitSize
 
-            |Asn1AcnAst.TwosComplement_ConstSize_8 ->
-                Some(TwosComplement_ConstSize_8 (castPp 8) sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 8) (sIntActualMax 8) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize_big_endian_16 ->
-                Some(TwosComplement_ConstSize_big_endian_16 (castPp 16) sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 16) (sIntActualMax 16) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize_little_endian_16 ->
-                Some(TwosComplement_ConstSize_little_endian_16 (castPp 16) sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 16) (sIntActualMax 16) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize_big_endian_32 ->
-                Some(TwosComplement_ConstSize_big_endian_32 (castPp 32) sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 32) (sIntActualMax 32) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize_little_endian_32 ->
-                Some(TwosComplement_ConstSize_little_endian_32 (castPp 32) sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 32) (sIntActualMax 32) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize_big_endian_64 ->
-                Some(TwosComplement_ConstSize_big_endian_64 (castPp 64) sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 64) (sIntActualMax 64) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize_little_endian_64 ->
-                Some(TwosComplement_ConstSize_little_endian_64 (castPp 64) sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 64) (sIntActualMax 64) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize bitSize ->
-                Some(TwosComplement_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM ( bitSize) (sIntActualMin (int bitSize)) (sIntActualMax (int bitSize)) codec, [errCode], false, false)
+            | Asn1AcnAst.TwosComplement_ConstSize_8                    -> signedFixedWidth TwosComplement_ConstSize_8                     8
+            | Asn1AcnAst.TwosComplement_ConstSize_big_endian_16        -> signedFixedWidth TwosComplement_ConstSize_big_endian_16        16
+            | Asn1AcnAst.TwosComplement_ConstSize_little_endian_16     -> signedFixedWidth TwosComplement_ConstSize_little_endian_16     16
+            | Asn1AcnAst.TwosComplement_ConstSize_big_endian_32        -> signedFixedWidth TwosComplement_ConstSize_big_endian_32        32
+            | Asn1AcnAst.TwosComplement_ConstSize_little_endian_32     -> signedFixedWidth TwosComplement_ConstSize_little_endian_32     32
+            | Asn1AcnAst.TwosComplement_ConstSize_big_endian_64        -> signedFixedWidth TwosComplement_ConstSize_big_endian_64        64
+            | Asn1AcnAst.TwosComplement_ConstSize_little_endian_64     -> signedFixedWidth TwosComplement_ConstSize_little_endian_64     64
+            | Asn1AcnAst.TwosComplement_ConstSize bitSize              -> signedVarWidth bitSize
 
-            |Asn1AcnAst.ASCII_ConstSize size ->
-                Some(ASCII_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax ((size)/8I) codec, [errCode], false, false)
-            |Asn1AcnAst.ASCII_VarSize_NullTerminated nullBytes ->
-                Some(ASCII_VarSize_NullTerminated (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax nullBytes codec, [errCode], false, false)
-            |Asn1AcnAst.ASCII_UINT_ConstSize size ->
-                Some(ASCII_UINT_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/8I) codec, [errCode], false, false)
-            |Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated nullBytes ->
-                Some(ASCII_UINT_VarSize_NullTerminated (castPp word_size_in_bits) sSsuffix errCode.errCodeName  soMF soMFM nUperMin nUperMax nullBytes codec, [errCode], false, false)
-            |Asn1AcnAst.BCD_ConstSize size ->
-                Some(BCD_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/4I) codec, [errCode], false, false)
-            |Asn1AcnAst.BCD_VarSize_NullTerminated nullBytes ->
-                Some(BCD_VarSize_NullTerminated (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax codec, [errCode], false, false)
+            | Asn1AcnAst.ASCII_ConstSize size                          -> asciiOrBcdConst ASCII_ConstSize        size 8I
+            | Asn1AcnAst.ASCII_VarSize_NullTerminated nullBytes        -> asciiVarSize    ASCII_VarSize_NullTerminated      nullBytes
+            | Asn1AcnAst.ASCII_UINT_ConstSize size                     -> asciiOrBcdConst ASCII_UINT_ConstSize   size 8I
+            | Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated nullBytes   -> asciiVarSize    ASCII_UINT_VarSize_NullTerminated nullBytes
+            | Asn1AcnAst.BCD_ConstSize size                            -> asciiOrBcdConst BCD_ConstSize          size 4I
+            | Asn1AcnAst.BCD_VarSize_NullTerminated _                  -> bcdVarSize ()
 
         match funcBodyContent with
         | None -> None
