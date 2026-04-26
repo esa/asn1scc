@@ -25,6 +25,10 @@
     <Compile Include="Acn/AcnIcd.fs" />
     <Compile Include="Acn/AcnExternalField.fs" />
     <Compile Include="Acn/AcnFunctionWrapper.fs" />
+    <Compile Include="Acn/AcnPrimitives.fs" />
+    <Compile Include="Acn/AcnEnum.fs" />
+    <Compile Include="Acn/AcnStrings.fs" />
+    <Compile Include="Acn/AcnOctetBitStrings.fs" />
     <Compile Include="DAstACN.fs" />
     <Compile Include="DAstACNDeferred.fs" />
     <Compile Include="DAstProgramUnit.fs" />
