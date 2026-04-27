@@ -26,6 +26,7 @@
     <Compile Include="Acn/AcnIcd.fs" />
     <Compile Include="Acn/AcnExternalField.fs" />
     <Compile Include="Acn/AcnFunctionWrapper.fs" />
+    <Compile Include="Acn/AcnPrimitiveFactory.fs" />
     <Compile Include="Acn/AcnPrimitives.fs" />
     <Compile Include="Acn/AcnEnum.fs" />
     <Compile Include="Acn/AcnStrings.fs" />
