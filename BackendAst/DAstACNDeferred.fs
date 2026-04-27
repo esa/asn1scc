@@ -19,153 +19,28 @@ open Language
 
 open AcnHelpers
 open AcnDependencies
+open AcnDeferredRuntime
 
 
 // ---------------------------------------------------------------------------
-//  Helper: map IntEncodingClass → C runtime InitDet/PatchDet function names
+//  Deferred-runtime provider
 // ---------------------------------------------------------------------------
+//
+// All InitDet/PatchDet name lookups and fallback-value computations go
+// through `IDeferredRuntimeNames`.  The provider is selected per language
+// via `lm.lg.acnEncodingClass`-style dispatch in the future; for now
+// `--acn-v2` is C-only, so we always pick the C provider.  Adding an
+// Ada/Scala backend will only require returning a different instance
+// here — none of the code below depends on a specific implementation.
 
-/// Maps an ACN integer encoding class (from AcnInteger.acnEncodingClass)
-/// to the corresponding Acn_InitDet_XXX / Acn_PatchDet_XXX wrapper names
-/// defined by the DEFINE_ACN_DET_ENCODERS macro in asn1crt_encoding_acn.h.
-/// Returns (initFuncName, patchFuncName, nBitsOpt, uperMinOffset) where:
-/// - nBitsOpt is Some nBits for generic ConstSize encodings that require an
-///   extra bit-width argument, or None for fixed-size encodings (U8, U16, etc.)
-/// - uperMinOffset is the UPER minimum value offset (0I for non-UPER encodings).
-///   When non-zero, PatchDet must encode (value - offset) instead of value.
-let mapIntEncodingClassToDetFunctions (enc: IntEncodingClass) : (string * string * BigInteger option * BigInteger) option =
-    match enc with
-    | PositiveInteger_ConstSize_8                    -> Some ("Acn_InitDet_U8",     "Acn_PatchDet_U8", None, 0I)
-    | PositiveInteger_ConstSize_big_endian_16        -> Some ("Acn_InitDet_U16_BE", "Acn_PatchDet_U16_BE", None, 0I)
-    | PositiveInteger_ConstSize_big_endian_32        -> Some ("Acn_InitDet_U32_BE", "Acn_PatchDet_U32_BE", None, 0I)
-    | PositiveInteger_ConstSize_big_endian_64        -> Some ("Acn_InitDet_U64_BE", "Acn_PatchDet_U64_BE", None, 0I)
-    | PositiveInteger_ConstSize_little_endian_16     -> Some ("Acn_InitDet_U16_LE", "Acn_PatchDet_U16_LE", None, 0I)
-    | PositiveInteger_ConstSize_little_endian_32     -> Some ("Acn_InitDet_U32_LE", "Acn_PatchDet_U32_LE", None, 0I)
-    | PositiveInteger_ConstSize_little_endian_64     -> Some ("Acn_InitDet_U64_LE", "Acn_PatchDet_U64_LE", None, 0I)
-    | TwosComplement_ConstSize_8                     -> Some ("Acn_InitDet_I8",     "Acn_PatchDet_I8", None, 0I)
-    | TwosComplement_ConstSize_big_endian_16         -> Some ("Acn_InitDet_I16_BE", "Acn_PatchDet_I16_BE", None, 0I)
-    | TwosComplement_ConstSize_big_endian_32         -> Some ("Acn_InitDet_I32_BE", "Acn_PatchDet_I32_BE", None, 0I)
-    | TwosComplement_ConstSize_big_endian_64         -> Some ("Acn_InitDet_I64_BE", "Acn_PatchDet_I64_BE", None, 0I)
-    | PositiveInteger_ConstSize nBits                -> Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some nBits, 0I)
-    | TwosComplement_ConstSize nBits                 -> Some ("Acn_InitDet_TwosComplement_ConstSize", "Acn_PatchDet_TwosComplement_ConstSize", Some nBits, 0I)
-    // Encoding classes without a deferred patching implementation
-    | _ -> None
+let private deferredRuntime (_lm: LanguageMacros) : IDeferredRuntimeNames =
+    AcnDeferredRuntime.cDeferredRuntime
 
-
-/// Map an AcnInsertedType to the corresponding InitDet/PatchDet function names.
-/// Shared helper used by getDetFunctionsForAcnChild and findDetFunctionsForParam.
-let getDetFunctionsForAcnInsertedType (acnType: Asn1AcnAst.AcnInsertedType) : (string * string * BigInteger option * BigInteger) option =
-    match acnType with
-    | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
-        match ai.acnEncodingClass with
-        | Integer_uPER when ai.acnMinSizeInBits = ai.acnMaxSizeInBits ->
-            // Fixed-size UPER encoding → use ConstSize deferred patching.
-            // UPER encodes (value - min), so PatchDet must subtract the min offset.
-            let uperMinOffset =
-                match ai.uperRange with
-                | Concrete (minVal, _) -> minVal
-                | _ -> 0I
-            Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some ai.acnMaxSizeInBits, uperMinOffset)
-        | _ -> mapIntEncodingClassToDetFunctions ai.acnEncodingClass
-    | Asn1AcnAst.AcnInsertedType.AcnBoolean bln ->
-        match bln.acnProperties.encodingPattern with
-        | None -> Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
-        | Some _ -> None  // Custom true-value/false-value patterns: not yet supported
-    | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
-        match enm.enumerated.acnEncodingClass with
-        | Integer_uPER ->
-            // For enums with UPER encoding: indices are always [0, N-1],
-            // so ConstSize with ceil(log2(N)) bits is equivalent (offset = 0).
-            let nItems = enm.enumerated.items.Length
-            if nItems <= 1 then
-                Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some 0I, 0I)
-            else
-                let nBits = bigint (int (System.Math.Ceiling(System.Math.Log(float nItems, 2.0))))
-                Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some nBits, 0I)
-        | _ ->
-            mapIntEncodingClassToDetFunctions enm.enumerated.acnEncodingClass
-    | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String ref ->
-        // IA5String determinant: fixed-size ASCII, 7 bits per character.
-        // nChars is passed via the nBits slot of the _with_size calling convention.
-        // maxSize.acn is already the character count (not bits).
-        let nChars = ref.str.maxSize.acn
-        Some ("Acn_InitDet_IA5String_FixSize", "Acn_PatchDet_IA5String_FixSize", Some nChars, 0I)
-    | _ -> None
 
 /// Get the InitDet/PatchDet function names for an ACN child determinant.
 /// Returns None if the determinant type doesn't support deferred patching.
-let getDetFunctionsForAcnChild (acnChild: DAst.AcnChild) : (string * string * BigInteger option * BigInteger) option =
-    getDetFunctionsForAcnInsertedType acnChild.Type
-
-
-/// Compute a valid default wire value for a deferred determinant that was
-/// never patched at runtime — i.e., no PatchDet call was executed during
-/// encoding.
-///
-/// This can happen whenever every code path that would call PatchDet is
-/// skipped at runtime: an OPTIONAL child guarded by present-when is
-/// absent, or the determinant's consumer sits inside a CHOICE branch
-/// that was not taken, etc.
-///
-/// DEVIATION FROM INLINE MODE:
-/// In the legacy (inline) encoding, the determinant value is always
-/// computed in the parent function from the ASN.1 data (e.g., .nCount
-/// for a size determinant, .exist.field for a presence boolean,
-/// .kind for a CHOICE determinant, etc.).  Even when the consumer is
-/// absent, the parent still derives a value from the struct — which
-/// may be the field's default/zero initialization — and writes it to
-/// the bitstream.
-///
-/// In deferred patching mode, PatchDet lives inside the consumer's
-/// own function.  If that function is never called, no value is
-/// written over the InitDet placeholder.  We must therefore supply a
-/// fallback value explicitly.  The value chosen here is arbitrary but
-/// must be valid for the determinant's wire encoding (otherwise the
-/// decoder will reject the bitstream).  Since no consumer will
-/// actually inspect this value, any valid value is semantically
-/// correct — but the bitstream bytes may differ from inline mode in
-/// the "no consumer executed" case.
-///
-/// Example (from 21-PresentWhenExpression/002):
-///
-///   -- ASN.1
-///   MyTopMostSeq ::= SEQUENCE {
-///       myChoice1 MyChoice OPTIONAL,
-///       myChoice2 MyChoice OPTIONAL
-///   }
-///   -- ACN
-///   MyTopMostSeq [] {
-///       myDeterminant MyChoiceEnum [],
-///       myBool1 BOOLEAN [],
-///       myBool2 BOOLEAN [],
-///       myChoice1 <myDeterminant> [present-when myBool1],
-///       myChoice2 <myDeterminant> [present-when myBool2]
-///   }
-///
-/// When both myChoice1 and myChoice2 are absent (myBool1=myBool2=FALSE),
-/// no child calls PatchDet on myDeterminant.  Without this fallback, the
-/// InitDet placeholder (all zeros) remains, but 0 is not a valid
-/// MyChoiceEnum wire value (valid: 1=choice1, 2=choice2) -> decode fails.
-/// The fallback patches with the first valid enum value (MyChoiceEnum_choice1).
-///
-/// NOTE (Ada / Scala portability):
-/// This function currently uses language-specific helpers (e.g.
-/// lm.lg.getNamedItemBackendName) to obtain C enum constant names.
-/// When Ada / Scala backends gain deferred patching support, this
-/// logic should be replaced with STG macros that emit the correct
-/// default value expression per target language.
-let computeFallbackDetValue (lm: LanguageMacros) (acnType: Asn1AcnAst.AcnInsertedType) (uperMinOffset: BigInteger) : string =
-    match acnType with
-    | Asn1AcnAst.AcnInsertedType.AcnInteger _ ->
-        if uperMinOffset > 0I then uperMinOffset.ToString()
-        else "0"
-    | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> "0"
-    | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
-        match enm.enumerated.items with
-        | firstItem :: _ -> lm.lg.getNamedItemBackendName None firstItem
-        | [] -> "0"
-    | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "\"\""
-    | _ -> "0"
+let getDetFunctionsForAcnChild (lm: LanguageMacros) (acnChild: DAst.AcnChild) : DetFunctionNames option =
+    (deferredRuntime lm).GetDetFunctionsForAcnInsertedType acnChild.Type
 
 
 /// Build a C access expression from relative scope nodes and the root pointer.
@@ -268,14 +143,15 @@ let computePatchDetValueExpr
 /// Follow the RefTypeArgumentDependency chain from a parameter upward
 /// through intermediate boundaries until reaching the original
 /// AcnChildDeterminant.  Returns the (InitDet, PatchDet, nBitsOpt) function names.
-let findDetFunctionsForParam (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (paramId: ReferenceToType) : (string * string * BigInteger option * BigInteger) option =
+let findDetFunctionsForParam (lm: LanguageMacros) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (paramId: ReferenceToType) : DetFunctionNames option =
+    let rt = deferredRuntime lm
     let rec follow (pid: ReferenceToType) =
         deps.acnDependencies |> List.tryPick (fun d ->
             match d.dependencyKind with
             | AcnDepRefTypeArgument p when p.id = pid ->
                 match d.determinant with
                 | Asn1AcnAst.AcnChildDeterminant ac ->
-                    getDetFunctionsForAcnInsertedType ac.Type
+                    rt.GetDetFunctionsForAcnInsertedType ac.Type
                 | Asn1AcnAst.AcnParameterDeterminant parentPrm ->
                     follow parentPrm.id
             | _ -> None)
@@ -378,7 +254,7 @@ let private createDeferredSequenceFunction
             children |> List.map (fun child ->
                 match child with
                 | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames ->
-                    let detFuncs = getDetFunctionsForAcnChild ac
+                    let detFuncs = getDetFunctionsForAcnChild lm ac
                     match detFuncs with
                     | Some (initFuncName, _patchFuncName, nBitsOpt, _uperMinOffset) ->
                         // Replace encoding with InitDet, keep original decode:
@@ -555,10 +431,10 @@ let private createDeferredSequenceFunction
                         match child with
                         | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames
                                              && not (Set.contains ac.Name.Value deferredDetNamesFromOwnParams) ->
-                            match getDetFunctionsForAcnChild ac with
+                            match getDetFunctionsForAcnChild lm ac with
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 let detVarName = ToC ac.Name.Value
-                                let defaultVal = computeFallbackDetValue lm ac.Type uperMinOffset
+                                let defaultVal = (deferredRuntime lm).ComputeFallbackDetValue lm ac.Type uperMinOffset
                                 Some (detVarName, patchFn, nBitsOpt, defaultVal, ac.Type)
                             | None -> None
                         | _ -> None)
@@ -676,7 +552,7 @@ let private buildContainingClosureBody
             | Some sizePrm ->
                 let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
                 let patchFnName =
-                    match findDetFunctionsForParam deps sizePrm.id with
+                    match findDetFunctionsForParam lm deps sizePrm.id with
                     | Some (_, patchFn, _, _) -> patchFn
                     | None -> ""
                 match o.encodingOptions.Value.octOrBitStr with
@@ -713,7 +589,7 @@ let private buildContainingStandaloneBody
     let sizePrm = o.resolvedType.acnParameters.Head
     let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
     let patchFnName =
-        match findDetFunctionsForParam deps sizePrm.id with
+        match findDetFunctionsForParam lm deps sizePrm.id with
         | Some (_initFn, patchFn, _, _) -> patchFn
         | None -> ""
     let fncBody =
@@ -808,7 +684,7 @@ let private appendPatchDetCalls
                         match dep.dependencyKind with
                         | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> None
                         | _ ->
-                        match findDetFunctionsForParam deps prm.id with
+                        match findDetFunctionsForParam lm deps prm.id with
                         | None -> None
                         | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                             let boundaryPath = o.resolvedType.id.ToScopeNodeList
