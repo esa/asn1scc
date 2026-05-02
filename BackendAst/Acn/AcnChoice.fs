@@ -182,12 +182,19 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 
                         let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = child.Name.Value)
-                        Some (choiceChild_Enum (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
+                        // In deferred mode, the case discriminant is the deferred ref's
+                        // .Value field (Asn1UInt) rather than the enum-typed determinant,
+                        // so case branches must use the ACN-encoded integer literal.
+                        // In legacy mode keep the enum literal name (preserves byte-identity).
+                        let enmCaseName =
+                            if r.args.acnDeferred && codec = Decode then enmItem.acnEncodeValue.ToString()
+                            else lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem
+                        Some (choiceChild_Enum (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) enmCaseName (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
                     | CEC_presWhen  ->
                         let handPresenceCond (cond:AcnGenericTypes.AcnPresentWhenConditionChoiceChild) =
                             match cond with
                             | PresenceInt  (relPath, intLoc)   ->
-                                let extField = getExternalFieldChoicePresentWhen r deps t.id relPath
+                                let extField = getExternalFieldChoicePresentWhen lm r deps t.id relPath
                                 // Note: we always decode the external field as a asn1SccSint or asn1SccUint, therefore
                                 // we do not need the exact integer class (i.e. bit width). However, some backends
                                 // such as Scala requires the signedness to be passed.
@@ -206,7 +213,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                                         match d.dependencyKind with
                                         | AcnDepPresenceStr(relPathCond, ch, str)  when relPathCond = relPath-> Some str
                                         | _     -> None) |> Seq.head
-                                let extField = getExternalFieldChoicePresentWhen r deps t.id relPath
+                                let extField = getExternalFieldChoicePresentWhen lm r deps t.id relPath
                                 let arrNulls = [0 .. ((int strType.maxSize.acn) - strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
                                 let bytesStr = Array.append (System.Text.Encoding.ASCII.GetBytes strVal.Value) [| 0uy |]
                                 choiceChild_preWhen_str_condition extField strVal.Value arrNulls bytesStr
@@ -230,8 +237,14 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             | CEC_uper        ->
                 choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
             | CEC_enum   enm  ->
-                let extField = getExternalField r deps t.id
-                choice_Enum pp access childrenStatements extField errCode.errCodeName codec, resultExpr
+                let extField = getExternalField lm r deps t.id
+                // In deferred mode the case discriminant is Asn1UInt (det.Value),
+                // so Ada needs an explicit when-others to cover the full integer
+                // range. In legacy mode the discriminant is the enum type and
+                // when-others would be redundant — Ada flags it as a warning,
+                // which becomes an error under -gnatwe.
+                let bIsDeferred = r.args.acnDeferred
+                choice_Enum pp access childrenStatements extField errCode.errCodeName bIsDeferred codec, resultExpr
             | CEC_presWhen    -> choice_preWhen pp  access childrenStatements errCode.errCodeName codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
         let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.accessPath codec

@@ -852,6 +852,8 @@ type LangGeneric_c() =
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "\"\""
             | _ -> "0"
 
+        override _.acnDeferredTempVarName baseName = "_" + baseName
+
         override this.getDirInfo (target:Targets option) rootDir =
             {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}
 

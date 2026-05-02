@@ -56,6 +56,11 @@ type private SequenceChildCtx = {
     nestingScope: NestingScope
     bitStreamPositionsLocalVar: string
     hasOwnPostEncoding: bool
+    // Incoming acnArgs of the enclosing SEQUENCE function — forwarded to
+    // children's funcBodyAsSeqComp so an inner ReferenceType caller can
+    // resolve its acnArguments against the parent's formal params (matches
+    // the behaviour of Choice and SequenceOf).
+    acnArgs: (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list
     icdAsn1Child: Asn1Child -> string list -> ((IcdRow list) * (IcdTypeAss list))
     icdAcnChild: AcnChild -> string list -> ((IcdRow list) * (IcdTypeAss list))
 }
@@ -103,7 +108,7 @@ let private handleAsn1Child
         {p with accessPath = newArg}
     let childContentResult, ns1 =
         match chFunc with
-        | Some chFunc -> chFunc.funcBodyAsSeqComp us [] childNestingScope childP childName ctx.bitStreamPositionsLocalVar
+        | Some chFunc -> chFunc.funcBodyAsSeqComp us ctx.acnArgs childNestingScope childP childName ctx.bitStreamPositionsLocalVar
         | None -> None, us
 
     //handle present-when acn property
@@ -129,7 +134,7 @@ let private handleAsn1Child
                             match d.dependencyKind with
                             | AcnDepPresenceBool   -> true
                             | _                    -> false
-                        getExternalField0 r deps asn1TypeIdWithDependency filterDependency
+                        getExternalField0 lm r deps asn1TypeIdWithDependency filterDependency
                     let extField = getExternalField r deps child.Type.id
                     let body (p: CodegenScope) (existVar: string option): string =
                         assert existVar.IsSome
@@ -466,6 +471,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             t = t; o = o; p = p; nestingScope = nestingScope
             bitStreamPositionsLocalVar = bitStreamPositionsLocalVar
             hasOwnPostEncoding = hasOwnPostEncoding
+            acnArgs = acnArgs
             icdAsn1Child = icd_asn1_child
             icdAcnChild = icd_acn_child
         }

@@ -1041,7 +1041,7 @@ case <sEnmName>:
 >>
 
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
 switch(<p><sAcc>kind)
 {
     <arrsChildren; separator="\n">
@@ -1051,7 +1051,7 @@ default:
 }
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
 switch(<sEnmExtFld>)
 {
     <arrsChildren; separator="\n">
@@ -1261,7 +1261,7 @@ ret = <sFuncName>(<p>, pBitStrm, pErrCode);
 >>
 
 /* CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure + patch */
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 {
     AcnBitStreamPos acn_len_pos = Acn_BitStream_GetPos(pBitStrm);
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nMinSize>, <nMinSize>, <nMaxSize>);
@@ -1277,7 +1277,7 @@ octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nM
 }
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 {
     asn1SccSint acn_nCount;
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
@@ -1360,7 +1360,7 @@ ret = <sFuncName>(<p>, pBitStrm, pErrCode);
 >>
 
 /* BIT STRING CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure bits + patch */
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 {
     AcnBitStreamPos acn_len_pos = Acn_BitStream_GetPos(pBitStrm);
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nMinSize>, <nMinSize>, <nMaxSize>);
@@ -1376,7 +1376,7 @@ bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMax
 }
 >>
 
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 {
     asn1SccSint acn_nCount;
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
@@ -1735,6 +1735,16 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
 acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
 acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> = (asn1SccUint)<sTmpName>;"
 
+/* Boolean tmp variant — C cast works as for int.  Kept as a distinct macro so
+   strongly-typed backends (Ada) can emit a different conversion. */
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> = (asn1SccUint)<sTmpName>;"
+
+/* Enum tmp variant — same C output as int (enum→uint is implicit).  The
+   sEnumTypeName parameter is unused in C; Ada needs it for 'Enum_Rep. */
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "<sDetAccess> = (asn1SccUint)<sTmpName>;"
+
 /* Group D: Access paths (codec-independent) */
 
 /* Local det value access: det.value */
@@ -1742,6 +1752,11 @@ acn_deferred_det_access_value(sDetName) ::= "<sDetName>.value"
 
 /* Pointer det value access: det->value */
 acn_deferred_det_access_ptr(sDetName) ::= "<sDetName>->value"
+
+/* Pointer det value access used as a boolean (e.g. for present-when bool deps).
+   In C, det->value is truthy as-is; emit the same expression to preserve byte
+   identity with the existing _ptr access. */
+acn_deferred_det_access_bool_ptr(sDetName) ::= "<sDetName>->value"
 
 /* Local det string value access: det.str_value */
 acn_deferred_det_access_str_value(sDetName) ::= "<sDetName>.str_value"

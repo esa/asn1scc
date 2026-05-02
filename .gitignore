@@ -1,4 +1,6 @@
 shared_workdir/
+overnight/
+logs/overnight-*/
 .metals
 .vscode
 .idea

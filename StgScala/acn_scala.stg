@@ -963,12 +963,12 @@ case <sEnmName> =>
     <sChildID>(<sChildName>)
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
 <p> match
     <arrsChildren; separator="\n">
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
 val <p> = <sEnmExtFld> match
     <arrsChildren; separator="\n">
 >>
@@ -1133,11 +1133,11 @@ octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 // TODO: Scala deferred CONTAINING fixed decode
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 // TODO: Scala deferred CONTAINING embedded encode
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 // TODO: Scala deferred CONTAINING embedded decode
 >>
 
@@ -1165,11 +1165,11 @@ bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 // TODO: Scala bit_string_containing_deferred_fixed_func
 >>
 
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 // TODO: Scala bit_string_containing_deferred_embedded_func
 >>
 
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 // TODO: Scala bit_string_containing_deferred_embedded_func
 >>
 
@@ -1425,10 +1425,15 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
 /* Group C: Decode redirect */
 acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
 acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "// TODO"
 
 /* Group D: Access paths */
 acn_deferred_det_access_value(sDetName) ::= "// TODO"
 acn_deferred_det_access_ptr(sDetName) ::= "// TODO"
+acn_deferred_det_access_bool_ptr(sDetName) ::= "// TODO"
 acn_deferred_det_access_str_value(sDetName) ::= "// TODO"
 acn_deferred_det_access_str_ptr(sDetName) ::= "// TODO"
 acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "// TODO"

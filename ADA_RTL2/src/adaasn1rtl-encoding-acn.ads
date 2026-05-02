@@ -4,6 +4,464 @@ package adaasn1rtl.encoding.acn with
    Spark_Mode
 is
 
+   --  ============================================================
+   --  ACN Deferred Patching — types and helpers
+   --  Used when --acn-v2 is enabled. Mirrors the C runtime in
+   --  asn1crt/asn1crt_encoding_acn.h: AcnBitStreamPos,
+   --  AcnInsertedFieldRef, Acn_BitStream_GetPos/SetPos,
+   --  Acn_BitStream_DistanceInBytes/DistanceInBits.
+   --  ============================================================
+
+   --  Position in a Bitstream: just the bit-position (Ada Bitstream
+   --  uses a single Current_Bit_Pos field, simpler than C's
+   --  byte+bit pair).
+   type AcnBitStreamPos is record
+      Bit_Pos : Natural := 0;
+   end record;
+
+   --  Reference to an ACN-inserted field that will be patched later.
+   --  Is_Set + Value enable consistency checking for shared
+   --  determinants (the same determinant patched by multiple sites
+   --  must produce the same value).
+   AcnDet_Str_Max : constant := 256;
+   subtype AcnDet_Str_Index is Positive range 1 .. AcnDet_Str_Max;
+   subtype AcnDet_Str is String (AcnDet_Str_Index);
+
+   type AcnInsertedFieldRef is record
+      Pos       : AcnBitStreamPos := (Bit_Pos => 0);
+      Is_Set    : Boolean         := False;
+      Value     : Asn1UInt        := 0;
+      Str_Value : AcnDet_Str      := (others => NUL);
+   end record;
+
+   function Acn_BitStream_GetPos (bs : Bitstream) return AcnBitStreamPos is
+     ((Bit_Pos => bs.Current_Bit_Pos))
+   with
+      Post => Acn_BitStream_GetPos'Result.Bit_Pos = bs.Current_Bit_Pos;
+
+   procedure Acn_BitStream_SetPos
+     (bs : in out Bitstream; p : AcnBitStreamPos) with
+      Depends => (bs => (bs, p)),
+      Pre     => bs.Size_In_Bytes < Positive'Last / 8
+      and then p.Bit_Pos <= bs.Size_In_Bytes * 8,
+      Post    => bs.Current_Bit_Pos = p.Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   function Acn_BitStream_DistanceInBytes
+     (Start_Pos, End_Pos : AcnBitStreamPos) return Asn1UInt is
+     (Asn1UInt ((End_Pos.Bit_Pos - Start_Pos.Bit_Pos + 7) / 8))
+   with
+      Pre => End_Pos.Bit_Pos >= Start_Pos.Bit_Pos
+      and then End_Pos.Bit_Pos <= Natural'Last - 7;
+
+   function Acn_BitStream_DistanceInBits
+     (Start_Pos, End_Pos : AcnBitStreamPos) return Asn1UInt is
+     (Asn1UInt (End_Pos.Bit_Pos - Start_Pos.Bit_Pos))
+   with
+      Pre => End_Pos.Bit_Pos >= Start_Pos.Bit_Pos;
+
+   --  --- Deferred Init/Patch encoders (representative U8 pair) ---
+
+   procedure Acn_InitDet_U8
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 8
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_U8
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => V <= Asn1UInt (Asn1Byte'Last)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 8
+      and then bs.Current_Bit_Pos < Natural'Last - 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   --  --- Batch A: U16/U32/U64 big-endian and little-endian pairs ---
+
+   procedure Acn_InitDet_U16_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_U16_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => V <= Asn1UInt (Interfaces.Unsigned_16'Last)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 16
+      and then bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   procedure Acn_InitDet_U32_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_U32_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => V <= Asn1UInt (Interfaces.Unsigned_32'Last)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 32
+      and then bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   procedure Acn_InitDet_U64_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 64
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_U64_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 64
+      and then bs.Current_Bit_Pos < Natural'Last - 64
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   procedure Acn_InitDet_U16_LE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_U16_LE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => V <= Asn1UInt (Interfaces.Unsigned_16'Last)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 16
+      and then bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   procedure Acn_InitDet_U32_LE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_U32_LE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => V <= Asn1UInt (Interfaces.Unsigned_32'Last)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 32
+      and then bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   procedure Acn_InitDet_U64_LE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 64
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_U64_LE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 64
+      and then bs.Current_Bit_Pos < Natural'Last - 64
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   --  --- Batch B: I8/I16/I32/I64 BE (signed two's complement) pairs ---
+   --  PatchDet takes V : Asn1UInt; the bit pattern is reinterpreted via To_Int
+   --  before calling the signed inner encoder.
+
+   procedure Acn_InitDet_I8
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 8
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_I8
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => To_Int (V) >= NV (8) and then To_Int (V) <= PV (8)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 8
+      and then bs.Current_Bit_Pos < Natural'Last - 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   procedure Acn_InitDet_I16_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_I16_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => To_Int (V) >= NV (16) and then To_Int (V) <= PV (16)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 16
+      and then bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   procedure Acn_InitDet_I32_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_I32_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => To_Int (V) >= NV (32) and then To_Int (V) <= PV (32)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 32
+      and then bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   procedure Acn_InitDet_I64_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 64
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_I64_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 64
+      and then bs.Current_Bit_Pos < Natural'Last - 64
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   --  --- Batch C: BOOL1 (single-bit) pair ---
+   --  Inner primitive is BitStream_AppendBit; Pre/Post operate on a 1-bit
+   --  granularity. PatchDet encodes (V /= 0) as the bit value.
+
+   procedure Acn_InitDet_BOOL1
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
+      Depends => (bs => bs, det => (det, bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos < bs.Size_In_Bytes * 8,
+      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 1
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_BOOL1
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos < bs.Size_In_Bytes * 8
+      and then bs.Current_Bit_Pos < Natural'Last
+      and then bs.Current_Bit_Pos < bs.Size_In_Bytes * 8,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   --  --- Batch D: parametric ConstSize and TwosComplement_ConstSize pairs ---
+   --  PatchDet writes bit-by-bit via BitStream_AppendBit (loop), to avoid
+   --  AppendPartialByte clobbering adjacent bits already written by the
+   --  encoders that ran between the matching InitDet and PatchDet sites.
+
+   procedure Acn_InitDet_ConstSize
+     (bs    : in out Bitstream;
+      det   : in out AcnInsertedFieldRef;
+      nBits :        Integer) with
+      Pre  => nBits >= 1 and then nBits < Asn1UInt'Size
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_ConstSize
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      nBits  :        Integer;
+      result :    out ASN1_RESULT) with
+      Pre  => nBits >= 1 and then nBits < Asn1UInt'Size
+      and then V <= max_value_with_n_bits (nBits)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   procedure Acn_InitDet_TwosComplement_ConstSize
+     (bs    : in out Bitstream;
+      det   : in out AcnInsertedFieldRef;
+      nBits :        Integer) with
+      Pre  => nBits >= 2 and then nBits < Asn1UInt'Size
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_TwosComplement_ConstSize
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      nBits  :        Integer;
+      result :    out ASN1_RESULT) with
+      Pre  => nBits >= 2 and then nBits < Asn1UInt'Size
+      and then To_Int (V) >= NV (nBits)
+      and then To_Int (V) <= PV (nBits)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   --  --- Batch E: IA5String_FixSize pair (7 bits per char, nested loops) ---
+   --  Saves the encoded string in det.Str_Value for consistency check.
+
+   procedure Acn_InitDet_IA5String_FixSize
+     (bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      nChars :        Natural) with
+      Pre  => nChars >= 1
+      and then nChars <= AcnDet_Str_Max
+      and then nChars < Natural'Last / 7
+      and then bs.Current_Bit_Pos < Natural'Last - nChars * 7
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nChars * 7,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nChars * 7
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes
+      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      and then det.Is_Set = False
+      and then det.Value = 0;
+
+   procedure Acn_PatchDet_IA5String_FixSize
+     (strVal :        String;
+      bs     : in out Bitstream;
+      nChars :        Natural;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT) with
+      Pre  => nChars >= 1
+      and then nChars <= AcnDet_Str_Max
+      and then nChars < Natural'Last / 7
+      and then strVal'First >= 1
+      and then strVal'Last < Natural'Last
+      and then strVal'Length >= nChars
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - nChars * 7
+      and then bs.Current_Bit_Pos < Natural'Last - nChars * 7
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nChars * 7,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
+      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+
+   --  ============================================================
+   --  Original ACN encoders/decoders follow.
+   --  ============================================================
+
    procedure Acn_Enc_Int_PositiveInteger_ConstSize
      (bs : in out Bitstream; IntVal : Asn1UInt; sizeInBits : Integer) with
       Depends => (bs => (bs, IntVal, sizeInBits)),
