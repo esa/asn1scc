@@ -3,19 +3,19 @@ ARG NON_ROOT_USER=false
 ARG USERNAME=root
 ARG USERID=0
 
-FROM ubuntu:20.04
+FROM debian:12
 
 # Install .NET
 RUN apt-get update && apt-get install -y wget apt-transport-https && \
-    wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb && \
+    wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb && \
     dpkg -i packages-microsoft-prod.deb && \
     apt-get update && apt-get install -y dotnet-sdk-10.0
 
 # Install system dependencies
 RUN set -xe \
     && DEBIAN_FRONTEND=noninteractive apt-get update -y \
-    && apt-get install -y libfontconfig libdbus-1-3 libx11-6 libx11-xcb-dev cppcheck htop \
-        python3 python3-distutils gcc g++ make nuget libgit2-dev libssl-dev curl wget git unzip zip \
+    && apt-get install -y libfontconfig1 libdbus-1-3 libx11-6 libx11-xcb-dev cppcheck htop \
+        python3 gcc g++ make nuget libgit2-dev libssl-dev curl wget git unzip zip \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get purge --auto-remove \
     && apt-get clean 
