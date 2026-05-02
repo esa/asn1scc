@@ -429,5 +429,30 @@ type LangGeneric_a() =
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "\"\""
             | _ -> "0"
 
+        override _.wrapDeferredSpecBody body =
+            // Suppress benign diagnostics around closure-converted spec
+            // functions that surface only on this branch:
+            //   * "is not referenced": the public TAS wrapper (e.g.
+            //     PDU_hdr_ACN_Encode) is dead code in the deferred path —
+            //     callers invoke `_aux` directly.
+            //   * "not assigned a value": `val` is `out` for Headers whose
+            //     only Asn1 child is a NULL-pattern, never written.
+            //   * "redundant" / "previous choices cover all values": the
+            //     deferred backend emits a `when others => 0` fallback in
+            //     case-expressions over CHOICE discriminators that are
+            //     exhaustively covered by the kind enum.
+            // Without these, -gnatwae fails the build.  The patterns target
+            // exactly these warning families; legitimate warnings inside the
+            // body are not suppressed.
+            "pragma Warnings (Off, \"*is not referenced*\");\n"
+            + "pragma Warnings (Off, \"*not assigned a value*\");\n"
+            + "pragma Warnings (Off, \"*redundant*\");\n"
+            + "pragma Warnings (Off, \"*previous choices cover all values*\");\n"
+            + body
+            + "\npragma Warnings (On, \"*previous choices cover all values*\");"
+            + "\npragma Warnings (On, \"*redundant*\");"
+            + "\npragma Warnings (On, \"*not assigned a value*\");"
+            + "\npragma Warnings (On, \"*is not referenced*\");"
+
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name

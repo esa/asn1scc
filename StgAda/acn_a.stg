@@ -33,7 +33,11 @@ EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFunc
 procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 is
 begin
-    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING<endif>, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0));
+    --  Stream subtype is constrained to <sTypeDefName>_ACN_STREAM_SIZE; use that
+    --  exact value to satisfy the discriminant.  In closure-converted (--acn-v2)
+    --  spec functions the actual content may exceed this size, but the public
+    --  wrapper is dead code in that path (callers invoke <sFuncName>_aux directly).
+    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <sTypeDefName>_ACN_STREAM_SIZE, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0));
     <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>);
 end <sFuncName>;
 >>

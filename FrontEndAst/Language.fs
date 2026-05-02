@@ -265,6 +265,22 @@ type ILangGeneric () =
     /// Default: "0" (Ada/Scala don't yet implement --acn-v2).
     abstract member computeDeferredFallbackValue : Asn1AcnAst.AcnInsertedType -> BigInteger -> string
 
+    /// Wrap the body of a closure-converted (--acn-v2) specialized function
+    /// with language-specific suppression of "dead code / unused symbol"
+    /// diagnostics.  The public TAS-style wrapper that some backends emit
+    /// alongside the working `_aux` body is never called by the deferred
+    /// path (callers invoke `_aux` directly), so warnings about it being
+    /// unreferenced must be silenced under -Werror-equivalent flags.
+    /// Default: identity (C and Scala don't need this).
+    abstract member wrapDeferredSpecBody : body:string -> string
+
+    /// Mangle a synthetic local-variable name used by the --acn-v2 deferred
+    /// patching backend (e.g., "patchDetVal", "patchDetStrVal") to a form
+    /// the target language accepts.  C prepends `_` for compiler-generated
+    /// locals (preserves byte-identity with master output); Ada cannot use
+    /// leading underscore identifiers.  Default: identity.
+    abstract member acnDeferredTempVarName : baseName:string -> string
+
     abstract member getRtlFiles : Asn1Encoding list -> string list -> string list
 
     abstract member getChildInfoName : Asn1Ast.ChildInfo -> string
@@ -388,6 +404,8 @@ type ILangGeneric () =
         sourceCode
     default _.getDeferredDetFunctions _ = None
     default _.computeDeferredFallbackValue _ _ = "0"
+    default _.wrapDeferredSpecBody body = body
+    default _.acnDeferredTempVarName baseName = baseName
     default this.real_annotations = []
 
     default this.extractEnumClassName (prefix: string) (varName: string) (internalName: string): string = ""

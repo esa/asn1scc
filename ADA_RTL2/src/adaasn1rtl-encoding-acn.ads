@@ -230,7 +230,7 @@ is
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
       and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
 
-   --  --- Batch B: I8/I16/I32/I64 big-endian (signed two's complement) pairs ---
+   --  --- Batch B: I8/I16/I32/I64 BE (signed two's complement) pairs ---
    --  PatchDet takes V : Asn1UInt; the bit pattern is reinterpreted via To_Int
    --  before calling the signed inner encoder.
 
@@ -420,7 +420,7 @@ is
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
       and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
 
-   --  --- Batch E: IA5String_FixSize pair (7 bits per char, two nested loops) ---
+   --  --- Batch E: IA5String_FixSize pair (7 bits per char, nested loops) ---
    --  Saves the encoded string in det.Str_Value for consistency check.
 
    procedure Acn_InitDet_IA5String_FixSize

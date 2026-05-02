@@ -21,61 +21,74 @@ open AcnHelpers
 open AcnDependencies
 
 
-/// Build a C access expression from relative scope nodes and the root pointer.
-/// Returns (accessExpr, accessor) where accessor is "->" if result is a pointer,
-/// "." if result is a struct member.
-/// E.g., [] + "pVal" → ("pVal", "->")
-///       [SEQ_CHILD("buffer",_)] + "pVal" → ("pVal->buffer", ".")
-let buildRelativeAccess (lm: LanguageMacros) (relParts: ScopeNode list) (rootId: string) : (string * string) =
+/// Build an access expression from relative scope nodes and the root receiver.
+/// Returns (accessExpr, accessor) where the accessor is the operator that the
+/// caller should put between accessExpr and the next field — "->" / "." in C
+/// when the result is a pointer / struct, always "." in Ada (records).
+/// The root accessor (between rootId and the first hop) comes from
+/// lm.lg.getAccess on the caller's AccessPath, which carries the language's
+/// pointer-vs-value convention.
+/// E.g., C   []                   + pVal/ByPointer → ("pVal", "->")
+///       Ada []                   + val/ByValue    → ("val",  ".")
+///       both [SEQ_CHILD("buffer",_)] + …          → ("<root><rootAcc>buffer", ".")
+let buildRelativeAccess (lm: LanguageMacros) (relParts: ScopeNode list) (specP: CodegenScope) : (string * string) =
+    let rootId = specP.accessPath.rootId
+    let rootAcc = lm.lg.getAccess specP.accessPath
     match relParts with
-    | [] -> (rootId, "->")
+    | [] -> (rootId, rootAcc)
     | _ ->
         let parts = relParts |> List.map (fun node ->
             match node with
             | SEQ_CHILD (name, _) -> ToC name
             | CH_CHILD (name, _, _) -> ToC name
             | _ -> failwithf "BUG: unexpected scope node %A in relative access" node)
-        let fieldAccess = lm.acn.acn_deferred_det_relative_access rootId (parts |> String.concat ".")
+        // First hop after rootId uses the language-specific rootAcc; subsequent
+        // hops are always "." (struct member access in both C and Ada).
+        let fieldAccess = rootId + rootAcc + (parts |> String.concat ".")
         (fieldAccess, ".")
 
 
-/// Compute the C value expression for a PatchDet call, based on the
+/// Compute the value expression for a PatchDet call, based on the
 /// dependency kind.  Returns (preBlock option, valueExpr) where preBlock
-/// is an optional block of C code to prepend (e.g., a switch statement
-/// that computes the value into a local variable).
+/// is an optional block of code to prepend (e.g., a switch/case that
+/// computes the value into a local variable).
 ///
-/// E.g., for AcnDepSizeDeterminant:     (None, "pVal->buffer.nCount")
-///       for AcnDepPresenceBool:         (None, "(pVal->exist.extra_data == 1)")
-///       for AcnDepPresence:             (Some "asn1SccUint _patchDetVal;\nswitch(...){...}", "_patchDetVal")
-///       for AcnDepChoiceDeterminant:    (Some "asn1SccUint _patchDetVal;\nswitch(...){...}", "_patchDetVal")
+/// E.g., C   AcnDepSizeDeterminant: (None, "pVal->buffer.nCount")
+///       Ada AcnDepSizeDeterminant: (None, "val.buffer.Length")
+///       AcnDepPresence:            (Some "<switch block>", "patchDetVal")
+///       AcnDepChoiceDeterminant:   (Some "<switch block>", "patchDetVal")
+///
+/// Identifier "patchDetVal" / "patchDetStrVal" must NOT start with an
+/// underscore — Ada rejects leading-underscore identifiers and the same
+/// names are emitted into both C and Ada output.
 let computePatchDetValueExpr
     (lm: LanguageMacros)
     (dep: Asn1AcnAst.AcnDependency)
     (boundaryPath: ScopeNode list)
-    (rootId: string)
+    (specP: CodegenScope)
     : (string option * string) =
     let fieldPath = dep.asn1Type.ToScopeNodeList
     let relParts = fieldPath |> List.skip boundaryPath.Length
     match dep.dependencyKind with
     | Asn1AcnAst.AcnDepSizeDeterminant _ ->
-        let (fieldExpr, acc) = buildRelativeAccess lm relParts rootId
+        let (fieldExpr, acc) = buildRelativeAccess lm relParts specP
         (None, lm.acn.getSizeableSize fieldExpr acc false)
 
     | Asn1AcnAst.AcnDepIA5StringSizeDeterminant _ ->
-        let (fieldExpr, _acc) = buildRelativeAccess lm relParts rootId
+        let (fieldExpr, _acc) = buildRelativeAccess lm relParts specP
         (None, lm.acn.getStringSize fieldExpr)
 
     | Asn1AcnAst.AcnDepPresenceBool ->
         // dep.asn1Type points to the OPTIONAL child; parent is one level up
         let parentRelParts = relParts |> List.rev |> List.tail |> List.rev
-        let (parentExpr, pAcc) = buildRelativeAccess lm parentRelParts rootId
+        let (parentExpr, pAcc) = buildRelativeAccess lm parentRelParts specP
         let childName = ToC (dep.asn1Type.lastItem)
         (None, lm.acn.acn_deferred_det_value_presence_bool parentExpr pAcc childName)
 
     | Asn1AcnAst.AcnDepPresence (relPath, chc) ->
-        let (choiceExpr, acc) = buildRelativeAccess lm relParts rootId
+        let (choiceExpr, acc) = buildRelativeAccess lm relParts specP
         let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
-        let varName = "_patchDetVal"
+        let varName = lm.lg.acnDeferredTempVarName "patchDetVal"
         let switchItems = chc.children |> List.map (fun ch ->
             let pres = ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath)
             let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
@@ -88,9 +101,9 @@ let computePatchDetValueExpr
         (Some switchBlock, varName)
 
     | Asn1AcnAst.AcnDepPresenceStr (relPath, chc, _strType) ->
-        let (choiceExpr, acc) = buildRelativeAccess lm relParts rootId
+        let (choiceExpr, acc) = buildRelativeAccess lm relParts specP
         let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
-        let varName = "_patchDetStrVal"
+        let varName = lm.lg.acnDeferredTempVarName "patchDetStrVal"
         let switchItems = chc.children |> List.map (fun ch ->
             let pres = ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath)
             let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
@@ -103,9 +116,9 @@ let computePatchDetValueExpr
         (Some switchBlock, varName)
 
     | Asn1AcnAst.AcnDepChoiceDeterminant (enm, chc, _isOptional) ->
-        let (choiceExpr, acc) = buildRelativeAccess lm relParts rootId
+        let (choiceExpr, acc) = buildRelativeAccess lm relParts specP
         let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
-        let varName = "_patchDetVal"
+        let varName = lm.lg.acnDeferredTempVarName "patchDetVal"
         let switchItems = chc.children |> List.map (fun ch ->
             let enmItem = enm.enm.items |> List.find (fun itm -> itm.Name.Value = ch.Name.Value)
             let presentWhenName = ch.presentWhenName
@@ -345,7 +358,12 @@ let private createDeferredSequenceFunction
                                         let tmpVarDecl =
                                             match ac.Type with
                                             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ ->
-                                                FlagLocalVariable (tmpName, None)
+                                                // Boolean tmp var: emits "flag" in C, "Boolean" in Ada.
+                                                // FlagLocalVariable emits adaasn1rtl.BIT (modular type)
+                                                // which is wrong here — UPER_Dec_boolean expects
+                                                // Asn1Boolean.  BooleanLocalVariable maps to flag/Boolean
+                                                // which both decoders accept.
+                                                BooleanLocalVariable (tmpName, None)
                                             | _ ->
                                                 GenericLocalVariable { name = tmpName; varType = ac.typeDefinitionBodyWithinSeq; arrSize = None; isStatic = false; initExp = None }
                                         let modifiedP = {p with accessPath = AccessPath.valueEmptyPath tmpName}
@@ -483,23 +501,6 @@ let private emptyBody (lm: LanguageMacros) : AcnFuncBodyResult =
         userDefinedFunctions = [] }
 
 
-/// Apply intermediate-boundary post-processing to an inner funcBody.
-/// SEQUENCE bodies pass [] as acnArgs to their children, so child
-/// callerFuncBodies generate "&argName" (local AcnInsertedFieldRef).  At
-/// this boundary we replace those local refs with the formal parameter
-/// name for pointer pass-through.
-let private rewriteLocalParamRefs
-        (lm: LanguageMacros)
-        (codec: CommonTypes.Codec)
-        (acnParameters: AcnGenericTypes.AcnParameter list)
-        (body: string) : string =
-    acnParameters |> List.fold (fun (b: string) prm ->
-        let localRef = lm.acn.acn_deferred_det_actual_param (ToC prm.name) codec
-        let paramRef = DAstACN.getAcnDeterminantName prm.id
-        b.Replace(localRef, paramRef)
-    ) body
-
-
 // Constants threaded across the 7 createDeferredReferenceFunction helpers.
 // Bundled into a record so each helper takes ctx + only its own variable
 // inputs, instead of repeating 8 params per helper signature (per refactor
@@ -535,7 +536,6 @@ let private buildContainingClosureBody
     match bodyContent with
     | None -> emptyBody ctx.lm, ns2
     | Some br ->
-        let funcBody0 = rewriteLocalParamRefs ctx.lm ctx.codec ctx.o.resolvedType.acnParameters br.funcBody
         let wrappedBody =
             match containingSizePrm with
             | Some sizePrm ->
@@ -546,11 +546,11 @@ let private buildContainingClosureBody
                     | None -> ""
                 match ctx.o.encodingOptions.Value.octOrBitStr with
                 | CommonTypes.ContainedInOctString ->
-                    ctx.lm.acn.octet_string_containing_deferred_wrapper funcBody0 detParamName patchFnName errCode.errCodeName ctx.codec
+                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName errCode.errCodeName ctx.codec
                 | CommonTypes.ContainedInBitString ->
-                    ctx.lm.acn.bit_string_containing_deferred_wrapper funcBody0 detParamName patchFnName errCode.errCodeName ctx.codec
+                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName errCode.errCodeName ctx.codec
             | None ->
-                funcBody0  // fallback: no wrapping if size param not found
+                br.funcBody  // fallback: no wrapping if size param not found
         { br with
             funcBody = wrappedBody
             errCodes = br.errCodes @ [errCode]
@@ -603,9 +603,7 @@ let private buildNormalReferenceBody
     match bodyContent with
     | None -> emptyBody ctx.lm, ns2
     | Some br ->
-        let funcBody0 = rewriteLocalParamRefs ctx.lm ctx.codec ctx.o.resolvedType.acnParameters br.funcBody
         { br with
-            funcBody = funcBody0
             localVariables = stripLocals br.localVariables }, ns2
 
 
@@ -667,7 +665,7 @@ let private appendPatchDetCalls
                         | None -> None
                         | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                             let boundaryPath = ctx.o.resolvedType.id.ToScopeNodeList
-                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.lm dep boundaryPath specP.accessPath.rootId
+                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.lm dep boundaryPath specP
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
                             // but ConstSize encodes value directly, so subtract the offset.
                             let valueExpr =
@@ -753,6 +751,7 @@ let private emitSpecializedFunctionDecl
             (ctx.t.acnMaxSizeInBits = 0I) finalBody.bBsIsUnReferenced bVarNameIsUnreferenced
             soInitFuncName [] [] None  // funcDefAnnots, precondAnnots, postcondAnnots
             ctx.codec
+        |> ctx.lm.lg.wrapDeferredSpecBody
 
     let specErrCodStr =
         (errCode :: finalBody.errCodes)
@@ -769,6 +768,7 @@ let private emitSpecializedFunctionDecl
             deferredFormalParams
             None  // soSparkAnnotations
             ctx.codec
+        |> ctx.lm.lg.wrapDeferredSpecBody
 
     finalBody.auxiliaries @ [specFuncDef; specFuncBody]
 
