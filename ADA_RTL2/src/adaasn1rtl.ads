@@ -66,6 +66,10 @@ is
 
    ERR_INCORRECT_IEEE754_FORMAT : constant Integer := 105;
 
+   --  ACN deferred patching: shared determinant patched with two
+   --  different values across calls (consistency check failure).
+   ERR_ACN_DET_CONSISTENCY_MISMATCH : constant Integer := 203;
+
    function GetZeroBasedCharIndex
      (CharToSearch : Character; AllowedCharSet : String) return Integer with
       Pre => AllowedCharSet'First <= AllowedCharSet'Last and

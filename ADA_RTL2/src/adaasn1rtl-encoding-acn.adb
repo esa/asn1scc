@@ -4,6 +4,613 @@ package body adaasn1rtl.encoding.acn with
    Spark_Mode
 is
 
+   --  ============================================================
+   --  ACN Deferred Patching — bodies
+   --  ============================================================
+
+   procedure Acn_BitStream_SetPos
+     (bs : in out Bitstream; p : AcnBitStreamPos)
+   is
+   begin
+      bs.Current_Bit_Pos := p.Bit_Pos;
+   end Acn_BitStream_SetPos;
+
+   procedure Acn_InitDet_U8
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_PositiveInteger_ConstSize_8 (bs, 0);
+   end Acn_InitDet_U8;
+
+   procedure Acn_PatchDet_U8
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_PositiveInteger_ConstSize_8 (bs, V);
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_U8;
+
+   --  --- Batch A: U16/U32/U64 big-endian and little-endian pairs ---
+
+   procedure Acn_InitDet_U16_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16 (bs, 0);
+   end Acn_InitDet_U16_BE;
+
+   procedure Acn_PatchDet_U16_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16 (bs, V);
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_U16_BE;
+
+   procedure Acn_InitDet_U32_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32 (bs, 0);
+   end Acn_InitDet_U32_BE;
+
+   procedure Acn_PatchDet_U32_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32 (bs, V);
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_U32_BE;
+
+   procedure Acn_InitDet_U64_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64 (bs, 0);
+   end Acn_InitDet_U64_BE;
+
+   procedure Acn_PatchDet_U64_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64 (bs, V);
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_U64_BE;
+
+   procedure Acn_InitDet_U16_LE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16 (bs, 0);
+   end Acn_InitDet_U16_LE;
+
+   procedure Acn_PatchDet_U16_LE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16 (bs, V);
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_U16_LE;
+
+   procedure Acn_InitDet_U32_LE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32 (bs, 0);
+   end Acn_InitDet_U32_LE;
+
+   procedure Acn_PatchDet_U32_LE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32 (bs, V);
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_U32_LE;
+
+   procedure Acn_InitDet_U64_LE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64 (bs, 0);
+   end Acn_InitDet_U64_LE;
+
+   procedure Acn_PatchDet_U64_LE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64 (bs, V);
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_U64_LE;
+
+   --  --- Batch B: signed two's complement big-endian pairs ---
+
+   procedure Acn_InitDet_I8
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_TwosComplement_ConstSize_8 (bs, 0);
+   end Acn_InitDet_I8;
+
+   procedure Acn_PatchDet_I8
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_TwosComplement_ConstSize_8 (bs, To_Int (V));
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_I8;
+
+   procedure Acn_InitDet_I16_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16 (bs, 0);
+   end Acn_InitDet_I16_BE;
+
+   procedure Acn_PatchDet_I16_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16 (bs, To_Int (V));
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_I16_BE;
+
+   procedure Acn_InitDet_I32_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32 (bs, 0);
+   end Acn_InitDet_I32_BE;
+
+   procedure Acn_PatchDet_I32_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32 (bs, To_Int (V));
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_I32_BE;
+
+   procedure Acn_InitDet_I64_BE
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64 (bs, 0);
+   end Acn_InitDet_I64_BE;
+
+   procedure Acn_PatchDet_I64_BE
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64 (bs, To_Int (V));
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_I64_BE;
+
+   --  --- Batch C: BOOL1 single-bit pair ---
+
+   procedure Acn_InitDet_BOOL1
+     (bs : in out Bitstream; det : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      BitStream_AppendBit (bs, 0);
+   end Acn_InitDet_BOOL1;
+
+   procedure Acn_PatchDet_BOOL1
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         BitStream_AppendBit (bs, (if V = 0 then 0 else 1));
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_BOOL1;
+
+   --  --- Batch D: parametric ConstSize and TwosComplement_ConstSize pairs ---
+
+   procedure Acn_InitDet_ConstSize
+     (bs    : in out Bitstream;
+      det   : in out AcnInsertedFieldRef;
+      nBits :        Integer)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      for i in 0 .. nBits - 1 loop
+         pragma Loop_Invariant
+           (bs.Size_In_Bytes = bs.Size_In_Bytes'Loop_Entry
+            and then bs.Current_Bit_Pos =
+              bs.Current_Bit_Pos'Loop_Entry + i);
+         BitStream_AppendBit (bs, 0);
+      end loop;
+   end Acn_InitDet_ConstSize;
+
+   procedure Acn_PatchDet_ConstSize
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      nBits  :        Integer;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         for i in 0 .. nBits - 1 loop
+            pragma Loop_Invariant
+              (bs.Size_In_Bytes = bs.Size_In_Bytes'Loop_Entry
+               and then bs.Current_Bit_Pos =
+                 bs.Current_Bit_Pos'Loop_Entry + i
+               and then bs.Current_Bit_Pos'Loop_Entry = det.Pos.Bit_Pos);
+            BitStream_AppendBit
+              (bs, BIT (Shift_Right (V, nBits - 1 - i) and 1));
+         end loop;
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_ConstSize;
+
+   procedure Acn_InitDet_TwosComplement_ConstSize
+     (bs    : in out Bitstream;
+      det   : in out AcnInsertedFieldRef;
+      nBits :        Integer)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      for i in 0 .. nBits - 1 loop
+         pragma Loop_Invariant
+           (bs.Size_In_Bytes = bs.Size_In_Bytes'Loop_Entry
+            and then bs.Current_Bit_Pos =
+              bs.Current_Bit_Pos'Loop_Entry + i);
+         BitStream_AppendBit (bs, 0);
+      end loop;
+   end Acn_InitDet_TwosComplement_ConstSize;
+
+   procedure Acn_PatchDet_TwosComplement_ConstSize
+     (V      :        Asn1UInt;
+      bs     : in out Bitstream;
+      det    : in out AcnInsertedFieldRef;
+      nBits  :        Integer;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         for i in 0 .. nBits - 1 loop
+            pragma Loop_Invariant
+              (bs.Size_In_Bytes = bs.Size_In_Bytes'Loop_Entry
+               and then bs.Current_Bit_Pos =
+                 bs.Current_Bit_Pos'Loop_Entry + i
+               and then bs.Current_Bit_Pos'Loop_Entry = det.Pos.Bit_Pos);
+            BitStream_AppendBit
+              (bs, BIT (Shift_Right (V, nBits - 1 - i) and 1));
+         end loop;
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Value  := V;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Value /= V then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_TwosComplement_ConstSize;
+
+   --  --- Batch E: IA5String_FixSize (7 bits per char) ---
+
+   procedure Acn_InitDet_IA5String_FixSize
+     (bs     : in out Bitstream;
+      nChars :        Natural;
+      det    : in out AcnInsertedFieldRef)
+   is
+   begin
+      det.Pos    := Acn_BitStream_GetPos (bs);
+      det.Is_Set := False;
+      det.Value  := 0;
+      --  det.Str_Value is irrelevant while Is_Set = False; PatchDet sets it.
+      for i in 0 .. nChars * 7 - 1 loop
+         pragma Loop_Invariant
+           (bs.Size_In_Bytes = bs.Size_In_Bytes'Loop_Entry
+            and then bs.Current_Bit_Pos =
+              bs.Current_Bit_Pos'Loop_Entry + i);
+         BitStream_AppendBit (bs, 0);
+      end loop;
+   end Acn_InitDet_IA5String_FixSize;
+
+   procedure Acn_PatchDet_IA5String_FixSize
+     (strVal :        String;
+      bs     : in out Bitstream;
+      nChars :        Natural;
+      det    : in out AcnInsertedFieldRef;
+      result :    out ASN1_RESULT)
+   is
+      Cur : AcnBitStreamPos;
+   begin
+      if not det.Is_Set then
+         Cur := Acn_BitStream_GetPos (bs);
+         Acn_BitStream_SetPos (bs, det.Pos);
+         for i in 0 .. nChars - 1 loop
+            pragma Loop_Invariant
+              (bs.Size_In_Bytes = bs.Size_In_Bytes'Loop_Entry
+               and then bs.Current_Bit_Pos =
+                 bs.Current_Bit_Pos'Loop_Entry + i * 7
+               and then bs.Current_Bit_Pos'Loop_Entry = det.Pos.Bit_Pos);
+            declare
+               Ch : constant Asn1Byte :=
+                 Character'Pos (strVal (strVal'First + i));
+            begin
+               for b in reverse 0 .. 6 loop
+                  pragma Loop_Invariant
+                    (bs.Size_In_Bytes = bs.Size_In_Bytes'Loop_Entry
+                     and then bs.Current_Bit_Pos =
+                       bs.Current_Bit_Pos'Loop_Entry + (6 - b));
+                  BitStream_AppendBit
+                    (bs, BIT (Shift_Right (Asn1UInt (Ch), b) and 1));
+               end loop;
+            end;
+         end loop;
+         Acn_BitStream_SetPos (bs, Cur);
+         det.Str_Value := (others => NUL);
+         for i in 1 .. nChars loop
+            pragma Loop_Invariant
+              (bs.Size_In_Bytes = bs.Size_In_Bytes'Loop_Entry
+               and then bs.Current_Bit_Pos =
+                 bs.Current_Bit_Pos'Loop_Entry);
+            det.Str_Value (i) := strVal (strVal'First + i - 1);
+         end loop;
+         det.Is_Set := True;
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif det.Str_Value (1 .. nChars) /=
+            strVal (strVal'First .. strVal'First + nChars - 1)
+      then
+         result := ASN1_RESULT'(Success   => False,
+                                ErrorCode => ERR_ACN_DET_CONSISTENCY_MISMATCH);
+      else
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      end if;
+   end Acn_PatchDet_IA5String_FixSize;
+
+   --  ============================================================
+   --  Original ACN encoder/decoder bodies follow.
+   --  ============================================================
+
    procedure Acn_Enc_Int_PositiveInteger_ConstSize
      (bs : in out Bitstream; IntVal : Asn1UInt; sizeInBits : Integer)
    is
