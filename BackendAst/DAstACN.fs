@@ -39,7 +39,6 @@ let handleSavePosition = AcnAlignment.handleSavePosition
 let handleAlignmentForAsn1Types = AcnAlignment.handleAlignmentForAsn1Types
 let handleAlignmentForAcnTypes = AcnAlignment.handleAlignmentForAcnTypes
 
-let md5 = AcnIcd.md5
 let createIcdTas = AcnIcd.createIcdTas
 
 // `createAcnFunction` is the generic dispatcher that wraps a per-type

@@ -8,8 +8,6 @@ open DAst
 open DAstUtilFunctions
 
 
-let md5 = System.Security.Cryptography.MD5.Create()
-
 let createIcdTas (r:Asn1AcnAst.AstRoot) (id:ReferenceToType) (icdAux:IcdArgAux) (td:FE_TypeDefinition) (typeDefinition:TypeDefinitionOrReference) nMinBytesInACN nMaxBytesInACN hasAcnDefinition =
     let icdRows, compositeChildren = icdAux.rowsFunc "" "" [];
     let icdTas =
