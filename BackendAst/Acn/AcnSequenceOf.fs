@@ -134,7 +134,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                     | Some internalItem ->
                         let localVariables = internalItem.localVariables
                         let childErrCodes = internalItem.errCodes
-                        let extField = getExternalField r deps t.id
+                        let extField = getExternalField lm r deps t.id
                         let tp = getExternalFieldType r deps t.id
                         let unsigned =
                             match tp with

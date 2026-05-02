@@ -43,7 +43,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
 
                 Some(fncBody, [errCode],nStringLength)
             | SZ_EC_ExternalField _ ->
-                let extField = getExternalField r deps t.id
+                let extField = getExternalField lm r deps t.id
                 let tp = getExternalFieldType r deps t.id
                 let unsigned =
                     match tp with
@@ -105,7 +105,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let funcBodyContent =
             match o.acnEncodingClass with
             | SZ_EC_ExternalField   _    ->
-                let extField = getExternalField r deps t.id
+                let extField = getExternalField lm r deps t.id
                 let tp = getExternalFieldType r deps t.id
                 let detMaxOpt =
                     match tp with

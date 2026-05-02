@@ -10,7 +10,7 @@ open DAstUtilFunctions
 open Language
 
 
-let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
+let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
     let dependency =
         match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d ) with
         | Some d -> d
@@ -56,9 +56,9 @@ let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDe
 
     let baseName = AcnHelpers.getAcnDeterminantName resolvedId
     // In deferred mode, when the determinant resolved to a PRM (parameter),
-    // the formal parameter is AcnInsertedFieldRef*.  Code that reads the
-    // integer value must access the ->value field of the struct.
-    // For IA5String determinants, use ->str_value instead of ->value.
+    // the formal parameter is the language-specific deferred ref struct.
+    // Use the abstract macros to access the value/str_value fields so the
+    // syntax is correct for each backend (C: "det->value", Ada: "det.Value").
     if r.args.acnDeferred then
         let resolvedNodes = match resolvedId with ReferenceToType nodes -> nodes
         let resolvedLastNode = resolvedNodes |> List.rev |> List.head
@@ -69,8 +69,8 @@ let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDe
                 match dependency.dependencyKind with
                 | Asn1AcnAst.AcnDepPresenceStr _ -> true
                 | _ -> false
-            if isStringDep then baseName + "->str_value"
-            else baseName + "->value"
+            if isStringDep then lm.acn.acn_deferred_det_access_str_ptr baseName
+            else lm.acn.acn_deferred_det_access_ptr baseName
         | _     -> baseName
     else
         baseName
@@ -104,12 +104,12 @@ let getExternalField0Type (r: Asn1AcnAst.AstRoot)
         | AcnChildDeterminant child -> Some child.Type
         | _ -> None
 
-let getExternalFieldChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency  relPath=
+let getExternalFieldChoicePresentWhen (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency  relPath=
     let filterDependency (d:AcnDependency) =
         match d.dependencyKind with
         | AcnDepPresence (relPath0, _)   -> relPath = relPath0
         | _                              -> true
-    getExternalField0 r deps asn1TypeIdWithDependency filterDependency
+    getExternalField0 lm r deps asn1TypeIdWithDependency filterDependency
 
 let getExternalFieldTypeChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency  relPath=
     let filterDependency (d:AcnDependency) =
@@ -118,8 +118,8 @@ let getExternalFieldTypeChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
         | _                              -> true
     getExternalField0Type r deps asn1TypeIdWithDependency filterDependency
 
-let getExternalField (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
-    getExternalField0 r deps asn1TypeIdWithDependency (fun z -> true)
+let getExternalField (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
+    getExternalField0 lm r deps asn1TypeIdWithDependency (fun z -> true)
 
 let getExternalFieldType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
     getExternalField0Type r deps asn1TypeIdWithDependency (fun z -> true)

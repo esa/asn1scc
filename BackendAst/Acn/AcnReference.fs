@@ -152,7 +152,7 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                         match d.dependencyKind with
                         | AcnDepSizeDeterminant_bit_oct_str_contain _   -> true
                         | _                              -> false
-                    let extField        = getExternalField0 r deps t.id filterDependency
+                    let extField        = getExternalField0 lm r deps t.id filterDependency
                     let soInner, errCodes0, localVariables0, userDefinedFunctions, ns1 =
                         match baseTypeAcnFunction with
                         | None  -> None, [], [], [], us
@@ -170,7 +170,7 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
 
                     fncBody, errCode::errCodes0,lvs, userDefinedFunctions, ns1
                 | SZ_EC_ExternalField    relPath    , ContainedInBitString  ->
-                    let extField        = getExternalField r deps t.id
+                    let extField        = getExternalField lm r deps t.id
                     let fncBody = bit_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding extField errCode.errCodeName codec
                     fncBody, [errCode],[], [], us
                 | SZ_EC_FIXED_SIZE        , ContainedInOctString  ->

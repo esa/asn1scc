@@ -39,10 +39,10 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             | Acn_Enc_String_Ascii_Null_Terminated (_,nullChars) ->
                 Some (Acn_String_Ascii_Null_Terminated pp errCode.errCodeName ( o.maxSize.acn) nullChars codec, [errCode], [], []), us
             | Acn_Enc_String_Ascii_External_Field_Determinant _ ->
-                let extField = getExternalField r deps t.id
+                let extField = getExternalField lm r deps t.id
                 Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) extField codec, [errCode], [], []), us
             | Acn_Enc_String_CharIndex_External_Field_Determinant _ ->
-                let extField = getExternalField r deps t.id
+                let extField = getExternalField lm r deps t.id
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
                 let encDecStatement =
                     match o.uperCharSet.Length = 128 with
@@ -151,10 +151,10 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                         Some (Acn_String_Ascii_Internal_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) ( t.str.minSize.acn) nSizeInBits codec , [], [], [])
                 | Acn_Enc_String_Ascii_Null_Terminated (_, nullChars)   -> Some (Acn_String_Ascii_Null_Terminated pp errCode.errCodeName ( t.str.maxSize.acn) nullChars codec, [], [], [])
                 | Acn_Enc_String_Ascii_External_Field_Determinant       _    ->
-                    let extField = getExternalField r deps typeId
+                    let extField = getExternalField lm r deps typeId
                     Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) extField codec, [], [], [])
                 | Acn_Enc_String_CharIndex_External_Field_Determinant   _    ->
-                    let extField = getExternalField r deps typeId
+                    let extField = getExternalField lm r deps typeId
                     let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (t.str.uperCharSet.Length-1))
                     let encDecStatement =
                         match t.str.uperCharSet.Length = 128 with

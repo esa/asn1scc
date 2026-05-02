@@ -129,7 +129,7 @@ let private handleAsn1Child
                             match d.dependencyKind with
                             | AcnDepPresenceBool   -> true
                             | _                    -> false
-                        getExternalField0 r deps asn1TypeIdWithDependency filterDependency
+                        getExternalField0 lm r deps asn1TypeIdWithDependency filterDependency
                     let extField = getExternalField r deps child.Type.id
                     let body (p: CodegenScope) (existVar: string option): string =
                         assert existVar.IsSome
