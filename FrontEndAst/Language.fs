@@ -208,6 +208,12 @@ type SequenceOptionalChild = {
 
 type AcnFuncBody = State -> ErrorCode -> (AcnGenericTypes.RelativePath * AcnGenericTypes.AcnParameter) list -> NestingScope -> CodegenScope -> (AcnFuncBodyResult option) * State
 
+/// Quadruple για deferred patching:
+///   (initFuncName, patchFuncName, nBitsOpt, uperMinOffset)
+/// nBitsOpt = Some n για ConstSize encoders που δέχονται bit-width· None για fixed-size (U8, U16, ...).
+/// uperMinOffset = UPER minimum offset (≠0 μόνο σε Integer_uPER fixed-size). Όταν ≠0, ο PatchDet γράφει (value-offset).
+type DetFunctionNames = string * string * BigInteger option * BigInteger
+
 [<AbstractClass>]
 type ILangGeneric () =
     abstract member ArrayStartIndex : int
@@ -249,6 +255,15 @@ type ILangGeneric () =
     abstract member removeFunctionFromHeader : string -> string -> string
     abstract member removeFunctionFromBody : string -> string -> string
 
+    /// ACN deferred-patching runtime names per language.
+    /// Returns (InitDet, PatchDet, nBitsOpt, uperMinOffset) for the given inserted-field type.
+    /// Returns None when the language/type combo doesn't support deferred patching.
+    /// Default: None (Ada/Scala don't yet implement --acn-v2).
+    abstract member getDeferredDetFunctions : Asn1AcnAst.AcnInsertedType -> DetFunctionNames option
+    /// Compute a target-language source-code expression for the wire fallback value
+    /// of a deferred determinant that was never patched at runtime.
+    /// Default: "0" (Ada/Scala don't yet implement --acn-v2).
+    abstract member computeDeferredFallbackValue : Asn1AcnAst.AcnInsertedType -> BigInteger -> string
 
     abstract member getRtlFiles : Asn1Encoding list -> string list -> string list
 
@@ -371,6 +386,8 @@ type ILangGeneric () =
         sourceCode
     default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
         sourceCode
+    default _.getDeferredDetFunctions _ = None
+    default _.computeDeferredFallbackValue _ _ = "0"
     default this.real_annotations = []
 
     default this.extractEnumClassName (prefix: string) (varName: string) (internalName: string): string = ""

@@ -19,28 +19,6 @@ open Language
 
 open AcnHelpers
 open AcnDependencies
-open AcnDeferredRuntime
-
-
-// ---------------------------------------------------------------------------
-//  Deferred-runtime provider
-// ---------------------------------------------------------------------------
-//
-// All InitDet/PatchDet name lookups and fallback-value computations go
-// through `IDeferredRuntimeNames`.  The provider is selected per language
-// via `lm.lg.acnEncodingClass`-style dispatch in the future; for now
-// `--acn-v2` is C-only, so we always pick the C provider.  Adding an
-// Ada/Scala backend will only require returning a different instance
-// here — none of the code below depends on a specific implementation.
-
-let private deferredRuntime (_lm: LanguageMacros) : IDeferredRuntimeNames =
-    AcnDeferredRuntime.cDeferredRuntime
-
-
-/// Get the InitDet/PatchDet function names for an ACN child determinant.
-/// Returns None if the determinant type doesn't support deferred patching.
-let getDetFunctionsForAcnChild (lm: LanguageMacros) (acnChild: DAst.AcnChild) : DetFunctionNames option =
-    (deferredRuntime lm).GetDetFunctionsForAcnInsertedType acnChild.Type
 
 
 /// Build a C access expression from relative scope nodes and the root pointer.
@@ -144,14 +122,13 @@ let computePatchDetValueExpr
 /// through intermediate boundaries until reaching the original
 /// AcnChildDeterminant.  Returns the (InitDet, PatchDet, nBitsOpt) function names.
 let findDetFunctionsForParam (lm: LanguageMacros) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (paramId: ReferenceToType) : DetFunctionNames option =
-    let rt = deferredRuntime lm
     let rec follow (pid: ReferenceToType) =
         deps.acnDependencies |> List.tryPick (fun d ->
             match d.dependencyKind with
             | AcnDepRefTypeArgument p when p.id = pid ->
                 match d.determinant with
                 | Asn1AcnAst.AcnChildDeterminant ac ->
-                    rt.GetDetFunctionsForAcnInsertedType ac.Type
+                    lm.lg.getDeferredDetFunctions ac.Type
                 | Asn1AcnAst.AcnParameterDeterminant parentPrm ->
                     follow parentPrm.id
             | _ -> None)
@@ -254,7 +231,7 @@ let private createDeferredSequenceFunction
             children |> List.map (fun child ->
                 match child with
                 | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames ->
-                    let detFuncs = getDetFunctionsForAcnChild lm ac
+                    let detFuncs = lm.lg.getDeferredDetFunctions ac.Type
                     match detFuncs with
                     | Some (initFuncName, _patchFuncName, nBitsOpt, _uperMinOffset) ->
                         // Replace encoding with InitDet, keep original decode:
@@ -431,10 +408,10 @@ let private createDeferredSequenceFunction
                         match child with
                         | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames
                                              && not (Set.contains ac.Name.Value deferredDetNamesFromOwnParams) ->
-                            match getDetFunctionsForAcnChild lm ac with
+                            match lm.lg.getDeferredDetFunctions ac.Type with
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 let detVarName = ToC ac.Name.Value
-                                let defaultVal = (deferredRuntime lm).ComputeFallbackDetValue lm ac.Type uperMinOffset
+                                let defaultVal = lm.lg.computeDeferredFallbackValue ac.Type uperMinOffset
                                 Some (detVarName, patchFn, nBitsOpt, defaultVal, ac.Type)
                             | None -> None
                         | _ -> None)
