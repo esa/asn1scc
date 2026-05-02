@@ -1,4 +1,76 @@
-1. replace <TargetFramework>net6.0</TargetFramework> to <TargetFramework>net7.0</TargetFramework> in all *.csproj abd *.fsproj
-2. update regression scripts : "../asn1scc/bin/Debug/net6.0/asn1scc" to "../asn1scc/bin/Debug/net7.0/asn1scc" in all *.py under v4Tests and v4Tests-32
-3. update Dockerfile and Dockerfile.runtime
-4. update Makefile.debian
+.NET version bump checklist
+===========================
+
+Replace OLD with NEW (e.g. OLD = "net9.0",  NEW = "net10.0",
+                          OLD = "9.0",     NEW = "10.0").
+
+The asn1scc tree references the .NET version in several layers — when bumping,
+make sure ALL the following are updated. Use a final `grep` to confirm nothing
+is left behind.
+
+Last bump performed in this repo: net9.0  ->  net10.0  (May 2026).
+
+
+1. Project files: <TargetFramework>netX.0</TargetFramework>
+   ----------------------------------------------------------------
+   Antlr/Antlr.csproj
+   Asn1sccWs/Asn1sccWs.fsproj
+   BackendAst/BackendAst.fsproj
+   CommonTypes/CommonTypes.fsproj
+   FrontEndAst/FrontEndAst.fsproj
+   PUSCScalaTest/PUSCScalaTest.csproj
+   ST/ST.fsproj
+   StgAda/StgAda.fsproj
+   StgC/StgC.fsproj
+   StgScala/StgScala.fsproj
+   StgVarious/StgVarious.fsproj
+   asn1scc/asn1scc.fsproj
+   lsp/Server/Server/Server.csproj
+   parseStg2/parseStg2.csproj
+   regression/regression.fsproj
+
+   The legacy Daemon/, Daemon.ExampleClient/, Service/, Service.Implementation/
+   projects use <TargetFrameworkVersion>v4.5</TargetFrameworkVersion> (full
+   .NET Framework, not .NET Core) — leave those untouched.
+
+2. Python regression scripts: hardcoded path "../asn1scc/bin/Debug/netX.0/asn1scc"
+   ----------------------------------------------------------------
+   v4Tests/scripts/runTests.py
+   v4Tests/scripts/runMultiThread.py
+   v4Tests-32/scripts/runTests.py
+
+3. Shell build scripts: hardcoded path "../regression/bin/Debug/netX.0/regression"
+   ----------------------------------------------------------------
+   github-build.sh
+   circleci-build.sh
+   local-build.sh
+   make_new_release.sh
+
+4. Docker images
+   ----------------------------------------------------------------
+   Dockerfile             :  apt package "dotnet-sdk-X.0"
+   Dockerfile.local.wsl   :  apt package "dotnet-sdk-X.0"
+   Dockerfile.dev         :  base image "mcr.microsoft.com/dotnet/sdk:X.0"
+   Dockerfile.runtime     :  base images "mcr.microsoft.com/dotnet/sdk:X.0"
+                              and "mcr.microsoft.com/dotnet/runtime:X.0",
+                              plus "bin/Release/netX.0/" copy path
+
+5. Debian build
+   ----------------------------------------------------------------
+   Makefile.debian        :  apt package "dotnet-sdk-X.0"
+
+
+6. Final verification (run from repo root)
+   ----------------------------------------------------------------
+   grep -rn "netOLD\.0\|dotnet-sdk-OLD\|dotnet/sdk:OLD\|dotnet/runtime:OLD\|\\.NET OLD" \
+     --include="*.csproj" --include="*.fsproj" --include="*.py" --include="*.sh" \
+     --include="*.md" --include="Makefile*" --include="Dockerfile*" \
+     | grep -v "/obj/\\|/bin/\\|update.net_version.txt"
+
+   Expected: no output.
+
+7. Build sanity check
+   ----------------------------------------------------------------
+   dotnet build asn1scc.sln
+   # Then a quick regression smoke test:
+   cd v4Tests/ && ./scripts/runTests.py -l c -s -t <small test path>
