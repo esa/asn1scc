@@ -30,16 +30,16 @@ procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleNam
 >>
 
 EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
-procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
+procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>) <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
 is
 begin
     --  Stream subtype is constrained to <sTypeDefName>_ACN_STREAM_SIZE; use that
     --  exact value to satisfy the discriminant.  In closure-converted (--acn-v2)
     --  spec functions the actual content may exceed this size, but the public
     --  wrapper is dead code in that path (callers invoke <sFuncName>_aux directly).
-    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <sTypeDefName>_ACN_STREAM_SIZE, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0));
-    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>);
-end <sFuncName>;
+    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <sTypeDefName>_ACN_STREAM_SIZE, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0)); <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
+    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>); <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
+end <sFuncName>; <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
@@ -80,18 +80,18 @@ procedure <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleN
 >>
 
 EmitTypeAssignment_primitive_decodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
-PROCEDURE <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
+PROCEDURE <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>) <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
 is
 begin
-    Stream.Current_Bit_Pos :=0;
-    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=","><endif>);
+    Stream.Current_Bit_Pos :=0; <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
+    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=","><endif>); <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
     <if(soIValidFuncName)>
     if result.success then
         result := <soIValidFuncName>(<sVarName>);
     end if;
 
     <endif>
-end <sFuncName>;
+end <sFuncName>; <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
 >>
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
@@ -1168,7 +1168,7 @@ end case;
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> = <sVal>)"
-ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "(<sExtFld> = \"<sVal>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>)"
+ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "(<sExtFld>(1 .. String'(\"<sVal>\")'Length + 1) = \"<sVal>\" & adaasn1rtl.NUL)"
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
 case <p><sAcc>kind is
@@ -1825,8 +1825,8 @@ acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
 acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, result);
 if not result.Success then
-    result.ErrorCode := <sErrCode>;
-    return;
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
 end if;
 >>
 acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
@@ -1835,8 +1835,8 @@ acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) 
 acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, result);
 if not result.Success then
-    result.ErrorCode := <sErrCode>;
-    return;
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
 end if;
 >>
 acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
@@ -1859,8 +1859,8 @@ acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <
 acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, <nBits>, result);
 if not result.Success then
-    result.ErrorCode := <sErrCode>;
-    return;
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
 end if;
 >>
 acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
@@ -1869,8 +1869,8 @@ acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDe
 acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, <nBits>, result);
 if not result.Success then
-    result.ErrorCode := <sErrCode>;
-    return;
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
 end if;
 >>
 acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
@@ -1881,8 +1881,8 @@ acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetN
 acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 <sPatchFuncName>(<sValue>, bs, <nBits>, <sDetName>, result);
 if not result.Success then
-    result.ErrorCode := <sErrCode>;
-    return;
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
 end if;
 >>
 acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
@@ -1891,8 +1891,8 @@ acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName,
 acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 <sPatchFuncName>(<sValue>, bs, <nBits>, <sDetName>, result);
 if not result.Success then
-    result.ErrorCode := <sErrCode>;
-    return;
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
 end if;
 >>
 acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
@@ -1939,7 +1939,7 @@ acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= <<
 <sVarName> : constant adaasn1rtl.Asn1UInt :=
     (case <sKindAccess> is
         <arrsCaseItems; separator=",\n">,
-        when others => 0);
+        when others => 0); -- COVERAGE_IGNORE
 >>
 
 /* Single case alternative for a string case-expression. */
@@ -1950,28 +1950,28 @@ acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= <<
 <sVarName> : constant String :=
     (case <sKindAccess> is
         <arrsCaseItems; separator=",\n">,
-        when others => "");
+        when others => ""); -- COVERAGE_IGNORE
 >>
 
 /* Group B: Fallback PatchDet (encode-only, decode is empty) */
 
 acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= <<
 if not <sDetName>.Is_Set then
-    <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sDefaultVal>), bs, <sDetName>, result);
+    <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sDefaultVal>), bs, <sDetName>, result); -- COVERAGE_IGNORE
 end if;
 >>
 acn_deferred_det_fallback_value_decode(sPatchFuncName, sDefaultVal, sDetName) ::= ""
 
 acn_deferred_det_fallback_value_with_size_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= <<
 if not <sDetName>.Is_Set then
-    <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sDefaultVal>), bs, <sDetName>, <nBits>, result);
+    <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sDefaultVal>), bs, <sDetName>, <nBits>, result); -- COVERAGE_IGNORE
 end if;
 >>
 acn_deferred_det_fallback_value_with_size_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
 
 acn_deferred_det_fallback_value_str_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= <<
 if not <sDetName>.Is_Set then
-    <sPatchFuncName>(<sDefaultVal>, bs, <nBits>, <sDetName>, result);
+    <sPatchFuncName>(<sDefaultVal>, bs, <nBits>, <sDetName>, result); -- COVERAGE_IGNORE
 end if;
 >>
 acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""

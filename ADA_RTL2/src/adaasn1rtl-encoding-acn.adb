@@ -537,8 +537,8 @@ is
 
    procedure Acn_InitDet_IA5String_FixSize
      (bs     : in out Bitstream;
-      nChars :        Natural;
-      det    : in out AcnInsertedFieldRef)
+      det    : in out AcnInsertedFieldRef;
+      nChars :        Natural)
    is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);

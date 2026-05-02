@@ -425,8 +425,8 @@ is
 
    procedure Acn_InitDet_IA5String_FixSize
      (bs     : in out Bitstream;
-      nChars :        Natural;
-      det    : in out AcnInsertedFieldRef) with
+      det    : in out AcnInsertedFieldRef;
+      nChars :        Natural) with
       Pre  => nChars >= 1
       and then nChars <= AcnDet_Str_Max
       and then nChars < Natural'Last / 7
