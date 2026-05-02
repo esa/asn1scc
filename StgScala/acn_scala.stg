@@ -963,12 +963,12 @@ case <sEnmName> =>
     <sChildID>(<sChildName>)
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
 <p> match
     <arrsChildren; separator="\n">
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
 val <p> = <sEnmExtFld> match
     <arrsChildren; separator="\n">
 >>
@@ -1425,10 +1425,15 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
 /* Group C: Decode redirect */
 acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
 acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "// TODO"
 
 /* Group D: Access paths */
 acn_deferred_det_access_value(sDetName) ::= "// TODO"
 acn_deferred_det_access_ptr(sDetName) ::= "// TODO"
+acn_deferred_det_access_bool_ptr(sDetName) ::= "// TODO"
 acn_deferred_det_access_str_value(sDetName) ::= "// TODO"
 acn_deferred_det_access_str_ptr(sDetName) ::= "// TODO"
 acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "// TODO"

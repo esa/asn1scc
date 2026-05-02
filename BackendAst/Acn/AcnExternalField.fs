@@ -64,13 +64,14 @@ let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
         let resolvedLastNode = resolvedNodes |> List.rev |> List.head
         match resolvedLastNode with
         | PRM _ ->
-            // Check if the dependency is string-typed
-            let isStringDep =
-                match dependency.dependencyKind with
-                | Asn1AcnAst.AcnDepPresenceStr _ -> true
-                | _ -> false
-            if isStringDep then lm.acn.acn_deferred_det_access_str_ptr baseName
-            else lm.acn.acn_deferred_det_access_ptr baseName
+            // Pick the access form by dependency kind.  String determinants
+            // need the Str_Value field; Boolean determinants need a Boolean
+            // expression (Ada is strictly typed and rejects Asn1UInt-as-Boolean
+            // — see PresenceWhenBool decode in AcnSequence.fs).
+            match dependency.dependencyKind with
+            | Asn1AcnAst.AcnDepPresenceStr _ -> lm.acn.acn_deferred_det_access_str_ptr baseName
+            | Asn1AcnAst.AcnDepPresenceBool  -> lm.acn.acn_deferred_det_access_bool_ptr baseName
+            | _                              -> lm.acn.acn_deferred_det_access_ptr baseName
         | _     -> baseName
     else
         baseName

@@ -122,8 +122,11 @@ let computePatchDetValueExpr
         let switchItems = chc.children |> List.map (fun ch ->
             let enmItem = enm.enm.items |> List.find (fun itm -> itm.Name.Value = ch.Name.Value)
             let presentWhenName = ch.presentWhenName
-            let enumCName = lm.lg.getNamedItemBackendName None enmItem
-            lm.acn.acn_deferred_det_switch_case_int presentWhenName varName enumCName)
+            // Emit the ACN-encoded integer value (not the enum literal name) so
+            // the assignment target — det.Value of type Asn1UInt — accepts it
+            // without an enum→uint cast (which Ada disallows).
+            let enumIntVal = enmItem.acnEncodeValue.ToString()
+            lm.acn.acn_deferred_det_switch_case_int presentWhenName varName enumIntVal)
         let switchBlock = lm.acn.acn_deferred_det_switch_int varName kindAccess switchItems
         (Some switchBlock, varName)
 
@@ -373,7 +376,19 @@ let private createDeferredSequenceFunction
                                             let detAccess =
                                                 if isOwnParam then lm.acn.acn_deferred_det_access_ptr detVarName
                                                 else lm.acn.acn_deferred_det_access_value detVarName
-                                            let assignStmt = lm.acn.acn_deferred_det_copy_tmp detAccess tmpName CommonTypes.Codec.Decode
+                                            let assignStmt =
+                                                match ac.Type with
+                                                | Asn1AcnAst.AcnInsertedType.AcnBoolean _ ->
+                                                    lm.acn.acn_deferred_det_copy_bool_tmp detAccess tmpName CommonTypes.Codec.Decode
+                                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated _ ->
+                                                    // For enum tmp, Ada needs <EnumType>'Enum_Rep(tmp).
+                                                    // The local var declaration above uses
+                                                    // ac.typeDefinitionBodyWithinSeq as the enum type
+                                                    // name; reuse it here.
+                                                    let enumTypeName = ac.typeDefinitionBodyWithinSeq
+                                                    lm.acn.acn_deferred_det_copy_enum_tmp detAccess tmpName enumTypeName CommonTypes.Codec.Decode
+                                                | _ ->
+                                                    lm.acn.acn_deferred_det_copy_tmp detAccess tmpName CommonTypes.Codec.Decode
                                             let extraLvars =
                                                 [tmpVarDecl] @
                                                 (if isOwnParam then []
