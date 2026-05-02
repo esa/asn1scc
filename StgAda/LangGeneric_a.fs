@@ -423,8 +423,11 @@ type LangGeneric_a() =
                 if uperMinOffset > 0I then uperMinOffset.ToString() else "0"
             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
+                // Ada is strictly typed: Asn1UInt(<enum_literal>) is illegal.
+                // Use the enum's ACN-encoded integer value so the cast in the
+                // fallback PatchDet macro becomes Asn1UInt(<n>) — valid Ada.
                 match enm.enumerated.items with
-                | firstItem :: _ -> this.getNamedItemBackendName None firstItem
+                | firstItem :: _ -> firstItem.acnEncodeValue.ToString()
                 | [] -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "\"\""
             | _ -> "0"

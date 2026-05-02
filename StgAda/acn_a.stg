@@ -1155,8 +1155,8 @@ end case;
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
 case <sEnmExtFld> is
     <arrsChildren; separator="\n">
-    <if(bIsDeferred)>when others =>
-        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);<endif>
+    <if(bIsDeferred)>when others => -- COVERAGE_IGNORE
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>); -- COVERAGE_IGNORE<endif>
 end case;
 >>
 
