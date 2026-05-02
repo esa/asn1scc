@@ -1346,69 +1346,210 @@ if result.success then
 end if;
 >>
 
-/* CONTAINING with deferred patching — TODO Ada implementation */
+/* CONTAINING with deferred patching.
+   Encode: call inner _aux directly into the outer stream, measure the
+   bytes/bits written, then PatchDet the determinant with the count.
+   Decode: read the count from the determinant (already decoded into
+   det.Value by the closure-converted parent), record the expected end
+   position, decode the inner type, then force the cursor to the
+   expected end so any unconsumed bytes inside the contained region are
+   skipped. (Ada Bitstream.Size_In_Bytes is an immutable discriminant,
+   so the C trick of temporarily reducing `count` does not translate.) */
+
 octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada deferred CONTAINING encode
+declare
+    acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    <sFuncName>_aux(<p>, bs, result);
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        if not result.Success then
+            result.ErrorCode := <sErrCode>;
+            return;
+        end if;
+    end if;
+end;
 >>
 
 octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada deferred CONTAINING decode
+declare
+    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
+begin
+    <sFuncName>_aux(<p>, bs, result);
+    bs.Current_Bit_Pos := acn_expected_end;
+end;
 >>
 
 octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
--- TODO: Ada deferred CONTAINING fixed encode
+<sFuncName>_aux(<p>, bs, result);
 >>
 
 octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
--- TODO: Ada deferred CONTAINING fixed decode
+<sFuncName>_aux(<p>, bs, result);
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
--- TODO: Ada deferred CONTAINING embedded encode
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+declare
+    acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(<nMinSize>), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
+    acn_data_start := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    <sFuncName>_aux(<p>, bs, result);
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+        adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_len_pos);
+        adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(acn_nCount), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
+        adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_data_end);
+    end if;
+end;
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
--- TODO: Ada deferred CONTAINING embedded decode
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+declare
+    acn_nCount : Integer;
+    acn_expected_end : Natural;
+begin
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, <nMinSize>, <nMaxSize>, <nBits>, result.Success);
+    if result.Success then
+        acn_expected_end := bs.Current_Bit_Pos + acn_nCount * 8;
+        <sFuncName>_aux(<p>, bs, result);
+        bs.Current_Bit_Pos := acn_expected_end;
+    end if;
+end;
 >>
 
 octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada deferred CONTAINING wrapper encode
+declare
+    acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    <sBody>
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        if not result.Success then
+            result.ErrorCode := <sErrCode>;
+            return;
+        end if;
+    end if;
+end;
 >>
 
 octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada deferred CONTAINING wrapper decode
+declare
+    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
+begin
+    <sBody>
+    bs.Current_Bit_Pos := acn_expected_end;
+end;
 >>
 
 bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada bit_string_containing_deferred_func
+declare
+    acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    <sFuncName>_aux(<p>, bs, result);
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        if not result.Success then
+            result.ErrorCode := <sErrCode>;
+            return;
+        end if;
+    end if;
+end;
 >>
 
 bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada bit_string_containing_deferred_func
+declare
+    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value);
+begin
+    <sFuncName>_aux(<p>, bs, result);
+    bs.Current_Bit_Pos := acn_expected_end;
+end;
 >>
 
 bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
--- TODO: Ada bit_string_containing_deferred_fixed_func
+<sFuncName>_aux(<p>, bs, result);
 >>
 
 bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
--- TODO: Ada bit_string_containing_deferred_fixed_func
+<sFuncName>_aux(<p>, bs, result);
 >>
 
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
--- TODO: Ada bit_string_containing_deferred_embedded_func
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+declare
+    acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(<nMinSize>), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
+    acn_data_start := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    <sFuncName>_aux(<p>, bs, result);
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+        adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_len_pos);
+        adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(acn_nCount), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
+        adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_data_end);
+    end if;
+end;
 >>
 
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
--- TODO: Ada bit_string_containing_deferred_embedded_func
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+declare
+    acn_nCount : Integer;
+    acn_expected_end : Natural;
+begin
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, <nMinSize>, <nMaxSize>, <nBits>, result.Success);
+    if result.Success then
+        acn_expected_end := bs.Current_Bit_Pos + acn_nCount;
+        <sFuncName>_aux(<p>, bs, result);
+        bs.Current_Bit_Pos := acn_expected_end;
+    end if;
+end;
 >>
 
 bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada bit_string_containing_deferred_wrapper
+declare
+    acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    <sBody>
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        if not result.Success then
+            result.ErrorCode := <sErrCode>;
+            return;
+        end if;
+    end if;
+end;
 >>
 
 bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada bit_string_containing_deferred_wrapper
+declare
+    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value);
+begin
+    <sBody>
+    bs.Current_Bit_Pos := acn_expected_end;
+end;
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
