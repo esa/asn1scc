@@ -46,6 +46,10 @@ Last bump performed in this repo: net9.0  ->  net10.0  (May 2026).
    local-build.sh
    make_new_release.sh
 
+3b. F# regression runner default: hardcoded "../asn1scc/bin/Debug/netX.0/asn1scc.dll"
+   ----------------------------------------------------------------
+   regression/Program.fs   (default value for the --asn1scc-location / -ac arg)
+
 4. Docker images
    ----------------------------------------------------------------
    Dockerfile             :  apt package "dotnet-sdk-X.0"
