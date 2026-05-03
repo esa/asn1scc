@@ -1,5 +1,5 @@
 #
-# Builder: Build a release version of asn1scc from the local source tree.
+# Builder: Build a release version of asn1scc from upstream.
 # Runtime: Run asn1scc.
 #
 #################################################################################################
@@ -7,23 +7,27 @@
 
 FROM  mcr.microsoft.com/dotnet/sdk:10.0 AS builder
 
+RUN apt update
 # Note: dotnet/sdk:10.0 is based on Ubuntu 24.04 noble (Python 3.12),
 # which dropped both the `python3-distutils` and the `nuget` packages.
 # `dotnet build` uses the built-in NuGet client, so we don't need the
 # external nuget binary.
-RUN apt update && \
-    apt install -y python3 make openjdk-17-jre libgit2-dev libssl-dev && \
-    apt clean
+RUN apt install -y python3 \
+    make openjdk-17-jre libgit2-dev libssl-dev ; apt clean
 
-# Build the local source tree (passed in via the docker build context).
-# The previous version of this Dockerfile cloned upstream master, which
-# made it impossible to test changes in a PR before they were merged.
-WORKDIR /src/asn1scc
-COPY . .
+RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt \
+    set -ex ;\
+    apt-get install -y git
+
+
+WORKDIR /src
 RUN set -ex ;\
+    git clone https://github.com/esa/asn1scc.git ;\
+    cd asn1scc/ ;\
+    #git checkout dotnetcore ;\
     dotnet build Antlr/ --configuration Release ;\
     dotnet build parseStg2/ --configuration Release ;\
-    dotnet build "asn1scc.sln" --configuration Release
+    dotnet build "asn1scc.sln" --configuration Release 
 
 #################################################################################################
 #################################################################################################
