@@ -50,6 +50,12 @@ Last bump performed in this repo: net9.0  ->  net10.0  (May 2026).
    ----------------------------------------------------------------
    regression/Program.fs   (default value for the --asn1scc-location / -ac arg)
 
+3c. Release / Debian packaging: hardcoded "bin/Release/netX.0/linux-x64/publish"
+   ----------------------------------------------------------------
+   make_new_release.sh                  (asn1scc + lsp publish output paths)
+   contrib/prepare_debian_package.sh    (self-contained linux-x64 publish path
+                                         used to assemble the .deb)
+
 4. Docker images
    ----------------------------------------------------------------
    Dockerfile             :  apt package "dotnet-sdk-X.0"
