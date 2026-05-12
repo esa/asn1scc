@@ -108,12 +108,29 @@ PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
 # test_cases_python.stg:125
 >>
 
-PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
+PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass, sEncodingEnumValue) ::= <<
 # test_cases_python.stg:129
 def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
     encoder = <sCodecClass>Encoder.of_size(<sTasName>.EncodeConstants.<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)
     <sNestedStatements>
     # test_cases_python.stg 108
+    return True
+
+def <sFuncName>_generic(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
+    encoded = <sVal>.encode(Encoding.<sEncodingEnumValue>)
+    try:
+        res = <sTasName>.decode(Encoding.<sEncodingEnumValue>, encoded)
+        if isinstance(res, tuple):
+            decodedPDU, _ = res
+        else:
+            decodedPDU = res
+    except Exception as e:
+        raise Asn1TestcaseDecodeFailedError(e)
+    res = decodedPDU.is_constraint_valid()
+    if not res:
+        raise Asn1TestcaseConstraintFailedError(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
+    if <sVal> != decodedPDU:
+        raise Asn1TestcaseDifferentResultError()
     return True
 >>
 
@@ -279,13 +296,14 @@ emitTestCaseAsFunc_dummy_init_function(sTypeName, sFuncName, sDummyVarname) ::= 
 emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber) ::= <<
 # test_cases_python.stg:320
 def <sFuncName>() -> None:
-    from .<sModName>_auto_tcs import <sTasName>_<sEnc>enc_dec
-    
+    from .<sModName>_auto_tcs import <sTasName>_<sEnc>enc_dec, <sTasName>_<sEnc>enc_dec_generic
+
     <arrsVars; separator="\n">
 
     <sInitializeTcData>
 
     _ = <sTasName>_<sEnc>enc_dec(tc_data, "<sFuncName>")
+    _ = <sTasName>_<sEnc>enc_dec_generic(tc_data, "<sFuncName>_generic")
 
     <! Always empty - not generating: <sGenerateDatFile>!>
 >>

@@ -113,11 +113,11 @@ Define_Generic_Encode_Decode(sTypeName, arr_Asn1Encoding) ::= /*nogen*/<<
 # TODO, resolve circular imports and move to base class instead
 def encode(self, encoding: Encoding) -> bytearray:
     <arr_Asn1Encoding:{enc|<if(enc.IsUPER)>if encoding == Encoding.uPER:
-    encoder = UPEREncoder.of_size()
+    encoder = UPEREncoder.of_size(type(self).EncodeConstants.<sTypeName>_REQUIRED_BYTES_FOR_ENCODING)
     self.encode_uper(encoder)
     return encoder.get_bitstream_buffer()
     <endif><if(enc.IsACN)>if encoding == Encoding.ACN:
-    encoder = ACNEncoder.of_size()
+    encoder = ACNEncoder.of_size(type(self).EncodeConstants.<sTypeName>_REQUIRED_BYTES_FOR_ACN_ENCODING)
     self.encode_acn(encoder)
     return encoder.get_bitstream_buffer()
     <endif>}; separator="\nel">
