@@ -25,7 +25,7 @@ with
             | Test_Cases_Dir _   -> "specify the directory that contains the test case files"
             | Work_Dir       _   -> "specify the working directory"
             | Test_Case      _   -> ""
-            | Language       _   -> "c, Ada or Scala"
+            | Language       _   -> "c, Ada, Scala or python"
             | Slim           _   -> ""
             | Word_Size      _   -> "8 or 4"
             | Parallel       _   -> ""
@@ -159,54 +159,68 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
     let invokeMake (t:Test_Case) : TestCaseResult=
         let asn1Lines = File.ReadAllLines t.asn1
         let bNoAtc = asn1Lines |> Seq.exists(fun l -> l.Contains "NO_AUTOMATIC_TEST_CASES")
-        let bRunCodeCoverage = not (asn1Lines |> Seq.exists(fun l -> l.Contains "NOCOVERAGE"))
-        //ShellProcess.printDebug "bRunCodeCoverage %b" bRunCodeCoverage
-        let bRunSpark = (lang = "Ada") && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
-        let ada_target = 
-            if ws = 4 then 
-                "obj_msp430"
+        if lang = "python" then
+            if bNoAtc then
+                // Just verify asn1scc succeeded (res from outer scope, not yet shadowed)
+                if res.ExitCode <> 0 then
+                    markError "asn1scc failed.\n%s\n%s" res.StdErr cmd
+                else
+                    markSuccess "Python code generation OK (no automatic test cases)"
             else
-                "obj_x86"
-
-        let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else (ada_target + "/debug/test_case.adb.gcov")))
-        let covLinesToIgnore = ["}";"default:";"break;";"end"] |> Set.ofList
-
-        let makeCommand = sprintf "make%s" (if bNoAtc || not bRunCodeCoverage then "" else " coverage")
-        let res = executeBashScript workDir makeCommand
-        if res.ExitCode <> 0 then    
-            markError "Error code is %d\n%s\n%s" res.ExitCode res.StdErr cmd
+                let pytestRes = executeBashScript workDir "uvx --python 3.11 pytest"
+                if pytestRes.ExitCode <> 0 && pytestRes.ExitCode <> 5 then
+                    markError "pytest failed.\n%s\n%s\n%s" pytestRes.StdOut pytestRes.StdErr cmd
+                else
+                    markSuccess "pytest OK"
         else
-            if (bNoAtc || not bRunCodeCoverage) then
-                markSuccess "Make OK" 
+            let bRunCodeCoverage = not (asn1Lines |> Seq.exists(fun l -> l.Contains "NOCOVERAGE"))
+            //ShellProcess.printDebug "bRunCodeCoverage %b" bRunCodeCoverage
+            let bRunSpark = (lang = "Ada") && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
+            let ada_target =
+                if ws = 4 then
+                    "obj_msp430"
+                else
+                    "obj_x86"
+
+            let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else (ada_target + "/debug/test_case.adb.gcov")))
+            let covLinesToIgnore = ["}";"default:";"break;";"end"] |> Set.ofList
+
+            let makeCommand = sprintf "make%s" (if bNoAtc || not bRunCodeCoverage then "" else " coverage")
+            let res = executeBashScript workDir makeCommand
+            if res.ExitCode <> 0 then
+                markError "Error code is %d\n%s\n%s" res.ExitCode res.StdErr cmd
             else
-                let restoreSrcLine (l:string) = 
-                    ((l.Split(':')[2..]) |> StrJoin ":").Trim()
-                let covLines = 
-                    File.ReadAllLines coverageFile |>
-                    Seq.filter(fun l -> l.Contains("###")) |>
-                    Seq.filter(fun l -> not (l.Contains "COVERAGE_IGNORE")) |> 
-                    Seq.filter(fun l -> not (covLinesToIgnore.Contains (restoreSrcLine l))) |> 
-                    Seq.toList
-                if not (List.isEmpty covLines) then
-                    markError "Code Coverage Failed. See %s\n%s\n%s" coverageFile covLines.Head cmd
-                else 
-                    if bRunSpark then
-                        let bWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) 
-                        let makeCommand = sprintf "gnatprove%s -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1" (if bWindows then ".exe" else "")
-                        let res = executeBashScript workDir makeCommand
-                        let sparkLogFname = Path.Combine(workDir, "sparklog.txt")
-                        if res.ExitCode <> 0 then 
-                            markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
-                        else
-                            let sparkLog = File.ReadLines sparkLogFname
-                            let bSparkFailed = 
-                                sparkLog |> Seq.exists(fun l -> l.Contains "might fail, cannot prove")
-                            if bSparkFailed then 
-                                markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
-                            else 
-                                markSuccess "Make OK, Code Coverage OK and SPARK OK" 
+                if (bNoAtc || not bRunCodeCoverage) then
+                    markSuccess "Make OK"
+                else
+                    let restoreSrcLine (l:string) =
+                        ((l.Split(':')[2..]) |> StrJoin ":").Trim()
+                    let covLines =
+                        File.ReadAllLines coverageFile |>
+                        Seq.filter(fun l -> l.Contains("###")) |>
+                        Seq.filter(fun l -> not (l.Contains "COVERAGE_IGNORE")) |>
+                        Seq.filter(fun l -> not (covLinesToIgnore.Contains (restoreSrcLine l))) |>
+                        Seq.toList
+                    if not (List.isEmpty covLines) then
+                        markError "Code Coverage Failed. See %s\n%s\n%s" coverageFile covLines.Head cmd
                     else
-                        markSuccess "Make and Code Coverage OK" 
+                        if bRunSpark then
+                            let bWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)
+                            let makeCommand = sprintf "gnatprove%s -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1" (if bWindows then ".exe" else "")
+                            let res = executeBashScript workDir makeCommand
+                            let sparkLogFname = Path.Combine(workDir, "sparklog.txt")
+                            if res.ExitCode <> 0 then
+                                markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
+                            else
+                                let sparkLog = File.ReadLines sparkLogFname
+                                let bSparkFailed =
+                                    sparkLog |> Seq.exists(fun l -> l.Contains "might fail, cannot prove")
+                                if bSparkFailed then
+                                    markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
+                                else
+                                    markSuccess "Make OK, Code Coverage OK and SPARK OK"
+                        else
+                            markSuccess "Make and Code Coverage OK"
 
 
         
@@ -340,7 +354,8 @@ let main0 argv =
                 for l in languages do
                     for ws in [word_sizes] do
                         for sm in slim_modes do
-                            yield (l,ws,sm, enableIG, enableAcnV2)
+                            if not (l = "python" && sm) then   // slim mode is C-only
+                                yield (l,ws,sm, enableIG, enableAcnV2)
             } |> Seq.toList
         let asn1sccInvoications =
             seq {

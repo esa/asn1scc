@@ -701,12 +701,12 @@ val <p> =
     else return LeftMut(<sErrCode>)
 >>
 
-bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
 codec.base.bitStream.appendBitsMSBFirstVec(<p><sAcc>arr, <p><sAcc>arr.length*8) // TODO: re-introduce nCount?  -> codec.base.bitStream.appendBitsMSBFirst(<p><sAcc>arr, <p><sAcc>nCount)
 codec.base.bitStream.appendBitsMSBFirst(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
-bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
 val <p> = codec.base.bitStream.readBits_nullterminated(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>, <nSizeMax>) match
     case NoneMut() => return LeftMut(<sErrCode>)
     case SomeMut(arr, i) => <sTypeDefName>(arr)
@@ -919,7 +919,7 @@ val <p> = codec.base.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match
 
 /* Choice with presence determinants */
 
-ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
+ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive, arrsAcnParams) ::= <<
 case <sChildID>(<sChildName>) =>
     <sChildBody>
 >>
@@ -930,7 +930,7 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
 (<sExtFld>.sameElements(Vector.fromList(List[UByte](<arruVal:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))))
 >>
 
-ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive) ::= <<
+ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive, arrsAcnParams) ::= <<
 <if(bFirst)>val <p> = if (<arrsConditions; separator=" && ">) {
 <else>
 else if (<arrsConditions; separator=" && ">) {

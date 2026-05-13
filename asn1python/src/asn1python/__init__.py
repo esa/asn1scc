@@ -15,8 +15,7 @@ from .asn1_exceptions import (
 
 from .asn1_types import (
     # ASN.1 semantic types
-    Asn1Boolean, NullType, Asn1Base,
-    # Asn1ObjectIdentifier,
+    Asn1Boolean, NullType, Real32, Asn1Base, Asn1ObjectIdentifier, OBJECT_IDENTIFIER_MAX_LENGTH,
 
     # Time types
     Asn1Date, Asn1LocalTime, Asn1UtcTime,
@@ -48,8 +47,7 @@ __description__ = "ASN.1 runtime library for Python"
 
 __all__ = [
     # Types
-    "Asn1Boolean", "NullType",
-    # "Asn1ObjectIdentifier",
+    "Asn1Boolean", "NullType", "Real32", "Asn1ObjectIdentifier", "OBJECT_IDENTIFIER_MAX_LENGTH",
     "Asn1Date", "Asn1LocalTime", "Asn1UtcTime",
     "Asn1TimeWithTimeZone", "Asn1DateLocalTime",
     "Asn1DateUtcTime", "Asn1DateTimeWithTimeZone",

@@ -921,3 +921,98 @@ class Encoder(Codec, ABC):
             return EncodeResult(success=True, error_code=ENCODE_OK, bits_encoded=32)
         except (BitStreamError, struct.error) as e:
             return EncodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=str(e))
+
+    def ObjectIdentifier_encode(self, val) -> EncodeResult:
+        """
+        Encode an OBJECT IDENTIFIER value.
+
+        Matches C: ObjectIdentifier_uper_encode(pBitStrm, pVal)
+        Format: length prefix (8 or 16 bits) + base-128 encoded arcs.
+        First two arcs are combined as arc0*40+arc1.
+        """
+        def encode_arc(value: int) -> list:
+            chunks = []
+            while True:
+                chunks.insert(0, value & 0x7F)
+                value >>= 7
+                if value == 0:
+                    break
+            return [c | 0x80 for c in chunks[:-1]] + [chunks[-1]]
+
+        buf: list = []
+        combined = val.values[0] * 40 + val.values[1]
+        buf.extend(encode_arc(combined))
+        for i in range(2, val.nCount):
+            buf.extend(encode_arc(val.values[i]))
+
+        total_size = len(buf)
+        bits_encoded = 0
+
+        if total_size <= 0x7F:
+            result = self.encode_constrained_whole_number(total_size, 0, 0xFF)
+            if not result.success:
+                return result
+            bits_encoded += result.bits_encoded
+        else:
+            result = self.append_bit(True)
+            if not result.success:
+                return result
+            bits_encoded += result.bits_encoded
+            result = self.encode_constrained_whole_number(total_size, 0, 0x7FFF)
+            if not result.success:
+                return result
+            bits_encoded += result.bits_encoded
+
+        for b in buf:
+            result = self.append_byte(b)
+            if not result.success:
+                return result
+            bits_encoded += result.bits_encoded
+
+        return EncodeResult(success=True, error_code=ENCODE_OK, bits_encoded=bits_encoded)
+
+    def RelativeOID_encode(self, val) -> EncodeResult:
+        """
+        Encode a RELATIVE-OID value.
+
+        Matches C: RelativeOID_uper_encode(pBitStrm, pVal)
+        Like ObjectIdentifier_encode but arcs are NOT combined.
+        """
+        def encode_arc(value: int) -> list:
+            chunks = []
+            while True:
+                chunks.insert(0, value & 0x7F)
+                value >>= 7
+                if value == 0:
+                    break
+            return [c | 0x80 for c in chunks[:-1]] + [chunks[-1]]
+
+        buf: list = []
+        for i in range(val.nCount):
+            buf.extend(encode_arc(val.values[i]))
+
+        total_size = len(buf)
+        bits_encoded = 0
+
+        if total_size <= 0x7F:
+            result = self.encode_constrained_whole_number(total_size, 0, 0xFF)
+            if not result.success:
+                return result
+            bits_encoded += result.bits_encoded
+        else:
+            result = self.append_bit(True)
+            if not result.success:
+                return result
+            bits_encoded += result.bits_encoded
+            result = self.encode_constrained_whole_number(total_size, 0, 0x7FFF)
+            if not result.success:
+                return result
+            bits_encoded += result.bits_encoded
+
+        for b in buf:
+            result = self.append_byte(b)
+            if not result.success:
+                return result
+            bits_encoded += result.bits_encoded
+
+        return EncodeResult(success=True, error_code=ENCODE_OK, bits_encoded=bits_encoded)

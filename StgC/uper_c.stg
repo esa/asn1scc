@@ -181,16 +181,16 @@ ret = BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>);
 
 
 /*case: A:: = INTEGER (-5..MAX) */
-IntSemiConstraint_encode(p, nMin, sErrCode) ::= "BitStream_EncodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>);"
-IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraint_encode(p, nMin, sErrCode, soType) ::= "BitStream_EncodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>);"
+IntSemiConstraint_decode(p, nMin, sErrCode, soType) ::= <<
 ret = BitStream_DecodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
 
 /*case: A:: = INTEGER (5..MAX) */
-IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "BitStream_EncodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);"
-IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraintPos_encode(p, nMin, sErrCode, soType) ::= "BitStream_EncodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);"
+IntSemiConstraintPos_decode(p, nMin, sErrCode, soType) ::= <<
 ret = BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>

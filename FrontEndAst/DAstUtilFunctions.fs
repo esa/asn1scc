@@ -1038,7 +1038,11 @@ let getBaseTypeDefName (lm:LanguageMacros) (baseTypeDefinitionName: string) (mod
     match lm.lg.hasModules with
     | false     -> baseTypeDefinitionName
     | true   ->
-        match t.id.ModName = o.modName.Value with
+        // Compare ToC'd module names: if the type being generated lives in a different
+        // module than where the ultimate typedef is defined (moduleName), add the prefix.
+        // Using moduleName (not o.modName.Value) handles multi-hop aliases correctly:
+        // e.g. Baz ::= Bar ::= Foo where Foo is in module A, Baz/Bar in module B.
+        match ToC t.id.ModName = moduleName with
         | true  -> baseTypeDefinitionName
         | false -> moduleName + "." + baseTypeDefinitionName
 

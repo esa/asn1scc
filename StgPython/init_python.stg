@@ -36,11 +36,10 @@ initBoolean(sVal, bValue, bIsOptional, sResVar, sType) ::= <<
 <endif>
 >>
 
-initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>"
+initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<nIntVal>"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
 # init_python.stg 43
-<p><sAcc>nCount = <nSize>
-<arrsValues; separator="\n">
+<p> = Asn1ObjectIdentifier(<nSize>, [<arrsValues; separator=", ">])
 >>
 
 init_Asn1LocalTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
@@ -262,13 +261,20 @@ initChildWithInitFunc(p, sChildInitFuncName) ::= <<
 
 initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<
 # init_python.stg 270
-def <sFuncName>_set_<sNamedBit>(<sVarName>: <sTypeDefName>) -> None:
-    <sVarName>.arr[<nZeroBasedByteIndex>] |= <sHexByteMax>
+def set_<sNamedBit>(self) -> None:
+    self.set_bit(self.NamedBits['<sNamedBit>'.upper()])
+
+def has_<sNamedBit>(self) -> bool:
+    return self.has_bit(self.NamedBits['<sNamedBit>'.upper()])
 >>
 
 initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
 # init_python.stg 276
-def <sFuncName>_set_<sNamedBit>(<sVarName>: <sTypeDefName>) -> None: ...
+def set_<sNamedBit>(self) -> None:
+    self.set_bit(self.NamedBits['<sNamedBit>'.upper()])
+
+def has_<sNamedBit>(self) -> bool:
+    return self.has_bit(self.NamedBits['<sNamedBit>'.upper()])
 >>
 
 initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<
@@ -290,7 +296,7 @@ initVarSizeSequenceOfExpr(sTypeDefName, nMin, nMax, sChildExp) ::= "<sTypeDefNam
 
 
 initObjectIdentifierAsExpr() ::= <<
-{"nCount": 0, "values": [0] * OBJECT_IDENTIFIER_MAX_LENGTH}
+Asn1ObjectIdentifier()
 >>
 
 init_Asn1LocalTimeExpr() ::= <<

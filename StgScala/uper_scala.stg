@@ -182,15 +182,15 @@ if !codec.base.decodeUnconstrainedWholeNumber() then // TODO meth does not retur
 >>
 
 /*case: A:: = INTEGER (-5..MAX) */
-IntSemiConstraint_encode(p, nMin, sErrCode) ::= "codec.base.encodeSemiConstrainedWholeNumber(<p>, <nMin>)"
-IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraint_encode(p, nMin, sErrCode, soType) ::= "codec.base.encodeSemiConstrainedWholeNumber(<p>, <nMin>)"
+IntSemiConstraint_decode(p, nMin, sErrCode, soType) ::= <<
 if !codec.base.decodeSemiConstrainedWholeNumber(<nMin>) then
     return LeftMut(<sErrCode>)
 >>
 
 /*case: A:: = INTEGER (5..MAX) */
-IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "codec.base.encodeSemiConstrainedPosWholeNumber(<p>, <nMin>)"
-IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraintPos_encode(p, nMin, sErrCode, soType) ::= "codec.base.encodeSemiConstrainedPosWholeNumber(<p>, <nMin>)"
+IntSemiConstraintPos_decode(p, nMin, sErrCode, soType) ::= <<
 if !codec.base.decodeSemiConstrainedPosWholeNumber(<nMin>) then
     return LeftMut(<sErrCode>)
 >>

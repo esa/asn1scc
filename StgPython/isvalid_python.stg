@@ -214,7 +214,7 @@ while ret and <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 # isvalid_python.stg 208
-def chars_are_valid(self) -> Asn1ConstraintValidResult:
+def <sFuncName>(self) -> Asn1ConstraintValidResult:
     valid: bool = True
     i = 0
     while valid and i \< len(self.arr) and self.arr[i] != 0x0:
@@ -252,10 +252,10 @@ AllExceptConstraint(sCon)  ::= "(not <sCon>)"
 
 ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> and not <sCon2>)"
 
-callAlphaFunc(sFuncName, p) ::= "<p>.chars_are_valid()"
-callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<p>.chars_are_valid()"
-alphaFuncBaseName(p) ::= "<p>.chars_are_valid"
-alphaFuncNameWithIndex(p, nIdx) ::= "<p>.chars_are_valid_<nIdx>"
+callAlphaFunc(sFuncName, p) ::= "<p>.chars_are_valid_0()"
+callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<p>.chars_are_valid_<nIdx>()"
+alphaFuncBaseName(p) ::= "<p>.chars_are_valid_0"
+alphaFuncNameWithIndex(p, nIdx) ::= "chars_are_valid_<nIdx>"
 
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" and \">"
 
@@ -265,7 +265,7 @@ ret = <arrsConstraints; separator=" and ">;
 ret = <sErrCodeName>;
 >>
 
-call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = super().<sFuncName>()"
+call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = super().<sFuncName>() if hasattr(super(), '<sFuncName>') else Asn1ConstraintValidResult(is_valid=True)"
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <p>.<sFuncName>()"
 call_base_type_func_exp(p, sFuncName) ::= "<p>.<sFuncName>()"
 
@@ -349,27 +349,22 @@ for <i> in range(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>):
 
 
 octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
-# isvalid_python.stg 341
-OctetString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+(<p><sAccess>nCount == <nVarLength> and <p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
-# isvalid_python.stg 346
-OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+(<p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
-# isvalid_python.stg 351
-BitString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+(<p><sAccess>nCount == <nVarLength> and <p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
-# isvalid_python.stg 356
-BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+(<p><sAccess>arr[:<nVarLength>] == <sOctArrayLiteral>)
 >>
 
 
 objId_equal(p, sObjIdLiteral)::=<<
-# isvalid_python.stg 362
-ObjectIdentifier_equal(<p>, &<sObjIdLiteral>)
+<p> == <sObjIdLiteral>
 >>

@@ -94,10 +94,9 @@ type LangBasic_python() =
     override this.getBoolRtlTypeName = "", "bool", "bool"
 
 let isClassVariable (receiverId: string) : bool =
-        // For Python class methods, we need to detect when the receiverId should be treated as "self"
-        // Class methods are generated via EmitTypeAssignment_composite template which expects self parameter
-        // We detect this by checking if we're in a context where the receiverId should reference the class instance
-        receiverId = "self" || receiverId.StartsWith("self")
+        // True when the receiverId is an instance attribute that needs "self." prefix.
+        // "self" itself is the receiver parameter — no prefix needed (would produce "self.self.field").
+        receiverId <> "self" && receiverId.StartsWith("self")
 
 // Helper type to store cross-sequence ACN dependency information
 type CrossSequenceAcnDep = {
@@ -281,13 +280,13 @@ type LangGeneric_python() =
         let itemname =
             match defOrRef with
             | Some (TypeDefinition td) ->
-                // For TypeDefinition, check if it has a baseType with programUnit
+                // Subtypes (My2ndEnum ::= BaseEnum) have baseType pointing to the actual enum class.
+                // Always use the base type's name for _Enum since only BaseEnum defines _Enum.
                 match td.baseType with
-                | Some bt when bt.programUnit.IsSome && bt.programUnit.Value <> "" ->
-                    // Add module prefix: Module.TypeName_Enum.item
-                    bt.programUnit.Value + "." + td.typedefName + "_Enum." + itemName
-                | _ ->
-                    // No module prefix needed
+                | Some bt ->
+                    let prefix = match bt.programUnit with Some pu when pu <> "" -> pu + "." | _ -> ""
+                    prefix + bt.typedefName + "_Enum." + itemName
+                | None ->
                     td.typedefName + "_Enum." + itemName
             | Some (ReferenceToExistingDefinition rted) ->
                 // For ReferenceToExistingDefinition, check if it has programUnit
@@ -461,7 +460,74 @@ type LangGeneric_python() =
                 let shouldInline = determinantBelongsToChild && dependentIsOutsideChild
                 shouldInline
             )
-        shouldInlineAny
+        // Also require inlining when a sibling ACN field provides this child's size (AcnDepSizeDeterminant).
+        // Only applies to OCTET STRING / BIT STRING — their standalone encode_acn writes a length prefix,
+        // causing double-writing when the parent also writes the ACN size field.
+        // SEQUENCE-OF encode_acn uses self.nCount and writes NO length prefix, so no double-counting;
+        // forcing it inline would break the nLen parameter passing in decode.
+        let hasExternalSizeDet =
+            let normalizedChildFieldPath = childFieldPath.Replace("-", "_")
+            let hasSizeDep =
+                deps.acnDependencies
+                |> List.exists (fun d ->
+                    let normalizedDependentPath = d.asn1Type.AsString.Replace("-", "_")
+                    let dependentIsThisChild =
+                        normalizedDependentPath = normalizedChildFieldPath ||
+                        normalizedDependentPath.StartsWith(normalizedChildFieldPath + ".")
+                    let isSizeDep =
+                        match d.dependencyKind with
+                        | AcnDepSizeDeterminant _ -> true
+                        | AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
+                        | _ -> false
+                    dependentIsThisChild && isSizeDep
+                )
+            if not hasSizeDep then false
+            else
+                match parentTypeId.Kind with
+                | Asn1AcnAst.Sequence sq ->
+                    sq.children
+                    |> List.exists (fun c ->
+                        match c with
+                        | Asn1AcnAst.Asn1Child ac when ac.Name.Value.Replace("-", "_") = childName ->
+                            match ac.Type.Kind with
+                            | Asn1AcnAst.OctetString _ | Asn1AcnAst.BitString _ -> true
+                            | Asn1AcnAst.ReferenceType ref when ref.encodingOptions.IsSome -> true
+                            | _ ->
+                                match ac.Type.ActualType.Kind with
+                                | Asn1AcnAst.OctetString _ | Asn1AcnAst.BitString _ -> true
+                                | _ -> false
+                        | _ -> false
+                    )
+                | _ -> false
+        // Also require inlining when a sizable child has a fixed-size ACN encoding class.
+        // WITH COMPONENTS narrowing (e.g. buf (SIZE(10))) gives SZ_EC_LENGTH_EMBEDDED 0I, which
+        // means 0 bits for the length prefix (min==max). The named class method would call the
+        // base type's encode_acn (e.g. Non_Generic_buf with SIZE(0..200)) which writes a non-zero
+        // length prefix. Inlining the anonymous type's function avoids that mismatch.
+        let isFixedSizeSizable =
+            match parentTypeId.Kind with
+            | Asn1AcnAst.Sequence sq ->
+                sq.children
+                |> List.exists (fun c ->
+                    match c with
+                    | Asn1AcnAst.Asn1Child ac when ac.Name.Value.Replace("-", "_") = childName ->
+                        let isEffectivelyFixed (kind: Asn1AcnAst.Asn1TypeKind) =
+                            match kind with
+                            | Asn1AcnAst.OctetString os ->
+                                os.acnEncodingClass = SZ_EC_FIXED_SIZE || os.acnEncodingClass = SZ_EC_LENGTH_EMBEDDED 0I
+                            | Asn1AcnAst.BitString bs ->
+                                bs.acnEncodingClass = SZ_EC_FIXED_SIZE || bs.acnEncodingClass = SZ_EC_LENGTH_EMBEDDED 0I
+                            | Asn1AcnAst.SequenceOf sof ->
+                                sof.acnEncodingClass = SZ_EC_FIXED_SIZE || sof.acnEncodingClass = SZ_EC_LENGTH_EMBEDDED 0I
+                            | _ -> false
+                        isEffectivelyFixed ac.Type.Kind ||
+                        (match ac.Type.Kind with
+                         | Asn1AcnAst.ReferenceType rt -> isEffectivelyFixed rt.resolvedType.Kind
+                         | _ -> false)
+                    | _ -> false
+                )
+            | _ -> false
+        shouldInlineAny || hasExternalSizeDet || isFixedSizeSizable
 
     override this.getExternalField (getExternalField0: ((AcnDependency -> bool) -> string)) (relPath: RelativePath) (o: Asn1AcnAst.Sequence) (p: CodegenScope)=
         match relPath with
@@ -474,12 +540,12 @@ type LangGeneric_python() =
         | RelativePath (_ ::_) ->
             // Build language-specific access path for deep field reference
             // This handles paths like "primaryHeader.secHeaderFlag" correctly for each language
-            let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) =
+            let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CodegenScope) (RelativePath lp) : Choice<CodegenScope, string> option =
                 match lp with
-                | []    -> pSeq
+                | []    -> Some (Choice1Of2 pSeq)
                 | x1::xs ->
                     match seq.children |> Seq.tryFind(fun (c: Asn1AcnAst.SeqChildInfo) -> c.Name = x1) with
-                    | None -> pSeq  // Fallback if path not found
+                    | None -> None  // Not found in children - signal to caller to use dependency lookup
                     | Some ch ->
                         match ch with
                         | Asn1AcnAst.Asn1Child ch  ->
@@ -490,19 +556,19 @@ type LangGeneric_python() =
                                 getChildResult s {pSeq with accessPath = newPath} (AcnGenericTypes.RelativePath xs)
                             | _, _ ->
                                 // Reached the target field
-                                {pSeq with accessPath = newPath} // Can't navigate through ACN children
-                        | Asn1AcnAst.AcnChild _  ->
-                            // ACN-inserted fields are local variables named by the dependency lookup,
-                            // not accessible via the parent instance access path
-                            let filterDependency (d: AcnDependency) =
-                                match d.dependencyKind with
-                                | AcnDepPresenceBool -> true
-                                | _ -> false
-                            let acnChildName = getExternalField0 filterDependency
-                            {pSeq with accessPath = AccessPath.valueEmptyPath acnChildName}
+                                Some (Choice1Of2 {pSeq with accessPath = newPath})
+                        | Asn1AcnAst.AcnChild acnCh  -> Some (Choice2Of2 acnCh.c_name)
 
-            let resolvedPath = getChildResult o p relPath
-            resolvedPath.accessPath.joined this
+            match getChildResult o p relPath with
+            | Some (Choice1Of2 resolvedPath) -> resolvedPath.accessPath.joined this
+            | Some (Choice2Of2 varName) -> varName
+            | None ->
+                // Path not found in sequence children (e.g. ACN parameter) - use dependency lookup
+                let filterDependency (d:AcnDependency) =
+                    match d.dependencyKind with
+                    | AcnDepPresenceBool -> true
+                    | _ -> false
+                getExternalField0 filterDependency
     
     override this.getAcnChildrenDictStatements (codec: Codec) (acnChildrenEncoded: (string * AcnChild) list) (p: CodegenScope) =
         // Check if this sequence has inline ACN children that need to be returned to parent
@@ -825,7 +891,20 @@ type LangGeneric_python() =
                 | "" -> ref.typedefName
                 | _ -> pu + "." + ref.typedefName
             | None    -> ref.typedefName
-    
+
+    override this.getObjectIdentifierIsValidExpr (p: CodegenScope) (isRelative: bool) : string =
+        let ptr = this.getPointer p.accessPath
+        if isRelative then ptr + ".is_roid_structurally_valid()"
+        else ptr + ".is_structurally_valid()"
+
+    override this.getQualifiedTypeName (tdr: TypeDefinitionOrReference) (modName: string) : string =
+        match tdr with
+        | TypeDefinition td -> modName + "." + td.typedefName
+        | ReferenceToExistingDefinition ref ->
+            match ref.programUnit with
+            | Some pu when pu <> "" -> pu + "." + ref.typedefName
+            | _ -> modName + "." + ref.typedefName
+
     override this.getLongTypedefNameBasedOnModule (tdr:FE_TypeDefinition) (currentModule: string) : string =
         if tdr.programUnit = ToC currentModule
         then
@@ -977,6 +1056,12 @@ type LangGeneric_python() =
         | ASN1SCC_FP64 -> ""
         | ASN1SCC_REAL -> if fpWordSize = 4I then "_fp32" else ""
 
+    override this.castRealForEquality fpWordSize realClass pp realTypeName real32TypeName =
+        match realClass with
+        | ASN1SCC_REAL when fpWordSize = 4I -> this.castExpression pp real32TypeName
+        | ASN1SCC_FP32                      -> this.castExpression pp realTypeName
+        | _                                 -> pp
+
     // Placeholder methods for features not yet implemented in Python
     // override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
     //     []
@@ -1010,7 +1095,21 @@ type LangGeneric_python() =
             match codec with
             | Encode -> u.call_base_type_func "self.data" encodeFuncName codec
             | Decode -> u.call_base_type_func ("instance_" + sChildName) (childTypeDef + "." + decodeFuncName) codec
-        | _ -> "# " + childType.GetType().ToString() + "unchanged funcBody \n" + childContent_funcBody
+        | _ ->
+            let body = "# " + childType.GetType().ToString() + "unchanged funcBody \n" + childContent_funcBody
+            match codec, childType with
+            | Decode, NullType _ -> body  // NullType takes no constructor arguments
+            | Decode, _ ->
+                // Only wrap if the template didn't already wrap.
+                // Two cases that already produce a typed instance:
+                //   1. sType was set → template wraps: instance_X = TypeName(decoded_value)
+                //   2. ReferenceType → call_superclass_func_decode: instance_X_decode = TypeName.decode_uper(...)
+                let alreadyWrapped =
+                    body.Contains(sprintf "instance_%s = %s(" sChildName childTypeDef) ||
+                    body.Contains(sprintf "instance_%s_decode = " sChildName)
+                if alreadyWrapped then body
+                else body + "\ninstance_" + sChildName + " = " + childTypeDef + "(instance_" + sChildName + ")"
+            | Encode, _ -> body
 
     override this.choiceChildDecodePath (sChildTypeDef: string) (sChildName: string) =
         Some (AccessPath.valueEmptyPath ("instance_" + sChildName))

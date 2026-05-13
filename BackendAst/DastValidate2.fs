@@ -686,10 +686,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefinitionOrReference) (us:State)  =
     let conToStrFunc_basic (p:CodegenScope)  =
-        let namespacePrefix = l.lg.rtlModuleName
-        match o.relativeObjectId with
-        | false -> VCBExpression (sprintf "%sObjectIdentifier_isValid(%s)" namespacePrefix (l.lg.getPointer p.accessPath))
-        | true  -> VCBExpression (sprintf "%sRelativeOID_isValid(%s)" namespacePrefix (l.lg.getPointer p.accessPath))
+        VCBExpression (l.lg.getObjectIdentifierIsValidExpr p o.relativeObjectId)
 
     let fnc, ns = o.cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock l c us) us
     let fncs = conToStrFunc_basic::fnc
@@ -991,7 +988,17 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         match r.args.isEnumEfficientEnabled en.baseInfo.items.Length with
         | false ->
             let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.EnumConstraint z -> Some z | _ -> None )
-            cons |> Asn1Fold.foldMap (fun us c -> enumeratedConstraint2ValidationCodeBlock  l  en.baseInfo typeDefinition c us) us
+            let fncs, ns = cons |> Asn1Fold.foldMap (fun us c -> enumeratedConstraint2ValidationCodeBlock  l  en.baseInfo typeDefinition c us) us
+            // For Python, enum types wrap their value in a .val field. The reference type's p.accessPath
+            // is "self" (not "self.val"), so we must redirect the constraint check to self.val.
+            let fncs =
+                match ProgrammingLanguage.ActiveLanguages.Head with
+                | ProgrammingLanguage.Python ->
+                    fncs |> List.map (fun fnc ->
+                        fun (p: CodegenScope) ->
+                            fnc {p with accessPath = p.accessPath.appendSelection "val" ByValue false})
+                | _ -> fncs
+            fncs, ns
         | true  -> createEfficientEnumValidation r l en.baseInfo us
     | Choice ch ->
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.ChValue) = VCBTrue

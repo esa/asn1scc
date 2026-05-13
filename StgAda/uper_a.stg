@@ -193,14 +193,14 @@ adaasn1rtl.encoding.uper.UPER_Dec_UnConstraintWholeNumberMax(bs, <p>, <nMax>, re
 
 
 /*case: A:: = INTEGER (5..MAX) */
-IntSemiConstraint_encode(p, nMin, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_SemiConstraintWholeNumber(bs, <p>, <nMin>);"
-IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraint_encode(p, nMin, sErrCode, soType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_SemiConstraintWholeNumber(bs, <p>, <nMin>);"
+IntSemiConstraint_decode(p, nMin, sErrCode, soType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_SemiConstraintWholeNumber(bs, <p>, <nMin>, result.Success);
 >>
 
-IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_SemiConstraintPosWholeNumber(bs, <p>, <nMin>);"
-IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraintPos_encode(p, nMin, sErrCode, soType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_SemiConstraintPosWholeNumber(bs, <p>, <nMin>);"
+IntSemiConstraintPos_decode(p, nMin, sErrCode, soType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_SemiConstraintPosWholeNumber(bs, <p>, <nMin>, result.Success);
 >>

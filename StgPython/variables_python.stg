@@ -37,8 +37,7 @@ PrintCharValue(cValue)    ::= "'<cValue>'"
 
 PrintBooleanValue(bValue)    ::= "<if(bValue)>True<else>False<endif>"
 
-// todo: null = None oder 0?
-PrintNullValue()    ::= "0"
+PrintNullValue()    ::= ""
 
 PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) /*nogen*/ ::= <<
 # TODO variables_python.stg
@@ -49,39 +48,33 @@ PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) /*nogen*/ ::= <<
 
 
 PrintOctetStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arruBytes, nCount) ::= <<
-<PrintBitOrOctetStringValue(bIsFixedSize=bIsFixedSize, arruBytes=arruBytes, nCount=nCount)>
+<if(td.programUnit)><td.programUnit>.<endif><td.typeName>(<if(!bIsFixedSize)><nCount>, <endif>[<arruBytes:{b|0x<b;format="X2">}; separator=", ">])
 >>
 
 PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount, arruBytes, nBytesCount) ::= <<
-<PrintBitOrOctetStringValue(bIsFixedSize=bIsFixedSize, arruBytes=arruBytes, nCount=nBytesCount)>
+<if(td.programUnit)><td.programUnit>.<endif><td.typeName>(<if(!bIsFixedSize)><nCount>, <endif>[<arruBytes:{b|0x<b;format="X2">}; separator=", ">])
 >>
 
 
 PrintBitOrOctetStringValueAsCompoundLiteral(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, arruBytes, nCount) ::= <<
-(<td.typeName>){<if(!bIsFixedSize)>.nCount = <nCount>, <endif>.arr = {<arruBytes:{b|0x<b;format="X2">}; separator=", ">}} # variables:61
+<td.typeName>(<if(!bIsFixedSize)><nCount>, <endif>[<arruBytes:{b|0x<b;format="X2">}; separator=", ">])
 >>
 
 
 PrintOctetArrayAsCompoundLiteral(arruBytes) ::= <<
-# No Compound Literals in Python
-SYNTAX ERROR
+[<arruBytes:{b|0x<b;format="X2">}; separator=", ">]
 >>
 
 PrintBitArrayAsCompoundLiteral(arruBits) ::= <<
-# No Compound Literals in Python
-SYNTAX ERROR
+[<arruBits:{b|0x<b;format="X2">}; separator=", ">]
 >>
 
 PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount) ::= <<
-{	<nCount>,
-    {
-        <arrnValues; separator=",\n">
-    }
-}
+Asn1ObjectIdentifier(<nCount>, [<arrnValues; separator=", ">])
 >>
 
 PrintObjectIdentifierValueAsCompoundLiteral(arrnValues, nCount) ::= <<
-type("Asn1ObjectIdentifier", (Asn1ObjectIdentifier, object), {"nCount": <nCount>, "values": {<arrnValues; wrap, anchor, separator=", ">})
+Asn1ObjectIdentifier(<nCount>, [<arrnValues; separator=", ">])
 >>
 
 PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
@@ -147,22 +140,14 @@ PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/,
 >>
 
 
-PrintSequenceValueChild(sName, sInnerValue) ::= ".<sName> = <sInnerValue>"
-PrintSequenceValue_child_exists(sName, sExistsBit) ::= ".<sName> = <sExistsBit>"
+PrintSequenceValueChild(sName, sInnerValue) ::= "<sName>=<sInnerValue>"
+PrintSequenceValue_child_exists(sName, sExistsBit) ::= ""
 
-PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<{
-    <arrsChildren:{ch|<ch>}; separator=",\n"><if(arrsOptionalPresentFields)>,
-    .exist = {
-        <arrsOptionalPresentFields; separator=",\n">
-    }
-    <endif>
-}
->>
+PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<
+<sTasName>(<arrsChildren:{ch|<ch>}; separator=", ">)>>
 
-PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheckedUnions) ::= <<{
-    'kind': <sChildNamePresent>,    # variables:165
-    'u': { '<sChildName>': <sChildVal>} # variables:166
-}
+PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheckedUnions) ::= <<
+<sTasName>(kind=<sChildNamePresent>, data=<sChildVal>)
 >>
 
 
@@ -171,12 +156,4 @@ PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
 >>
 
 PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, arrsInnerValues, sDefValue) ::= <<
-{<if(!bIsFixedSize)>
-    .nCount = <arrsInnerValues.Length>,
-<endif>
-    .arr =
-    {
-        <arrsInnerValues:{ch|<ch>}; separator=",\n">
-    }
-}
->>
+<if(td.programUnit)><td.programUnit>.<endif><td.typeName>(<if(!bIsFixedSize)><nLength>, <endif>[<arrsInnerValues:{ch|<ch>}; separator=", ">])>>

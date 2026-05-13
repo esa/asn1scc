@@ -1175,3 +1175,110 @@ class Decoder(Codec):
             return DecodeResult(success=True, error_code=DECODE_OK, decoded_value=value, bits_consumed=32)
         except (BitStreamError, struct.error) as e:
             return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=str(e))
+
+    def ObjectIdentifier_decode(self) -> 'DecodeResult':
+        """
+        Decode an OBJECT IDENTIFIER value.
+
+        Matches C: ObjectIdentifier_uper_decode(pBitStrm, pVal)
+        Format: length prefix (8 or 16 bits) + base-128 encoded arcs.
+        First subidentifier splits into arc0 = si//40, arc1 = si%40.
+        """
+        from .asn1_types import Asn1ObjectIdentifier, OBJECT_IDENTIFIER_MAX_LENGTH
+
+        def decode_subidentifier(remaining: int):
+            si_value = 0
+            while remaining > 0:
+                byte_result = self.read_byte()
+                if not byte_result.success or byte_result.decoded_value is None:
+                    return None, remaining
+                remaining -= 1
+                b = byte_result.decoded_value
+                si_value = (si_value << 7) | (b & 0x7F)
+                if (b & 0x80) == 0:
+                    return si_value, remaining
+            return None, 0
+
+        # Read length prefix (8 bits, range [0, 0xFF])
+        len_result = self.decode_constrained_whole_number(0, 0xFF)
+        if not len_result.success or len_result.decoded_value is None:
+            return DecodeResult(success=False, error_code=len_result.error_code, error_message="Failed to decode OID length")
+
+        total_size = len_result.decoded_value
+        if total_size > 0x7F:
+            # Two-byte length: read second byte
+            len2_result = self.decode_constrained_whole_number(0, 0xFF)
+            if not len2_result.success or len2_result.decoded_value is None:
+                return DecodeResult(success=False, error_code=len2_result.error_code, error_message="Failed to decode OID length (second byte)")
+            total_size = ((total_size << 8) | len2_result.decoded_value) & 0x7FFF
+
+        # Decode first subidentifier (encodes arc[0] and arc[1])
+        si, total_size = decode_subidentifier(total_size)
+        if si is None:
+            return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode OID first subidentifier")
+
+        result = Asn1ObjectIdentifier()
+        result.nCount = 2
+        result.values[0] = si // 40
+        result.values[1] = si % 40
+
+        # Decode remaining subidentifiers
+        while total_size > 0 and result.nCount < OBJECT_IDENTIFIER_MAX_LENGTH:
+            si, total_size = decode_subidentifier(total_size)
+            if si is None:
+                return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode OID subidentifier")
+            result.values[result.nCount] = si
+            result.nCount += 1
+
+        if total_size != 0:
+            return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="OID has more components than OBJECT_IDENTIFIER_MAX_LENGTH")
+
+        return DecodeResult(success=True, error_code=DECODE_OK, decoded_value=result)
+
+    def RelativeOID_decode(self) -> 'DecodeResult':
+        """
+        Decode a RELATIVE-OID value.
+
+        Matches C: RelativeOID_uper_decode(pBitStrm, pVal)
+        Like ObjectIdentifier_decode but arcs are NOT combined (no 40x rule).
+        """
+        from .asn1_types import Asn1ObjectIdentifier, OBJECT_IDENTIFIER_MAX_LENGTH
+
+        def decode_subidentifier(remaining: int):
+            si_value = 0
+            while remaining > 0:
+                byte_result = self.read_byte()
+                if not byte_result.success or byte_result.decoded_value is None:
+                    return None, remaining
+                remaining -= 1
+                b = byte_result.decoded_value
+                si_value = (si_value << 7) | (b & 0x7F)
+                if (b & 0x80) == 0:
+                    return si_value, remaining
+            return None, 0
+
+        len_result = self.decode_constrained_whole_number(0, 0xFF)
+        if not len_result.success or len_result.decoded_value is None:
+            return DecodeResult(success=False, error_code=len_result.error_code, error_message="Failed to decode RelativeOID length")
+
+        total_size = len_result.decoded_value
+        if total_size > 0x7F:
+            len2_result = self.decode_constrained_whole_number(0, 0xFF)
+            if not len2_result.success or len2_result.decoded_value is None:
+                return DecodeResult(success=False, error_code=len2_result.error_code, error_message="Failed to decode RelativeOID length (second byte)")
+            total_size = ((total_size << 8) | len2_result.decoded_value) & 0x7FFF
+
+        result = Asn1ObjectIdentifier()
+        result.nCount = 0
+
+        while total_size > 0 and result.nCount < OBJECT_IDENTIFIER_MAX_LENGTH:
+            si, total_size = decode_subidentifier(total_size)
+            if si is None:
+                return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode RelativeOID subidentifier")
+            result.values[result.nCount] = si
+            result.nCount += 1
+
+        if total_size != 0:
+            return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="RelativeOID has more components than OBJECT_IDENTIFIER_MAX_LENGTH")
+
+        return DecodeResult(success=True, error_code=DECODE_OK, decoded_value=result)

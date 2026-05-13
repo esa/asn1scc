@@ -374,6 +374,8 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 )
 
             // Deduplicate by canonical key, keeping the richest version
+            // TypeDefinition versions always win over ReferenceToExistingDefinition,
+            // so that top-level type assignments generate their own class bodies.
             let deduplicatedTypeMap =
                 allTypesFromAllTases
                 |> List.groupBy (fun (tas, t) ->
@@ -383,9 +385,9 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 )
                 |> List.map (fun (canonicalKey, tasTypePairs) ->
                     let chosen = tasTypePairs |> List.maxBy (fun (tas, t) ->
-                        match t.Kind with
-                        | Sequence seq -> seq.children.Length
-                        | _ -> 0
+                        let isTypeDef = if t.typeDefinitionOrReference.IsTypeDefinition then 10000 else 0
+                        let childCount = match t.Kind with | Sequence seq -> seq.children.Length | _ -> 0
+                        isTypeDef + childCount
                     )
                     (canonicalKey, chosen)
                 )

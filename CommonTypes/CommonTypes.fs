@@ -13,10 +13,12 @@ let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "defau
 let scala_keywords =  [ "abstract"; "case"; "catch"; "class"; "def"; "do"; "else"; "enum"; "export"; "extends"; "false"; "final"; "finally"; "float"; "for"; "given"; "if"; "implicit"; "import"; "int"; "lazy"; "match"; "new"; "null"; "object"; "override"; "package"; "private"; "protected"; "return"; "sealed"; "super"; "then"; "throw"; "trait"; "true"; "try"; "type"; "val"; "var"; "while"; "with"; "yield"; ] |> Set.ofList
 let ada_keywords =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ] |> Set.ofList
 let python_keywords = [
-    "False"; "None"; "True"; "and"; "as"; "assert"; "async"; "await"; "break"; "class"; 
-    "continue"; "def"; "del"; "elif"; "else"; "except"; "finally"; "for"; "from"; "global"; 
-    "if"; "import"; "in"; "is"; "lambda"; "nonlocal"; "not"; "or"; "pass"; "raise"; 
-    "return"; "try"; "while"; "with"; "yield"; ] |> Set.ofList
+    "False"; "None"; "True"; "and"; "as"; "assert"; "async"; "await"; "break"; "class";
+    "continue"; "def"; "del"; "elif"; "else"; "except"; "finally"; "for"; "from"; "global";
+    "if"; "import"; "in"; "is"; "lambda"; "nonlocal"; "not"; "or"; "pass"; "raise";
+    "return"; "try"; "while"; "with"; "yield";
+    // ABCMeta methods: accessible on any ABC subclass and conflict with @dataclass field ordering
+    "register"; "mro"; ] |> Set.ofList
 
 
 type UserErrorSeverity =

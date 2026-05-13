@@ -250,6 +250,11 @@ type ILangGeneric () =
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
     abstract member castExpression  : string -> string -> string
+    abstract member castRealForEquality : floatingPointSizeInBytes:BigInteger -> realClass:RealClass -> pp:string -> realTypeName:string -> real32TypeName:string -> string
+    default this.castRealForEquality _ realClass pp realTypeName _ =
+        match realClass with
+        | ASN1SCC_FP32 -> this.castExpression pp realTypeName
+        | _            -> pp
     abstract member createSingleLineComment : string -> string
     abstract member SpecNameSuffix: string
     abstract member SpecExtension : string
@@ -311,6 +316,7 @@ type ILangGeneric () =
     abstract member getChChildForKind : AccessPath -> string -> bool -> Asn1TypeKind -> Codec -> AccessPath
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefinitionOrReference -> string
+    abstract member getQualifiedTypeName : TypeDefinitionOrReference -> string -> string
     abstract member getLongTypedefNameBasedOnModule : FE_TypeDefinition -> string -> string
     abstract member getLongTypedefNameFromReferenceToTypeAndCodegenScope : ReferenceToType -> TypeDefinitionOrReference -> CodegenScope -> string option
     abstract member longTypedefName2 : TypeDefinitionOrReference -> bool -> string -> string
@@ -344,8 +350,15 @@ type ILangGeneric () =
     abstract member updateStateForCrossSequenceAcnParams : Asn1AcnAst.AstRoot -> State -> CodegenScope -> Asn1AcnAst.SeqChildInfo list -> Asn1Child -> NestingScope -> AcnInsertedFieldDependencies -> Asn1AcnAst.Asn1Type -> Codec -> (Asn1AcnAst.Asn1Module -> ReferenceToType -> State -> (AcnChildUpdateResult option*State)) -> (Determinant -> string) -> (Asn1AcnAst.Asn1Module -> Asn1AcnAst.AcnInsertedType -> string) -> (SequenceChildStmt list * string list * State)
     default this.updateStateForCrossSequenceAcnParams _ s _ _ _ _ _ _ _ _ _ _ = [], [], s
         
+    abstract member getObjectIdentifierIsValidExpr : CodegenScope -> bool -> string
+    default this.getObjectIdentifierIsValidExpr (p: CodegenScope) (isRelative: bool) : string =
+        let namespacePrefix = this.rtlModuleName
+        let ptr = this.getPointer p.accessPath
+        if isRelative then sprintf "%sRelativeOID_isValid(%s)" namespacePrefix ptr
+        else sprintf "%sObjectIdentifier_isValid(%s)" namespacePrefix ptr
+
     // End of additional methods
-    
+
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
     abstract member allowsSrcFilesWithNoFunctions : bool
@@ -470,6 +483,8 @@ type ILangGeneric () =
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
+    default this.getQualifiedTypeName (tdr: TypeDefinitionOrReference) (_modName: string) : string =
+        this.getLongTypedefName tdr
     default this.getLongTypedefNameBasedOnModule (fe:FE_TypeDefinition) (currentModule: string) = fe.typeName
     default this.getLongTypedefNameFromReferenceToTypeAndCodegenScope (rf: ReferenceToType) (typeDefinition: TypeDefinitionOrReference) (p: CodegenScope) = Some rf.AsString
     default this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =

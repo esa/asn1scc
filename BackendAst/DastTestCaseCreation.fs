@@ -78,6 +78,36 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
         match ProgrammingLanguage.ActiveLanguages.Head, resolveReferenceType v.Type.Kind with
         | Scala, Integer _ -> "val tc_data = " + initStatement
         | Python, Integer _ -> "tc_data = " + valueType + "(" + initStatement + ")"
+        | Python, Real _ -> "tc_data: " + valueType + " = " + valueType + "(" + initStatement + ")"
+        | Python, IA5String _ ->
+            let parenIdx = initStatement.IndexOf('(')
+            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
+            "tc_data: " + valueType + " = " + valueType + argsStr
+        | Python, (Sequence _ | SequenceOf _) ->
+            // initStatement is "ShortName(args...)" - replace short name with fully-qualified valueType
+            let parenIdx = initStatement.IndexOf('(')
+            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
+            "tc_data: " + valueType + " = " + valueType + argsStr
+        | Python, Choice _ -> "tc_data: " + valueType + " = " + initStatement
+        | Python, Boolean _ -> "tc_data: " + valueType + " = " + valueType + "(" + initStatement + ")"
+        | Python, (OctetString _ | BitString _) ->
+            // initStatement is "MOD.TypeName(nCount, [0xAA, ...])" — reuse the args with valueType
+            let parenIdx = initStatement.IndexOf('(')
+            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
+            "tc_data: " + valueType + " = " + valueType + argsStr
+        | Python, ObjectIdentifier _ ->
+            // initStatement is "Asn1ObjectIdentifier(n, [v1, v2, ...])" — reuse the args with valueType
+            let parenIdx = initStatement.IndexOf('(')
+            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
+            "tc_data: " + valueType + " = " + valueType + argsStr
+        | Python, Enumerated _ ->
+            // initStatement is "MOD.ActualTypeName(MOD.ActualTypeName_Enum.item)"
+            // Subtypes (My2ndEnum ::= BaseEnum) need MOD.My2ndEnum(MOD.BaseEnum_Enum.item),
+            // so reuse the args from initStatement (which already has the correct base _Enum).
+            let parenIdx = initStatement.IndexOf('(')
+            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
+            "tc_data: " + valueType + " = " + valueType + argsStr
+        | Python, NullType _ -> "tc_data: " + valueType + " = " + valueType + "()"
         | (Scala | Python), ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
         | _, _ -> initStatement
     let sTestCaseIndex = idx.ToString()
@@ -101,6 +131,11 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
             | Some initProc -> initProc.funcName
             | None -> ""
         | _ -> initAmper
+    let initStatement =
+        match ProgrammingLanguage.ActiveLanguages.Head, t.ActualType.Kind with
+        | Python, ObjectIdentifier _ ->
+            initStatement.Replace("Asn1ObjectIdentifier(", modName + "." + sTasName + "(")
+        | _ -> initStatement
     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = ""
     let sTestCaseIndex = idx.ToString()

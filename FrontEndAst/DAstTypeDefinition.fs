@@ -112,7 +112,14 @@ let createInteger_u  (lm:LanguageMacros) (id : ReferenceToType) (typeDef : Map<P
 
 let createReal_u (args:CommandLineSettings) (lm:LanguageMacros) (id: ReferenceToType) (typeDef : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) (acnEncodingClass:RealEncodingClass)   =
     let createReal ()    =
-        let getRtlTypeName  = getRealTypeByClass lm (Asn1AcnAstUtilFunctions.getRealEncodingClass args.slim acnEncodingClass)
+        let baseRealClass = Asn1AcnAstUtilFunctions.getRealEncodingClass args.slim acnEncodingClass
+        // If the language will encode as fp32 (e.g. Python at ws=4), use the fp32 type declaration
+        // so the stored value rounds to float32 on construction — mirroring C's `float` vs `double`.
+        let adjustedRealClass =
+            if lm.lg.getRealEncodingSuffix args.floatingPointSizeInBytes baseRealClass = "_fp32"
+            then ASN1SCC_FP32
+            else baseRealClass
+        let getRtlTypeName  = getRealTypeByClass lm adjustedRealClass
         let defineSubType = lm.typeDef.Define_SubType
 
         let td = lm.lg.typeDef typeDef
