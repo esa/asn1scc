@@ -1,0 +1,316 @@
+/*
+* Copyright (c) 2008-2012 Semantix and (c) 2012-2015 Neuropublic
+*
+* This file is part of the ASN1SCC tool.
+*
+* Licensed under the terms of GNU General Public Licence as published by
+* the Free Software Foundation.
+*/
+
+group icd_acn;
+
+//delimiters "$", "$"
+
+NewLine() ::= <<
+\newline
+
+>>
+
+OddRow() ::= ""
+EvenRow() ::= ""
+
+Integer()       ::= "INTEGER"
+BitString()     ::= "BIT-STRING"
+OctetString()   ::= "OCTET-STRING"
+Boolean()       ::= "BOOLEAN"
+Choice()        ::= "CHOICE"
+Enumerated()    ::= "ENUMERATED"
+IA5String()     ::= "IA5String"
+NumericString() ::= "NumericString"
+NullType() ::= "NULL"
+NullTypeWithBitPattern(sPattern) ::= "fixed pattern: '$sPattern$'B"
+NullTypeWithBytePattern(arruOctets) ::= "fixed pattern:  '$arruOctets:{b|$b;format=\"X2\"$}$'H"
+
+Real()          ::= "REAL"
+Sequence()      ::= "SEQUENCE"
+SequenceOf()    ::= "SEQUENCE-OF"
+ObjectIdentifier()       ::= "OBJECT IDENTIFIER"
+RelativeOid()       ::= "RELATIVE-OID"
+
+EmitRowWith3Dots() ::= <<
+\multicolumn{9}{|c|}{. . .} \\\\ \hline
+>>
+
+EmitFilePart2(sFileName, arrsAsn1Content) ::= <<
+% File: $sFileName$
+% $arrsAsn1Content$
+>>
+
+EmitModule(sModName, sAsn1FileName, soAcnFileName, arrsComments, arrsTases) ::= <<
+\clearpage
+\chapter{Module \detokenize{$sModName$}}\label{sec:ICD_$sModName$}
+\textit{Defined in: \detokenize{$sAsn1FileName$}$if(soAcnFileName)$, \detokenize{$soAcnFileName$}$endif$.}
+
+$arrsComments;separator="\n\n"$
+
+$arrsTases;separator="\n"$
+>>
+
+EmitNavLink(sTitle, sTarget) ::= <<
+\detokenize{$sTitle$}~\ref{sec:ICD_$sTarget$}
+>>
+
+EmitTass(sTypeContent) ::= <<
+$sTypeContent$
+>>
+
+ItemNumber(nIndex) ::= <<
+Item $nIndex$
+>>
+
+LeftDiple() ::= "\textless{}"
+RightDiple() ::= "\textgreater{}"
+
+AcnKeyword(sKeyword) ::= "\textbf{$sKeyword$}"
+StringLiteral(sStringLiteral) ::= "\texttt{\detokenize{$sStringLiteral$}}"
+TasName(sTasName, sTasNameC) ::= <<
+\label{app:ACN_$sTasNameC$}
+\detokenize{$sTasName$}~\ref{sec:ICD_$sTasNameC$}
+>>
+
+TasName2(sTasName, sTasNameC) ::= <<
+\detokenize{$sTasName$}~\ref{app:ASN1_$sTasNameC$}
+>>
+
+BlueTas(sBlueTasC,sTasName) ::= <<
+\label{app:ASN1_$sBlueTasC$}\detokenize{$sTasName$}
+>>
+
+Asn1Token(sKeyword) ::= "\textbf{$sKeyword$}"
+Comment(sComment) ::= "\textit{\detokenize{$sComment$}}"
+
+EmitEnumItem(sName, nValue) ::= <<
+\item \detokenize{$sName$} ($nValue$)
+>>
+
+EmitEnumItemWithComment(sName, nValue, sComment) ::= <<
+\item \detokenize{$sName$} ($nValue$) -- \detokenize{$sComment$}
+>>
+
+EmitEnumInternalContents(arrsItems) ::= <<
+Possible values:
+\begin{itemize}
+$arrsItems;separator="\n"$
+\end{itemize}
+>>
+
+EmitSequenceOrChoice(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsn1Kinf, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsChildren, arrsParams, arrsComments) ::= <<
+\section{\detokenize{$sTasName$}}\label{sec:ICD_$sTasNameC$}
+
+\begin{itemize}
+\item ASN.1 Type: \detokenize{$sTasName$} ($if(bIsAnonymousType)$anonymous $endif$$sAsn1Kinf$)
+\item Source: \ref{app:ASN1_$sTasNameC$} (ASN.1)$if(bHasAcnDef)$ | \ref{app:ACN_$sTasNameC$} (ACN)$endif$
+\item Min size: $sMinBytes$ bytes
+\item Max size: $sMaxBytes$ bytes $sMaxBitsExplained$
+\end{itemize}
+
+$if(sCommentLine)$\detokenize{$sCommentLine$}$endif$
+
+$if(arrsParams)$
+\subsection*{ACN Parameters}
+\begin{longtable}{|c|c|c|}
+\hline
+\rowcolor{gray!50}
+\textbf{No} & \textbf{ACN Parameters} & \textbf{Type} \\\\
+\hline\\hline
+\endfirsthead
+\rowcolor{gray!50}
+\textbf{No} & \textbf{ACN Parameters} & \textbf{Type} \\\\
+\hline\\hline
+\endhead
+$arrsParams$
+\end{longtable}
+$endif$
+
+\begin{longtable}{|c|p{3cm}|p{5cm}|c|p{3cm}|c|c|c|c|}
+\caption{Type content for \detokenize{$sTasName$}}\label{tab:param$sTasNameC$} \\\\
+\hline
+\rowcolor{gray!50}
+\textbf{No} & \textbf{Field} & \textbf{Comment} & \textbf{Present} & \textbf{Type} & \textbf{Constraint} & \textbf{Min} & \textbf{Max} & \textbf{Unit} \\\\
+\rowcolor{gray!50}
+ & & & & & & \textbf{Bits} & \textbf{Bits} & \\\\
+\hline\\hline
+\endfirsthead
+\rowcolor{gray!50}
+\textbf{No} & \textbf{Field} & \textbf{Comment} & \textbf{Present} & \textbf{Type} & \textbf{Constraint} & \textbf{Min} & \textbf{Max} & \textbf{Unit} \\\\
+\rowcolor{gray!50}
+ & & & & & & \textbf{Bits} & \textbf{Bits} & \\\\
+\hline\\hline
+\endhead
+$arrsChildren;separator="\n\\hline\n"$
+\hline
+\end{longtable}
+>>
+
+EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit) ::= <<
+$if(noAlignToNextSize)$
+ & padding field & present due to align-to-next property & & padding bits & & 0 & $noAlignToNextSize$ & \detokenize{$soUnit$} \\\\ \hline
+$endif$
+$nIndex$ & \detokenize{$sName$} & \detokenize{$sComment$} & \detokenize{$sPresentWhen$} & $sType$ & \detokenize{$sConstraint$} & $sMin$ & $sMax$ & \detokenize{$soUnit$} \\\\
+>>
+
+EmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<
+\item bit $nIndex$ == 1 \(\Rightarrow\) \detokenize{$sOptChildName$} is present
+>>
+
+EmitSequencePreambleComment(arrsOptWihtNoPresentWhenChildren) ::= <<
+Special field used by ACN to indicate the presence/absence of optional fields that do not have the present when property.
+\begin{itemize}
+$arrsOptWihtNoPresentWhenChildren;separator="\n"$
+\end{itemize}
+>>
+
+EmitChoiceIndexComment() ::= <<
+Special field used by ACN to indicate which choice alternative is present.
+>>
+
+EmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, sMax) ::= <<
+$nIndex$ & \detokenize{$sName$} & \detokenize{$sComment$} & always & $sType$ & \detokenize{$sConstraint$} & $sMin$ & $sMax$ & \\\\
+>>
+
+EmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
+\detokenize{$sRefName$}~\ref{sec:ICD_$sRefNameC$}
+>>
+
+EmitPrimitiveType(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsnKindName, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, sAsn1Constraints, sMinBits, sMaxBits, arrsParams, arrsComments, soUnit) ::= <<
+\section{\detokenize{$sTasName$}}\label{sec:ICD_$sTasNameC$}
+
+\begin{itemize}
+\item ASN.1 Type: \detokenize{$sTasName$} ($if(bIsAnonymousType)$anonymous $endif$$sAsnKindName$)
+\item Source: \ref{app:ASN1_$sTasNameC$} (ASN.1)$if(bHasAcnDef)$ | \ref{app:ACN_$sTasNameC$} (ACN)$endif$
+\item Min size: $sMinBytes$ bytes
+\item Max size: $sMaxBytes$ bytes $sMaxBitsExplained$
+\end{itemize}
+
+$if(sCommentLine)$\detokenize{$sCommentLine$}$endif$
+
+$if(arrsParams)$
+\subsection*{ACN Parameters}
+\begin{longtable}{|c|c|c|}
+\hline
+\rowcolor{gray!50}
+\textbf{No} & \textbf{ACN Parameters} & \textbf{Type} \\\\
+\hline\\hline
+\endfirsthead
+\rowcolor{gray!50}
+\textbf{No} & \textbf{ACN Parameters} & \textbf{Type} \\\\
+\hline\\hline
+\endhead
+$arrsParams$
+\end{longtable}
+$endif$
+
+\begin{longtable}{|c|c|c|c|}
+\caption{Type content for \detokenize{$sTasName$}}\label{tab:param$sTasNameC$} \\\\
+\hline
+\rowcolor{gray!50}
+\textbf{Constraints} & \textbf{Min Bits} & \textbf{Max Bits} & \textbf{Unit} \\\\
+\hline\\hline
+\endfirsthead
+\rowcolor{gray!50}
+\textbf{Constraints} & \textbf{Min Bits} & \textbf{Max Bits} & \textbf{Unit} \\\\
+\hline\\hline
+\endhead
+\detokenize{$sAsn1Constraints$} & $sMinBits$ & $sMaxBits$$sMaxBitsExplained$ & \detokenize{$soUnit$} \\\\
+\hline
+\end{longtable}
+>>
+
+EmitSizeable(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sKind, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsRows, arrsParams, arrsComments) ::= <<
+\section{\detokenize{$sTasName$}}\label{sec:ICD_$sTasNameC$}
+
+\begin{itemize}
+\item ASN.1 Type: \detokenize{$sTasName$} ($if(bIsAnonymousType)$anonymous $endif$$sKind$)
+\item Source: \ref{app:ASN1_$sTasNameC$} (ASN.1)$if(bHasAcnDef)$ | \ref{app:ACN_$sTasNameC$} (ACN)$endif$
+\item Min size: $sMinBytes$ bytes
+\item Max size: $sMaxBytes$ bytes $sMaxBitsExplained$
+\end{itemize}
+
+$if(sCommentLine)$\detokenize{$sCommentLine$}$endif$
+
+$if(arrsParams)$
+\subsection*{ACN Parameters}
+\begin{longtable}{|c|c|c|}
+\hline
+\rowcolor{gray!50}
+\textbf{No} & \textbf{ACN Parameters} & \textbf{Type} \\\\
+\hline\\hline
+\endfirsthead
+\rowcolor{gray!50}
+\textbf{No} & \textbf{ACN Parameters} & \textbf{Type} \\\\
+\hline\\hline
+\endhead
+$arrsParams$
+\end{longtable}
+$endif$
+
+\begin{longtable}{|c|p{3cm}|p{5cm}|c|p{3cm}|c|c|c|}
+\caption{Type content for \detokenize{$sTasName$}}\label{tab:param$sTasNameC$} \\\\
+\hline
+\rowcolor{gray!50}
+\textbf{No} & \textbf{Field} & \textbf{Comment} & \textbf{Present} & \textbf{Type} & \textbf{Constraint} & \textbf{Min Bits} & \textbf{Max Bits} \\\\
+\hline\\hline
+\endfirsthead
+\rowcolor{gray!50}
+\textbf{No} & \textbf{Field} & \textbf{Comment} & \textbf{Present} & \textbf{Type} & \textbf{Constraint} & \textbf{Min Bits} & \textbf{Max Bits} \\\\
+\hline\\hline
+\endhead
+$arrsRows;separator="\n\\hline\n"$
+\hline
+\end{longtable}
+>>
+
+PrintParam(nIndex, sName, sType, nColSpan) ::= <<
+$nIndex$ & \detokenize{$sName$} & $sType$ \\\\
+>>
+
+RootCss() ::= ""
+
+RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFileName, navLinks) ::= <<
+\documentclass{report}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{longtable}
+\usepackage{pdflscape}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage{hyperref}
+\usepackage{tocloft}
+
+% Compact Table of Contents
+\setlength{\cftbeforechapskip}{2pt}
+\setlength{\cftbeforesecskip}{0pt}
+
+\title{ICD}
+\begin{document}
+\maketitle
+
+\tableofcontents
+\newpage
+
+\begin{landscape}
+$arrsFiles1;separator="\n"$
+
+$if(bAcnParamsMustBeExplained)$
+\section*{ACN Parameters}
+\label{app:ACN_PARAMS_EXPLAINED123}
+In the standard ASN.1 encodings such as uPER, BER etc, the encoding and decoding of any type has no external dependencies. For example, the encoded data for a SEQUENCE OF depends on the number of items in the SEQUENCE OF (the length determinant) and the type of item contained in the SEQUENCE. On the other hand, ACN allows types to be parameterized. For instance, the length of a SEQUENCE OF may be determined by the value of an external field. In this case, the SEQUENCE OF is parameterized and the input parameter is the field providing the length.
+$endif$
+
+$arrsFiles2;separator="\n"$
+
+$arrsFiles3;separator="\n"$
+\end{landscape}
+\end{document}
+>>
