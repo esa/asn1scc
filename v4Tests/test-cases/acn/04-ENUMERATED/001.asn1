@@ -19,6 +19,7 @@ END
 --TCLS     MyPDU[] { alpha[50], beta[60] }
 
 --TCLS     MyPDU[encode-values, encoding pos-int, size 10]
+--TCLFC    MyPDU[encode-values, encoding pos-int, size 7]	$$$ sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 127 to be encoded, while the corresponding ASN.1 type allows values up to 200
 --TCLFC     MyPDU[encode-values, encoding twos-complement, size 10]	$$$ sample1.asn1:4:11: error: Acn property twos-complement cannot be applied to non negative INTEGER types
 --TCLS     MyPDU[encode-values, encoding BCD, size 12]
 --  TCLS     MyPDU[encode-values, encoding BCD, size null-terminated]
