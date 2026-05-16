@@ -1,0 +1,14 @@
+-- NOCOVERAGE RUN_SPARK
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= ENUMERATED {
+		one, two, three, four
+	}
+
+	pdu1 MyPDU ::= one
+
+END
+
+--TCLFC    MyPDU[encoding pos-int, size 1]   $$$ sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 1 to be encoded, while the corresponding ASN.1 type allows values up to 3
+--TCLS     MyPDU[encoding pos-int, size 2]
+--TCLS     MyPDU[encoding pos-int, size 8]
