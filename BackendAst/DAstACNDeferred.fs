@@ -284,6 +284,16 @@ let private createDeferredSequenceFunction
                                                 lm.acn.acn_deferred_det_init_ptr initFuncName detVarName innerCodec
                                             else
                                                 lm.acn.acn_deferred_det_init_value initFuncName detVarName innerCodec
+                                    // Borrow the original encode body's icd
+                                    // entry so the determinant still shows up
+                                    // as a row in the parent SEQUENCE's ICD —
+                                    // the wire format is unchanged (still N
+                                    // bits at the same position), only the
+                                    // computation timing differs (InitDet
+                                    // reserves, PatchDet fills in later).
+                                    let originalIcd =
+                                        originalFuncBody innerCodec acnArgs nestingScope p bsPos
+                                        |> Option.bind (fun r -> r.icdResult)
                                     Some {
                                         AcnFuncBodyResult.funcBody = initCode
                                         errCodes = []
@@ -294,7 +304,7 @@ let private createDeferredSequenceFunction
                                         bBsIsUnReferenced = false
                                         resultExpr = None
                                         auxiliaries = []
-                                        icdResult = None
+                                        icdResult = originalIcd
                                         userDefinedFunctions = []
                                     }
                                 | CommonTypes.Codec.Decode ->
@@ -529,6 +539,13 @@ type private DeferredRefCtx = {
     o:              Asn1AcnAst.ReferenceType
     typeDefinition: TypeDefinitionOrReference
     isValidFunc:    IsValidFunction option
+    // ICD contribution this reference owes to its parent SEQUENCE/CHOICE.
+    // Built from baseType.icdTas the same way the legacy inline path does
+    // (see AcnReference.buildReferenceIcdArgAux).  Threading it through the
+    // deferred path is what keeps the generated _new.html ICD complete in
+    // --acn-v2 mode; without it every closure-converted reference (and
+    // everything reachable only through one) disappears from the document.
+    refIcd:         IcdArgAux option
 }
 
 
@@ -857,7 +874,7 @@ let private buildCallerWrapper
                bBsIsUnReferenced = false
                resultExpr = resultExpr
                auxiliaries = allAuxiliaries
-               icdResult = None}), callerUs
+               icdResult = ctx.refIcd}), callerUs
 
     // Record the function-call dependency (caller → callee)
     let ns3 =
@@ -892,6 +909,12 @@ let private createDeferredReferenceFunction
 
     let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
 
+    // ICD this reference contributes to its parent.  Same construction as the
+    // legacy inline path; without it the parent SEQUENCE drops the field row
+    // for this reference, breaks the TypeHash row chain, and
+    // GenerateAcnIcd.getMySelfAndChildren never reaches the resolved type.
+    let refIcd = AcnReference.buildReferenceIcdArgAux r t o baseType
+
     let isContainingExternalField =
         match o.encodingOptions with
         | Some enc -> match enc.acnEncodingClass, enc.octOrBitStr with
@@ -919,21 +942,21 @@ let private createDeferredReferenceFunction
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInOctString ->
                 Some (makeContainingFuncBody (fun pp fncName ->
                     let fncBody = lm.acn.octet_string_containing_deferred_fixed_func pp fncName codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = None}), us))
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInOctString ->
                 Some (makeContainingFuncBody (fun pp fncName ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
                     let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = None}), us))
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInBitString ->
                 Some (makeContainingFuncBody (fun pp fncName ->
                     let fncBody = lm.acn.bit_string_containing_deferred_fixed_func pp fncName codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = None}), us))
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInBitString ->
                 Some (makeContainingFuncBody (fun pp fncName ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
                     let fncBody = lm.acn.bit_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = None}), us))
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
             | _ when not isContainingExternalField ->
                 Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
             | _ -> None  // ExternalField with params → specialized function below
@@ -990,6 +1013,7 @@ let private createDeferredReferenceFunction
                 o              = o
                 typeDefinition = typeDefinition
                 isValidFunc    = isValidFunc
+                refIcd         = refIcd
             }
 
             // Generate body content — dispatched on the 3-way match.  Each branch

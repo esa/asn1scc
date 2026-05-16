@@ -15,63 +15,62 @@ open AcnExternalField
 
 let emptyIcdFnc fieldName sPresent comments  = [],[]
 
-let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
-  let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
-
-  //let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
-  let getNewSType (r:IcdRow) =
-    (*
-    let newType =
-        match r.sType with
-        | TypeHash hash   -> TypeHash hash
-        | IcdPlainType plainType when r.rowType = FieldRow -> IcdPlainType (td.asn1Name + "(" + plainType + ")")
-        | IcdPlainType plainType -> IcdPlainType plainType
-    {r with sType = newType}
-    *)
-    r
-
-  let icdFnc,extraComment, name  =
-    match r.args.generateAcnIcd with
-    | true  ->
-        match o.encodingOptions with
-        | None ->
-            let name =
-              match o.hasExtraConstrainsOrChildrenOrAcnArgs with
-              | false -> None
-              | true -> Some t.id.AsString.RDD
-            match baseType.icdTas with
-            | Some baseTypeIcdTas ->
-                let icdFnc fieldName sPresent comments  =
-                    let rows, comp = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
-                    rows |> List.map(fun r -> getNewSType r), comp
-
-                icdFnc, baseTypeIcdTas.comments, name
-            | None -> emptyIcdFnc, [], name
-
-        | Some encOptions ->
-            let lengthDetRow =
-                match encOptions.acnEncodingClass with
-                | SZ_EC_LENGTH_EMBEDDED  nSizeInBits ->
-                    let sCommentUnit = match encOptions.octOrBitStr with ContainedInOctString -> "bytes" | ContainedInBitString -> "bits"
-
-                    [ {IcdRow.fieldName = "Length"; comments = [$"The number of {sCommentUnit} used in the encoding"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengthInBits = nSizeInBits ;maxLengthInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
-                | _ -> []
-            match baseType.icdTas with
-            | Some baseTypeIcdTas ->
-                let icdFnc fieldName sPresent comments  =
-                    let rows0, compChildren = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
-                    let rows = rows0 |> List.map getNewSType
-                    lengthDetRow@rows |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)}), compChildren
-                icdFnc, ("OCTET STING CONTAINING BY"::baseTypeIcdTas.comments), Some (t.id.AsString.RDD + "_OCT_STR" )
-            | None -> emptyIcdFnc, [], None
-    | false -> emptyIcdFnc, [], None
-
-
-  let icd =
+// Construct the IcdArgAux that a reference type contributes to its parent's
+// ICD.  Delegates the row generation to baseType.icdTas, optionally prefixed
+// with a Length determinant row when the reference is a CONTAINING with
+// LENGTH_EMBEDDED encoding.  Shared between the legacy inline path
+// (createReferenceFunction_inline below) and the --acn-v2 deferred path
+// (DAstACNDeferred.fs).  Without this delegation the deferred path used to
+// emit None, which silently dropped every deferred reference (and all its
+// transitive dependents) from the generated _new.html ICD.
+let buildReferenceIcdArgAux
+        (r: Asn1AcnAst.AstRoot)
+        (t: Asn1AcnAst.Asn1Type)
+        (o: Asn1AcnAst.ReferenceType)
+        (baseType: Asn1Type) : IcdArgAux option =
+    let getNewSType (rw:IcdRow) = rw
+    let icdFnc, extraComment, name =
+        match r.args.generateAcnIcd with
+        | true  ->
+            match o.encodingOptions with
+            | None ->
+                let name =
+                    match o.hasExtraConstrainsOrChildrenOrAcnArgs with
+                    | false -> None
+                    | true  -> Some t.id.AsString.RDD
+                match baseType.icdTas with
+                | Some baseTypeIcdTas ->
+                    let icdFnc fieldName sPresent comments  =
+                        let rows, comp = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
+                        rows |> List.map getNewSType, comp
+                    icdFnc, baseTypeIcdTas.comments, name
+                | None -> emptyIcdFnc, [], name
+            | Some encOptions ->
+                let lengthDetRow =
+                    match encOptions.acnEncodingClass with
+                    | SZ_EC_LENGTH_EMBEDDED nSizeInBits ->
+                        let sCommentUnit = match encOptions.octOrBitStr with ContainedInOctString -> "bytes" | ContainedInBitString -> "bits"
+                        [ {IcdRow.fieldName = "Length"; comments = [$"The number of {sCommentUnit} used in the encoding"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengthInBits = nSizeInBits ;maxLengthInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
+                    | _ -> []
+                match baseType.icdTas with
+                | Some baseTypeIcdTas ->
+                    let icdFnc fieldName sPresent comments  =
+                        let rows0, compChildren = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
+                        let rows = rows0 |> List.map getNewSType
+                        lengthDetRow@rows |> List.mapi(fun i rw -> {rw with idxOffset = Some (i+1)}), compChildren
+                    icdFnc, ("OCTET STING CONTAINING BY"::baseTypeIcdTas.comments), Some (t.id.AsString.RDD + "_OCT_STR")
+                | None -> emptyIcdFnc, [], None
+        | false -> emptyIcdFnc, [], None
     match baseType.icdTas with
     | Some baseTypeIcdTas ->
         Some {IcdArgAux.canBeEmbedded = baseTypeIcdTas.canBeEmbedded; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=extraComment; scope="REFTYPE"; name=name}
     | None -> None
+
+
+let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
+  let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
+
+  let icd = buildReferenceIcdArgAux r t o baseType
 
   match o.encodingOptions with
   | None          ->
