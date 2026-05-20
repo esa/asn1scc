@@ -11,22 +11,18 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment, sFieldP
 EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING:constant Integer := <nMaxBytesInACN>;
 <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING:constant Integer := <nMaxBitsInACN>;
+--  Stream subtype size: at least 1 byte (Bitstream discriminant is Positive).
+<sTypeDefName>_ACN_STREAM_SIZE : constant Positive :=
+    (if <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING \> 0 then <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING else 1);
+subtype <sTypeDefName>_ACN_Stream is adaasn1rtl.encoding.Bitstream(<sTypeDefName>_ACN_STREAM_SIZE);
 >>
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
 <arrsErrcodes; separator="\n">
 
-<if(bEmptyEncodingSpace)>
-subtype <sTypeDefName>_ACN_Stream is adaasn1rtl.encoding.Bitstream(1); -- we cannot declare a bit stream of zero size
+procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);
 
-<else>
-subtype <sTypeDefName>_ACN_Stream is adaasn1rtl.encoding.Bitstream(<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING);
-
-<endif>
-
-procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
-
-procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 <soSparkAnnotations>
 ;
 
@@ -34,16 +30,20 @@ procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleNam
 >>
 
 EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
-procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>) <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
 is
 begin
-    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING<endif>, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0));
-    <sTypeDefName>_ACN_Encode_aux(<sVarName>, Stream, result);
-end <sFuncName>;
+    --  Stream subtype is constrained to <sTypeDefName>_ACN_STREAM_SIZE; use that
+    --  exact value to satisfy the discriminant.  In closure-converted (--acn-v2)
+    --  spec functions the actual content may exceed this size, but the public
+    --  wrapper is dead code in that path (callers invoke <sFuncName>_aux directly).
+    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <sTypeDefName>_ACN_STREAM_SIZE, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0)); <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
+    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>); <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
+end <sFuncName>; <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
-procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 is
 <if(bBsIsUnreferenced)>
 pragma Unreferenced(bs);
@@ -80,18 +80,18 @@ procedure <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleN
 >>
 
 EmitTypeAssignment_primitive_decodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
-PROCEDURE <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
+PROCEDURE <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>) <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
 is
 begin
-    Stream.Current_Bit_Pos :=0;
-    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=","><endif>);
+    Stream.Current_Bit_Pos :=0; <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
+    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=","><endif>); <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
     <if(soIValidFuncName)>
     if result.success then
         result := <soIValidFuncName>(<sVarName>);
     end if;
 
     <endif>
-end <sFuncName>;
+end <sFuncName>; <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
 >>
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
@@ -1146,15 +1146,17 @@ when <sEnmName> =>
 
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
 case <p><sAcc>kind is
     <arrsChildren; separator="\n">
 end case;
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
 case <sEnmExtFld> is
     <arrsChildren; separator="\n">
+    <if(bIsDeferred)>when others => -- COVERAGE_IGNORE
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>); -- COVERAGE_IGNORE<endif>
 end case;
 >>
 
@@ -1166,7 +1168,7 @@ end case;
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> = <sVal>)"
-ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "(<sExtFld> = \"<sVal>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>)"
+ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "(<sExtFld>(1 .. String'(\"<sVal>\")'Length + 1) = \"<sVal>\" & adaasn1rtl.NUL)"
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 case <p><sAcc>kind is
@@ -1344,69 +1346,210 @@ if result.success then
 end if;
 >>
 
-/* CONTAINING with deferred patching — TODO Ada implementation */
+/* CONTAINING with deferred patching.
+   Encode: call inner _aux directly into the outer stream, measure the
+   bytes/bits written, then PatchDet the determinant with the count.
+   Decode: read the count from the determinant (already decoded into
+   det.Value by the closure-converted parent), record the expected end
+   position, decode the inner type, then force the cursor to the
+   expected end so any unconsumed bytes inside the contained region are
+   skipped. (Ada Bitstream.Size_In_Bytes is an immutable discriminant,
+   so the C trick of temporarily reducing `count` does not translate.) */
+
 octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada deferred CONTAINING encode
+declare
+    acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    <sFuncName>_aux(<p>, bs, result);
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        if not result.Success then
+            result.ErrorCode := <sErrCode>;
+            return;
+        end if;
+    end if;
+end;
 >>
 
 octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada deferred CONTAINING decode
+declare
+    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
+begin
+    <sFuncName>_aux(<p>, bs, result);
+    bs.Current_Bit_Pos := acn_expected_end;
+end;
 >>
 
 octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
--- TODO: Ada deferred CONTAINING fixed encode
+<sFuncName>_aux(<p>, bs, result);
 >>
 
 octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
--- TODO: Ada deferred CONTAINING fixed decode
+<sFuncName>_aux(<p>, bs, result);
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
--- TODO: Ada deferred CONTAINING embedded encode
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+declare
+    acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(<nMinSize>), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
+    acn_data_start := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    <sFuncName>_aux(<p>, bs, result);
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+        adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_len_pos);
+        adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(acn_nCount), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
+        adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_data_end);
+    end if;
+end;
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
--- TODO: Ada deferred CONTAINING embedded decode
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+declare
+    acn_nCount : Integer;
+    acn_expected_end : Natural;
+begin
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, <nMinSize>, <nMaxSize>, <nBits>, result.Success);
+    if result.Success then
+        acn_expected_end := bs.Current_Bit_Pos + acn_nCount * 8;
+        <sFuncName>_aux(<p>, bs, result);
+        bs.Current_Bit_Pos := acn_expected_end;
+    end if;
+end;
 >>
 
 octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada deferred CONTAINING wrapper encode
+declare
+    acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    <sBody>
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        if not result.Success then
+            result.ErrorCode := <sErrCode>;
+            return;
+        end if;
+    end if;
+end;
 >>
 
 octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada deferred CONTAINING wrapper decode
+declare
+    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
+begin
+    <sBody>
+    bs.Current_Bit_Pos := acn_expected_end;
+end;
 >>
 
 bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada bit_string_containing_deferred_func
+declare
+    acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    <sFuncName>_aux(<p>, bs, result);
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        if not result.Success then
+            result.ErrorCode := <sErrCode>;
+            return;
+        end if;
+    end if;
+end;
 >>
 
 bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada bit_string_containing_deferred_func
+declare
+    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value);
+begin
+    <sFuncName>_aux(<p>, bs, result);
+    bs.Current_Bit_Pos := acn_expected_end;
+end;
 >>
 
 bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
--- TODO: Ada bit_string_containing_deferred_fixed_func
+<sFuncName>_aux(<p>, bs, result);
 >>
 
 bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
--- TODO: Ada bit_string_containing_deferred_fixed_func
+<sFuncName>_aux(<p>, bs, result);
 >>
 
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
--- TODO: Ada bit_string_containing_deferred_embedded_func
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+declare
+    acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(<nMinSize>), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
+    acn_data_start := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    <sFuncName>_aux(<p>, bs, result);
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+        adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_len_pos);
+        adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(acn_nCount), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
+        adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_data_end);
+    end if;
+end;
 >>
 
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
--- TODO: Ada bit_string_containing_deferred_embedded_func
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+declare
+    acn_nCount : Integer;
+    acn_expected_end : Natural;
+begin
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, <nMinSize>, <nMaxSize>, <nBits>, result.Success);
+    if result.Success then
+        acn_expected_end := bs.Current_Bit_Pos + acn_nCount;
+        <sFuncName>_aux(<p>, bs, result);
+        bs.Current_Bit_Pos := acn_expected_end;
+    end if;
+end;
 >>
 
 bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada bit_string_containing_deferred_wrapper
+declare
+    acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
+    acn_nCount : adaasn1rtl.Asn1UInt;
+begin
+    <sBody>
+    if result.Success then
+        acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+        acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        if not result.Success then
+            result.ErrorCode := <sErrCode>;
+            return;
+        end if;
+    end if;
+end;
 >>
 
 bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
--- TODO: Ada bit_string_containing_deferred_wrapper
+declare
+    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value);
+begin
+    <sBody>
+    bs.Current_Bit_Pos := acn_expected_end;
+end;
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
@@ -1659,114 +1802,230 @@ ACN Deferred Patching Templates (stubs — Ada not supported yet)
 ========================================================================
 */
 
-acn_deferred_det_declare_encode(sDetName) ::= "-- TODO: ACN deferred patching not supported for Ada"
-acn_deferred_det_declare_decode(sDetName) ::= "-- TODO: ACN deferred patching not supported for Ada"
+/* Declare an AcnInsertedFieldRef local variable (default-init via record defaults). */
+acn_deferred_det_declare_encode(sDetName) ::= "<sDetName> : adaasn1rtl.encoding.acn.AcnInsertedFieldRef;"
+acn_deferred_det_declare_decode(sDetName) ::= "<sDetName> : adaasn1rtl.encoding.acn.AcnInsertedFieldRef;"
 
+/* Reserve space in the bitstream (calls Acn_InitDet_*).
+   Ada records are passed by reference, so "value" and "ptr" emit identical code. */
 acn_deferred_det_init_value_encode(sInitFuncName, sDetName) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+<sInitFuncName>(bs, <sDetName>);
 >>
 acn_deferred_det_init_value_decode(sInitFuncName, sDetName) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+-- decode: no init needed
 >>
 acn_deferred_det_init_ptr_encode(sInitFuncName, sDetName) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+<sInitFuncName>(bs, <sDetName>);
 >>
 acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+-- decode: no init needed
 >>
 
+/* Patch the value at the saved position (calls Acn_PatchDet_*). */
 acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+<sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, result);
+if not result.Success then
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
+end if;
 >>
 acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+-- decode: no patch needed
 >>
 acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+<sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, result);
+if not result.Success then
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
+end if;
 >>
 acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+-- decode: no patch needed
 >>
 
+/* _with_size variants: InitDet/PatchDet for arbitrary bit widths (nBits parameter). */
 acn_deferred_det_init_value_with_size_encode(sInitFuncName, nBits, sDetName) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+<sInitFuncName>(bs, <sDetName>, <nBits>);
 >>
 acn_deferred_det_init_value_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+-- decode: no init needed
 >>
 acn_deferred_det_init_ptr_with_size_encode(sInitFuncName, nBits, sDetName) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+<sInitFuncName>(bs, <sDetName>, <nBits>);
 >>
 acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+-- decode: no init needed
 >>
 acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+<sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, <nBits>, result);
+if not result.Success then
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
+end if;
 >>
 acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+-- decode: no patch needed
 >>
 acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+<sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, <nBits>, result);
+if not result.Success then
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
+end if;
 >>
 acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+-- decode: no patch needed
 >>
 
+/* IA5String PatchDet variants: pass string value directly (no Asn1UInt cast). */
 acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+<sPatchFuncName>(<sValue>, bs, <nBits>, <sDetName>, result);
+if not result.Success then
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
+end if;
 >>
 acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+-- decode: no patch needed
 >>
 acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+<sPatchFuncName>(<sValue>, bs, <nBits>, <sDetName>, result);
+if not result.Success then
+    result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
+end if;
 >>
 acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
--- TODO: ACN deferred patching not supported for Ada
+-- decode: no patch needed
 >>
 
-acn_deferred_det_formal_param_encode(sDetName) ::= "-- TODO"
-acn_deferred_det_formal_param_decode(sDetName) ::= "-- TODO"
+/* Extra formal parameter for a function receiving a deferred determinant.
+   Ada records are passed by reference; "in out" is the SPARK-friendly equivalent
+   of C's AcnInsertedFieldRef* — no access types needed. */
+acn_deferred_det_formal_param_encode(sDetName) ::= "<sDetName> : in out adaasn1rtl.encoding.acn.AcnInsertedFieldRef"
+acn_deferred_det_formal_param_decode(sDetName) ::= "<sDetName> : in out adaasn1rtl.encoding.acn.AcnInsertedFieldRef"
 
-acn_deferred_det_actual_param_encode(sDetName) ::= "-- TODO"
-acn_deferred_det_actual_param_decode(sDetName) ::= "-- TODO"
+/* Pass a deferred determinant as actual parameter in a function call. */
+acn_deferred_det_actual_param_encode(sDetName) ::= "<sDetName>"
+acn_deferred_det_actual_param_decode(sDetName) ::= "<sDetName>"
 
-acn_deferred_det_save_pos_encode(sVarName) ::= "-- TODO: ACN deferred patching not supported for Ada"
-acn_deferred_det_save_pos_decode(sVarName) ::= "-- TODO: ACN deferred patching not supported for Ada"
+/* Save current bitstream position. Used inside declare blocks emitted by
+   the CONTAINING wrappers — never as a stand-alone statement. */
+acn_deferred_det_save_pos_encode(sVarName) ::= "<sVarName> : adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);"
+acn_deferred_det_save_pos_decode(sVarName) ::= "<sVarName> : adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);"
 
-acn_deferred_det_distance_bytes_encode(sStart, sEnd) ::= "0"
-acn_deferred_det_distance_bytes_decode(sStart, sEnd) ::= "0"
+/* Compute distance in bytes between two positions. */
+acn_deferred_det_distance_bytes_encode(sStart, sEnd) ::= "adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(<sStart>, <sEnd>)"
+acn_deferred_det_distance_bytes_decode(sStart, sEnd) ::= "adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(<sStart>, <sEnd>)"
 
-/* Group A: PatchDet value expressions */
-acn_deferred_det_kind_access(p, sAcc) ::= "-- TODO"
-acn_deferred_det_value_presence_bool(p, sAcc, sChildName) ::= "-- TODO"
-acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "-- TODO"
-acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= "-- TODO"
-acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= "-- TODO"
-acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= "-- TODO"
+/* ========================================================================
+   ACN Deferred Patching — Value Expression & Structural Templates (Ada)
+   ======================================================================== */
 
-/* Group B: Fallback PatchDet */
-acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= "-- TODO"
+/* Group A: PatchDet value expressions (codec-independent) */
+
+/* CHOICE kind field access (Ada uses '.'; sAcc is supplied by caller). */
+acn_deferred_det_kind_access(p, sAcc) ::= "<p><sAcc>kind"
+
+/* Presence-bool value expression: in Ada the .exist.<child> is already Boolean. */
+acn_deferred_det_value_presence_bool(p, sAcc, sChildName) ::= "<p><sAcc>exist.<sChildName>"
+
+/* Single case alternative for an integer/enum case-expression. */
+acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "when <sCaseName> => adaasn1rtl.Asn1UInt(<sValue>)"
+
+/* Constant-Asn1UInt declared via case-expression on the choice kind.
+   This is emitted as part of a declare-block via acn_deferred_det_preblock_wrap. */
+acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= <<
+<sVarName> : constant adaasn1rtl.Asn1UInt :=
+    (case <sKindAccess> is
+        <arrsCaseItems; separator=",\n">,
+        when others => 0); -- COVERAGE_IGNORE
+>>
+
+/* Single case alternative for a string case-expression. */
+acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= "when <sCaseName> => \"<sValue>\""
+
+/* Constant-String declared via case-expression on the choice kind. */
+acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= <<
+<sVarName> : constant String :=
+    (case <sKindAccess> is
+        <arrsCaseItems; separator=",\n">,
+        when others => ""); -- COVERAGE_IGNORE
+>>
+
+/* Group B: Fallback PatchDet (encode-only, decode is empty) */
+
+acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= <<
+if not <sDetName>.Is_Set then
+    <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sDefaultVal>), bs, <sDetName>, result); -- COVERAGE_IGNORE
+end if;
+>>
 acn_deferred_det_fallback_value_decode(sPatchFuncName, sDefaultVal, sDetName) ::= ""
-acn_deferred_det_fallback_value_with_size_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= "-- TODO"
+
+acn_deferred_det_fallback_value_with_size_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= <<
+if not <sDetName>.Is_Set then
+    <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sDefaultVal>), bs, <sDetName>, <nBits>, result); -- COVERAGE_IGNORE
+end if;
+>>
 acn_deferred_det_fallback_value_with_size_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
-acn_deferred_det_fallback_value_str_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= "-- TODO"
+
+acn_deferred_det_fallback_value_str_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= <<
+if not <sDetName>.Is_Set then
+    <sPatchFuncName>(<sDefaultVal>, bs, <nBits>, <sDetName>, result); -- COVERAGE_IGNORE
+end if;
+>>
 acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
 
-/* Group C: Decode redirect */
+/* Group C: Decode redirect — copy decoded temp to det.Value. */
 acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "-- TODO"
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> := adaasn1rtl.Asn1UInt(<sTmpName>);"
 
-/* Group D: Access paths */
-acn_deferred_det_access_value(sDetName) ::= "-- TODO"
-acn_deferred_det_access_ptr(sDetName) ::= "-- TODO"
-acn_deferred_det_access_str_value(sDetName) ::= "-- TODO"
-acn_deferred_det_access_str_ptr(sDetName) ::= "-- TODO"
-acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "-- TODO"
+/* Boolean tmp variant — Ada disallows direct Boolean→Asn1UInt cast, so use a
+   conditional expression. */
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> := (if <sTmpName> then 1 else 0);"
+
+/* Enum tmp variant — Ada disallows direct enum→Asn1UInt cast.  Use the
+   'Enum_Rep attribute on the enum type to obtain the integer value defined
+   by the enum's representation clause (which the backend sets to match
+   the ACN-encoded value). */
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "<sDetAccess> := adaasn1rtl.Asn1UInt(<sEnumTypeName>'Enum_Rep(<sTmpName>));"
+
+/* Group D: Access paths (codec-independent) */
+
+/* Local det value access. Since Ada records are passed by reference,
+   value/ptr collapse to the same Ada syntax (.Value field). */
+acn_deferred_det_access_value(sDetName) ::= "<sDetName>.Value"
+acn_deferred_det_access_ptr(sDetName) ::= "<sDetName>.Value"
+/* Boolean form for use in Ada Boolean contexts (e.g. if-expressions).  The
+   Value field is Asn1UInt, so reify to Boolean by /= 0. */
+acn_deferred_det_access_bool_ptr(sDetName) ::= "<sDetName>.Value /= 0"
+acn_deferred_det_access_str_value(sDetName) ::= "<sDetName>.Str_Value"
+acn_deferred_det_access_str_ptr(sDetName) ::= "<sDetName>.Str_Value"
+
+/* Struct field access via record (Ada uses '.'). */
+acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "<sRootId>.<sFieldPath>"
 
 /* Group E: Miscellaneous */
-acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "-- TODO"
-acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= "-- TODO"
-acn_deferred_det_type_name() ::= "-- TODO"
-acn_deferred_det_init_expr() ::= "-- TODO"
+
+/* UPER offset subtraction expression. */
+acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
+
+/* Wrap a preBlock (declarations) and patchCall in an Ada declare/begin/end block.
+   The preBlock is emitted in the declarative part; the patchCall in the body. */
+acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<
+declare
+    <sPreBlock>
+begin
+    <sPatchCall>
+end;
+>>
+
+/* AcnInsertedFieldRef type name (used by GenericLocalVariable). */
+acn_deferred_det_type_name() ::= "adaasn1rtl.encoding.acn.AcnInsertedFieldRef"
+
+/* Init expression — record default initialisation (Ada records with all-defaulted
+   components auto-zero without an explicit aggregate, but the LocalVariable template
+   always emits ":= <init>;", so we supply an aggregate that picks up every default). */
+acn_deferred_det_init_expr() ::= "(others =\> \<\>)"

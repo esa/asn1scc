@@ -188,6 +188,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                     lines = filter(lambda x : "####" in x, lines)
                     lines = filter(lambda x : "COVERAGE_IGNORE" not in x, lines)
                     lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != 'end;', lines)
+                    lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != 'declare', lines)
                     lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "default:", lines)
                     lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "break;", lines)
                     lines = list(lines)

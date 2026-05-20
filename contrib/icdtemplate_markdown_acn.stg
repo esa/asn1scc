@@ -1,0 +1,221 @@
+/*
+* Copyright (c) 2008-2012 Semantix and (c) 2012-2015 Neuropublic
+*
+* This file is part of the ASN1SCC tool.
+*
+* Licensed under the terms of GNU General Public Licence as published by
+* the Free Software Foundation.
+*/
+
+group icd_acn;
+
+//delimiters "$", "$"
+
+NewLine() ::= "\n"
+OddRow() ::= ""
+EvenRow() ::= ""
+
+Integer()       ::= "INTEGER"
+BitString()     ::= "BIT-STRING"
+OctetString()   ::= "OCTET-STRING"
+Boolean()       ::= "BOOLEAN"
+Choice()        ::= "CHOICE"
+Enumerated()    ::= "ENUMERATED"
+IA5String()     ::= "IA5String"
+NumericString() ::= "NumericString"
+NullType() ::= "NULL"
+NullTypeWithBitPattern(sPattern) ::= "fixed pattern: '$sPattern$'B"
+NullTypeWithBytePattern(arruOctets) ::= "fixed pattern:  '$arruOctets:{b|$b;format=\"X2\"$}$'H"
+
+Real()          ::= "REAL"
+Sequence()      ::= "SEQUENCE"
+SequenceOf()    ::= "SEQUENCE-OF"
+ObjectIdentifier()       ::= "OBJECT IDENTIFIER"
+RelativeOid()       ::= "RELATIVE-OID"
+
+EmitRowWith3Dots() ::= "| . . . | | | | | | | | |"
+
+EmitFilePart2(sFileName, arrsAsn1Content) ::= <<
+# File: $sFileName$
+
+```asn1
+$arrsAsn1Content$
+```
+>>
+
+EmitModule(sModName, sAsn1FileName, soAcnFileName, arrsComments, arrsTases) ::= <<
+# Module $sModName$
+<a name="ICD_$sModName$"></a>
+
+*Defined in: $sAsn1FileName$$if(soAcnFileName)$, $soAcnFileName$$endif$.*
+
+$arrsComments;separator="\n\n"$
+
+$arrsTases;separator="\n"$
+>>
+
+EmitNavLink(sTitle, sTarget) ::= <<
+- [$sTitle$](#ICD_$sTarget$)
+>>
+
+EmitTass(sTypeContent) ::= <<
+$sTypeContent$
+>>
+
+ItemNumber(nIndex) ::= "Item #$nIndex$"
+
+LeftDiple() ::= "<"
+RightDiple() ::= ">"
+
+AcnKeyword(sKeyword) ::= "**$sKeyword$**"
+StringLiteral(sStringLiteral) ::= "`$sStringLiteral$`"
+TasName(sTasName, sTasNameC) ::= "<a name=\"ACN_$sTasNameC$\"></a>[**$sTasName$**](#ICD_$sTasNameC$)"
+TasName2(sTasName, sTasNameC) ::= "[$sTasName$](#ASN1_$sTasNameC$)"
+BlueTas(sBlueTasC,sTasName) ::= "<a name=\"ASN1_$sBlueTasC$\"></a>$sTasName$"
+Asn1Token(sKeyword) ::= "**$sKeyword$**"
+Comment(sComment) ::= "*$sComment$*"
+
+EmitEnumItem(sName, nValue) ::= <<
+- *$sName$* ($nValue$)
+>>
+
+EmitEnumItemWithComment(sName, nValue, sComment) ::= <<
+- *$sName$* ($nValue$) - $sComment$
+>>
+
+EmitEnumInternalContents(arrsItems) ::= <<
+Possible values:
+$arrsItems;separator="\n"$
+>>
+
+EmitSequenceOrChoice(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsn1Kinf, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsChildren, arrsParams, arrsComments) ::= <<
+## $sTasName$ <a name="ICD_$sTasNameC$"></a>
+($if(bIsAnonymousType)$*anonymous* $endif$$sAsn1Kinf$)
+[ASN.1](#ASN1_$sTasNameC$) $if(bHasAcnDef)$ | [ACN](#ACN_$sTasNameC$)$endif$
+
+**Min Size:** $sMinBytes$ bytes | **Max Size:** $sMaxBytes$ bytes $sMaxBitsExplained$
+
+$if(sCommentLine)$
+> $sCommentLine$
+$endif$
+
+$if(arrsParams)$
+### ACN Parameters
+| No | ACN Parameters | Type |
+|:---|:---|:---|
+$arrsParams$
+$endif$
+
+| No | Field | Comment | Present | Type | Constraint | Min Bits | Max Bits | Unit |
+|---:|:---|:---|:---|:---|:---|---:|---:|:---|
+$arrsChildren;separator="\n"$
+>>
+
+EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit) ::= <<
+$if(noAlignToNextSize)$
+| | padding field | present due to align-to-next property | | padding bits | | 0 | $noAlignToNextSize$ | $soUnit$ |
+$endif$
+| $nIndex$ | $sName$ | $sComment$ | $sPresentWhen$ | $sType$ | $sConstraint$ | $sMin$ | $sMax$ | $soUnit$ |
+>>
+
+EmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<
+- bit$nIndex$ == 1 ⇒ **$sOptChildName$** is present
+>>
+
+EmitSequencePreambleComment(arrsOptWihtNoPresentWhenChildren) ::= <<
+Special field used by ACN to indicate the presence/absence of optional fields that do not have the present when property.
+$if(arrsOptWihtNoPresentWhenChildren)$
+$arrsOptWihtNoPresentWhenChildren;separator="\n"$
+$endif$
+>>
+
+EmitChoiceIndexComment() ::= <<
+Special field used by ACN to indicate which choice alternative is present.
+>>
+
+EmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, sMax) ::= <<
+| $nIndex$ | $sName$ | $sComment$ | always | $sType$ | $sConstraint$ | $sMin$ | $sMax$ | |
+>>
+
+EmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
+[$sRefName$](#ICD_$sRefNameC$)
+>>
+
+EmitPrimitiveType(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsnKindName, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, sAsn1Constraints, sMinBits, sMaxBits, arrsParams, arrsComments, soUnit) ::= <<
+## $sTasName$ <a name="ICD_$sTasNameC$"></a>
+($if(bIsAnonymousType)$*anonymous* $endif$$sAsnKindName$)
+[ASN.1](#ASN1_$sTasNameC$) $if(bHasAcnDef)$ | [ACN](#ACN_$sTasNameC$)$endif$
+
+**Min Size:** $sMinBytes$ bytes | **Max Size:** $sMaxBytes$ bytes $sMaxBitsExplained$
+
+$if(sCommentLine)$
+> $sCommentLine$
+$endif$
+
+$if(arrsParams)$
+### ACN Parameters
+| No | ACN Parameters | Type |
+|:---|:---|:---|
+$arrsParams$
+$endif$
+
+| Constraints | Min Length (bits) | Max Length (bits) | Unit |
+|:---|---:|---:|:---|
+| $sAsn1Constraints$ | $sMinBits$ | $sMaxBits$$sMaxBitsExplained$ | $soUnit$ |
+>>
+
+EmitSizeable(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sKind, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsRows, arrsParams, arrsComments) ::= <<
+## $sTasName$ <a name="ICD_$sTasNameC$"></a>
+($if(bIsAnonymousType)$*anonymous* $endif$$sKind$)
+[ASN.1](#ASN1_$sTasNameC$) $if(bHasAcnDef)$ | [ACN](#ACN_$sTasNameC$)$endif$
+
+**Min Size:** $sMinBytes$ bytes | **Max Size:** $sMaxBytes$ bytes $sMaxBitsExplained$
+
+$if(sCommentLine)$
+> $sCommentLine$
+$endif$
+
+$if(arrsParams)$
+### ACN Parameters
+| No | ACN Parameters | Type |
+|:---|:---|:---|
+$arrsParams$
+$endif$
+
+| No | Field | Comment | Present | Type | Constraint | Min Length (bits) | Max Length (bits) | |
+|---:|:---|:---|:---|:---|:---|---:|---:|:---|
+$arrsRows;separator="\n"$
+>>
+
+PrintParam(nIndex, sName, sType, nColSpan) ::= <<
+| $nIndex$ | $sName$ | $sType$ |
+>>
+
+RootCss() ::= ""
+
+RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFileName, navLinks) ::= <<
+# ICD
+
+## Table of Contents
+$navLinks;separator="\n"$
+
+---
+
+*The following tables describe the binary encodings of the data model using the ACN Encoding Rules.*
+
+$arrsFiles1;separator="\n\n"$
+
+---
+
+$if(bAcnParamsMustBeExplained)$
+<a name="ACN_PARAMS_EXPLAINED123"></a>
+### ACN Parameters
+In the standard ASN.1 encodings such as uPER, BER etc, the encoding and decoding of any type has no external dependencies. For example, the encoded data for a SEQUENCE OF depends on the number of items in the SEQUENCE OF (the length determinant) and the type of item contained in the SEQUENCE. On the other hand, ACN allows types to be parameterized. For instance, the length of a SEQUENCE OF may be determined by the value of an external field. In this case, the SEQUENCE OF is parameterized and the input parameter is the field providing the length.
+
+---
+$endif$
+
+$arrsFiles2;separator="\n\n"$
+
+$arrsFiles3;separator="\n\n"$
+>>

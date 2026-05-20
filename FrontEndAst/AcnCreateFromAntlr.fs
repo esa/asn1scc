@@ -805,6 +805,11 @@ let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*La
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetEnumeratedEncodingClass asn1.args.integerSizeInBytes items alignment loc acnProperties uperSizeInBits uperSizeInBits encodeValues
 
+    let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
+    let enumMinVal = items |> List.map(fun x -> x.acnEncodeValue) |> List.min
+    let enumMaxVal = items |> List.map(fun x -> x.acnEncodeValue) |> List.max
+    checkIntHasEnoughSpace acnEncodingClass false acnErrLoc0 enumMinVal enumMaxVal
+
     let validItems = items |> List.filter (Asn1Fold.isValidValueGeneric cons (fun a b -> a = b.Name.Value)) |> List.sortBy(fun x -> x.definitionValue)
 
     match validItems with
