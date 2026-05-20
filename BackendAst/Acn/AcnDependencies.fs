@@ -208,7 +208,7 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
             chc.children |>
             List.map(fun ch ->
                 let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+                let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch m.Name.Value
                 let unsigned =
                     match child.Type with
                     | AcnInteger int -> int.isUnsigned
@@ -245,14 +245,22 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
             chc.children |>
             List.map(fun ch ->
                 let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+                let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch m.Name.Value
                 match pres with
                 | PresenceInt   (_, intVal) ->
                     raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))
                 | PresenceStr   (_, strVal) ->
                     let arrNulls = [0 .. ((int str.maxSize.acn)- strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
-                    let bytesStr = Array.append (System.Text.Encoding.ASCII.GetBytes strVal.Value) [| 0uy |]
-                    lm.acn.ChoiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls)
+                    let bytesStr =
+                        let baseBytes = System.Text.Encoding.ASCII.GetBytes strVal.Value
+                        match lm.lg.nullTerminatorByte with
+                        | Some nullByte -> Array.append baseBytes [| nullByte |]
+                        | None -> baseBytes
+                    let childTypeName =
+                        match child.Type with
+                        | AcnReferenceToIA5String t -> lm.lg.getLongTypedefName (lm.lg.definitionOrRef t.str.definitionOrRef)
+                        | _ -> ""
+                    lm.acn.ChoiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls childTypeName)
         let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates
         match checkPath with
         | []    -> updateStatement
@@ -280,10 +288,10 @@ and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.Reference
         let choicePath, checkPath = getAccessFromScopeNodeList relPath false lm pBase
         let arrsChildUpdates =
             chc.children |>
-            List.map(fun ch ->
+            List.mapi(fun idx ch ->
                 let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = ch.Name.Value)
                 let choiceName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName //chc.typeDef[Scala].typeName
-                lm.acn.ChoiceDependencyEnum_Item v ch.presentWhenName choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) isOptional)
+                lm.acn.ChoiceDependencyEnum_Item v ch.presentWhenName choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) idx isOptional)
         let updateStatement = lm.acn.ChoiceDependencyEnum v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates isOptional (initExpr r lm m child.Type)
         // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for
         // accessing enums fields instead of a compiler-unchecked access
@@ -313,7 +321,8 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
         ret, ns
     | d1::dds         ->
         let _errCodeName = ToC ("ERR_ACN" + (Encode.suffix.ToUpper()) + "_UPDATE_" + ((acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-        let errCode, us = getNextValidErrorCode us _errCodeName None
+        let errFieldPath = match acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
+        let errCode, us = getNextValidErrorCode us _errCodeName None errFieldPath
 
         let ds = d1::dds
         let c_name0 = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) 0

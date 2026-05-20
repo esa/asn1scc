@@ -650,7 +650,11 @@ if not decoded_result or decoded_result.decoded_value is None:
     if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
     raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCode>}: {decoded_result.error_message}", field_name=cls.DecodeConstants.<sErrCode>_path)
+<if(sType)>
+<p> = <sType>([ord(c) for c in decoded_result.decoded_value])
+<else>
 <p> = cls([ord(c) for c in decoded_result.decoded_value])
+<endif>
 >>
 
 Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
@@ -1316,7 +1320,7 @@ if <p>.kind == <sChildID>:
     <sChildBody>
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
 # acn_python.stg 991
 <arrsChildren; separator="\nel">
 >>
@@ -1328,7 +1332,7 @@ if <p> == <sEnmName>:
     <p> = cls(kind=<sChildID>, data=instance_<sChildName>)
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
 # acn_python.stg 997
 <p> = getattr(<sEnmExtFld>, 'val', <sEnmExtFld>)
 <arrsChildren; separator="\nel">
@@ -1613,10 +1617,10 @@ octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
 octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
@@ -1638,10 +1642,10 @@ bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
 bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize) ::= <<
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
@@ -1752,8 +1756,15 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
 acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
 acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "# TODO"
 
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "# TODO"
+
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "# TODO"
+
 acn_deferred_det_access_value(sDetName) ::= "# TODO"
 acn_deferred_det_access_ptr(sDetName) ::= "# TODO"
+acn_deferred_det_access_bool_ptr(sDetName) ::= "# TODO"
 acn_deferred_det_access_str_value(sDetName) ::= "# TODO"
 acn_deferred_det_access_str_ptr(sDetName) ::= "# TODO"
 acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "# TODO"

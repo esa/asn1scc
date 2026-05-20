@@ -20,6 +20,7 @@ open Language
 // `DAstACN.foo` keep working unchanged.
 let foldMap = AcnHelpers.foldMap
 let callBaseTypeFunc = AcnHelpers.callBaseTypeFunc
+let callSuperclassFunc = AcnHelpers.callSuperclassFunc
 let sparkAnnotations = AcnHelpers.sparkAnnotations
 let THREE_DOTS = AcnHelpers.THREE_DOTS
 let getAcnDeterminantName = AcnHelpers.getAcnDeterminantName
@@ -107,7 +108,7 @@ let getExternalFieldTypeChoicePresentWhen = AcnExternalField.getExternalFieldTyp
 let getExternalField = AcnExternalField.getExternalField
 let getExternalFieldType = AcnExternalField.getExternalFieldType
 
-(* PREVIOUS CODE WITH OUR CHANGES
+(* TODO ATELERIS: PREVIOUS CODE WITH OUR CHANGES
 let foldMap = Asn1Fold.foldMap
 
 

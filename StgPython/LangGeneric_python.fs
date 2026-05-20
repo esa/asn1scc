@@ -478,6 +478,7 @@ type LangGeneric_python() =
                         match d.dependencyKind with
                         | AcnDepSizeDeterminant _ -> true
                         | AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
+                        | AcnDepIA5StringSizeDeterminant _ -> true
                         | _ -> false
                     dependentIsThisChild && isSizeDep
                 )
@@ -490,11 +491,13 @@ type LangGeneric_python() =
                         match c with
                         | Asn1AcnAst.Asn1Child ac when ac.Name.Value.Replace("-", "_") = childName ->
                             match ac.Type.Kind with
-                            | Asn1AcnAst.OctetString _ | Asn1AcnAst.BitString _ -> true
+                            | Asn1AcnAst.OctetString _ | Asn1AcnAst.BitString _ | Asn1AcnAst.SequenceOf _
+                            | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _ -> true
                             | Asn1AcnAst.ReferenceType ref when ref.encodingOptions.IsSome -> true
                             | _ ->
                                 match ac.Type.ActualType.Kind with
-                                | Asn1AcnAst.OctetString _ | Asn1AcnAst.BitString _ -> true
+                                | Asn1AcnAst.OctetString _ | Asn1AcnAst.BitString _ | Asn1AcnAst.SequenceOf _
+                                | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _ -> true
                                 | _ -> false
                         | _ -> false
                     )
@@ -923,7 +926,7 @@ type LangGeneric_python() =
                 Some ((ToC k.modName) + "." + typeName)
             | _ ->
                 Some typeName
-        | ReferenceToExistingDefinition _ ->
+        | ReferenceToExistingDefinition ref ->
             // No new type definition - check if we're referencing a top-level type
             match rf.tasInfo with
             | Some k ->
@@ -932,8 +935,20 @@ type LangGeneric_python() =
                 let modName = ToC k.modName
                 Some (if p.modName <> modName then modName + "." + tasName else tasName)
             | None ->
-                // Inline field with no new type definition - use primitive type (None)
-                None
+                // For named types referenced from a subtype (e.g., a choice child type
+                // like ASN1SCC_Choice_Generic_b referenced from Sub-Choice), the
+                // typedefName holds the existing class name — use it to produce the
+                // correct wrapping call.  An empty name means a truly anonymous
+                // primitive; in that case, return None so the raw value is used.
+                match ref.typedefName with
+                | "" -> None
+                | name ->
+                    // Apply module prefix if the type lives in another module.
+                    match rf.topLevelTas with
+                    | Some k when p.modName <> (ToC k.modName) ->
+                        Some ((ToC k.modName) + "." + name)
+                    | _ ->
+                        Some name
         
     override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
         let k =
