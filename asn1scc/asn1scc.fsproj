@@ -29,15 +29,15 @@
       <EmbeddedResource Include="..\asn1scala\lib\stainless-library_3-0.9.8.7.jar">
       <Link>stainless-library_3-0.9.8.7.jar</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_constants.py" Link="asn1_constants.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_exceptions.py" Link="asn1_exceptions.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_types.py" Link="asn1_types.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\bitstream.py" Link="bitstream.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\codec.py" Link="codec.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\encoder.py" Link="encoder.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\acn_encoder.py" Link="acn_encoder.py" />
-    <EmbeddedResource Include="..\asn1python\src\asn1python\uper_encoder.py" Link="uper_encoder.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\decoder.py" Link="decoder.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\acn_decoder.py" Link="acn_decoder.py" />
-    <EmbeddedResource Include="..\asn1python\src\asn1python\uper_decoder.py" Link="uper_decoder.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\codec_uper.py" Link="codec_uper.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\helper.py" Link="helper.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\verification.py" Link="verification.py" />

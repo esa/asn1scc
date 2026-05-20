@@ -207,5 +207,10 @@ The Scala backend was developed by:
 * Mario Bucev (EPFL)
 * Simon Felix (Ateleris)
 
+The Python backend was developed by:
+* Julia Hartmann (Ateleris)
+* Luca Schafroth (Ateleris)
+* Manuel Stutz (Ateleris)
+
 
 

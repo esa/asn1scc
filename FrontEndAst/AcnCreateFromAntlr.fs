@@ -1409,12 +1409,13 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                         | Asn1Ast.MarkAbsent        -> Some ChoiceAlwaysAbsent
                         | Asn1Ast.MarkOptional      -> None ) |>
                     Seq.distinct |> Seq.toList
+                let hasWithComponentsConstraints = not childNamedConstraints.IsEmpty
                 let newOptionality =
                     match c.Optionality with
                     | None
                     | Some (Asn1Ast.Optional _)                  ->
                         match asn1OptionalityFromWithComponents with
-                        | []          -> None
+                        | []          -> if hasWithComponentsConstraints then Some ChoiceAlwaysAbsent else None
                         | newOpt::_   -> Some newOpt
                     | Some Asn1Ast.AlwaysAbsent  ->
                         match asn1OptionalityFromWithComponents with
@@ -1422,7 +1423,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                         | newOpt::_   -> Some newOpt
                     | Some Asn1Ast.AlwaysPresent  ->
                         match asn1OptionalityFromWithComponents with
-                        | []          -> Some ChoiceAlwaysPresent
+                        | []          -> if hasWithComponentsConstraints then Some ChoiceAlwaysAbsent else Some ChoiceAlwaysPresent
                         | newOpt::_   -> Some newOpt
 
                 let acnPresentWhenConditions =

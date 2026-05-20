@@ -1,0 +1,34 @@
+-- Requirement 37 & 52: Subtyping with value constraints
+-- Tests ASN.1 subtyping using value constraints
+
+SubtypingValueConstraints DEFINITIONS ::= BEGIN
+
+    -- Base types
+    Temperature ::= INTEGER (-273..1000)
+
+    -- Subtype with additional constraint
+    RoomTemperature ::= Temperature (15..30)
+
+    -- Subtype with single value
+    FreezingPoint ::= Temperature (0)
+
+    -- Multiple range subtype
+    SafeTemperature ::= Temperature ((-10..5) | (15..40))
+
+    -- String subtypes
+    ShortString ::= IA5String (SIZE(1..64))
+    VeryShortString ::= ShortString (SIZE(1..16))
+
+    -- Bit string subtypes
+    BitFlags ::= BIT STRING (SIZE(0..32))
+    ByteFlags ::= BitFlags (SIZE(8))
+
+    TestStruct ::= SEQUENCE {
+        temp1 RoomTemperature,
+        temp2 FreezingPoint,
+        temp3 SafeTemperature,
+        str1 VeryShortString,
+        flags ByteFlags
+    }
+
+END

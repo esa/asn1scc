@@ -4,12 +4,12 @@ ASN.1 Python Runtime Library - Base Codec Framework
 This module provides the base codec framework for ASN.1 encoding/decoding operations.
 """
 
-from abc import abstractmethod
-from typing import Optional, Type, TypeVar, Generic, List
+from abc import ABC
+from typing import Optional, Self, TypeVar, Generic
 from dataclasses import dataclass
 from enum import IntEnum
 from .bitstream import BitStream, BitStreamError
-from .asn1_types import Asn1Exception
+from .asn1_exceptions import *
 
 
 class ErrorCode(IntEnum):
@@ -32,12 +32,15 @@ ERROR_BUFFER_OVERFLOW = ErrorCode.BUFFER_OVERFLOW
 ERROR_UNSUPPORTED_OPERATION = ErrorCode.UNSUPPORTED_OPERATION
 
 
-@dataclass
+class Encoding(IntEnum):
+    uPER = 0
+    ACN = 1
+
+@dataclass(frozen=True)
 class EncodeResult:
     """Result of an encoding operation"""
     success: bool
     error_code: ErrorCode
-    encoded_data: Optional[bytearray] = None
     bits_encoded: int = 0
     error_message: Optional[str] = None
 
@@ -47,7 +50,7 @@ class EncodeResult:
 
 TDVal = TypeVar('TDVal')
 
-@dataclass
+@dataclass(frozen=True)
 class DecodeResult(Generic[TDVal]):
     """Result of a decoding operation"""
     success: bool
@@ -65,8 +68,7 @@ class CodecError(Asn1Exception):
     pass
 
 
-T = TypeVar('T', bound='Codec')
-class Codec(Generic[T]):
+class Codec(ABC):
     """
     Base class for ASN.1 codecs.
 
@@ -74,32 +76,48 @@ class Codec(Generic[T]):
     including UPER, ACN, XER, and BER.
     """
 
-    def __init__(self, buffer: bytearray) -> None:
-        self._bitstream = BitStream(buffer)
-
-    def copy(self) -> T:
-        """Creates and returns a copy of this codec instance"""
-        bit_index = self._bitstream.current_used_bits
-        new_codec = self._construct(self._bitstream.get_data_copy())
-        new_codec._bitstream.set_bit_index(bit_index)
-        return new_codec
+    def __init__(self, bitstream: BitStream) -> None:
+        """
+        Creates a new Codec from the provided Bitstream
+        """
+        self._bitstream = BitStream.from_bitstream(bitstream)
 
     @classmethod
-    @abstractmethod
-    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> T:
-        """Create a new codec with a buffer of length buffer_byte_size."""
-        pass
+    def from_codec(cls, codec: 'Codec') -> Self:
+        instance = cls(codec._bitstream)
+        return instance
 
     @classmethod
-    @abstractmethod
-    def _construct(cls, buffer: bytearray) -> T:
-        pass
-    
-    def reset_bitstream(self):
-        self._bitstream.reset()
+    def from_buffer(cls, buffer: bytearray) -> Self:        
+        return cls(BitStream(buffer))
+
+    @classmethod
+    def of_size(cls, buffer_byte_size: int = 1024 * 1024) -> Self:
+        """Create a new codec with a buffer of length buffer_byte_size."""        
+        return cls.from_buffer(bytearray(buffer_byte_size))
     
     def get_bitstream_buffer(self) -> bytearray:
         return self._bitstream.get_data()
 
-    def get_bit_index(self) -> int:
+    @property
+    def buffer_size(self) -> int:
+        """Get the buffer size in bytes"""
+        return self._bitstream.buffer_size
+
+    @property
+    def bit_index(self) -> int:
+        """
+        Get the current bit position in the bitstream.
+
+        Matches C: BitStream.currentBit + BitStream.currentByte * 8
+        Matches Scala: BitStream.bitIndex
+        Used by: ACN for tracking position, calculating sizes
+
+        Returns:
+            Current bit position (0-based index)
+        """
         return self._bitstream.current_used_bits
+    
+    @property
+    def remaining_bits(self) -> int:
+        return self._bitstream.remaining_bits

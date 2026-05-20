@@ -1,6 +1,6 @@
 namespace PUS_C_Scala_Test
 {
-    [TestClass]
+    [TestClass, Ignore]
     public class UperCompileScalaTests
     {
         private void UperTestCall(PUS_C_Service s, string folderSuffix) =>

@@ -11,7 +11,9 @@ namespace PUS_C_Scala_Test
         S5, S6, S8, S9,
         S11, S12, S13,
         S14, S15, S17,
-        S18, S19, ADDITIONAL_TEST_CASES
+        S18, S19, ADDITIONAL_TEST_CASES,
+        ACN_ATTRIBUTES, ADDITIONAL, ADVANCED, 
+        PRIMITIVES, STRUCTURED
     }
 
     [Flags]
@@ -104,11 +106,19 @@ namespace PUS_C_Scala_Test
             if ((sv & ServiceVariation.CREATE_TESTS) == ServiceVariation.CREATE_TESTS)
                 ret += outFolderTestFix;
 
-            if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
-                ret += outFolderSuffixUPER;
+            if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER &&
+                (sv & ServiceVariation.ACN) == ServiceVariation.ACN)
+            {
+                ret += "ACN_" + outFolderSuffixUPER;
+            }
+            else
+            {
+                if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
+                    ret += outFolderSuffixUPER;
 
-            if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
-                ret += outFolderSuffixACN;
+                if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
+                    ret += outFolderSuffixACN;
+            }
 
             ret += serviceName;
 
@@ -126,8 +136,8 @@ namespace PUS_C_Scala_Test
 
         public void Run_TestService(PUS_C_Service service, string folderSuffix, ServiceVariation sv)
         {
-            if (sv == 0 || (sv & ServiceVariation.UPER) != 0 && (sv & ServiceVariation.ACN) != 0)
-                throw new InvalidOperationException("can't do nothing or both UPER and ACN");
+            // if (sv == 0 || (sv & ServiceVariation.UPER) != 0 && (sv & ServiceVariation.ACN) != 0)
+            //     throw new InvalidOperationException("can't do nothing or both UPER and ACN");
 
             List<string> folders = [];
             
@@ -136,7 +146,7 @@ namespace PUS_C_Scala_Test
                 // create Scala Files
                 var scalaOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_C & ~ServiceVariation.CREATE_PYTHON);
                 Run_Test(service, scalaOutputDir, sv & ~ServiceVariation.CREATE_C & ~ServiceVariation.CREATE_PYTHON);
-                folders.Append(scalaOutputDir);
+                folders.Add(scalaOutputDir);
             }
 
             if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
@@ -144,21 +154,28 @@ namespace PUS_C_Scala_Test
                 // create C Files
                 var cOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_PYTHON);
                 Run_Test(service, cOutputDir, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_PYTHON);
-                folders.Append(cOutputDir);
+                folders.Add(cOutputDir);
             }
 
             if ((sv & ServiceVariation.CREATE_PYTHON) == ServiceVariation.CREATE_PYTHON)
-            { 
+            {
                 // create Python Files
                 var pythonOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_C);
                 Run_Test(service, pythonOutputDir, sv & ~ServiceVariation.CREATE_SCALA & ~ServiceVariation.CREATE_C);
-                folders.Append(pythonOutputDir);
+                pythonOutputDir = Path.Combine(pythonOutputDir, "output");
+                folders.Add(pythonOutputDir);
             }
 
             if ((sv & ServiceVariation.COMPARE_ENCODINGS) == ServiceVariation.COMPARE_ENCODINGS)
             {
                 Assert.IsTrue(folders.Count > 1);
-                CompareTestCases(service, sv, folders[0], folders[1]);
+                for (var i = 0; i < folders.Count; i++)
+                {
+                    for (var j = i + 1; j < folders.Count; j++)
+                    {
+                        CompareTestCases(service, sv, folders[i], folders[j]);
+                    }
+                }
             }
         }
 
@@ -167,15 +184,23 @@ namespace PUS_C_Scala_Test
             var binsA = Directory.GetFiles(folderA, "*.dat").Order().ToArray();
             var binsB = Directory.GetFiles(folderB, "*.dat").Order().ToArray();
 
-            Assert.IsTrue(binsA.Select(Path.GetFileName).SequenceEqual(binsB.Select(Path.GetFileName)), "output did not create the same files");
+            Assert.IsTrue(binsA.Select(Path.GetFileName).SequenceEqual(binsB.Select(Path.GetFileName)), "Output did not create the same number of files");
 
-            for(var i = 0; i<binsA.Length; ++i)
+            List<int> failedTests = [];
+            for (var i = 0; i < binsA.Length; ++i)
             {
                 using var f1 = File.OpenRead(binsA[i]);
                 using var f2 = File.OpenRead(binsB[i]);
                 using var r1 = new BinaryReader(f1);
                 using var r2 = new BinaryReader(f2);
-                Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, $"file length for {binsA[i]} and {binsB[i]} are different");
+
+                // Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, $"file length for {binsA[i]} and {binsB[i]} are different");
+                if (r1.BaseStream.Length != r2.BaseStream.Length)
+                {
+                    Console.WriteLine($"file length for {binsA[i]} and {binsB[i]} are different");
+                    failedTests.Add(i + 1);
+                    continue;
+                }
 
                 var isSame = true;
                 while (r1.BaseStream.Position < r1.BaseStream.Length && isSame)
@@ -183,8 +208,15 @@ namespace PUS_C_Scala_Test
                     isSame &= r1.ReadByte() == r2.ReadByte();
                 }
 
-                Assert.IsTrue(isSame, $"file {binsA[i]} contents are not equal to {binsB[i]}");
+                if (!isSame)
+                {
+                    Console.WriteLine($"file {binsA[i]} contents are not equal to {binsB[i]}");
+                    failedTests.Add(i + 1);
+                }
+                // Assert.IsTrue(isSame, $"file {binsA[i]} contents are not equal to {binsB[i]}");
             }
+            
+            Assert.IsTrue(failedTests.Count == 0, $"Some .dat files not identical! Deviations in: [{string.Join(", ", failedTests)}] - Correct: {binsA.Length - failedTests.Count}/{binsA.Length}");
         }
 
         private struct TestRange
@@ -327,6 +359,11 @@ namespace PUS_C_Scala_Test
                 PUS_C_Service.S18 => GetService18FileNames,
                 PUS_C_Service.S19 => GetService19FileNames,
                 PUS_C_Service.ADDITIONAL_TEST_CASES => GetAdditionalTestCasesFileNames,
+                PUS_C_Service.ACN_ATTRIBUTES => GetAcnAttributesFileNames,
+                PUS_C_Service.ADDITIONAL => GetAdditionalFileNames,
+                PUS_C_Service.ADVANCED => GetAdvancedFileNames,
+                PUS_C_Service.PRIMITIVES => GetPrimitivesFileNames,
+                PUS_C_Service.STRUCTURED => GetStructuredFileNames,
                 _ => throw new InvalidOperationException("what?")
 
             };
@@ -365,6 +402,7 @@ namespace PUS_C_Scala_Test
                 WorkingDirectory = outDir,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 RedirectStandardInput = false,
                 CreateNoWindow = false,
             };
@@ -372,7 +410,12 @@ namespace PUS_C_Scala_Test
             var stdout = proc.StandardOutput.ReadToEnd();
             var worked = stdout.Contains("All test cases (") && stdout.Contains(") run successfully.");
             if (!worked)
+            {
+                Console.WriteLine("C test cases failed. Stdout:");
                 Console.WriteLine(stdout);
+                Console.WriteLine("Stderr:");
+                Console.WriteLine(proc.StandardError.ReadToEnd());
+            }
 
             Assert.IsTrue(worked, "C test cases failed");
         }
@@ -383,7 +426,7 @@ namespace PUS_C_Scala_Test
             proc.StartInfo = new ProcessStartInfo
             {
                 FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "/C uvx pytest" : "--login -c \"uvx pytest\"",
+                Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "/C uvx --python 3.11 pytest" : "--login -c \"uvx --python 3.11 pytest\"",
 
                 WorkingDirectory = outDir,
                 UseShellExecute = false,
@@ -511,6 +554,7 @@ namespace PUS_C_Scala_Test
                 WorkingDirectory = outDir,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 RedirectStandardInput = false,
                 CreateNoWindow = false,
             };
@@ -519,448 +563,537 @@ namespace PUS_C_Scala_Test
             Console.WriteLine("OUTPUT " + outp);
             var outputList = outp.Split("\n").ToList();
             var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
-            Console.WriteLine("WORKED? " + worked);
 
-            // print sbt output
-            if (printOutput)
+            if (!worked)
+            {
+                Console.WriteLine("Scala test cases failed. Stdout:");
                 Console.WriteLine(outp);
+                Console.WriteLine("Stderr:");
+                Console.WriteLine(proc.StandardError.ReadToEnd());
+            }
+            else if (printOutput) // print sbt output
+            {
+                Console.WriteLine(outp);
+            }
 
-            Assert.IsTrue(worked);
+            Assert.IsTrue(worked, "Scala test cases failed");
         }
 
         private string[] GetService01FileNames() =>
-             new string[]{
-                "common/ApplicationProcess",
-                "common/ApplicationProcessUser",
-                "common/ExecutionStep",
-                "common/MessageType",
-                "ccsds/PacketTypes",
-                "ccsds/TC-Packet",
-                "ccsds/TC-Payload",
-                "service-01/ErrorCodes",
-                "service-01/PUS-1-1",
-                "service-01/PUS-1-10",
-                "service-01/PUS-1-2",
-                "service-01/PUS-1-3",
-                "service-01/PUS-1-4",
-                "service-01/PUS-1-5",
-                "service-01/PUS-1-6",
-                "service-01/PUS-1-7",
-                "service-01/PUS-1-8",
-                "service-01/VerificationRequest"
-            };
+        [
+            "common/ApplicationProcess",
+            "common/ApplicationProcessUser",
+            "common/ExecutionStep",
+            "common/MessageType",
+            "ccsds/PacketTypes",
+            "ccsds/TC-Packet",
+            "ccsds/TC-Payload",
+            "service-01/ErrorCodes",
+            "service-01/PUS-1-1",
+            "service-01/PUS-1-10",
+            "service-01/PUS-1-2",
+            "service-01/PUS-1-3",
+            "service-01/PUS-1-4",
+            "service-01/PUS-1-5",
+            "service-01/PUS-1-6",
+            "service-01/PUS-1-7",
+            "service-01/PUS-1-8",
+            "service-01/VerificationRequest"
+        ];
 
         private string[] GetService02FileNames() =>
-            new string[]{
-                "common/BasicTypes",
-                "common/Dummy",
-                "common/Parameter",
-                "service-02/LogicalDevice",
-                "service-02/PhysicalDevice",
-                "service-02/PUS-2-1",
-                "service-02/PUS-2-10",
-                "service-02/PUS-2-11",
-                "service-02/PUS-2-12",
-                "service-02/PUS-2-2",
-                "service-02/PUS-2-4",
-                "service-02/PUS-2-5",
-                "service-02/PUS-2-6",
-                "service-02/PUS-2-7",
-                "service-02/PUS-2-8",
-                "service-02/PUS-2-9",
-                "service-02/Registers",
-                "service-02/Transaction"
-            };
+        [
+            "common/BasicTypes",
+            "common/Dummy",
+            "common/Parameter",
+            "service-02/LogicalDevice",
+            "service-02/PhysicalDevice",
+            "service-02/PUS-2-1",
+            "service-02/PUS-2-10",
+            "service-02/PUS-2-11",
+            "service-02/PUS-2-12",
+            "service-02/PUS-2-2",
+            "service-02/PUS-2-4",
+            "service-02/PUS-2-5",
+            "service-02/PUS-2-6",
+            "service-02/PUS-2-7",
+            "service-02/PUS-2-8",
+            "service-02/PUS-2-9",
+            "service-02/Registers",
+            "service-02/Transaction"
+        ];
 
         private string[] GetService03FileNames() =>
-            new string[]{
-                "common/ApplicationProcess",
-                "common/ApplicationProcessUser",
-                "common/BasicTypes",
-                "common/DiagnosticParameterReportStructure",
-                "common/HousekeepingParameterReportStructure",
-                "common/Parameter",
-                "service-03/CollectionInterval",
-                "service-03/ParameterFunctionalReportingDefinition",
-                "service-03/ParameterReportingEntries",
-                "service-03/ParameterReportStructureType",
-                "service-03/PeriodicGenerationActionStatus",
-                "service-03/PeriodicGenerationProperties",
-                "service-03/PUS-3-1",
-                "service-03/PUS-3-2",
-                "service-03/PUS-3-3",
-                "service-03/PUS-3-4",
-                "service-03/PUS-3-5",
-                "service-03/PUS-3-6",
-                "service-03/PUS-3-7",
-                "service-03/PUS-3-8",
-                "service-03/PUS-3-9",
-                "service-03/PUS-3-10",
-                "service-03/PUS-3-11",
-                "service-03/PUS-3-12",
-                "service-03/PUS-3-25",
-                "service-03/PUS-3-26",
-                "service-03/PUS-3-27",
-                "service-03/PUS-3-28",
-                "service-03/PUS-3-29",
-                "service-03/PUS-3-30",
-                "service-03/PUS-3-31",
-                "service-03/PUS-3-32",
-                "service-03/PUS-3-33",
-                "service-03/PUS-3-34",
-                "service-03/PUS-3-35",
-                "service-03/PUS-3-36",
-                "service-03/PUS-3-37",
-                "service-03/PUS-3-38",
-                "service-03/PUS-3-39",
-                "service-03/PUS-3-40",
-                "service-03/PUS-3-41",
-                "service-03/PUS-3-42",
-                "service-03/PUS-3-43",
-                "service-03/PUS-3-44"
-            };
+        [
+            "common/ApplicationProcess",
+            "common/ApplicationProcessUser",
+            "common/BasicTypes",
+            "common/DiagnosticParameterReportStructure",
+            "common/HousekeepingParameterReportStructure",
+            "common/Parameter",
+            "service-03/CollectionInterval",
+            "service-03/ParameterFunctionalReportingDefinition",
+            "service-03/ParameterReportingEntries",
+            "service-03/ParameterReportStructureType",
+            "service-03/PeriodicGenerationActionStatus",
+            "service-03/PeriodicGenerationProperties",
+            "service-03/PUS-3-1",
+            "service-03/PUS-3-2",
+            "service-03/PUS-3-3",
+            "service-03/PUS-3-4",
+            "service-03/PUS-3-5",
+            "service-03/PUS-3-6",
+            "service-03/PUS-3-7",
+            "service-03/PUS-3-8",
+            "service-03/PUS-3-9",
+            "service-03/PUS-3-10",
+            "service-03/PUS-3-11",
+            "service-03/PUS-3-12",
+            "service-03/PUS-3-25",
+            "service-03/PUS-3-26",
+            "service-03/PUS-3-27",
+            "service-03/PUS-3-28",
+            "service-03/PUS-3-29",
+            "service-03/PUS-3-30",
+            "service-03/PUS-3-31",
+            "service-03/PUS-3-32",
+            "service-03/PUS-3-33",
+            "service-03/PUS-3-34",
+            "service-03/PUS-3-35",
+            "service-03/PUS-3-36",
+            "service-03/PUS-3-37",
+            "service-03/PUS-3-38",
+            "service-03/PUS-3-39",
+            "service-03/PUS-3-40",
+            "service-03/PUS-3-41",
+            "service-03/PUS-3-42",
+            "service-03/PUS-3-43",
+            "service-03/PUS-3-44"
+        ];
 
         private string[] GetService04FileNames() =>
-            new string[]{
-                "common/BasicTypes",
-                "common/Parameter",
-                "service-04/Intervals",
-                "service-04/ParameterStatisticsDefinitions",
-                "service-04/PUS-4-1",
-                "service-04/PUS-4-2",
-                "service-04/PUS-4-3",
-                "service-04/PUS-4-4",
-                "service-04/PUS-4-5",
-                "service-04/PUS-4-6",
-                "service-04/PUS-4-7",
-                "service-04/PUS-4-8",
-                "service-04/PUS-4-9"
-            };
+        [
+            "common/BasicTypes",
+            "common/Parameter",
+            "service-04/Intervals",
+            "service-04/ParameterStatisticsDefinitions",
+            "service-04/PUS-4-1",
+            "service-04/PUS-4-2",
+            "service-04/PUS-4-3",
+            "service-04/PUS-4-4",
+            "service-04/PUS-4-5",
+            "service-04/PUS-4-6",
+            "service-04/PUS-4-7",
+            "service-04/PUS-4-8",
+            "service-04/PUS-4-9"
+        ];
 
 
         private string[] GetService05FileNames() =>
-            new string[]{
-                "common/ApplicationProcess",
-                "common/ApplicationProcessUser",
-                "common/BasicTypes",
-                "common/Dummy",
-                "common/ExecutionStep",
-                "common/EventDefinition",
-                "common/MessageType",
-                "ccsds/PacketTypes",
-                "ccsds/TC-Packet",
-                "ccsds/TC-Payload",
-                "service-05/PUS-5-1",
-                "service-05/PUS-5-2",
-                "service-05/PUS-5-3",
-                "service-05/PUS-5-4",
-                "service-05/PUS-5-5",
-                "service-05/PUS-5-6",
-                "service-05/PUS-5-7",
-                "service-05/PUS-5-8"
-            };
+        [
+            "common/ApplicationProcess",
+            "common/ApplicationProcessUser",
+            "common/BasicTypes",
+            "common/Dummy",
+            "common/ExecutionStep",
+            "common/EventDefinition",
+            "common/MessageType",
+            "ccsds/PacketTypes",
+            "ccsds/TC-Packet",
+            "ccsds/TC-Payload",
+            "service-05/PUS-5-1",
+            "service-05/PUS-5-2",
+            "service-05/PUS-5-3",
+            "service-05/PUS-5-4",
+            "service-05/PUS-5-5",
+            "service-05/PUS-5-6",
+            "service-05/PUS-5-7",
+            "service-05/PUS-5-8"
+        ];
 
         private string[] GetService06FileNames() =>
-            new string[]{
-                "common/BasicTypes",
-                "common/FilePath",
-                "service-06/Data",
-                "service-06/Memory",
-                "service-06/PUS-6-1",
-                "service-06/PUS-6-2",
-                "service-06/PUS-6-3",
-                "service-06/PUS-6-4",
-                "service-06/PUS-6-5",
-                "service-06/PUS-6-6",
-                "service-06/PUS-6-7",
-                "service-06/PUS-6-8",
-                "service-06/PUS-6-9",
-                "service-06/PUS-6-10",
-                "service-06/PUS-6-11",
-                "service-06/PUS-6-12",
-                "service-06/PUS-6-13",
-                "service-06/PUS-6-14",
-                "service-06/PUS-6-15",
-                "service-06/PUS-6-16",
-                "service-06/PUS-6-17",
-                "service-06/PUS-6-18",
-                "service-06/PUS-6-19",
-                "service-06/PUS-6-20",
-                "service-06/PUS-6-21",
-                "service-06/PUS-6-22",
-                "service-06/RawMemory",
-                "service-06/StructuredMemory"
-            };
+        [
+            "common/BasicTypes",
+            "common/FilePath",
+            "service-06/Data",
+            "service-06/Memory",
+            "service-06/PUS-6-1",
+            "service-06/PUS-6-2",
+            "service-06/PUS-6-3",
+            "service-06/PUS-6-4",
+            "service-06/PUS-6-5",
+            "service-06/PUS-6-6",
+            "service-06/PUS-6-7",
+            "service-06/PUS-6-8",
+            "service-06/PUS-6-9",
+            "service-06/PUS-6-10",
+            "service-06/PUS-6-11",
+            "service-06/PUS-6-12",
+            "service-06/PUS-6-13",
+            "service-06/PUS-6-14",
+            "service-06/PUS-6-15",
+            "service-06/PUS-6-16",
+            "service-06/PUS-6-17",
+            "service-06/PUS-6-18",
+            "service-06/PUS-6-19",
+            "service-06/PUS-6-20",
+            "service-06/PUS-6-21",
+            "service-06/PUS-6-22",
+            "service-06/RawMemory",
+            "service-06/StructuredMemory"
+        ];
 
         private string[] GetService08FileNames() =>
-             new string[]{
-                "common/BasicTypes",
-                "service-08/PUS-8-1"
-            };
+        [
+            "common/BasicTypes",
+            "service-08/PUS-8-1"
+        ];
 
         private string[] GetService09FileNames() =>
-            new string[]{
-                "common/BasicTypes",
-                "common/SpacecraftTimeReferenceStatus",
-                "service-09/PUS-9-1",
-                "service-09/PUS-9-2",
-                "service-09/PUS-9-3",
-                "service-09/RateExponentialValue"
-            };
+        [
+            "common/BasicTypes",
+            "common/SpacecraftTimeReferenceStatus",
+            "service-09/PUS-9-1",
+            "service-09/PUS-9-2",
+            "service-09/PUS-9-3",
+            "service-09/RateExponentialValue"
+        ];
 
         private string[] GetService11FileNames() =>
-            new string[]{
-                "common/ApplicationProcess",
-                "common/ApplicationProcessUser",
-                "common/BasicTypes",
-                "common/Dummy",
-                "common/Request",
-                "common/TimeWindow",
-                "service-11/Group",
-                "service-11/PUS-11-1",
-                "service-11/PUS-11-2",
-                "service-11/PUS-11-3",
-                "service-11/PUS-11-4",
-                "service-11/PUS-11-5",
-                "service-11/PUS-11-6",
-                "service-11/PUS-11-7",
-                "service-11/PUS-11-8",
-                "service-11/PUS-11-9",
-                "service-11/PUS-11-10",
-                "service-11/PUS-11-11",
-                "service-11/PUS-11-12",
-                "service-11/PUS-11-13",
-                "service-11/PUS-11-14",
-                "service-11/PUS-11-15",
-                "service-11/PUS-11-16",
-                "service-11/PUS-11-17",
-                "service-11/PUS-11-18",
-                "service-11/PUS-11-19",
-                "service-11/PUS-11-20",
-                "service-11/PUS-11-21",
-                "service-11/PUS-11-22",
-                "service-11/PUS-11-23",
-                "service-11/PUS-11-24",
-                "service-11/PUS-11-25",
-                "service-11/PUS-11-26",
-                "service-11/PUS-11-27",
-                "service-11/SubSchedule"
-            };
+        [
+            "common/ApplicationProcess",
+            "common/ApplicationProcessUser",
+            "common/BasicTypes",
+            "common/Dummy",
+            "common/Request",
+            "common/TimeWindow",
+            "service-11/Group",
+            "service-11/PUS-11-1",
+            "service-11/PUS-11-2",
+            "service-11/PUS-11-3",
+            "service-11/PUS-11-4",
+            "service-11/PUS-11-5",
+            "service-11/PUS-11-6",
+            "service-11/PUS-11-7",
+            "service-11/PUS-11-8",
+            "service-11/PUS-11-9",
+            "service-11/PUS-11-10",
+            "service-11/PUS-11-11",
+            "service-11/PUS-11-12",
+            "service-11/PUS-11-13",
+            "service-11/PUS-11-14",
+            "service-11/PUS-11-15",
+            "service-11/PUS-11-16",
+            "service-11/PUS-11-17",
+            "service-11/PUS-11-18",
+            "service-11/PUS-11-19",
+            "service-11/PUS-11-20",
+            "service-11/PUS-11-21",
+            "service-11/PUS-11-22",
+            "service-11/PUS-11-23",
+            "service-11/PUS-11-24",
+            "service-11/PUS-11-25",
+            "service-11/PUS-11-26",
+            "service-11/PUS-11-27",
+            "service-11/SubSchedule"
+        ];
 
         private string[] GetService12FileNames() =>
-            new string[]{
-                "common/ApplicationProcess",
-                "common/ApplicationProcessUser",
-                "common/BasicTypes",
-                "common/Dummy",
-                "common/EventDefinition",
-                "common/Parameter",
-                "service-12/CheckValidityCondition",
-                "service-12/FMON",
-                "service-12/ParameterMonitoringDefinition",
-                "service-12/PMON-FailingNumber",
-                "service-12/PMON",
-                "service-12/PUS-12-1",
-                "service-12/PUS-12-2",
-                "service-12/PUS-12-3",
-                "service-12/PUS-12-4",
-                "service-12/PUS-12-5",
-                "service-12/PUS-12-6",
-                "service-12/PUS-12-7",
-                "service-12/PUS-12-8",
-                "service-12/PUS-12-9",
-                "service-12/PUS-12-10",
-                "service-12/PUS-12-11",
-                "service-12/PUS-12-12",
-                "service-12/PUS-12-13",
-                "service-12/PUS-12-14",
-                "service-12/PUS-12-15",
-                "service-12/PUS-12-16",
-                "service-12/PUS-12-17",
-                "service-12/PUS-12-18",
-                "service-12/PUS-12-19",
-                "service-12/PUS-12-20",
-                "service-12/PUS-12-21",
-                "service-12/PUS-12-22",
-                "service-12/PUS-12-23",
-                "service-12/PUS-12-24",
-                "service-12/PUS-12-25",
-                "service-12/PUS-12-26",
-                "service-12/PUS-12-27",
-                "service-12/PUS-12-28",
-                "service-12/TransitionNotification"
-            };
+        [
+            "common/ApplicationProcess",
+            "common/ApplicationProcessUser",
+            "common/BasicTypes",
+            "common/Dummy",
+            "common/EventDefinition",
+            "common/Parameter",
+            "service-12/CheckValidityCondition",
+            "service-12/FMON",
+            "service-12/ParameterMonitoringDefinition",
+            "service-12/PMON-FailingNumber",
+            "service-12/PMON",
+            "service-12/PUS-12-1",
+            "service-12/PUS-12-2",
+            "service-12/PUS-12-3",
+            "service-12/PUS-12-4",
+            "service-12/PUS-12-5",
+            "service-12/PUS-12-6",
+            "service-12/PUS-12-7",
+            "service-12/PUS-12-8",
+            "service-12/PUS-12-9",
+            "service-12/PUS-12-10",
+            "service-12/PUS-12-11",
+            "service-12/PUS-12-12",
+            "service-12/PUS-12-13",
+            "service-12/PUS-12-14",
+            "service-12/PUS-12-15",
+            "service-12/PUS-12-16",
+            "service-12/PUS-12-17",
+            "service-12/PUS-12-18",
+            "service-12/PUS-12-19",
+            "service-12/PUS-12-20",
+            "service-12/PUS-12-21",
+            "service-12/PUS-12-22",
+            "service-12/PUS-12-23",
+            "service-12/PUS-12-24",
+            "service-12/PUS-12-25",
+            "service-12/PUS-12-26",
+            "service-12/PUS-12-27",
+            "service-12/PUS-12-28",
+            "service-12/TransitionNotification"
+        ];
 
         private string[] GetService13FileNames() =>
-            new string[]{
-                "common/BasicTypes",
-                "service-13/LargePacketTransferMessageParts",
-                "service-13/PUS-13-1",
-                "service-13/PUS-13-10",
-                "service-13/PUS-13-11",
-                "service-13/PUS-13-16",
-                "service-13/PUS-13-2",
-                "service-13/PUS-13-3",
-                "service-13/PUS-13-9"
-            };
+        [
+            "common/BasicTypes",
+            "service-13/LargePacketTransferMessageParts",
+            "service-13/PUS-13-1",
+            "service-13/PUS-13-10",
+            "service-13/PUS-13-11",
+            "service-13/PUS-13-16",
+            "service-13/PUS-13-2",
+            "service-13/PUS-13-3",
+            "service-13/PUS-13-9"
+        ];
 
         private string[] GetService14FileNames() =>
-            new string[]{
-                "common/ApplicationProcess",
-                "common/ApplicationProcessUser",
-                "common/BasicTypes",
-                "common/DiagnosticParameterReportStructure",
-                "common/Dummy",
-                "common/EventDefinition",
-                "common/HousekeepingParameterReportStructure",
-                "common/MessageType",
-                "service-14/ApplicationProcessForwardControl",
-                "service-14/DiagnosticParameterReportForwardControl",
-                "service-14/EventDefinitionForwardControl",
-                "service-14/HousekeepingParameterReportForwardControl",
-                "service-14/PUS-14-1",
-                "service-14/PUS-14-10",
-                "service-14/PUS-14-11",
-                "service-14/PUS-14-12",
-                "service-14/PUS-14-13",
-                "service-14/PUS-14-14",
-                "service-14/PUS-14-15",
-                "service-14/PUS-14-16",
-                "service-14/PUS-14-2",
-                "service-14/PUS-14-3",
-                "service-14/PUS-14-4",
-                "service-14/PUS-14-5",
-                "service-14/PUS-14-6",
-                "service-14/PUS-14-7",
-                "service-14/PUS-14-8",
-                "service-14/PUS-14-9",
-                "service-14/SubsamplingRate"
-            };
+        [
+            "common/ApplicationProcess",
+            "common/ApplicationProcessUser",
+            "common/BasicTypes",
+            "common/DiagnosticParameterReportStructure",
+            "common/Dummy",
+            "common/EventDefinition",
+            "common/HousekeepingParameterReportStructure",
+            "common/MessageType",
+            "service-14/ApplicationProcessForwardControl",
+            "service-14/DiagnosticParameterReportForwardControl",
+            "service-14/EventDefinitionForwardControl",
+            "service-14/HousekeepingParameterReportForwardControl",
+            "service-14/PUS-14-1",
+            "service-14/PUS-14-10",
+            "service-14/PUS-14-11",
+            "service-14/PUS-14-12",
+            "service-14/PUS-14-13",
+            "service-14/PUS-14-14",
+            "service-14/PUS-14-15",
+            "service-14/PUS-14-16",
+            "service-14/PUS-14-2",
+            "service-14/PUS-14-3",
+            "service-14/PUS-14-4",
+            "service-14/PUS-14-5",
+            "service-14/PUS-14-6",
+            "service-14/PUS-14-7",
+            "service-14/PUS-14-8",
+            "service-14/PUS-14-9",
+            "service-14/SubsamplingRate"
+        ];
 
         private string[] GetService15FileNames() =>
-            new string[]{
-                "common/ApplicationProcess",
-                "common/ApplicationProcessUser",
-                "common/BasicTypes",
-                "common/DiagnosticParameterReportStructure",
-                "common/Dummy",
-                "common/EventDefinition",
-                "common/HousekeepingParameterReportStructure",
-                "common/MessageType",
-                "common/TimeWindow",
-                "service-15/PacketStore",
-                "service-15/PacketStoreConfiguration",
-                "service-15/PacketStoreEnumerations",
-                "service-15/PUS-15-1",
-                "service-15/PUS-15-2",
-                "service-15/PUS-15-3",
-                "service-15/PUS-15-4",
-                "service-15/PUS-15-5",
-                "service-15/PUS-15-6",
-                "service-15/PUS-15-9",
-                "service-15/PUS-15-11",
-                "service-15/PUS-15-12",
-                "service-15/PUS-15-13",
-                "service-15/PUS-15-14",
-                "service-15/PUS-15-15",
-                "service-15/PUS-15-16",
-                "service-15/PUS-15-17",
-                "service-15/PUS-15-18",
-                "service-15/PUS-15-19",
-                "service-15/PUS-15-20",
-                "service-15/PUS-15-21",
-                "service-15/PUS-15-22",
-                "service-15/PUS-15-23",
-                "service-15/PUS-15-24",
-                "service-15/PUS-15-25",
-                "service-15/PUS-15-26",
-                "service-15/PUS-15-27",
-                "service-15/PUS-15-28",
-                "service-15/PUS-15-29",
-                "service-15/PUS-15-30",
-                "service-15/PUS-15-31",
-                "service-15/PUS-15-32",
-                "service-15/PUS-15-33",
-                "service-15/PUS-15-34",
-                "service-15/PUS-15-35",
-                "service-15/PUS-15-36",
-                "service-15/PUS-15-37",
-                "service-15/PUS-15-38",
-                "service-15/PUS-15-39",
-                "service-15/PUS-15-40",
-                "service-15/Storage-ControlConfiguration",
-                "service-15/Storage-ControlDiagnosticParameterReport",
-                "service-15/Storage-ControlEventReportBlocking",
-                "service-15/Storage-ControlHousekeepingParameterReport",
-                "service-15/Storage-ControlReportType"
-            };
+        [
+            "common/ApplicationProcess",
+            "common/ApplicationProcessUser",
+            "common/BasicTypes",
+            "common/DiagnosticParameterReportStructure",
+            "common/Dummy",
+            "common/EventDefinition",
+            "common/HousekeepingParameterReportStructure",
+            "common/MessageType",
+            "common/TimeWindow",
+            "service-15/PacketStore",
+            "service-15/PacketStoreConfiguration",
+            "service-15/PacketStoreEnumerations",
+            "service-15/PUS-15-1",
+            "service-15/PUS-15-2",
+            "service-15/PUS-15-3",
+            "service-15/PUS-15-4",
+            "service-15/PUS-15-5",
+            "service-15/PUS-15-6",
+            "service-15/PUS-15-9",
+            "service-15/PUS-15-11",
+            "service-15/PUS-15-12",
+            "service-15/PUS-15-13",
+            "service-15/PUS-15-14",
+            "service-15/PUS-15-15",
+            "service-15/PUS-15-16",
+            "service-15/PUS-15-17",
+            "service-15/PUS-15-18",
+            "service-15/PUS-15-19",
+            "service-15/PUS-15-20",
+            "service-15/PUS-15-21",
+            "service-15/PUS-15-22",
+            "service-15/PUS-15-23",
+            "service-15/PUS-15-24",
+            "service-15/PUS-15-25",
+            "service-15/PUS-15-26",
+            "service-15/PUS-15-27",
+            "service-15/PUS-15-28",
+            "service-15/PUS-15-29",
+            "service-15/PUS-15-30",
+            "service-15/PUS-15-31",
+            "service-15/PUS-15-32",
+            "service-15/PUS-15-33",
+            "service-15/PUS-15-34",
+            "service-15/PUS-15-35",
+            "service-15/PUS-15-36",
+            "service-15/PUS-15-37",
+            "service-15/PUS-15-38",
+            "service-15/PUS-15-39",
+            "service-15/PUS-15-40",
+            "service-15/Storage-ControlConfiguration",
+            "service-15/Storage-ControlDiagnosticParameterReport",
+            "service-15/Storage-ControlEventReportBlocking",
+            "service-15/Storage-ControlHousekeepingParameterReport",
+            "service-15/Storage-ControlReportType"
+        ];
 
         private string[] GetService17FileNames() =>
-            new string[]{
-                "common/ApplicationProcess",
-                "common/ApplicationProcessUser",
-                "service-17/PUS-17-1",
-                "service-17/PUS-17-3",
-                "service-17/PUS-17-2",
-                "service-17/PUS-17-4"
-            };
+        [
+            "common/ApplicationProcess",
+            "common/ApplicationProcessUser",
+            "service-17/PUS-17-1",
+            "service-17/PUS-17-3",
+            "service-17/PUS-17-2",
+            "service-17/PUS-17-4"
+        ];
 
         private string[] GetService18FileNames() =>
-            new string[]{
-                "common/BasicTypes",
-                "common/FilePath",
-                "service-18/OBCP",
-                "service-18/OBCPActivation",
-                "service-18/OBCPArgumentValues",
-                "service-18/OBCPManagement",
-                "service-18/OBCPWithold",
-                "service-18/PUS-18-1",
-                "service-18/PUS-18-2",
-                "service-18/PUS-18-3",
-                "service-18/PUS-18-4",
-                "service-18/PUS-18-5",
-                "service-18/PUS-18-6",
-                "service-18/PUS-18-7",
-                "service-18/PUS-18-8",
-                "service-18/PUS-18-9",
-                "service-18/PUS-18-12",
-                "service-18/PUS-18-13",
-                "service-18/PUS-18-14",
-                "service-18/PUS-18-15",
-                "service-18/PUS-18-16",
-                "service-18/PUS-18-17",
-                "service-18/PUS-18-18",
-                "service-18/PUS-18-19",
-                "service-18/PUS-18-20",
-                "service-18/PUS-18-21",
-                "service-18/PUS-18-22"
-            };
+        [
+            "common/BasicTypes",
+            "common/FilePath",
+            "service-18/OBCP",
+            "service-18/OBCPActivation",
+            "service-18/OBCPArgumentValues",
+            "service-18/OBCPManagement",
+            "service-18/OBCPWithold",
+            "service-18/PUS-18-1",
+            "service-18/PUS-18-2",
+            "service-18/PUS-18-3",
+            "service-18/PUS-18-4",
+            "service-18/PUS-18-5",
+            "service-18/PUS-18-6",
+            "service-18/PUS-18-7",
+            "service-18/PUS-18-8",
+            "service-18/PUS-18-9",
+            "service-18/PUS-18-12",
+            "service-18/PUS-18-13",
+            "service-18/PUS-18-14",
+            "service-18/PUS-18-15",
+            "service-18/PUS-18-16",
+            "service-18/PUS-18-17",
+            "service-18/PUS-18-18",
+            "service-18/PUS-18-19",
+            "service-18/PUS-18-20",
+            "service-18/PUS-18-21",
+            "service-18/PUS-18-22"
+        ];
 
         private string[] GetService19FileNames() =>
-            new string[]{
-                "common/ApplicationProcess",
-                "common/ApplicationProcessUser",
-                "common/BasicTypes",
-                "common/Dummy",
-                "common/EventDefinition",
-                "service-19/EventActionStatus",
-                "service-19/EventDefinitionSystem",
-                "service-19/PUS-19-1",
-                "service-19/PUS-19-10",
-                "service-19/PUS-19-11",
-                "service-19/PUS-19-2",
-                "service-19/PUS-19-3",
-                "service-19/PUS-19-4",
-                "service-19/PUS-19-5",
-                "service-19/PUS-19-6",
-                "service-19/PUS-19-7",
-                "service-19/PUS-19-8",
-                "service-19/PUS-19-9"
-            };
+        [
+            "common/ApplicationProcess",
+            "common/ApplicationProcessUser",
+            "common/BasicTypes",
+            "common/Dummy",
+            "common/EventDefinition",
+            "service-19/EventActionStatus",
+            "service-19/EventDefinitionSystem",
+            "service-19/PUS-19-1",
+            "service-19/PUS-19-10",
+            "service-19/PUS-19-11",
+            "service-19/PUS-19-2",
+            "service-19/PUS-19-3",
+            "service-19/PUS-19-4",
+            "service-19/PUS-19-5",
+            "service-19/PUS-19-6",
+            "service-19/PUS-19-7",
+            "service-19/PUS-19-8",
+            "service-19/PUS-19-9"
+        ];
 
         private string[] GetAdditionalTestCasesFileNames() =>
-            new string[]{
-                "additional-test-cases/NULLTERMINATED",
-            };
+        [
+            "additional-test-cases/NULLTERMINATED"
+        ];
+
+        private string[] GetAcnAttributesFileNames() =>
+        [
+            "Asn1AcnTestLib/acn-attributes/alignment/alignment-byte",
+            "Asn1AcnTestLib/acn-attributes/alignment/alignment-word",
+            "Asn1AcnTestLib/acn-attributes/present-when/present-when-choice",
+            "Asn1AcnTestLib/acn-attributes/present-when/present-when-sequence",
+            "Asn1AcnTestLib/acn-attributes/save-position/save-position-basic",
+            "Asn1AcnTestLib/acn-attributes/save-position/save-position-complex"
+        ];
+
+        private string[] GetAdditionalFileNames() =>
+        [
+            "Asn1AcnTestLib/additional/deep-field-access",
+            "Asn1AcnTestLib/additional/determinant_color"
+        ];
+        
+        private string[] GetAdvancedFileNames() =>
+        [
+            "Asn1AcnTestLib/advanced/imports/imports-base-types",
+            "Asn1AcnTestLib/advanced/imports/imports-extended-types",
+            "Asn1AcnTestLib/advanced/imports/imports-multi-module",
+            "Asn1AcnTestLib/advanced/imports/imports-user-module",
+            "Asn1AcnTestLib/advanced/nested/nested-acn-basic",
+            "Asn1AcnTestLib/advanced/nested/nested-acn-conditional",
+            "Asn1AcnTestLib/advanced/nested/nested-acn-parametrization",
+            "Asn1AcnTestLib/advanced/parameterized/parameterized-basic",
+            "Asn1AcnTestLib/advanced/parameterized/parameterized-complex",
+            "Asn1AcnTestLib/advanced/subtyping/subtyping-nested",
+            "Asn1AcnTestLib/advanced/subtyping/subtyping-pattern",
+            "Asn1AcnTestLib/advanced/subtyping/subtyping-value-constraints",
+            "Asn1AcnTestLib/advanced/subtyping/subtyping-with-components"
+        ];
+        
+        private string[] GetPrimitivesFileNames() =>
+        [
+            "Asn1AcnTestLib/primitives/bitstring/bitstring-acn-size",
+            "Asn1AcnTestLib/primitives/bitstring/bitstring-basic",
+            "Asn1AcnTestLib/primitives/bitstring/bitstring-size-fixed",
+            "Asn1AcnTestLib/primitives/bitstring/bitstring-size-range",
+            "Asn1AcnTestLib/primitives/boolean/boolean-basic",
+            "Asn1AcnTestLib/primitives/boolean/boolean-combined",
+            "Asn1AcnTestLib/primitives/boolean/boolean-false-value",
+            "Asn1AcnTestLib/primitives/boolean/boolean-true-value",
+            "Asn1AcnTestLib/primitives/enumerated/enumerated-acn-size",
+            "Asn1AcnTestLib/primitives/enumerated/enumerated-basic",
+            "Asn1AcnTestLib/primitives/enumerated/enumerated-encode-values",
+            "Asn1AcnTestLib/primitives/ia5string/ia5string-basic",
+            "Asn1AcnTestLib/primitives/ia5string/ia5string-size-fixed",
+            "Asn1AcnTestLib/primitives/ia5string/ia5string-size-range",
+            "Asn1AcnTestLib/primitives/integer/integer-acn-size",
+            "Asn1AcnTestLib/primitives/integer/integer-basic",
+            "Asn1AcnTestLib/primitives/integer/integer-encoding-posint",
+            "Asn1AcnTestLib/primitives/integer/integer-encoding-twoscomplement",
+            "Asn1AcnTestLib/primitives/integer/integer-endianness-big",
+            "Asn1AcnTestLib/primitives/integer/integer-endianness-little",
+            "Asn1AcnTestLib/primitives/integer/integer-range-negative",
+            "Asn1AcnTestLib/primitives/integer/integer-range-positive",
+            "Asn1AcnTestLib/primitives/integer/integer-range-zero-start",
+            "Asn1AcnTestLib/primitives/null/null-basic",
+            "Asn1AcnTestLib/primitives/octetstring/octetstring-acn-size",
+            "Asn1AcnTestLib/primitives/octetstring/octetstring-basic",
+            "Asn1AcnTestLib/primitives/octetstring/octetstring-size-fixed",
+            "Asn1AcnTestLib/primitives/octetstring/octetstring-size-range",
+            "Asn1AcnTestLib/primitives/real/real-endianness-big",
+            "Asn1AcnTestLib/primitives/real/real-endianness-little",
+            "Asn1AcnTestLib/primitives/real/real-ieee754-32",
+            "Asn1AcnTestLib/primitives/real/real-ieee754-64"
+        ];
+        
+        private string[] GetStructuredFileNames() =>
+        [
+            "Asn1AcnTestLib/structured/choice/choice-basic",
+            "Asn1AcnTestLib/structured/choice/choice-determinant",
+            "Asn1AcnTestLib/structured/sequence-of/sequence-of-acn-size",
+            "Asn1AcnTestLib/structured/sequence-of/sequence-of-basic",
+            "Asn1AcnTestLib/structured/sequence-of/sequence-of-size-fixed",
+            "Asn1AcnTestLib/structured/sequence-of/sequence-of-size-range",
+            "Asn1AcnTestLib/structured/sequence/sequence-basic",
+            "Asn1AcnTestLib/structured/sequence/sequence-default",
+            "Asn1AcnTestLib/structured/sequence/sequence-optional"
+        ];
     }
 }

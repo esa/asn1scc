@@ -287,6 +287,7 @@ type ErrorCode = {
     errCodeValue    : int
     errCodeName     : string
     comment         : string option
+    fieldPath       : string
 }
 
 type BaseTypesEquivalence<'T> = {
@@ -1134,11 +1135,11 @@ with
         | ReferenceType _ -> "REFERENCE"
         | TimeType _ -> "TIME"
 
-let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) =
+let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) (fieldPath: string) =
     TL "getNextValidErrorCode" (fun () ->
     let rec getErrorCode (errCodeName:string) =
         match cur.curErrCodeNames.Contains errCodeName with
-        | false -> {ErrorCode.errCodeName = errCodeName; errCodeValue = cur.currErrorCode; comment=comment}
+        | false -> {ErrorCode.errCodeName = errCodeName; errCodeValue = cur.currErrorCode; comment=comment; fieldPath=fieldPath}
         | true  ->
             getErrorCode (errCodeName + "_2")
 

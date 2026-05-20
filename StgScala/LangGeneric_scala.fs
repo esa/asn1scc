@@ -259,6 +259,12 @@ type LangGeneric_scala() =
         override this.allowsSrcFilesWithNoFunctions = true
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
+        override this.isObjectOriented = false
+        override this.nullTerminatorByte = Some 0uy
+        override this.getAlignmentByteTypeName = "Byte"
+        override this.getAlignmentWordTypeName = "Short"
+        override this.getAlignmentDWordTypeName = "Int"
+        override this.shouldApplyToCToPackageName = true
 
         override this.getSeqChildIsPresent (sel: AccessPath) (childName: string) =
             sprintf "%s%s%s.isDefined" (sel.joined this) (this.getAccess sel) childName
@@ -414,7 +420,7 @@ type LangGeneric_scala() =
             let precond = generatePrecond r enc t codec
             [show (ExprTree precond)]
 
-        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
+        override this.generatePostcond (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (p: CodegenScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec): string list =
             match enc with
             | ACN ->
                 let errTpe = IntegerType Int
@@ -427,8 +433,8 @@ type LangGeneric_scala() =
                     | Decode ->
                         let resPostcond = {Var.name = "res"; tpe = eitherMutTpe errTpe (fromAsn1TypeKind t.Kind)}
                         generateDecodePostcondExpr r t resPostcond
-                Some (show (ExprTree postcondExpr))
-            | _ -> Some (show (ExprTree (BoolLit true)))
+                [show (ExprTree postcondExpr)]
+            | _ -> [show (ExprTree (BoolLit true))]
 
         override this.generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
             generateSequenceChildProof r enc stmts pg codec this

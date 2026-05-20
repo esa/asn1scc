@@ -177,6 +177,7 @@ let c_macro =
             atc = new ITestCases_c.ITestCases_c()
             xer = new IXer_c.IXer_c()
             src = new ISrcBody_c.ISrcBody_c()
+            encodings = []
         }
 let scala_macro =
         {
@@ -191,6 +192,7 @@ let scala_macro =
             atc = new ITestCases_scala.ITestCases_scala()
             xer = new IXer_scala.IXer_scala()
             src = new ISrcBody_scala.ISrcBody_scala()
+            encodings = []
         }
         
 let python_macro =
@@ -206,6 +208,7 @@ let python_macro =
             atc = new ITestCases_python.ITestCases_python()
             xer = new IXer_python.IXer_python()
             src = new ISrcBody_python.ISrcBody_python()
+            encodings = []
         }
 let ada_macro =
         {
@@ -220,6 +223,7 @@ let ada_macro =
             atc = new ITestCases_a.ITestCases_a()
             xer = new IXer_a.IXer_a()
             src = new ISrcBody_a.ISrcBody_a()
+            encodings = []
         }
 let allMacros = [ (C, c_macro); (Scala, scala_macro); (Python, python_macro); (Ada, ada_macro)]
 let getLanguageMacro (l:ProgrammingLanguage) =
@@ -454,8 +458,10 @@ let main0 argv =
             | false -> ()
 
         // TODO frontend typo
-        let activeLangs = 
-            allMacros |> List.filter(fun (lang,_) -> ProgrammingLanguage.ActiveLanguages |> List.exists (fun l -> l = lang)) 
+        let activeLangs =
+            allMacros
+            |> List.filter(fun (lang,_) -> ProgrammingLanguage.ActiveLanguages |> List.exists (fun l -> l = lang))
+            |> List.map(fun (lang, lm) -> (lang, { lm with encodings = args.encodings }))
             
         let frontEndAst, acnDeps = TL "FrontEndMain.constructAst" (fun () -> FrontEndMain.constructAst args activeLangs debugFunc)
 
@@ -480,16 +486,16 @@ let main0 argv =
             List.choose (fun a ->
                 match a with
                 | C_lang                ->
-                    let lm = getLanguageMacro C
+                    let lm = { getLanguageMacro C with encodings = args.encodings }
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
                 | Scala_Lang              ->
-                    let lm = getLanguageMacro Scala
+                    let lm = { getLanguageMacro Scala with encodings = args.encodings }
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Scala lm args.encodings))
                 | Ada_Lang              ->
-                    let lm = getLanguageMacro Ada
+                    let lm = { getLanguageMacro Ada with encodings = args.encodings }
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
                 | Python_Lang              ->
-                    let lm = getLanguageMacro Python
+                    let lm = { getLanguageMacro Python with encodings = args.encodings }
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Python lm args.encodings))
                 | _             -> None)
 
@@ -506,7 +512,7 @@ let main0 argv =
         //generate code
         backends |>
             Seq.iter (fun r ->
-                let lm = getLanguageMacro r.lang
+                let lm = { getLanguageMacro r.lang with encodings = args.encodings }
                 createDirectories outDir lm args.target
                 let dirInfo = lm.lg.getDirInfo args.target outDir
                 //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
@@ -540,6 +546,7 @@ let main0 argv =
                             atc = new ITestCases_c.ITestCases_c()
                             xer = new IXer_c.IXer_c()
                             src = new ISrcBody_c.ISrcBody_c()
+                            encodings = args.encodings
                         }
                 TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
             | x::_  -> x

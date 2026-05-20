@@ -61,7 +61,7 @@ equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::
 function <sFuncName>(<sVarName1>, <sVarName2> : <sTypeDefName>) return Boolean;
 >>
 
-equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced) ::= <<
+equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced, bInherit) ::= <<
 function <sFuncName> (<sVarName1>, <sVarName2> :  <sTypeDefName>) return Boolean
 is
 <if(bUnreferenced)>

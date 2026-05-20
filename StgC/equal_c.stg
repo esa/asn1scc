@@ -64,7 +64,7 @@ equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName1>, const <sTypeDefName><sStar> <sVarName2>);
 >>
 
-equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced) ::= <<
+equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced, bInherit) ::= <<
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName1>, const <sTypeDefName><sStar> <sVarName2>)
 {
 <if(bUnreferenced)>

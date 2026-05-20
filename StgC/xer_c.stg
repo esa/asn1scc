@@ -2,7 +2,7 @@
 
 rtlModuleName() ::= ""
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 const int <sErrCode> = <nErrValue>;
 >>
 

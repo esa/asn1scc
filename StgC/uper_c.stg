@@ -26,7 +26,7 @@ call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, p
 
 
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 #define <sErrCode>		<nErrValue>  /**/
 >>
 
@@ -39,7 +39,7 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
@@ -78,7 +78,7 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode);
 >>
 
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
@@ -181,16 +181,16 @@ ret = BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>);
 
 
 /*case: A:: = INTEGER (-5..MAX) */
-IntSemiConstraint_encode(p, nMin, sErrCode) ::= "BitStream_EncodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>);"
-IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraint_encode(p, nMin, sErrCode, soType) ::= "BitStream_EncodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>);"
+IntSemiConstraint_decode(p, nMin, sErrCode, soType) ::= <<
 ret = BitStream_DecodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
 
 /*case: A:: = INTEGER (5..MAX) */
-IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "BitStream_EncodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);"
-IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraintPos_encode(p, nMin, sErrCode, soType) ::= "BitStream_EncodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);"
+IntSemiConstraintPos_decode(p, nMin, sErrCode, soType) ::= <<
 ret = BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
@@ -241,7 +241,7 @@ if (<sRootBaseConstraint>) {
 } else {
     /* value is not within root range, so ext bit is one and value is encoded as unconstrained */
     BitStream_AppendBitOne(pBitStrm);
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, sType=sType)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, soType=sType)>
 };
 >>
 
@@ -414,14 +414,14 @@ sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, 
 >>
 
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, bIsPrimitive) ::= <<
 /*Encode <sChName> */
 if (<p><sAcc>exist.<sChName>) {
 	<sChildContent>
 }
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, bIsPrimitive) ::= <<
 /*Decode <sChName> */
 if (<p><sAcc>exist.<sChName>) {
 	<sChildContent>
@@ -429,12 +429,12 @@ if (<p><sAcc>exist.<sChName>) {
 >>
 
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue) ::= <<
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, sChildContent=sChildContent)>
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue, bIsPrimitive) ::= <<
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, sChildContent=sChildContent, bIsPrimitive=bIsPrimitive)>
 >>
 
 
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue, bIsPrimitive) ::= <<
 /*Decode <sChName> */
 if (<p><sAcc>exist.<sChName>) {
 	<sChildContent>
@@ -929,7 +929,7 @@ sparkAnnotations_encode(sTypeDefName) ::= <<
 sparkAnnotations_decode(sTypeDefName) ::= <<
 >>
 
-Null_declare(p) ::= ""
+Null_declare(p, sType) ::= ""
 
 decode_nullType(p) ::= <<
 /*no encoding/decoding is required*/

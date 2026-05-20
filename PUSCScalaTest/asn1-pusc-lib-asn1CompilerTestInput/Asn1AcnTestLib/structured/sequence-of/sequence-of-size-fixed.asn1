@@ -1,0 +1,21 @@
+-- Requirement 30: SEQUENCE OF with size constraints (fixed size)
+-- Tests SEQUENCE OF with SIZE(n) constraints
+
+SequenceOfSizeFixed DEFINITIONS ::= BEGIN
+
+    Array4 ::= SEQUENCE (SIZE(4)) OF INTEGER
+
+    Array8 ::= SEQUENCE (SIZE(8)) OF INTEGER (0..255)
+
+    Array16 ::= SEQUENCE (SIZE(16)) OF BOOLEAN
+
+    Array32 ::= SEQUENCE (SIZE(32)) OF OCTET STRING (SIZE(4))
+
+    TestStruct ::= SEQUENCE {
+        small Array4,
+        medium Array8,
+        flags Array16,
+        buffers Array32
+    }
+
+END

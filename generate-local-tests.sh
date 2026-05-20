@@ -723,20 +723,50 @@ TESTLIB_FILES="./Asn1AcnTestLib/primitives/boolean/boolean-basic.asn1 \
               
 DEBUG_FILES="./Asn1AcnTestLib/additional/deep-field-access.asn1 \
              ./Asn1AcnTestLib/additional/deep-field-access.acn \
-             ./Asn1AcnTestLib/additional/determinant_color.asn1 \
-             ./Asn1AcnTestLib/additional/determinant_color.acn \
-             ./Asn1AcnTestLib/advanced/subtyping/subtyping-value-constraints.asn1"
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/BasicTypes.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/BasicTypes.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/TC-Packet.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/TC-Packet.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/PacketTypes.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/PacketTypes.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/TC-Payload.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/TC-Payload.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/ApplicationProcessUser.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/ApplicationProcessUser.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/ApplicationProcess.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/ApplicationProcess.acn \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/MessageType.asn1 \
+             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/common/MessageType.acn"
           
                              
 #TEMPLATE_INFO="-printTemplateInfo"
 TEMPLATE_INFO=""
-#PREFIX="ATELERIS"
-PREFIX=""
+PREFIX="T"
+#PREFIX=""
+#
+echo "Running Asn1SCC Compiler for DEBUG..."
+# for c: -if "BitStream_EncodeReal" -if "BitStream_DecodeReal"
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO  -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/debug" $DEBUG_FILES 
+
+echo "Running Asn1SCC Compiler for ASN1..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1" $ASN1_FILES 
+
+echo "Running Asn1SCC Compiler for ACN..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/acn" $ASN1_FILES $ACN_FILES
+
+echo "Running Asn1SCC Compiler for TestLib..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib" $TESTLIB_FILES 
 
 echo "Running Asn1SCC Compiler for ASN1..."
 ./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1_uper" $ASN1_FILES 
 
 echo "Running Asn1SCC Compiler for TestLib..."
 ./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib_uper" $TESTLIB_FILES
+
+echo "Running Asn1SCC Compiler for Dual-Wield ASN1/ACN..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1_acn_dual" $ASN1_FILES $ACN_FILES 
+
+echo "Running Asn1SCC Compiler for Dual-Wield TestLib..."
+./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib_dual" $TESTLIB_FILES
 
 

@@ -791,7 +791,8 @@ let private createDeferredReferenceFunction
                 else candidate
 
             let errCodeName = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-            let errCode, ns1 = getNextValidErrorCode us errCodeName None
+            let errFieldPath = match t.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elem")
+            let errCode, ns1 = getNextValidErrorCode us errCodeName None errFieldPath
 
             let specP : CodegenScope = lm.lg.getParamType t codec
 
@@ -1023,14 +1024,14 @@ let private createDeferredReferenceFunction
                     deferredFormalParams deferredParamNames
                     (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced
                     false
-                    soInitFuncName [] [] None  // funcDefAnnots, precondAnnots, postcondAnnots
+                    soInitFuncName [] [] []  // funcDefAnnots, precondAnnots, postcondAnnots
                     codec
 
             let specErrCodStr =
                 (errCode :: bodyResult_errCodes)
                 |> List.groupBy (fun x -> x.errCodeName)
-                |> List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment})
-                |> List.map (fun x -> lm.acn.EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment)
+                |> List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath})
+                |> List.map (fun x -> lm.acn.EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath)
                 |> List.distinct
 
             let specFuncDef =

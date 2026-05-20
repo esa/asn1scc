@@ -114,7 +114,7 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
                 printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
             let func =
-                printCodec_body modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName "" (sNestedStatements.orElse "") "UPER"
+                printCodec_body modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName "" (sNestedStatements.orElse "") "UPER" "uPER"
             let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName
             let ret =
                 {
@@ -202,7 +202,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
 
                     printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
-                let func = printCodec_body modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName sEnc (sNestedStatements.orElse "") "ACN"
+                let func = printCodec_body modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName sEnc (sNestedStatements.orElse "") "ACN" "ACN"
                 let funcDef = printCodec_body_header funcName modName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName
 
                 let ret =

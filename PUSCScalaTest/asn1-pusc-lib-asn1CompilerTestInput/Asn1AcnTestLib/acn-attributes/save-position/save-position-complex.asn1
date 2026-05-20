@@ -1,0 +1,30 @@
+-- Requirement 51: save-position with complex structures
+-- Tests save-position in combination with other ACN attributes
+
+SavePositionComplex DEFINITIONS ::= BEGIN
+
+    DynamicDataWithPosition ::= SEQUENCE {
+        data OCTET STRING (SIZE(10..100))
+    }
+
+    ConditionalWithPosition ::= SEQUENCE {
+        baseData OCTET STRING (SIZE(8)),
+        extension SEQUENCE {
+            extData OCTET STRING (SIZE(16))
+        } OPTIONAL
+    }
+
+    ArrayWithPosition ::= SEQUENCE {
+        items SEQUENCE (SIZE(5..50)) OF SEQUENCE {
+            id INTEGER (0..255),
+            value INTEGER (0..65535)
+        }
+    }
+
+    TestStruct ::= SEQUENCE {
+        dynamic DynamicDataWithPosition,
+        conditional ConditionalWithPosition,
+        array ArrayWithPosition
+    }
+
+END

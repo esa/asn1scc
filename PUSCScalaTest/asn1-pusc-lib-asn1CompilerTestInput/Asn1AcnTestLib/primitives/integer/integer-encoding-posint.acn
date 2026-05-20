@@ -1,0 +1,18 @@
+-- ACN encoding with pos-int encoding attribute
+
+IntegerEncodingPosint DEFINITIONS ::= BEGIN
+
+    PosIntEncoded [size 32, encoding pos-int]
+
+    PosIntSmall [size 8, encoding pos-int]
+
+    PosIntLarge [size 64, encoding pos-int]
+
+    TestStruct []
+    {
+        small [],
+        medium [],
+        large []
+
+    }
+END

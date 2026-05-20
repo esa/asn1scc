@@ -5,8 +5,8 @@ This module provides bit-level reading and writing operations
 that match the behavior of the C and Scala bitstream implementations.
 """
 
-from typing import Optional, List
-NO_OF_BITS_IN_BYTE = 8
+from typing import List
+from .asn1_constants import NO_OF_BITS_IN_BYTE
 
 class BitStreamError(Exception):
     """Base class for bitstream errors"""
@@ -37,6 +37,24 @@ class BitStream:
         self._current_bit = 0  # Current bit within byte (0-7)
         self._current_byte = 0  # Current byte position (0-based)
 
+    @classmethod
+    def from_bitstream(cls, other: 'BitStream') -> 'BitStream':
+        """Method to create a BitStream from an existing BitStream. Copies buffer and segments"""
+        result = cls(other._buffer)
+        return result
+
+    def get_data(self) -> bytearray:
+        """Get the used data buffer"""
+        used_bytes = self.current_used_bytes
+        data = self._buffer[:used_bytes]
+        return data
+    
+    def to_hex_string(self) -> str:
+        """Convert the bitstream data to a hex string"""
+        return self.get_data().hex()   
+
+    #region Properties
+
     @property
     def current_bit_position(self) -> int:
         """Get the current bit position"""
@@ -64,23 +82,26 @@ class BitStream:
     def remaining_bits(self) -> int:
         return self.buffer_size * NO_OF_BITS_IN_BYTE - self.current_used_bits
 
-    def reset(self) -> None:
-        """Reset the bit position to the beginning"""
-        self._current_bit = 0
-        self._current_byte = 0
-
-    def set_bit_index(self, bit_index: int) -> None:
-        """Set the current position from a bit index across the whole Bitstream"""
-        self._current_bit = bit_index % NO_OF_BITS_IN_BYTE
-        self._current_byte = bit_index // NO_OF_BITS_IN_BYTE
+    #endregion
 
     def set_position(self, bit_position: int, byte_position: int) -> None:
         """Set the current bit and byte position"""
+        
         if not BitStream.position_invariant(bit_position, byte_position, self.buffer_size):
             raise BitStreamError(f"Position {byte_position}.{bit_position} out of range for buffer of size {self.buffer_size}")
-
+        
         self._current_bit = bit_position
         self._current_byte = byte_position
+
+    def reset(self) -> None:
+        """Reset the bit position to the beginning"""
+        self.set_position(0, 0)
+
+    def set_bit_index(self, bit_index: int) -> None:
+        """Set the current position from a bit index across the whole Bitstream"""
+        bit_position = bit_index % NO_OF_BITS_IN_BYTE
+        byte_position = bit_index // NO_OF_BITS_IN_BYTE
+        self.set_position(bit_position, byte_position)
 
     def _shift_bit_index(self, count: int = 1) -> None:
 
@@ -88,30 +109,34 @@ class BitStream:
             raise BitStreamError(f"Position out of range for buffer of size {self.buffer_size}")
 
         new_index = self.current_used_bits + count        
-        self._current_bit = new_index % NO_OF_BITS_IN_BYTE
-        self._current_byte = new_index // NO_OF_BITS_IN_BYTE
+        self.set_bit_index(new_index)
+
+    def write_align_to_byte(self) -> int:
+        length = (NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE
+        self._shift_bit_index(length)
+        return length
+    
+    def read_align_to_byte(self) -> int:
+        length = (NO_OF_BITS_IN_BYTE - self.current_bit_position) % NO_OF_BITS_IN_BYTE
+        self._shift_bit_index(length)   
+        return length
 
     #region Read
     
-    def _read_bit_pure(self, bit_position: int, byte_position: int) -> bool:
-        """Read a single bit"""
-        if not BitStream.position_invariant(bit_position, byte_position, self.buffer_size):
-            raise BitStreamError(f"Position {byte_position}.{bit_position} out of range for buffer of size {self.buffer_size}")
-        
-        return bool(self._buffer[byte_position] & (1 << (7 - bit_position)))
+    def __read_current_bit_pure(self) -> bool:
+        return bool((self._buffer[self._current_byte] >> (7 - self._current_bit)) % 2)
     
-    def _read_current_bit_pure(self) -> bool:
-        return self._read_bit_pure(self.current_bit_position, self.current_byte_position)
-    
-    def read_bit(self) -> bool:
-        """Read a single bit"""
-        
+    def __read_bit(self) -> bool:        
         if self.remaining_bits < 1:
             raise BitStreamError("Cannot read beyond end of bitstream")
         
-        res = self._read_current_bit_pure()
+        res = self.__read_current_bit_pure()
         self._shift_bit_index(1)
         return res
+    
+    def read_bit(self) -> bool:
+        """Read a single bit"""
+        return self.__read_bit()
 
     def read_bits(self, bit_count: int) -> int:
         """Read multiple bits and return as integer"""
@@ -122,9 +147,11 @@ class BitStream:
             raise BitStreamError("Cannot read beyond end of bitstream")
 
         value = 0
-        for i in range(bit_count):
-            if self.read_bit():
-                value |= (1 << (bit_count - 1 - i))
+        i = 0
+        while i < bit_count:
+            next_bit = int(self.__read_bit())
+            value = (value << 1) + next_bit
+            i = i + 1
 
         return value
 
@@ -132,26 +159,31 @@ class BitStream:
         """Read a complete byte"""
         return self.read_bits(8)
 
-    def read_bytes(self, byte_count: int) -> bytearray:
-        """Read multiple bytes"""
-        result = bytearray()
-        for _ in range(byte_count):
-            result.append(self.read_byte())
-        return result
-
     #endregion
     #region Write
 
+    def __byte_set_bit(self, byte: int, bit: bool, position: int) -> int:
+        if bit:
+            return byte | (1 << (7 - position))
+        else:
+            return byte & ~(1 << (7 - position))
+
+    # cur bit = 3
+    #
+    # |x|x|x|b|?|?|?|?|
+    #  0 1 2 3 4 5 6 7
+    def __write_bit(self, bit: bool) -> None:
+        """Write a single bit"""        
+        val = self._buffer[self._current_byte]
+        self._buffer[self._current_byte] = self.__byte_set_bit(val, bit, self._current_bit)
+        
+        self._shift_bit_index(1)
+        
     def write_bit(self, bit: bool) -> None:
-        """Write a single bit"""
         if self.remaining_bits < 1:
             raise BitStreamError("Cannot write beyond end of bitstream")
         
-        if bit:
-            self._buffer[self._current_byte] |= (1 << (7 - self._current_bit))
-        else:
-            self._buffer[self._current_byte] &= ~(1 << (7 - self._current_bit))
-        self._shift_bit_index(1)
+        return self.__write_bit(bit)
 
     def write_bits(self, value: int, bit_count: int) -> None:
         """Write multiple bits from an integer value"""
@@ -162,14 +194,15 @@ class BitStream:
             raise BitStreamError("Cannot write beyond end of bitstream")
 
         # Check if value fits in bit_count bits
-        max_value = (1 << bit_count) - 1
-        if value < 0 or value > max_value:
+        if value < 0 or value >= (1 << bit_count):
             raise BitStreamError(f"Value {value} does not fit in {bit_count} bits")
+        
+        i: int = 0
 
-        # Write bits from most significant to least significant
-        for i in range(bit_count - 1, -1, -1):
-            bit = (value >> i) & 1
-            self.write_bit(bool(bit))
+        while i < bit_count:
+            bit = bool((value >> (bit_count - 1 - i)) % 2)
+            self.__write_bit(bit)
+            i = i + 1
 
     def write_byte(self, byte_value: int) -> None:
         """Write a complete byte"""
@@ -178,34 +211,11 @@ class BitStream:
 
         self.write_bits(byte_value, 8)
 
-    def write_bytes(self, data: bytes) -> None:
-        """Write multiple bytes"""
-        for byte_value in data:
-            self.write_byte(byte_value)
-
     #endregion
-
-    def align_to_byte(self) -> None:
-        """Align the current position to the next byte boundary"""        
-        if self._current_bit != 0:
-            shift_amount = NO_OF_BITS_IN_BYTE - self._current_bit
-            self._shift_bit_index(shift_amount)
-
-    def get_data(self) -> bytearray:
-        """Get the complete data buffer"""
-        return self._buffer[:self.current_used_bytes]
-
-    def get_data_copy(self) -> bytearray:
-        """Get a copy of the complete data buffer"""
-        return self._buffer.copy()
 
     def __str__(self) -> str:
         """String representation for debugging"""
         return f"BitStream(size={self.buffer_size} bytes, pos={self.current_used_bits}, data={self._buffer[:self.current_used_bytes].hex()})"
-
-    def to_hex_string(self) -> str:
-        """Convert the bitstream data to a hex string"""
-        return self._buffer.hex()
 
     def to_binary_string(self) -> str:
         """Convert the bitstream data to a binary string"""

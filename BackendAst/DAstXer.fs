@@ -81,7 +81,7 @@ let createXerFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
     let sInitialExp = ""
     let errCodeName         = ToC ("ERR_XER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elem")))
-    let defaultErrCode, ns = getNextValidErrorCode us errCodeName None
+    let defaultErrCode, ns = getNextValidErrorCode us errCodeName None ""
     let xerFuncBody = (xerFuncBody_e defaultErrCode)
 
     let  xerFunc, xerFuncDef, encodingSizeInBytes  =
@@ -102,7 +102,7 @@ let createXerFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
             let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
             let xerFunc = Some(emitTypeAssignment asn1TasName varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp codec)
 
-            let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
+            let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue) x.fieldPath)
             let xerFuncDef = Some(emitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (encodingSizeInBytes = 0I) (encodingSizeInBytes)  soSparkAnnotations codec)
             xerFunc, xerFuncDef, encodingSizeInBytes
     let ret =

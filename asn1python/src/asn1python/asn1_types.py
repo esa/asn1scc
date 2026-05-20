@@ -5,53 +5,13 @@ This module provides sized integer types and ASN.1 semantic types
 that match the behavior of the C and Scala runtime libraries.
 """
 
-import abc
-from codecs import Codec
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
-from functools import total_ordering
+from typing import Self
 
-
-# Error classes
-class Asn1Exception(Exception):
-    """Base class for ASN.1 runtime errors"""
-    pass
-
-class Asn1ValueOutOfRangeException(Asn1Exception):
-    """Exception raised when an ASN.1 value is out of range"""
-    pass
-
-class Asn1ValueUnexpectedEndOfDataException(Asn1Exception):
-    """Exception raised when an ASN.1 value is out of range"""
-    pass
-
-class Asn1InvalidValueException(Asn1Exception):
-    """Raised when a value is outside the valid range for a type"""
-    pass
-
-class Asn1OverflowException(Asn1Exception):
-    """Raised when an arithmetic operation would cause overflow"""
-    pass
-
-class Asn1TestcaseError(Asn1Exception):
-    """Base Class for Testcase Errors"""
-    pass
-
-class Asn1TestcaseEncodeFailedError(Asn1TestcaseError):
-    """Raised when the encoding fails in a testcase"""
-    pass
-
-class Asn1TestcaseDecodeFailedError(Asn1TestcaseError):
-    """Raised when the decoding fails in a testcase"""
-    pass
-
-class Asn1TestcaseConstraintFailedError(Asn1TestcaseError):
-    """Raised when the constraint validation fails in a testcase"""
-    pass
-
-class Asn1TestcaseDifferentResultError(Asn1TestcaseError):
-    """Raised when the decoding of the encoded object yields a different result in a testcase"""
-    pass
+from .asn1_exceptions import *
+from .encoder import Encoder
+from .decoder import Decoder
 
 @dataclass(frozen=True)
 class Asn1ConstraintValidResult:
@@ -59,46 +19,37 @@ class Asn1ConstraintValidResult:
     error_code: int = 0
     message: str = ""
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.is_valid
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.is_valid and self.error_code <= 0:
             raise Exception("Error code must be set to a number > 0 if the constraint is not valid.")
 
         if self.is_valid and self.error_code > 0:
             raise Exception("No error code must be set if the constraint is valid.")
 
-class Asn1Base(abc.ABC):
-    from .encoder import Encoder
-    from .decoder import Decoder
-
-    @abc.abstractmethod
+class Asn1Base(ABC):
+    
+    # def encode(encoding: Encoding) -> bytearray:
+    #     pass
+    
+    # @classmethod
+    # def decode(cls, encoding: Encoding, data: bytearray) -> Self:
+    #     Decoder.from
+    
+    @abstractmethod
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
-        pass
-
-    @abc.abstractmethod
-    def encode(self, codec: Encoder, check_constraints: bool = True):
-        pass
-
-    @classmethod
-    def decode(cls, codec: Decoder, check_constraints: bool = True):
-        pass
-
-    @staticmethod
-    def decode_pure(codec: Decoder, check_constraints: bool = True):
         pass
 
 
 # Integer types using ctypes for automatic range validation and conversion
 
 # ASN.1 Boolean type - matches primitive bool in C and Scala
-@total_ordering
 class Asn1Boolean(Asn1Base):
     """
     ASN.1 Boolean wrapper that behaves as closely as possible to Python's bool.
     """
-    from .encoder import Encoder
 
     __slots__ = ("_val",)
 
@@ -106,36 +57,48 @@ class Asn1Boolean(Asn1Base):
         self._val = bool(val)
 
     # --- Core protocol ---
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self._val
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Asn1Boolean({self._val})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._val)
 
     # --- Equality / ordering ---
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self._val == bool(other)
+    
+    def __ne__(self, other) -> bool:
+        return not self.__eq__(other)
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self._val < bool(other)
+    
+    def __le__(self, other) -> bool:
+        return self._val <= bool(other)
+    
+    def __gt__(self, other) -> bool:
+        return self._val > bool(other)
+    
+    def __ge__(self, other) -> bool:
+        return self._val >= bool(other)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._val)
 
     # --- Boolean operators ---
-    def __and__(self, other):
+    def __and__(self, other) -> 'Asn1Boolean':
         return Asn1Boolean(self._val & bool(other))
 
-    def __or__(self, other):
+    def __or__(self, other) -> 'Asn1Boolean':
         return Asn1Boolean(self._val | bool(other))
 
-    def __xor__(self, other):
+    def __xor__(self, other) -> 'Asn1Boolean':
         return Asn1Boolean(self._val ^ bool(other))
 
-    def __invert__(self):
+    def __invert__(self) -> 'Asn1Boolean':
         return Asn1Boolean(not self._val)
 
     # --- Attribute delegation (for any method/properties bool has) ---
@@ -152,37 +115,43 @@ class Asn1Boolean(Asn1Base):
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
         raise NotImplementedError()
 
-    def encode(self, codec: Encoder, check_constraints: bool = True):
-        raise NotImplementedError()
+import struct as _struct
+
+class Real32(float):
+    """Float subclass that rounds to single (IEEE-754 binary32) precision on construction.
+    Used as the base class for ASN.1 REAL types when the target word size is 4 bytes,
+    mirroring C's behaviour where `asn1Real` is `float` (not `double`)."""
+    def __new__(cls, value=0.0):
+        rounded = _struct.unpack('f', _struct.pack('f', float(value)))[0]
+        return super().__new__(cls, rounded)
+
 
 class NullType(Asn1Base):
     """
     ASN.1 NullType wrapper that behaves as closely as possible to Python's None.
     Always falsy, always equal to None, singleton instance.
     """
-    from .encoder import Encoder
-    from .decoder import Decoder
 
     __slots__ = ()
 
     # --- Core protocol ---
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "None"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "None"
 
     # --- Equality ---
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return other is None or isinstance(other, NullType)
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(None)
 
     # --- Pickling / copy compatibility ---
@@ -190,10 +159,10 @@ class NullType(Asn1Base):
         return (NullType, ())
 
     # --- Prevent accidental mutation / attributes ---
-    def __setattr__(self, name, value):
+    def __setattr__(self, name, value) -> None:
         raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
 
-    def __delattr__(self, name):
+    def __delattr__(self, name) -> None:
         raise AttributeError(f"'{self.__class__.__name__}' object has no attributes")
     
     def is_constraint_valid(self) -> Asn1ConstraintValidResult:
@@ -206,33 +175,6 @@ class NullType(Asn1Base):
     @classmethod
     def decode(cls, codec: Decoder, check_constraints: bool = True):
         return NullType()
-    
-    @staticmethod
-    def decode_pure(codec: Decoder, check_constraints: bool = True):
-        return NullType()
-
-# Constants to match C and Scala implementations
-OBJECT_IDENTIFIER_MAX_LENGTH = 20
-
-# Bit manipulation constants
-NO_OF_BITS_IN_BYTE = 8
-NO_OF_BITS_IN_SHORT = 16
-NO_OF_BITS_IN_INT = 32
-NO_OF_BITS_IN_LONG = 64
-
-# Error codes to match C implementation
-ERR_INSUFFICIENT_DATA = 101
-ERR_INCORRECT_PER_STREAM = 102
-ERR_INVALID_CHOICE_ALTERNATIVE = 103
-ERR_INVALID_ENUM_VALUE = 104
-ERR_INVALID_XML_FILE = 200
-ERR_INVALID_BER_FILE = 201
-ERR_BER_LENGTH_MISMATCH = 202
-
-# Error codes from Scala implementation
-NOT_INITIALIZED_ERR_CODE = 1337
-ERR_INVALID_ENUM_VALUE_SCALA = 2805
-FAILED_READ_ERR_CODE = 5400
 
 # Utility functions to match C and Scala implementations
 # def int2uint(v: int) -> int:
@@ -253,6 +195,59 @@ FAILED_READ_ERR_CODE = 5400
 
 # TODO: BitString_equal is required for isvalid_python:402
 # def BitString_equal(...):
+
+
+OBJECT_IDENTIFIER_MAX_LENGTH = 20
+
+
+class Asn1ObjectIdentifier(Asn1Base):
+    """
+    ASN.1 OBJECT IDENTIFIER type.
+
+    Stores arcs in a fixed-length values list (OBJECT_IDENTIFIER_MAX_LENGTH) plus a
+    count of used arcs, matching the C / Scala struct layout so the mutation-style
+    generated init code works:
+
+        tc_data.nCount = 3
+        tc_data.values[0] = 1
+        tc_data.values[1] = 2
+        tc_data.values[2] = 3
+    """
+
+    def __init__(self, n_count: int = 0, values=None):
+        self.nCount: int = n_count
+        self.values: list = list(values) if values is not None else [0] * OBJECT_IDENTIFIER_MAX_LENGTH
+        if len(self.values) < OBJECT_IDENTIFIER_MAX_LENGTH:
+            self.values += [0] * (OBJECT_IDENTIFIER_MAX_LENGTH - len(self.values))
+
+    def is_structurally_valid(self) -> bool:
+        """Basic OID structural rules: at least 2 arcs, first ≤ 2, second ≤ 39."""
+        return (self.nCount >= 2) and (self.values[0] <= 2) and (self.values[1] <= 39)
+
+    def is_roid_structurally_valid(self) -> bool:
+        """RELATIVE-OID structural rule: at least one arc."""
+        return self.nCount > 0
+
+    # --- Equality ---
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Asn1ObjectIdentifier):
+            return False
+        if self.nCount != other.nCount:
+            return False
+        return all(self.values[i] == other.values[i] for i in range(self.nCount))
+
+    def __ne__(self, other) -> bool:
+        return not self.__eq__(other)
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.values[:self.nCount]))
+
+    def __repr__(self) -> str:
+        return f"Asn1ObjectIdentifier({self.values[:self.nCount]})"
+
+    # --- Asn1Base stub ---
+    def is_constraint_valid(self) -> Asn1ConstraintValidResult:
+        raise NotImplementedError("Subclasses must override is_constraint_valid")
 
 
 # Time types

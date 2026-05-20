@@ -6,12 +6,8 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: server-manu
-
+    runs-on: ubuntu-latest
     steps:
-    - name: Set owner of working dir recurively (Hotfix)
-      run: sudo chown -R $(id -u):$(id -g) .
-
     - name: Checkout code
       uses: actions/checkout@v4
 

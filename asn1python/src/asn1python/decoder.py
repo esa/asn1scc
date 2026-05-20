@@ -1,12 +1,49 @@
-from typing import List, Optional
+from typing import List, Optional, TypeVar
 
 from .codec import Codec, DecodeResult, ERROR_INSUFFICIENT_DATA, DECODE_OK, BitStreamError, ERROR_INVALID_VALUE, ERROR_CONSTRAINT_VIOLATION
+from .bitstream import BitStream
 
+DecType = TypeVar("DecType")
 
 class Decoder(Codec):
 
-    def __init__(self, buffer: bytearray) -> None:
-        super().__init__(buffer=buffer)
+    # ============================================================================
+    # TYPE-SAFE ERROR RESULT HELPERS
+    # ============================================================================
+
+    @staticmethod
+    def _error_int(result: DecodeResult[DecType]) -> DecodeResult[int]:
+        """Create a typed error result for int from another DecodeResult."""
+        return DecodeResult[int](
+            success=False,
+            error_code=result.error_code,
+            error_message=result.error_message,
+            bits_consumed=result.bits_consumed
+        )
+
+    @staticmethod
+    def _error_float(result: DecodeResult[DecType]) -> DecodeResult[float]:
+        """Create a typed error result for float from another DecodeResult."""
+        return DecodeResult[float](
+            success=False,
+            error_code=result.error_code,
+            error_message=result.error_message,
+            bits_consumed=result.bits_consumed
+        )
+
+    @staticmethod
+    def _error_str(result: DecodeResult[DecType]) -> DecodeResult[str]:
+        """Create a typed error result for str from another DecodeResult."""
+        return DecodeResult[str](
+            success=False,
+            error_code=result.error_code,
+            error_message=result.error_message,
+            bits_consumed=result.bits_consumed
+        )
+
+    # ============================================================================
+    # INTEGER DECODING
+    # ============================================================================
 
     def decode_integer(self,
                       min_val: int,
@@ -108,7 +145,7 @@ class Decoder(Codec):
         """
         try:
             initial_pos = self.bit_index
-            self._bitstream.align_to_byte()
+            self._bitstream.read_align_to_byte()
             final_pos = self.bit_index
             bits_consumed = final_pos - initial_pos
             return DecodeResult(
@@ -139,7 +176,7 @@ class Decoder(Codec):
             initial_pos = self.bit_index
 
             # First align to byte
-            self._bitstream.align_to_byte()
+            self._bitstream.read_align_to_byte()
 
             # Then align to 2-byte (16-bit) boundary
             if self._bitstream.current_byte_position % 2 != 0:
@@ -182,7 +219,7 @@ class Decoder(Codec):
             initial_pos = self.bit_index
 
             # First align to byte
-            self._bitstream.align_to_byte()
+            self._bitstream.read_align_to_byte()
 
             # Then align to 4-byte (32-bit) boundary
             current_byte = self._bitstream.current_byte_position
@@ -457,7 +494,7 @@ class Decoder(Codec):
             return DecodeResult(
                 success=True,
                 error_code=DECODE_OK,
-                decoded_value=[int(k) for k in result],
+                decoded_value=result,
                 bits_consumed=bits_consumed
             )
         except BitStreamError as e:
@@ -543,7 +580,7 @@ class Decoder(Codec):
             DecodeResult containing list of byte values
         """
         result = self.decode_octet_string_no_length(num_bytes)
-        if result.success and result.decoded_value != None:
+        if result.success and result.decoded_value is not None:
             # Convert bytes to list
             return DecodeResult(
                 success=True,
@@ -663,7 +700,6 @@ class Decoder(Codec):
             output_buffer = bytearray(buffer_size)
 
             # Create temporary bitstream for writing output
-            from .bitstream import BitStream
             tmp_stream = BitStream(output_buffer)
 
             # Read bits until pattern found or max reached
@@ -826,10 +862,10 @@ class Decoder(Codec):
         """
         try:
             # Read length byte
-            result = self.read_byte()
-            if not result.success:
-                return result
-            num_bytes = result.decoded_value
+            length_result = self.read_byte()
+            if not length_result.success or length_result.decoded_value is None:
+                return length_result
+            num_bytes = length_result.decoded_value
 
             if num_bytes == None or num_bytes == 0 or num_bytes > 8:
                 return DecodeResult(
@@ -840,8 +876,8 @@ class Decoder(Codec):
 
             # Read value bytes
             result = self.read_byte_array(num_bytes)
-            if not result.success:
-                return result
+            if not result.success or result.decoded_value is None:
+                return self._error_int(result)
             data_bytes = result.decoded_value
 
             # Convert from big-endian
@@ -901,10 +937,10 @@ class Decoder(Codec):
         """
         try:
             # Read length byte
-            result = self.read_byte()
-            if not result.success:
-                return result
-            num_bytes = result.decoded_value
+            length_result = self.read_byte()
+            if not length_result.success or length_result.decoded_value is None:
+                return length_result
+            num_bytes = length_result.decoded_value
 
             if num_bytes == 0 or num_bytes > 8:
                 return DecodeResult(
@@ -915,8 +951,8 @@ class Decoder(Codec):
 
             # Read value bytes
             result = self.read_byte_array(num_bytes)
-            if not result.success:
-                return result
+            if not result.success or result.decoded_value is None:
+                return self._error_int(result)
             data_bytes = result.decoded_value
 
             # Convert from big-endian
@@ -970,10 +1006,10 @@ class Decoder(Codec):
 
         try:
             # Read length byte
-            result = self.read_byte()
-            if not result.success:
-                return result
-            length = result.decoded_value
+            length_result = self.read_byte()
+            if not length_result.success or length_result.decoded_value is None:
+                return self._error_float(length_result)
+            length = length_result.decoded_value
 
             bits_consumed = 8
 
@@ -988,8 +1024,8 @@ class Decoder(Codec):
 
             # Read header byte
             result = self.read_byte()
-            if not result.success:
-                return result
+            if not result.success or result.decoded_value is None:
+                return self._error_float(result)
             header = result.decoded_value
             bits_consumed += 8
 
@@ -1065,8 +1101,8 @@ class Decoder(Codec):
             # Read exponent bytes (two's complement)
             # Check first bit for sign extension
             first_bit_result = self.read_bit()
-            if not first_bit_result.success:
-                return first_bit_result
+            if not first_bit_result.success or first_bit_result.decoded_value is None:
+                return self._error_float(first_bit_result)
 
             # Start with sign extension
             exponent = -1 if first_bit_result.decoded_value else 0
@@ -1082,8 +1118,8 @@ class Decoder(Codec):
             # Read remaining exponent bytes
             for i in range(1, exp_len):
                 result = self.read_byte()
-                if not result.success:
-                    return result
+                if not result.success or result.decoded_value is None:
+                    return self._error_float(result)
                 exponent = (exponent << 8) | result.decoded_value
                 bits_consumed += 8
 
@@ -1093,8 +1129,8 @@ class Decoder(Codec):
 
             for i in range(mantissa_len):
                 result = self.read_byte()
-                if not result.success:
-                    return result
+                if not result.success or result.decoded_value is None:
+                    return self._error_float(result)
                 mantissa = (mantissa << 8) | result.decoded_value
                 bits_consumed += 8
 
@@ -1116,3 +1152,133 @@ class Decoder(Codec):
                 error_code=ERROR_INVALID_VALUE,
                 error_message=str(e)
             )
+
+    def dec_real_fp32(self) -> 'DecodeResult[float]':
+        """
+        Decode 32-bit IEEE 754 float (big-endian, uPER style).
+
+        Used when -fpWordSize 4 is specified at asn1scc call time.
+        Matches C: BitStream_DecodeReal_fp32(pBitStrm, v)
+        """
+        import struct
+        try:
+            if self._bitstream.remaining_bits < 32:
+                return DecodeResult(
+                    success=False,
+                    error_code=ERROR_INVALID_VALUE,
+                    error_message="Insufficient data for 32-bit REAL"
+                )
+            result = self.read_byte_array(4)
+            if not result.success or result.decoded_value is None:
+                return self._error_float(result)
+            value: float = struct.unpack('>f', result.decoded_value)[0]
+            return DecodeResult(success=True, error_code=DECODE_OK, decoded_value=value, bits_consumed=32)
+        except (BitStreamError, struct.error) as e:
+            return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=str(e))
+
+    def ObjectIdentifier_decode(self) -> 'DecodeResult':
+        """
+        Decode an OBJECT IDENTIFIER value.
+
+        Matches C: ObjectIdentifier_uper_decode(pBitStrm, pVal)
+        Format: length prefix (8 or 16 bits) + base-128 encoded arcs.
+        First subidentifier splits into arc0 = si//40, arc1 = si%40.
+        """
+        from .asn1_types import Asn1ObjectIdentifier, OBJECT_IDENTIFIER_MAX_LENGTH
+
+        def decode_subidentifier(remaining: int):
+            si_value = 0
+            while remaining > 0:
+                byte_result = self.read_byte()
+                if not byte_result.success or byte_result.decoded_value is None:
+                    return None, remaining
+                remaining -= 1
+                b = byte_result.decoded_value
+                si_value = (si_value << 7) | (b & 0x7F)
+                if (b & 0x80) == 0:
+                    return si_value, remaining
+            return None, 0
+
+        # Read length prefix (8 bits, range [0, 0xFF])
+        len_result = self.decode_constrained_whole_number(0, 0xFF)
+        if not len_result.success or len_result.decoded_value is None:
+            return DecodeResult(success=False, error_code=len_result.error_code, error_message="Failed to decode OID length")
+
+        total_size = len_result.decoded_value
+        if total_size > 0x7F:
+            # Two-byte length: read second byte
+            len2_result = self.decode_constrained_whole_number(0, 0xFF)
+            if not len2_result.success or len2_result.decoded_value is None:
+                return DecodeResult(success=False, error_code=len2_result.error_code, error_message="Failed to decode OID length (second byte)")
+            total_size = ((total_size << 8) | len2_result.decoded_value) & 0x7FFF
+
+        # Decode first subidentifier (encodes arc[0] and arc[1])
+        si, total_size = decode_subidentifier(total_size)
+        if si is None:
+            return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode OID first subidentifier")
+
+        result = Asn1ObjectIdentifier()
+        result.nCount = 2
+        result.values[0] = si // 40
+        result.values[1] = si % 40
+
+        # Decode remaining subidentifiers
+        while total_size > 0 and result.nCount < OBJECT_IDENTIFIER_MAX_LENGTH:
+            si, total_size = decode_subidentifier(total_size)
+            if si is None:
+                return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode OID subidentifier")
+            result.values[result.nCount] = si
+            result.nCount += 1
+
+        if total_size != 0:
+            return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="OID has more components than OBJECT_IDENTIFIER_MAX_LENGTH")
+
+        return DecodeResult(success=True, error_code=DECODE_OK, decoded_value=result)
+
+    def RelativeOID_decode(self) -> 'DecodeResult':
+        """
+        Decode a RELATIVE-OID value.
+
+        Matches C: RelativeOID_uper_decode(pBitStrm, pVal)
+        Like ObjectIdentifier_decode but arcs are NOT combined (no 40x rule).
+        """
+        from .asn1_types import Asn1ObjectIdentifier, OBJECT_IDENTIFIER_MAX_LENGTH
+
+        def decode_subidentifier(remaining: int):
+            si_value = 0
+            while remaining > 0:
+                byte_result = self.read_byte()
+                if not byte_result.success or byte_result.decoded_value is None:
+                    return None, remaining
+                remaining -= 1
+                b = byte_result.decoded_value
+                si_value = (si_value << 7) | (b & 0x7F)
+                if (b & 0x80) == 0:
+                    return si_value, remaining
+            return None, 0
+
+        len_result = self.decode_constrained_whole_number(0, 0xFF)
+        if not len_result.success or len_result.decoded_value is None:
+            return DecodeResult(success=False, error_code=len_result.error_code, error_message="Failed to decode RelativeOID length")
+
+        total_size = len_result.decoded_value
+        if total_size > 0x7F:
+            len2_result = self.decode_constrained_whole_number(0, 0xFF)
+            if not len2_result.success or len2_result.decoded_value is None:
+                return DecodeResult(success=False, error_code=len2_result.error_code, error_message="Failed to decode RelativeOID length (second byte)")
+            total_size = ((total_size << 8) | len2_result.decoded_value) & 0x7FFF
+
+        result = Asn1ObjectIdentifier()
+        result.nCount = 0
+
+        while total_size > 0 and result.nCount < OBJECT_IDENTIFIER_MAX_LENGTH:
+            si, total_size = decode_subidentifier(total_size)
+            if si is None:
+                return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode RelativeOID subidentifier")
+            result.values[result.nCount] = si
+            result.nCount += 1
+
+        if total_size != 0:
+            return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="RelativeOID has more components than OBJECT_IDENTIFIER_MAX_LENGTH")
+
+        return DecodeResult(success=True, error_code=DECODE_OK, decoded_value=result)

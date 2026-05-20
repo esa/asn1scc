@@ -340,7 +340,7 @@ Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
 >>
 
 
-choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
+choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName, sChildTypeName) ::= <<
 WHEN <sChPresent> =>
     <sChildBody>
 >>

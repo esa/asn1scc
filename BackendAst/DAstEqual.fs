@@ -136,6 +136,15 @@ let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
             match funcName  with
             | None              -> None, None
             | Some funcName     ->
+                let isPrimitiveType =
+                    match lm.lg.getTypeDefinition t.FT_TypeDefinition with
+                    | FE_PrimitiveTypeDefinition _ -> true
+                    | _ -> false
+                let hasBaseType =
+                    match typeDefinition with
+                    | TypeDefinition td -> td.baseType.IsSome
+                    | _ -> false
+                let bInherit = isPrimitiveType || hasBaseType
                 let content, lvars, bExp, bUnreferenced =
                     match isEqualBody with
                     | EqualBodyExpression       expFunc ->
@@ -147,7 +156,7 @@ let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                         | Some (content, lvars) -> content, lvars, false, false
                         | None                  -> alwaysTrue, [], true, true
                 let lvarsStr = lvars |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let isEqualFunc = equalTypeAssignment varName1 varName2 sStar funcName (lm.lg.getLongTypedefName typeDefinition) content lvarsStr bExp bUnreferenced
+                let isEqualFunc = equalTypeAssignment varName1 varName2 sStar funcName (lm.lg.getLongTypedefName typeDefinition) content lvarsStr bExp bUnreferenced bInherit
                 let isEqualFuncDef = equalTypeAssignment_def varName1 varName2 sStar funcName (lm.lg.getLongTypedefName typeDefinition)
                 Some  isEqualFunc, Some isEqualFuncDef
 
@@ -177,12 +186,10 @@ let createIntegerEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn
 
 let createRealEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefinitionOrReference) =
     let isEqualBodyPrimitive (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
-        let castPp pp = castRPp lm Encode (o.getClass r.args) pp
-        let pp1 = (lm.lg.getValue v1.accessPath)
-        let pp2 = (lm.lg.getValue v2.accessPath)
-        Some(lm.equal.isEqual_Real (castPp pp1) (castPp pp2), [])
-    let isEqualBody         = EqualBodyExpression (isEqualBodyPrimitive lm)
-    createEqualFunction_any r lm t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l)
+        let castPp pp = lm.lg.castRealForEquality r.args.floatingPointSizeInBytes (o.getClass r.args) pp (lm.typeDef.Declare_Real()) (lm.typeDef.Declare_Real32())
+        Some(lm.equal.isEqual_Real (castPp (lm.lg.getValue v1.accessPath)) (castPp (lm.lg.getValue v2.accessPath)), [])
+    let isEqualBody = EqualBodyExpression (isEqualBodyPrimitive lm)
+    createEqualFunction_any r lm t typeDefinition isEqualBody
 
 let createBooleanEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefinitionOrReference)  =
     let isEqualBody = EqualBodyExpression (isEqualBodyBoolean lm)

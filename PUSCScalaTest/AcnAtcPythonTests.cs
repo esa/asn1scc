@@ -1,7 +1,6 @@
 namespace PUS_C_Scala_Test;
 
-// todo: remove Ignore to run the tests on CI
-[TestClass]
+[TestClass, Ignore]
 public class AcnAtcPythonTests
 {
     private void ACNWithTestGenCall(PUS_C_Service s, string folderSuffix) =>

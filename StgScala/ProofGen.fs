@@ -2595,7 +2595,7 @@ let annotateSequenceChildStmt (enc: Asn1Encoding) (snapshots: Var list) (cdc: Va
   List.foldBack annotate stmts ((pg.maxOffset enc) + thisMaxSize, rest) |> snd
 
 let generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec) (lg: ILangGeneric): string list =
-  if stmts.IsEmpty then stmts |> List.choose id
+  if stmts.IsEmpty then []
   else
     let codecTpe = runtimeCodecTypeFor enc
     let cdc = {Var.name = $"codec"; tpe = ClassType codecTpe}
@@ -2616,7 +2616,7 @@ let generateSequenceChildProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (stmt
       [exprStr]
 
 let generateSequenceProof (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: AccessPath) (codec: Codec) (lg: ILangGeneric): Expr option =
-  if sq.children.IsEmpty then None
+  if enc <> ACN || sq.children.IsEmpty then None
   else
     let codecTpe = runtimeCodecTypeFor enc
     let oldCdc = {Var.name = "oldCdc"; tpe = ClassType codecTpe}

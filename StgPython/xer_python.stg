@@ -2,7 +2,7 @@ group xer_python;
 
 rtlModuleName() ::= ""
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
     # xer_python.stg 6
     const int <sErrCode> = <nErrValue>;
 >>

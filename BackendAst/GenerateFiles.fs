@@ -119,29 +119,64 @@ let private printUnitInternal (tas: TypeAssignment) (fullCls: Asn1Type) (encDecC
 
     let is_valid_funcs =
         match printIsValid with
-        | false -> ""
+        | false -> []
         | true  ->
             match fullCls.isValidFunction with
-            | None      -> ""
-            | Some f    -> combineStringOpts f.funcDef f.func
+            | None      -> []
+            | Some f    -> [combineStringOpts f.funcDef f.func]
 
-    let uPerEncFunc = match printUper with true -> Some(combineStringOpts encDecCls.uperEncFunction.funcDef encDecCls.uperEncFunction.func) | false -> None
-    let uPerDecFunc = match printUper with true -> Some(combineStringOpts encDecCls.uperDecFunction.funcDef encDecCls.uperDecFunction.func) | false -> None
+    let uPerEncDec = 
+        match printUper with 
+        | true -> [combineStringOpts encDecCls.uperEncFunction.funcDef encDecCls.uperEncFunction.func] @
+                  encDecCls.uperEncFunction.auxiliaries @
+                  [combineStringOpts encDecCls.uperDecFunction.funcDef encDecCls.uperDecFunction.func] @
+                  encDecCls.uperDecFunction.auxiliaries
+        | false -> []
 
-    let xerEncFunc = match encDecCls.xerEncFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
-    let xerDecFunc = match encDecCls.xerDecFunction with XerFunction z -> Some(combineStringOpts z.funcDef z.func) | XerFunctionDummy -> None
+    let xerEncFunc = match encDecCls.xerEncFunction with XerFunction z -> [combineStringOpts z.funcDef z.func] | XerFunctionDummy -> []
+    let xerDecFunc = match encDecCls.xerDecFunction with XerFunction z -> [combineStringOpts z.funcDef z.func] | XerFunctionDummy -> []
 
     let acnEncFunc, sEncodingSizeConstant =
         match printAcn, encDecCls.acnEncFunction with
-        | true, Some x -> Some (combineStringOpts x.funcDef x.func), Some x.encodingSizeConstant
-        | _  -> None, None
+        | true, Some x -> [combineStringOpts x.funcDef x.func] @ x.auxiliaries, [x.encodingSizeConstant]
+        | _  -> [], []
     let acnDecFunc =
         match printAcn, encDecCls.acnDecFunction with
-        | true, Some x -> Some(combineStringOpts x.funcDef x.func)
-        | _ -> None
+        | true, Some x -> [combineStringOpts x.funcDef x.func] @ x.auxiliaries
+        | _ -> []
 
-    let allProcs = [equal_funcs]@[is_valid_funcs]@special_init_funcs@[init_funcs]@([uPerEncFunc;uPerDecFunc;sEncodingSizeConstant; acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
-    let generatedCode = lm.typeDef.Define_TAS type_definition allProcs
+    let allProcs = [equal_funcs] @is_valid_funcs @special_init_funcs @[init_funcs] @uPerEncDec @sEncodingSizeConstant @acnEncFunc @acnDecFunc @xerEncFunc @xerDecFunc
+
+    // Separated constants and funcs-only for Python's assembleAllProcs (merged EncodeConstants class)
+    let allEncConstBodies =
+        [ (if printUper then encDecCls.uperEncFunction.funcDef else None)
+          (if printAcn then encDecCls.acnEncFunction |> Option.bind (fun x -> x.funcDef) else None) ]
+        |> List.choose id
+    let allDecConstBodies =
+        [ (if printUper then encDecCls.uperDecFunction.funcDef else None)
+          (if printAcn then encDecCls.acnDecFunction |> Option.bind (fun x -> x.funcDef) else None) ]
+        |> List.choose id
+    let uPerFuncsOnly =
+        match printUper with
+        | true ->
+            [defaultArg encDecCls.uperEncFunction.func ""] @
+            encDecCls.uperEncFunction.auxiliaries @
+            [defaultArg encDecCls.uperDecFunction.func ""] @
+            encDecCls.uperDecFunction.auxiliaries
+        | false -> []
+    let acnEncFuncOnly =
+        match printAcn, encDecCls.acnEncFunction with
+        | true, Some x -> [defaultArg x.func ""] @ x.auxiliaries
+        | _ -> []
+    let acnDecFuncOnly =
+        match printAcn, encDecCls.acnDecFunction with
+        | true, Some x -> [defaultArg x.func ""] @ x.auxiliaries
+        | _ -> []
+    let allFuncsAndOtherProcs =
+        [equal_funcs] @is_valid_funcs @special_init_funcs @[init_funcs] @uPerFuncsOnly @sEncodingSizeConstant @acnEncFuncOnly @acnDecFuncOnly @xerEncFunc @xerDecFunc
+
+    let finalProcs = lm.lg.assembleAllProcs allEncConstBodies allDecConstBodies allFuncsAndOtherProcs allProcs
+    let generatedCode = lm.typeDef.Define_TAS type_definition finalProcs
     generatedCode
 
 let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) outDir (pu:ProgramUnit)  =
@@ -158,8 +193,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let requiresAcn = encodings |> Seq.exists ( (=) Asn1Encoding.ACN)
       
     let (definitionsContntent, srcBody) =
-        match r.lang with
-        | Python ->
+        if lm.lg.isObjectOriented then
             // Helper function to detect if a type uses deep field access (inline ACN encoding)
             let typeHasDeepFieldAccess (t: Asn1Type) : bool =
                 getResolvedTypeAndChildren t
@@ -241,10 +275,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     let mapEntries =
                         deduplicatedTypes |> List.collect(fun (canonicalKey, (parentTas, encDecCls)) ->
                             // DEBUG: Print what we're generating in STEP 1
-                            printfn "[STEP 1] Generating for key: %s" canonicalKey
-                            printfn "  encDecCls.id.AsString: %s" encDecCls.id.AsString
-                            printfn "  encDecCls.id.tasInfo: %A" encDecCls.id.tasInfo
-                            printfn "  parentTas: %s" (match parentTas.Type.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> "None")
+                            // printfn "[STEP 1] Generating for key: %s" canonicalKey
+                            // printfn "  encDecCls.id.AsString: %s" encDecCls.id.AsString
+                            // printfn "  encDecCls.id.tasInfo: %A" encDecCls.id.tasInfo
+                            // printfn "  parentTas: %s" (match parentTas.Type.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> "None")
 
                             // Find the correct TAS for this type using the canonicalKey
                             // This ensures each type gets its own class name, not the parent's
@@ -254,26 +288,26 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                                 if parts.Length >= 2 then
                                     let modName = parts.[0]
                                     let tasName = parts.[parts.Length - 1]  // Last part is the TAS name
-                                    printfn "  Looking for TAS: %s.%s (from canonicalKey)" modName tasName
+                                    // printfn "  Looking for TAS: %s.%s (from canonicalKey)" modName tasName
 
                                     let found = tases |> List.tryFind (fun tas ->
                                         match tas.Type.id.tasInfo with
                                         | Some ti ->
                                             let matches = ti.modName = modName && ti.tasName = tasName
-                                            if matches then printfn "    FOUND matching TAS: %s.%s" ti.modName ti.tasName
+                                            // if matches then printfn "    FOUND matching TAS: %s.%s" ti.modName ti.tasName
                                             matches
                                         | None -> false
                                     )
 
                                     match found with
                                     | Some tas ->
-                                        printfn "  Using correctTas: %s.%s" modName tasName
+                                        // printfn "  Using correctTas: %s.%s" modName tasName
                                         tas
                                     | None ->
-                                        printfn "  NOT FOUND - falling back to parentTas"
+                                        // printfn "  NOT FOUND - falling back to parentTas"
                                         parentTas
                                 else
-                                    printfn "  Invalid canonicalKey format - using parentTas"
+                                    // printfn "  Invalid canonicalKey format - using parentTas"
                                     parentTas
 
                             let f cl = {Caller.typeId = correctTas.Type.id.tasInfo.Value; funcType = cl}
@@ -340,6 +374,8 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 )
 
             // Deduplicate by canonical key, keeping the richest version
+            // TypeDefinition versions always win over ReferenceToExistingDefinition,
+            // so that top-level type assignments generate their own class bodies.
             let deduplicatedTypeMap =
                 allTypesFromAllTases
                 |> List.groupBy (fun (tas, t) ->
@@ -349,9 +385,9 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 )
                 |> List.map (fun (canonicalKey, tasTypePairs) ->
                     let chosen = tasTypePairs |> List.maxBy (fun (tas, t) ->
-                        match t.Kind with
-                        | Sequence seq -> seq.children.Length
-                        | _ -> 0
+                        let isTypeDef = if t.typeDefinitionOrReference.IsTypeDefinition then 10000 else 0
+                        let childCount = match t.Kind with | Sequence seq -> seq.children.Length | _ -> 0
+                        isTypeDef + childCount
                     )
                     (canonicalKey, chosen)
                 )
@@ -411,6 +447,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 // // Full type definitions are always the last elements, so we need to group them by their keys and then take the last element
                 |> List.groupBy (fun (tasKey, typ) -> (tasKey, typ.id.AsString))
                 |> List.map (fun (tasKey, items) -> items |> List.last)
+                // Deduplicate: for each type ID, keep only the first TAS that owns it
+                // This prevents the same nested type from being included multiple times
+                |> List.groupBy (fun (tasKey, typ) -> typ.id.AsString)
+                |> List.collect (fun (typeId, items) -> items |> List.take 1)  // Keep first occurrence only
                 |> List.groupBy fst
                 |> List.map (fun (tasKey, items) -> (tasKey, items |> List.map snd))
                 |> Map.ofList
@@ -440,7 +480,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         | Some ti -> $"{ti.modName}.{ti.tasName}"
                         | None -> tas.Type.id.AsString
 
-                    printfn "=== Processing TAS: %s ===" tasCanonicalKey
+                    // printfn "=== Processing TAS: %s ===" tasCanonicalKey
 
                     // Get the types that belong to this TAS (already in correct order)
                     let typesToGenerate =
@@ -448,7 +488,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         | Some typeList -> typeList  // Already just Asn1Type list
                         | None -> []
 
-                    printfn "  Types to generate: %A" (typesToGenerate |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
+                    // printfn "  Types to generate: %A" (typesToGenerate |> List.map (fun t -> match t.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> t.id.AsString))
 
                     // Separate into types with deep field access (in map) and those without
                     let typesInMap, typesNotInMap =
@@ -473,7 +513,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             let printIsValid = r.callersSet |> Set.contains (f IsValidFunctionType)
                             let printUper = requiresUPER && r.callersSet |> Set.contains (f UperEncDecFunctionType)
                             let printAcn = requiresAcn && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
-                            printfn "    Generating code for: %s" (match cls.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> cls.id.AsString)
+                            // printfn "    Generating code for: %s" (match cls.id.tasInfo with Some ti -> $"{ti.modName}.{ti.tasName}" | None -> cls.id.AsString)
                             printUnitInternal tas cls cls lm printInit printEquals printIsValid printUper printAcn
                         )
 
@@ -525,8 +565,8 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesBodyFile (ToC pu.testcase_specFileName) pu.name (pu.name::pu.importedProgramUnits) [""] typeDefs false
                 File.WriteAllText(testcase_specFileName, tstCasesHdrContent.Replace("\r",""))
                 
-            definitionsContent, "BODY"    
-        | _ ->
+            definitionsContent, "BODY"
+        else
             //header file
             let typeDefs =
                 tases |>
@@ -605,9 +645,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let bXer = r.args.encodings |> Seq.exists ((=) XER)
             let arrsUtilityDefines = []
             let puCorrName =
-                match r.lang with
-                | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
-                | _ -> pu.name
+                if lm.lg.shouldApplyToCToPackageName then ToC (pu.name) else pu.name
 
             let definitionsContntent =
                 lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
@@ -652,7 +690,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
                     let initialize =
                         match r.callersSet |> Set.contains (f InitFunctionType) with
-                        | true -> 
+                        | true ->
                             match lm.lg.initMethod with
                             | InitMethod.Procedure  ->
                                 Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
@@ -696,7 +734,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         (match t.Type.xerDecFunction with
                         | XerFunction z -> z.func |> Option.toList
                         | XerFunctionDummy -> [])
-                    
+
                     let hasAcnEncDec = r.callersSet |> Set.contains (f AcnEncDecFunctionType)
                     // Auxiliaries (e.g., specialized deferred-patching functions) are
                     // emitted BEFORE the main function so that forward declarations
@@ -751,10 +789,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             match eqContntent with
             | Some eqContntent ->
                 let fileName = Path.Combine(outDir, pu.bodyFileName) // todo: here
-                match r.lang with
-                // In case of Python, there is no Spec and Body file distinction, therefore we append rather than overwrite
-                | CommonTypes.ProgrammingLanguage.Python -> File.AppendAllText(fileName, eqContntent.Replace("\r",""))
-                | _ -> File.WriteAllText(fileName, eqContntent.Replace("\r",""))
+                if lm.lg.shouldAppendToBodyFile then
+                    File.AppendAllText(fileName, eqContntent.Replace("\r",""))
+                else
+                    File.WriteAllText(fileName, eqContntent.Replace("\r",""))
             | None             -> ()
 
             //test cases source file
@@ -799,12 +837,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
 
 
 let generateAll (di:DirInfo) (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list)  =
-    let _ = match r.lang with
-            | Python ->
-                // Write basic __init__.py in root & in srcDir
-                File.WriteAllLines(Path.Combine(di.rootDir, "__init__.py"), ["from .asn1python import *"] @ ["from .asn1src import *"])
-                File.WriteAllText(Path.Combine(di.srcDir, "__init__.py"), "")
-            | l -> ignore l
+    if lm.lg.shouldGenerateInitFiles then
+        // Write basic __init__.py in root & in srcDir
+        File.WriteAllLines(Path.Combine(di.rootDir, "__init__.py"), ["from .asn1python import *"] @ ["from .asn1src import *"])
+        File.WriteAllText(Path.Combine(di.srcDir, "__init__.py"), "")
     
     let generatedContent = r.programUnits |> List.map(printUnit r lm encodings di.srcDir) |> List.map snd |> Seq.StrJoin "\n"
     match r.args.generateAutomaticTestCases with

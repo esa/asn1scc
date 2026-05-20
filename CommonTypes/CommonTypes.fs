@@ -13,10 +13,12 @@ let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "defau
 let scala_keywords =  [ "abstract"; "case"; "catch"; "class"; "def"; "do"; "else"; "enum"; "export"; "extends"; "false"; "final"; "finally"; "float"; "for"; "given"; "if"; "implicit"; "import"; "int"; "lazy"; "match"; "new"; "null"; "object"; "override"; "package"; "private"; "protected"; "return"; "sealed"; "super"; "then"; "throw"; "trait"; "true"; "try"; "type"; "val"; "var"; "while"; "with"; "yield"; ] |> Set.ofList
 let ada_keywords =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ] |> Set.ofList
 let python_keywords = [
-    "False"; "None"; "True"; "and"; "as"; "assert"; "async"; "await"; "break"; "class"; 
-    "continue"; "def"; "del"; "elif"; "else"; "except"; "finally"; "for"; "from"; "global"; 
-    "if"; "import"; "in"; "is"; "lambda"; "nonlocal"; "not"; "or"; "pass"; "raise"; 
-    "return"; "try"; "while"; "with"; "yield"; ] |> Set.ofList
+    "False"; "None"; "True"; "and"; "as"; "assert"; "async"; "await"; "break"; "class";
+    "continue"; "def"; "del"; "elif"; "else"; "except"; "finally"; "for"; "from"; "global";
+    "if"; "import"; "in"; "is"; "lambda"; "nonlocal"; "not"; "or"; "pass"; "raise";
+    "return"; "try"; "while"; "with"; "yield";
+    // ABCMeta methods: accessible on any ABC subclass and conflict with @dataclass field ordering
+    "register"; "mro"; ] |> Set.ofList
 
 
 type UserErrorSeverity =
@@ -57,14 +59,17 @@ type AccessStep =
 /// Generators render concrete lvalues/rvalues from this structure in a deterministic way.
 type AccessPath = {
     /// The identifier of the root function parameter holding the ASN.1 value (e.g., `val`, `pVal`, `pVal1`).
-    rootId: string              
+    rootId: string
     /// How the root must be accessed (value, pointer, array element).
     rootTargetType: AccessTargetType
     /// The sequence of access steps leading to the target.
     steps: AccessStep list             // in long fields, this is the path to the field
+    /// Extra depth that contributes to SequenceOfLevel without adding an ArrayAccess step.
+    /// Used when decoding into a temp variable instead of indexing into the array directly.
+    phantomArrayDepth: int
 } with
     static member emptyPath (receiverId: string) (receiverType: AccessTargetType): AccessPath =
-        { AccessPath.rootId = receiverId; rootTargetType = receiverType; steps = []}
+        { AccessPath.rootId = receiverId; rootTargetType = receiverType; steps = []; phantomArrayDepth = 0 }
     static member valueEmptyPath (receiverId: string): AccessPath = AccessPath.emptyPath receiverId ByValue
 
     member this.append (acc: AccessStep): AccessPath =
@@ -119,7 +124,8 @@ type AccessPath = {
         if this.steps.IsEmpty then this
         else this.asLast
     member this.SequenceOfLevel =
-        this.steps |> List.filter(fun n -> match n with ArrayAccess _ -> true | _ -> false) |> Seq.length
+        this.phantomArrayDepth +
+        (this.steps |> List.filter(fun n -> match n with ArrayAccess _ -> true | _ -> false) |> Seq.length)
 
 
 type UserError = {
@@ -916,7 +922,7 @@ type TypeDefinition = {
     /// For composite types, typedefBody contains also the definition of any
     /// inner children
     typedefBody : unit -> string
-    
+
     /// the definition of only this type, without including child type definitions
     /// useful for backends like Python where you want to generate classes separately
     typedefBodyOnly : unit -> string

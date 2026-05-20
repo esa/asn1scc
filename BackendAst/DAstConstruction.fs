@@ -86,7 +86,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
             let funcBody codec = match codec with Codec.Encode -> funcBodyEncode | Codec.Decode -> funcBodyDecode
             funcBody codec prms nestingScope p, st
         let retFunc = DAstACN.handleSavePosition funBodyWithState ch.Type.savePosition (ToC ch.Name.Value) lvName ch.id lm codec
-        retFunc emptyState {ErrorCode.errCodeName = ""; ErrorCode.errCodeValue=0; comment=None} prms nestingScope p |> fst
+        retFunc emptyState {ErrorCode.errCodeName = ""; ErrorCode.errCodeValue=0; comment=None; fieldPath=""} prms nestingScope p |> fst
 
     let initExpression =
         match ch.Type with
@@ -671,7 +671,7 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         not (depFieldPath.StartsWith(currentSeqPath + "#") || depFieldPath.StartsWith(currentSeqPath + ".") || depFieldPath = currentSeqPath))
                 if hasExternalDep then
                     // Create an ACN parameter for this external ACN child
-                    printfn "[DEBUG] createSequence: Adding external ACN child %s as parameter to %s" acnChild.Name.Value (t.id.AsString)
+                    // printfn "[DEBUG] createSequence: Adding external ACN child %s as parameter to %s" acnChild.Name.Value (t.id.AsString)
                     // Map the ACN child to a DAst ACN parameter
                     // Get the ACN child's type and convert it to AcnParamType
                     let acnParamType =

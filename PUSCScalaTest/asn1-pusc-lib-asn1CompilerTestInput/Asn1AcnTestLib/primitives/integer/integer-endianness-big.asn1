@@ -1,0 +1,18 @@
+-- Requirement 10: INTEGER with big-endian encoding
+-- Tests big-endian byte ordering in INTEGER encoding
+
+IntegerEndiannessBig DEFINITIONS ::= BEGIN
+
+    BigEndianInt16 ::= INTEGER (0..65535)
+
+    BigEndianInt32 ::= INTEGER (0..4294967295)
+
+    BigEndianInt64 ::= INTEGER (0..18446744073709551615)
+
+    TestStruct ::= SEQUENCE {
+        value16 BigEndianInt16,
+        value32 BigEndianInt32,
+        value64 BigEndianInt64
+    }
+
+END

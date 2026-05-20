@@ -86,7 +86,7 @@ Declare_Asn1Date_UtcTimeNoRTL              	()::= "Asn1DateUtcTime"
 Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateTimeWithTimeZone"
 
 
-Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
+Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots, arr_Asn1Encoding) ::= <<
 <arrsAnnots:{ann|@<ann>}; separator=" ">
 type <sTypeDefinitionName> = <sParentType>
 <soExtraDefs>
@@ -111,7 +111,7 @@ Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, 
 // type <sCName> = <td.typeName>.<sAsn1Name>
 >>
 
-Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
+Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros, arr_Asn1Encoding) ::= <<
 sealed trait <td.typeName>:
     def i: Int
 object <td.typeName>:
@@ -123,7 +123,7 @@ object <td.typeName>:
 
 
 
-Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
+Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -135,17 +135,17 @@ Define_subType_enumerated_private(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_
 
 /***********************************       STRING    ************************************************************/
 
-Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
+Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars, arr_Asn1Encoding) ::= <<
 type <td.typeName> = Vector[UByte]
 >>
 
-Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
+Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>
 >>
 
 /***********************************       OCTET STRING    ************************************************************/
 
-Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, arrsInvariants) ::= <<
+Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, arrsInvariants, arr_Asn1Encoding) ::= <<
 <if(!bFixedSize)>
 /*nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)*/
 
@@ -156,7 +156,7 @@ case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Vector[UByte
 }
 >>
 
-Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>
 >>
 
@@ -166,7 +166,7 @@ Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBit
 #define <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /*<sComment>*/
 >>
 
-Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits, arrsInvariants) ::= <<
+Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits, arrsInvariants, arr_Asn1Encoding) ::= <<
 <arrsNamedBits:{it|<it>}; separator="\n">
 
 <if(!bFixedSize)>
@@ -179,14 +179,14 @@ case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Vector[UByte
 }
 >>
 
-Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize) ::= <<
+Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>
 >>
 
 /***********************************       SEQUENCE OF    ************************************************************/
 
 
-Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeClassDefinition, arrsSizeObjDefinition, arrsInvariants) ::= <<
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition, arrsSizeClassDefinition, arrsSizeObjDefinition, arrsInvariants, arr_Asn1Encoding) ::= <<
 
 <soChildDefinition>
 
@@ -201,7 +201,7 @@ object <td.typeName> {
 }
 >>
 
-Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefinition) ::= <<
+Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefinition, arr_Asn1Encoding) ::= <<
 
 <soChildDefinition>
 
@@ -223,7 +223,7 @@ Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 
 Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "BitStream <sName>;"
 
-Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos, arrsSizeDefinition, arrsInvariants) ::= <<
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos, arrsSizeDefinition, arrsInvariants, arr_Asn1Encoding) ::= <<
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildrenDefinitions; separator= "\n">
 <if (arrsNullFieldsSavePos)>
@@ -248,7 +248,7 @@ case class <td.typeName> (
 
 >>
 
-Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs) ::= <<
+Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren, arrsExtraDefs, arr_Asn1Encoding) ::= <<
 type <td.typeName> = <prTd.typeName>
 
 object <td.typeName> {
@@ -267,7 +267,7 @@ Define_new_choice_child(sName, sType, sPresent) ::=<<
 <sName>: <sType>
 >>
 
-Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions, arrsSizeDefinition) ::= <<
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions, arrsSizeDefinition, arr_Asn1Encoding) ::= <<
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildrenDefinitions; separator= "\n">
 
@@ -277,7 +277,7 @@ enum <td.typeName>:
     <arrsSizeDefinition; separator="\n\n">
 >>
 
-Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
+Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>
 >>
 
