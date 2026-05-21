@@ -1044,7 +1044,7 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 # acn_python.stg 772
 # Encode <sChName>
-if not <sChName>_is_initialized and <sChName> is None:
+if not <sChName>_is_initialized and locals().get('<sChName>') is None:
     # todo: is a default value correct?
     <sChName> = 0  # Default value for ACN inserted field
 <soSaveBitStrmPosStatement>
@@ -1271,11 +1271,7 @@ else:
 ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive, arrsAcnParams) ::= <<
 if <arrsConditions; separator=" and ">:
     # acn_python.stg 938
-    <if(bIsPrimitive)>
     <sChildBody>
-    <else>
-    <p><sAcc>data.encode_acn(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-    <endif>
 >>
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
@@ -1288,13 +1284,10 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 <if(bFirst)>if<else>elif<endif> <arrsConditions; separator=" and ">:
     # acn_python.stg 952
     <if(bIsPrimitive)>
+    instance_<sChildName> = <sChildTypeDef>()
     <sChildBody>
     <else>
-    instance_decode_<sChildName> = <sChildTypeDef>.decode_acn(codec, check_constraints<if(arrsAcnParams)>, <arrsAcnParams; separator=", "><endif>)
-    if isinstance(instance_decode_<sChildName>, tuple):
-        instance_<sChildName>, _ = instance_decode_<sChildName>
-    else:
-        instance_<sChildName> = instance_decode_<sChildName>
+    <sChildBody>
     <endif>
     <p> = <sChoiceTypeName>(kind=<sChildID>, data=instance_<sChildName>)
 >>

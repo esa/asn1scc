@@ -184,12 +184,24 @@ and private handlePresenceBool (ctx: DepContext) (us: State) =
         let parDecTypeSeq =
             match d.asn1Type with
             | ReferenceToType (nodes) -> ReferenceToType (nodes |> List.rev |> List.tail |> List.rev)
-        let pBase, relPath = resolveDepScope nestingScope pSrcRoot parDecTypeSeq
-        let pDecParSeq, checkPath = getAccessFromScopeNodeList relPath false lm pBase
-        let updateStatement = lm.acn.PresenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC d.asn1Type.lastItem)
-        match checkPath with
-        | []    -> updateStatement
-        | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
+        let (ReferenceToType parDecNodes) = parDecTypeSeq
+        // Only generate the presence update if the parent sequence is reachable from the current nesting scope.
+        // When a type is processed standalone (e.g. TM-HEADER without TM-PACKET as parent), the dep scope
+        // cannot be resolved and we must skip the update to avoid accessing a non-existent field.
+        let depResolvable =
+            nestingScope.parents |> List.exists (fun (_, t) ->
+                let (ReferenceToType scopeNodes) = t.id
+                let n = List.length scopeNodes
+                n >= 2 && n <= List.length parDecNodes && List.take n parDecNodes = scopeNodes)
+        if not depResolvable then
+            ""
+        else
+            let pBase, relPath = resolveDepScope nestingScope pSrcRoot parDecTypeSeq
+            let pDecParSeq, checkPath = getAccessFromScopeNodeList relPath false lm pBase
+            let updateStatement = lm.acn.PresenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC d.asn1Type.lastItem)
+            match checkPath with
+            | []    -> updateStatement
+            | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
     let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
         match atc.testCaseTypeIDsMap.TryFind(d.asn1Type) with
         | Some _    -> Some TcvComponentPresent
@@ -202,6 +214,17 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
     let icdComments = [sprintf "Used as a presence determinant for %s " (chc.typeDef[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)]
     let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
         let v = lm.lg.getValue vTarget.accessPath
+        let (ReferenceToType depNodes) = d.asn1Type
+        // Skip update when the dep target type is not reachable from the current nesting scope
+        // (e.g. the parent type containing the choice field is not an ancestor of this type).
+        let depResolvable =
+            nestingScope.parents |> List.exists (fun (_, t) ->
+                let (ReferenceToType scopeNodes) = t.id
+                let n = List.length scopeNodes
+                n >= 2 && n <= List.length depNodes && List.take n depNodes = scopeNodes)
+        if not depResolvable then
+            ""
+        else
         let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
         let arrsChildUpdates =

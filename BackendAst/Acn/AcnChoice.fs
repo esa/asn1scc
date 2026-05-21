@@ -225,9 +225,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                                 choiceChild_preWhen_str_condition extField strVal.Value arrNulls bytesStr
                         let conds = child.acnPresentWhenConditions |>List.map handPresenceCond
                         let pp, _ = joinedOrAsIdentifier lm codec p
-                        // NULL/empty-SEQUENCE children have no ACN function (childContentResult=None)
-                        // and must use sChildBody directly rather than calling data.encode_acn(...)
-                        let bIsPrimitive = childContentResult.IsNone
+                        // bIsPrimitive = true when:
+                        // - no ACN function (NULL/empty-SEQUENCE with childContentResult=None)
+                        // - NullType child even with ACN function (Python Copy-decoding returns Some
+                        //   from createNullTypeFunction but NullType has no decode_acn method)
+                        let bIsPrimitive =
+                            childContentResult.IsNone ||
+                            (match child.chType.ActualType.Kind with NullType _ -> true | _ -> false)
                         Some (choiceChild_preWhen pp (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName sChildInitExpr bIsPrimitive [] codec)
             [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries|}], ns1
 
