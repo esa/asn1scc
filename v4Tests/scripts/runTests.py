@@ -164,7 +164,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         #     sys.exit(1)
         #
         # res = mysystem("CC=gcc make coverage >covlog.txt 2>&1", True)
-        res = mysystem("make coverage >covlog.txt 2>&1", True)
+        makeTarget = "coverage" if bRunCodeCoverage else ""
+        res = mysystem(f"make {makeTarget} >covlog.txt 2>&1", True)
         if res != 0 and behavior != 2:
             PrintFailed("run time failure")
             PrintFailed("covlog.txt is ...")

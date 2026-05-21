@@ -10,7 +10,7 @@ open DAstUtilFunctions
 open Language
 
 
-let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
+let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 (stopAtPrm: bool) =
     let dependency =
         match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d ) with
         | Some d -> d
@@ -22,10 +22,13 @@ let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
         let lastNode = nodes |> List.rev |> List.head
         match lastNode with
         | PRM prmName   ->
-            if r.args.acnDeferred then
+            if r.args.acnDeferred || stopAtPrm then
                 // In deferred mode, the parameter IS the value — it arrives
                 // as an AcnInsertedFieldRef* formal parameter.  Do NOT follow
                 // RefTypeArgumentDependency chains; stop here.
+                // When stopAtPrm=true (e.g. Python CEC_presWhen), the generated
+                // code is a standalone method: use the formal parameter name, not
+                // the caller's variable name.
                 prmId
             else
                 let newDeterminantId =
@@ -110,7 +113,10 @@ let getExternalFieldChoicePresentWhen (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot)
         match d.dependencyKind with
         | AcnDepPresence (relPath0, _)   -> relPath = relPath0
         | _                              -> true
-    getExternalField0 lm r deps asn1TypeIdWithDependency filterDependency
+    // For Python, CHOICE present-when conditions live in standalone decode methods;
+    // use the formal parameter name rather than chasing to the caller's variable.
+    let stopAtPrm = ProgrammingLanguage.ActiveLanguages.Head = Python
+    getExternalField0 lm r deps asn1TypeIdWithDependency filterDependency stopAtPrm
 
 let getExternalFieldTypeChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency  relPath=
     let filterDependency (d:AcnDependency) =
@@ -120,7 +126,7 @@ let getExternalFieldTypeChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
     getExternalField0Type r deps asn1TypeIdWithDependency filterDependency
 
 let getExternalField (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
-    getExternalField0 lm r deps asn1TypeIdWithDependency (fun z -> true)
+    getExternalField0 lm r deps asn1TypeIdWithDependency (fun z -> true) false
 
 let getExternalFieldType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
     getExternalField0Type r deps asn1TypeIdWithDependency (fun z -> true)

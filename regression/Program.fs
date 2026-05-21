@@ -354,7 +354,7 @@ let main0 argv =
                 for l in languages do
                     for ws in [word_sizes] do
                         for sm in slim_modes do
-                            if not (l = "python" && sm) then   // slim mode is C-only
+                            if not (l <> "c" && sm) then   // slim mode is C-only
                                 yield (l,ws,sm, enableIG, enableAcnV2)
             } |> Seq.toList
         let asn1sccInvoications =
