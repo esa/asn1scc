@@ -640,8 +640,17 @@ let funcBody l fncs (e:ErrorCode) (p:CodegenScope) =
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference) (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (o.intClass) c us) us
+    // For Python: uperRange lower bound = 0 is skipped by integerConstraint2ValidationCodeBlock
+    // (intClass.Min = 0 for unsigned types), but Python ints are untyped, so add it back explicitly.
+    let lowerBoundFncs =
+        match ProgrammingLanguage.ActiveLanguages.Head, o.uperRange with
+        | ProgrammingLanguage.Python, (Concrete (min, _) | PosInf min) when min = 0I ->
+            [fun (p:CodegenScope) -> VCBExpression (l.isvalid.ExpLte "0" (l.lg.getValue p.accessPath))]
+        | _ -> []
+    let allFncs = lowerBoundFncs @ fncs
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
-    createIsValidFunction r l t  (funcBody l fncs) typeDefinition [] [] [] [] (Some errorCodeComment) ns
+    createIsValidFunction r l t (funcBody l allFncs) typeDefinition [] [] [] [] (Some errorCodeComment) ns
+
 let createIntegerFunctionByCons (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) isUnsigned (allCons  : IntegerTypeConstraint list) =
     match allCons with
     | []        -> None
