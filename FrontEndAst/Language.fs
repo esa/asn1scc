@@ -418,6 +418,8 @@ type ILangGeneric () =
     abstract member usesWrappedOptional: bool
     abstract member needsExistSequence: bool
     default _.needsExistSequence = true
+    abstract member needsExplicitZeroLowerBound: uperRange:BigIntegerUperRange -> bool
+    default _.needsExplicitZeroLowerBound _ = false
     abstract member stopAtPrmForChoicePresentWhen: bool
     default _.stopAtPrmForChoicePresentWhen = false
     abstract member usesBooleanPresenceBits: bool

@@ -755,6 +755,10 @@ type LangGeneric_python() =
     override this.TempArrayItemSuffix = "_arr_elem"
     override _.usesWrappedOptional = false
     override _.needsExistSequence = false
+    override _.needsExplicitZeroLowerBound uperRange =
+        match uperRange with
+        | Concrete (min, _) | PosInf min -> min = 0I
+        | _ -> false
     override _.stopAtPrmForChoicePresentWhen = true
     override _.usesBooleanPresenceBits = true
     override _.usesChoiceTempVarPath = true
