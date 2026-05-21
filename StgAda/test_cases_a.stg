@@ -152,7 +152,7 @@ Codec_declare_DecIn_variable(sPrmName, sType) ::= "dec_<sPrmName> : <sType>;"
 
 
 
-PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
+PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass, sEncodingEnumValue) ::= <<
 function <sFuncName>(<sVal>:<sModName>.<sTasName>; Filename : in String) return <rtlModuleName()>.TEST_CASE_RESULT
 is
     decodedPDU  : <sModName>.<sTasName>;
@@ -360,9 +360,13 @@ begin
 	pragma Warnings (On, "is always False at this point");
 
 	pragma Warnings (Off, "object ""tc_data"" is always");
+	pragma Warnings (Off, "condition is always True");
+	pragma Warnings (Off, "condition is always False");
     s1 := Ada.Calendar.Clock;
     result := <sTasName>_<sEnc>enc_dec(tc_data,"<sFuncName>");
     s2 := Ada.Calendar.Clock;
+	pragma Warnings (On, "condition is always True");
+	pragma Warnings (On, "condition is always False");
 	pragma Warnings (On, "object ""tc_data"" is always");
     if result.Success then
         Put("Test case '<sFuncName>' succeeded, duration was :");
@@ -426,4 +430,8 @@ package body <sPackageName> is
 
 end <sPackageName>;
 
+>>
+
+decodingCaseKind(sBody, sIdentifier) ::= <<
+<sBody>
 >>

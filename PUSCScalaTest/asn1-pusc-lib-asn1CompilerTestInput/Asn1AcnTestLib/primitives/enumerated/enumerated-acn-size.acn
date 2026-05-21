@@ -1,0 +1,18 @@
+-- ACN encoding with size attribute for ENUMERATED
+
+EnumeratedAcnSize DEFINITIONS ::= BEGIN
+
+    TwoBitEnum [size 2, encoding pos-int]
+
+    FourBitEnum [size 4, encoding pos-int]
+
+    EightBitEnum [size 8, encoding pos-int]
+
+    TestStruct []
+    {
+        twobit [],
+        fourbit [],
+        eightbit []
+
+    }
+END

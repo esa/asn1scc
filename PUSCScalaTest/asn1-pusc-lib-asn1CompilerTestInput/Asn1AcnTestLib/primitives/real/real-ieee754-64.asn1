@@ -1,0 +1,15 @@
+-- Requirement 15: REAL with IEEE 754-1985-64 format
+-- Tests 64-bit floating point numbers using IEEE 754 standard
+
+RealIeee754-64 DEFINITIONS ::= BEGIN
+
+    Float64 ::= REAL
+
+    TestStruct ::= SEQUENCE {
+        latitude Float64,
+        longitude Float64,
+        altitude Float64,
+        velocity Float64
+    }
+
+END

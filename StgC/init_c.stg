@@ -20,9 +20,9 @@ void <sFuncName>(<sTypeDefName><sPtrSuffix> <sVarName>)
 >>
 
 
-initInteger(sVal, sValue, bIsOptional, sResVar) ::= "<sVal> = <sValue>;"
-initReal(sVal, dValue, bIsOptional, sResVar) ::= "<sVal> = <dValue>;"
-initBoolean(sVal, bValue, bIsOptional, sResVar) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
+initInteger(sVal, sValue, bIsOptional, sResVar, sType) ::= "<sVal> = <sValue>;"
+initReal(sVal, dValue, bIsOptional, sResVar, sType) ::= "<sVal> = <dValue>;"
+initBoolean(sVal, bValue, bIsOptional, sResVar, sType) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
 
 initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
@@ -82,7 +82,7 @@ assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= "strcpy(<sPtr>,<sValue>);"
 initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= "<sVal> = <sValue>;"
-initNull(sVal, bIsOptional, sResVar) ::= "<sVal> = 0;"
+initNull(sVal, bIsOptional, sResVar, sType) ::= "<sVal> = 0;"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar, sInitChar) ::= <<
 <if(bZero)>

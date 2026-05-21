@@ -1,0 +1,14 @@
+-- Requirement 1: Basic BOOLEAN support
+-- Tests fundamental ASN.1 BOOLEAN type without ACN attributes
+
+BooleanBasic DEFINITIONS ::= BEGIN
+
+    BasicBool ::= BOOLEAN
+
+    TestStructWithBool ::= SEQUENCE {
+        flag1 BOOLEAN,
+        flag2 BOOLEAN,
+        flag3 BOOLEAN
+    }
+
+END

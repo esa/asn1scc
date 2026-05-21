@@ -1,0 +1,15 @@
+-- ACN encoding with IEEE 754-1985-32 format
+
+RealIeee754-32 DEFINITIONS ::= BEGIN
+
+    Float32 [encoding IEEE754-1985-32]
+
+    TestStruct []
+    {
+        temperature [],
+        pressure [],
+        voltage [],
+        current []
+
+    }
+END

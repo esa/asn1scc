@@ -31,7 +31,7 @@ PacketSequenceControl []
     packetSequenceCountOrName [size 14, encoding pos-int, endianness big]
 }
 
-SecondaryHeaderFlag [size 1, encoding pos-int, endianness big]
+SecondaryHeaderFlag [size 4, encoding pos-int, endianness big]
 
 PacketDataLength [size 16, encoding pos-int, endianness big]
 

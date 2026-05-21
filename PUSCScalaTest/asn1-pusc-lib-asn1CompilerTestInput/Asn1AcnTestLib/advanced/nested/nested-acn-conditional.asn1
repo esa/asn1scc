@@ -1,0 +1,27 @@
+-- Requirement 48: Conditional presence in nested ACN definitions
+-- Tests conditional presence or parametrization constructs in nested structures
+
+NestedAcnConditional DEFINITIONS ::= BEGIN
+
+    ConditionalInner ::= SEQUENCE {
+        baseField INTEGER (0..255),
+        extensionField INTEGER (0..65535) OPTIONAL
+    }
+
+    ConditionalOuter ::= SEQUENCE {
+        inner ConditionalInner,
+        optionalData OCTET STRING (SIZE(16)) OPTIONAL
+    }
+
+    NestedConditional ::= SEQUENCE {
+        data1 OCTET STRING (SIZE(8)) OPTIONAL,
+        data2 OCTET STRING (SIZE(16)) OPTIONAL,
+        data3 INTEGER (0..65535) OPTIONAL
+    }
+
+    TestStruct ::= SEQUENCE {
+        outer ConditionalOuter,
+        nested NestedConditional
+    }
+
+END

@@ -1,0 +1,21 @@
+-- Requirement 25: IA5String with size constraints (variable size)
+-- Tests IA5String with SIZE(min..max) constraints
+
+Ia5stringSizeRange DEFINITIONS ::= BEGIN
+
+    VariableIA5String1 ::= IA5String (SIZE(1..16))
+
+    VariableIA5String2 ::= IA5String (SIZE(8..64))
+
+    VariableIA5String3 ::= IA5String (SIZE(0..255))
+
+    VariableIA5String4 ::= IA5String (SIZE(16..1024))
+
+    TestStruct ::= SEQUENCE {
+        shortString VariableIA5String1,
+        mediumString VariableIA5String2,
+        longString VariableIA5String3,
+        customString VariableIA5String4
+    }
+
+END

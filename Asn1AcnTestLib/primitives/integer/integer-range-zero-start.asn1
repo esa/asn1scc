@@ -1,0 +1,21 @@
+-- Requirement 6: INTEGER range starting with 0
+-- Tests INTEGER ranges like (0..255) or (0..65535)
+
+IntegerRangeZeroStart DEFINITIONS ::= BEGIN
+
+    UInt8 ::= INTEGER (0..255)
+
+    UInt16 ::= INTEGER (0..65535)
+
+    UInt32 ::= INTEGER (0..4294967295)
+
+    SmallRange ::= INTEGER (0..15)
+
+    TestStruct ::= SEQUENCE {
+        byte UInt8,
+        word UInt16,
+        dword UInt32,
+        nibble SmallRange
+    }
+
+END

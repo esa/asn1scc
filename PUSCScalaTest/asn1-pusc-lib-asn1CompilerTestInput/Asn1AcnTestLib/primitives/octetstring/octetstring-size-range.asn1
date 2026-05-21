@@ -1,0 +1,21 @@
+-- Requirement 22: OCTET STRING with size constraints (variable size)
+-- Tests OCTET STRING with SIZE(min..max) constraints
+
+OctetstringSizeRange DEFINITIONS ::= BEGIN
+
+    VariableOctetString1 ::= OCTET STRING (SIZE(1..8))
+
+    VariableOctetString2 ::= OCTET STRING (SIZE(8..64))
+
+    VariableOctetString3 ::= OCTET STRING (SIZE(0..255))
+
+    VariableOctetString4 ::= OCTET STRING (SIZE(16..1024))
+
+    TestStruct ::= SEQUENCE {
+        small VariableOctetString1,
+        medium VariableOctetString2,
+        large VariableOctetString3,
+        custom VariableOctetString4
+    }
+
+END

@@ -1,0 +1,18 @@
+-- ACN encoding with size attribute for OCTET STRING
+
+OctetstringAcnSize DEFINITIONS ::= BEGIN
+
+    DynamicOctetString1 []
+
+    DynamicOctetString2 []
+
+    DynamicOctetString3 []
+
+    TestStruct []
+    {
+        data1 [],
+        data2 [],
+        data3 []
+    }
+
+END

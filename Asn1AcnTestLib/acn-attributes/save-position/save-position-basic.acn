@@ -1,0 +1,40 @@
+-- ACN encoding with save-position attribute
+
+SavePositionBasic DEFINITIONS ::= BEGIN
+
+    DataWithPosition []
+    {
+        header [size 8, save-position, encoding pos-int],
+        data [],
+        footer [size 8, encoding pos-int]
+    }
+
+    MultiplePositions []
+    {
+        section1 [save-position],
+        section2 [save-position],
+        section3 [save-position]
+    }
+
+    NestedPositions []
+    {
+        outer [save-position]
+        {
+            field1 [size 8, encoding pos-int],
+            inner [save-position]
+            {
+                field2 [size 16, encoding pos-int],
+                data []
+            }
+        },
+        trailer [size 8, encoding pos-int]
+    }
+
+    TestStruct []
+    {
+        data [],
+        multiple [],
+        nested []
+    }
+
+END

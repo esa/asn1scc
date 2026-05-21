@@ -1,0 +1,66 @@
+-- Requirement 38: Complex parameterized types
+-- Tests complex parameterized type scenarios with multiple parameters
+
+ParameterizedComplex DEFINITIONS ::= BEGIN
+
+    -- Parameterized wrapper with multiple type parameters
+    Pair { FirstType, SecondType } ::= SEQUENCE {
+        first FirstType,
+        second SecondType
+    }
+
+    -- Various instantiations
+    IntBoolPair ::= Pair { INTEGER, BOOLEAN }
+
+    RealStringPair ::= Pair { REAL, IA5String (SIZE(0..8)) }
+
+    -- Parameterized choice
+    Result { SuccessType, ErrorType } ::= CHOICE {
+        success SuccessType,
+        error ErrorType
+    }
+
+    -- Instantiate result types
+    IntResult ::= Result { INTEGER, IA5String (SIZE(0..8)) }
+
+    DataResult ::= Result {
+        SEQUENCE {
+            value REAL,
+            count INTEGER
+        },
+        INTEGER
+    }
+
+    -- Nested parameterized types
+    Message { PayloadType } ::= SEQUENCE {
+        header SEQUENCE {
+            msgId INTEGER,
+            timestamp INTEGER
+        },
+        payload PayloadType
+    }
+
+    TelemetryMessage ::= Message {
+        SEQUENCE {
+            sensorId INTEGER,
+            value REAL
+        }
+    }
+
+    CommandMessage ::= Message {
+        SEQUENCE {
+            commandId INTEGER,
+            parameters OCTET STRING (SIZE(16))
+        }
+    }
+
+    TestStruct ::= SEQUENCE {
+        pair1 IntBoolPair,
+        pair2 RealStringPair,
+        result1 IntResult,
+        result2 DataResult,
+        telemetry TelemetryMessage,
+        command CommandMessage
+    }
+
+END

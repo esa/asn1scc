@@ -11,21 +11,21 @@ initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sC
 def <sFuncName>(): <sTypeDefName> = <sDefaultInitValue>
 >>
 
-initInteger(sVal, sValue, bIsOptional, sResVar) ::= <<
+initInteger(sVal, sValue, bIsOptional, sResVar, sType) ::= <<
 <if(bIsOptional)>
 val <sResVar> = SomeMut(<sValue>)
 <else>
 val <sResVar> = <sValue>
 <endif>
 >>
-initReal(sVal, dValue, bIsOptional, sResVar) ::= <<
+initReal(sVal, dValue, bIsOptional, sResVar, sType) ::= <<
 <if(bIsOptional)>
 val <sResVar> = SomeMut(<dValue>)
 <else>
 val <sResVar> = <dValue>
 <endif>
 >>
-initBoolean(sVal, bValue, bIsOptional, sResVar) ::= <<
+initBoolean(sVal, bValue, bIsOptional, sResVar, sType) ::= <<
 <if(bIsOptional)>
 val <sResVar> = SomeMut(<if(bValue)>true<else>false<endif>)
 <else>
@@ -105,7 +105,7 @@ val <sResVar>: <sTypeDefName> = <sValue>
 <endif>
 >>
 
-initNull(sVal, bIsOptional, sResVar) ::= <<
+initNull(sVal, bIsOptional, sResVar, sType) ::= <<
 <if(bIsOptional)>
 val <sResVar>: OptionMut[NullType] = SomeMut(0)
 <else>

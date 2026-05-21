@@ -125,6 +125,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         elif language == 'Ada':
             res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
             return
+        elif language == 'python':
+            return  # No compilation step for Python; asn1scc success is sufficient
         else:
             # Scala
             res = mysystem("cd " + targetDir + os.sep + "; sbt compile", False)
@@ -162,7 +164,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         #     sys.exit(1)
         #
         # res = mysystem("CC=gcc make coverage >covlog.txt 2>&1", True)
-        res = mysystem("make coverage >covlog.txt 2>&1", True)
+        makeTarget = "coverage" if bRunCodeCoverage else ""
+        res = mysystem(f"make {makeTarget} >covlog.txt 2>&1", True)
         if res != 0 and behavior != 2:
             PrintFailed("run time failure")
             PrintFailed("covlog.txt is ...")
@@ -186,6 +189,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                     lines = filter(lambda x : "####" in x, lines)
                     lines = filter(lambda x : "COVERAGE_IGNORE" not in x, lines)
                     lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != 'end;', lines)
+                    lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != 'declare', lines)
                     lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "default:", lines)
                     lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "break;", lines)
                     lines = list(lines)
@@ -235,6 +239,13 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                 "BUG in python script, Unexpected combination "
                 "of res, behavior")
         os.chdir(prevDir)
+    elif language == 'python':
+        pyCmd = "cd " + targetDir + os.sep + "; uvx --python 3.11 pytest"
+        ret = mysystem(pyCmd, True)
+        if ret != 0 and ret != 5:  # exit code 5 = no tests collected, treat as success
+            PrintFailed(pyCmd)
+            mysystem("cat tmp.err"+"_"+language, True)
+            sys.exit(1)
     else:
         # Scala
         pass
@@ -429,7 +440,7 @@ def usage():
     print("where <options> are:")
     print("Mandatory:")
     print("     -l, --lang  <language_name>")
-    print("           where <language_name> is c or Ada")
+    print("           where <language_name> is c, Ada, Scala, or python")
     print("Optional:")
     print("     -t, --testCaseSet  <asn1File> or <testcaseDir>")
     print("     -s, --slim")
@@ -497,8 +508,9 @@ def main():
         submain("c", "ACN", "", cntTest, workDir)
         submain("Ada", "ACN", "", cntTest, workDir)
         submain("Scala", "ACN", "", cntTest, workDir)
+        submain("python", "ACN", "", cntTest, workDir)
     else:
-        if lang not in ["c", "Ada", 'Scala']:
+        if lang not in ["c", "Ada", 'Scala', 'python']:
             print("Invalid language argument")
             usage()
 

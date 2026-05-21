@@ -1,0 +1,22 @@
+
+DeepFieldAccess DEFINITIONS ::= BEGIN
+
+Packet []
+{
+    intOne [],
+    subPackareet [] {
+        subIntOne [],
+        theWeirdFlag FlagType [],
+        subIntTwo []
+    },
+    intTwo [],
+    dataField <subPackareet.theWeirdFlag> []
+}
+
+DataField <INTEGER:theWeirdFlag> []
+{
+    dataWithSecondaryHeader [present-when theWeirdFlag==1],
+    dataNoSecondaryHeader [present-when theWeirdFlag==2]
+}
+
+END

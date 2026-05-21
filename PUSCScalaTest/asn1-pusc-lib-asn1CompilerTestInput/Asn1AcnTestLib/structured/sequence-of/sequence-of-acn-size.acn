@@ -1,0 +1,18 @@
+-- ACN encoding with size attribute for SEQUENCE OF
+
+SequenceOfAcnSize DEFINITIONS ::= BEGIN
+
+    DynamicArray1 []
+
+    DynamicArray2 []
+
+    DynamicArray3 []
+
+    TestStruct []
+    {
+        array1 [],
+        array2 [],
+        array3 []
+    }
+
+END

@@ -1,4 +1,4 @@
-﻿module FrontEntMain
+﻿module FrontEndMain
 
 open Antlr.Runtime
 open Antlr.Runtime.Tree
@@ -38,14 +38,14 @@ open Language
 let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*LanguageMacros) list) (op_mode:Asn1SccOperationMode) (debugFnc : Asn1Ast.AstRoot -> AcnGenericTypes.AcnAst-> unit) : (Result<Asn1AcnAst.AstRoot*Asn1AcnAst.AcnInsertedFieldDependencies, (UserError *UserError list)>) =
 
     let asn1ParseTrees, asn1ParseErrors = 
-        TL "FrontEntMain.antlrParse_asn1" (fun () ->
+        TL "FrontEndMain.antlrParse_asn1" (fun () ->
             args.asn1Files |> 
             Seq.groupBy(fun f -> f.name) |> 
             Seq.map (antlrParse asn1Lexer asn1treeParser  ) |> 
             Seq.toList |> List.unzip)
 
     let acnParseTrees, acnParseErrors = 
-        TL "FrontEntMain.antlrParse_acn" (fun () ->
+        TL "FrontEndMain.antlrParse_acn" (fun () ->
             args.acnFiles |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse acnLexer acnTreeParser  ) |> Seq.toList |> List.unzip)
 
     match asn1ParseErrors@acnParseErrors |> List.collect id with

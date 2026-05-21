@@ -1,7 +1,7 @@
 ﻿group c_isvalid;
 
 rtlModuleName() ::= ""
-
+methodNameSuffix() ::= "_IsConstraintValid"
 
 JoinItems(sPart, soNestedPart) ::= <<
 <sPart>
@@ -247,6 +247,9 @@ AllExceptConstraint(sCon)  ::= "(!<sCon>)"
 ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> &&  !<sCon2>)"
 
 callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
+callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<sFuncName>_CharsAreValid_<nIdx>(<p>)"
+alphaFuncBaseName(p) ::= "<p>_CharsAreValid"
+alphaFuncNameWithIndex(p, nIdx) ::= "<p>_CharsAreValid_<nIdx>"
 
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" && \">"
 
@@ -262,6 +265,7 @@ ret = <arrsConstraints; separator=" && ">;
 
 
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(<p>, pErrCode);"
+call_superclass_func(p, sFuncName, soTypeCasting) ::= "<call_base_type_func(p=p, sFuncName=sFuncName, soTypeCasting=soTypeCasting)>"
 
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>, pErrCode)"
 
@@ -308,7 +312,7 @@ Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
 <p><sAcc>kind != <sChPresent>
 >>
 
-choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName) ::= <<
+choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName, sChildTypeName) ::= <<
 case <sChPresent> : <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
     <sChildBody>
     break;          <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>

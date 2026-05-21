@@ -1,0 +1,34 @@
+-- Requirement 41: align-to-next ACN attribute for byte alignment
+-- Tests ACN align-to-next attribute for byte boundary alignment
+
+AlignmentByte DEFINITIONS ::= BEGIN
+
+    UnalignedData ::= SEQUENCE {
+        flags BIT STRING (SIZE(3)),
+        value1 INTEGER (0..255),
+        value2 INTEGER (0..65535)
+    }
+
+    ByteAlignedData ::= SEQUENCE {
+        flags BIT STRING (SIZE(3)),
+        aligned1 INTEGER (0..255),
+        flags2 BIT STRING (SIZE(5)),
+        aligned2 INTEGER (0..65535),
+        flags3 BIT STRING (SIZE(2)),
+        aligned3 INTEGER (0..255)
+    }
+
+    MixedAlignment ::= SEQUENCE {
+        header INTEGER (0..15),
+        data1 OCTET STRING (SIZE(4)),
+        flags BIT STRING (SIZE(3)),
+        data2 OCTET STRING (SIZE(8))
+    }
+
+    TestStruct ::= SEQUENCE {
+        unaligned UnalignedData,
+        aligned ByteAlignedData,
+        mixed MixedAlignment
+    }
+
+END
