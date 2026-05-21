@@ -141,6 +141,15 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
 
     let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
         let v = lm.lg.getValue vTarget.accessPath
+        let (ReferenceToType depNodes) = d.asn1Type
+        let depResolvable =
+            nestingScope.parents |> List.exists (fun (_, t) ->
+                let (ReferenceToType scopeNodes) = t.id
+                let n = List.length scopeNodes
+                n >= 2 && n <= List.length depNodes && List.take n depNodes = scopeNodes)
+        if not depResolvable then
+            ""
+        else
         let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath false lm pBase
         let sInner =
