@@ -414,8 +414,8 @@ and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageM
                 (fun p ->
                     let child_arg = l.lg.getSeqChild p.accessPath (l.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
                     let child_arg =
-                        match ProgrammingLanguage.ActiveLanguages.Head, ch.Type.ActualType.Kind with
-                        | ProgrammingLanguage.Python, Enumerated _ -> child_arg.appendSelection "val" ByValue false
+                        match ch.Type.ActualType.Kind with
+                        | Enumerated _ -> l.lg.adjustEnumAccessForValidation child_arg
                         | _ -> child_arg
                     let chp = {p with accessPath = child_arg}
                     fnc chp), ns
@@ -992,12 +992,11 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
             // For Python, enum types wrap their value in a .val field. The reference type's p.accessPath
             // is "self" (not "self.val"), so we must redirect the constraint check to self.val.
             let fncs =
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | ProgrammingLanguage.Python ->
+                if l.lg.isObjectOriented then
                     fncs |> List.map (fun fnc ->
                         fun (p: CodegenScope) ->
-                            fnc {p with accessPath = p.accessPath.appendSelection "val" ByValue false})
-                | _ -> fncs
+                            fnc {p with accessPath = l.lg.adjustEnumAccessForValidation p.accessPath})
+                else fncs
             fncs, ns
         | true  -> createEfficientEnumValidation r l en.baseInfo us
     | Choice ch ->

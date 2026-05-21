@@ -742,10 +742,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 | Decode, Copy -> Some (ToC (child._c_name + "_exist"))
                 | _ -> None
             let absent, present =
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> "false", "true"
-                | Python -> "False", "True"
-                | _ -> "0", "1"
+                if lm.lg.usesBooleanPresenceBits then lm.lg.FalseLiteral, lm.lg.TrueLiteral
+                else "0", "1"
             // please note that in decode, macro uper_sequence_presence_bit_fix
             // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
             let seq_presence_bit_fix (value: string) =
@@ -827,9 +825,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 // For non-primitive children in decode mode for python, the template generates variables as instance_<childName>
                 // So we need to override the resultExpr to match what the template generates
                 let adjustedResultExpr =
-                    match codec, lm.lg.decodingKind, isPrimitiveType, ProgrammingLanguage.ActiveLanguages.Head with
-                    | Decode, Copy, false, Python -> Some $"{pp}_{childName}"
-                    | _ -> childContent.resultExpr
+                    lm.lg.adjustChildDecodeResultExpr codec isPrimitiveType pp childName childContent.resultExpr
                 {
                     stmt = Some {
                         body = childBody

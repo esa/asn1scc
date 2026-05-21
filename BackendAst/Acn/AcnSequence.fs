@@ -241,11 +241,8 @@ let private handleAsn1Child
             // For non-primitive children in decode mode for Python, the template generates variables as
             // <parentId>_<childName>, so override resultExpr to match what the template generates.
             let adjustedResultExpr =
-                match codec, lm.lg.decodingKind, isPrimitiveType, ProgrammingLanguage.ActiveLanguages.Head with
-                | Decode, Copy, false, Python ->
-                    let parentId = p.accessPath.asIdentifier lm.lg
-                    Some $"%s{parentId}_%s{childName}"
-                | _ -> childContent.resultExpr
+                let parentId = p.accessPath.asIdentifier lm.lg
+                lm.lg.adjustChildDecodeResultExpr codec isPrimitiveType parentId childName childContent.resultExpr
             Some childBody, lvs, childContent.userDefinedFunctions, childContent.errCodes, adjustedResultExpr, childContent.auxiliaries, ns2
 
     let optAux, theCombinedBody =
@@ -579,7 +576,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 // assert (childrenResultExpr.Length = asn1Children.Length)
                 assert (childrenResultExpr.Length = asn1Children.Length)
                 let existSeq =
-                    if lm.lg.usesWrappedOptional || childrenExistVar.IsEmpty || ProgrammingLanguage.ActiveLanguages.Head = Python then []
+                    if lm.lg.usesWrappedOptional || childrenExistVar.IsEmpty || not lm.lg.needsExistSequence then []
                     else
                         let existTd = (lm.lg.getSequenceTypeDefinition o.typeDef).exist
                         [lm.init.initSequenceExpr existTd childrenExistVar []]

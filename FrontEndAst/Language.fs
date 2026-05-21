@@ -416,6 +416,28 @@ type ILangGeneric () =
     abstract member TempArrayItemSuffix: string
     default _.TempArrayItemSuffix = "_Temp"
     abstract member usesWrappedOptional: bool
+    abstract member needsExistSequence: bool
+    default _.needsExistSequence = true
+    abstract member stopAtPrmForChoicePresentWhen: bool
+    default _.stopAtPrmForChoicePresentWhen = false
+    abstract member usesBooleanPresenceBits: bool
+    default _.usesBooleanPresenceBits = false
+    abstract member usesChoiceTempVarPath: bool
+    default _.usesChoiceTempVarPath = false
+    abstract member nullValueForAbsentOptional: string option
+    default _.nullValueForAbsentOptional = None
+    abstract member getEnumIntLocalVarName: baseName:string -> string
+    default _.getEnumIntLocalVarName baseName = $"intVal_{baseName}"
+    abstract member adjustChildDecodeResultExpr: codec:Codec -> isPrimitive:bool -> parentId:string -> childName:string -> defaultResult:string option -> string option
+    default _.adjustChildDecodeResultExpr _codec _isPrimitive _parentId _childName defaultResult = defaultResult
+    abstract member getInitAssignmentLhs: p:CodegenScope -> string
+    default this.getInitAssignmentLhs p = this.getValue p.accessPath
+    abstract member adjustEnumAccessForValidation: AccessPath -> AccessPath
+    default _.adjustEnumAccessForValidation path = path
+    abstract member maybeWrapValueInConstructor: typeRef:TypeDefinitionOrReference -> typeKind:Asn1TypeKind -> modName:string -> value:string -> string
+    default _.maybeWrapValueInConstructor _typeRef _typeKind _modName value = value
+    abstract member prefixWithModule: modName:string -> name:string -> string
+    default _.prefixWithModule _modName name = name
     abstract member isObjectOriented: bool
     abstract member nullTerminatorByte: byte option
     abstract member charToNumericValueExpression : string -> string

@@ -466,10 +466,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                 List.map(fun (compLit) ->
                     let initTestCaseFunc (p:CodegenScope) =
                         let resVar = (p.accessPath.asIdentifier lm.lg)
-                        let lhs =
-                            match ProgrammingLanguage.ActiveLanguages.Head with
-                            | Python -> resVar
-                            | _ -> lm.lg.getValue p.accessPath
+                        let lhs = lm.lg.getInitAssignmentLhs p
                         let ret = sprintf "%s%s%s;" lhs lm.lg.AssignOperator compLit
                         {InitFunctionResult.funcBody = ret; resultVar = resVar; localVariables=[]}
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
@@ -577,10 +574,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                 List.map(fun compLit ->
                     let retFunc (p:CodegenScope) =
                         let resVar = (p.accessPath.asIdentifier lm.lg)
-                        let lhs =
-                            match ProgrammingLanguage.ActiveLanguages.Head with
-                            | Python -> resVar
-                            | _ -> lm.lg.getValue p.accessPath
+                        let lhs = lm.lg.getInitAssignmentLhs p
                         let ret = sprintf "%s%s%s;" lhs lm.lg.AssignOperator compLit
                         {InitFunctionResult.funcBody = ret; resultVar = resVar; localVariables=[]}
                     {AutomaticTestCase.initTestCaseFunc = retFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
@@ -1259,16 +1253,10 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                          | _ -> lm.lg.presentWhenName (Some typeDefinition) ch
                     let childContent_funcBody, childContent_localVariables =
                         let childContent =
-                            match ProgrammingLanguage.ActiveLanguages.Head with
-                            | ProgrammingLanguage.Scala 
-                            | ProgrammingLanguage.Python ->
-                                match lm.lg.init.choiceComponentTempInit with
-                                | false ->  fnc {p with accessPath = lm.lg.getChChild p.accessPath sChildTempVarName ch.chType.isIA5String}
-                                | true   -> fnc {p with accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")}
-                            | _ ->
-                                match lm.lg.init.choiceComponentTempInit with
-                                | false  -> fnc {p with accessPath = lm.lg.getChChild p.accessPath sChildName ch.chType.isIA5String}
-                                | true   -> fnc {p with accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")}
+                            let childPathName = if lm.lg.usesChoiceTempVarPath then sChildTempVarName else sChildName
+                            match lm.lg.init.choiceComponentTempInit with
+                            | false -> fnc {p with accessPath = lm.lg.getChChild p.accessPath childPathName ch.chType.isIA5String}
+                            | true  -> fnc {p with accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")}
                         childContent.funcBody, childContent.localVariables
 
                     let sChildTempDefaultInit =

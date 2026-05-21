@@ -244,6 +244,8 @@ type LangGeneric_scala() =
         override this.initMethod           = InitMethod.Procedure
         override _.decodingKind = Copy
         override _.usesWrappedOptional = true
+        override _.usesBooleanPresenceBits = true
+        override _.usesChoiceTempVarPath = true
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
 

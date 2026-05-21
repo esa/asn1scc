@@ -577,7 +577,6 @@ type LangGeneric_python() =
         // Check if this sequence has inline ACN children that need to be returned to parent
         let hasAcnChildrenToReturn =
             codec = Decode &&
-            ProgrammingLanguage.ActiveLanguages.Head = Python &&
             not acnChildrenEncoded.IsEmpty
             
         // Build ACN children dictionary and tuple return for Python decode
@@ -755,6 +754,36 @@ type LangGeneric_python() =
     override _.ArrayInitByAppend = true
     override this.TempArrayItemSuffix = "_arr_elem"
     override _.usesWrappedOptional = false
+    override _.needsExistSequence = false
+    override _.stopAtPrmForChoicePresentWhen = true
+    override _.usesBooleanPresenceBits = true
+    override _.usesChoiceTempVarPath = true
+    override _.nullValueForAbsentOptional = Some "None"
+    override _.getEnumIntLocalVarName baseName = $"{baseName}_int"
+
+    override this.adjustChildDecodeResultExpr codec isPrimitive parentId childName defaultResult =
+        match codec, this.decodingKind, isPrimitive with
+        | Decode, Copy, false -> Some $"{parentId}_{childName}"
+        | _ -> defaultResult
+
+    override this.getInitAssignmentLhs p = p.accessPath.asIdentifier this
+
+    override _.adjustEnumAccessForValidation path =
+        path.appendSelection "val" ByValue false
+
+    override this.maybeWrapValueInConstructor typeRef typeKind modName value =
+        let pyBuiltins = set ["int"; "float"; "bool"]
+        let typedefName =
+            match typeRef with
+            | TypeDefinition td -> td.typedefName
+            | ReferenceToExistingDefinition ref -> ref.typedefName
+        match typeKind with
+        | Integer _ | Boolean _ | Real _ | NullType _ when not (pyBuiltins.Contains typedefName) ->
+            this.getQualifiedTypeName typeRef modName + "(" + value + ")"
+        | _ -> value
+
+    override _.prefixWithModule modName name = modName + "." + name
+
     override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
     override this.createSingleLineComment (sText:string) = sprintf "#%s" sText
 
