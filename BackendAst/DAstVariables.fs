@@ -64,10 +64,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
             match t.ActualType.Kind with
             | IA5String st  ->
                 let strLiteral = convertStringValue2TargetLangStringLiteral lm (int st.baseInfo.maxSize.uper) v
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Python ->
-                    lm.lg.getQualifiedTypeName t.typeDefinitionOrReference (ToC t.id.ModName) + "(arr=[ord(c) for c in " + strLiteral + "])"
-                | _ -> strLiteral
+                lm.lg.wrapIA5StringValue t.typeDefinitionOrReference (ToC t.id.ModName) strLiteral
             | _             -> raise(BugErrorException "unexpected type")
 
         | BitStringValue    v ->
@@ -97,18 +94,11 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
         | EnumValue         v ->
             match t.ActualType.Kind with
             | Enumerated enm    ->
-                let typeModName = (t.getActualType r).id.ModName
                 let itm = enm.baseInfo.items |> Seq.find(fun x -> x.Name.Value = v)
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Python ->
-                    let enumTd = lm.lg.getEnumTypeDefinition enm.baseInfo.typeDef
-                    let qualTypeName =
-                        if enumTd.programUnit = "" then enumTd.typeName
-                        else enumTd.programUnit + "." + enumTd.typeName
-                    qualTypeName + "(" + qualTypeName + "_Enum." + (ToC itm.Name.Value) + ")"
-                | _ ->
-                    let itmName = lm.lg.getNamedItemBackendName2 t.ActualType.moduleName curProgramUnitName itm
-                    lm.vars.PrintEnumValue itmName
+                let enumTd = lm.lg.getEnumTypeDefinition enm.baseInfo.typeDef
+                let itmName = lm.lg.getNamedItemBackendName2 t.ActualType.moduleName curProgramUnitName itm
+                let defaultValue = lm.vars.PrintEnumValue itmName
+                lm.lg.formatEnumValueInit enumTd (ToC itm.Name.Value) defaultValue
             | _         -> raise(BugErrorException "unexpected type")
         | NullValue         v -> lm.vars.PrintNullValue ()
         | ObjOrRelObjIdValue v  ->

@@ -433,15 +433,8 @@ and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageM
 
                 newChildCheckFnc
 
-        let isAbsentFlag =
-            match ProgrammingLanguage.ActiveLanguages.Head with
-            | ProgrammingLanguage.Scala -> l.lg.FalseLiteral
-            | _ -> "0"
-
-        let isPresentFlag =
-            match ProgrammingLanguage.ActiveLanguages.Head with
-            | ProgrammingLanguage.Scala -> l.lg.TrueLiteral
-            | _ -> "1" // leave like it was - TRUE may not be 1
+        let isAbsentFlag = if l.lg.usesBooleanPresenceBits then l.lg.FalseLiteral else "0"
+        let isPresentFlag = if l.lg.usesBooleanPresenceBits then l.lg.TrueLiteral else "1"
 
         let presentAbsent =
             match nc.Mark with

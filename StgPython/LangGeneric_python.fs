@@ -784,6 +784,38 @@ type LangGeneric_python() =
 
     override _.prefixWithModule modName name = modName + "." + name
 
+    override this.getObjectIdentifierAccessPair p = (p.accessPath.asIdentifier this, "")
+
+    override _.qualifyNameWithModule targetMod curMod name =
+        if targetMod <> curMod && targetMod <> "" && not (name.StartsWith(targetMod + ".")) then
+            targetMod + "." + name
+        else name
+
+    override this.wrapIA5StringValue typeRef modName literal =
+        this.getQualifiedTypeName typeRef modName + "(arr=[ord(c) for c in " + literal + "])"
+
+    override _.formatEnumValueInit (enumTd: FE_EnumeratedTypeDefinition) itemCName _defaultValue =
+        let qualTypeName = if enumTd.programUnit = "" then enumTd.typeName else enumTd.programUnit + "." + enumTd.typeName
+        qualTypeName + "(" + qualTypeName + "_Enum." + itemCName + ")"
+
+    override _.formatValueAssignmentTestCase typeKind valueType initStmt =
+        let parenArgs () =
+            let idx = initStmt.IndexOf('(')
+            if idx >= 0 then initStmt.[idx..] else "()"
+        match typeKind with
+        | Integer _    -> "tc_data = " + valueType + "(" + initStmt + ")"
+        | Real _       -> "tc_data: " + valueType + " = " + valueType + "(" + initStmt + ")"
+        | Boolean _    -> "tc_data: " + valueType + " = " + valueType + "(" + initStmt + ")"
+        | NullType _   -> "tc_data: " + valueType + " = " + valueType + "()"
+        | Choice _     -> "tc_data: " + valueType + " = " + initStmt
+        | IA5String _ | Sequence _ | SequenceOf _ | OctetString _ | BitString _ | ObjectIdentifier _ | Enumerated _ ->
+            "tc_data: " + valueType + " = " + valueType + (parenArgs ())
+        | ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
+        | _ -> initStmt
+
+    override _.adjustTestCaseObjectIdentifierInit modName tasName initStmt =
+        initStmt.Replace("Asn1ObjectIdentifier(", modName + "." + tasName + "(")
+
     override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
     override this.createSingleLineComment (sText:string) = sprintf "#%s" sText
 

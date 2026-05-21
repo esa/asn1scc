@@ -438,6 +438,18 @@ type ILangGeneric () =
     default _.maybeWrapValueInConstructor _typeRef _typeKind _modName value = value
     abstract member prefixWithModule: modName:string -> name:string -> string
     default _.prefixWithModule _modName name = name
+    abstract member getObjectIdentifierAccessPair: p:CodegenScope -> string * string
+    default this.getObjectIdentifierAccessPair p = (this.joinSelection p.accessPath, this.getAccess p.accessPath)
+    abstract member qualifyNameWithModule: targetMod:string -> curMod:string -> name:string -> string
+    default _.qualifyNameWithModule _targetMod _curMod name = name
+    abstract member wrapIA5StringValue: typeRef:TypeDefinitionOrReference -> modName:string -> literal:string -> string
+    default _.wrapIA5StringValue _typeRef _modName literal = literal
+    abstract member formatEnumValueInit: enumTd:FE_EnumeratedTypeDefinition -> itemCName:string -> defaultValue:string -> string
+    default _.formatEnumValueInit _enumTd _itemCName defaultValue = defaultValue
+    abstract member formatValueAssignmentTestCase: typeKind:Asn1TypeKind -> valueType:string -> initStmt:string -> string
+    default _.formatValueAssignmentTestCase _typeKind _valueType initStmt = initStmt
+    abstract member adjustTestCaseObjectIdentifierInit: modName:string -> tasName:string -> initStmt:string -> string
+    default _.adjustTestCaseObjectIdentifierInit _modName _tasName initStmt = initStmt
     abstract member isObjectOriented: bool
     abstract member nullTerminatorByte: byte option
     abstract member charToNumericValueExpression : string -> string
