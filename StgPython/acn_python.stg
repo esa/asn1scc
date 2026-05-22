@@ -1103,7 +1103,7 @@ else:
 sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 # acn_python.stg 800
 # Encode <sChName>
-assert(not self.<sChName> is None)
+assert(not <p><sAcc><sChName> is None)
 <soAlignmentCode>
 <if(bIsPrimitive)>
 <soChildContent>
