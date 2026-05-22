@@ -154,9 +154,11 @@ let private handleAsn1Child
                 Some body, lv, [errCode], existVar, ns1a
         | _ -> None, [], [], None, ns1
 
-    // Build ACN parameters for Python call sites (e.g. nLen=a3).  Only
-    // AcnDepRefTypeArgument deps map to named parameters on class methods;
-    // size/choice determinants are handled via inline or template mechanisms.
+    // Build ACN parameters for Python call sites (e.g. nLen=a3).
+    // AcnDepRefTypeArgument deps map to named parameters on class methods.
+    // AcnDepChoiceDeterminant deps (decode only) pass the enum discriminant
+    // to CHOICE decode classmethods (Python only; C/Ada inline the body).
+    // Deduplicated by param name so TAS formal params are not emitted twice.
     // Other languages ignore arrsAcnParams in most templates.
     let acnParamsForTemplate =
         match ProgrammingLanguage.ActiveLanguages.Head with
@@ -166,11 +168,16 @@ let private handleAsn1Child
                 d.asn1Type = child.Type.id &&
                 match d.dependencyKind with
                 | AcnDepRefTypeArgument _ -> true
+                | AcnDepChoiceDeterminant _ -> codec = Decode
                 | _ -> false)
             |> List.choose(fun d ->
                 let targetParamName =
                     match d.dependencyKind with
                     | AcnDepRefTypeArgument param -> param.c_name
+                    | AcnDepChoiceDeterminant _ ->
+                        match d.determinant with
+                        | AcnChildDeterminant acnCh -> getAcnDeterminantName acnCh.id
+                        | AcnParameterDeterminant paramDet -> paramDet.c_name
                     | _ ->
                         match d.determinant with
                         | AcnChildDeterminant acnCh -> acnCh.c_name
@@ -194,6 +201,7 @@ let private handleAsn1Child
                     match codec, paramInScope with
                     | Decode, true -> Some $"{targetParamName}={paramDet.c_name}"
                     | _ -> None)
+            |> List.distinctBy (fun s -> s.Split('=').[0])
         | _ -> []
 
     let bInlineRequired = lm.lg.isAcnInlineRequired t childName deps

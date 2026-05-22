@@ -11,6 +11,8 @@ open DAst
 open DAstUtilFunctions
 open Language
 
+open AcnHelpers
+
 
 // If the type assignment has acnParameters, then no function is generated.
 // This function can only be inlined by the calling function (i.e. by the parent
@@ -143,6 +145,28 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
                 let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
+                // Python: for CEC_enum CHOICE decode, inject the enum determinant as an extra
+                // parameter so the standalone classmethod can access the choice discriminant.
+                // Deduplicate against existing prmNames to avoid doubling TAS formal params.
+                let prms, prmNames =
+                    match ProgrammingLanguage.ActiveLanguages.Head, codec with
+                    | Python, Decode ->
+                        let existing = System.Collections.Generic.HashSet<string>(prmNames)
+                        let extra =
+                            deps.acnDependencies
+                            |> List.filter (fun d ->
+                                d.asn1Type = t.id &&
+                                match d.dependencyKind with
+                                | AcnDepChoiceDeterminant _ -> true
+                                | _ -> false)
+                            |> List.choose (fun d ->
+                                let detName = getAcnDeterminantName d.determinant.id
+                                if existing.Add(detName) then
+                                    Some (lm.acn.EmitAcnParameter detName "int" "0", detName)
+                                else None)
+                        let extraPrms, extraNames = extra |> List.map fst, extra |> List.map snd
+                        prms @ extraPrms, prmNames @ extraNames
+                    | _ -> prms, prmNames
                 let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 
                 let errCodStr =
