@@ -154,55 +154,50 @@ let private handleAsn1Child
                 Some body, lv, [errCode], existVar, ns1a
         | _ -> None, [], [], None, ns1
 
-    // Build ACN parameters for Python call sites (e.g. nLen=a3).
-    // AcnDepRefTypeArgument deps map to named parameters on class methods.
-    // AcnDepChoiceDeterminant deps (decode only) pass the enum discriminant
-    // to CHOICE decode classmethods (Python only; C/Ada inline the body).
+    // Build ACN parameters for child call sites (e.g. nLen=a3).
+    // AcnDepRefTypeArgument deps map formal ACN parameters to their call-site values.
+    // AcnDepChoiceDeterminant deps (decode only) pass the enum discriminant to CHOICE
+    // decode functions so the correct branch can be selected.
     // Deduplicated by param name so TAS formal params are not emitted twice.
-    // Other languages ignore arrsAcnParams in most templates.
     let acnParamsForTemplate =
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Python ->
-            deps.acnDependencies
-            |> List.filter(fun d ->
-                d.asn1Type = child.Type.id &&
+        deps.acnDependencies
+        |> List.filter(fun d ->
+            d.asn1Type = child.Type.id &&
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument _ -> true
+            | AcnDepChoiceDeterminant _ -> codec = Decode
+            | _ -> false)
+        |> List.choose(fun d ->
+            let targetParamName =
                 match d.dependencyKind with
-                | AcnDepRefTypeArgument _ -> true
-                | AcnDepChoiceDeterminant _ -> codec = Decode
-                | _ -> false)
-            |> List.choose(fun d ->
-                let targetParamName =
-                    match d.dependencyKind with
-                    | AcnDepRefTypeArgument param -> param.c_name
-                    | AcnDepChoiceDeterminant _ ->
-                        match d.determinant with
-                        | AcnChildDeterminant acnCh -> getAcnDeterminantName acnCh.id
-                        | AcnParameterDeterminant paramDet -> paramDet.c_name
-                    | _ ->
-                        match d.determinant with
-                        | AcnChildDeterminant acnCh -> acnCh.c_name
-                        | AcnParameterDeterminant paramDet -> paramDet.c_name
-                match d.determinant with
-                | AcnChildDeterminant acnCh ->
-                    let varName = getAcnDeterminantName acnCh.id
-                    let valueExpr =
-                        match codec with
-                        | Decode ->
-                            match acnCh.Type with
-                            | AcnReferenceToEnumerated _ -> varName
-                            | AcnReferenceToIA5String _ ->
-                                let parentId = p.accessPath.asIdentifier lm.lg
-                                $"{parentId}_{varName}"
-                            | _ -> varName
-                        | Encode -> varName
-                    Some $"{targetParamName}={valueExpr}"
-                | AcnParameterDeterminant paramDet ->
-                    let paramInScope = t.acnParameters |> List.exists (fun pp -> pp.c_name = paramDet.c_name)
-                    match codec, paramInScope with
-                    | Decode, true -> Some $"{targetParamName}={paramDet.c_name}"
-                    | _ -> None)
-            |> List.distinctBy (fun s -> s.Split('=').[0])
-        | _ -> []
+                | AcnDepRefTypeArgument param -> param.c_name
+                | AcnDepChoiceDeterminant _ ->
+                    match d.determinant with
+                    | AcnChildDeterminant acnCh -> getAcnDeterminantName acnCh.id
+                    | AcnParameterDeterminant paramDet -> paramDet.c_name
+                | _ ->
+                    match d.determinant with
+                    | AcnChildDeterminant acnCh -> acnCh.c_name
+                    | AcnParameterDeterminant paramDet -> paramDet.c_name
+            match d.determinant with
+            | AcnChildDeterminant acnCh ->
+                let varName = getAcnDeterminantName acnCh.id
+                let valueExpr =
+                    match codec with
+                    | Decode ->
+                        match acnCh.Type with
+                        | AcnReferenceToIA5String _ ->
+                            let parentId = p.accessPath.asIdentifier lm.lg
+                            $"{parentId}_{varName}"
+                        | _ -> varName
+                    | Encode -> varName
+                Some $"{targetParamName}={valueExpr}"
+            | AcnParameterDeterminant paramDet ->
+                let paramInScope = t.acnParameters |> List.exists (fun pp -> pp.c_name = paramDet.c_name)
+                match codec, paramInScope with
+                | Decode, true -> Some $"{targetParamName}={paramDet.c_name}"
+                | _ -> None)
+        |> List.distinctBy (fun s -> s.Split('=').[0])
 
     let bInlineRequired = lm.lg.isAcnInlineRequired t childName deps
 
