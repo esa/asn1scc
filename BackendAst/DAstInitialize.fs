@@ -1274,10 +1274,9 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                 | Some initProc  ->
                     match lm.lg.init.choiceComponentTempInit with
                     | false  ->
-                        match ProgrammingLanguage.ActiveLanguages.Head with
-                        | ProgrammingLanguage.Scala ->
+                        if lm.lg.usesChoiceTempVarPath then
                             initChildWithInitFunc sChildTempVarName initProc.funcName, []
-                        | _ ->
+                        else
                             initChildWithInitFunc (lm.lg.getPointer chp.accessPath) initProc.funcName, []
                     | true   -> initChildWithInitFunc (sChildName + "_tmp") initProc.funcName, []
             let funcBody = initChoice (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childContent_funcBody sChildID sChildName sChildTypeDef typeDefinitionName sChildTempVarName (extractDefaultInitValue ch.chType.Kind) lm.lg.init.choiceComponentTempInit

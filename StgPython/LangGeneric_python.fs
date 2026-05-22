@@ -762,6 +762,19 @@ type LangGeneric_python() =
     override _.stopAtPrmForChoicePresentWhen = true
     override _.usesBooleanPresenceBits = true
     override _.usesChoiceTempVarPath = true
+    override _.needsAcnChoiceDeterminantParam = true
+    override _.getAcnPrmRefTypeInfo r md ts intZero =
+        try
+            let refModule = r.Modules |> Seq.find(fun m -> m.Name.Value = md.Value)
+            let refTas = refModule.TypeAssignments |> Seq.tryFind(fun ta -> ta.Name.Value = ts.Value)
+            match refTas with
+            | Some tas ->
+                match tas.Type.ActualType.Kind with
+                | Asn1AcnAst.Enumerated _ -> Some ("int", intZero)
+                | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _ -> Some ("str", "\"\"")
+                | _ -> Some ("int", intZero)
+            | None -> Some ("int", intZero)
+        with _ -> Some ("int", intZero)
     override _.nullValueForAbsentOptional = Some "None"
     override _.getEnumIntLocalVarName baseName = $"{baseName}_int"
 

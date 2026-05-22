@@ -426,6 +426,12 @@ type ILangGeneric () =
     default _.usesBooleanPresenceBits = false
     abstract member usesChoiceTempVarPath: bool
     default _.usesChoiceTempVarPath = false
+    abstract member supportsAcnIcdForUndeclaredType: bool
+    default _.supportsAcnIcdForUndeclaredType = true
+    abstract member getAcnPrmRefTypeInfo: r:Asn1AcnAst.AstRoot -> md:StringLoc -> ts:StringLoc -> intZero:string -> (string * string) option
+    default _.getAcnPrmRefTypeInfo _ _ _ _ = None
+    abstract member needsAcnChoiceDeterminantParam: bool
+    default _.needsAcnChoiceDeterminantParam = false
     abstract member nullValueForAbsentOptional: string option
     default _.nullValueForAbsentOptional = None
     abstract member getEnumIntLocalVarName: baseName:string -> string

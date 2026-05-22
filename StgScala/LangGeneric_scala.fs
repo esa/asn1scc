@@ -246,6 +246,7 @@ type LangGeneric_scala() =
         override _.usesWrappedOptional = true
         override _.usesBooleanPresenceBits = true
         override _.usesChoiceTempVarPath = true
+        override _.supportsAcnIcdForUndeclaredType = false
         override _.formatValueAssignmentTestCase typeKind _valueType initStmt =
             match typeKind with
             | Integer _ -> "val tc_data = " + initStmt
