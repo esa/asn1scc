@@ -573,34 +573,6 @@ type LangGeneric_python() =
                     | _ -> false
                 getExternalField0 filterDependency
     
-    override this.getAcnChildrenDictStatements (codec: Codec) (acnChildrenEncoded: (string * AcnChild) list) (p: CodegenScope) =
-        // Check if this sequence has inline ACN children that need to be returned to parent
-        let hasAcnChildrenToReturn =
-            codec = Decode &&
-            not acnChildrenEncoded.IsEmpty
-            
-        // Build ACN children dictionary and tuple return for Python decode
-        if hasAcnChildrenToReturn then
-            // Build dictionary entries: {'acn_child_name': acn_child_var}
-            let dictEntries =
-                acnChildrenEncoded
-                |> List.rev  // Reverse to get original order
-                |> List.map (fun (varName, acnCh) ->
-                    let varRef =
-                        match acnCh.Type with
-                        | Asn1AcnAst.AcnReferenceToIA5String _ ->
-                            $"{p.accessPath.asIdentifier this}_{varName}"
-                        | _ -> varName
-                    $"'{acnCh.c_name}': {varRef}"
-                )
-                |> String.concat ", "
-
-            let dictStmt = $"%s{p.accessPath.lastIdOrArr}_acn_children = {{%s{dictEntries}}}"
-            let tupleReturnStmt = $"return %s{p.accessPath.asIdentifier this}, %s{p.accessPath.lastIdOrArr}_acn_children"
-            [dictStmt], Some tupleReturnStmt
-        else
-            [], None
-    
     override this.updateStateForCrossSequenceAcnParams (r: Asn1AcnAst.AstRoot) (state: State) (p: CodegenScope) (oChildren: Asn1AcnAst.SeqChildInfo list) (child: Asn1Child) (childNestingScope: NestingScope) (deps: AcnInsertedFieldDependencies) (t: Asn1AcnAst.Asn1Type) (codec: Codec) updateFncInEncoding getDeterminantTypeFunc initExpr =
         let childName = this.getAsn1ChildBackendName child
         
@@ -1199,7 +1171,8 @@ type LangGeneric_python() =
                 //   2. ReferenceType → call_superclass_func_decode: instance_X_decode = TypeName.decode_uper(...)
                 let alreadyWrapped =
                     body.Contains(sprintf "instance_%s = %s(" sChildName childTypeDef) ||
-                    body.Contains(sprintf "instance_%s_decode = " sChildName)
+                    body.Contains(sprintf "instance_%s_decode = " sChildName) ||
+                    body.Contains(sprintf "instance_%s = %s.decode_" sChildName childTypeDef)
                 if alreadyWrapped then body
                 else body + "\ninstance_" + sChildName + " = " + childTypeDef + "(instance_" + sChildName + ")"
             | Encode, _ -> body

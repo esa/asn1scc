@@ -35,11 +35,7 @@ decoder = encoder.get_decoder()
 
 # Decode value
 try:
-    res = <sTasName>.<sFuncName>(decoder)
-    if isinstance(res, tuple):
-        decodedPDU, _ = res
-    else:
-        decodedPDU = res
+    decodedPDU = <sTasName>.<sFuncName>(decoder)
 
 except Exception as e:
     raise Asn1TestcaseDecodeFailedError(e)
@@ -119,11 +115,7 @@ def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
 def <sFuncName>_generic(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
     encoded = <sVal>.encode(Encoding.<sEncodingEnumValue>)
     try:
-        res = <sTasName>.decode(Encoding.<sEncodingEnumValue>, encoded)
-        if isinstance(res, tuple):
-            decodedPDU, _ = res
-        else:
-            decodedPDU = res
+        decodedPDU = <sTasName>.decode(Encoding.<sEncodingEnumValue>, encoded)
     except Exception as e:
         raise Asn1TestcaseDecodeFailedError(e)
     res = decodedPDU.is_constraint_valid()
