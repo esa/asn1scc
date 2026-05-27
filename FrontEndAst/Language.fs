@@ -418,8 +418,8 @@ type ILangGeneric () =
     abstract member usesWrappedOptional: bool
     abstract member needsExistSequence: bool
     default _.needsExistSequence = true
-    abstract member needsExplicitZeroLowerBound: uperRange:BigIntegerUperRange -> bool
-    default _.needsExplicitZeroLowerBound _ = false
+    abstract member integerIsAlwaysSigned: bool
+    default _.integerIsAlwaysSigned = false
     abstract member stopAtPrmForChoicePresentWhen: bool
     default _.stopAtPrmForChoicePresentWhen = false
     abstract member usesBooleanPresenceBits: bool
@@ -428,8 +428,8 @@ type ILangGeneric () =
     default _.usesChoiceTempVarPath = false
     abstract member supportsAcnIcdForUndeclaredType: bool
     default _.supportsAcnIcdForUndeclaredType = true
-    abstract member getAcnPrmRefTypeInfo: r:Asn1AcnAst.AstRoot -> md:StringLoc -> ts:StringLoc -> intZero:string -> (string * string) option
-    default _.getAcnPrmRefTypeInfo _ _ _ _ = None
+    abstract member resolveAcnPrmRefTypeEmission: prmTypeName:string -> resolvedKind:Asn1AcnAst.Asn1TypeKind option -> intZero:string -> string * string
+    default _.resolveAcnPrmRefTypeEmission prmTypeName _resolvedKind _intZero = prmTypeName, ""
     abstract member needsAcnChoiceDeterminantParam: bool
     default _.needsAcnChoiceDeterminantParam = false
     abstract member nullValueForAbsentOptional: string option

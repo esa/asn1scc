@@ -727,26 +727,15 @@ type LangGeneric_python() =
     override this.TempArrayItemSuffix = "_arr_elem"
     override _.usesWrappedOptional = false
     override _.needsExistSequence = false
-    override _.needsExplicitZeroLowerBound uperRange =
-        match uperRange with
-        | Concrete (min, _) | PosInf min -> min = 0I
-        | _ -> false
+    override _.integerIsAlwaysSigned = true
     override _.stopAtPrmForChoicePresentWhen = true
     override _.usesBooleanPresenceBits = true
     override _.usesChoiceTempVarPath = true
     override _.needsAcnChoiceDeterminantParam = true
-    override _.getAcnPrmRefTypeInfo r md ts intZero =
-        try
-            let refModule = r.Modules |> Seq.find(fun m -> m.Name.Value = md.Value)
-            let refTas = refModule.TypeAssignments |> Seq.tryFind(fun ta -> ta.Name.Value = ts.Value)
-            match refTas with
-            | Some tas ->
-                match tas.Type.ActualType.Kind with
-                | Asn1AcnAst.Enumerated _ -> Some ("int", intZero)
-                | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _ -> Some ("str", "\"\"")
-                | _ -> Some ("int", intZero)
-            | None -> Some ("int", intZero)
-        with _ -> Some ("int", intZero)
+    override _.resolveAcnPrmRefTypeEmission _prmTypeName resolvedKind intZero =
+        match resolvedKind with
+        | Some (Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _) -> "str", "\"\""
+        | _ -> "int", intZero
     override _.nullValueForAbsentOptional = Some "None"
     override _.getEnumIntLocalVarName baseName = $"{baseName}_int"
 
@@ -803,7 +792,9 @@ type LangGeneric_python() =
         | _ -> initStmt
 
     override _.adjustTestCaseObjectIdentifierInit modName tasName initStmt =
-        initStmt.Replace("Asn1ObjectIdentifier(", modName + "." + tasName + "(")
+        let parenIdx = initStmt.IndexOf('(')
+        if parenIdx >= 0 then modName + "." + tasName + initStmt.[parenIdx..]
+        else initStmt
 
     override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
     override this.createSingleLineComment (sText:string) = sprintf "#%s" sText

@@ -643,9 +643,10 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnA
     // Some backends (e.g. Python) need an explicit >= 0 lower bound for unsigned integer types
     // because their native int is untyped and the constraint would otherwise be skipped.
     let lowerBoundFncs =
-        if l.lg.needsExplicitZeroLowerBound o.uperRange then
+        match l.lg.integerIsAlwaysSigned, o.uperRange with
+        | true, (Concrete (min, _) | PosInf min) when min = 0I ->
             [fun (p:CodegenScope) -> VCBExpression (l.isvalid.ExpLte "0" (l.lg.getValue p.accessPath))]
-        else []
+        | _ -> []
     let allFncs = lowerBoundFncs @ fncs
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t (funcBody l allFncs) typeDefinition [] [] [] [] (Some errorCodeComment) ns
