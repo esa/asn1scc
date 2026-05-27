@@ -96,7 +96,10 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
             | Some initProc -> initProc.funcName
             | None -> ""
         | _ -> initAmper
-    let initStatement = lm.lg.adjustTestCaseObjectIdentifierInit modName sTasName initStatement
+    let initStatement =
+        match t.ActualType.Kind with
+        | ObjectIdentifier _ -> lm.lg.adjustTestCaseObjectIdentifierInit modName sTasName initStatement
+        | _ -> initStatement
     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = ""
     let sTestCaseIndex = idx.ToString()
