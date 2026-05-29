@@ -793,7 +793,9 @@ type LangGeneric_python() =
 
     override _.adjustTestCaseObjectIdentifierInit modName tasName initStmt =
         let parenIdx = initStmt.IndexOf('(')
-        if parenIdx >= 0 then modName + "." + tasName + initStmt.[parenIdx..]
+        if parenIdx >= 0 then
+            let qualType = modName + "." + tasName
+            "tc_data: " + qualType + " = " + qualType + initStmt.[parenIdx..]
         else initStmt
 
     override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
