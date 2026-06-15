@@ -69,9 +69,20 @@ namespace LspServer
             //     await Task.Delay(100);
             // }
 
+            // Log to a portable, always-writable location. The ASN1SCC_LSP_LOG
+            // environment variable can override the directory; otherwise we use
+            // <temp>/asn1scc-lsp/log.txt. This avoids the previously hardcoded
+            // C:\prj\GitHub\... path, which broke on any other machine.
+            var logDir = Environment.GetEnvironmentVariable("ASN1SCC_LSP_LOG");
+            if (string.IsNullOrWhiteSpace(logDir))
+            {
+                logDir = Path.Combine(Path.GetTempPath(), "asn1scc-lsp");
+            }
+            var logPath = Path.Combine(logDir, "log.txt");
+
             Log.Logger = new LoggerConfiguration()
                         .Enrich.FromLogContext()
-                        .WriteTo.File("C:\\prj\\GitHub\\asn1scc\\lsp\\log\\log.txt", rollingInterval: RollingInterval.Day)
+                        .WriteTo.File(logPath, rollingInterval: RollingInterval.Day)
                         .MinimumLevel.Verbose()
                         .CreateLogger();
 

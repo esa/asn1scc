@@ -1,31 +1,73 @@
 {
-    "name": "client",
-    "displayName": "Client",
-    "description": "Example LSP client",
-    "publisher": "mholo65",
-    "version": "0.0.1",
+    "name": "asn1scc-lsp",
+    "displayName": "ASN.1 / ACN Language Support",
+    "description": "Language support (diagnostics, auto-completion, go-to-definition) for ASN.1 and ACN files, powered by the asn1scc language server.",
+    "version": "0.1.0",
+    "publisher": "esa",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/esa/asn1scc"
+    },
     "engines": {
-        "vscode": "^1.29.0"
+        "vscode": "^1.75.0"
     },
     "categories": [
-        "Other"
+        "Programming Languages"
     ],
-    "activationEvents": [
-        "onLanguage:plaintext"
-    ],
+    "activationEvents": [],
     "main": "./out/extension",
-    "contributes": {},
+    "contributes": {
+        "languages": [
+            {
+                "id": "asn1",
+                "aliases": [
+                    "ASN.1",
+                    "asn1"
+                ],
+                "extensions": [
+                    ".asn",
+                    ".asn1"
+                ],
+                "configuration": "./language-configuration.json"
+            },
+            {
+                "id": "acn",
+                "aliases": [
+                    "ACN",
+                    "acn"
+                ],
+                "extensions": [
+                    ".acn"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "ASN.1/ACN Language Server",
+            "properties": {
+                "asn1scc.languageServer.path": {
+                    "type": "string",
+                    "default": "",
+                    "markdownDescription": "Absolute path to the asn1scc language server.\n\n- Point this at **`Server.exe`** (a self-contained build that needs no .NET install), or\n- point it at **`Server.dll`** to run it via the installed `dotnet` runtime.\n\nIf left empty, the extension looks for a bundled server at `<extension>/server/Server.dll`."
+                }
+            }
+        }
+    },
     "scripts": {
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install"
+        "package": "vsce package"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^9.0.1"
     },
     "devDependencies": {
-        "typescript": "^2.6.1",
-        "vscode": "^1.1.21",
-        "vscode-languageclient": "^5.1.1",
-        "vscode-jsonrpc": "^4.0.0",
-        "@types/node": "^8.10.25"
+        "@types/node": "^18.19.0",
+        "@types/vscode": "^1.75.0",
+        "@vscode/vsce": "^2.24.0",
+        "typescript": "^5.4.5"
     }
 }
