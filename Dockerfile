@@ -3,22 +3,34 @@ ARG NON_ROOT_USER=false
 ARG USERNAME=root
 ARG USERID=0
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
-# Install .NET
-RUN apt-get update && apt-get install -y wget apt-transport-https && \
-    wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb && \
-    dpkg -i packages-microsoft-prod.deb && \
-    apt-get update && apt-get install -y dotnet-sdk-9.0
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install .NET 10 SDK via the official dotnet-install.sh script.
+# Microsoft's apt repo for Ubuntu 22.04 (jammy) does not ship
+# dotnet-sdk-10.0, so we install via the script instead.
+# Ubuntu 22.04 is required (not 24.04+/Debian 12) because GNAT
+# Community 2021 below ships an old `ld` that does not understand
+# glibc 2.36+ `.relr.dyn` sections.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        wget ca-certificates libicu70 libssl3 libstdc++6 zlib1g \
+        libgssapi-krb5-2 \
+    && wget -q https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh \
+    && chmod +x /tmp/dotnet-install.sh \
+    && /tmp/dotnet-install.sh --channel 10.0 --install-dir /usr/share/dotnet \
+    && ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet \
+    && rm /tmp/dotnet-install.sh
+ENV DOTNET_ROOT=/usr/share/dotnet
 
 # Install system dependencies
 RUN set -xe \
-    && DEBIAN_FRONTEND=noninteractive apt-get update -y \
-    && apt-get install -y libfontconfig libdbus-1-3 libx11-6 libx11-xcb-dev cppcheck htop \
+    && apt-get update -y \
+    && apt-get install -y libfontconfig1 libdbus-1-3 libx11-6 libx11-xcb-dev cppcheck htop \
         python3 python3-distutils python3-pytest gcc g++ make nuget libgit2-dev libssl-dev curl wget git unzip zip \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get purge --auto-remove \
-    && apt-get clean 
+    && apt-get clean
 
 # Conditionally create non-root user and set permissions
 RUN if [ "$NON_ROOT_USER" = "true" ]; then \

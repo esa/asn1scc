@@ -37,9 +37,9 @@ sudo apt-get update
 sudo apt-get install sbt
 ```
 
-## Install .NET SDK (version 9.0)
+## Install .NET SDK (version 10.0)
 
-Install the [.NET 9.0](https://dotnet.microsoft.com/download/dotnet/9.0) sdk.
+Install the [.NET 10.0](https://dotnet.microsoft.com/download/dotnet/10.0) sdk.
 Add NuGet package source (in case it is missing) by executing:
     
     dotnet nuget add source "https://api.nuget.org/v3/index.json" --name "NuGet"

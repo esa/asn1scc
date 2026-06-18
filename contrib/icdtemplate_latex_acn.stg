@@ -11,11 +11,7 @@ group icd_acn;
 
 //delimiters "$", "$"
 
-NewLine() ::= <<
-\newline
-
->>
-
+NewLine() ::= "\n"
 OddRow() ::= ""
 EvenRow() ::= ""
 
@@ -42,14 +38,16 @@ EmitRowWith3Dots() ::= <<
 >>
 
 EmitFilePart2(sFileName, arrsAsn1Content) ::= <<
-% File: $sFileName$
-% $arrsAsn1Content$
+\section{File: \protect\detokenize{$sFileName$}}
+\begin{lstlisting}[style=asn1style]
+$arrsAsn1Content$
+\end{lstlisting}
 >>
 
 EmitModule(sModName, sAsn1FileName, soAcnFileName, arrsComments, arrsTases) ::= <<
 \clearpage
-\chapter{Module \detokenize{$sModName$}}\label{sec:ICD_$sModName$}
-\textit{Defined in: \detokenize{$sAsn1FileName$}$if(soAcnFileName)$, \detokenize{$soAcnFileName$}$endif$.}
+\section{Module \protect\detokenize{$sModName$}}\label{secICD$sModName$}
+\textit{Defined in: \protect\detokenize{$sAsn1FileName$}$if(soAcnFileName)$, \protect\detokenize{$soAcnFileName$}$endif$.}
 
 $arrsComments;separator="\n\n"$
 
@@ -57,44 +55,37 @@ $arrsTases;separator="\n"$
 >>
 
 EmitNavLink(sTitle, sTarget) ::= <<
-\detokenize{$sTitle$}~\ref{sec:ICD_$sTarget$}
+\protect\detokenize{$sTitle$}~\ref{secICD$sTarget$}
 >>
 
 EmitTass(sTypeContent) ::= <<
+\begin{lstlisting}[style=asn1style]
 $sTypeContent$
+\end{lstlisting}
+\bigskip
 >>
 
 ItemNumber(nIndex) ::= <<
 Item $nIndex$
 >>
 
-LeftDiple() ::= "\textless{}"
-RightDiple() ::= "\textgreater{}"
+LeftDiple() ::= "(@*\textless{}*@)"
+RightDiple() ::= "(@*\textgreater{}*@)"
 
-AcnKeyword(sKeyword) ::= "\textbf{$sKeyword$}"
-StringLiteral(sStringLiteral) ::= "\texttt{\detokenize{$sStringLiteral$}}"
-TasName(sTasName, sTasNameC) ::= <<
-\label{app:ACN_$sTasNameC$}
-\detokenize{$sTasName$}~\ref{sec:ICD_$sTasNameC$}
->>
-
-TasName2(sTasName, sTasNameC) ::= <<
-\detokenize{$sTasName$}~\ref{app:ASN1_$sTasNameC$}
->>
-
-BlueTas(sBlueTasC,sTasName) ::= <<
-\label{app:ASN1_$sBlueTasC$}\detokenize{$sTasName$}
->>
-
-Asn1Token(sKeyword) ::= "\textbf{$sKeyword$}"
-Comment(sComment) ::= "\textit{\detokenize{$sComment$}}"
+AcnKeyword(sKeyword) ::= "(@*\textbf{$sKeyword$}*@)"
+StringLiteral(sStringLiteral) ::= "(@*\texttt{\protect\detokenize{$sStringLiteral$}}*@)"
+TasName(sTasName, sTasNameC) ::= "(@*\label{appACN$sTasNameC$}\textbf{\protect\detokenize{$sTasName$}}*@)"
+TasName2(sTasName, sTasNameC) ::= "(@*\hyperref[appASN$sTasNameC$]{\protect\detokenize{$sTasName$}}*@)"
+BlueTas(sBlueTasC,sTasName) ::= "(@*\label{appASN$sBlueTasC$}\protect\detokenize{$sTasName$}*@)"
+Asn1Token(sKeyword) ::= "(@*\textbf{$sKeyword$}*@)"
+Comment(sComment) ::= "(@*\textit{\protect\detokenize{$sComment$}}*@)"
 
 EmitEnumItem(sName, nValue) ::= <<
-\item \detokenize{$sName$} ($nValue$)
+\item \protect\detokenize{$sName$} ($nValue$)
 >>
 
 EmitEnumItemWithComment(sName, nValue, sComment) ::= <<
-\item \detokenize{$sName$} ($nValue$) -- \detokenize{$sComment$}
+\item \protect\detokenize{$sName$} ($nValue$) -- \protect\detokenize{$sComment$}
 >>
 
 EmitEnumInternalContents(arrsItems) ::= <<
@@ -105,19 +96,19 @@ $arrsItems;separator="\n"$
 >>
 
 EmitSequenceOrChoice(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsn1Kinf, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsChildren, arrsParams, arrsComments) ::= <<
-\section{\detokenize{$sTasName$}}\label{sec:ICD_$sTasNameC$}
+\subsection{\protect\detokenize{$sTasName$}}\label{secICD$sTasNameC$}
 
 \begin{itemize}
-\item ASN.1 Type: \detokenize{$sTasName$} ($if(bIsAnonymousType)$anonymous $endif$$sAsn1Kinf$)
-\item Source: \ref{app:ASN1_$sTasNameC$} (ASN.1)$if(bHasAcnDef)$ | \ref{app:ACN_$sTasNameC$} (ACN)$endif$
+\item ASN.1 Type: \protect\detokenize{$sTasName$} ($if(bIsAnonymousType)$anonymous $endif$$sAsn1Kinf$)
+\item Source: \hyperref[appASN$sTasNameC$]{ASN.1}$if(bHasAcnDef)$ | \hyperref[appACN$sTasNameC$]{ACN}$endif$
 \item Min size: $sMinBytes$ bytes
 \item Max size: $sMaxBytes$ bytes $sMaxBitsExplained$
 \end{itemize}
 
-$if(sCommentLine)$\detokenize{$sCommentLine$}$endif$
+$if(sCommentLine)$\protect\detokenize{$sCommentLine$}$endif$
 
 $if(arrsParams)$
-\subsection*{ACN Parameters}
+\subsubsection*{ACN Parameters}
 \begin{longtable}{|c|c|c|}
 \hline
 \rowcolor{gray!50}
@@ -133,7 +124,7 @@ $arrsParams$
 $endif$
 
 \begin{longtable}{|c|p{3cm}|p{5cm}|c|p{3cm}|c|c|c|c|}
-\caption{Type content for \detokenize{$sTasName$}}\label{tab:param$sTasNameC$} \\\\
+\caption{Type content for \protect\detokenize{$sTasName$}}\label{tabparam$sTasNameC$} \\\\
 \hline
 \rowcolor{gray!50}
 \textbf{No} & \textbf{Field} & \textbf{Comment} & \textbf{Present} & \textbf{Type} & \textbf{Constraint} & \textbf{Min} & \textbf{Max} & \textbf{Unit} \\\\
@@ -154,13 +145,13 @@ $arrsChildren;separator="\n\\hline\n"$
 
 EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit) ::= <<
 $if(noAlignToNextSize)$
- & padding field & present due to align-to-next property & & padding bits & & 0 & $noAlignToNextSize$ & \detokenize{$soUnit$} \\\\ \hline
+ & padding field & present due to align-to-next property & & padding bits & & 0 & $noAlignToNextSize$ & \protect\detokenize{$soUnit$} \\\\ \hline
 $endif$
-$nIndex$ & \detokenize{$sName$} & \detokenize{$sComment$} & \detokenize{$sPresentWhen$} & $sType$ & \detokenize{$sConstraint$} & $sMin$ & $sMax$ & \detokenize{$soUnit$} \\\\
+$nIndex$ & \protect\detokenize{$sName$} & \protect\detokenize{$sComment$} & \protect\detokenize{$sPresentWhen$} & $sType$ & \protect\detokenize{$sConstraint$} & $sMin$ & $sMax$ & \protect\detokenize{$soUnit$} \\\\
 >>
 
 EmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<
-\item bit $nIndex$ == 1 \(\Rightarrow\) \detokenize{$sOptChildName$} is present
+\item bit $nIndex$ == 1 \$\Rightarrow\$ \protect\detokenize{$sOptChildName$} is present
 >>
 
 EmitSequencePreambleComment(arrsOptWihtNoPresentWhenChildren) ::= <<
@@ -175,27 +166,27 @@ Special field used by ACN to indicate which choice alternative is present.
 >>
 
 EmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, sMax) ::= <<
-$nIndex$ & \detokenize{$sName$} & \detokenize{$sComment$} & always & $sType$ & \detokenize{$sConstraint$} & $sMin$ & $sMax$ & \\\\
+$nIndex$ & \protect\detokenize{$sName$} & \protect\detokenize{$sComment$} & always & $sType$ & \protect\detokenize{$sConstraint$} & $sMin$ & $sMax$ & \\\\
 >>
 
 EmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
-\detokenize{$sRefName$}~\ref{sec:ICD_$sRefNameC$}
+\protect\detokenize{$sRefName$}~\ref{secICD$sRefNameC$}
 >>
 
 EmitPrimitiveType(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsnKindName, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, sAsn1Constraints, sMinBits, sMaxBits, arrsParams, arrsComments, soUnit) ::= <<
-\section{\detokenize{$sTasName$}}\label{sec:ICD_$sTasNameC$}
+\subsection{\protect\detokenize{$sTasName$}}\label{secICD$sTasNameC$}
 
 \begin{itemize}
-\item ASN.1 Type: \detokenize{$sTasName$} ($if(bIsAnonymousType)$anonymous $endif$$sAsnKindName$)
-\item Source: \ref{app:ASN1_$sTasNameC$} (ASN.1)$if(bHasAcnDef)$ | \ref{app:ACN_$sTasNameC$} (ACN)$endif$
+\item ASN.1 Type: \protect\detokenize{$sTasName$} ($if(bIsAnonymousType)$anonymous $endif$$sAsnKindName$)
+\item Source: \hyperref[appASN$sTasNameC$]{ASN.1}$if(bHasAcnDef)$ | \hyperref[appACN$sTasNameC$]{ACN}$endif$
 \item Min size: $sMinBytes$ bytes
 \item Max size: $sMaxBytes$ bytes $sMaxBitsExplained$
 \end{itemize}
 
-$if(sCommentLine)$\detokenize{$sCommentLine$}$endif$
+$if(sCommentLine)$\protect\detokenize{$sCommentLine$}$endif$
 
 $if(arrsParams)$
-\subsection*{ACN Parameters}
+\subsubsection*{ACN Parameters}
 \begin{longtable}{|c|c|c|}
 \hline
 \rowcolor{gray!50}
@@ -211,7 +202,7 @@ $arrsParams$
 $endif$
 
 \begin{longtable}{|c|c|c|c|}
-\caption{Type content for \detokenize{$sTasName$}}\label{tab:param$sTasNameC$} \\\\
+\caption{Type content for \protect\detokenize{$sTasName$}}\label{tabparam$sTasNameC$} \\\\
 \hline
 \rowcolor{gray!50}
 \textbf{Constraints} & \textbf{Min Bits} & \textbf{Max Bits} & \textbf{Unit} \\\\
@@ -221,25 +212,25 @@ $endif$
 \textbf{Constraints} & \textbf{Min Bits} & \textbf{Max Bits} & \textbf{Unit} \\\\
 \hline\\hline
 \endhead
-\detokenize{$sAsn1Constraints$} & $sMinBits$ & $sMaxBits$$sMaxBitsExplained$ & \detokenize{$soUnit$} \\\\
+\protect\detokenize{$sAsn1Constraints$} & $sMinBits$ & $sMaxBits$$sMaxBitsExplained$ & \protect\detokenize{$soUnit$} \\\\
 \hline
 \end{longtable}
 >>
 
 EmitSizeable(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sKind, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsRows, arrsParams, arrsComments) ::= <<
-\section{\detokenize{$sTasName$}}\label{sec:ICD_$sTasNameC$}
+\subsection{\protect\detokenize{$sTasName$}}\label{secICD$sTasNameC$}
 
 \begin{itemize}
-\item ASN.1 Type: \detokenize{$sTasName$} ($if(bIsAnonymousType)$anonymous $endif$$sKind$)
-\item Source: \ref{app:ASN1_$sTasNameC$} (ASN.1)$if(bHasAcnDef)$ | \ref{app:ACN_$sTasNameC$} (ACN)$endif$
+\item ASN.1 Type: \protect\detokenize{$sTasName$} ($if(bIsAnonymousType)$anonymous $endif$$sKind$)
+\item Source: \hyperref[appASN$sTasNameC$]{ASN.1}$if(bHasAcnDef)$ | \hyperref[appACN$sTasNameC$]{ACN}$endif$
 \item Min size: $sMinBytes$ bytes
 \item Max size: $sMaxBytes$ bytes $sMaxBitsExplained$
 \end{itemize}
 
-$if(sCommentLine)$\detokenize{$sCommentLine$}$endif$
+$if(sCommentLine)$\protect\detokenize{$sCommentLine$}$endif$
 
 $if(arrsParams)$
-\subsection*{ACN Parameters}
+\subsubsection*{ACN Parameters}
 \begin{longtable}{|c|c|c|}
 \hline
 \rowcolor{gray!50}
@@ -255,7 +246,7 @@ $arrsParams$
 $endif$
 
 \begin{longtable}{|c|p{3cm}|p{5cm}|c|p{3cm}|c|c|c|}
-\caption{Type content for \detokenize{$sTasName$}}\label{tab:param$sTasNameC$} \\\\
+\caption{Type content for \protect\detokenize{$sTasName$}}\label{tabparam$sTasNameC$} \\\\
 \hline
 \rowcolor{gray!50}
 \textbf{No} & \textbf{Field} & \textbf{Comment} & \textbf{Present} & \textbf{Type} & \textbf{Constraint} & \textbf{Min Bits} & \textbf{Max Bits} \\\\
@@ -271,13 +262,13 @@ $arrsRows;separator="\n\\hline\n"$
 >>
 
 PrintParam(nIndex, sName, sType, nColSpan) ::= <<
-$nIndex$ & \detokenize{$sName$} & $sType$ \\\\
+$nIndex$ & \protect\detokenize{$sName$} & $sType$ \\\\
 >>
 
 RootCss() ::= ""
 
 RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFileName, navLinks) ::= <<
-\documentclass{report}
+\documentclass[10pt,a4paper]{article}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{lmodern}
@@ -287,10 +278,21 @@ RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFile
 \usepackage[table]{xcolor}
 \usepackage{hyperref}
 \usepackage{tocloft}
+\usepackage{listings}
 
 % Compact Table of Contents
-\setlength{\cftbeforechapskip}{2pt}
-\setlength{\cftbeforesecskip}{0pt}
+\setlength{\cftbeforesecskip}{2pt}
+\setlength{\cftbeforesubsecskip}{0pt}
+
+\lstdefinestyle{asn1style}{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  tabsize=4,
+  showstringspaces=false,
+  escapeinside={(@*}{*@)},
+  columns=fullflexible,
+  keepspaces=true
+}
 
 \title{ICD}
 \begin{document}
@@ -304,7 +306,7 @@ $arrsFiles1;separator="\n"$
 
 $if(bAcnParamsMustBeExplained)$
 \section*{ACN Parameters}
-\label{app:ACN_PARAMS_EXPLAINED123}
+\label{appACNPARAMSEXPLAINED123}
 In the standard ASN.1 encodings such as uPER, BER etc, the encoding and decoding of any type has no external dependencies. For example, the encoded data for a SEQUENCE OF depends on the number of items in the SEQUENCE OF (the length determinant) and the type of item contained in the SEQUENCE. On the other hand, ACN allows types to be parameterized. For instance, the length of a SEQUENCE OF may be determined by the value of an external field. In this case, the SEQUENCE OF is parameterized and the input parameter is the field providing the length.
 $endif$
 

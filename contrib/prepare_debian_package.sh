@@ -11,7 +11,7 @@ INITIAL_FOLDER=$(pwd)
 SHARE_FOLDER=$INSTALL_ROOT/share/asn1scc
 BIN_FOLDER=$INSTALL_ROOT/bin
 cd ..
-BINARY_PATH=./asn1scc/bin/Release/net7.0/linux-x64/publish
+BINARY_PATH=./asn1scc/bin/Release/net10.0/linux-x64/publish
 VERSION="$(${BINARY_PATH}/asn1scc -v | head -1 | awk '{print $NF}')"
 echo "[-] Creating a Debian package for ASN1SCC version ${VERSION}"
 test -f ${BINARY_PATH}/asn1scc || (echo 'You must first build ASN1SCC (make -C .. -f Makefile.debian publish)' && false)
