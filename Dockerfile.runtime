@@ -5,12 +5,15 @@
 #################################################################################################
 #################################################################################################
 
-FROM  mcr.microsoft.com/dotnet/sdk:9.0 AS builder
+FROM  mcr.microsoft.com/dotnet/sdk:10.0 AS builder
 
 RUN apt update
-#RUN mkdir /usr/share/man/man1
-RUN apt install -y python3 python3-distutils \
-    make openjdk-17-jre nuget libgit2-dev libssl-dev ; apt clean
+# Note: dotnet/sdk:10.0 is based on Ubuntu 24.04 noble (Python 3.12),
+# which dropped both the `python3-distutils` and the `nuget` packages.
+# `dotnet build` uses the built-in NuGet client, so we don't need the
+# external nuget binary.
+RUN apt install -y python3 \
+    make openjdk-17-jre libgit2-dev libssl-dev ; apt clean
 
 RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt \
     set -ex ;\
@@ -29,9 +32,9 @@ RUN set -ex ;\
 #################################################################################################
 #################################################################################################
 
-FROM mcr.microsoft.com/dotnet/runtime:9.0
+FROM mcr.microsoft.com/dotnet/runtime:10.0
 
-COPY --from=builder /src/asn1scc/asn1scc/bin/Release/net9.0/ /opt/asn1scc
+COPY --from=builder /src/asn1scc/asn1scc/bin/Release/net10.0/ /opt/asn1scc
 WORKDIR /tmp
 
 ENTRYPOINT ["/opt/asn1scc/asn1scc"]

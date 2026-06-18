@@ -1,49 +1,69 @@
 /* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
+ * ASN.1 / ACN Language Support — VSCode client for the asn1scc language server.
+ * Launches the (C#/OmniSharp) language server over stdio and wires it to .asn/.asn1/.acn files.
  * ------------------------------------------------------------------------------------------ */
-// tslint:disable
 'use strict';
 
-import { workspace, Disposable, ExtensionContext } from 'vscode';
-import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, InitializeParams } from 'vscode-languageclient';
-import { Trace } from 'vscode-jsonrpc';
+import * as path from 'path';
+import { workspace, ExtensionContext, window } from 'vscode';
+import {
+    LanguageClient,
+    LanguageClientOptions,
+    ServerOptions,
+    Executable
+} from 'vscode-languageclient/node';
+
+let client: LanguageClient | undefined;
 
 export function activate(context: ExtensionContext) {
+    // Where is the language server? Prefer the user setting; otherwise fall back
+    // to a server bundled inside the extension at <extension>/server/Server.dll.
+    const configured = workspace
+        .getConfiguration('asn1scc')
+        .get<string>('languageServer.path')
+        ?.trim();
 
-    // The server is implemented in node
-    let serverExe = 'dotnet';
-    console.log("Current directory is :" + process.cwd())
+    const serverPath = configured && configured.length > 0
+        ? configured
+        : context.asAbsolutePath(path.join('server', 'Server.dll'));
 
-    // If the extension is launched in debug mode then the debug server options are used
-    // Otherwise the run options are used
-    let serverOptions: ServerOptions = {
-        run: { command: serverExe, args: ['C:/prj/GitHub/asn1scc/lsp/Server/Server/bin/Debug/net6.0/Server.dll'] },
-        debug: { command: 'C:/prj/GitHub/asn1scc/lsp/Server/Server/bin/Debug/net6.0/Server.exe', args: [] }
-    }
+    // A .dll is run through the installed `dotnet` runtime; anything else
+    // (e.g. a self-contained Server.exe / native binary) is launched directly.
+    const executable: Executable = serverPath.toLowerCase().endsWith('.dll')
+        ? { command: 'dotnet', args: [serverPath] }
+        : { command: serverPath, args: [] };
 
-    // Options to control the language client
-    let clientOptions: LanguageClientOptions = {
-        // Register the server for plain text documents
-        
+    const serverOptions: ServerOptions = {
+        run: executable,
+        debug: executable
+    };
+
+    const clientOptions: LanguageClientOptions = {
         documentSelector: [
-            {pattern: '**/*.acn',},
-            {pattern: '**/*.asn1',},
-            {pattern: '**/*.asn',}
+            { scheme: 'file', language: 'asn1' },
+            { scheme: 'file', language: 'acn' }
         ],
         synchronize: {
-            // Synchronize the setting section 'languageServerExample' to the server
-            configurationSection: 'languageServerExample',
-            fileEvents: workspace.createFileSystemWatcher('**/*.acn')
-        },
-    }
+            // Keep the server informed about edits to any ASN.1/ACN file in the workspace.
+            fileEvents: workspace.createFileSystemWatcher('**/*.{asn,asn1,acn}')
+        }
+    };
 
-    // Create the language client and start the client.
-    const client = new LanguageClient('languageServerExample', 'Language Server Example', serverOptions, clientOptions);
-    client.trace = Trace.Verbose;
-    let disposable = client.start();
+    client = new LanguageClient(
+        'asn1scc',
+        'ASN.1/ACN Language Server',
+        serverOptions,
+        clientOptions
+    );
 
-    // Push the disposable to the context's subscriptions so that the
-    // client can be deactivated on extension deactivation
-    context.subscriptions.push(disposable);
+    client.start().catch((err) => {
+        window.showErrorMessage(
+            `ASN.1/ACN language server failed to start (command: ${executable.command}). ` +
+            `Check the "asn1scc.languageServer.path" setting. Details: ${err}`
+        );
+    });
+}
+
+export function deactivate(): Thenable<void> | undefined {
+    return client?.stop();
 }
