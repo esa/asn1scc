@@ -64,10 +64,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
             match t.ActualType.Kind with
             | IA5String st  ->
                 let strLiteral = convertStringValue2TargetLangStringLiteral lm (int st.baseInfo.maxSize.uper) v
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Python ->
-                    lm.lg.getQualifiedTypeName t.typeDefinitionOrReference (ToC t.id.ModName) + "(arr=[ord(c) for c in " + strLiteral + "])"
-                | _ -> strLiteral
+                lm.lg.wrapIA5StringValue t.typeDefinitionOrReference (ToC t.id.ModName) strLiteral
             | _             -> raise(BugErrorException "unexpected type")
 
         | BitStringValue    v ->
@@ -97,18 +94,11 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
         | EnumValue         v ->
             match t.ActualType.Kind with
             | Enumerated enm    ->
-                let typeModName = (t.getActualType r).id.ModName
                 let itm = enm.baseInfo.items |> Seq.find(fun x -> x.Name.Value = v)
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Python ->
-                    let enumTd = lm.lg.getEnumTypeDefinition enm.baseInfo.typeDef
-                    let qualTypeName =
-                        if enumTd.programUnit = "" then enumTd.typeName
-                        else enumTd.programUnit + "." + enumTd.typeName
-                    qualTypeName + "(" + qualTypeName + "_Enum." + (ToC itm.Name.Value) + ")"
-                | _ ->
-                    let itmName = lm.lg.getNamedItemBackendName2 t.ActualType.moduleName curProgramUnitName itm
-                    lm.vars.PrintEnumValue itmName
+                let enumTd = lm.lg.getEnumTypeDefinition enm.baseInfo.typeDef
+                let itmName = lm.lg.getNamedItemBackendName2 t.ActualType.moduleName curProgramUnitName itm
+                let defaultValue = lm.vars.PrintEnumValue itmName
+                lm.lg.formatEnumValueInit enumTd (ToC itm.Name.Value) defaultValue
             | _         -> raise(BugErrorException "unexpected type")
         | NullValue         v -> lm.vars.PrintNullValue ()
         | ObjOrRelObjIdValue v  ->
@@ -129,19 +119,8 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                 let td =  lm.lg.getSizeableTypeDefinition so.baseInfo.typeDef
                 let rawChildVals = v |> List.map (fun chv -> printValue r lm curProgramUnitName so.childType (Some gv) chv.kind)
                 let childVals =
-                    match ProgrammingLanguage.ActiveLanguages.Head with
-                    | Python ->
-                        let pyBuiltins = set ["int"; "float"; "bool"]
-                        let typedefName =
-                            match so.childType.typeDefinitionOrReference with
-                            | TypeDefinition td -> td.typedefName
-                            | ReferenceToExistingDefinition ref -> ref.typedefName
-                        match so.childType.ActualType.Kind with
-                        | Integer _ | Boolean _ | Real _ | NullType _ when not (pyBuiltins |> Set.contains typedefName) ->
-                            let qualName = lm.lg.getQualifiedTypeName so.childType.typeDefinitionOrReference (ToC so.childType.id.ModName)
-                            rawChildVals |> List.map (fun v -> qualName + "(" + v + ")")
-                        | _ -> rawChildVals
-                    | _ -> rawChildVals
+                    rawChildVals |> List.map (fun v ->
+                        lm.lg.maybeWrapValueInConstructor so.childType.typeDefinitionOrReference so.childType.ActualType.Kind (ToC so.childType.id.ModName) v)
                 let sDefValue = so.childType.initFunction.initExpressionFnc ()
                 lm.vars.PrintSequenceOfValue td (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) (BigInteger v.Length) childVals sDefValue
             | _         -> raise(BugErrorException "unexpected type")
@@ -168,18 +147,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                             let childType = x.Type
                             let rawVal = printValue r lm curProgramUnitName childType (Some gv) v.Value.kind
                             let childVal =
-                                match ProgrammingLanguage.ActiveLanguages.Head with
-                                | Python ->
-                                    let pyBuiltins = set ["int"; "float"; "bool"]
-                                    let typedefName =
-                                        match childType.typeDefinitionOrReference with
-                                        | TypeDefinition td -> td.typedefName
-                                        | ReferenceToExistingDefinition ref -> ref.typedefName
-                                    match childType.ActualType.Kind with
-                                    | Integer _ | Boolean _ | Real _ | NullType _ when not (pyBuiltins |> Set.contains typedefName) ->
-                                        lm.lg.getQualifiedTypeName childType.typeDefinitionOrReference (ToC childType.id.ModName) + "(" + rawVal + ")"
-                                    | _ -> rawVal
-                                | _ -> rawVal
+                                lm.lg.maybeWrapValueInConstructor childType.typeDefinitionOrReference childType.ActualType.Kind (ToC childType.id.ModName) rawVal
                             Some (lm.vars.PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) childVal)
                         | None      ->
                             let chV =
@@ -190,9 +158,9 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                                         let chV = (mapValue v).kind
                                         Some (printValue r lm curProgramUnitName x.Type None chV)
                                     | None      ->
-                                        match ProgrammingLanguage.ActiveLanguages.Head with
-                                        | Python -> Some "None"
-                                        | _ -> if lm.lg.supportsInitExpressions then (Some (x.Type.initFunction.initExpressionFnc ())) else None
+                                        match lm.lg.nullValueForAbsentOptional with
+                                        | Some nullVal -> Some nullVal
+                                        | None -> if lm.lg.supportsInitExpressions then (Some (x.Type.initFunction.initExpressionFnc ())) else None
                                 | _             -> if lm.lg.supportsInitExpressions then (Some (x.Type.initFunction.initExpressionFnc ())) else None
                             match chV with
                             | None -> None
@@ -208,18 +176,9 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                 List.map(fun x ->
                     let chValue = printValue r  lm curProgramUnitName x.chType (Some gv) v.Value.kind
                     let sChildNamePresentBase = lm.lg.presentWhenName  (Some t.typeDefinitionOrReference) x
-                    let sChildNamePresent =
-                        match ProgrammingLanguage.ActiveLanguages.Head with
-                        | Python -> (ToC t.id.ModName) + "." + sChildNamePresentBase
-                        | _ -> sChildNamePresentBase
+                    let sChildNamePresent = lm.lg.prefixWithModule (ToC t.id.ModName) sChildNamePresentBase
                     let chValueWrapped =
-                        match ProgrammingLanguage.ActiveLanguages.Head with
-                        | Python ->
-                            match x.chType.ActualType.Kind with
-                            | Integer _ | Real _ | Boolean _ | NullType _ ->
-                                lm.lg.getQualifiedTypeName x.chType.typeDefinitionOrReference (ToC x.chType.id.ModName) + "(" + chValue + ")"
-                            | _ -> chValue
-                        | _ -> chValue
+                        lm.lg.maybeWrapValueInConstructor x.chType.typeDefinitionOrReference x.chType.ActualType.Kind (ToC x.chType.id.ModName) chValue
                     lm.vars.PrintChoiceValue typeDefName (lm.lg.getAsn1ChChildBackendName x) chValueWrapped sChildNamePresent true ) |>
                 List.head
             | _         -> raise(BugErrorException "unexpected type")
@@ -426,18 +385,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
 
                 let childValue = (x.chType.printValue curProgramUnitName (Some gv) chVal.Value.kind)
                 let sChildNamePresentBase = lm.lg.presentWhenName (Some defOrRef) x
-                let sChildNamePresent =
-                    match ProgrammingLanguage.ActiveLanguages.Head with
-                    | Python -> (ToC t.id.ModName) + "." + sChildNamePresentBase
-                    | _ -> sChildNamePresentBase
+                let sChildNamePresent = lm.lg.prefixWithModule (ToC t.id.ModName) sChildNamePresentBase
                 let childValueWrapped =
-                    match ProgrammingLanguage.ActiveLanguages.Head with
-                    | Python ->
-                        match x.chType.ActualType.Kind with
-                        | Integer _ | Real _ | Boolean _ | NullType _ ->
-                            lm.lg.getQualifiedTypeName x.chType.typeDefinitionOrReference (ToC x.chType.id.ModName) + "(" + childValue + ")"
-                        | _ -> childValue
-                    | _ -> childValue
+                    lm.lg.maybeWrapValueInConstructor x.chType.typeDefinitionOrReference x.chType.ActualType.Kind (ToC x.chType.id.ModName) childValue
                 lm.vars.PrintChoiceValue typeDefName (lm.lg.getAsn1ChChildBackendName x) childValueWrapped sChildNamePresent true
                 ) |>
             List.head

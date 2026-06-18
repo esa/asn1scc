@@ -115,7 +115,7 @@ let getExternalFieldChoicePresentWhen (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot)
         | _                              -> true
     // For Python, CHOICE present-when conditions live in standalone decode methods;
     // use the formal parameter name rather than chasing to the caller's variable.
-    let stopAtPrm = ProgrammingLanguage.ActiveLanguages.Head = Python
+    let stopAtPrm = lm.lg.stopAtPrmForChoicePresentWhen
     getExternalField0 lm r deps asn1TypeIdWithDependency filterDependency stopAtPrm
 
 let getExternalFieldTypeChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency  relPath=

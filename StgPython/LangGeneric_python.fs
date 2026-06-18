@@ -573,35 +573,6 @@ type LangGeneric_python() =
                     | _ -> false
                 getExternalField0 filterDependency
     
-    override this.getAcnChildrenDictStatements (codec: Codec) (acnChildrenEncoded: (string * AcnChild) list) (p: CodegenScope) =
-        // Check if this sequence has inline ACN children that need to be returned to parent
-        let hasAcnChildrenToReturn =
-            codec = Decode &&
-            ProgrammingLanguage.ActiveLanguages.Head = Python &&
-            not acnChildrenEncoded.IsEmpty
-            
-        // Build ACN children dictionary and tuple return for Python decode
-        if hasAcnChildrenToReturn then
-            // Build dictionary entries: {'acn_child_name': acn_child_var}
-            let dictEntries =
-                acnChildrenEncoded
-                |> List.rev  // Reverse to get original order
-                |> List.map (fun (varName, acnCh) ->
-                    let varRef =
-                        match acnCh.Type with
-                        | Asn1AcnAst.AcnReferenceToIA5String _ ->
-                            $"{p.accessPath.asIdentifier this}_{varName}"
-                        | _ -> varName
-                    $"'{acnCh.c_name}': {varRef}"
-                )
-                |> String.concat ", "
-
-            let dictStmt = $"%s{p.accessPath.lastIdOrArr}_acn_children = {{%s{dictEntries}}}"
-            let tupleReturnStmt = $"return %s{p.accessPath.asIdentifier this}, %s{p.accessPath.lastIdOrArr}_acn_children"
-            [dictStmt], Some tupleReturnStmt
-        else
-            [], None
-    
     override this.updateStateForCrossSequenceAcnParams (r: Asn1AcnAst.AstRoot) (state: State) (p: CodegenScope) (oChildren: Asn1AcnAst.SeqChildInfo list) (child: Asn1Child) (childNestingScope: NestingScope) (deps: AcnInsertedFieldDependencies) (t: Asn1AcnAst.Asn1Type) (codec: Codec) updateFncInEncoding getDeterminantTypeFunc initExpr =
         let childName = this.getAsn1ChildBackendName child
         
@@ -755,6 +726,78 @@ type LangGeneric_python() =
     override _.ArrayInitByAppend = true
     override this.TempArrayItemSuffix = "_arr_elem"
     override _.usesWrappedOptional = false
+    override _.needsExistSequence = false
+    override _.integerIsAlwaysSigned = true
+    override _.stopAtPrmForChoicePresentWhen = true
+    override _.usesBooleanPresenceBits = true
+    override _.usesChoiceTempVarPath = true
+    override _.needsAcnChoiceDeterminantParam = true
+    override _.resolveAcnPrmRefTypeEmission _prmTypeName resolvedKind intZero =
+        match resolvedKind with
+        | Some (Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _) -> "str", "\"\""
+        | _ -> "int", intZero
+    override _.nullValueForAbsentOptional = Some "None"
+    override _.getEnumIntLocalVarName baseName = $"{baseName}_int"
+
+    override this.adjustChildDecodeResultExpr codec isPrimitive parentId childName defaultResult =
+        match codec, this.decodingKind, isPrimitive with
+        | Decode, Copy, false -> Some $"{parentId}_{childName}"
+        | _ -> defaultResult
+
+    override this.getInitAssignmentLhs p = p.accessPath.asIdentifier this
+
+    override _.adjustEnumAccessForValidation path =
+        path.appendSelection "val" ByValue false
+
+    override this.maybeWrapValueInConstructor typeRef typeKind modName value =
+        let pyBuiltins = set ["int"; "float"; "bool"]
+        let typedefName =
+            match typeRef with
+            | TypeDefinition td -> td.typedefName
+            | ReferenceToExistingDefinition ref -> ref.typedefName
+        match typeKind with
+        | Integer _ | Boolean _ | Real _ | NullType _ when not (pyBuiltins.Contains typedefName) ->
+            this.getQualifiedTypeName typeRef modName + "(" + value + ")"
+        | _ -> value
+
+    override _.prefixWithModule modName name = modName + "." + name
+
+    override this.getObjectIdentifierAccessPair p = (p.accessPath.asIdentifier this, "")
+
+    override _.qualifyNameWithModule targetMod curMod name =
+        if targetMod <> curMod && targetMod <> "" && not (name.StartsWith(targetMod + ".")) then
+            targetMod + "." + name
+        else name
+
+    override this.wrapIA5StringValue typeRef modName literal =
+        this.getQualifiedTypeName typeRef modName + "(arr=[ord(c) for c in " + literal + "])"
+
+    override _.formatEnumValueInit (enumTd: FE_EnumeratedTypeDefinition) itemCName _defaultValue =
+        let qualTypeName = if enumTd.programUnit = "" then enumTd.typeName else enumTd.programUnit + "." + enumTd.typeName
+        qualTypeName + "(" + qualTypeName + "_Enum." + itemCName + ")"
+
+    override _.formatValueAssignmentTestCase typeKind valueType initStmt =
+        let parenArgs () =
+            let idx = initStmt.IndexOf('(')
+            if idx >= 0 then initStmt.[idx..] else "()"
+        match typeKind with
+        | Integer _    -> "tc_data = " + valueType + "(" + initStmt + ")"
+        | Real _       -> "tc_data: " + valueType + " = " + valueType + "(" + initStmt + ")"
+        | Boolean _    -> "tc_data: " + valueType + " = " + valueType + "(" + initStmt + ")"
+        | NullType _   -> "tc_data: " + valueType + " = " + valueType + "()"
+        | Choice _     -> "tc_data: " + valueType + " = " + initStmt
+        | IA5String _ | Sequence _ | SequenceOf _ | OctetString _ | BitString _ | ObjectIdentifier _ | Enumerated _ ->
+            "tc_data: " + valueType + " = " + valueType + (parenArgs ())
+        | ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
+        | _ -> initStmt
+
+    override _.adjustTestCaseObjectIdentifierInit modName tasName initStmt =
+        let parenIdx = initStmt.IndexOf('(')
+        if parenIdx >= 0 then
+            let qualType = modName + "." + tasName
+            "tc_data: " + qualType + " = " + qualType + initStmt.[parenIdx..]
+        else initStmt
+
     override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
     override this.createSingleLineComment (sText:string) = sprintf "#%s" sText
 
@@ -1121,7 +1164,8 @@ type LangGeneric_python() =
                 //   2. ReferenceType → call_superclass_func_decode: instance_X_decode = TypeName.decode_uper(...)
                 let alreadyWrapped =
                     body.Contains(sprintf "instance_%s = %s(" sChildName childTypeDef) ||
-                    body.Contains(sprintf "instance_%s_decode = " sChildName)
+                    body.Contains(sprintf "instance_%s_decode = " sChildName) ||
+                    body.Contains(sprintf "instance_%s = %s.decode_" sChildName childTypeDef)
                 if alreadyWrapped then body
                 else body + "\ninstance_" + sChildName + " = " + childTypeDef + "(instance_" + sChildName + ")"
             | Encode, _ -> body

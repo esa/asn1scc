@@ -244,6 +244,14 @@ type LangGeneric_scala() =
         override this.initMethod           = InitMethod.Procedure
         override _.decodingKind = Copy
         override _.usesWrappedOptional = true
+        override _.usesBooleanPresenceBits = true
+        override _.usesChoiceTempVarPath = true
+        override _.supportsAcnIcdForUndeclaredType = false
+        override _.formatValueAssignmentTestCase typeKind _valueType initStmt =
+            match typeKind with
+            | Integer _ -> "val tc_data = " + initStmt
+            | ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
+            | _ -> initStmt
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
 

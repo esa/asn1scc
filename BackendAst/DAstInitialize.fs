@@ -466,10 +466,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                 List.map(fun (compLit) ->
                     let initTestCaseFunc (p:CodegenScope) =
                         let resVar = (p.accessPath.asIdentifier lm.lg)
-                        let lhs =
-                            match ProgrammingLanguage.ActiveLanguages.Head with
-                            | Python -> resVar
-                            | _ -> lm.lg.getValue p.accessPath
+                        let lhs = lm.lg.getInitAssignmentLhs p
                         let ret = sprintf "%s%s%s;" lhs lm.lg.AssignOperator compLit
                         {InitFunctionResult.funcBody = ret; resultVar = resVar; localVariables=[]}
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
@@ -577,10 +574,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                 List.map(fun compLit ->
                     let retFunc (p:CodegenScope) =
                         let resVar = (p.accessPath.asIdentifier lm.lg)
-                        let lhs =
-                            match ProgrammingLanguage.ActiveLanguages.Head with
-                            | Python -> resVar
-                            | _ -> lm.lg.getValue p.accessPath
+                        let lhs = lm.lg.getInitAssignmentLhs p
                         let ret = sprintf "%s%s%s;" lhs lm.lg.AssignOperator compLit
                         {InitFunctionResult.funcBody = ret; resultVar = resVar; localVariables=[]}
                     {AutomaticTestCase.initTestCaseFunc = retFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
@@ -657,10 +651,7 @@ let createObjectIdentifierInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t
         List.map (fun vl ->
             {AutomaticTestCase.initTestCaseFunc = (fun (p:CodegenScope) ->
                 let resVar = (p.accessPath.asIdentifier lm.lg)
-                let (pStr, sAccStr) =
-                    match ProgrammingLanguage.ActiveLanguages.Head with
-                    | Python -> (resVar, "")
-                    | _ -> (p.accessPath.joined lm.lg, lm.lg.getAccess p.accessPath)
+                let (pStr, sAccStr) = lm.lg.getObjectIdentifierAccessPair p
                 let arrsBytes = vl |> List.mapi(fun i b -> initObjectIdentifier_valid pStr sAccStr ((i+lm.lg.ArrayStartIndex).ToString()) b)
                 {InitFunctionResult.funcBody = initObjectIdentifier pStr sAccStr (BigInteger vl.Length) arrsBytes; resultVar = resVar; localVariables = []}); testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
 
@@ -734,16 +725,7 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
         let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         // Get enum value name and qualify with module if needed
         let enumValueBase = lm.lg.getNamedItemBackendName (Some typeDefinition) vl
-        let enumValue =
-            match ProgrammingLanguage.ActiveLanguages.Head with
-            | Python ->
-                // Check if module prefix is already present (from getNamedItemBackendName fix)
-                if tk.programUnit <> p.modName && not (enumValueBase.StartsWith(tk.programUnit + ".")) then
-                    // In test cases (different module), qualify the enum with the enum type's module
-                    tk.programUnit + "." + enumValueBase
-                else
-                    enumValueBase
-            | _ -> enumValueBase
+        let enumValue = lm.lg.qualifyNameWithModule tk.programUnit p.modName enumValueBase
         initEnumerated (lm.lg.getValue p.accessPath) enumValue tdName p.accessPath.isOptional resVar
 
     let testCaseFuncs =
@@ -755,17 +737,8 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
                         let resVar = (p.accessPath.asIdentifier lm.lg)
                         let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                         // Get enum value name and qualify with module if needed
-                        let enumValue =
-                            match ProgrammingLanguage.ActiveLanguages.Head with
-                            | Python ->
-                                let enumValueBase = lm.lg.getNamedItemBackendName (Some typeDefinition) vl
-                                // Check if module prefix is already present
-                                if tk.programUnit <> p.modName && not (enumValueBase.StartsWith(tk.programUnit + ".")) then
-                                    // In test cases (different module), qualify the enum with the enum type's module
-                                    tk.programUnit + "." + enumValueBase
-                                else
-                                    enumValueBase
-                            | _ -> lm.lg.getNamedItemBackendName (Some typeDefinition) vl
+                        let enumValueBase = lm.lg.getNamedItemBackendName (Some typeDefinition) vl
+                        let enumValue = lm.lg.qualifyNameWithModule tk.programUnit p.modName enumValueBase
                         {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.accessPath) enumValue tdName p.accessPath.isOptional resVar; resultVar = resVar; localVariables=[]});
                 testCaseTypeIDsMap = Map.ofList [(t.id, (TcvEnumeratedValue vl.Name.Value))]
             })
@@ -1248,27 +1221,14 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                     let typeDefName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                     let sChildTypeDef = lm.lg.getLongTypedefNameBasedOnModule childTk p.modName
                     let sChildID =
-                        match ProgrammingLanguage.ActiveLanguages.Head with
-                        | Python ->
-                            // For the enum value, we need to prefix with module if we're in a different module
-                            let sChildIDBase = lm.lg.presentWhenName (Some typeDefinition) ch
-                            if ToC ch.chType.moduleName <> p.modName && ch.chType.moduleName <> "" then
-                                ToC ch.chType.moduleName + "." + sChildIDBase
-                            else
-                                sChildIDBase
-                         | _ -> lm.lg.presentWhenName (Some typeDefinition) ch
+                        let sChildIDBase = lm.lg.presentWhenName (Some typeDefinition) ch
+                        lm.lg.qualifyNameWithModule (ToC ch.chType.moduleName) p.modName sChildIDBase
                     let childContent_funcBody, childContent_localVariables =
                         let childContent =
-                            match ProgrammingLanguage.ActiveLanguages.Head with
-                            | ProgrammingLanguage.Scala 
-                            | ProgrammingLanguage.Python ->
-                                match lm.lg.init.choiceComponentTempInit with
-                                | false ->  fnc {p with accessPath = lm.lg.getChChild p.accessPath sChildTempVarName ch.chType.isIA5String}
-                                | true   -> fnc {p with accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")}
-                            | _ ->
-                                match lm.lg.init.choiceComponentTempInit with
-                                | false  -> fnc {p with accessPath = lm.lg.getChChild p.accessPath sChildName ch.chType.isIA5String}
-                                | true   -> fnc {p with accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")}
+                            let childPathName = if lm.lg.usesChoiceTempVarPath then sChildTempVarName else sChildName
+                            match lm.lg.init.choiceComponentTempInit with
+                            | false -> fnc {p with accessPath = lm.lg.getChChild p.accessPath childPathName ch.chType.isIA5String}
+                            | true  -> fnc {p with accessPath = AccessPath.valueEmptyPath (sChildName + "_tmp")}
                         childContent.funcBody, childContent.localVariables
 
                     let sChildTempDefaultInit =
@@ -1299,7 +1259,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             let sChildName = (lm.lg.getAsn1ChChildBackendName ch)
             let sChildTypeDef = ch.chType.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
             let sChildTempVarName = (ToC ch.chType.id.AsString) + "_tmp"
-            let chp = {p with accessPath = lm.lg.getChChild p.accessPath (match ProgrammingLanguage.ActiveLanguages.Head with | ProgrammingLanguage.Scala -> sChildTempVarName | _ -> sChildName) ch.chType.isIA5String}
+            let chp = {p with accessPath = lm.lg.getChChild p.accessPath (if lm.lg.usesChoiceTempVarPath then sChildTempVarName else sChildName) ch.chType.isIA5String}
             let resVar = (p.accessPath.asIdentifier lm.lg) // TODO: resVar ok?
             let sChildID = (lm.lg.presentWhenName (Some typeDefinition) ch)
             let childContent_funcBody, childContent_localVariables =
@@ -1314,10 +1274,9 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                 | Some initProc  ->
                     match lm.lg.init.choiceComponentTempInit with
                     | false  ->
-                        match ProgrammingLanguage.ActiveLanguages.Head with
-                        | ProgrammingLanguage.Scala ->
+                        if lm.lg.usesChoiceTempVarPath then
                             initChildWithInitFunc sChildTempVarName initProc.funcName, []
-                        | _ ->
+                        else
                             initChildWithInitFunc (lm.lg.getPointer chp.accessPath) initProc.funcName, []
                     | true   -> initChildWithInitFunc (sChildName + "_tmp") initProc.funcName, []
             let funcBody = initChoice (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childContent_funcBody sChildID sChildName sChildTypeDef typeDefinitionName sChildTempVarName (extractDefaultInitValue ch.chType.Kind) lm.lg.init.choiceComponentTempInit
