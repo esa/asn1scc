@@ -1420,3 +1420,5 @@ asn1scc/Properties/launchSettings_UPER.json
 /dotnet-debian.SENTINEL
 /.claude/settings.local.json
 acnv2/*
+
+.fake

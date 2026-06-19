@@ -56,21 +56,14 @@ cd c:\asn1scc
 ```
 
 asn1scc generates some of its source code at build time with two helper tools (`Antlr`
-and `parseStg2`). Those tools must be built **first**, otherwise the main build fails
-with an error like
-`The command "dotnet ../parseStg2/.../parseStg2.dll ..." exited with code 1`.
-This is just a build-ordering requirement — the project's own build scripts do exactly
-the same thing. Build the two helpers, then the server, all in the **same configuration**
-(here, `Release`):
+and `parseStg2`). They are project dependencies and are built automatically in the same
+configuration as the server (here, `Release`):
 
 ```bat
-dotnet build Antlr\ -c Release
-dotnet build parseStg2\ -c Release
 dotnet build lsp\Server\Server\Server.csproj -c Release
 ```
 
-> Tip: building the whole solution once with `dotnet build asn1scc.sln -c Release` (after
-> the two helper builds above) also works and produces the server, but it builds the
+> Tip: `dotnet build asn1scc.sln -c Release` also produces the server, but it builds the
 > entire compiler, so it takes longer.
 
 The build produces the server here:
@@ -175,7 +168,6 @@ variable to log to a different directory.
 
 | Symptom | Likely cause / fix |
 |---------|--------------------|
-| Build fails with `... parseStg2.dll ... exited with code 1` | You skipped the helper builds. Build `Antlr\` and `parseStg2\` first, in the same configuration, then rebuild (see §2). |
 | Server won't start | .NET 10 SDK/runtime not installed, or wrong path in the editor config. Run the `dotnet ...Server.dll` command from §2 in a terminal to check it launches. |
 | No diagnostics or completion | Wrong server path, or the file extension isn't registered. Check the editor's LSP/Output log. In VSCode confirm the `asn1scc.languageServer.path` setting. |
 | Completion seems to ignore ACN settings | The server auto-loads the matching `.asn`/`.acn` file next to the open one — keep both in the same folder. |
