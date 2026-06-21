@@ -60,21 +60,22 @@ jobs:
       - name: Publish language server (linux-x64, self-contained)
         run: dotnet publish lsp/Server/Server/Server.csproj -c Release -r linux-x64 --self-contained true -o publish/linux-x64
 
-      - name: Zip server binaries
+      # ---- Collect everything (flat) into dist/, with the instructions file ----
+      - name: Assemble distribution folder
         run: |
-          cd publish
-          zip -qr ../asn1scc-lsp-server-win-x64.zip win-x64
-          zip -qr ../asn1scc-lsp-server-linux-x64.zip linux-x64
+          mkdir -p dist
+          cp lsp/Client/*.vsix dist/
+          cp lsp/dist-README.txt dist/README.txt
+          (cd publish && zip -qr ../dist/asn1scc-lsp-server-win-x64.zip win-x64)
+          (cd publish && zip -qr ../dist/asn1scc-lsp-server-linux-x64.zip linux-x64)
+          ls -l dist
 
       # ---- Upload as build artifacts (every run) ----
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: asn1scc-lsp
-          path: |
-            lsp/Client/*.vsix
-            asn1scc-lsp-server-win-x64.zip
-            asn1scc-lsp-server-linux-x64.zip
+          path: dist/
           if-no-files-found: error
 
       # ---- Attach to the GitHub Release (tags only) ----
@@ -84,9 +85,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          assets=(lsp/Client/*.vsix asn1scc-lsp-server-win-x64.zip asn1scc-lsp-server-linux-x64.zip)
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
           else
-            gh release create "$GITHUB_REF_NAME" "${assets[@]}" --title "$GITHUB_REF_NAME" --generate-notes
+            gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
           fi
