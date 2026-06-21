@@ -71,6 +71,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\parseStg2\parseStg2.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
     <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
     <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
@@ -93,7 +94,7 @@
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="9.0.300-beta.25079.4" />
   </ItemGroup>
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+  <Target Name="GenerateStringTemplates" BeforeTargets="CoreCompile">
     <Exec Command="dotnet ../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll backends.xml 3" WorkingDirectory="$(ProjectDir)" />
   </Target>
 </Project>

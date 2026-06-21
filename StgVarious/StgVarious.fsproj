@@ -40,6 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\parseStg2\parseStg2.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\ST\ST.fsproj" />
   </ItemGroup>
 
@@ -47,7 +48,7 @@
     <PackageReference Update="FSharp.Core" Version="9.0.300-beta.25079.4" />
   </ItemGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+  <Target Name="GenerateStringTemplates" BeforeTargets="CoreCompile">
     <Exec Command="dotnet ../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll backends.xml" WorkingDirectory="$(ProjectDir)" />
   </Target>
 
