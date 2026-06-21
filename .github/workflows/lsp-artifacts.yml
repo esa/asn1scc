@@ -65,7 +65,8 @@ jobs:
         run: |
           mkdir -p dist
           cp lsp/Client/*.vsix dist/
-          cp lsp/dist-README.txt dist/README.txt
+          cp lsp/dist-README.html dist/README.html
+          cp lsp/Qt-creator-options.jpg lsp/VsCode-Settings.png dist/
           (cd publish && zip -qr ../dist/asn1scc-lsp-server-win-x64.zip win-x64)
           (cd publish && zip -qr ../dist/asn1scc-lsp-server-linux-x64.zip linux-x64)
           ls -l dist
