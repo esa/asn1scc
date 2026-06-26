@@ -287,6 +287,7 @@ type ErrorCode = {
     errCodeValue    : int
     errCodeName     : string
     comment         : string option
+    fieldPath       : string
 }
 
 type BaseTypesEquivalence<'T> = {
@@ -878,6 +879,7 @@ and Asn1Child = {
     Name                        : StringLoc
     _c_name                     : string
     _scala_name                 : string
+    _python_name                 : string
     _ada_name                   : string
     isEqualBodyStats            : CodegenScope -> CodegenScope -> (string*(LocalVariable list)) option
     Type                        : Asn1Type
@@ -889,6 +891,7 @@ and Asn1Child = {
             Name = this.Name
             _c_name = this._c_name
             _scala_name = this._scala_name
+            _python_name = this._python_name
             _ada_name = this._ada_name
             Type = this.Type.toAsn1AcnAst
             Optionality = this.Optionality
@@ -930,6 +933,7 @@ and ChChildInfo = {
     Name                        : StringLoc
     _c_name                     : string
     _scala_name                 : string
+    _python_name                : string
     _ada_name                   : string
     _present_when_name_private  : string // Does not contain the "_PRESENT". Not to be used directly by backends. Backends should use presentWhenName
     acnPresentWhenConditions    : AcnGenericTypes.AcnPresentWhenConditionChoiceChild list
@@ -1131,11 +1135,11 @@ with
         | ReferenceType _ -> "REFERENCE"
         | TimeType _ -> "TIME"
 
-let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) =
+let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) (fieldPath: string) =
     TL "getNextValidErrorCode" (fun () ->
     let rec getErrorCode (errCodeName:string) =
         match cur.curErrCodeNames.Contains errCodeName with
-        | false -> {ErrorCode.errCodeName = errCodeName; errCodeValue = cur.currErrorCode; comment=comment}
+        | false -> {ErrorCode.errCodeName = errCodeName; errCodeValue = cur.currErrorCode; comment=comment; fieldPath=fieldPath}
         | true  ->
             getErrorCode (errCodeName + "_2")
 
@@ -1158,6 +1162,7 @@ type TypeAssignment = {
     Name:StringLoc
     c_name:string
     scala_name:string
+    python_name:string
     ada_name:string
     Type:Asn1Type
     Comments: string array
@@ -1167,6 +1172,7 @@ type ValueAssignment = {
     Name    :StringLoc
     c_name  :string
     scala_name:string
+    python_name:string
     ada_name:string
     Type    :Asn1Type
     Value   :Asn1Value

@@ -3,7 +3,7 @@ group a_xer;
 rtlModuleName() ::= "adaasn1rtl"
 
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 <sErrCode>:constant Integer := <nErrValue>;
 >>
 

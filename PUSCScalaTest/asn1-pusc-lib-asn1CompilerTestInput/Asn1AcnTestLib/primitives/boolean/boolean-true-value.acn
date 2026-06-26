@@ -1,0 +1,16 @@
+-- ACN encoding for BOOLEAN with true-value attribute
+
+BooleanTrueValue DEFINITIONS ::= BEGIN
+
+    BoolWithTrueValue [true-value '1'B]
+
+    MultiBitTrueValue [true-value '11'B]
+
+    TestStruct []
+    {
+        standardBool [],
+        customTrueBool [],
+        multiBitBool []
+    }
+
+END

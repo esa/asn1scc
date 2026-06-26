@@ -36,26 +36,20 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                               (funcDefAnnots: string list)
                               (us: State) =
     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
-    let funcNameBase = td.typeName + "_ACN"
-    let funcNameAndtasInfo   =
-        match t.acnParameters with
-        | []    ->
-            match t.id.tasInfo with
-            | None -> None
-            | Some _ -> Some (funcNameBase  + codec.suffix)
-        | _     -> None
+    let funcNameAndtasInfo   = lm.lg.getACNFuncName r codec t td
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    let errCode, ns = getNextValidErrorCode us errCodeName None
+    let errFieldPath = match t.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
+    let errCode, ns = getNextValidErrorCode us errCodeName None errFieldPath
     let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
     let nMinBytesInACN = BigInteger (ceil ((double t.acnMinSizeInBits)/8.0))
-    let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
+    let soInitFuncName = lm.lg.getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
     let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
     let EmitEncodingSizeConstants        =  lm.acn.EmitEncodingSizeConstants
 
-    let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let typeDefinitionName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
     let sEncodingSizeConstant = EmitEncodingSizeConstants typeDefinitionName nMaxBytesInACN t.acnMaxSizeInBits
 
     let funcBodyAsSeqComp (st: State)
@@ -74,7 +68,8 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
     let funcBody = AcnAlignment.handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
     let funcBody = lm.lg.adaptAcnFuncBody r deps funcBody isValidFuncName t codec
 
-    let p : CodegenScope = lm.lg.getParamType t codec
+    let sf = lm.lg.getTypeBasedSuffix FunctionType.AcnEncDecFunctionType t.Kind
+    let p : CodegenScope = lm.lg.getParamTypeSuffix t sf codec
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
     let sInitialExp = ""
@@ -100,7 +95,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         None, None, udfcs, [], icdResult, ns1a
             | Some funcName ->
                 let precondAnnots = lm.lg.generatePrecond r ACN t codec
-                let postcondAnnots = lm.lg.generatePostcond r ACN funcNameBase p t codec
+                let postcondAnnots = lm.lg.generatePostcond r ACN p t codec
                 let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, udfcs, auxiliaries, icdResult =
                     match content with
@@ -113,10 +108,11 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let handleAcnParameter (p:AcnGenericTypes.AcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
                     let boolType = lm.typeDef.Declare_Boolean ()
+                    let intZero  = lm.lg.asn1SccIntValueToString 0I false
                     let emitPrm  = lm.acn.EmitAcnParameter
                     match p.asn1Type with
-                    | AcnGenericTypes.AcnPrmInteger    loc          -> emitPrm p.c_name intType
-                    | AcnGenericTypes.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType
+                    | AcnGenericTypes.AcnPrmInteger    loc          -> emitPrm p.c_name intType intZero
+                    | AcnGenericTypes.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType lm.lg.FalseLiteral
                     | AcnGenericTypes.AcnPrmNullType   loc          -> raise(SemanticError (loc, "Invalid type for parameter"))
                     | AcnGenericTypes.AcnPrmRefType(md,ts)          ->
                         let prmTypeName =
@@ -126,18 +122,34 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                                 match md.Value = t.id.ModName with
                                 | true  -> ToC2(r.args.TypePrefix + ts.Value)
                                 | false -> (ToC2 md.Value) + "." + ToC2(r.args.TypePrefix + ts.Value)
-                        emitPrm p.c_name prmTypeName
+                        match ProgrammingLanguage.ActiveLanguages.Head with
+                        | Python ->
+                            let basicType, defaultVal =
+                                try
+                                    let refModule = r.Modules |> Seq.find(fun m -> m.Name.Value = md.Value)
+                                    let refTas = refModule.TypeAssignments |> Seq.tryFind(fun ta -> ta.Name.Value = ts.Value)
+                                    match refTas with
+                                    | Some tas ->
+                                        match tas.Type.ActualType.Kind with
+                                        | Asn1AcnAst.Enumerated _ -> "int", intZero
+                                        | Asn1AcnAst.IA5String _
+                                        | Asn1AcnAst.NumericString _ -> "str", "\"\""
+                                        | _ -> "int", intZero
+                                    | None -> "int", intZero
+                                with _ -> "int", intZero
+                            emitPrm p.c_name basicType defaultVal
+                        | _ -> emitPrm p.c_name prmTypeName ""
 
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
                 let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 
                 let errCodStr =
                     errCodes |>
                     List.groupBy (fun x -> x.errCodeName) |>
-                    List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment}) |>
-                    List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment) |> List.distinct
+                    List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath}) |>
+                    List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath) |> List.distinct
                 let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
                 let ns2a =
                     match t.id.topLevelTas with

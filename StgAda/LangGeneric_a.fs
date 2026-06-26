@@ -105,6 +105,8 @@ type LangGeneric_a() =
         override this.allowsSrcFilesWithNoFunctions = false
         override this.requiresValueAssignmentsInSrcFile = false
         override this.supportsStaticVerification = true
+        override this.isObjectOriented = false
+        override this.nullTerminatorByte = Some 0uy
         override this.emptyStatement = "null;"
         override this.bitStreamName = "adaasn1rtl.encoding.BitStreamPtr"
         override this.unaryNotOperator    = "not"
@@ -199,7 +201,7 @@ type LangGeneric_a() =
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._ada_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._ada_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._ada_name
-        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) : string =
+        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) (_currentModule:string) : string =
             (ToC c.present_when_name) + "_PRESENT"
 
         override this.getRtlFiles  (encodings:Asn1Encoding list) (arrsTypeAssignments :string list) =

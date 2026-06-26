@@ -1,0 +1,14 @@
+-- Combined test: BOOLEAN with both true-value and false-value
+-- Tests comprehensive boolean encoding patterns
+
+BooleanCombined DEFINITIONS ::= BEGIN
+
+    CustomEncodedBool ::= BOOLEAN
+
+    TestStruct ::= SEQUENCE {
+        flag1 CustomEncodedBool,
+        flag2 CustomEncodedBool,
+        standardFlag BOOLEAN
+    }
+
+END

@@ -99,9 +99,14 @@ let getProposedTypeDefName (us:Asn1AcnMergeState) l (id:ReferenceToType) =
                 us.allocatedFE_TypeDefinition.TryFind((l, parentId))
             | _                             -> raise (BugErrorException (sprintf "invalid reference to type %s"  id.AsString))
 
-    match parentDef with
-    | None              -> ToC lastNodeName, asn1LastName
-    | Some  parentDef   -> ToC (parentDef.typeName + "_" + lastNodeName), parentDef.asn1Name + "-" + asn1LastName
+    let proposedName, asn1Name = 
+        match parentDef with
+        | None              -> lastNodeName, asn1LastName
+        | Some  parentDef   -> parentDef.typeName + "_" + lastNodeName, parentDef.asn1Name + "-" + asn1LastName
+
+    match l with 
+    | Python -> ToC proposedName, ToC asn1Name
+    | _ -> ToC proposedName, asn1Name
 
 
 let temporaryRegisterTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLanguage, ib:ILangBasic) (id : ReferenceToType)  programUnit proposedTypeDefName : (string*Asn1AcnMergeState)=

@@ -1204,7 +1204,7 @@ void Acn_Enc_String_CharIndex_FixSize(BitStream* pBitStrm, asn1SccSint max, byte
 {
 	asn1SccSint i = 0;
 	while (i<max) {
-		int charIndex = GetCharIndex(strVal[i], allowedCharSet, charSetSize);
+		int charIndex = <GetCharIndex>(strVal[i], allowedCharSet, charSetSize);
 		BitStream_EncodeConstraintWholeNumber(pBitStrm, charIndex, 0, charSetSize - 1);
 		i++;
 	}

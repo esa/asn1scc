@@ -61,6 +61,7 @@ let CloneTypeAssignment (old:TypeAssignment) (m:Asn1Module) cons state =
         Type = newType
         c_name = old.c_name
         scala_name = old.scala_name
+        python_name = old.scala_name
         ada_name = old.ada_name
         Comments = old.Comments
         acnInfo = old.acnInfo
@@ -74,6 +75,7 @@ let CloneValueAssignment (old:ValueAssignment)  (m:Asn1Module) cons state=
         Value = old.Value
         c_name = old.c_name
         scala_name = old.scala_name
+        python_name = old.scala_name
         ada_name = old.ada_name
     },s
 

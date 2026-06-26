@@ -1,0 +1,54 @@
+-- ACN encoding with explicit size attributes
+
+IntegerAcnSize DEFINITIONS ::= BEGIN
+
+    Int1Bit [size 1, encoding pos-int]
+
+    Int2Bit [size 2, encoding pos-int]
+
+    Int3Bit [size 3, encoding pos-int]
+
+    Int4Bit [size 4, encoding pos-int]
+
+    Int5Bit [size 5, encoding pos-int]
+
+    Int6Bit [size 6, encoding pos-int]
+
+    Int7Bit [size 7, encoding pos-int]
+
+    Int8Bit [size 8, encoding pos-int]
+
+    Int12Bit [size 12, encoding pos-int]
+
+    Int14Bit [size 14, encoding pos-int]
+
+    Int16Bit [size 16, encoding pos-int]
+
+    Int24Bit [size 24, encoding pos-int]
+
+    Int32Bit [size 32, encoding pos-int]
+
+    Int48Bit [size 48, encoding pos-int]
+
+    Int64Bit [size 64, encoding pos-int]
+
+    TestStruct []
+    {
+        val1 [],
+        val2 [],
+        val3 [],
+        val4 [],
+        val5 [],
+        val6 [],
+        val7 [],
+        val8 [],
+        val12 [],
+        val14 [],
+        val16 [],
+        val24 [],
+        val32 [],
+        val48 [],
+        val64 []
+    }
+
+END

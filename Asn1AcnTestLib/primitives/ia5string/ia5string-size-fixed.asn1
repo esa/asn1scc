@@ -1,0 +1,24 @@
+-- Requirement 25: IA5String with size constraints (fixed size)
+-- Tests IA5String with SIZE(n) constraints
+
+Ia5stringSizeFixed DEFINITIONS ::= BEGIN
+
+    IA5String4 ::= IA5String (SIZE(4))
+
+    IA5String16 ::= IA5String (SIZE(16))
+
+    IA5String32 ::= IA5String (SIZE(32))
+
+    IA5String64 ::= IA5String (SIZE(64))
+
+    IA5String128 ::= IA5String (SIZE(128))
+
+    TestStruct ::= SEQUENCE {
+        shortCode IA5String4,
+        identifier IA5String16,
+        name IA5String32,
+        description IA5String64,
+        longText IA5String128
+    }
+
+END

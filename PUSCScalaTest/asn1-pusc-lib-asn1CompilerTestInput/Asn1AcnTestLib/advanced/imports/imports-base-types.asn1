@@ -1,0 +1,38 @@
+-- Base module defining reusable types for import testing
+-- This module will be imported by other modules
+
+ImportsBaseTypes DEFINITIONS ::= BEGIN
+
+    -- Common basic types
+    Timestamp ::= INTEGER (0..4294967295)
+
+    Temperature ::= REAL
+
+    Identifier ::= INTEGER (1..65535)
+
+    StatusCode ::= ENUMERATED {
+        success(0),
+        warning(1),
+        error(2),
+        critical(3)
+    }
+
+    -- Common structured types
+    Header ::= SEQUENCE {
+        id Identifier,
+        timestamp Timestamp,
+        version INTEGER (1..10)
+    }
+
+    Coordinates ::= SEQUENCE {
+        latitude REAL,
+        longitude REAL,
+        altitude REAL
+    }
+
+    -- Common string types
+    ShortString ::= IA5String (SIZE(1..64))
+
+    LongString ::= IA5String (SIZE(1..256))
+
+END

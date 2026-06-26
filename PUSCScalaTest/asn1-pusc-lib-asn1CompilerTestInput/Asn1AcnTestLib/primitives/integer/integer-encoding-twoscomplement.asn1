@@ -1,0 +1,18 @@
+-- Requirement 13: INTEGER with twos-complement ACN encoding
+-- Tests two's complement encoding attribute
+
+IntegerEncodingTwosComplement DEFINITIONS ::= BEGIN
+
+    TwosComplementInt8 ::= INTEGER (-128..127)
+
+    TwosComplementInt16 ::= INTEGER (-32768..32767)
+
+    TwosComplementInt32 ::= INTEGER (-2147483648..2147483647)
+
+    TestStruct ::= SEQUENCE {
+        byte TwosComplementInt8,
+        word TwosComplementInt16,
+        dword TwosComplementInt32
+    }
+
+END

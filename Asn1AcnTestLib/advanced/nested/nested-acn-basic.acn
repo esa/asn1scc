@@ -1,0 +1,39 @@
+-- ACN encoding for nested structures with different encodings at each level
+
+NestedAcnBasic DEFINITIONS ::= BEGIN
+
+    InnerData []
+    {
+        field1 [size 8, encoding pos-int],
+        field2 [size 16, encoding pos-int, endianness big],
+        field3 []
+    }
+
+    OuterData []
+    {
+        header [size 8, encoding pos-int],
+        nested [],
+        footer [size 8, encoding pos-int]
+    }
+
+    DeepNested []
+    {
+        level1 [],
+        level2 []
+        {
+            field1 [],
+            field2 []
+            {
+                innerField1 [size 8, encoding pos-int],
+                innerField2 []
+            }
+        }
+    }
+
+    TestStruct []
+    {
+        outer [],
+        deep []
+    }
+
+END

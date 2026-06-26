@@ -1,0 +1,16 @@
+-- ACN encoding with little-endian byte ordering for REAL
+
+RealEndiannessLittle DEFINITIONS ::= BEGIN
+
+    LittleEndianFloat32 [encoding IEEE754-1985-32, endianness little]
+
+    LittleEndianFloat64 [encoding IEEE754-1985-64, endianness little]
+
+    TestStruct []
+    {
+        value32 [],
+        value64 [],
+        anotherFloat32 []
+
+    }
+END

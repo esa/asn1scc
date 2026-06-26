@@ -1,0 +1,16 @@
+-- Requirement 2: BOOLEAN with false-value ACN attribute
+-- Tests arbitrary false-value pattern encoding
+
+BooleanFalseValue DEFINITIONS ::= BEGIN
+
+    BoolWithFalseValue ::= BOOLEAN
+
+    MultiBitFalseValue ::= BOOLEAN
+
+    TestStruct ::= SEQUENCE {
+        standardBool BOOLEAN,
+        customFalseBool BoolWithFalseValue,
+        multiBitBool MultiBitFalseValue
+    }
+
+END

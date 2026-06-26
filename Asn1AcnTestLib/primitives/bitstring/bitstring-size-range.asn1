@@ -1,0 +1,21 @@
+-- Requirement 19: BIT STRING with size constraints (variable size)
+-- Tests BIT STRING with SIZE(min..max) constraints
+
+BitstringSizeRange DEFINITIONS ::= BEGIN
+
+    VariableBitString1 ::= BIT STRING (SIZE(1..8))
+
+    VariableBitString2 ::= BIT STRING (SIZE(8..64))
+
+    VariableBitString3 ::= BIT STRING (SIZE(0..255))
+
+    VariableBitString4 ::= BIT STRING (SIZE(16..128))
+
+    TestStruct ::= SEQUENCE {
+        small VariableBitString1,
+        medium VariableBitString2,
+        large VariableBitString3,
+        custom VariableBitString4
+    }
+
+END
