@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASN.1 / ACN Language Server — editor support package</title>
+<style>
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+    color: #222;
+    max-width: 820px;
+    margin: 2rem auto;
+    padding: 0 1.2rem;
+  }
+  h1 { font-size: 1.6rem; border-bottom: 2px solid #ddd; padding-bottom: .4rem; }
+  h2 { font-size: 1.2rem; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: .25rem; }
+  code { background: #f4f4f4; padding: .1em .35em; border-radius: 3px; font-size: .92em; }
+  pre  { background: #f4f4f4; padding: .8em 1em; border-radius: 5px; overflow-x: auto; }
+  table.fields { border-collapse: collapse; margin: .5rem 0; }
+  table.fields td { padding: .25rem .8rem .25rem 0; vertical-align: top; }
+  table.fields td:first-child { font-weight: 600; white-space: nowrap; }
+  figure { margin: 1rem 0; }
+  figure img { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px; }
+  figcaption { font-size: .85rem; color: #666; margin-top: .35rem; }
+  .note { background: #fffbe6; border-left: 4px solid #e0c040; padding: .6em .9em; border-radius: 0 4px 4px 0; }
+  a { color: #0b66c3; }
+</style>
+</head>
+<body>
+
+<h1>ASN.1 / ACN Language Server — editor support package</h1>
+
+<p>This package gives you IDE features (live error checking, auto-completion,
+go-to-definition) for ASN.1 (<code>.asn</code>, <code>.asn1</code>) and ACN
+(<code>.acn</code>) files in any editor that supports the Language Server Protocol
+(LSP), such as <strong>Qt Creator</strong> and <strong>Visual Studio Code</strong>.</p>
+
+<p class="note">Nothing needs to be installed or compiled: the language server
+binaries are <strong>self-contained</strong> (they bundle their own runtime, so you do
+<strong>not</strong> need to install .NET), and the VSCode extension is already packaged
+(so you do <strong>not</strong> need Node.js / npm).</p>
+
+<h2>What is in this package</h2>
+<table class="fields">
+  <tr><td><code>asn1scc-lsp-&lt;version&gt;.vsix</code></td><td>The VSCode extension.</td></tr>
+  <tr><td><code>asn1scc-lsp-server-win-x64.zip</code></td><td>Language server, Windows x64.</td></tr>
+  <tr><td><code>asn1scc-lsp-server-linux-x64.zip</code></td><td>Language server, Linux x64.</td></tr>
+  <tr><td><code>README.html</code></td><td>This file (and the two screenshots it shows).</td></tr>
+</table>
+<p>Do <strong>Step 1</strong> first, then follow the section for your editor.</p>
+
+<h2>Step 1 — Unpack the language server</h2>
+<p>Unzip the server archive for your operating system into a folder you can write to,
+for example:</p>
+<pre>Windows:  C:\Users\&lt;you&gt;\asn1-lsp\
+          -&gt; the server is  C:\Users\&lt;you&gt;\asn1-lsp\Server.exe
+Linux:    ~/asn1-lsp/
+          -&gt; the server is  ~/asn1-lsp/Server</pre>
+<p>Again: you do <strong>not</strong> need to install .NET — the server is self-contained.</p>
+
+<h2>Qt Creator (no plugin required)</h2>
+<ol>
+  <li>Open <strong>Edit → Preferences…</strong> (or <strong>Tools → Options…</strong>).</li>
+  <li>Select <strong>Language Client</strong> in the left sidebar.</li>
+  <li>Click <strong>Add</strong> (choose the generic <em>StdIO</em> server entry if asked).</li>
+  <li>Fill in:
+    <table class="fields">
+      <tr><td>Name</td><td><code>asn1 language server</code></td></tr>
+      <tr><td>MIME types</td><td>click <strong>Set MIME Types…</strong> and enter <code>*.asn1;*.asn;*.acn</code></td></tr>
+      <tr><td>Startup behavior</td><td><code>Requires an Open File</code></td></tr>
+      <tr><td>Executable</td><td>the unpacked <code>Server.exe</code> from Step 1</td></tr>
+      <tr><td>Arguments</td><td>(leave empty)</td></tr>
+    </table>
+  </li>
+  <li>Make sure the entry is ticked, then click <strong>Apply / OK</strong>.</li>
+  <li>Open a <code>.asn1</code> / <code>.asn</code> / <code>.acn</code> file — the server starts automatically.</li>
+</ol>
+
+<figure>
+  <img src="Qt-creator-options.jpg" alt="Qt Creator Language Client options dialog">
+  <figcaption>Qt Creator → Language Client. Set <strong>Executable</strong> to your own
+  unpacked <code>Server.exe</code> — the path shown in the screenshot is from the original
+  developer machine.</figcaption>
+</figure>
+
+<h2>Visual Studio Code</h2>
+<ol>
+  <li>Open the <strong>Extensions</strong> view → <strong>…</strong> menu →
+      <strong>Install from VSIX…</strong> → select <code>asn1scc-lsp-&lt;version&gt;.vsix</code>.</li>
+  <li>Open <strong>Settings</strong>, search for <em>asn1scc</em>, and set
+      <strong>Asn1scc › Language Server: Path</strong> to the server from Step 1
+      (or edit <code>settings.json</code> directly):
+    <pre>{
+    "asn1scc.languageServer.path": "C:\\Users\\&lt;you&gt;\\asn1-lsp\\Server.exe"
+}</pre>
+      On Linux, use the path to the <code>Server</code> file instead.</li>
+  <li>Open a <code>.asn1</code> / <code>.asn</code> / <code>.acn</code> file.</li>
+</ol>
+
+<figure>
+  <img src="VsCode-Settings.png" alt="VSCode settings showing the ASN.1/ACN Language Server path">
+  <figcaption>VSCode → Settings → <strong>ASN.1/ACN Language Server</strong>. Set
+  <strong>Language Server: Path</strong> to your unpacked <code>Server.exe</code>
+  (or <code>Server.dll</code> to use an installed .NET runtime).</figcaption>
+</figure>
+
+<h2>Verify it works</h2>
+<p>Open an ASN.1/ACN file:</p>
+<ul>
+  <li>a syntax error should show a red underline,</li>
+  <li><strong>Ctrl+Space</strong> should offer completions,</li>
+  <li><strong>Go to Definition</strong> should jump to a type's declaration.</li>
+</ul>
+
+<h2>Troubleshooting</h2>
+<ul>
+  <li><strong>No diagnostics / completion:</strong> check that the Executable / path setting
+      points exactly at the unpacked <code>Server.exe</code> (<code>Server</code> on Linux),
+      and that you opened a file with a <code>.asn</code> / <code>.asn1</code> / <code>.acn</code> extension.</li>
+  <li><strong>Completion seems to ignore ACN settings:</strong> keep the matching
+      <code>.asn</code> and <code>.acn</code> files in the same folder.</li>
+  <li>A <code>ChannelClosedException</code> message when the editor closes is harmless
+      shutdown noise, not an error.</li>
+</ul>
+
+<h2>Full documentation / source</h2>
+<p>Full guide (including building everything from source):<br>
+<a href="https://github.com/esa/asn1scc/blob/master/lsp/README.md">https://github.com/esa/asn1scc/blob/master/lsp/README.md</a></p>
+
+</body>
+</html>
