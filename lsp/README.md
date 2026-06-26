@@ -48,6 +48,12 @@ another OS.
 
 ## 2. Build the language server
 
+> **Prefer not to build?** A pre-built **self-contained** server (`Server.exe` for
+> Windows, plus a Linux build) is published on the project's **GitHub Releases** page and
+> as a build artifact on the **Actions** tab. It bundles its own runtime, so it needs no
+> .NET installation — download it, unzip it, and skip to step 3 (use the path to the
+> extracted `Server.exe`). The steps below are for building from source instead.
+
 Clone the repository:
 
 ```bat
@@ -56,21 +62,14 @@ cd c:\asn1scc
 ```
 
 asn1scc generates some of its source code at build time with two helper tools (`Antlr`
-and `parseStg2`). Those tools must be built **first**, otherwise the main build fails
-with an error like
-`The command "dotnet ../parseStg2/.../parseStg2.dll ..." exited with code 1`.
-This is just a build-ordering requirement — the project's own build scripts do exactly
-the same thing. Build the two helpers, then the server, all in the **same configuration**
-(here, `Release`):
+and `parseStg2`). They are project dependencies and are built automatically in the same
+configuration as the server (here, `Release`):
 
 ```bat
-dotnet build Antlr\ -c Release
-dotnet build parseStg2\ -c Release
 dotnet build lsp\Server\Server\Server.csproj -c Release
 ```
 
-> Tip: building the whole solution once with `dotnet build asn1scc.sln -c Release` (after
-> the two helper builds above) also works and produces the server, but it builds the
+> Tip: `dotnet build asn1scc.sln -c Release` also produces the server, but it builds the
 > entire compiler, so it takes longer.
 
 The build produces the server here:
@@ -116,15 +115,26 @@ go-to-definition.
 
 > The screenshot `Qt-creator-options.jpg` shows this exact dialog (it points at an older
 > .NET path — use the `net10.0` path shown above).
+>
+> If you downloaded the **self-contained** server instead, set **Executable** to the
+> extracted `Server.exe` and leave **Arguments** empty.
 
 ---
 
 ## 4. Use it from VSCode (with the extension in `Client/`)
 
 VSCode cannot launch an arbitrary LSP server from its settings alone — it needs a small
-extension. Build and install the one in `Client/`.
+extension. You can either **download a pre-built extension** (no Node.js/npm required) or
+build it yourself.
 
-### 4.1 Build & package the extension
+### 4.1 Get the extension (`.vsix`)
+
+**Option A — download the pre-built `.vsix` (recommended; no npm needed).**
+A packaged `asn1scc-lsp-<version>.vsix` is produced by CI and published on the project's
+**GitHub Releases** page (and as a build artifact on the **Actions** tab). Download it —
+that is all you need; a `.vsix` already bundles everything the extension requires.
+
+**Option B — build it from source (needs Node.js ≥ 18 + npm).**
 
 ```bat
 cd c:\asn1scc\lsp\Client
@@ -138,7 +148,7 @@ This produces `c:\asn1scc\lsp\Client\asn1scc-lsp-0.1.0.vsix`.
 ### 4.2 Install it
 
 In VSCode: open the **Extensions** view → click the **…** menu → **Install from VSIX…**
-→ select `c:\asn1scc\lsp\Client\asn1scc-lsp-0.1.0.vsix`.
+→ select the `asn1scc-lsp-<version>.vsix` file.
 
 ### 4.3 Tell the extension where the server is
 
@@ -146,11 +156,15 @@ Open VSCode **Settings (JSON)** and add:
 
 ```jsonc
 {
+    // built from source (run via the installed dotnet runtime):
     "asn1scc.languageServer.path": "c:\\asn1scc\\lsp\\Server\\Server\\bin\\Release\\net10.0\\Server.dll"
+    // or the self-contained download (no .NET install needed):
+    // "asn1scc.languageServer.path": "c:\\asn1scc\\lsp-server\\Server.exe"
 }
 ```
 
-(The path ends in `.dll`, so the extension runs it via the installed `dotnet` runtime.)
+(If the path ends in `.dll`, the extension runs it via the installed `dotnet` runtime;
+any other path, e.g. `Server.exe`, is launched directly.)
 
 Open any `.asn`, `.asn1` or `.acn` file and the features become available.
 
@@ -175,7 +189,6 @@ variable to log to a different directory.
 
 | Symptom | Likely cause / fix |
 |---------|--------------------|
-| Build fails with `... parseStg2.dll ... exited with code 1` | You skipped the helper builds. Build `Antlr\` and `parseStg2\` first, in the same configuration, then rebuild (see §2). |
 | Server won't start | .NET 10 SDK/runtime not installed, or wrong path in the editor config. Run the `dotnet ...Server.dll` command from §2 in a terminal to check it launches. |
 | No diagnostics or completion | Wrong server path, or the file extension isn't registered. Check the editor's LSP/Output log. In VSCode confirm the `asn1scc.languageServer.path` setting. |
 | Completion seems to ignore ACN settings | The server auto-loads the matching `.asn`/`.acn` file next to the open one — keep both in the same folder. |

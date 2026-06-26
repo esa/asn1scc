@@ -73,6 +73,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\parseStg2\parseStg2.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
     <ProjectReference Include="..\ST\ST.fsproj" />
   </ItemGroup>
@@ -97,7 +98,7 @@
 	</ItemGroup>
 
 
-	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+	<Target Name="GenerateStringTemplates" BeforeTargets="CoreCompile">
         <Exec Command="dotnet ../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll backends.xml 3" WorkingDirectory="$(ProjectDir)" />
     </Target>
 

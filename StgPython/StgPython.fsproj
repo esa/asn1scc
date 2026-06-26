@@ -22,7 +22,7 @@
         <Compile Include="IXer_python.stg.fs" />
         <Compile Include="IEqual_python.stg.fs" />
         <Compile Include="ITypeDefinition_python.stg.fs" />
-<Compile Include="IVariables_python.stg.fs" />
+        <Compile Include="IVariables_python.stg.fs" />
         <Compile Include="IIsValid_python.stg.fs" />
         <Compile Include="IInit_python.stg.fs" />
         <Compile Include="IUper_python.stg.fs" />
@@ -94,7 +94,7 @@
         <PackageReference Update="FSharp.Core" Version="9.0.300-beta.25079.4" />
     </ItemGroup>
 
-    <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Target Name="GenerateStringTemplates" BeforeTargets="CoreCompile">
         <Exec Command="dotnet ../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll backends.xml 3" WorkingDirectory="$(ProjectDir)" />
     </Target>
 
