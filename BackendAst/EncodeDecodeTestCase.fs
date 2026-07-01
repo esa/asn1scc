@@ -229,7 +229,7 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let printCodec_body_header          = lm.atc.PrintCodec_spec
     let joinItems                       = lm.atc.JoinItems
     let write_bitstreamToFile           = lm.atc.Codec_write_CharstreamToFile
-    let encode                          = lm.atc.Codec_Encode
+    let encodeXER                       = lm.atc.Codec_Encode_XER
     let decode                          = lm.atc.Codec_Decode_XER
     let validateOutput                  = lm.atc.Codec_validate_output
     let compareInputWithOutput          = lm.atc.Codec_compare_input_with_output
@@ -250,7 +250,8 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                 |Encode_input           -> option {
                                                 let encF = encFunc
                                                 let! encFunName = encF.funcName
-                                                return encode modName encFunName varName
+                                                let sTasName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
+                                                return encodeXER modName encFunName varName sTasName
                                            }
                 |Decode_output          -> option {
                                                 let decF = decFunc

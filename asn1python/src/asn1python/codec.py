@@ -35,6 +35,7 @@ ERROR_UNSUPPORTED_OPERATION = ErrorCode.UNSUPPORTED_OPERATION
 class Encoding(IntEnum):
     uPER = 0
     ACN = 1
+    XER = 2
 
 @dataclass(frozen=True)
 class EncodeResult:

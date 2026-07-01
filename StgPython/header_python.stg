@@ -121,6 +121,10 @@ def encode(self, encoding: Encoding) -> bytearray:
     encoder = ACNEncoder.of_size(type(self).EncodeConstants.<sTypeName>_REQUIRED_BYTES_FOR_ACN_ENCODING)
     self.encode_acn(encoder)
     return encoder.get_bitstream_buffer()
+    <endif><if(enc.IsXER)>if encoding == Encoding.XER:
+    encoder = XEREncoder.of_size(0)
+    self._XERencode(encoder)
+    return encoder.get_bitstream_buffer()
     <endif>}; separator="\nel">
 
     else:
@@ -134,6 +138,9 @@ def decode(cls, encoding: Encoding, data: bytearray) -> '<sTypeName>':
     <endif><if(enc.IsACN)>if encoding == Encoding.ACN:
     decoder = ACNDecoder.from_buffer(data)
     return cls.decode_acn(decoder)
+    <endif><if(enc.IsXER)>if encoding == Encoding.XER:
+    decoder = XERDecoder.from_buffer(data)
+    return cls._XERdecode(decoder)
     <endif>}; separator="\nel">
 
     else:

@@ -1402,34 +1402,66 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t children)
             let typeDef, us1 = getChoiceTypeDefinition tfdArg us
 
+            // Determine, from the subtype's WITH COMPONENTS constraints, which choice alternatives are
+            // allowed to be present. Returns None when the constraints place no restriction on the
+            // selected alternative, or Some <set of permitted alternative names> otherwise.
+            // Unions/intersections are handled so that e.g.
+            //   DataValue (WITH COMPONENTS {a PRESENT} | WITH COMPONENTS {b PRESENT})
+            // yields {a; b}, marking every other alternative as ALWAYS ABSENT. This keeps the
+            // optionality marking consistent with the generated constraint validation, so the
+            // automatic test-case generator never instantiates a forbidden alternative.
+            let allAlternativeNames = children |> List.map(fun c -> c.Name.Value) |> Set.ofList
+            let rec allowedAlternatives (con:Asn1Ast.Asn1Constraint) : Set<string> option =
+                match con with
+                | Asn1Ast.WithComponentsConstraint (_, ncs) ->
+                    let present = ncs |> List.choose(fun n -> match n.Mark with Asn1Ast.MarkPresent -> Some n.Name.Value | _ -> None) |> Set.ofList
+                    let absent  = ncs |> List.choose(fun n -> match n.Mark with Asn1Ast.MarkAbsent  -> Some n.Name.Value | _ -> None) |> Set.ofList
+                    if not (Set.isEmpty present) then Some present
+                    elif not (Set.isEmpty absent) then Some (Set.difference allAlternativeNames absent)
+                    else None
+                | Asn1Ast.UnionConstraint (_, c1, c2, _) ->
+                    match allowedAlternatives c1, allowedAlternatives c2 with
+                    | Some s1, Some s2  -> Some (Set.union s1 s2)
+                    | _                 -> None
+                | Asn1Ast.IntersectionConstraint (_, c1, c2) ->
+                    match allowedAlternatives c1, allowedAlternatives c2 with
+                    | Some s1, Some s2  -> Some (Set.intersect s1 s2)
+                    | Some s, None
+                    | None, Some s      -> Some s
+                    | None, None        -> None
+                | Asn1Ast.RootConstraint (_, c1)        -> allowedAlternatives c1
+                | Asn1Ast.RootConstraint2 (_, c1, c2)   ->
+                    match allowedAlternatives c1, allowedAlternatives c2 with
+                    | Some s1, Some s2  -> Some (Set.union s1 s2)
+                    | _                 -> None
+                | _                                     -> None
+            let permittedAlternatives =
+                match (t.Constraints@refTypeCons) |> List.choose allowedAlternatives with
+                | []    -> None
+                | sets  -> Some (sets |> List.reduce Set.intersect)
+
             let mergeChild (cc:ChildSpec option) (c:Asn1Ast.ChildInfo) (us:Asn1AcnMergeState) =
                 let childNamedConstraints = childrenNameConstraints |> List.filter(fun x -> x.Name = c.Name)
                 let childWithCons = childNamedConstraints |> List.choose(fun nc -> nc.Constraint)
-                let asn1OptionalityFromWithComponents =
-                    childNamedConstraints |>
-                    List.choose(fun nc ->
-                        match nc.Mark with
-                        | Asn1Ast.NoMark            -> None
-                        | Asn1Ast.MarkPresent       -> Some ChoiceAlwaysPresent
-                        | Asn1Ast.MarkAbsent        -> Some ChoiceAlwaysAbsent
-                        | Asn1Ast.MarkOptional      -> None ) |>
-                    Seq.distinct |> Seq.toList
-                let hasWithComponentsConstraints = not childNamedConstraints.IsEmpty
+                // Optionality derived purely from the (possibly unioned) WITH COMPONENTS constraints:
+                // an alternative outside the permitted set is ALWAYS ABSENT; if exactly one alternative
+                // is permitted it is ALWAYS PRESENT; otherwise it carries no constraint-driven marking.
+                let constraintOptionality =
+                    match permittedAlternatives with
+                    | None         -> None
+                    | Some allowed ->
+                        if not (Set.contains c.Name.Value allowed) then Some ChoiceAlwaysAbsent
+                        elif Set.count allowed = 1            then Some ChoiceAlwaysPresent
+                        else None
                 let newOptionality =
                     match c.Optionality with
                     | None
-                    | Some (Asn1Ast.Optional _)                  ->
-                        match asn1OptionalityFromWithComponents with
-                        | []          -> if hasWithComponentsConstraints then Some ChoiceAlwaysAbsent else None
-                        | newOpt::_   -> Some newOpt
-                    | Some Asn1Ast.AlwaysAbsent  ->
-                        match asn1OptionalityFromWithComponents with
-                        | []          -> Some ChoiceAlwaysAbsent
-                        | newOpt::_   -> Some newOpt
-                    | Some Asn1Ast.AlwaysPresent  ->
-                        match asn1OptionalityFromWithComponents with
-                        | []          -> if hasWithComponentsConstraints then Some ChoiceAlwaysAbsent else Some ChoiceAlwaysPresent
-                        | newOpt::_   -> Some newOpt
+                    | Some (Asn1Ast.Optional _)     -> constraintOptionality
+                    | Some Asn1Ast.AlwaysAbsent     -> Some ChoiceAlwaysAbsent
+                    | Some Asn1Ast.AlwaysPresent    ->
+                        match constraintOptionality with
+                        | Some ChoiceAlwaysAbsent   -> Some ChoiceAlwaysAbsent
+                        | _                         -> Some ChoiceAlwaysPresent
 
                 let acnPresentWhenConditions =
                     match cc with

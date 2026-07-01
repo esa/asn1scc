@@ -416,6 +416,48 @@ type ILangGeneric () =
     abstract member TempArrayItemSuffix: string
     default _.TempArrayItemSuffix = "_Temp"
     abstract member usesWrappedOptional: bool
+    abstract member needsExistSequence: bool
+    default _.needsExistSequence = true
+    abstract member integerIsAlwaysSigned: bool
+    default _.integerIsAlwaysSigned = false
+    abstract member stopAtPrmForChoicePresentWhen: bool
+    default _.stopAtPrmForChoicePresentWhen = false
+    abstract member usesBooleanPresenceBits: bool
+    default _.usesBooleanPresenceBits = false
+    abstract member usesChoiceTempVarPath: bool
+    default _.usesChoiceTempVarPath = false
+    abstract member supportsAcnIcdForUndeclaredType: bool
+    default _.supportsAcnIcdForUndeclaredType = true
+    abstract member resolveAcnPrmRefTypeEmission: prmTypeName:string -> resolvedKind:Asn1AcnAst.Asn1TypeKind option -> intZero:string -> string * string
+    default _.resolveAcnPrmRefTypeEmission prmTypeName _resolvedKind _intZero = prmTypeName, ""
+    abstract member needsAcnChoiceDeterminantParam: bool
+    default _.needsAcnChoiceDeterminantParam = false
+    abstract member nullValueForAbsentOptional: string option
+    default _.nullValueForAbsentOptional = None
+    abstract member getEnumIntLocalVarName: baseName:string -> string
+    default _.getEnumIntLocalVarName baseName = $"intVal_{baseName}"
+    abstract member adjustChildDecodeResultExpr: codec:Codec -> isPrimitive:bool -> parentId:string -> childName:string -> defaultResult:string option -> string option
+    default _.adjustChildDecodeResultExpr _codec _isPrimitive _parentId _childName defaultResult = defaultResult
+    abstract member getInitAssignmentLhs: p:CodegenScope -> string
+    default this.getInitAssignmentLhs p = this.getValue p.accessPath
+    abstract member adjustEnumAccessForValidation: AccessPath -> AccessPath
+    default _.adjustEnumAccessForValidation path = path
+    abstract member maybeWrapValueInConstructor: typeRef:TypeDefinitionOrReference -> typeKind:Asn1TypeKind -> modName:string -> value:string -> string
+    default _.maybeWrapValueInConstructor _typeRef _typeKind _modName value = value
+    abstract member prefixWithModule: modName:string -> name:string -> string
+    default _.prefixWithModule _modName name = name
+    abstract member getObjectIdentifierAccessPair: p:CodegenScope -> string * string
+    default this.getObjectIdentifierAccessPair p = (this.joinSelection p.accessPath, this.getAccess p.accessPath)
+    abstract member qualifyNameWithModule: targetMod:string -> curMod:string -> name:string -> string
+    default _.qualifyNameWithModule _targetMod _curMod name = name
+    abstract member wrapIA5StringValue: typeRef:TypeDefinitionOrReference -> modName:string -> literal:string -> string
+    default _.wrapIA5StringValue _typeRef _modName literal = literal
+    abstract member formatEnumValueInit: enumTd:FE_EnumeratedTypeDefinition -> itemCName:string -> defaultValue:string -> string
+    default _.formatEnumValueInit _enumTd _itemCName defaultValue = defaultValue
+    abstract member formatValueAssignmentTestCase: typeKind:Asn1TypeKind -> valueType:string -> initStmt:string -> string
+    default _.formatValueAssignmentTestCase _typeKind _valueType initStmt = initStmt
+    abstract member adjustTestCaseObjectIdentifierInit: modName:string -> tasName:string -> initStmt:string -> string
+    default _.adjustTestCaseObjectIdentifierInit _modName _tasName initStmt = initStmt
     abstract member isObjectOriented: bool
     abstract member nullTerminatorByte: byte option
     abstract member charToNumericValueExpression : string -> string
@@ -427,7 +469,10 @@ type ILangGeneric () =
     abstract member subtypeDecodeWrap : pp:string -> currentTypeName:string -> isPrimitive:bool -> string option
     default _.subtypeDecodeWrap _pp _currentTypeName _isPrimitive = None
     abstract member getEnumSelectionJoin : AccessPath -> string
-    default this.getEnumSelectionJoin path = this.joinSelection path
+    // XER enum encode switches on the enum VALUE, so the default must dereference to the value
+    // (e.g. C "(*pVal)"), not the bare selection path (which for a ByPointer param is "pVal" and
+    // yields invalid `switch(pVal)`). Python overrides this to append ".val" for child paths.
+    default this.getEnumSelectionJoin path = this.getValue path
     abstract member getAlignmentByteTypeName : string
     default this.getAlignmentByteTypeName = "NextByte"
     abstract member getAlignmentWordTypeName : string

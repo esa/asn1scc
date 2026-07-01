@@ -8,11 +8,7 @@ super().<sFuncName>(codec, check_constraints)
 >>
 call_superclass_func_decode(p, sFuncName) ::= <<
 # uper_python.stg 13_2
-<p>_decode = <sFuncName>(codec, check_constraints)
-if isinstance(<p>_decode, tuple):
-    <p>, superclass_acn_children = <p>_decode
-else:
-    <p> = <p>_decode
+<p> = <sFuncName>(codec, check_constraints)
 >>
 
 call_base_type_func_encode(p, sFuncName) ::= <<
@@ -21,11 +17,7 @@ call_base_type_func_encode(p, sFuncName) ::= <<
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
 # uper_python.stg 13
-<p>_decode = <sFuncName>(codec, check_constraints)
-if isinstance(<p>_decode, tuple):
-    <p>, arguments_acn_children = <p>_decode
-else:
-    <p> = <p>_decode
+<p> = <sFuncName>(codec, check_constraints)
 >>
 
 /*******************************************************/

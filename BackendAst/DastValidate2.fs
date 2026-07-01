@@ -414,8 +414,8 @@ and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageM
                 (fun p ->
                     let child_arg = l.lg.getSeqChild p.accessPath (l.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
                     let child_arg =
-                        match ProgrammingLanguage.ActiveLanguages.Head, ch.Type.ActualType.Kind with
-                        | ProgrammingLanguage.Python, Enumerated _ -> child_arg.appendSelection "val" ByValue false
+                        match ch.Type.ActualType.Kind with
+                        | Enumerated _ -> l.lg.adjustEnumAccessForValidation child_arg
                         | _ -> child_arg
                     let chp = {p with accessPath = child_arg}
                     fnc chp), ns
@@ -433,15 +433,8 @@ and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageM
 
                 newChildCheckFnc
 
-        let isAbsentFlag =
-            match ProgrammingLanguage.ActiveLanguages.Head with
-            | ProgrammingLanguage.Scala -> l.lg.FalseLiteral
-            | _ -> "0"
-
-        let isPresentFlag =
-            match ProgrammingLanguage.ActiveLanguages.Head with
-            | ProgrammingLanguage.Scala -> l.lg.TrueLiteral
-            | _ -> "1" // leave like it was - TRUE may not be 1
+        let isAbsentFlag = if l.lg.usesBooleanPresenceBits then l.lg.FalseLiteral else "0"
+        let isPresentFlag = if l.lg.usesBooleanPresenceBits then l.lg.TrueLiteral else "1"
 
         let presentAbsent =
             match nc.Mark with
@@ -647,8 +640,17 @@ let funcBody l fncs (e:ErrorCode) (p:CodegenScope) =
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference) (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (o.intClass) c us) us
+    // Some backends (e.g. Python) need an explicit >= 0 lower bound for unsigned integer types
+    // because their native int is untyped and the constraint would otherwise be skipped.
+    let lowerBoundFncs =
+        match l.lg.integerIsAlwaysSigned, o.uperRange with
+        | true, (Concrete (min, _) | PosInf min) when min = 0I ->
+            [fun (p:CodegenScope) -> VCBExpression (l.isvalid.ExpLte "0" (l.lg.getValue p.accessPath))]
+        | _ -> []
+    let allFncs = lowerBoundFncs @ fncs
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
-    createIsValidFunction r l t  (funcBody l fncs) typeDefinition [] [] [] [] (Some errorCodeComment) ns
+    createIsValidFunction r l t (funcBody l allFncs) typeDefinition [] [] [] [] (Some errorCodeComment) ns
+
 let createIntegerFunctionByCons (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) isUnsigned (allCons  : IntegerTypeConstraint list) =
     match allCons with
     | []        -> None
@@ -992,12 +994,11 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
             // For Python, enum types wrap their value in a .val field. The reference type's p.accessPath
             // is "self" (not "self.val"), so we must redirect the constraint check to self.val.
             let fncs =
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | ProgrammingLanguage.Python ->
+                if l.lg.isObjectOriented then
                     fncs |> List.map (fun fnc ->
                         fun (p: CodegenScope) ->
-                            fnc {p with accessPath = p.accessPath.appendSelection "val" ByValue false})
-                | _ -> fncs
+                            fnc {p with accessPath = l.lg.adjustEnumAccessForValidation p.accessPath})
+                else fncs
             fncs, ns
         | true  -> createEfficientEnumValidation r l en.baseInfo us
     | Choice ch ->

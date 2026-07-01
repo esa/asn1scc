@@ -42,6 +42,9 @@
     <EmbeddedResource Include="..\asn1python\src\asn1python\helper.py" Link="helper.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\verification.py" Link="verification.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\__init__.py" Link="__init__.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\xer_codec.py" Link="xer_codec.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\xer_encoder.py" Link="xer_encoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\xer_decoder.py" Link="xer_decoder.py" />
     
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
 

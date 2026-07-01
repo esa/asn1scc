@@ -183,7 +183,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                     "obj_x86"
 
             let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else (ada_target + "/debug/test_case.adb.gcov")))
-            let covLinesToIgnore = ["}";"default:";"break;";"end"] |> Set.ofList
+            let covLinesToIgnore = ["}";"default:";"break;";"end";"declare"] |> Set.ofList
 
             let makeCommand = sprintf "make%s" (if bNoAtc || not bRunCodeCoverage then "" else " coverage")
             let res = executeBashScript workDir makeCommand

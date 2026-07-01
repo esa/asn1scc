@@ -74,42 +74,7 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
                     | ReferenceToExistingDefinition ref -> modName + "." + ref.typedefName
     
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
-    let initStatement =
-        match ProgrammingLanguage.ActiveLanguages.Head, resolveReferenceType v.Type.Kind with
-        | Scala, Integer _ -> "val tc_data = " + initStatement
-        | Python, Integer _ -> "tc_data = " + valueType + "(" + initStatement + ")"
-        | Python, Real _ -> "tc_data: " + valueType + " = " + valueType + "(" + initStatement + ")"
-        | Python, IA5String _ ->
-            let parenIdx = initStatement.IndexOf('(')
-            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
-            "tc_data: " + valueType + " = " + valueType + argsStr
-        | Python, (Sequence _ | SequenceOf _) ->
-            // initStatement is "ShortName(args...)" - replace short name with fully-qualified valueType
-            let parenIdx = initStatement.IndexOf('(')
-            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
-            "tc_data: " + valueType + " = " + valueType + argsStr
-        | Python, Choice _ -> "tc_data: " + valueType + " = " + initStatement
-        | Python, Boolean _ -> "tc_data: " + valueType + " = " + valueType + "(" + initStatement + ")"
-        | Python, (OctetString _ | BitString _) ->
-            // initStatement is "MOD.TypeName(nCount, [0xAA, ...])" — reuse the args with valueType
-            let parenIdx = initStatement.IndexOf('(')
-            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
-            "tc_data: " + valueType + " = " + valueType + argsStr
-        | Python, ObjectIdentifier _ ->
-            // initStatement is "Asn1ObjectIdentifier(n, [v1, v2, ...])" — reuse the args with valueType
-            let parenIdx = initStatement.IndexOf('(')
-            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
-            "tc_data: " + valueType + " = " + valueType + argsStr
-        | Python, Enumerated _ ->
-            // initStatement is "MOD.ActualTypeName(MOD.ActualTypeName_Enum.item)"
-            // Subtypes (My2ndEnum ::= BaseEnum) need MOD.My2ndEnum(MOD.BaseEnum_Enum.item),
-            // so reuse the args from initStatement (which already has the correct base _Enum).
-            let parenIdx = initStatement.IndexOf('(')
-            let argsStr = if parenIdx >= 0 then initStatement.[parenIdx..] else "()"
-            "tc_data: " + valueType + " = " + valueType + argsStr
-        | Python, NullType _ -> "tc_data: " + valueType + " = " + valueType + "()"
-        | (Scala | Python), ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
-        | _, _ -> initStatement
+    let initStatement = lm.lg.formatValueAssignmentTestCase (resolveReferenceType v.Type.Kind) valueType initStatement
     let sTestCaseIndex = idx.ToString()
     let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = GetDatFile r lm v modName sTasName encAmper
@@ -132,9 +97,8 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
             | None -> ""
         | _ -> initAmper
     let initStatement =
-        match ProgrammingLanguage.ActiveLanguages.Head, t.ActualType.Kind with
-        | Python, ObjectIdentifier _ ->
-            initStatement.Replace("Asn1ObjectIdentifier(", modName + "." + sTasName + "(")
+        match t.ActualType.Kind with
+        | ObjectIdentifier _ -> lm.lg.adjustTestCaseObjectIdentifierInit modName sTasName initStatement
         | _ -> initStatement
     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = ""
@@ -235,7 +199,21 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                                     match t.Type.acnEncFunction with
                                     | None  -> false
                                     |Some ancEncFnc -> ancEncFnc.isTestVaseValid atc
-                                for atc in t.Type.initFunction.automaticTestCases  do
+                                let atcsToUse =
+                                    let allAtcs = t.Type.initFunction.automaticTestCases
+                                    match e, ProgrammingLanguage.ActiveLanguages.Head with
+                                    | Asn1Encoding.XER, ProgrammingLanguage.Python ->
+                                        let sizeOf (atc:AutomaticTestCase) =
+                                            atc.testCaseTypeIDsMap
+                                            |> Map.toList
+                                            |> List.sumBy (fun (_, tcv) -> match tcv with TcvSizeableTypeValue n -> n | _ -> 0I)
+                                        match allAtcs with
+                                        | [] -> []
+                                        | _  ->
+                                            let minSize = allAtcs |> List.map sizeOf |> List.min
+                                            allAtcs |> List.filter (fun atc -> sizeOf atc = minSize)
+                                    | _ -> allAtcs
+                                for atc in atcsToUse do
                                     let testCaseIsValid = e <> Asn1Encoding.ACN || (isTestCaseValid atc)
                                     if testCaseIsValid then
                                         let generateTcFun idx =

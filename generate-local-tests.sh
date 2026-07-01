@@ -22,7 +22,7 @@ rm -f -- StgPython/*.stg.fs
 dotnet build asn1scc
 
 echo "Generating new .stg.fs files..."
-cd StgPython && dotnet ../parseStg2/bin/Debug/net9.0/parseStg2.dll backends.xml 3 && cd ..
+cd StgPython && dotnet ../parseStg2/bin/Debug/net10.0/parseStg2.dll backends.xml 3 && cd ..
 
 ASN1_FILES="./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/additional-test-cases/NULLTERMINATED.asn1 \
             ./PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/ccsds/PacketTypes.asn1 \
@@ -746,27 +746,27 @@ PREFIX="T"
 #
 echo "Running Asn1SCC Compiler for DEBUG..."
 # for c: -if "BitStream_EncodeReal" -if "BitStream_DecodeReal"
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO  -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/debug" $DEBUG_FILES 
+./asn1scc/bin/Debug/net10.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO  -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/debug" $DEBUG_FILES 
 
 echo "Running Asn1SCC Compiler for ASN1..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1" $ASN1_FILES 
+./asn1scc/bin/Debug/net10.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1" $ASN1_FILES 
 
 echo "Running Asn1SCC Compiler for ACN..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/acn" $ASN1_FILES $ACN_FILES
+./asn1scc/bin/Debug/net10.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/acn" $ASN1_FILES $ACN_FILES
 
 echo "Running Asn1SCC Compiler for TestLib..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib" $TESTLIB_FILES 
+./asn1scc/bin/Debug/net10.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib" $TESTLIB_FILES 
 
 echo "Running Asn1SCC Compiler for ASN1..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1_uper" $ASN1_FILES 
+./asn1scc/bin/Debug/net10.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1_uper" $ASN1_FILES 
 
 echo "Running Asn1SCC Compiler for TestLib..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib_uper" $TESTLIB_FILES
+./asn1scc/bin/Debug/net10.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib_uper" $TESTLIB_FILES
 
 echo "Running Asn1SCC Compiler for Dual-Wield ASN1/ACN..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1_acn_dual" $ASN1_FILES $ACN_FILES 
+./asn1scc/bin/Debug/net10.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/asn1_acn_dual" $ASN1_FILES $ACN_FILES 
 
 echo "Running Asn1SCC Compiler for Dual-Wield TestLib..."
-./asn1scc/bin/Debug/net9.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib_dual" $TESTLIB_FILES
+./asn1scc/bin/Debug/net10.0/asn1scc "-$ASN1SCC_LANG" $TEMPLATE_INFO -uPER -ACN -atc -fp AUTO -typePrefix "$PREFIX" -o "$BASE_OUT_DIR/testlib_dual" $TESTLIB_FILES
 
 

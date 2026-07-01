@@ -62,6 +62,10 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
     case Right(_) => ()
 >>
 
+Codec_Encode_XER(sModName, sFuncName, sVal, sTasName) ::= <<
+<Codec_Encode(sModName=sModName, sFuncName=sFuncName, sVal=sVal)>
+>>
+
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 // test_cases_scala.stg:62
 codec.base.bitStream.resetBitIndex()

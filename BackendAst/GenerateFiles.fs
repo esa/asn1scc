@@ -259,6 +259,18 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             | Some ti -> $"{ti.modName}.{ti.tasName}"
                             | None -> t.id.AsString  // Fallback to full path if no tasInfo
                         )
+                        |> List.filter (fun (typeKey, _) ->
+                            // A type that has its own top-level TAS must generate its own class body
+                            // (via the normal path), not reuse code cached here from a richer inline
+                            // ACN-customized variant in a parent context. Otherwise a standalone type
+                            // (e.g. TC-PacketSecondaryHeader) inherits ACN-inserted determinant fields
+                            // that only exist in the parent's inline redefinition. Mirrors the
+                            // TypeDefinition preference already applied in STEP 2.
+                            not (tases |> List.exists (fun tas ->
+                                match tas.Type.id.tasInfo with
+                                | Some ti -> $"{ti.modName}.{ti.tasName}" = typeKey
+                                | None -> false))
+                        )
                         |> List.map (fun (typeKey, tasTypePairs) ->
                             // Pick the "richest" version - the one with more children in its Sequence
                             // This ensures we get types with inline ACN children from parent context

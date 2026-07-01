@@ -45,11 +45,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
         let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
         let localVar, intVal =
-            let varName =
-                let baseName = ToC (p.accessPath.asIdentifier lm.lg)
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Python -> $"{baseName}_int"
-                | _ -> $"intVal_{baseName}"
+            let varName = lm.lg.getEnumIntLocalVarName (ToC (p.accessPath.asIdentifier lm.lg))
             let lv =
                 match lm.lg.decodingKind with
                 | Copy -> []
