@@ -94,6 +94,10 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
 ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_ENCODE, Success => result.Success, ErrorCode => result.ErrorCode);
 >>
 
+Codec_Encode_XER(sModName, sFuncName, sVal, sTasName) ::= <<
+<Codec_Encode(sModName=sModName, sFuncName=sFuncName, sVal=sVal)>
+>>
+
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 --  Decode value
 --  at this point stream contains the <sEnc> data

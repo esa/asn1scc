@@ -174,7 +174,12 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
         writeResource di "encoder.py" None
         writeResource di "acn_decoder.py" None
         writeResource di "acn_encoder.py" None
-          
+
+        if hasXer then
+            writeResource di "xer_codec.py" None
+            writeResource di "xer_encoder.py" None
+            writeResource di "xer_decoder.py" None
+
     | ProgrammingLanguage.Ada ->
         writeResource di "adaasn1rtl.adb" None
         match args.floatingPointSizeInBytes  = 4I with

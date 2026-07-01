@@ -1,0 +1,21 @@
+--NOCOVERAGE
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+MyPDU ::= SEQUENCE {
+    a INTEGER (0..100),
+    inner SEQUENCE {
+        x INTEGER (0..10),
+        y BOOLEAN,
+        deep SEQUENCE { p INTEGER (0..5), q IA5String (SIZE(1..4)) }
+    },
+    list SEQUENCE (SIZE(1..4)) OF SEQUENCE {
+        m INTEGER (0..20),
+        n BOOLEAN
+    },
+    pick CHOICE {
+        one INTEGER (0..10),
+        two SEQUENCE { r INTEGER (0..7), s BOOLEAN }
+    }
+}
+
+END

@@ -259,7 +259,7 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 
-SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
 -- SEQUENCE OF Encode
 adaasn1rtl.encoding.xer.Xer_EncodeComplexElementStart(bs, <sTag>, ret, <nLevel>);
 if ret.Success then
@@ -276,7 +276,7 @@ end if;
 >>
 
 
-SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
 -- SEQUENCE OF Decode
 adaasn1rtl.encoding.xer.Xer_DecodeComplexElementStart(bs, <sTag>, ret);
 if ret.Success then
@@ -312,12 +312,12 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 
 /* SEQUENCE Start*/
 
-Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag) ::= <<
+Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 --Encode <sChName>
 <sChildContent>
 >>
 
-Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag) ::= <<
+Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 --Decode <sChName>
 ret.Success := adaasn1rtl.encoding.xer.Xer_NextStartElementIs(bs, "<sChildTag>");
 if ret.Success then
@@ -325,14 +325,14 @@ if ret.Success then
 end if;
 >>
 
-Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 --Encode <sChName>
 if <p>.Exist.<sChName> = 1 then
 	<sChildContent>
 end if;
 >>
 
-Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 --Decode <sChName>
 <p>.Exist.<sChName> := 0;
 if adaasn1rtl.encoding.xer.Xer_NextStartElementIs(bs, "<sChildTag>") then
@@ -341,12 +341,12 @@ if adaasn1rtl.encoding.xer.Xer_NextStartElementIs(bs, "<sChildTag>") then
 end if;
 >>
 
-Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
-<Sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, sChildTag=sChildTag)>
+Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
+<Sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, sChildTag=sChildTag, sChildTypeDef=sChildTypeDef)>
 >>
 
 
-Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
+Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
 --Decode <sChName>
 <p>.Exist.<sChName> := 0;
 if adaasn1rtl.encoding.xer.Xer_NextStartElementIs(bs, "<sChildTag>") then
@@ -460,10 +460,10 @@ end if;
 
 
 
-call_base_type_func_encode(p, soXmlTag, sFuncName) ::= <<
+call_base_type_func_encode(p, soXmlTag, sFuncName, sBaseTypeName) ::= <<
 <sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>""<endif>, bs, ret);
 >>
-call_base_type_func_decode(p, soXmlTag, sFuncName) ::= <<
+call_base_type_func_decode(p, soXmlTag, sFuncName, sBaseTypeName) ::= <<
 <sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>""<endif>, bs, ret);
 >>
 

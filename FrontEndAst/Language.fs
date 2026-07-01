@@ -469,7 +469,10 @@ type ILangGeneric () =
     abstract member subtypeDecodeWrap : pp:string -> currentTypeName:string -> isPrimitive:bool -> string option
     default _.subtypeDecodeWrap _pp _currentTypeName _isPrimitive = None
     abstract member getEnumSelectionJoin : AccessPath -> string
-    default this.getEnumSelectionJoin path = this.joinSelection path
+    // XER enum encode switches on the enum VALUE, so the default must dereference to the value
+    // (e.g. C "(*pVal)"), not the bare selection path (which for a ByPointer param is "pVal" and
+    // yields invalid `switch(pVal)`). Python overrides this to append ".val" for child paths.
+    default this.getEnumSelectionJoin path = this.getValue path
     abstract member getAlignmentByteTypeName : string
     default this.getAlignmentByteTypeName = "NextByte"
     abstract member getAlignmentWordTypeName : string
