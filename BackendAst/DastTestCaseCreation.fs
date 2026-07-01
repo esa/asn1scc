@@ -199,7 +199,21 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                                     match t.Type.acnEncFunction with
                                     | None  -> false
                                     |Some ancEncFnc -> ancEncFnc.isTestVaseValid atc
-                                for atc in t.Type.initFunction.automaticTestCases  do
+                                let atcsToUse =
+                                    let allAtcs = t.Type.initFunction.automaticTestCases
+                                    match e, ProgrammingLanguage.ActiveLanguages.Head with
+                                    | Asn1Encoding.XER, ProgrammingLanguage.Python ->
+                                        let sizeOf (atc:AutomaticTestCase) =
+                                            atc.testCaseTypeIDsMap
+                                            |> Map.toList
+                                            |> List.sumBy (fun (_, tcv) -> match tcv with TcvSizeableTypeValue n -> n | _ -> 0I)
+                                        match allAtcs with
+                                        | [] -> []
+                                        | _  ->
+                                            let minSize = allAtcs |> List.map sizeOf |> List.min
+                                            allAtcs |> List.filter (fun atc -> sizeOf atc = minSize)
+                                    | _ -> allAtcs
+                                for atc in atcsToUse do
                                     let testCaseIsValid = e <> Asn1Encoding.ACN || (isTestCaseValid atc)
                                     if testCaseIsValid then
                                         let generateTcFun idx =

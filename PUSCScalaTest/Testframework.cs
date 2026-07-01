@@ -2,6 +2,7 @@ global using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace PUS_C_Scala_Test
 {
@@ -26,6 +27,7 @@ namespace PUS_C_Scala_Test
         CREATE_C =          0b0001_0000,
         COMPARE_ENCODINGS = 0b0010_0000,
         CREATE_PYTHON =     0b0100_0000,
+        XER =               0b1000_0000,
     }
 
     class TestBasics
@@ -37,6 +39,7 @@ namespace PUS_C_Scala_Test
         private readonly string pythonLang = "-python";
         private readonly string uperEnc = "--uper-enc";
         private readonly string acnEnc = "-ACN";
+        private readonly string xerEnc = "-XER";
         private readonly string genTests = "-atc";
         private readonly List<string> stdArgs = ["-fp", "AUTO", "-typePrefix", "T", "-o"];
 
@@ -44,6 +47,7 @@ namespace PUS_C_Scala_Test
         private readonly string outFolderTestFix = "Test/";
         private readonly string outFolderSuffixUPER = "UPER/PUSC_";
         private readonly string outFolderSuffixACN = "ACN/PUSC_";
+        private readonly string outFolderSuffixXER = "XER/PUSC_";
         private readonly string outFolderSuffixScala = "/Scala";
         private readonly string outFolderSuffixC = "/C";
         private readonly string outFolderSuffixPython = "/Python";
@@ -72,6 +76,9 @@ namespace PUS_C_Scala_Test
 
             if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
                 parList.Add(acnEnc);
+
+            if ((sv & ServiceVariation.XER) == ServiceVariation.XER)
+                parList.Add(xerEnc);
 
             if ((sv & ServiceVariation.CREATE_TESTS) == ServiceVariation.CREATE_TESTS)
                 parList.Add(genTests);
@@ -118,6 +125,9 @@ namespace PUS_C_Scala_Test
 
                 if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
                     ret += outFolderSuffixACN;
+
+                if ((sv & ServiceVariation.XER) == ServiceVariation.XER)
+                    ret += outFolderSuffixXER;
             }
 
             ret += serviceName;
@@ -169,11 +179,15 @@ namespace PUS_C_Scala_Test
             if ((sv & ServiceVariation.COMPARE_ENCODINGS) == ServiceVariation.COMPARE_ENCODINGS)
             {
                 Assert.IsTrue(folders.Count > 1);
+                var isXer = (sv & ServiceVariation.XER) == ServiceVariation.XER;
                 for (var i = 0; i < folders.Count; i++)
                 {
                     for (var j = i + 1; j < folders.Count; j++)
                     {
-                        CompareTestCases(service, sv, folders[i], folders[j]);
+                        if (isXer)
+                            CompareXerTestCases(service, sv, folders[i], folders[j]);
+                        else
+                            CompareTestCases(service, sv, folders[i], folders[j]);
                     }
                 }
             }
@@ -217,6 +231,126 @@ namespace PUS_C_Scala_Test
             }
             
             Assert.IsTrue(failedTests.Count == 0, $"Some .dat files not identical! Deviations in: [{string.Join(", ", failedTests)}] - Correct: {binsA.Length - failedTests.Count}/{binsA.Length}");
+        }
+
+        /// <summary>
+        /// Compare XER test case outputs between C (writes .xml) and Python (writes .dat).
+        /// Uses normalized-XML + numeric-aware leaf comparison.
+        /// Python may produce a strict subset of files (min-size filter); asserts Python ⊆ C
+        /// and every shared file is semantically XML-equal.
+        /// </summary>
+        private void CompareXerTestCases(PUS_C_Service service, ServiceVariation sv, string cFolder, string pythonFolder)
+        {
+            // C produces .xml files in cFolder; Python produces .dat files in pythonFolder (already /output)
+            var cFiles = Directory.GetFiles(cFolder, "*.xml")
+                .ToDictionary(p => Path.GetFileNameWithoutExtension(p)!, p => p);
+            var pyFiles = Directory.GetFiles(pythonFolder, "*.dat")
+                .ToDictionary(p => Path.GetFileNameWithoutExtension(p)!, p => p);
+
+            // Assert Python's set ⊆ C's set
+            var pyOnlyNames = pyFiles.Keys.Except(cFiles.Keys).ToList();
+            Assert.IsTrue(pyOnlyNames.Count == 0,
+                $"Python produced XER files not present in C: [{string.Join(", ", pyOnlyNames)}]");
+
+            // Compare intersection
+            var sharedNames = cFiles.Keys.Intersect(pyFiles.Keys).OrderBy(x => x).ToList();
+            Console.WriteLine($"XER interop: C={cFiles.Count} files, Python={pyFiles.Count} files, shared={sharedNames.Count}");
+            Assert.IsTrue(sharedNames.Count > 0, "No shared XER test case files found to compare");
+
+            List<string> failedTests = [];
+            foreach (var name in sharedNames)
+            {
+                var cContent = File.ReadAllText(cFiles[name]).Trim();
+                var pyContent = File.ReadAllText(pyFiles[name]).Trim();
+
+                try
+                {
+                    var cDoc = XDocument.Parse(cContent);
+                    var pyDoc = XDocument.Parse(pyContent);
+                    if (!XmlSemanticEquals(cDoc.Root!, pyDoc.Root!))
+                    {
+                        Console.WriteLine($"XER mismatch for {name}:");
+                        Console.WriteLine($"  C:  {cContent}");
+                        Console.WriteLine($"  Py: {pyContent}");
+                        failedTests.Add(name);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"XML parse error for {name}: {ex.Message}");
+                    Console.WriteLine($"  C:  {cContent}");
+                    Console.WriteLine($"  Py: {pyContent}");
+                    failedTests.Add(name);
+                }
+            }
+
+            Assert.IsTrue(failedTests.Count == 0,
+                $"XER XML semantic mismatches in {failedTests.Count}/{sharedNames.Count}: [{string.Join(", ", failedTests)}]");
+        }
+
+        /// <summary>
+        /// Recursively compare two XElements for semantic XER equality:
+        /// - Same local element name (ignore namespace)
+        /// - Same child elements in order (recursively)
+        /// - Leaf text: numeric compare if both parse as double (relative tol ~1e-9), else trimmed-string
+        /// - Attributes compared by local name and trimmed value
+        /// </summary>
+        private static bool XmlSemanticEquals(XElement a, XElement b)
+        {
+            if (a.Name.LocalName != b.Name.LocalName)
+                return false;
+
+            // Compare attributes (by local name, sorted)
+            var aAttrs = a.Attributes().OrderBy(x => x.Name.LocalName).ToList();
+            var bAttrs = b.Attributes().OrderBy(x => x.Name.LocalName).ToList();
+            if (aAttrs.Count != bAttrs.Count) return false;
+            for (int i = 0; i < aAttrs.Count; i++)
+            {
+                if (aAttrs[i].Name.LocalName != bAttrs[i].Name.LocalName) return false;
+                if (!LeafTextEqual(aAttrs[i].Value, bAttrs[i].Value)) return false;
+            }
+
+            // Get child elements (not text nodes)
+            var aChildren = a.Elements().ToList();
+            var bChildren = b.Elements().ToList();
+
+            if (aChildren.Count != bChildren.Count)
+                return false;
+
+            if (aChildren.Count == 0)
+            {
+                // Leaf: compare text content
+                return LeafTextEqual(a.Value, b.Value);
+            }
+
+            // Recurse on children
+            for (int i = 0; i < aChildren.Count; i++)
+            {
+                if (!XmlSemanticEquals(aChildren[i], bChildren[i]))
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Compare two leaf text values: numeric if both parse as double (rel tol 1e-9),
+        /// else trimmed string equality.
+        /// </summary>
+        private static bool LeafTextEqual(string a, string b)
+        {
+            var at = a.Trim();
+            var bt = b.Trim();
+            if (double.TryParse(at, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var da) &&
+                double.TryParse(bt, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var db))
+            {
+                // Numeric compare with relative tolerance
+                if (da == 0.0 && db == 0.0) return true;
+                var denom = Math.Max(Math.Abs(da), Math.Abs(db));
+                return Math.Abs(da - db) / denom < 1e-9;
+            }
+            return at == bt;
         }
 
         private struct TestRange

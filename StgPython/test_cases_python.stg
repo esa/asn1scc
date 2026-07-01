@@ -28,6 +28,11 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
 <sVal>.<sFuncName>(encoder, True)
 >>
 
+Codec_Encode_XER(sModName, sFuncName, sVal, sTasName) ::= <<
+# test_cases_python.stg:54b - class-dispatch encode: ensures alias xmlTag is used even for base-type instances
+<sTasName>.<sFuncName>(<sVal>, encoder, True)
+>>
+
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 # test_cases_python.stg:62
 
@@ -42,18 +47,18 @@ except Exception as e:
 
 >>
 
-// todo: Implement XER Decoding routines
 Codec_Decode_XER(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 # test_cases_python.stg:71
-bit_stream.attach_buffer(enc_buff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)
-# Decode value
-res = <sFuncName>()
 
-if not res:
-    # test_cases_python.stg 57
-    return res
-elif res == pVal:
-    decodedPDU = pVal
+decoder = encoder.get_decoder()
+
+# Decode value
+try:
+    decodedPDU = <sTasName>.<sFuncName>(decoder)
+
+except Exception as e:
+    raise Asn1TestcaseDecodeFailedError(e)
+
 >>
 
 Codec_validate_output(sModName, sFuncName, sAmber) ::= <<
@@ -128,19 +133,26 @@ def <sFuncName>_generic(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1Scc
 
 PrintCodec_body_XER(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements) ::= <<
 # test_cases_python.stg:142
-# TODO: unclear where flag comes from and what to do with that
-flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode, const char* filename)
-{
-    static <sTasName> decodedPDU;
-    static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; # +1 for zerosized types
-    ByteStream bitStrm;
-    flag ret = TRUE;
-
-    ByteStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+def <sFuncName>(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
+    encoder = XEREncoder.of_size(0)
     <sNestedStatements>
     # test_cases_python.stg 133
-    return ret;
-}
+    return True
+
+def <sFuncName>_generic(<sVal>: <sTasName>, filename: str) -> Union[int, Asn1SccError]:
+    _xer_gen_encoder = XEREncoder.of_size(0)
+    <sTasName>._XERencode(<sVal>, _xer_gen_encoder, True)
+    encoded = _xer_gen_encoder.get_bitstream_buffer()
+    try:
+        decodedPDU = <sTasName>._XERdecode(XERDecoder.from_buffer(encoded))
+    except Exception as e:
+        raise Asn1TestcaseDecodeFailedError(e)
+    res = decodedPDU.is_constraint_valid()
+    if not res:
+        raise Asn1TestcaseConstraintFailedError(f"Constraint Validation Failed with Errorcode {res.error_code}: {res.message}")
+    if <sVal> != decodedPDU:
+        raise Asn1TestcaseDifferentResultError()
+    return True
 >>
 
 

@@ -820,7 +820,13 @@ type LangGeneric_python() =
     override this.charToNumericValueExpression charValue = sprintf "ord(%s)" charValue
     override this.validationStringPrefix = "self.arr"
     override this.shouldRemoveModulePrefixFromTypedef = true
-    override this.getEnumSelectionJoin path = this.joinSelectionEnum path
+    override this.getEnumSelectionJoin path =
+        // For standalone enum encode, getParamType sets rootId = "self.val", so getValue already gives "self.val".
+        // For a SEQUENCE child enum encode, rootId = "self", steps has the child name → getValue gives "self.childName".
+        // We need "self.childName.val" for child case to unwrap the Python enum wrapper.
+        match path.steps.IsEmpty with
+        | true  -> this.getValue path          // standalone: rootId already is "self.val"
+        | false -> this.getValue path + ".val" // child: append .val to unwrap the enum wrapper
     override this.getAlignmentByteTypeName = "byte"
     override this.getAlignmentWordTypeName = "word"
     override this.getAlignmentDWordTypeName = "dword"

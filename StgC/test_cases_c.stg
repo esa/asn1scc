@@ -75,6 +75,10 @@ ret = <sFuncName>(<sVal>, &bitStrm, pErrCode, TRUE);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 1;
 >>
 
+Codec_Encode_XER(sModName, sFuncName, sVal, sTasName) ::= <<
+<Codec_Encode(sModName=sModName, sFuncName=sFuncName, sVal=sVal)>
+>>
+
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 BitStream_AttachBuffer(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
 // Decode value
