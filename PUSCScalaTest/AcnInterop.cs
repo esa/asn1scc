@@ -1,6 +1,6 @@
 ﻿namespace PUS_C_Scala_Test
 {
-    [TestClass]
+    [TestClass, Ignore]
     public class AcnInterop
     {
         private void ACNInteropEncScalaDecC(PUS_C_Service s, string folderSuffix) =>

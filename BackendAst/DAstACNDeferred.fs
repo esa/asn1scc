@@ -91,7 +91,7 @@ let computePatchDetValueExpr
         let varName = lm.lg.acnDeferredTempVarName "patchDetVal"
         let switchItems = chc.children |> List.map (fun ch ->
             let pres = ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath)
-            let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+            let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch dep.asn1Type.ModName
             match pres with
             | AcnGenericTypes.PresenceInt (_, intVal) ->
                 lm.acn.acn_deferred_det_switch_case_int presentWhenName varName (intVal.Value.ToString())
@@ -106,7 +106,7 @@ let computePatchDetValueExpr
         let varName = lm.lg.acnDeferredTempVarName "patchDetStrVal"
         let switchItems = chc.children |> List.map (fun ch ->
             let pres = ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath)
-            let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+            let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch dep.asn1Type.ModName
             match pres with
             | AcnGenericTypes.PresenceStr (_, strVal) ->
                 lm.acn.acn_deferred_det_switch_case_str presentWhenName varName strVal.Value
@@ -491,6 +491,19 @@ let private createDeferredSequenceFunction
 //  Deferred REFERENCE function
 // ---------------------------------------------------------------------------
 
+/// Find which acnParameter is the CONTAINING size determinant by checking
+/// the dependency list for AcnDepSizeDeterminant_bit_oct_str_contain.
+/// Returns the parameter, or None if not found.
+let private findContainingSizeParam
+        (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
+        (o: Asn1AcnAst.ReferenceType) : AcnGenericTypes.AcnParameter option =
+    o.resolvedType.acnParameters |> List.tryFind (fun prm ->
+        deps.acnDependencies |> List.exists (fun d ->
+            d.determinant.id = prm.id
+            && (match d.dependencyKind with
+                | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> true
+                | _ -> false)))
+            
 /// After boundary post-processing rewrites &name → formal param name in the
 /// body text, the matching AcnInsertedFieldRef local variable declarations
 /// injected by inner callerFuncBodies become orphans.  Strip them — they
@@ -758,9 +771,9 @@ let private emitSpecializedFunctionDecl
         : string list =
     let varName = specP.accessPath.rootId
     let sStar = ctx.lm.lg.getStar specP.accessPath
-    let typeDefinitionName = ctx.typeDefinition.longTypedefName2 ctx.lm.lg.hasModules
+    let typeDefinitionName = ctx.typeDefinition.longTypedefName2 (Some ctx.lm.lg) ctx.lm.lg.hasModules ctx.t.moduleName
     let isValidFuncName = match ctx.isValidFunc with None -> None | Some f -> f.funcName
-    let soInitFuncName = getFuncNameGeneric ctx.typeDefinition (ctx.lm.init.methodNameSuffix())
+    let soInitFuncName = ctx.lm.lg.getFuncNameGeneric ctx.typeDefinition (ctx.lm.init.methodNameSuffix())
     let nMaxBytesInACN = BigInteger (ceil ((double ctx.t.acnMaxSizeInBits)/8.0))
     let lvars = finalBody.localVariables |> List.map(fun (lv:LocalVariable) -> ctx.lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
 
@@ -781,15 +794,16 @@ let private emitSpecializedFunctionDecl
             None ""  // soSparkAnnotations, sInitialExp
             deferredFormalParams deferredParamNames
             (ctx.t.acnMaxSizeInBits = 0I) finalBody.bBsIsUnReferenced bVarNameIsUnreferenced
-            soInitFuncName [] [] None  // funcDefAnnots, precondAnnots, postcondAnnots
+            false
+            soInitFuncName [] [] []  // funcDefAnnots, precondAnnots, postcondAnnots
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 
     let specErrCodStr =
         (errCode :: finalBody.errCodes)
         |> List.groupBy (fun x -> x.errCodeName)
-        |> List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment})
-        |> List.map (fun x -> ctx.lm.acn.EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment)
+        |> List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath})
+        |> List.map (fun x -> ctx.lm.acn.EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath)
         |> List.distinct
 
     let specFuncDef =
@@ -885,7 +899,7 @@ let private buildCallerWrapper
             let callee = {Callee.typeId = {TypeAssignmentInfo.modName = ctx.o.modName.Value; tasName=ctx.o.tasName.Value} ; funcType=AcnEncDecFunctionType}
             addFunctionCallToState ns caller callee
 
-    let soSparkAnnotations = Some(DAstACN.sparkAnnotations ctx.lm (ctx.typeDefinition.longTypedefName2 ctx.lm.lg.hasModules) ctx.codec)
+    let soSparkAnnotations = Some(DAstACN.sparkAnnotations ctx.lm (ctx.typeDefinition.longTypedefName2 (Some ctx.lm.lg) ctx.lm.lg.hasModules ctx.t.moduleName) ctx.codec)
     let a, ns4 = DAstACN.createAcnFunction ctx.r ctx.deps ctx.lm ctx.codec ctx.t ctx.typeDefinition ctx.isValidFunc callerFuncBody (fun _atc -> true) soSparkAnnotations [] ns3
     Some a, ns4
 
@@ -907,7 +921,7 @@ let private createDeferredReferenceFunction
         (baseType:Asn1Type)
         (us:State) =
 
-    let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
+    let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "_ACN" codec
 
     // ICD this reference contributes to its parent.  Same construction as the
     // legacy inline path; without it the parent SEQUENCE drops the field row
@@ -925,7 +939,7 @@ let private createDeferredReferenceFunction
 
     // Helper: create a simple funcBody from an STG template call (for CONTAINING FIXED/EMBEDDED)
     let makeContainingFuncBody (stgCall: string -> string -> (AcnFuncBodyResult option) * State) =
-        let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
+        let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
         let funcBody (us:State) (errCode:ErrorCode) (_acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (_nestingScope: NestingScope) (p:CodegenScope) =
             let pp = lm.lg.getParamValue t p.accessPath codec
             stgCall pp baseFncName
@@ -999,7 +1013,8 @@ let private createDeferredReferenceFunction
                 else candidate
 
             let errCodeName = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-            let errCode, ns1 = getNextValidErrorCode us errCodeName None
+            let errFieldPath = match t.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elem")
+            let errCode, ns1 = getNextValidErrorCode us errCodeName None errFieldPath
 
             let specP : CodegenScope = lm.lg.getParamType t codec
             let stripLocals = stripOwnParamLocals lm o.resolvedType.acnParameters

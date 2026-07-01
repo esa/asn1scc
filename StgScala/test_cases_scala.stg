@@ -62,6 +62,10 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
     case Right(_) => ()
 >>
 
+Codec_Encode_XER(sModName, sFuncName, sVal, sTasName) ::= <<
+<Codec_Encode(sModName=sModName, sFuncName=sFuncName, sVal=sVal)>
+>>
+
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 // test_cases_scala.stg:62
 codec.base.bitStream.resetBitIndex()
@@ -131,7 +135,7 @@ PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
 // test_cases_scala.stg:125
 >>
 
-PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
+PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass, sEncodingEnumValue) ::= <<
 // test_cases_scala.stg:129
 def <sFuncName>(<sVal>: <sTasName>, filename: String): Either[ErrorCode, Int] =
 {
@@ -401,4 +405,9 @@ import stainless.collection._
 // test_cases_scala.stg:386
 <arrsTestFunctionBodies;separator="\n\n">
 
+>>
+
+decodingCaseKind(sBody, sIdentifier) ::= <<
+<sBody>
+<sIdentifier>
 >>

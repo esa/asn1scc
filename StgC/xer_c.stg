@@ -2,7 +2,7 @@
 
 rtlModuleName() ::= ""
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 const int <sErrCode> = <nErrValue>;
 >>
 
@@ -238,7 +238,7 @@ ret = Xer_DecodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <nSizeMax>, <if(!bIsF
 
 
 
-SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
 /* SEQUENCE OF Encode*/
 ret = Xer_EncodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode, <nLevel>);
 *pErrCode = ret ? 0 : <sErrCode>;
@@ -255,7 +255,7 @@ if (ret) {
 >>
 
 
-SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
 /* SEQUENCE OF Decode*/
 ret = Xer_DecodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode);
 if (ret) {
@@ -289,12 +289,12 @@ if (ret) {
 
 /* SEQUENCE Start*/
 
-Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag) ::= <<
+Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 /*Encode <sChName> */
 <sChildContent>
 >>
 
-Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag) ::= <<
+Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 /*Decode <sChName> */
 ret = Xer_NextStartElementIs(pByteStrm, "<sChildTag>");
 if (ret) {
@@ -302,14 +302,14 @@ if (ret) {
 }
 >>
 
-Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 /*Encode <sChName> */
 if (<p><sAcc>exist.<sChName>) {
 	<sChildContent>
 }
 >>
 
-Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 /*Decode <sChName> */
 <p><sAcc>exist.<sChName> = 0;
 if (Xer_NextStartElementIs(pByteStrm, "<sChildTag>")) {
@@ -318,12 +318,12 @@ if (Xer_NextStartElementIs(pByteStrm, "<sChildTag>")) {
 }
 >>
 
-Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
-<Sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, sChildTag=sChildTag)>
+Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
+<Sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, sChildTag=sChildTag, sChildTypeDef=sChildTypeDef)>
 >>
 
 
-Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
+Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
 /*Decode <sChName> */
 <p><sAcc>exist.<sChName> = 0;
 if (Xer_NextStartElementIs(pByteStrm, "<sChildTag>")) {
@@ -441,8 +441,8 @@ if (ret) {
 
 
 
-call_base_type_func_encode(p, soXmlTag, sFuncName) ::= "ret = <sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>NULL<endif>, pByteStrm, pErrCode, FALSE);"
-call_base_type_func_decode(p, soXmlTag, sFuncName) ::= "ret = <sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>NULL<endif>, pByteStrm, pErrCode);"
+call_base_type_func_encode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>NULL<endif>, pByteStrm, pErrCode, FALSE);"
+call_base_type_func_decode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>NULL<endif>, pByteStrm, pErrCode);"
 
 
 

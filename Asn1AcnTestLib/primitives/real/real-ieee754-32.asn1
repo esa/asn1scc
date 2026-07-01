@@ -1,0 +1,15 @@
+-- Requirement 14: REAL with IEEE 754-1985-32 format
+-- Tests 32-bit floating point numbers using IEEE 754 standard
+
+RealIeee754-32 DEFINITIONS ::= BEGIN
+
+    Float32 ::= REAL
+
+    TestStruct ::= SEQUENCE {
+        temperature Float32,
+        pressure Float32,
+        voltage Float32,
+        current Float32
+    }
+
+END

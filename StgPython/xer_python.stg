@@ -1,0 +1,381 @@
+group xer_python;
+
+rtlModuleName() ::= ""
+
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
+<sErrCode> = <nErrValue>  # <sFieldPath>
+>>
+
+
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
+<arrsErrcodes; separator="\n">
+<! Constant kept for API parity; XER codec ignores it (no pre-allocation). !>
+<sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING = <nMaxBytesInXER>
+>>
+
+EmitTypeAssignment_encode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp) ::= <<
+def <sFuncName>(self, codec: XEREncoder, check_constraints: bool = True, xmlTag: Optional[str] = None) -> None:
+    xmlTag = xmlTag if xmlTag is not None else "<sTasName>"
+    <arrsLocalVariables; separator="\n">
+<if(soIValidFuncName)>
+    if check_constraints:
+        valid_res = self.<soIValidFuncName>()
+        if not valid_res.is_valid:
+            raise Asn1ValueOutOfRangeException(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
+
+<endif>
+    <sContent>
+>>
+
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
+<arrsErrcodes; separator="\n">
+>>
+
+EmitTypeAssignment_decode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp) ::= <<
+@classmethod
+def <sFuncName>(cls, codec: XERDecoder, check_constraints: bool = True, xmlTag: Optional[str] = None) -> '<sTypeDefName>':
+    xmlTag = xmlTag if xmlTag is not None else "<sTasName>"
+    <arrsLocalVariables; separator="\n">
+
+    <sContent>
+<if(soIValidFuncName)>
+    if check_constraints:
+        valid_res = <sVarName>.<soIValidFuncName>()
+        if not valid_res.is_valid:
+            raise Asn1ValueOutOfRangeException(f"Constraint Validation Failed with Errorcode {valid_res.error_code}: {valid_res.message}")
+
+<endif>
+    return <sVarName>
+>>
+
+
+
+
+Integer_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+codec.encode_integer(<sTag>, <p>, <nLevel>)
+>>
+Integer_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+<p> = cls(codec.decode_integer(<sTag>))
+<if(soCheckExp)><soCheckExp><endif>
+>>
+
+IntegerPos_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+codec.encode_integer(<sTag>, <p>, <nLevel>)
+>>
+IntegerPos_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+<p> = cls(codec.decode_integer(<sTag>))
+<if(soCheckExp)><soCheckExp><endif>
+>>
+
+Boolean_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+codec.encode_boolean(<sTag>, <p>, <nLevel>)
+>>
+
+Boolean_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+<p> = cls(codec.decode_boolean(<sTag>))
+<if(soCheckExp)><soCheckExp><endif>
+>>
+
+
+
+Real_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+codec.encode_real(<sTag>, <p>, <nLevel>)
+>>
+
+Real_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+<p> = cls(codec.decode_real(<sTag>))
+<if(soCheckExp)><soCheckExp><endif>
+>>
+
+
+ObjectIdentifier_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+raise Asn1Exception("XER: OBJECT IDENTIFIER not supported")
+>>
+
+ObjectIdentifier_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+raise Asn1Exception("XER: OBJECT IDENTIFIER not supported")
+>>
+
+
+TimeType_encode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+raise Asn1Exception("XER: TIME types not supported")
+>>
+
+TimeType_decode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+raise Asn1Exception("XER: TIME types not supported")
+>>
+
+
+
+Null_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+codec.encode_null(<sTag>, <nLevel>)
+>>
+
+Null_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+codec.decode_null(<sTag>)
+<p> = cls()
+>>
+
+
+
+String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+codec.encode_string(<sTag>, ''.join(chr(c) for c in <p>.arr), <nLevel>)
+>>
+
+String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+<p> = cls([ord(c) for c in codec.decode_string(<sTag>)])
+<if(soCheckExp)><soCheckExp><endif>
+>>
+
+
+Enumerated_item_encode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
+<if(!bFirst)>el<endif>if <p> == <sItemID>:
+    codec.encode_enumerated(<sTag>, "<sXerValue>", <nLevel>)
+>>
+
+Enumerated_encode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
+<arrsItems; separator="\n">
+else:
+    raise Asn1InvalidValueException(f"XER encode: invalid enum value", field_name=<sTag>)
+>>
+
+
+Enumerated_item_decode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
+<if(!bFirst)>el<endif>if _enm_label == "<sXerValue>":
+    <p> = <sItemID>
+>>
+
+Enumerated_decode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
+_enm_label = codec.decode_enumerated(<sTag>)
+<arrsItems; separator="\n">
+else:
+    raise Asn1InvalidValueException(f"XER decode: invalid enum label {_enm_label}", field_name=<sTag>)
+<p> = cls(val=<p>)
+<if(soCheckExp)><soCheckExp><endif>
+>>
+
+
+OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+codec.encode_octet_string(<sTag>, bytes(<p><sAcc>arr), <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, <nLevel>)
+>>
+
+OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+_os = codec.decode_octet_string(<sTag>)
+<if(!bIsFixedSize)>
+<p> = cls(nCount=len(_os), arr=list(_os))
+<else>
+<p> = cls(arr=list(_os))
+<endif>
+<if(soCheckExp)><soCheckExp><endif>
+>>
+
+
+BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+_bs_bits = ''.join(f'{_b:08b}' for _b in <p><sAcc>arr)[:<if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>]
+codec.encode_bit_string(<sTag>, _bs_bits, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, <nLevel>)
+>>
+
+BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+_bs = codec.decode_bit_string(<sTag>)
+_bs_ncount = <if(!bIsFixedSize)>len(_bs)<else><nSizeMax><endif>
+_bs_padded = _bs.ljust((_bs_ncount + 7) // 8 * 8, '0')
+_bs_arr = [int(_bs_padded[_i*8:_i*8+8], 2) for _i in range(len(_bs_padded) // 8)]
+<if(!bIsFixedSize)>
+<p> = cls(nCount=_bs_ncount, arr=_bs_arr)
+<else>
+<p> = cls(arr=_bs_arr)
+<endif>
+<if(soCheckExp)><soCheckExp><endif>
+>>
+
+
+
+SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
+codec.complex_start(<sTag>, <nLevel>)
+for <sI> in range(<if(!bFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>):
+    <sChildBody>
+codec.complex_end(<sTag>, <nLevel>)
+>>
+
+
+SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
+codec.complex_start(<sTag>)
+# Invariant: save cls into _seqof_cls before switching cls to the element type,
+# then restore at the end. Each construction using cls is always immediately
+# preceded by its own "cls = specific_type" assignment, so the restored value
+# is never used for construction -- it only matters if the caller reads cls after this block.
+_seqof_cls = cls
+cls = <sElemTypeDef>
+<p> = _seqof_cls.__new__(_seqof_cls)
+<p><sAcc>arr = [None] * <nSizeMax>
+<sI> = 0
+while not codec.at_end_element(<sTag>):
+    if <sI> >= <nSizeMax>:
+        raise Asn1InvalidValueException("XER decode: SEQUENCE OF too long", field_name=<sTag>)
+    <sChildBody>
+    <sI> += 1
+<if(!bFixedSize)>
+<p><sAcc>nCount = <sI>
+
+<endif>
+<p><sAcc>arr = <p><sAcc>arr[:<sI>]
+codec.complex_end(<sTag>)
+cls = _seqof_cls
+<if(soCheckExp)><soCheckExp><endif>
+>>
+
+
+/* SEQUENCE Start*/
+
+Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
+# xer_python.stg 318 - encode mandatory child
+<sChildContent>
+>>
+
+Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
+# xer_python.stg 324 - decode mandatory child
+# cls save/restore invariant: _xer_saved_cls saves the surrounding cls before
+# switching to the child type, and is restored afterwards.  When sChildContent
+# is an inlined anonymous aggregate, that inner block also uses _xer_saved_cls,
+# overwriting the outer save.  This is safe because the next sibling child block
+# always sets cls to its own type before any cls() construction, so the stale
+# intermediate value is never used for object construction.
+if not codec.next_start_element_is("<sChildTag>"):
+    raise Asn1InvalidValueException("XER decode: expected element <sChildTag>", field_name="<sChildTag>")
+_xer_saved_cls = cls
+cls = <sChildTypeDef>
+<sChildContent>
+cls = _xer_saved_cls
+>>
+
+Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
+# xer_python.stg 333 - encode optional child
+if <p><sAcc><sChName> is not None:
+    <sChildContent>
+>>
+
+Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
+# xer_python.stg 341 - decode optional child
+_xer_saved_cls = cls
+cls = <sChildTypeDef>
+if codec.next_start_element_is("<sChildTag>"):
+    <sChildContent>
+else:
+    <p><sAcc><sChName> = None
+cls = _xer_saved_cls
+>>
+
+Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
+# xer_python.stg 351 - encode default child (same as optional: only encode if not None)
+if <p><sAcc><sChName> is not None:
+    <sChildContent>
+>>
+
+
+Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
+# xer_python.stg 357 - decode default child (absent => None, like optional)
+_xer_saved_cls = cls
+cls = <sChildTypeDef>
+if codec.next_start_element_is("<sChildTag>"):
+    <sChildContent>
+else:
+    <p><sAcc><sChName> = None
+cls = _xer_saved_cls
+>>
+
+
+SEQUENCE_start_encode(p, sTag, nLevel, sErrCode, bEmptySequence) ::= <<
+# xer_python.stg 370 - encode SEQUENCE start
+codec.complex_start(<sTag>, <nLevel>)
+ret = True
+>>
+
+SEQUENCE_start_decode(p, sTag, nLevel, sErrCode, bEmptySequence) ::= <<
+# xer_python.stg 376 - decode SEQUENCE start: create instance
+codec.complex_start(<sTag>)
+_xer_seq_cls = cls
+<p> = _xer_seq_cls.__new__(_xer_seq_cls)
+ret = True
+>>
+
+
+SEQUENCE_end_encode(sTag, nLevel, sErrCode) ::= <<
+# xer_python.stg 383 - encode SEQUENCE end
+codec.complex_end(<sTag>, <nLevel>)
+>>
+
+SEQUENCE_end_decode(sTag, nLevel, sErrCode) ::= <<
+# xer_python.stg 389 - decode SEQUENCE end
+codec.complex_end(<sTag>)
+>>
+
+
+SEQUENCE_xer_encode(sChildren) ::= <<
+# xer_python.stg 396 - SEQUENCE encode wrapper
+<sChildren>
+>>
+
+SEQUENCE_xer_decode(sChildren) ::= <<
+# xer_python.stg 402 - SEQUENCE decode wrapper
+<sChildren>
+>>
+
+
+
+
+
+
+
+
+CHOICE_child_encode(p, sAcc, sChID, sChildBody, bFirst, sChildTag, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+<if(!bFirst)>el<endif>if <p><sAcc>kind == <sChID>:
+    <sChildBody>
+>>
+
+
+CHOICE_child_decode(p, sAcc, sChID, sChildBody, bFirst, sChildTag, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+<if(!bFirst)>el<endif>if _next_tag == "<sChildTag>":
+    <p><sAcc>kind = <sChID>
+    cls = <sChildTypeDef>
+    <sChildBody>
+    cls = _xer_ch_cls
+>>
+
+
+CHOICE_no_tag_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
+<arrsChildren; separator="\n">
+else:
+    raise Asn1InvalidValueException("XER encode: invalid CHOICE selection", field_name="choice")
+>>
+
+CHOICE_no_tag_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
+_xer_ch_cls = cls
+<p> = _xer_ch_cls.__new__(_xer_ch_cls)
+_next_tag = codec.peek_start_tag()
+<arrsChildren; separator="\n">
+else:
+    raise Asn1InvalidValueException(f"XER decode: unexpected CHOICE tag {_next_tag}", field_name="choice")
+>>
+
+CHOICE_encode(p, sAcc, sTag, nLevel, sMainBody, sErrCode) ::= <<
+codec.complex_start(<sTag>, <nLevel>)
+<sMainBody>
+codec.complex_end(<sTag>, <nLevel>)
+>>
+
+
+CHOICE_decode(p, sAcc, sTag, nLevel, sMainBody, sErrCode) ::= <<
+codec.complex_start(<sTag>)
+<sMainBody>
+codec.complex_end(<sTag>)
+>>
+
+
+
+
+call_base_type_func_encode(p, soXmlTag, sFuncName, sBaseTypeName) ::= <<
+<sBaseTypeName>._XERencode(<p>, codec, False, <if(soXmlTag)><soXmlTag><else>None<endif>)
+>>
+call_base_type_func_decode(p, soXmlTag, sFuncName, sBaseTypeName) ::= <<
+<p> = <sBaseTypeName>._XERdecode(codec, False, <if(soXmlTag)><soXmlTag><else>None<endif>)
+>>

@@ -1,0 +1,18 @@
+-- ACN encoding with size attribute for BIT STRING
+
+BitstringAcnSize DEFINITIONS ::= BEGIN
+
+    DynamicBitString1 []
+
+    DynamicBitString2 []
+
+    DynamicBitString3 []
+
+    TestStruct []
+    {
+        data1 [],
+        data2 [],
+        data3 []
+    }
+
+END

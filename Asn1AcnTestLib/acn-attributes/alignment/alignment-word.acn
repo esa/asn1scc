@@ -1,0 +1,36 @@
+-- ACN encoding with word and dword alignment
+
+AlignmentWord DEFINITIONS ::= BEGIN
+
+        WordAlignedData []
+    {
+        byte1 [size 8, encoding pos-int],
+        aligned16 [align-to-next byte, size 16, encoding pos-int],
+        byte2 [size 8, encoding pos-int],
+        aligned32 [align-to-next byte, size 32, encoding pos-int]
+    }
+
+        DWordAlignedData []
+    {
+        flags [],
+        aligned64 [align-to-next byte, size 64, encoding pos-int],
+        byte [size 8, encoding pos-int],
+        aligned64second [align-to-next byte, size 64, encoding pos-int]
+    }
+
+        MultiLevelAlignment []
+    {
+        flags [size 4, encoding pos-int],
+        byteAligned [align-to-next byte, size 8, encoding pos-int],
+        wordAligned [align-to-next byte, size 16, encoding pos-int],
+        dwordAligned [align-to-next byte, size 32, encoding pos-int]
+    }
+
+    TestStruct []
+    {
+        word [],
+        dword [],
+        multi []
+
+    }
+END

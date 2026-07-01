@@ -99,7 +99,7 @@ let private handleAsn1Child
     let soSaveBitStrmPosStatement = None
     let childNestingScope = mkChildNestingScope ctx s
 
-    let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 lm.lg.hasModules
+    let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules p.modName
     let childName = lm.lg.getAsn1ChildBackendName child
     let chFunc = child.Type.getAcnFunction codec
     let childSel = lm.lg.getSeqChild p.accessPath childName child.Type.isIA5String child.Optionality.IsSome
@@ -114,7 +114,7 @@ let private handleAsn1Child
     //handle present-when acn property
     let presentWhenStmts, presentWhenLvs, presentWhenErrs, existVar, ns2 =
         match child.Optionality with
-        | Some (Asn1AcnAst.Optional opt) ->
+        | Some (Optional opt) ->
             match opt.acnPresentWhen with
             | None ->
                 match codec with
@@ -134,7 +134,7 @@ let private handleAsn1Child
                             match d.dependencyKind with
                             | AcnDepPresenceBool   -> true
                             | _                    -> false
-                        getExternalField0 lm r deps asn1TypeIdWithDependency filterDependency
+                        getExternalField0 lm r deps asn1TypeIdWithDependency filterDependency false
                     let extField = getExternalField r deps child.Type.id
                     let body (p: CodegenScope) (existVar: string option): string =
                         assert existVar.IsSome
@@ -142,7 +142,8 @@ let private handleAsn1Child
                     Some body, [], [], Some extField, ns1
             | Some (PresenceWhenBoolExpression exp)    ->
                 let _errCodeName = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((child.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_PRESENT_WHEN_EXP_FAILED")
-                let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
+                let errFieldPath = match child.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
+                let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None errFieldPath
                 let retExp = AcnExpression.acnExpressionToBackendExpression lm o p exp
                 let existVar =
                     if codec = Decode then Some (ToC (child._c_name + "_exist"))
@@ -153,6 +154,53 @@ let private handleAsn1Child
                 Some body, lv, [errCode], existVar, ns1a
         | _ -> None, [], [], None, ns1
 
+    // Build ACN parameters for child call sites (e.g. nLen=a3).
+    // AcnDepRefTypeArgument deps map formal ACN parameters to their call-site values.
+    // AcnDepChoiceDeterminant deps (decode only) pass the enum discriminant to CHOICE
+    // decode functions so the correct branch can be selected.
+    // Deduplicated by param name so TAS formal params are not emitted twice.
+    let acnParamsForTemplate =
+        deps.acnDependencies
+        |> List.filter(fun d ->
+            d.asn1Type = child.Type.id &&
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument _ -> true
+            | AcnDepChoiceDeterminant _ -> codec = Decode
+            | _ -> false)
+        |> List.choose(fun d ->
+            let targetParamName =
+                match d.dependencyKind with
+                | AcnDepRefTypeArgument param -> param.c_name
+                | AcnDepChoiceDeterminant _ ->
+                    match d.determinant with
+                    | AcnChildDeterminant acnCh -> getAcnDeterminantName acnCh.id
+                    | AcnParameterDeterminant paramDet -> paramDet.c_name
+                | _ ->
+                    match d.determinant with
+                    | AcnChildDeterminant acnCh -> acnCh.c_name
+                    | AcnParameterDeterminant paramDet -> paramDet.c_name
+            match d.determinant with
+            | AcnChildDeterminant acnCh ->
+                let varName = getAcnDeterminantName acnCh.id
+                let valueExpr =
+                    match codec with
+                    | Decode ->
+                        match acnCh.Type with
+                        | AcnReferenceToIA5String _ ->
+                            let parentId = p.accessPath.asIdentifier lm.lg
+                            $"{parentId}_{varName}"
+                        | _ -> varName
+                    | Encode -> varName
+                Some $"{targetParamName}={valueExpr}"
+            | AcnParameterDeterminant paramDet ->
+                let paramInScope = t.acnParameters |> List.exists (fun pp -> pp.c_name = paramDet.c_name)
+                match codec, paramInScope with
+                | Decode, true -> Some $"{targetParamName}={paramDet.c_name}"
+                | _ -> None)
+        |> List.distinctBy (fun s -> s.Split('=').[0])
+
+    let bInlineRequired = lm.lg.isAcnInlineRequired t childName deps
+
     let childBody, childLvs, childUserDefFuncs, childErrs, childResultExpr, auxiliaries, ns3 =
         match childContentResult with
         | None ->
@@ -162,34 +210,43 @@ let private handleAsn1Child
                 | Decode, Copy -> Some (child.Type.initFunction.initExpressionFnc ())
                 | _ -> None
             match child.Optionality with
-            | Some Asn1AcnAst.AlwaysPresent     ->
-                let childBody (p: CodegenScope) (existVar: string option): string =
-                    lm.acn.sequence_always_present_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName None childResultExpr childTypeDef soSaveBitStrmPosStatement codec
+            | Some AlwaysPresent     ->
+                let childBody (p: CodegenScope) (_: string option): string =
+                    lm.acn.sequence_always_present_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName None childResultExpr childTypeDef soSaveBitStrmPosStatement true acnParamsForTemplate false None bInlineRequired codec
                 Some childBody, [], [], [], childResultExpr, [], ns2
             | _ -> None, [], [], [], childResultExpr, [], ns2
         | Some childContent ->
+            let isPrimitiveType =
+                match (lm.lg.getTypeDefinition child.Type.FT_TypeDefinition) with
+                | FE_PrimitiveTypeDefinition t -> t.kind.IsPrimitiveReference2RTL
+                | _ -> false
             let childBody (p: CodegenScope) (existVar: string option): string =
+                let pp, _ = joinedOrAsIdentifier lm codec p
                 match child.Optionality with
                 | None ->
-                    lm.acn.sequence_mandatory_child childName childContent.funcBody soSaveBitStrmPosStatement codec
-                | Some Asn1AcnAst.AlwaysAbsent ->
-                    lm.acn.sequence_always_absent_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName childContent.funcBody childTypeDef soSaveBitStrmPosStatement codec
-                | Some Asn1AcnAst.AlwaysPresent ->
-                    lm.acn.sequence_always_present_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName (Some childContent.funcBody) childContent.resultExpr childTypeDef soSaveBitStrmPosStatement codec
-                | Some (Asn1AcnAst.Optional opt)   ->
+                    lm.acn.sequence_mandatory_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody soSaveBitStrmPosStatement childTypeDef isPrimitiveType acnParamsForTemplate false None bInlineRequired codec
+                | Some AlwaysAbsent ->
+                    lm.acn.sequence_always_absent_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody childTypeDef soSaveBitStrmPosStatement isPrimitiveType codec
+                | Some AlwaysPresent ->
+                    lm.acn.sequence_always_present_child pp (lm.lg.getAccess p.accessPath) childName (Some childContent.funcBody) childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType acnParamsForTemplate false None bInlineRequired codec
+                | Some (Optional opt)   ->
                     assert (codec = Encode || existVar.IsSome)
-                    let pp, _ = joinedOrAsIdentifier lm codec p
                     match opt.defaultValue with
                     | None ->
-                        lm.acn.sequence_optional_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement codec
+                        lm.acn.sequence_optional_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType acnParamsForTemplate false None bInlineRequired codec
                     | Some v ->
                         let defInit= child.Type.initFunction.initByAsn1Value childP (mapValue v).kind
-                        lm.acn.sequence_default_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody defInit existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement codec
+                        lm.acn.sequence_default_child pp (lm.lg.getAccess p.accessPath) childName childContent.funcBody defInit existVar childContent.resultExpr childTypeDef soSaveBitStrmPosStatement isPrimitiveType false None codec
             let lvs =
                 match child.Optionality with
-                | Some Asn1AcnAst.AlwaysAbsent -> []
+                | Some AlwaysAbsent -> []
                 | _ -> childContent.localVariables
-            Some childBody, lvs, childContent.userDefinedFunctions, childContent.errCodes, childContent.resultExpr, childContent.auxiliaries, ns2
+            // For non-primitive children in decode mode for Python, the template generates variables as
+            // <parentId>_<childName>, so override resultExpr to match what the template generates.
+            let adjustedResultExpr =
+                let parentId = p.accessPath.asIdentifier lm.lg
+                lm.lg.adjustChildDecodeResultExpr codec isPrimitiveType parentId childName childContent.resultExpr
+            Some childBody, lvs, childContent.userDefinedFunctions, childContent.errCodes, adjustedResultExpr, childContent.auxiliaries, ns2
 
     let optAux, theCombinedBody =
         if presentWhenStmts.IsNone && childBody.IsNone then [], None
@@ -242,20 +299,30 @@ let private handleAcnChild
         match childContentResult with
         | None              -> None, [], ns1
         | Some childContent ->
+            let pp, _ = joinedOrAsIdentifier lm codec p
+            let isPrimitiveType =
+                match acnChild.Type with
+                | AcnInteger _
+                | AcnNullType _
+                | AcnBoolean _ -> true
+                | AcnReferenceToEnumerated _ -> true
+                | _ -> false
             match codec with
             | Encode   ->
                 match acnChild.Type with
-                | Asn1AcnAst.AcnNullType _   ->
-                    let childBody = Some (lm.acn.sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement codec)
+                | AcnNullType _   ->
+                    let childBody = Some (lm.acn.sequence_mandatory_child pp (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement "" isPrimitiveType [] false None false codec)
                     Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes;icdComments=[]}, childContent.auxiliaries, ns1
 
                 | _             ->
                     let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_UNINITIALIZED")
-                    let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
-                    let childBody = Some (lm.acn.sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement codec)
+                    let errFieldPath = match acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((ctx.r.args.TypePrefix + first) :: rest)).Replace("#","elm")
+                    let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None errFieldPath
+                    let childBody = Some (lm.acn.sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
                     Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions;  errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
             | Decode    ->
-                let childBody = Some (lm.acn.sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement codec)
+                let sType = acnChild.typeDefinitionBodyWithinSeq
+                let childBody = Some (lm.acn.sequence_mandatory_child pp (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType [] false None false codec)
                 Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
     let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
@@ -290,7 +357,7 @@ let private printPresenceBit
     (child:Asn1Child)
     (existVar:string option) : string option =
     match child.Optionality with
-    | Some (Asn1AcnAst.Optional opt) ->
+    | Some (Optional opt) ->
         match opt.acnPresentWhen with
         | None ->
             assert (codec = Encode || existVar.IsSome)
@@ -309,7 +376,7 @@ let private printPresenceBit
 // patch determinants whose consumer never executed.  Threaded as plain
 // text instead of via a synthetic AcnChild — see DAstACNDeferred for
 // the rationale.
-let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (acnPrms:DastAcnParameter list) (fallbackEpilogue:string option) (us:State)  =
+let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (_:DastAcnParameter list) (fallbackEpilogue:string option) (us:State)  =
     (*
         1. all Acn inserted children are declared as local variables in the encoded and decode functions (declaration step)
         2. all Acn inserted children must be initialized appropriately in the encoding phase
@@ -336,7 +403,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         match sPresenceBitIndexMap.IsEmpty with
         | true -> []
         | false ->
-            [{IcdRow.fieldName = "Presence Mask"; comments = [$"Presence bit mask"]; sPresent="always";sType=IcdPlainType "bit mask"; sConstraint=None; minLengthInBits = sPresenceBitIndexMap.Count.AsBigInt ;maxLengthInBits=sPresenceBitIndexMap.Count.AsBigInt;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
+            [{fieldName = "Presence Mask"; comments = [$"Presence bit mask"]; sPresent="always";sType=IcdPlainType "bit mask"; sConstraint=None; minLengthInBits = sPresenceBitIndexMap.Count.AsBigInt ;maxLengthInBits=sPresenceBitIndexMap.Count.AsBigInt;sUnits=None; rowType = LengthDeterminantRow; idxOffset = None}]
 
     let icd_asn1_child (c:Asn1Child) (extra_comments:string list) : ((IcdRow list) * (IcdTypeAss list)) =
         let optionality =
@@ -353,7 +420,6 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     let retExp = AcnExpression.acnExpressionToBackendExpression lm o dummyScope acnExp
                     $"when %s{retExp}"
         let comments = (c.Comments |> Seq.toList)@extra_comments
-        let childIcdTas = c.Type.icdTas
         //let isRef = match c.Type.Kind with ReferenceType _ -> true | _ -> false
         match c.Type.icdTas with
         | Some childIcdTas ->
@@ -363,7 +429,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 chRows, []
             | false ->
                 let sType = TypeHash childIcdTas.hash
-                [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=None; minLengthInBits = c.Type.acnMinSizeInBits; maxLengthInBits=c.Type.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}], [childIcdTas]
+                [{fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=None; minLengthInBits = c.Type.acnMinSizeInBits; maxLengthInBits=c.Type.acnMaxSizeInBits;sUnits=None; rowType = LengthDeterminantRow; idxOffset = None}], [childIcdTas]
         | None ->
             [], []
 
@@ -385,7 +451,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
     let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
         let acnlocalVariablesCh =
             acnChildren |>
-            List.filter(fun x -> match x.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> true) |>
+            List.filter(fun x -> match x.Type with AcnNullType _ -> false | _ -> true) |>
             List.collect(fun x ->
                 let childLv =
                     match lm.lg.decodingKind with
@@ -419,19 +485,19 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 | Some parentVar -> parentVar
                 | None -> sprintf "bitStreamPositions_%s_%d" p.accessPath.lastIdOrArr (p.accessPath.SequenceOfLevel + 1)
 
-        let localVariables, post_encoding_function, soBitStreamPositionsLocalVar, soSaveInitialBitStrmStatement =
+        let localVariables, post_encoding_function, _, soSaveInitialBitStrmStatement =
             let bsPosStart = sprintf "bitStreamPositions_%s_start%d" p.accessPath.lastIdOrArr (p.accessPath.SequenceOfLevel + 1)
             match o.acnProperties.postEncodingFunction with
             | Some (PostEncodingFunction (modFncName, fncName)) when codec = Encode  ->
                 let actualFncName =
                     match lm.lg.hasModules with
-                    | false ->  (ToC fncName.Value)
+                    | false ->  ToC fncName.Value
                     | true ->
                         match modFncName with
-                        | None -> (ToC (r.args.mappingFunctionsModule.orElse "")) + "." + (ToC fncName.Value)
-                        | Some modFncName -> (ToC modFncName.Value) + "." + (ToC fncName.Value)
+                        | None -> ToC (r.args.mappingFunctionsModule.orElse "") + "." + ToC fncName.Value
+                        | Some modFncName -> ToC modFncName.Value + "." + ToC fncName.Value
 
-                let fncCall = sequence_call_post_encoding_function (lm.lg.getPointer p.accessPath) (actualFncName) bsPosStart bitStreamPositionsLocalVar
+                let fncCall = sequence_call_post_encoding_function (lm.lg.getPointer p.accessPath) actualFncName bsPosStart bitStreamPositionsLocalVar
                 let fncCallPrototype = sequence_call_post_encoding_function_prototype td.typeName actualFncName td.extension_function_positions
 
                 let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
@@ -446,7 +512,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                             match modFncName with
                             | None -> (ToC (r.args.mappingFunctionsModule.orElse "")) + "." + (ToC fncName.Value)
                             | Some modFncName -> (ToC modFncName.Value) + "." + (ToC fncName.Value)
-                    let fncCall = sequence_call_post_decoding_validator (lm.lg.getPointer p.accessPath) (actualFncName) bsPosStart  bitStreamPositionsLocalVar
+                    let fncCall = sequence_call_post_decoding_validator (lm.lg.getPointer p.accessPath) actualFncName bsPosStart  bitStreamPositionsLocalVar
                     let fncCallPrototype = sequence_call_post_decoding_validator_prototype td.typeName actualFncName td.extension_function_positions
                     let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
                     [AcnInsertedChild(bitStreamPositionsLocalVar, td.extension_function_positions, ""); AcnInsertedChild(bsPosStart, bitStreamName, "")]@localVariables, Some (fncCall,fncCallPrototype), Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
@@ -459,7 +525,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             if r.args.acnDeferred then []
             else
                 acnChildren |>
-                List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> acnChild.funcUpdateStatement.IsNone)
+                List.filter (fun acnChild -> match acnChild.Type with AcnNullType _ -> false | _ -> acnChild.funcUpdateStatement.IsNone)
         let saveInitialBitStrmStatements = soSaveInitialBitStrmStatement |> Option.toList
         let nbPresenceBits = asn1Children |> List.sumBy (fun c ->
             match c.Optionality with
@@ -512,12 +578,12 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 // assert (childrenResultExpr.Length = asn1Children.Length)
                 assert (childrenResultExpr.Length = asn1Children.Length)
                 let existSeq =
-                    if lm.lg.usesWrappedOptional || childrenExistVar.IsEmpty then []
+                    if lm.lg.usesWrappedOptional || childrenExistVar.IsEmpty || not lm.lg.needsExistSequence then []
                     else
                         let existTd = (lm.lg.getSequenceTypeDefinition o.typeDef).exist
                         [lm.init.initSequenceExpr existTd childrenExistVar []]
-                let resultExpr = p.accessPath.asIdentifier
-                Some resultExpr, [lm.uper.sequence_build resultExpr (typeDefinition.longTypedefName2 lm.lg.hasModules) p.accessPath.isOptional (existSeq@childrenResultExpr)]
+                let resultExpr = p.accessPath.asIdentifier lm.lg
+                Some resultExpr, [lm.uper.sequence_build resultExpr (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules p.modName) p.accessPath.isOptional (existSeq@childrenResultExpr)]
             | _ -> None, []
         let proof = lm.lg.generateSequenceProof r ACN t o nestingScope p.accessPath codec
         let aux = lm.lg.generateSequenceAuxiliaries r ACN t o nestingScope p.accessPath codec
@@ -527,7 +593,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             | _ -> []
         let seqContent =  (saveInitialBitStrmStatements@childrenStatements@fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
 
-        let icdFnc fieldName sPresent comments  =
+        let icdFnc _ _ _  =
             let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip
             let chRows = chRows0 |> List.collect id
             let compositeChildren = compositeChildren0 |> List.collect id
@@ -551,11 +617,11 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         | errChild::_      ->
             let determinantUsage =
                 match errChild.Type with
-                | Asn1AcnAst.AcnInteger               _-> "length"
-                | Asn1AcnAst.AcnNullType              _-> raise(BugErrorException "existsAcnChildWithNoUpdates")
-                | Asn1AcnAst.AcnBoolean               _-> "presence"
-                | Asn1AcnAst.AcnReferenceToEnumerated _-> "presence"
-                | Asn1AcnAst.AcnReferenceToIA5String  _-> "presence"
+                | AcnInteger               _-> "length"
+                | AcnNullType              _-> raise(BugErrorException "existsAcnChildWithNoUpdates")
+                | AcnBoolean               _-> "presence"
+                | AcnReferenceToEnumerated _-> "presence"
+                | AcnReferenceToIA5String  _-> "presence"
             let errMessage = sprintf "Unused ACN inserted field.
                 All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.
                 The field '%s' must either be removed or used as %s determinant of another ASN.1 type." errChild.Name.Value determinantUsage
@@ -568,11 +634,11 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         //an automatic test case value is valid
         //if all ach children can be update during the encoding from the value
         acnChildren |>
-        List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> true) |>
+        List.filter (fun acnChild -> match acnChild.Type with AcnNullType _ -> false | _ -> true) |>
         Seq.forall(fun acnChild ->
             match acnChild.funcUpdateStatement with
             | Some funcUpdateStatement -> (funcUpdateStatement.testCaseFnc atc).IsSome
             | None                     -> false)
-    let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
+    let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
 
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody isTestVaseValid soSparkAnnotations  [] us

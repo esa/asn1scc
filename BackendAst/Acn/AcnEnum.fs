@@ -43,9 +43,9 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
     let nLastItemIndex      = BigInteger(Seq.length o.items) - 1I
 
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
-        let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+        let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
         let localVar, intVal =
-            let varName = $"intVal_{ToC p.accessPath.asIdentifier}"
+            let varName = lm.lg.getEnumIntLocalVarName (ToC (p.accessPath.asIdentifier lm.lg))
             let lv =
                 match lm.lg.decodingKind with
                 | Copy -> []
@@ -64,9 +64,10 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                     | Some tasInfo ->
                         lm.lg.generateIntFullyConstraintRangeAssert (ToC (r.args.TypePrefix + tasInfo.tasName)) p codec
                     | None -> None
-                let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max nbits sSsuffix errCode.errCodeName rangeAssert codec
+                let intType = Some (lm.typeDef.Declare_Integer())
+                let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max nbits sSsuffix errCode.errCodeName rangeAssert intType codec
                 Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]})
-            AcnPrimitives.createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass uperInt sAsn1Constraints acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure typeDefinitionName (None, None)
+            AcnPrimitives.createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass uperInt sAsn1Constraints acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure typeDefinitionName (None, None) ""
         let funcBodyContent =
             match intFuncBody errCode acnArgs nestingScope pVal with
             | None -> None
@@ -105,7 +106,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
                  (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)
                  (nestingScope: NestingScope)
                  (p: CodegenScope) =
-        let typeDefinitionName = defOrRef.longTypedefName2 lm.lg.hasModules //getTypeDefinitionName t.id.tasInfo typeDefinition
+        let typeDefinitionName = defOrRef.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName //getTypeDefinitionName t.id.tasInfo typeDefinition
         let funcBodyOrig = createEnumCommon r deps lm codec t.id o defOrRef typeDefinitionName icdStgFileName None t.acnMinSizeInBits t.acnMaxSizeInBits t.unitsOfMeasure
         let res = funcBodyOrig errCode acnArgs nestingScope p
         res |> Option.map (fun res ->

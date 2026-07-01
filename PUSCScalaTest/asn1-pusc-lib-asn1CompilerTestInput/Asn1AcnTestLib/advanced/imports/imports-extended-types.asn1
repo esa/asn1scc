@@ -1,0 +1,39 @@
+-- Additional module with more types for multi-module import testing
+
+ImportsExtendedTypes DEFINITIONS ::= BEGIN
+
+    -- Import from base module
+    IMPORTS
+        Identifier,
+        StatusCode
+    FROM ImportsBaseTypes;
+
+    -- Define additional types
+    Priority ::= ENUMERATED {
+        low(0),
+        medium(1),
+        high(2),
+        critical(3)
+    }
+
+    EventRecord ::= SEQUENCE {
+        eventId Identifier,
+        priority Priority,
+        status StatusCode,
+        message IA5String (SIZE(1..128))
+    }
+
+    CommandType ::= ENUMERATED {
+        start(0),
+        stop(1),
+        reset(2),
+        configure(3)
+    }
+
+    Command ::= SEQUENCE {
+        commandId Identifier,
+        cmdType CommandType,
+        parameters OCTET STRING (SIZE(0..64))
+    }
+
+END

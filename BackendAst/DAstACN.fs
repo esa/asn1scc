@@ -1,4 +1,4 @@
-﻿module DAstACN
+module DAstACN
 
 open System
 open System.Numerics
@@ -14,13 +14,13 @@ open DAstUtilFunctions
 open System.Globalization
 open Language
 
-
 // --- Re-exports from extracted modules (see BackendAst/Acn/) ---
 // The helpers below were moved to BackendAst/Acn/Acn{Helpers,DeterminantDef,Alignment,Icd}.fs.
 // They are re-exported here so external callers that reference them as
 // `DAstACN.foo` keep working unchanged.
 let foldMap = AcnHelpers.foldMap
 let callBaseTypeFunc = AcnHelpers.callBaseTypeFunc
+let callSuperclassFunc = AcnHelpers.callSuperclassFunc
 let sparkAnnotations = AcnHelpers.sparkAnnotations
 let THREE_DOTS = AcnHelpers.THREE_DOTS
 let getAcnDeterminantName = AcnHelpers.getAcnDeterminantName
@@ -107,12 +107,3 @@ let getExternalFieldChoicePresentWhen = AcnExternalField.getExternalFieldChoiceP
 let getExternalFieldTypeChoicePresentWhen = AcnExternalField.getExternalFieldTypeChoicePresentWhen
 let getExternalField = AcnExternalField.getExternalField
 let getExternalFieldType = AcnExternalField.getExternalFieldType
-
-
-
-
-
-
-
-
-

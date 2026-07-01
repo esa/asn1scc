@@ -1,0 +1,23 @@
+group aux_python;
+
+// For python, we create a pyproject.toml instead of a makefile
+PrintMakeFile(arrsFilesNoExt, bWordSize4, bFpWordSize4, bAsn1sccStreaming) ::= <<
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asn1pylib"
+version = "0.1.0"
+description = "Automatically generated library built by asn1scc."
+requires-python = ">=3.8"
+dependencies = []
+
+[tool.setuptools]
+packages = ["asn1python", "asn1src"]
+>>
+
+
+
+emitVisualStudioSolution() ::= <<
+>>

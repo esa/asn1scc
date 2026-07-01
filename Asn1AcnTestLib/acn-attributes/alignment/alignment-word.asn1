@@ -1,0 +1,33 @@
+-- Requirement 42: align-to-next ACN attribute for word alignment
+-- Tests ACN align-to-next attribute for word boundary alignment
+
+AlignmentWord DEFINITIONS ::= BEGIN
+
+    WordAlignedData ::= SEQUENCE {
+        byte1 INTEGER (0..255),
+        aligned16 INTEGER (0..65535),
+        byte2 INTEGER (0..255),
+        aligned32 INTEGER (0..4294967295)
+    }
+
+    DWordAlignedData ::= SEQUENCE {
+        flags BIT STRING (SIZE(8)),
+        aligned64 INTEGER (0..18446744073709551615),
+        byte INTEGER (0..255),
+        aligned64second INTEGER (0..18446744073709551615)
+    }
+
+    MultiLevelAlignment ::= SEQUENCE {
+        flags BIT STRING (SIZE(4)),
+        byteAligned INTEGER (0..255),
+        wordAligned INTEGER (0..65535),
+        dwordAligned INTEGER (0..4294967295)
+    }
+
+    TestStruct ::= SEQUENCE {
+        word WordAlignedData,
+        dword DWordAlignedData,
+        multi MultiLevelAlignment
+    }
+
+END

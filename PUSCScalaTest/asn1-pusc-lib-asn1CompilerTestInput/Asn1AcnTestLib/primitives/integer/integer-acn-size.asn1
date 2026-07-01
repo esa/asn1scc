@@ -1,0 +1,55 @@
+-- Requirement 9: INTEGER with ACN size attribute
+-- Tests variable bit INTEGER encoding via ACN size attribute
+-- Sizes to test: 1, 2, 3, 4, 5, 6, 7, 8, 12, 14, 16, 24, 32, 48, 64
+
+IntegerAcnSize DEFINITIONS ::= BEGIN
+
+    Int1Bit ::= INTEGER (0..1)
+
+    Int2Bit ::= INTEGER (0..3)
+
+    Int3Bit ::= INTEGER (0..7)
+
+    Int4Bit ::= INTEGER (0..15)
+
+    Int5Bit ::= INTEGER (0..31)
+
+    Int6Bit ::= INTEGER (0..63)
+
+    Int7Bit ::= INTEGER (0..127)
+
+    Int8Bit ::= INTEGER (0..255)
+
+    Int12Bit ::= INTEGER (0..4095)
+
+    Int14Bit ::= INTEGER (0..16383)
+
+    Int16Bit ::= INTEGER (0..65535)
+
+    Int24Bit ::= INTEGER (0..16777215)
+
+    Int32Bit ::= INTEGER (0..4294967295)
+
+    Int48Bit ::= INTEGER (0..281474976710655)
+
+    Int64Bit ::= INTEGER (0..18446744073709551615)
+
+    TestStruct ::= SEQUENCE {
+        val1 Int1Bit,
+        val2 Int2Bit,
+        val3 Int3Bit,
+        val4 Int4Bit,
+        val5 Int5Bit,
+        val6 Int6Bit,
+        val7 Int7Bit,
+        val8 Int8Bit,
+        val12 Int12Bit,
+        val14 Int14Bit,
+        val16 Int16Bit,
+        val24 Int24Bit,
+        val32 Int32Bit,
+        val48 Int48Bit,
+        val64 Int64Bit
+    }
+
+END

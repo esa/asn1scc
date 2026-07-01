@@ -1,0 +1,14 @@
+-- ACN encoding with both true-value and false-value
+
+BooleanCombined DEFINITIONS ::= BEGIN
+
+    CustomEncodedBool [true-value '1111'B, false-value '0000'B]
+
+    TestStruct []
+    {
+        flag1 [],
+        flag2 [],
+        standardFlag []
+    }
+
+END

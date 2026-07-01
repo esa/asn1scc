@@ -21,21 +21,23 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     let varSize         = lm.uper.octet_VarSize
     let InternalItem_oct_str             = lm.uper.InternalItem_oct_str
     let nAlignSize = 0I;
-    let td = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let td = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
         let ii = p.accessPath.SequenceOfLevel + 1
         let i = sprintf "i%d" ii
         let lv = SequenceOfIndex (ii, None)
         let pp, resultExpr = joinedOrAsIdentifier lm codec p
         let access = lm.lg.getAccess p.accessPath
+        let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         let funcBodyContent =
             match o.acnEncodingClass with
             | SZ_EC_FIXED_SIZE ->
-                let fncBody = fixedSize td pp access o.minSize.acn codec
+                let fncBody = fixedSize sType pp access o.minSize.acn codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED lenSize ->
-                let fncBody = varSize td pp access (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName codec
+                let fncBody = varSize sType pp access (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName codec
                 let nStringLength =
                     match codec with
                     | Encode -> []
@@ -65,8 +67,8 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | _ -> Some o.maxSize.acn
                 let fncBody =
                     match o.isFixedSize with
-                    | true  -> oct_external_field_fix_size td pp access noSizeMin ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
-                    | false -> oct_external_field td pp access noSizeMin noSizeMax extField unsigned nAlignSize errCode.errCodeName codec
+                    | true  -> oct_external_field_fix_size sType pp access noSizeMin ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
+                    | false -> oct_external_field sType pp access noSizeMin noSizeMax extField unsigned nAlignSize errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
             | SZ_EC_TerminationPattern bitPattern  ->
                 let mod8 = bitPattern.Value.Length % 8
@@ -75,7 +77,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                 let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                 let internalItem = InternalItem_oct_str pp access i  errCode.errCodeName codec
                 let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
-                let fncBody = oct_sqf_null_terminated pp access i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  8I 8I codec
+                let fncBody = oct_sqf_null_terminated pp access i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  8I 8I sType codec
                 let lv2 =
                     match codec, lm.lg.acn.checkBitPatternPresentResult with
                     | Decode, true    -> [IntegerLocalVariable ("checkBitPatternPresentResult", Some (lm.lg.intValueToString 0I (ASN1SCC_Int8 (-128I, 127I))))]
@@ -98,10 +100,12 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     let bitString_FixSize = lm.uper.bitString_FixSize
     let bitString_VarSize = lm.uper.bitString_VarSize
 
-    let td = typeDefinition.longTypedefName2 lm.lg.hasModules
+    let td = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
         let pp, resultExpr = joinedOrAsIdentifier lm codec p
         let access = lm.lg.getAccess p.accessPath
+        let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
+        let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         let funcBodyContent =
             match o.acnEncodingClass with
             | SZ_EC_ExternalField   _    ->
@@ -122,8 +126,8 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     | _ -> Some o.maxSize.acn
                 let fncBody =
                     match o.minSize.uper = o.maxSize.uper with
-                    | true  -> lm.acn.bit_string_external_field_fixed_size td pp errCode.errCodeName access noSizeMin ( o.maxSize.acn) extField codec
-                    | false  -> lm.acn.bit_string_external_field td pp errCode.errCodeName access noSizeMin noSizeMax extField codec
+                    | true  -> lm.acn.bit_string_external_field_fixed_size sType pp errCode.errCodeName access noSizeMin ( o.maxSize.acn) extField codec
+                    | false  -> lm.acn.bit_string_external_field sType pp errCode.errCodeName access noSizeMin noSizeMax extField codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_TerminationPattern   bitPattern    ->
                 let mod8 = bitPattern.Value.Length % 8
@@ -132,15 +136,16 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                 let i = sprintf "i%d" (p.accessPath.SequenceOfLevel + 1)
                 let lv = SequenceOfIndex (p.accessPath.SequenceOfLevel + 1, None)
-                let fncBody = lm.acn.bit_string_null_terminated td pp errCode.errCodeName access i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt codec
+                let bFixedSize = o.minSize.acn = o.maxSize.acn
+                let fncBody = lm.acn.bit_string_null_terminated sType pp errCode.errCodeName access i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt bFixedSize codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_FIXED_SIZE       ->
-                let fncBody = bitString_FixSize td pp access o.minSize.acn errCode.errCodeName codec
+                let fncBody = bitString_FixSize sType pp access o.minSize.acn errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED nSizeInBits ->
                 let fncBody =
-                    bitString_VarSize td pp access o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits codec
+                    bitString_VarSize sType pp access o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits codec
                 let nStringLength =
                     match codec with
                     | Encode -> []

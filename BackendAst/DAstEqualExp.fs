@@ -23,8 +23,3 @@ type TC_EqualFunction = {
 type TC_Function = {
     name : string
 }
-
-
-let getFuncName (r:Asn1AcnAst.AstRoot) (typeDefinition:TypeDefinitionOrReference) =
-    getFuncNameGeneric  typeDefinition "_Equal"
-

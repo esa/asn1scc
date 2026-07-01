@@ -69,26 +69,12 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
             | None -> ""
         | _ -> initAmper
     let curProgramUnitName = ""  //Main program has no module
+    let valueType = match v.Type.typeDefinitionOrReference with
+                    | TypeDefinition  td -> modName + "." + td.typedefName
+                    | ReferenceToExistingDefinition ref -> modName + "." + ref.typedefName
+    
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
-    let initStatement =
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Scala ->
-            match resolveReferenceType v.Type.Kind with
-             | Integer v -> "val tc_data = " + initStatement
-             | Real v -> initStatement
-             | IA5String v -> initStatement
-             | OctetString v -> initStatement
-             | NullType v -> initStatement
-             | BitString v -> initStatement
-             | Boolean v -> initStatement
-             | Enumerated v -> initStatement
-             | ObjectIdentifier v -> initStatement
-             | SequenceOf v -> initStatement
-             | Sequence v -> initStatement
-             | Choice v -> initStatement
-             | TimeType v -> initStatement
-             | ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
-        | _ -> initStatement
+    let initStatement = lm.lg.formatValueAssignmentTestCase (resolveReferenceType v.Type.Kind) valueType initStatement
     let sTestCaseIndex = idx.ToString()
     let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = GetDatFile r lm v modName sTasName encAmper
@@ -110,6 +96,10 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
             | Some initProc -> initProc.funcName
             | None -> ""
         | _ -> initAmper
+    let initStatement =
+        match t.ActualType.Kind with
+        | ObjectIdentifier _ -> lm.lg.adjustTestCaseObjectIdentifierInit modName sTasName initStatement
+        | _ -> initStatement
     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = ""
     let sTestCaseIndex = idx.ToString()
@@ -209,7 +199,21 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                                     match t.Type.acnEncFunction with
                                     | None  -> false
                                     |Some ancEncFnc -> ancEncFnc.isTestVaseValid atc
-                                for atc in t.Type.initFunction.automaticTestCases  do
+                                let atcsToUse =
+                                    let allAtcs = t.Type.initFunction.automaticTestCases
+                                    match e, ProgrammingLanguage.ActiveLanguages.Head with
+                                    | Asn1Encoding.XER, ProgrammingLanguage.Python ->
+                                        let sizeOf (atc:AutomaticTestCase) =
+                                            atc.testCaseTypeIDsMap
+                                            |> Map.toList
+                                            |> List.sumBy (fun (_, tcv) -> match tcv with TcvSizeableTypeValue n -> n | _ -> 0I)
+                                        match allAtcs with
+                                        | [] -> []
+                                        | _  ->
+                                            let minSize = allAtcs |> List.map sizeOf |> List.min
+                                            allAtcs |> List.filter (fun atc -> sizeOf atc = minSize)
+                                    | _ -> allAtcs
+                                for atc in atcsToUse do
                                     let testCaseIsValid = e <> Asn1Encoding.ACN || (isTestCaseValid atc)
                                     if testCaseIsValid then
                                         let generateTcFun idx =
@@ -268,7 +272,11 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
         let contentH = printTestCaseFileDef testCaseFileName (includedPackages r lm) arrsTestFunctionDefs
         let outHFileName = Path.Combine(outDir, testCaseFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension)
-        File.WriteAllText(outHFileName, contentH.Replace("\r",""))  )
+        if lm.lg.shouldAppendTestCaseFile then
+            File.AppendAllText(outHFileName, contentH.Replace("\r",""))
+        else
+            File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+        )
 
     let _, _, func_invocations =
         tcFunctors |>
@@ -291,7 +299,11 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
     if hasTestSuiteRunner then
         let outHFileName = Path.Combine(outDir, TestSuiteFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension)
-        File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+        if lm.lg.shouldWriteThenAppendTestSuite then
+            File.WriteAllText(outHFileName, contentH.Replace("\r",""))
+            File.AppendAllText(outHFileName, contentC.Replace("\r", ""))
+        else
+            File.WriteAllText(outHFileName, contentH.Replace("\r",""))
 
 
     arrsSrcTstFiles, arrsHdrTstFiles

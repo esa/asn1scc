@@ -1,0 +1,25 @@
+-- Requirement 29: Basic SEQUENCE OF support
+-- Tests fundamental ASN.1 SEQUENCE OF homogeneous array type
+
+SequenceOfBasic DEFINITIONS ::= BEGIN
+
+    IntegerArray ::= SEQUENCE (SIZE(0..24)) OF INTEGER
+
+    BooleanArray ::= SEQUENCE (SIZE(0..24)) OF BOOLEAN
+
+    OctetStringArray ::= SEQUENCE (SIZE(0..24)) OF OCTET STRING (SIZE(5..10))
+
+    RecordArray ::= SEQUENCE (SIZE(0..24)) OF SEQUENCE {
+        id INTEGER,
+        value REAL,
+        enabled BOOLEAN
+    }
+
+    TestStruct ::= SEQUENCE {
+        integers IntegerArray,
+        booleans BooleanArray,
+        buffers OctetStringArray,
+        records RecordArray
+    }
+
+END

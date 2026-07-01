@@ -39,7 +39,7 @@ TC-CCSDS-Packet []
 TC-PacketDataField <INTEGER:secondaryHeaderFlag> []
 {
     dataWithSecondaryHeader [present-when secondaryHeaderFlag==1],
-    dataNoSecondaryHeader [present-when secondaryHeaderFlag==0]
+    dataNoSecondaryHeader [present-when secondaryHeaderFlag==5]
 }
 
 TC-DataWithSecondaryHeader []

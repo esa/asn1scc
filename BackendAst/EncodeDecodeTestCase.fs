@@ -61,7 +61,7 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
     let compareInputWithOutput  = lm.atc.Codec_compare_input_with_output
     let write_bitstreamToFile   = lm.atc.Codec_write_bitstreamToFile
 
-    let p   = lm.lg.getParamType t Encode //  t.getParamType l Encode
+    let p   = lm.lg.getParamTypeAtc t Encode //  t.getParamType l Encode
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath //p.arg.getStar l
     let sAmberDecode = getAmberDecode t
@@ -82,7 +82,7 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
                 |Decode_output          -> option {
                                                 let! decF = decFunc
                                                 let! decFunName = decF.funcName
-                                                return decode modName decFunName (typeDefinition.longTypedefName2 lm.lg.hasModules) sEnc sAmberDecode
+                                                return decode modName decFunName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode
                                            }
 
                 |Validate_output        ->
@@ -114,8 +114,8 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
                 printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
             let func =
-                printCodec_body modName funcName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName "" (sNestedStatements.orElse "") "UPER"
-            let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName
+                printCodec_body modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName "" (sNestedStatements.orElse "") "UPER" "uPER"
+            let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName
             let ret =
                 {
                     EncodeDecodeTestFunc.funcName   = funcName
@@ -147,7 +147,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let compareInputWithOutput      = lm.atc.Codec_compare_input_with_output
     let write_bitstreamToFile       = lm.atc.Codec_write_bitstreamToFile
 
-    let p  = lm.lg.getParamType t Encode
+    let p  = lm.lg.getParamTypeAtc t Encode
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
     let sAmberDecode = getAmberDecode t
@@ -170,7 +170,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                     |Decode_output          -> option {
                                                     let! decF = decFunc
                                                     let! decFunName = decF.funcName
-                                                    return decode modName decFunName (typeDefinition.longTypedefName2 lm.lg.hasModules) sEnc sAmberDecode
+                                                    return decode modName decFunName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode
                                                }
 
                     |Validate_output        ->
@@ -202,8 +202,8 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
 
                     printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
-                let func = printCodec_body modName funcName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName sEnc (sNestedStatements.orElse "") "ACN"
-                let funcDef = printCodec_body_header funcName modName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName
+                let func = printCodec_body modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName sEnc (sNestedStatements.orElse "") "ACN" "ACN"
+                let funcDef = printCodec_body_header funcName modName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName
 
                 let ret =
                     {
@@ -229,12 +229,12 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let printCodec_body_header          = lm.atc.PrintCodec_spec
     let joinItems                       = lm.atc.JoinItems
     let write_bitstreamToFile           = lm.atc.Codec_write_CharstreamToFile
-    let encode                          = lm.atc.Codec_Encode
+    let encodeXER                       = lm.atc.Codec_Encode_XER
     let decode                          = lm.atc.Codec_Decode_XER
     let validateOutput                  = lm.atc.Codec_validate_output
     let compareInputWithOutput          = lm.atc.Codec_compare_input_with_output
 
-    let p   = lm.lg.getParamType t Encode
+    let p   = lm.lg.getParamTypeAtc t Encode
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
     let sAmberDecode = getAmberDecode t
@@ -250,12 +250,13 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                 |Encode_input           -> option {
                                                 let encF = encFunc
                                                 let! encFunName = encF.funcName
-                                                return encode modName encFunName varName
+                                                let sTasName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
+                                                return encodeXER modName encFunName varName sTasName
                                            }
                 |Decode_output          -> option {
                                                 let decF = decFunc
                                                 let! decFunName = decF.funcName
-                                                return decode modName decFunName (typeDefinition.longTypedefName2 lm.lg.hasModules) sEnc sAmberDecode
+                                                return decode modName decFunName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode
                                            }
 
                 |Validate_output        ->
@@ -284,8 +285,8 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                     | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
             printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
-        let func = printCodec_body modName funcName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName sEnc (sNestedStatements.orElse "")
-        let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName
+        let func = printCodec_body modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName sEnc (sNestedStatements.orElse "")
+        let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName
         let ret =
             {
                 EncodeDecodeTestFunc.funcName   = funcName

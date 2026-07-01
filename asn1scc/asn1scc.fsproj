@@ -29,6 +29,23 @@
       <EmbeddedResource Include="..\asn1scala\lib\stainless-library_3-0.9.8.7.jar">
       <Link>stainless-library_3-0.9.8.7.jar</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_constants.py" Link="asn1_constants.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_exceptions.py" Link="asn1_exceptions.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_types.py" Link="asn1_types.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\bitstream.py" Link="bitstream.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\codec.py" Link="codec.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\encoder.py" Link="encoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\acn_encoder.py" Link="acn_encoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\decoder.py" Link="decoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\acn_decoder.py" Link="acn_decoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\codec_uper.py" Link="codec_uper.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\helper.py" Link="helper.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\verification.py" Link="verification.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\__init__.py" Link="__init__.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\xer_codec.py" Link="xer_codec.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\xer_encoder.py" Link="xer_encoder.py" />
+    <EmbeddedResource Include="..\asn1python\src\asn1python\xer_decoder.py" Link="xer_decoder.py" />
+    
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
 
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />
@@ -77,6 +94,7 @@
     <ProjectReference Include="..\BackendAst\BackendAst.fsproj" />
     <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
     <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
+    <ProjectReference Include="..\StgPython\StgPython.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

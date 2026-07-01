@@ -1,0 +1,35 @@
+-- ACN encoding with conditional presence in nested structures
+
+NestedAcnConditional DEFINITIONS ::= BEGIN
+
+    ConditionalInner []
+    {
+        hasExtension BOOLEAN [],
+        baseField [size 8, encoding pos-int],
+        extensionField [present-when hasExtension, size 16, encoding pos-int]
+    }
+
+    ConditionalOuter []
+    {
+        control BOOLEAN [],
+        inner [],
+        optionalData [present-when control]
+    }
+
+    NestedConditional []
+    {
+        enableData1 BOOLEAN [],
+        enableData2 BOOLEAN [],
+        enableData3 BOOLEAN [],
+        data1 [present-when enableData1],
+        data2 [present-when enableData2],
+        data3 [present-when enableData3, size 16, encoding pos-int]
+    }
+
+    TestStruct []
+    {
+        outer [],
+        nested []
+    }
+
+END
