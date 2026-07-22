@@ -444,8 +444,8 @@ let private exportType (t:Asn1Type) =
                                                                     XAttribute(xname "Value", c.definitionValue),
                                                                     XAttribute(xname "Line", c.Name.Location.srcLine),
                                                                     XAttribute(xname "acnEncodeValue", c.acnEncodeValue),
-
-                                                                    XAttribute(xname "CharPositionInLine", c.Name.Location.charPos)
+                                                                    XAttribute(xname "CharPositionInLine", c.Name.Location.charPos),
+                                                                    (if c.Comments.Length > 0 then XElement(xname "AsnComment", (c.Comments |> Seq.StrJoin "\n")) else null)
                                                                 ))),
                         XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printEnumVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printEnumVal ))

@@ -561,7 +561,9 @@
 
     <xsd:element name="Item" >
         <xsd:complexType>
-            <xsd:sequence/>
+            <xsd:sequence>
+                <xsd:element ref="AsnComment" minOccurs="0" maxOccurs="1"/>
+            </xsd:sequence>
             <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="CName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="ScalaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
