@@ -310,6 +310,7 @@ and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.Reference
                 match checkPath.Length > 0 && checkPath[0].Contains("isInstanceOf") with
                 | true -> (sprintf "val %s = %s.%s\n%s" (choicePath.accessPath.joined lm.lg) (checkPath[0].Replace("isInstanceOf", "asInstanceOf")) (choicePath.accessPath.joined lm.lg) updateStatement)
                 | false -> updateStatement
+            | Rust -> updateStatement
             | _ -> updateStatement
         match checkPath with
         | []    -> updateStatement2

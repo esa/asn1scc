@@ -518,6 +518,7 @@ let foldType2
                 match CommonTypes.ProgrammingLanguage.ActiveLanguages.Head with
                 | CommonTypes.ProgrammingLanguage.Scala -> refType pi t ti (loopType pi ti.resolvedType us)
                 | _ ->
+                    // Rust, C, and Ada all use the same reference type handling
                     match ti.hasExtraConstrainsOrChildrenOrAcnArgs with
                     | true ->   
                         refType pi t ti (loopType pi ti.resolvedType us)

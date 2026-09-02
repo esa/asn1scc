@@ -58,6 +58,7 @@
     <ProjectReference Include="..\StgC\StgC.fsproj" />
     <ProjectReference Include="..\StgScala\StgScala.fsproj" />
     <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
+    <ProjectReference Include="..\StgRust\StgRust.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="antlr.runtime">

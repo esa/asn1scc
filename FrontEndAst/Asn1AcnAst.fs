@@ -287,6 +287,7 @@ type NamedItem = {
     c_name:string
     scala_name:string
     ada_name:string
+    rust_name:string
     definitionValue : BigInteger          // the value in the header file
 
     // the value encoded by ACN. It can (a) the named item index (i.e. like uper), (b) The definition value, (c) The redefined value from acn properties
@@ -770,6 +771,7 @@ and Sequence = {
 and AcnChild = {
     Name                        : StringLoc
     c_name                      : string
+    rust_name                   : string
     id                          : ReferenceToType
     Type                        : AcnInsertedType
     Comments                    : string array
@@ -785,6 +787,7 @@ and Asn1Child = {
     _c_name                     : string
     _scala_name                 : string
     _ada_name                   : string
+    _rust_name                  : string
     Type                        : Asn1Type
     Optionality                 : Asn1Optionality option
     // acnArgs                     : RelativePath list // TODO: RM?
@@ -821,6 +824,7 @@ and ChChildInfo = {
     _c_name                     : string
     _scala_name                 : string
     _ada_name                   : string
+    _rust_name                  : string
     present_when_name           : string // Does not contain the "_PRESENT". Not to be used directly by backends.
     Type                        : Asn1Type
     acnPresentWhenConditions    : AcnPresentWhenConditionChoiceChild list
@@ -867,6 +871,7 @@ type TypeAssignment = {
     c_name:string
     scala_name:string
     ada_name:string
+    rust_name:string
     Type:Asn1Type
     asn1Comments: string list
     acnComments : string list
@@ -879,6 +884,7 @@ type ValueAssignment = {
     c_name:string
     scala_name:string
     ada_name:string
+    rust_name:string
     Type:Asn1Type
     Value:Asn1Value
 }

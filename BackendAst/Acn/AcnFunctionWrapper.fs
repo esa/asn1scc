@@ -120,6 +120,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     // language (roadmap B6).
                     None, None, [], [], None, ns
                 | _ ->
+                    // Rust, C, and Ada all use the same ICD generation path
                     match r.args.generateAcnIcd with
                     | false ->
                         None, None, [], [], None, ns

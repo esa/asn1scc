@@ -255,6 +255,7 @@ and MapChildInfo (r:ParameterizedAsn1Ast.AstRoot)  typeScope (isSequence) (c:Par
         ada_name = ToC2 c.Name.Value
         c_name = ToC2 c.Name.Value
         scala_name = ToC2 c.Name.Value
+        rust_name = ToRust c.Name.Value
         present_when_name = ToC2 c.Name.Value
         Type = MapAsn1Type r  (if isSequence then (visitSeqChild typeScope c) else (visitChoiceChild typeScope c)) c.Type
         Optionality = match c.Optionality with
@@ -269,6 +270,7 @@ and MapNamedItem (r:ParameterizedAsn1Ast.AstRoot) moduleName typeScope (n:Parame
         c_name = ToC n.Name.Value
         scala_name = ToC n.Name.Value
         ada_name = ToC n.Name.Value
+        rust_name = ToRust n.Name.Value
         _value = match n._value with
                  | None -> None
                  | Some(x)  -> Some (MapAsn1Value r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=n.Name.Location;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None; moduleName=moduleName} typeScope (visitNamedItemValue n) x)
@@ -394,6 +396,7 @@ let MapTypeAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.A
         c_name = ToC2 tas.Name.Value
         scala_name = ToC2 tas.Name.Value
         ada_name = ToC2 tas.Name.Value
+        rust_name = ToRust tas.Name.Value
         Comments = tas.Comments
         acnInfo = tas.acnInfo
     }
@@ -415,6 +418,7 @@ let MapValueAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.
         c_name = vas.c_name
         scala_name = vas.scala_name
         ada_name = vas.ada_name
+        rust_name = vas.rust_name
     }
 
 let MapModule (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.Asn1Module) :Asn1Ast.Asn1Module =

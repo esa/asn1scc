@@ -616,6 +616,7 @@ let createReal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type
     let annots =
         match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala -> ["extern"]
+        | Rust -> []
         | _ -> []
     match td.kind with
     | PrimitiveNewTypeDefinition              ->

@@ -255,6 +255,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
     let annots =
         match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala -> ["extern"]
+        | Rust -> []
         | _ -> []
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations annots us
 
@@ -719,6 +720,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let absent, present =
                 match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> "false", "true"
+                | Rust -> "false", "true"
                 | _ -> "0", "1"
             // please note that in decode, macro uper_sequence_presence_bit_fix
             // calls macro uper_sequence_presence_bit (i.e. behaves like optional)

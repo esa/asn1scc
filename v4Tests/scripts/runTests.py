@@ -125,6 +125,9 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         elif language == 'Ada':
             res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
             return
+        elif language == 'Rust':
+            res = mysystem("cd " + targetDir + os.sep + "; cargo build", False)
+            return
         else:
             # Scala
             res = mysystem("cd " + targetDir + os.sep + "; sbt compile", False)
@@ -147,6 +150,57 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                 sys.exit(1)
         except FileNotFoundError as err:
             pass;
+    elif language == 'Rust':
+        prevDir = os.getcwd()
+        os.chdir(targetDir)
+        # Copy the Rust runtime (Cargo.toml + src/*.rs) into the test directory
+        rustRuntimeSrc = rootDir + os.sep + ".." + os.sep + "asn1rust"
+        rustRuntimeDst = targetDir + os.sep + "asn1rust"
+        shutil.rmtree(rustRuntimeDst, ignore_errors=True)
+        shutil.copytree(rustRuntimeSrc, rustRuntimeDst,
+                        ignore=shutil.ignore_patterns('target', 'Cargo.lock'))
+        # Create a Cargo.toml for the generated code that depends on the runtime
+        cargoTomlContent = (
+            "[package]\n"
+            "name = \"asn1scc_test\"\n"
+            "version = \"0.1.0\"\n"
+            "edition = \"2021\"\n"
+            "\n"
+            "[dependencies]\n"
+            "asn1rust = { path = \"asn1rust\" }\n"
+            "\n"
+            "[[bin]]\n"
+            "name = \"mainprogram\"\n"
+            "path = \"mainprogram.rs\"\n"
+        )
+        with open("Cargo.toml", 'w') as f:
+            f.write(cargoTomlContent)
+        # Build the project
+        res = mysystem("cargo build >covlog.txt 2>&1", True)
+        if res != 0 and behavior != 2:
+            PrintFailed("compilation failure")
+            PrintFailed("covlog.txt is ...")
+            mysystem("cat covlog.txt", False)
+            sys.exit(1)
+        elif behavior == 2 and res != 0:
+            PrintSucceededAsExpected(
+                "Test cases failed at build-time as expected")
+        else:
+            # Run the generated test executable
+            res = mysystem("cargo run >covlog.txt 2>&1", True)
+            if res != 0 and behavior != 2:
+                PrintFailed("run time failure")
+                PrintFailed("covlog.txt is ...")
+                mysystem("cat covlog.txt", False)
+                sys.exit(1)
+            elif behavior == 2 and res != 0:
+                PrintSucceededAsExpected(
+                    "Test cases failed at run-time as expected")
+            elif behavior == 2 and res == 0:
+                PrintFailed(
+                    "ERROR: Executable didn't fail as it was expected to do...")
+                sys.exit(1)
+        os.chdir(prevDir)
     elif language == 'Ada':
         prevDir = os.getcwd()
         os.chdir(targetDir)
@@ -429,7 +483,7 @@ def usage():
     print("where <options> are:")
     print("Mandatory:")
     print("     -l, --lang  <language_name>")
-    print("           where <language_name> is c or Ada")
+    print("           where <language_name> is c, Ada, Scala or Rust")
     print("Optional:")
     print("     -t, --testCaseSet  <asn1File> or <testcaseDir>")
     print("     -s, --slim")
@@ -497,8 +551,9 @@ def main():
         submain("c", "ACN", "", cntTest, workDir)
         submain("Ada", "ACN", "", cntTest, workDir)
         submain("Scala", "ACN", "", cntTest, workDir)
+        submain("Rust", "ACN", "", cntTest, workDir)
     else:
-        if lang not in ["c", "Ada", 'Scala']:
+        if lang not in ["c", "Ada", 'Scala', 'Rust']:
             print("Invalid language argument")
             usage()
 
@@ -507,6 +562,10 @@ def main():
             usage()
         if lang.lower() == "c":
             os.putenv("PATH", "/usr/bin:" + os.getenv("PATH"))
+        if lang == "Rust":
+            if shutil.which("cargo") is None:
+                print("Error: 'cargo' not found in PATH. Install Rust toolchain (rustup).")
+                sys.exit(1)
 
         #f = open(language+"_log.txt", 'a')
         #f.write("==========================================\n")

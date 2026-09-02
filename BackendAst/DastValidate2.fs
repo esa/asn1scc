@@ -431,11 +431,13 @@ and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageM
         let isAbsentFlag =
             match ProgrammingLanguage.ActiveLanguages.Head with
             | ProgrammingLanguage.Scala -> l.lg.FalseLiteral
+            | Rust -> "0"
             | _ -> "0"
 
         let isPresentFlag =
             match ProgrammingLanguage.ActiveLanguages.Head with
             | ProgrammingLanguage.Scala -> l.lg.TrueLiteral
+            | Rust -> "1"
             | _ -> "1" // leave like it was - TRUE may not be 1
 
         let presentAbsent =
@@ -896,6 +898,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                         let localTmpVarName =
                             match ProgrammingLanguage.ActiveLanguages.Head with
                             | Scala -> child._scala_name
+                            | Rust -> ""
                             | _ -> ""
                         match func p with
                         | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name, lv)

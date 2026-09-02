@@ -67,6 +67,7 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
             match v.Type.initFunction.initProcedure with
             | Some initProc -> initProc.funcName
             | None -> ""
+        | Rust -> initAmper
         | _ -> initAmper
     let curProgramUnitName = ""  //Main program has no module
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
@@ -88,6 +89,7 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
              | Choice v -> initStatement
              | TimeType v -> initStatement
              | ReferenceType _ -> raise (BugErrorException "Impossible, since we have resolvedReferenceType")
+        | Rust -> initStatement
         | _ -> initStatement
     let sTestCaseIndex = idx.ToString()
     let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
@@ -109,6 +111,7 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
             match t.initFunction.initProcedure with
             | Some initProc -> initProc.funcName
             | None -> ""
+        | Rust -> initAmper
         | _ -> initAmper
     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = ""

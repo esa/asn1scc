@@ -84,6 +84,9 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:A
         | ProgrammingLanguage.Scala ->
             ({v1 with accessPath = lm.lg.getChChild v1.accessPath (sprintf "%s_%s_tmp" (v1.accessPath.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String}),
             ({v2 with accessPath = lm.lg.getChChild v2.accessPath (sprintf "%s_%s_tmp" (v2.accessPath.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String})
+        | Rust ->
+            ({v1 with accessPath = lm.lg.getChChild v1.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String}),
+            ({v2 with accessPath = lm.lg.getChChild v2.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String})
         | _ ->
             ({v1 with accessPath = lm.lg.getChChild v1.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String}),
             ({v2 with accessPath = lm.lg.getChChild v2.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String})

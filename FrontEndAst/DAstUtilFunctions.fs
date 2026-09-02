@@ -192,6 +192,7 @@ type ChChildInfo with
         match l with
         | C     -> (ToC this._present_when_name_private) + "_PRESENT"
         | Scala -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Scala
+        | Rust  -> (ToC this._present_when_name_private) + "_PRESENT"
         | Ada   ->
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC this._present_when_name_private) + "_PRESENT")
@@ -204,6 +205,7 @@ type Asn1AcnAst.NamedItem      with
         | C     -> this.c_name
         | Scala -> this.scala_name
         | Ada   -> this.ada_name
+        | Rust  -> this.rust_name
 
 
 type Asn1AcnAst.Asn1Type with
@@ -737,6 +739,7 @@ type Asn1Child with
         | C         -> this._c_name
         | Scala     -> this._scala_name
         | Ada       -> this._ada_name
+        | Rust      -> this._rust_name
     member this.acnMinSizeInBits =
         match this.Optionality with
         | Some(AlwaysAbsent) -> 0I

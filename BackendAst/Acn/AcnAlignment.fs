@@ -114,14 +114,17 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
             | AcnGenericTypes.NextByte ->
                 match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> "Byte", 8I
+                | Rust -> "NextByte", 8I
                 | _ -> "NextByte", 8I
             | AcnGenericTypes.NextWord ->
                 match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> "Short", 16I
+                | Rust -> "NextWord", 16I
                 | _ -> "NextWord", 16I
             | AcnGenericTypes.NextDWord ->
                 match ProgrammingLanguage.ActiveLanguages.Head with
                 | Scala -> "Int", 32I
+                | Rust -> "NextDWord", 32I
                 | _ -> "NextDWord", 32I
         let newFuncBody st errCode prms nestingScope p =
             let content, ns1a = funcBody st errCode prms nestingScope p

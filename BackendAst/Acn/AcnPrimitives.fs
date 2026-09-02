@@ -342,6 +342,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
     let annots =
         match ProgrammingLanguage.ActiveLanguages.Head with
         | Scala -> ["extern"]
+        | Rust -> []
         | _ -> []
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations annots us
 

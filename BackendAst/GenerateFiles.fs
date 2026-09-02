@@ -171,6 +171,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let puCorrName =
         match r.lang with
         | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
+        | CommonTypes.ProgrammingLanguage.Rust -> pu.name
         | _ -> pu.name
 
     let definitionsContntent =
@@ -300,6 +301,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let puCorrName =
         match r.lang with
         | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
+        | CommonTypes.ProgrammingLanguage.Rust -> pu.name
         | _ -> pu.name
     let srcBody = lm.src.printSourceFile puCorrName arrsImportedFiles pu.importedTypes arrsUserDefinedFunctions (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
 

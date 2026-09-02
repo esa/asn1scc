@@ -296,6 +296,7 @@ let DoValueAssignment (r:AstRoot) (curModule:Asn1Module) (implicitImports : List
         c_name = vas.c_name
         scala_name = vas.scala_name
         ada_name = vas.ada_name
+        rust_name = vas.rust_name
     }, newImports
 
 

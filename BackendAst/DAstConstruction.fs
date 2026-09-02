@@ -29,6 +29,7 @@ let private mapAcnParameter (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         loc = prm.loc
         id = prm.id
         c_name = DAstACN.getAcnDeterminantName prm.id
+        rust_name = DAstACN.getAcnDeterminantName prm.id
         typeDefinitionBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnParameterDeterminant prm)
 
         //funcUpdateStatement00 = funcUpdateStatement
@@ -110,6 +111,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
             AcnChild.Name               = ch.Name
             id                          = ch.id
             c_name                      = c_name
+            rust_name                   = c_name
             Type                        = ch.Type
             typeDefinitionBodyWithinSeq = tdBodyWithinSeq
             funcBody                    = DAstACN.handleAlignmentForAcnTypes r lm acnAlignment newFuncBody
@@ -626,6 +628,7 @@ let private createAsn1Child (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1A
             _c_name            = ch._c_name
             _scala_name        = ch._scala_name
             _ada_name          = ch._ada_name
+            _rust_name         = ch._rust_name
             Type               = newChildType
             Optionality        = ch.Optionality
             // acnArgs            = ch.acnArgs
@@ -732,6 +735,7 @@ let private createChoiceChild (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn
             _c_name             = ch._c_name
             _scala_name         = ch._scala_name
             _ada_name           = ch._ada_name
+            _rust_name          = ch._rust_name
             _present_when_name_private  = ch.present_when_name
             acnPresentWhenConditions = ch.acnPresentWhenConditions
             chType              = newChildType
@@ -907,6 +911,7 @@ let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnA
         c_name = tas.c_name
         scala_name = tas.scala_name
         ada_name = tas.ada_name
+        rust_name = tas.rust_name
         Type = newType
         Comments = tas.Comments |> Seq.toArray
     },ns
@@ -931,6 +936,7 @@ let private mapVas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (allNewTypeAss
         c_name = vas.c_name
         scala_name = vas.scala_name
         ada_name = vas.ada_name
+        rust_name = vas.rust_name
         Type = newType
         Value = mapValue vas.Value
     },ns

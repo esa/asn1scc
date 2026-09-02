@@ -244,6 +244,7 @@ type Asn1Child with
         | CommonTypes.C         -> this._c_name
         | CommonTypes.Scala     -> this._scala_name
         | CommonTypes.Ada       -> this._ada_name
+        | CommonTypes.Rust      -> this._rust_name
 
     member this.acnMinSizeInBits =
         match this.Optionality with

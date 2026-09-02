@@ -817,6 +817,7 @@ let CreateValueAssignment integerSizeInBytes (astRoot:list<ITree>) (tree:ITree) 
                 c_name = ToC2 name.Value
                 scala_name = ToC2 name.Value
                 ada_name = ToC2 name.Value
+                rust_name = ToRust name.Value
             }
     }
 
@@ -861,6 +862,7 @@ let CreateAsn1Module integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (i
                                 c_name = c_name
                                 scala_name = c_name
                                 ada_name = c_name
+                                rust_name = ToRust (tas.Value + "_" + ni.GetChild(0).Text)
                             }})
             namedItems) |> List.traverseResultM id
     result {

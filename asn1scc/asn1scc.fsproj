@@ -29,6 +29,12 @@
       <EmbeddedResource Include="..\asn1scala\lib\stainless-library_3-0.9.8.7.jar">
       <Link>stainless-library_3-0.9.8.7.jar</Link>
     </EmbeddedResource>
+      <EmbeddedResource Include="..\asn1rust\Cargo.toml" Link="Cargo.toml" />
+      <EmbeddedResource Include="..\asn1rust\src\lib.rs" Link="lib.rs" />
+      <EmbeddedResource Include="..\asn1rust\src\uper.rs" Link="uper.rs" />
+      <EmbeddedResource Include="..\asn1rust\src\acn.rs" Link="acn.rs" />
+      <EmbeddedResource Include="..\asn1rust\src\xer.rs" Link="xer.rs" />
+      <EmbeddedResource Include="..\asn1rust\src\ber.rs" Link="ber.rs" />
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
 
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />

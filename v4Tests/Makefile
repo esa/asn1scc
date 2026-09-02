@@ -2,7 +2,7 @@ export PATH:=$(realpath ../Asn1f4/bin/Debug/):$(PATH)
 
 $(info ${PATH})
 
-all:	cTests adaTests scalaTests
+all:	cTests adaTests scalaTests rustTests
 
 cTests:
 	./scripts/runTests.py -l c -s
@@ -15,4 +15,8 @@ adaTests:
 scalaTests:
 	./scripts/runTests.py -l Scala -s
 	./scripts/runTests.py -l Scala
+
+rustTests:
+	./scripts/runTests.py -l Rust -s
+	./scripts/runTests.py -l Rust
 
