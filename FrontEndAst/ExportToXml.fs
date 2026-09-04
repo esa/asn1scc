@@ -320,7 +320,7 @@ let exportChoiceEncodingClass (ti:Choice) =
     match ti.acnProperties.enumDeterminant with
     | Some _ -> [XAttribute(xname "acnChoiceEncClass", "enum-determinant")]
     | None   ->
-        match ti.children |> List.exists(fun c -> not (List.isEmpty c.acnPresentWhenConditions)) with
+        match acnChildren |> List.exists(fun c -> not (List.isEmpty c.acnPresentWhenConditions)) with
         | true  ->
             let extFields = acnChildren |> List.collect(fun c -> c.acnPresentWhenConditions) |> List.map(fun x -> x.relativePath.AsString) |> Seq.distinct |> Seq.StrJoin ","
             [XAttribute(xname "acnChoiceEncClass", "presence-when"); XAttribute(xname "presenceWhenFields", extFields)]
