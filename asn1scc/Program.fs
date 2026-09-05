@@ -64,7 +64,7 @@ with
             | C_lang           -> "generate code for the C/C++ programming language"
             | Ada_Lang         -> "generate code for the Ada/SPARK programming language"
             | Scala_Lang       -> "generate code for the Scala programming language"
-            | Python_Lang      -> "generate code for the Python programming language"
+            | Python_Lang      -> "(Experimental) generate code for the Python programming language"
             | UPER_enc         -> "generates encoding and decoding functions for unaligned Packed Encoding Rules (uPER)"
             | XER_enc          -> "generates encoding and decoding functions for XML Encoding Rules (XER)"
             | ACN_enc          -> "generates encoding and decoding functions using the ASSERT ASN.1 encoding Control Notation"
