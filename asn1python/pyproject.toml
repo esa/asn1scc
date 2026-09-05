@@ -25,7 +25,7 @@ classifiers = [
 ]
 dependencies = [
     # No external dependencies - pure Python implementation
-    "pytest>=8.3.5",
+    "pytest>=6.0",
 ]
 
 [project.optional-dependencies]
