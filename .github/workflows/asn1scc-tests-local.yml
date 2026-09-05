@@ -1,8 +1,11 @@
 name: Local Tests
 
+# Triage (2026-09-05): manual trigger only for now. The job needs a
+# self-hosted runner, which esa/asn1scc does not have, so on every push the
+# run sat queued forever. Ateleris to gate it on their repository (e.g.
+# `if: github.repository == 'ateleris/asn1scc'`) and restore the trigger.
 on:
-  push:
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   build-and-test:

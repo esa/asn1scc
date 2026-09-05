@@ -1,8 +1,11 @@
 name: Python Unit Tests
 
+# Triage (2026-09-05): manual trigger only for now. The "Generate Python
+# Output" step invokes generate-local-tests.sh, which was removed from the
+# repository during the PR #371 review, so the workflow fails on every push.
+# Ateleris to fix the generation step and restore the push trigger.
 on:
-  push:
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   build-and-test:
