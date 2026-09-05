@@ -25,6 +25,7 @@ type dummy =
 
 let mutable lang:CommonTypes.ProgrammingLanguage = CommonTypes.ProgrammingLanguage.Ada
 let mutable double2StringPlain :bool = false 
+let mutable printTemplateInfo :bool = false 
 
 type StrHelper =
     StrHelper of string
@@ -203,14 +204,36 @@ let get_group  fileName =
         cache.[fileName] <- group
         group
 
+// Don't add comments for the following string templates as those are used inline and comments would, therefore, intervene with the program
+let SkipCommentTemplates = ["methodNameSuffix"; "initSequenceExpr"; "initSequenceChildExpr"; "isEqual_BitString"]
+
+let getDebugComment (template: StringTemplate) =
+    if List.contains template.Name SkipCommentTemplates then
+        ""
+    else
+    let s = sprintf "%s %s" template.Group.Name template.Name
+    match lang with
+    | CommonTypes.ProgrammingLanguage.C -> sprintf "/* %s */\n" s
+    | CommonTypes.ProgrammingLanguage.Ada -> sprintf "-- %s\n" s
+    | CommonTypes.ProgrammingLanguage.Scala -> sprintf "// %s\n" s
+    | CommonTypes.ProgrammingLanguage.Python -> sprintf "# %s\n" s
+
+
+let printTemplate(template: StringTemplate) = 
+    let templateString = template.ToString 80
+    match printTemplateInfo with
+    | false -> templateString
+    | true ->   if template.Template.Contains "\n" then
+                    getDebugComment template + templateString
+                else 
+                    templateString + getDebugComment template
+
 let call fileName macroName (attrs:seq<string*#Object>)=
     let group = get_group fileName
 
     let template = group.GetInstanceOf(macroName);
     attrs |> Seq.iter(fun (attrName, obj) -> template.SetAttribute(attrName,obj))
-    let ret = template.ToString 80
-    //printfn "%s\n" ret
-    ret
+    printTemplate template
 
 let call_generic fileName macroName (attrs:seq<string*#Object>)=
     let group = get_group fileName

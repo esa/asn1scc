@@ -1,0 +1,15 @@
+-- ACN encoding with encode-values attribute
+
+EnumeratedEncodeValues DEFINITIONS ::= BEGIN
+
+    SparseEnum [encode-values]
+
+    NonSequentialEnum [encode-values]
+
+    TestStruct []
+    {
+        sparse [],
+        nonseq []
+
+    }
+END

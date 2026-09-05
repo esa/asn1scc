@@ -38,19 +38,21 @@ type PrimitiveAcnFuncBody = ErrorCode -> PrimitiveAcnInnerFn
 
 
 /// Build the standard "ERR_ACN<E|D>_<dotted-path>" error code from a typeId.
-let primitiveErrCode (codec:CommonTypes.Codec) (typeId:ReferenceToType) (us:State) =
-    let errCodeName = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    getNextValidErrorCode us errCodeName None
+let primitiveErrCode (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId:ReferenceToType) (us:State) =
+    let errCodeName = ToC ("ERR_ACN" + ((lm.lg.codecSuffix codec).ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+    let errFieldPath = match typeId.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." (first :: rest)).Replace("#","elm")
+    getNextValidErrorCode us errCodeName None errFieldPath
 
 
 /// Wrapper for ACN-only primitives (AcnBoolean / AcnNullType / AcnReferenceToEnumerated
 /// / AcnReferenceToIA5String).  Allocates the error code from the typeId and
 /// applies the supplied builder.
-let createAcnOnlyPrimitive (codec:CommonTypes.Codec)
+let createAcnOnlyPrimitive (lm:LanguageMacros)
+                           (codec:CommonTypes.Codec)
                            (typeId:ReferenceToType)
                            (us:State)
                            (mkBody: ErrorCode -> PrimitiveAcnInnerFn) =
-    let errCode, ns = primitiveErrCode codec typeId us
+    let errCode, ns = primitiveErrCode lm codec typeId us
     (mkBody errCode), ns
 
 
@@ -67,7 +69,7 @@ let createAsn1Primitive (r:Asn1AcnAst.AstRoot)
                         (funcDefAnnots:string list)
                         (us:State)
                         (funcBody:PrimitiveAcnFuncBody) =
-    let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
+    let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition isValidFunc
         (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us)
         (fun atc -> true) soSparkAnnotations funcDefAnnots us
@@ -86,7 +88,7 @@ let createAsn1PrimitiveStateful (r:Asn1AcnAst.AstRoot)
                                 (funcDefAnnots:string list)
                                 (us:State)
                                 (funcBody:AcnAlignment.FuncBody) =
-    let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
+    let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition isValidFunc
         funcBody (fun atc -> true) soSparkAnnotations funcDefAnnots us
 

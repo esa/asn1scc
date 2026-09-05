@@ -1,0 +1,32 @@
+-- Requirement 38: Parameterized types support
+-- Tests ASN.1 parameterized type definitions with formal parameters
+
+ParameterizedBasic DEFINITIONS ::= BEGIN
+
+    -- Simple parameterized type with type parameter
+    Container { Type } ::= SEQUENCE {
+        value Type,
+        timestamp INTEGER
+    }
+
+    -- Instantiate parameterized type with different types
+    IntContainer ::= Container { INTEGER }
+
+    RealContainer ::= Container { REAL }
+
+    StringContainer ::= Container { IA5String (SIZE(0..8)) }
+
+    -- Fixed size array types
+    IntArray10 ::= SEQUENCE (SIZE(10)) OF INTEGER
+
+    BoolArray5 ::= SEQUENCE (SIZE(5)) OF BOOLEAN
+
+    TestStruct ::= SEQUENCE {
+        intCont IntContainer,
+        realCont RealContainer,
+        strCont StringContainer,
+        intArr IntArray10,
+        boolArr BoolArray5
+    }
+
+END

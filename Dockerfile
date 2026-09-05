@@ -27,7 +27,7 @@ ENV DOTNET_ROOT=/usr/share/dotnet
 RUN set -xe \
     && apt-get update -y \
     && apt-get install -y libfontconfig1 libdbus-1-3 libx11-6 libx11-xcb-dev cppcheck htop \
-        python3 python3-distutils gcc g++ make nuget libgit2-dev libssl-dev curl wget git unzip zip \
+        python3 python3-distutils python3-pytest gcc g++ make nuget libgit2-dev libssl-dev curl wget git unzip zip \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get purge --auto-remove \
     && apt-get clean
@@ -56,6 +56,10 @@ RUN wget -O gnat-2021-x86_64-linux-bin https://community.download.adacore.com/v1
     && chmod +x gnat-2021-x86_64-linux-bin \
     && gnat_community_install_script/install_package.sh ./gnat-2021-x86_64-linux-bin /opt/GNAT/gnat-x86-2021 \
     && rm -rf /gnat_tmp/
+
+# Add UV for efficient python version management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+ENV UV_HOME=/app/.uv
 
 # Set back to the appropriate user
 USER $USERNAME

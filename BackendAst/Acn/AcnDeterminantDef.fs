@@ -28,7 +28,7 @@ let getDeterminantTypeDefinitionBodyWithinSeq (r:Asn1AcnAst.AstRoot) (lm:Languag
 
     let getTypeDefinitionName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (id : ReferenceToType) =
         let longName = id.AcnAbsPath.Tail |> Seq.StrJoin "_"
-        ToC2(r.args.TypePrefix + longName.Replace("#","elem"))
+        ToC2(r.args.TypePrefix + longName.Replace("#","elm"))
 
     match det with
     | AcnChildDeterminant       ch ->
@@ -37,7 +37,9 @@ let getDeterminantTypeDefinitionBodyWithinSeq (r:Asn1AcnAst.AstRoot) (lm:Languag
         | Asn1AcnAst.AcnNullType _ -> createAcnNull r lm
         | Asn1AcnAst.AcnBoolean  _ -> createAcnBoolean r lm
         | Asn1AcnAst.AcnReferenceToEnumerated a -> ToC2(r.args.TypePrefix + a.tasName.Value)
-        | Asn1AcnAst.AcnReferenceToIA5String a -> ToC2(r.args.TypePrefix + a.tasName.Value)
+        | Asn1AcnAst.AcnReferenceToIA5String a ->
+            let typeName = ToC2(r.args.TypePrefix + a.tasName.Value)
+            lm.lg.qualifyNameWithModule (ToC a.modName.Value) (ToC ch.id.ModName) typeName
 
     | AcnParameterDeterminant   prm ->
         match prm.asn1Type with

@@ -1,0 +1,161 @@
+group equal_python;
+
+JoinItems(sPart, soNestedPart) ::= <<
+<sPart>
+<if(soNestedPart)>
+if ret:
+    <soNestedPart>
+<endif>
+>>
+
+JoinItems2_ret(sPart, sNestedPart) ::= <<
+<sPart>
+if ret:
+    <sNestedPart>
+>>
+
+JoinItems2_ret_result(sPart, sNestedPart) ::= <<
+<sPart>
+if ret:
+    <sNestedPart>
+>>
+
+
+
+/*
+*****************************************************************************************
+ E Q U A L      F U N C T I O N S
+*****************************************************************************************
+*/
+PrintEqualDefinitionPrimitive(sFuncName, sTypeDefName) ::= <<
+>>
+
+PrintEqualDefinitionComposite(sFuncName, sTypeDefName) ::= <<
+>>
+
+PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
+def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>) -> bool:
+    return <sContent>
+>>
+
+
+
+PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
+def __eq__(self, other: object) -> bool:
+    return super().__eq__(other)
+>>
+
+equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= << >>
+
+equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced, bInherit) ::= <<
+<if(bInherit)>
+<! equal inherited !>
+<else>
+def __eq__(self, other: object) -> bool:
+    if not isinstance(other, <sTypeDefName>):
+        return False
+    <if(bExpression)>
+    return <sContent>
+
+    <else>
+    ret: bool = True
+
+    <sContent>
+    return ret
+
+    <endif>
+<endif>
+>>
+
+
+isEqual_Primitive(p1, p2) ::= "<p1> == <p2>"
+
+isEqual_String(p1, p2) ::= <<
+<p1>.arr[:<p1>.arr.index(0) if 0 in <p1>.arr else len(<p1>.arr)] == <p2>.arr[:<p2>.arr.index(0) if 0 in <p2>.arr else len(<p2>.arr)]
+>>
+
+isEqual_Integer(p1, p2) ::= "int(<p1>) == int(<p2>)"
+
+isEqual_Enumerated(p1, p2) ::= "<p1>.val == <p2>.val"
+
+isEqual_Boolean(p1, p2) ::= "bool(<p1>) == bool(<p2>)"
+
+isEqual_Real(p1, p2) ::= "float(<p1>) == float(<p2>)"
+
+isEqual_IA5String(p1, p2) /*nogen*/::= <<
+<isEqual_String(p1=p1, p2=p2)>
+>>
+
+isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)>"
+AssignTrue() ::= "ret = True"
+
+isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
+<if(!bIsFixedSize)>
+(<p1>n_count == <p2>n_count) and \
+    (bytes(<p1>arr[:<p1>n_count//8]) == bytes(<p2>arr[:<p1>n_count//8])) and \
+    ((<p1>arr[<p1>n_count//8] \>\> (8-<p1>n_count % 8) == <p2>arr[<p1>n_count//8] \>\> (8-<p1>n_count % 8)) if <p1>n_count % 8 > 0 else True)
+<else>
+(bytes(<p1>arr[:<nFixedSize>//8]) == bytes(<p2>arr[:<nFixedSize>//8])) and \
+    ((<p1>arr[<nFixedSize>//8] \>\> (8-<nFixedSize> % 8) == <p2>arr[<nFixedSize>//8] \>\> (8-<nFixedSize> % 8)) if <nFixedSize> % 8 > 0 else True)
+<endif>
+>>
+
+
+
+isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
+<if(!bIsFixedSize)>
+    (<p1>n_count == <p2>n_count) and (<p1>arr[:<p1>n_count] == <p2>arr[:<p1>n_count])
+<else>
+    <p1>arr == <p2>arr
+<endif>
+>>
+
+isObjectIdentifier_equal(p1, p2) ::= <<
+<p1> == <p2>
+>>
+
+
+
+isEqual_Choice_Child(sChoiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= ""
+
+isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
+ret = <p1>.kind == <p2>.kind and <p1>.data == <p2>.data
+>>
+
+isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
+<if(bIsOptional)>ret = <p1><sAcc><sChName> == <p2><sAcc><sChName><else><if(soInnerStatement)><soInnerStatement><else>ret = <p1><sAcc><sChName> == <p2><sAcc><sChName><endif><endif>
+>>
+
+
+
+isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
+ret = (<p1><sAcc>n_count == <p2><sAcc>n_count)
+<if (soInnerStatement)>
+<i>: int = 0
+while ret and <i> \< <p1><sAcc>n_count:
+    <soInnerStatement>
+    <i> += 1
+
+<endif>
+>>
+
+isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
+<i>: int = 0
+while ret and <i> \< <nFixedSize>:
+    <sInnerStatement>
+    <i> += 1
+
+>>
+
+call_base_type_func(p1, p2, sFuncName, bIsP1Option, bIsP2Option) ::= <<
+<p1> == <p2>
+>>
+
+makeExpressionToStatement(sIsValidExp) ::= <<
+ret = ret and <sIsValidExp>
+>>
+
+
+callChildEqualFunc(p1, p2,  sChildEqualFuncName) ::= <<
+ret = <p1> == <p2>
+>>

@@ -1,0 +1,34 @@
+-- Requirement 46: Nested ACN specifications
+-- Tests support for nested ACN specifications
+
+NestedAcnBasic DEFINITIONS ::= BEGIN
+
+    InnerData ::= SEQUENCE {
+        field1 INTEGER (0..255),
+        field2 INTEGER (0..65535),
+        field3 BOOLEAN
+    }
+
+    OuterData ::= SEQUENCE {
+        header INTEGER (0..255),
+        nested InnerData,
+        footer INTEGER (0..255)
+    }
+
+    DeepNested ::= SEQUENCE {
+        level1 INTEGER,
+        level2 SEQUENCE {
+            field1 INTEGER,
+            field2 SEQUENCE {
+                innerField1 INTEGER (0..255),
+                innerField2 OCTET STRING (SIZE(4))
+            }
+        }
+    }
+
+    TestStruct ::= SEQUENCE {
+        outer OuterData,
+        deep DeepNested
+    }
+
+END

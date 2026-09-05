@@ -1,0 +1,16 @@
+-- Requirement 16: REAL with big-endian encoding
+-- Tests big-endian byte ordering in REAL encoding
+
+RealEndiannessBig DEFINITIONS ::= BEGIN
+
+    BigEndianFloat32 ::= REAL
+
+    BigEndianFloat64 ::= REAL
+
+    TestStruct ::= SEQUENCE {
+        value32 BigEndianFloat32,
+        value64 BigEndianFloat64,
+        anotherFloat32 BigEndianFloat32
+    }
+
+END

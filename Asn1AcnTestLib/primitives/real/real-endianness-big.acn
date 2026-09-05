@@ -1,0 +1,16 @@
+-- ACN encoding with big-endian byte ordering for REAL
+
+RealEndiannessBig DEFINITIONS ::= BEGIN
+
+    BigEndianFloat32 [encoding IEEE754-1985-32, endianness big]
+
+    BigEndianFloat64 [encoding IEEE754-1985-64, endianness big]
+
+    TestStruct []
+    {
+        value32 [],
+        value64 [],
+        anotherFloat32 []
+
+    }
+END

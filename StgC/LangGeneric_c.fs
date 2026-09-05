@@ -165,7 +165,7 @@ type LangGeneric_c() =
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._c_name
-        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) : string =
+        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) (_currentModule:string) : string =
             (ToC c.present_when_name) + "_PRESENT"
 
         override this.getRtlFiles  (encodings:Asn1Encoding list) (_ :string list) =
@@ -209,6 +209,8 @@ type LangGeneric_c() =
         override this.allowsSrcFilesWithNoFunctions = true
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
+        override this.isObjectOriented = false
+        override this.nullTerminatorByte = Some 0uy
 
         override this.getSeqChildIsPresent (sel: AccessPath) (childName:string) =
             sprintf "%s%sexist.%s" (sel.joined this) (this.getAccess sel) childName
@@ -220,11 +222,11 @@ type LangGeneric_c() =
             (sel.appendSelection "u" ByValue false).appendSelection childName (if childTypeIsString then ArrayElem else ByValue) false
 
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =
-            let prefix = ToC ((id.AcnAbsPath.Tail |> Seq.StrJoin("_")).Replace("#","elem"))
+            let prefix = ToC ((id.AcnAbsPath.Tail |> Seq.StrJoin("_")).Replace("#","elm"))
             match typeIdsSet.TryFind prefix with
             | None  -> prefix + "_NONE"
             | Some a when a = 1 -> prefix + "_NONE"
-            | Some a            -> ToC ((id.AcnAbsPath |> Seq.StrJoin("_")).Replace("#","elem")) + "_NONE"
+            | Some a            -> ToC ((id.AcnAbsPath |> Seq.StrJoin("_")).Replace("#","elm")) + "_NONE"
 
         override this.presentWhenName (defOrRef:TypeDefinitionOrReference option) (ch:ChChildInfo) : string =
             (ToC ch._present_when_name_private) + "_PRESENT"

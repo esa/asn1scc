@@ -1,0 +1,32 @@
+-- Requirement 26: Basic SEQUENCE support
+-- Tests fundamental ASN.1 SEQUENCE structured type
+
+SequenceBasic DEFINITIONS ::= BEGIN
+
+    SimpleSequence ::= SEQUENCE {
+        field1 INTEGER,
+        field2 BOOLEAN,
+        field3 OCTET STRING (SIZE(24))
+    }
+
+    NestedSequence ::= SEQUENCE {
+        id INTEGER,
+        data SimpleSequence,
+        timestamp INTEGER
+    }
+
+    ComplexSequence ::= SEQUENCE {
+        counter INTEGER (0..255),
+        status ENUMERATED { idle(0), active(1), error(2) },
+        temperature REAL,
+        flags BIT STRING (SIZE(8)),
+        name IA5String (SIZE(32))
+    }
+
+    TestStruct ::= SEQUENCE {
+        seq1 SimpleSequence,
+        seq2 NestedSequence,
+        seq3 ComplexSequence
+    }
+
+END
