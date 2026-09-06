@@ -1,4 +1,4 @@
-﻿module DAstInitialize
+module DAstInitialize
 open System
 open System.Numerics
 open System.Globalization
@@ -374,7 +374,13 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
         let lvars = lm.lg.init.zeroIA5String_localVars ii
         let resVar = p.accessPath.asIdentifier
         {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
-    let constantInitExpression () = lm.lg.initializeString firstPrintableAsciiCode (int o.maxSize.uper)
+    let constantInitExpression () = 
+        let initStr = lm.lg.initializeString firstPrintableAsciiCode (int o.maxSize.uper)
+        if lm.lg.GetType().FullName.Contains("rust") then
+            let tdName = typeDefinition.longTypedefName2 lm.lg.hasModules
+            if tdName = "" then initStr else sprintf "%s { arr: %s }" tdName initStr
+        else
+            initStr
     createInitFunctionCommon r lm t typeDefinition funcBody zero testCaseFuncs constantInitExpression constantInitExpression [] [] []
 
 let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.OctetString ) (typeDefinition:TypeDefinitionOrReference) (isValidFunction:IsValidFunction option) =
@@ -469,7 +475,10 @@ let createNullTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1Ac
     let funcBody (p:CodegenScope) v =
         let resVar = p.accessPath.asIdentifier
         initNull (lm.lg.getValue p.accessPath) p.accessPath.isOptional resVar
-    let constantInitExpression () = "0"
+    let constantInitExpression () = 
+        match ProgrammingLanguage.ActiveLanguages.Head with
+        | ProgrammingLanguage.Rust -> "()"
+        | _ -> "0"
     let testCaseFuncs: AutomaticTestCase list =
         [{AutomaticTestCase.initTestCaseFunc =
             (fun p ->
@@ -712,12 +721,20 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
 
 let getChildExpression (lm:LanguageMacros) (childType:Asn1Type) =
     match childType.initFunction.initFunction with
-    | Some cn when childType.isComplexType -> cn.funcName + (lm.lg.init.initMethSuffix childType.Kind)
+    | Some cn when childType.isComplexType -> 
+        if lm.lg.GetType().FullName.Contains("rust") then
+            childType.initFunction.initExpressionFnc()
+        else
+            cn.funcName + (lm.lg.init.initMethSuffix childType.Kind)
     | _ -> childType.initFunction.initExpressionFnc()
 
 let getChildExpressionGlobal (lm:LanguageMacros) (childType:Asn1Type) =
     match childType.initFunction.initGlobal with
-    | Some cn when childType.isComplexType -> cn.globalName
+    | Some cn when childType.isComplexType -> 
+        if lm.lg.GetType().FullName.Contains("rust") then
+            cn.globalName
+        else
+            cn.globalName
     | _ -> childType.initFunction.initExpressionGlobalFnc ()
 
 let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.SequenceOf  ) (typeDefinition:TypeDefinitionOrReference) (childType:Asn1Type)  =
@@ -1231,7 +1248,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             let presentWhenName = lm.lg.presentWhenName (Some typeDefinition) c
 
             let childExp = getChildExp lm c.chType
-            lm.init.initChoiceExpr childName presentWhenName childExp) |>
+            lm.init.initChoiceExpr childName presentWhenName childExp (typeDefinition.longTypedefName2 lm.lg.hasModules)) |>
         List.head
     createInitFunctionCommon r lm t typeDefinition funcBody initTasFunction testCaseFuncs (constantInitExpression getChildExpression) (constantInitExpression getChildExpressionGlobal) nonEmbeddedChildrenFuncs [] []
 
@@ -1283,7 +1300,11 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
                     match t.id.ModName = o.modName.Value with
                     | true  -> funcName, globalName
                     | false -> moduleName + "." + funcName, moduleName + "." + globalName
-            let constantInitExpression () = baseFncName + lm.lg.init.initMethSuffix baseType.Kind
+            let constantInitExpression () = 
+                if lm.lg.GetType().FullName.Contains("rust") then
+                    bs.initExpressionFnc ()
+                else
+                    baseFncName + lm.lg.init.initMethSuffix baseType.Kind
             let constantInitExpressionGlobal () = baseGlobalName
             let initTasFunction (p:CodegenScope) =
                 let resVar = p.accessPath.asIdentifier

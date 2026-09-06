@@ -1,4 +1,4 @@
-﻿module Language
+module Language
 open CommonTypes
 open System.Numerics
 open DAst
@@ -345,6 +345,9 @@ type ILangGeneric () =
     abstract member decodingKind     :DecodingKind
     abstract member usesWrappedOptional: bool
     abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
+
+    abstract member padArraysWithDefaultValues : bool
+    abstract member amberDecodePrefix : string
 
     abstract member toHex : int -> string
     abstract member uper  : Uper_parts;

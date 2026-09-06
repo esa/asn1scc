@@ -903,12 +903,12 @@ sequence_call_post_decoding_validator_prototype(sTypedefName, sFncName, sExtFunc
 
 
 /* Choice like uper */
-ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
 case <sChildID> =>
     return Left(<sErrorCodeName>)
 >>
 
-ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
 case <nChildIndex> =>
     return LeftMut(<sErrorCodeName>)
 >>
@@ -1024,17 +1024,17 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 val <v> = <sSeqPath><sAcc><sChildName>.isDefined
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName) ::= <<
 case _: <sChildNamePresent> =>
     <sChildRetVal>
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName) ::= <<
 case _: <sChildNamePresent> =>
     Vector.fromList(List(<arruChildRetValBytes:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))
 >>
 
-ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName) ::= <<
 val <v> = <sChPath> match
     <arrsChoiceItems; separator="\n">
 >>

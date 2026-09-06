@@ -348,11 +348,11 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
         let bXer = r.args.encodings |> Seq.exists((=) XER)
         let tstCasesHdrContent =
             match lm.lg.allowsSrcFilesWithNoFunctions with
-            | true     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+            | true     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name (Path.GetFileNameWithoutExtension(pu.testcase_specFileName)) pu.importedProgramUnits [] encDecFuncs bXer)
             | false   ->
                 match encDecFuncs with
                 | []    -> None
-                | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+                | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name (Path.GetFileNameWithoutExtension(pu.testcase_specFileName)) pu.importedProgramUnits [] encDecFuncs bXer)
 
         tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
 

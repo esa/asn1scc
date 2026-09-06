@@ -1,4 +1,4 @@
-﻿module DAstUtilFunctions
+module DAstUtilFunctions
 open System
 open System.Numerics
 open FsUtils
@@ -53,7 +53,10 @@ let rec extractDefaultInitValue (childType: Asn1TypeKind): String =
     | NullType n -> n.baseInfo.defaultInitVal
     | Boolean b -> b.baseInfo.defaultInitVal
     | ReferenceType rt -> extractDefaultInitValue rt.resolvedType.Kind
-    | _ -> "null"
+    | _ ->
+        match ProgrammingLanguage.ActiveLanguages.Head with
+        | Rust -> "Default::default()"
+        | _ -> "null"
 
 let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind =
     match t with
@@ -192,7 +195,7 @@ type ChChildInfo with
         match l with
         | C     -> (ToC this._present_when_name_private) + "_PRESENT"
         | Scala -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Scala
-        | Rust  -> (ToC this._present_when_name_private) + "_PRESENT"
+        | Rust  -> (ToC this._present_when_name_private)
         | Ada   ->
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC this._present_when_name_private) + "_PRESENT")

@@ -1,4 +1,4 @@
-﻿group a_variables;
+group a_variables;
 
 rtlModuleName() /*nogen*/ ::= "adaasn1rtl"
 
@@ -136,6 +136,7 @@ PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/,
 
 
 PrintSequenceValueChild(sName, sInnerValue) ::= "<sName> => <sInnerValue>"
+PrintSequenceValueOptionalChild(sName, sInnerValue) ::= "<sName> => <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= "<sName> => <sExistsBit>"
 PrintSequenceValue_Exists(td/*:FE_SequenceTypeDefinition*/, arrsOptionalPresentFields) /*nogen*/ ::="Exist => <td.exist>'(<arrsOptionalPresentFields; wrap, anchor,  separator=\",\">)"
 

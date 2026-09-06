@@ -1,4 +1,4 @@
-﻿module DAstEqual
+module DAstEqual
 open System
 open System.Numerics
 open System.IO
@@ -27,7 +27,9 @@ let isEqualBodyString (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
     Some (lm.equal.isEqual_String (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg)  , [])
 
 let isEqualBodyObjectIdentifier (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
-    Some (lm.equal.isObjectIdentifier_equal (lm.lg.getPointer v1.accessPath) (lm.lg.getPointer v2.accessPath), [])
+    let p1 = lm.lg.getPointer v1.accessPath
+    let p2 = lm.lg.getPointer v2.accessPath
+    Some (lm.equal.isObjectIdentifier_equal p1 p2, [])
 
 let isEqualBodyTimeType (o:Asn1AcnAst.TimeType) (lm:LanguageMacros) (v1:CodegenScope) (v2:CodegenScope) =
     let namespacePrefix = lm.lg.rtlModuleName
@@ -85,8 +87,8 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:A
             ({v1 with accessPath = lm.lg.getChChild v1.accessPath (sprintf "%s_%s_tmp" (v1.accessPath.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String}),
             ({v2 with accessPath = lm.lg.getChChild v2.accessPath (sprintf "%s_%s_tmp" (v2.accessPath.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String})
         | Rust ->
-            ({v1 with accessPath = lm.lg.getChChild v1.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String}),
-            ({v2 with accessPath = lm.lg.getChChild v2.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String})
+            ({v1 with accessPath = lm.lg.getChChild v1.accessPath ((lm.lg.getAsn1ChChildBackendName0 o) + "1") newChild.isIA5String}),
+            ({v2 with accessPath = lm.lg.getChChild v2.accessPath ((lm.lg.getAsn1ChChildBackendName0 o) + "2") newChild.isIA5String})
         | _ ->
             ({v1 with accessPath = lm.lg.getChChild v1.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String}),
             ({v2 with accessPath = lm.lg.getChChild v2.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String})
@@ -107,7 +109,7 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:A
             let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.accessPath) (lm.lg.getPointer p2.accessPath) fncName p1.accessPath.isOptional p2.accessPath.isOptional
             makeExpressionToStatement lm exp, []
 
-    lm.equal.isEqual_Choice_Child choiceTypeDefName o.presentWhenName sInnerStatement (p1.accessPath.joined lm.lg) (p2.accessPath.joined lm.lg), lvars
+    lm.equal.isEqual_Choice_Child choiceTypeDefName (lm.lg.presentWhenName0 None o) sInnerStatement (p1.accessPath.joined lm.lg) (p2.accessPath.joined lm.lg), lvars
 
 
 

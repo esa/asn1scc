@@ -1,4 +1,4 @@
-﻿module LangGeneric_scala
+module LangGeneric_scala
 open CommonTypes
 open System.Numerics
 open DAst
@@ -244,6 +244,8 @@ type LangGeneric_scala() =
         override this.initMethod           = InitMethod.Procedure
         override _.decodingKind = Copy
         override _.usesWrappedOptional = true
+        override _.padArraysWithDefaultValues = false
+        override _.amberDecodePrefix = "&"
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
 
@@ -539,7 +541,7 @@ type LangGeneric_scala() =
             let CreateScalaMainFile (r:AstRoot)  outDir  =
                 // Main file for test case
                 let printMain =    test_cases_scala.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
-                let content = printMain "testsuite"
+                let content = printMain "testsuite" (r.programUnits |> List.map (fun pu -> pu.name))
                 let outFileName = Path.Combine(outDir, "mainprogram.scala")
                 File.WriteAllText(outFileName, content.Replace("\r",""))
 

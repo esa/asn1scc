@@ -1,4 +1,4 @@
-﻿group c_variables;
+group c_variables;
 
 PrintIntValue(nValue) ::= "<nValue>"
 
@@ -166,6 +166,7 @@ PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/,
 
 
 PrintSequenceValueChild(sName, sInnerValue) ::= ".<sName> = <sInnerValue>"
+PrintSequenceValueOptionalChild(sName, sInnerValue) ::= ".<sName> = <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= ".<sName> = <sExistsBit>"
 
 PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<{

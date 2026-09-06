@@ -38,7 +38,8 @@ def mysystem(cmd, bCanFail):
     if ret != 0 and not bCanFail:
         PrintFailed(cmd)
         mysystem("cat tmp.err"+"_"+language, True)
-        sys.exit(1)
+        global_errors.append(f'Failed {asn1} {acn} in {language}')
+        raise Exception('TestFailed')
     return ret
 
 
@@ -81,7 +82,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     astXml  = targetDir + os.sep + "ast.xml"
     #launcher = '' if sys.platform == 'cygwin' else 'mono '
     #path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
-    path_to_asn1scc = "../asn1scc/bin/Debug/net10.0/asn1scc"
+    path_to_asn1scc = "../asn1scc/bin/Debug/net10.0/linux-x64/publish/asn1scc"
     if xerMode:
         encodingFlags = " -XER "
         inputFiles = "'" + resolvedir(asn1File) + "'"
@@ -102,7 +103,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         if res != 0 or err_msg != "":
             PrintFailed("Asn.1 compiler failed")
             print("Asn.1 compiler error is: " + err_msg)
-            sys.exit(1)
+            global_errors.append(f'Failed {asn1} {acn} in {language}')
+            raise Exception('TestFailed')
     else:
         err_msg = err_msg.replace("\r\n", "").replace("\n", "").replace(resolvedir(targetDir) +  resolvesep(), "")
         if res == 0 or err_msg != expErrMsg:
@@ -112,7 +114,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             print("Expected/current messages: ")
             print("'" + expErrMsg + "'")
             print("'" + err_msg + "'")
-            sys.exit(1)
+            global_errors.append(f'Failed {asn1} {acn} in {language}')
+            raise Exception('TestFailed')
         else:
             nTests += 1
             return
@@ -147,7 +150,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             lines = list(lines)
             if bRunCodeCoverage and len(lines) > 0:
                 PrintWarning("coverage failed. (less than 100%)")
-                sys.exit(1)
+                global_errors.append(f'Failed {asn1} {acn} in {language}')
+                raise Exception('TestFailed')
         except FileNotFoundError as err:
             pass;
     elif language == 'Rust':
@@ -181,7 +185,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             PrintFailed("compilation failure")
             PrintFailed("covlog.txt is ...")
             mysystem("cat covlog.txt", False)
-            sys.exit(1)
+            global_errors.append(f'Failed {asn1} {acn} in {language}')
+            raise Exception('TestFailed')
         elif behavior == 2 and res != 0:
             PrintSucceededAsExpected(
                 "Test cases failed at build-time as expected")
@@ -192,14 +197,16 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                 PrintFailed("run time failure")
                 PrintFailed("covlog.txt is ...")
                 mysystem("cat covlog.txt", False)
-                sys.exit(1)
+                global_errors.append(f'Failed {asn1} {acn} in {language}')
+                raise Exception('TestFailed')
             elif behavior == 2 and res != 0:
                 PrintSucceededAsExpected(
                     "Test cases failed at run-time as expected")
             elif behavior == 2 and res == 0:
                 PrintFailed(
                     "ERROR: Executable didn't fail as it was expected to do...")
-                sys.exit(1)
+                global_errors.append(f'Failed {asn1} {acn} in {language}')
+                raise Exception('TestFailed')
         os.chdir(prevDir)
     elif language == 'Ada':
         prevDir = os.getcwd()
@@ -213,7 +220,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         #     if l.startswith("Totals:")][0]
         # if "<<<" in totalsline:
         #     PrintFailed("Victor failed")
-        #     sys.exit(1)
+        global_errors.append(f'Failed {asn1} {acn} in {language}')
+        raise Exception('TestFailed')
         #
         # res = mysystem("CC=gcc make coverage >covlog.txt 2>&1", True)
         res = mysystem("make coverage >covlog.txt 2>&1", True)
@@ -221,14 +229,16 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             PrintFailed("run time failure")
             PrintFailed("covlog.txt is ...")
             mysystem("cat covlog.txt",False)
-            sys.exit(1)
+            global_errors.append(f'Failed {asn1} {acn} in {language}')
+            raise Exception('TestFailed')
         elif behavior == 2 and res == 2:
             PrintSucceededAsExpected(
                 "Test cases failed at run-time as expected")
         elif behavior == 2 and res == 0:
             PrintFailed(
                 "ERROR: Executable didn't fail as it was expected to do...")
-            sys.exit(1)
+            global_errors.append(f'Failed {asn1} {acn} in {language}')
+            raise Exception('TestFailed')
         elif behavior == 0 and res == 0:
             # -- NOCOVERAGE
             doCoverage = "-- NOCOVERAGE" not in open("sample1.asn1", 'r').readlines()[0]
@@ -245,7 +255,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                     lines = list(lines)
                     if bRunCodeCoverage and len(lines) > 0:
                         PrintWarning("coverage failed. (less than 100%)")
-                        sys.exit(1)
+                        global_errors.append(f'Failed {asn1} {acn} in {language}')
+                        raise Exception('TestFailed')
                 except FileNotFoundError as err:
                     print ("No file found at : " + targetDir + os.sep + "obj_x86" + os.sep + "debug" + os.sep + "test_case.adb.gcov")
                     pass
@@ -259,7 +270,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                     if len(lines) > 0:
                         PrintWarning("Spark failed.")
                         mysystem("cat sparklog.txt",False)
-                        sys.exit(1)
+                        global_errors.append(f'Failed {asn1} {acn} in {language}')
+                        raise Exception('TestFailed')
                     else:
                         PrintSucceededAsExpected("Spark OK !!!")
                 except FileNotFoundError as err:
@@ -296,62 +308,78 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
 
 
 def DoWork_ACN(asn1file):
+    import os
+    __saved_dir = os.getcwd()
+
     print(language, "ACN", asn1file)
 
     fnameASN = asn1file.strip()
     if not os.path.exists(fnameASN):
         print("File '" + fnameASN + "' does not exist! ")
-        sys.exit(1)
+        global_errors.append(f'Failed {asn1} {acn} in {language}')
+        raise Exception('TestFailed')
 
     f = open(fnameASN, 'r')
     lines = f.readlines()
     for line in lines:
         if line.find("--TCLS") == 0:
             shutil.rmtree(targetDir, ignore_errors=True)
-            os.mkdir(targetDir)
+            os.makedirs(targetDir, exist_ok=True)
             testCaseDir = os.path.dirname(os.path.abspath(fnameASN))
             shutil.copyfile(fnameASN, targetDir + os.sep + "sample1.asn1")
             tmp_line = line.split("--TCLS")[1].strip()
             CreateACNFile(tmp_line)
-            RunTestCase(
-                os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 0, "")
+            try:
+                RunTestCase(
+                    os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 0, "")
+            except Exception:
+                os.chdir(__saved_dir)
         elif line.find("--TCLFC") == 0:
             shutil.rmtree(targetDir, ignore_errors=True)
-            os.mkdir(targetDir)
+            os.makedirs(targetDir, exist_ok=True)
             testCaseDir = os.path.dirname(os.path.abspath(fnameASN))
             shutil.copyfile(fnameASN, targetDir + os.sep + "sample1.asn1")
             tmp_line = line.split("--TCLFC")[1].strip()
             tmp_err = tmp_line.split("$$$")[1].strip()
             tmp_line = tmp_line.split("$$$")[0].strip()
             CreateACNFile(tmp_line)
-            RunTestCase(
-                os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 1, tmp_err)
+            try:
+                RunTestCase(
+                    os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 1, tmp_err)
+            except Exception:
+                os.chdir(__saved_dir)
         elif line.find("--TCLFE") == 0:
             shutil.rmtree(targetDir, ignore_errors=True)
-            os.mkdir(targetDir)
+            os.makedirs(targetDir, exist_ok=True)
             testCaseDir = os.path.dirname(os.path.abspath(fnameASN))
             shutil.copyfile(fnameASN, targetDir + os.sep + "sample1.asn1")
             tmp_line = line.split("--TCLFE")[1].strip()
             tmp_err = tmp_line.split("$$$")[1].strip()
             tmp_line = tmp_line.split("$$$")[0].strip()
             CreateACNFile(tmp_line)
-            RunTestCase(
-                os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 2, tmp_err)
+            try:
+                RunTestCase(
+                    os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 2, tmp_err)
+            except Exception:
+                os.chdir(__saved_dir)
         # # for file (TCF)
         elif line.find("--TCFS") == 0:
             shutil.rmtree(targetDir, ignore_errors=True)
-            os.mkdir(targetDir)
+            os.makedirs(targetDir, exist_ok=True)
             testCaseDir = os.path.dirname(os.path.abspath(fnameASN))
             shutil.copyfile(fnameASN, targetDir + os.sep + "sample1.asn1")
             tmp_line = line.split("--TCFS")[1].strip()
             shutil.copyfile(
                 testCaseDir + os.sep + tmp_line,
                 targetDir + os.sep + "sample1.acn")
-            RunTestCase(
-                os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 0, "")
+            try:
+                RunTestCase(
+                    os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 0, "")
+            except Exception:
+                os.chdir(__saved_dir)
         elif line.find("--TCFFC") == 0:
             shutil.rmtree(targetDir, ignore_errors=True)
-            os.mkdir(targetDir)
+            os.makedirs(targetDir, exist_ok=True)
             testCaseDir = os.path.dirname(os.path.abspath(fnameASN))
             shutil.copyfile(fnameASN, targetDir + os.sep + "sample1.asn1")
             tmp_line = line.split("--TCFFC")[1].strip()
@@ -360,11 +388,14 @@ def DoWork_ACN(asn1file):
             shutil.copyfile(
                 testCaseDir + os.sep + tmp_line,
                 targetDir + os.sep + "sample1.acn")
-            RunTestCase(
-                os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 1, tmp_err)
+            try:
+                RunTestCase(
+                    os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 1, tmp_err)
+            except Exception:
+                os.chdir(__saved_dir)
         elif line.find("--TCFFE") == 0:
             shutil.rmtree(targetDir, ignore_errors=True)
-            os.mkdir(targetDir)
+            os.makedirs(targetDir, exist_ok=True)
             testCaseDir = os.path.dirname(os.path.abspath(fnameASN))
             shutil.copyfile(fnameASN, targetDir + os.sep + "sample1.asn1")
             tmp_line = line.split("--TCFFE")[1].strip()
@@ -373,27 +404,37 @@ def DoWork_ACN(asn1file):
             shutil.copyfile(
                 testCaseDir + os.sep + tmp_line,
                 targetDir + os.sep + "sample1.acn")
-            RunTestCase(
-                os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 2, tmp_err)
+            try:
+                RunTestCase(
+                    os.sep.join(asn1file.split(os.sep)[-2:]), tmp_line, 2, tmp_err)
+            except Exception:
+                os.chdir(__saved_dir)
         elif line.find("--TCBREAK") == 0:
-            sys.exit(0)
+            return
         else:
             continue
 
 
 def DoWork_XER(asn1file):
+    import os
+    __saved_dir = os.getcwd()
+
     print(language, "XER", asn1file)
 
     fnameASN = asn1file.strip()
     if not os.path.exists(fnameASN):
         print("File '" + fnameASN + "' does not exist! ")
-        sys.exit(1)
+        global_errors.append(f'Failed {asn1} {acn} in {language}')
+        raise Exception('TestFailed')
 
     shutil.rmtree(targetDir, ignore_errors=True)
     os.mkdir(targetDir)
     shutil.copyfile(fnameASN, targetDir + os.sep + "sample1.asn1")
-    RunTestCase(
-        os.sep.join(asn1file.split(os.sep)[-2:]), "(no acn)", 0, "")
+    try:
+        RunTestCase(
+            os.sep.join(asn1file.split(os.sep)[-2:]), "(no acn)", 0, "")
+    except Exception:
+        os.chdir(__saved_dir)
 
 
 def GetBehavior(asn1File):
@@ -446,7 +487,7 @@ def submain(lang, encoding, testCaseSet, cntTest, workDir):
 
     if os.path.exists(targetDir):
         shutil.rmtree(targetDir)
-    os.mkdir(targetDir)
+    os.makedirs(targetDir, exist_ok=True)
     
     testCaseStart = testCaseSet
     if testCaseSet == "" or cntTest:
@@ -462,7 +503,7 @@ def submain(lang, encoding, testCaseSet, cntTest, workDir):
         #relAsn1Path = "test-cases" + os.sep + "acn" + os.sep + asn1file
         #print ("testCaseStart is :" + testCaseStart)
         for curDir in sorted(os.listdir(testCaseSet)):
-            if curDir.find('.svn') != -1:
+            if not os.path.isdir(testCaseSet + os.sep + curDir):
                 continue
             asn1files = [
                 x
@@ -493,14 +534,16 @@ def usage():
     print("           override the output/working directory (default: tmp_<lang>)")
     print("     --icd-pdus <types>")
     print("           comma-separated list of PDU type names (passed as -icdPdus to asn1scc)")
-    sys.exit(1)
+    global_errors.append(f'Failed {asn1} {acn} in {language}')
+    raise Exception('TestFailed')
 
 
 def main():
-    global rootDir, nTests, slim, acnV2, icdPdus, xerMode
+    global rootDir, global_errors, nTests, slim, acnV2, icdPdus, xerMode
 
     rootDir = os.path.abspath(
         os.path.dirname(os.path.abspath(sys.argv[0])) + os.sep + "..")
+    global_errors = []
     nTests = 0
 
     if len(sys.argv) == 1:
@@ -565,7 +608,8 @@ def main():
         if lang == "Rust":
             if shutil.which("cargo") is None:
                 print("Error: 'cargo' not found in PATH. Install Rust toolchain (rustup).")
-                sys.exit(1)
+                global_errors.append(f'Failed {asn1} {acn} in {language}')
+                raise Exception('TestFailed')
 
         #f = open(language+"_log.txt", 'a')
         #f.write("==========================================\n")
@@ -573,6 +617,9 @@ def main():
         encoding = "XER" if xerMode else "ACN"
         submain(lang, encoding, testCaseSet, cntTest, workDir)
     print("Test run ended succesfully. Number of test cases run :", nTests)
+    if global_errors:
+        print('\n'.join(global_errors))
+        sys.exit(1)
 
 
 if __name__ == "__main__":

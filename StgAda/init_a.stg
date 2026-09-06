@@ -317,4 +317,4 @@ initSequenceExpr(sTypeDefName, arrsChildren, arrsOptionalChildren) ::= <<
 (<arrsChildren; separator=", "><if (arrsOptionalChildren)>, Exist => (<arrsOptionalChildren; separator=", ">)<endif>)
 >>
 
-initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "(kind => <sChildKind>, <sChildName> => <sChildExpr>)"
+initChoiceExpr(sChildName, sChildKind, sChildExpr, sChoiceTypeName) ::= "(kind => <sChildKind>, <sChildName> => <sChildExpr>)"

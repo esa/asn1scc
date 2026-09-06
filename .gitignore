@@ -1422,3 +1422,5 @@ asn1scc/Properties/launchSettings_UPER.json
 acnv2/*
 
 .fake
+# Rust build artifacts
+asn1rust/target/

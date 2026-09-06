@@ -1,0 +1,8 @@
+[package]
+name = "asn1rust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "asn1rust"
+path = "src/lib.rs"

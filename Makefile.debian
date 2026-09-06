@@ -1,15 +1,15 @@
 all: build
 
 build: dotnet-debian.SENTINEL
-	dotnet build -c Release Antlr/
-	dotnet build -c Release parseStg2/
-	dotnet build -c Release "asn1scc.sln"
+	dotnet build -c Debug Antlr/
+	dotnet build -c Debug parseStg2/
+	dotnet build -c Debug "asn1scc.sln"
 
 publish: build
-	dotnet publish -c Release --self-contained true -r linux-x64  asn1scc.sln
+	dotnet publish -c Debug --self-contained true -r linux-x64  asn1scc.sln
 
 publish-win64: build
-	dotnet publish -c Release --self-contained true -r win-x64  asn1scc.sln
+	dotnet publish -c Debug --self-contained true -r win-x64  asn1scc.sln
 
 dotnet-debian.SENTINEL:
 	# install dotnet on debian (https://docs.microsoft.com/en-us/dotnet/core/install/linux-debian)

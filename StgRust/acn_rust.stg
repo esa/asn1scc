@@ -1,0 +1,2066 @@
+
+group rust_acn;
+
+
+getStringSize(p) ::= "<p>.len() as u64"
+
+getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p><sAcc>n_count as u64"
+
+
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
+pub const <sErrCode>: i32 = <nErrValue>;  /*<soErrorCodeComment>*/
+>>
+
+EmitAcnParameter(sName, sType) ::= "<sType>, <sName>"
+
+EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
+pub const <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING: usize = <nMaxBytesInACN>;
+pub const <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING: usize = <nMaxBitsInACN>;
+>>
+
+
+
+EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
+<arrsErrcodes; separator="\n">
+>>
+
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+pub fn <sFuncName>(<sVarName>: &<sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32, bCheckConstraints: bool<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> bool {
+    let mut ret: bool = true;
+<if(bVarNameIsUnreferenced)>
+    let _ = <sVarName>;
+
+<endif>
+<if(bBsIsUnreferenced)>
+    let _ = pBitStrm;
+
+<endif>
+
+    <arrsLocalVariables:{lv|<lv>}; separator="\n">
+    <if(soIValidFuncName)>
+    *pErrCode = 0;
+    ret = if bCheckConstraints { <soIValidFuncName>(<sVarName>, pErrCode) } else { true };
+    if ret && *pErrCode == 0 {
+        <sContent>
+    } /*COVERAGE_IGNORE*/
+
+    <else>
+    *pErrCode = 0;
+    let _ = bCheckConstraints;
+
+    <sContent>
+
+    <endif>
+
+    ret
+}
+>>
+
+EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
+<arrsErrcodes; separator="\n">
+>>
+
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+pub fn <sFuncName>(<sVarName>: &mut <sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> bool {
+    let mut ret: bool = true;
+<if(bVarNameIsUnreferenced)>
+    let _ = <sVarName>;
+
+<endif>
+<if(bBsIsUnreferenced)>
+    let _ = pBitStrm;
+
+<endif>
+    *pErrCode = 0;
+
+    <arrsLocalVariables:{lv|<lv>}; separator="\n">
+
+    <sContent>
+
+    ret<if(soIValidFuncName)> && <soIValidFuncName>(<sVarName>, pErrCode)<endif>
+}
+>>
+
+
+
+
+
+
+
+
+
+
+A(sErrCode) /*nogen*/ ::= "*pErrCode = if ret { 0 } else { <sErrCode> };"
+
+MF(soMF) /*nogen*/ ::= <<
+<if(soMF)>
+if ret {
+    <p> = <soMF>_decode(<p>);
+}
+
+<endif>
+>>
+
+MappingFunctionDeclaration_encode(sTypeName, sMF) ::= "/* extern <sTypeName> <sMF>_encode(<sTypeName>); */"
+
+MappingFunctionDeclaration_decode(sTypeName, sMF) ::= "/* extern <sTypeName> <sMF>_decode(<sTypeName>); */"
+
+
+
+loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
+let mut <i>: usize = 0;
+while <i> \< (<fixedSize> as usize) && ret {
+    <sInternalItem>
+    <i> += 1;
+}
+>>
+
+
+
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+acn::acn_align_to<sAlignmentValue>(pBitStrm, true);
+<sMainBody>
+>>
+
+
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+acn::acn_align_to<sAlignmentValue>(pBitStrm, false);
+<sMainBody>
+>>
+
+
+
+PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, <nFixedSize>);"
+PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_positive_integer_const_size<sSsuffix>(pBitStrm, <nFixedSize>);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_8(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_positive_integer_const_size_8<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_big_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_positive_integer_const_size_big_endian_16<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_big_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_positive_integer_const_size_big_endian_32<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_positive_integer_const_size_big_endian_64<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_little_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_positive_integer_const_size_little_endian_16<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_little_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_positive_integer_const_size_little_endian_32<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_positive_integer_const_size_little_endian_64<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= "acn::acn_enc_int_positive_integer_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_positive_integer_var_size_length_embedded<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+
+TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>, <nFixedSize>);"
+TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_twos_complement_const_size<sSsuffix>(pBitStrm, <nFixedSize>);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_8(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_twos_complement_const_size_8<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_big_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_twos_complement_const_size_big_endian_16<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_big_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_twos_complement_const_size_big_endian_32<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_twos_complement_const_size_big_endian_64<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_little_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_twos_complement_const_size_little_endian_16<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_little_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_twos_complement_const_size_little_endian_32<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_twos_complement_const_size_little_endian_64<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "acn::acn_enc_int_twos_complement_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_twos_complement_var_size_length_embedded<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+
+BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= "acn::acn_enc_int_bcd_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, <nNibbles>);"
+BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_bcd_const_size<sSsuffix>(pBitStrm, <nNibbles>);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "acn::acn_enc_int_bcd_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_bcd_var_size_length_embedded<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_bcd_var_size_null_terminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+{
+    let (val, ok) = acn::acn_dec_int_bcd_var_size_null_terminated<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "acn::acn_enc_sint_ascii_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>, <nSizeInBytes>);"
+ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+{
+    let (val, ok) = acn::acn_dec_sint_ascii_const_size<sSsuffix>(pBitStrm, <nSizeInBytes>);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "acn::acn_enc_sint_ascii_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+{
+    let (val, ok) = acn::acn_dec_sint_ascii_var_size_length_embedded<sSsuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "acn::acn_enc_sint_ascii_var_size_null_terminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>, &[<arruNullBytes; separator=\", \">]);"
+ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+{
+    let (val, ok) = acn::acn_dec_sint_ascii_var_size_null_terminated<sSsuffix>(pBitStrm, &[<arruNullBytes; separator=", ">]);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "acn::acn_enc_uint_ascii_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, <nSizeInBytes>);"
+ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+{
+    let (val, ok) = acn::acn_dec_uint_ascii_const_size<sSsuffix>(pBitStrm, <nSizeInBytes>);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "acn::acn_enc_uint_ascii_var_size_null_terminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, &[<arruNullBytes; separator=\", \">]);"
+ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+{
+    let (val, ok) = acn::acn_dec_uint_ascii_var_size_null_terminated<sSsuffix>(pBitStrm, &[<arruNullBytes; separator=", ">]);
+    <p> = val;
+    ret = ok;
+}
+<MF(soMF)>
+<A(sErrCode)>
+>>
+
+
+
+Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "acn::acn_enc_real_ieee754_32_big_endian(pBitStrm, <p> as f64);"
+Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
+{
+    let (val, ok) = acn::acn_dec_real_ieee754_32_big_endian<sSuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+Real_64_big_endian_encode(p, sErrCode) ::= "acn::acn_enc_real_ieee754_64_big_endian(pBitStrm, <p>);"
+Real_64_big_endian_decode(p, sErrCode) ::= <<
+{
+    let (val, ok) = acn::acn_dec_real_ieee754_64_big_endian(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+Real_32_little_endian_encode(p, sSuffix, sErrCode) ::= "acn::acn_enc_real_ieee754_32_little_endian(pBitStrm, <p> as f64);"
+Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
+{
+    let (val, ok) = acn::acn_dec_real_ieee754_32_little_endian<sSuffix>(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+Real_64_little_endian_encode(p, sErrCode) ::= "acn::acn_enc_real_ieee754_64_little_endian(pBitStrm, <p>);"
+Real_64_little_endian_decode(p, sErrCode) ::= <<
+{
+    let (val, ok) = acn::acn_dec_real_ieee754_64_little_endian(pBitStrm);
+    <p> = val;
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+/* REAL encoded as scaled integer (issue #339): the real value is mapped linearly onto
+   the integer range and the bitstream work is delegated to the integer encoding (sIntBody) */
+Real_ScaledInt_uint_encode(p, sTmpVar, sIntBody, sLow, sScale, sUintMax, sErrCode) ::= <<
+<sTmpVar> = acn::acn_real_2_scaled_uint(<p>, <sLow>, <sScale>, <sUintMax>);
+<sIntBody>
+>>
+
+Real_ScaledInt_uint_decode(p, sTmpVar, sIntBody, sLow, sScale, sUintMax, sErrCode) ::= <<
+<sIntBody>
+if ret {
+    <p> = acn::acn_scaled_uint_2_real(<sTmpVar>, <sLow>, <sScale>);
+}
+>>
+
+Real_ScaledInt_sint_encode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
+<sTmpVar> = acn::acn_real_2_scaled_sint(<p>, <sLow>, <sScale>, <sIntMin>, <sIntMax>);
+<sIntBody>
+>>
+
+Real_ScaledInt_sint_decode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
+<sIntBody>
+if ret {
+    <p> = acn::acn_scaled_sint_2_real(<sTmpVar>, <sLow>, <sScale>, <sIntMin>);
+}
+>>
+
+
+
+Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
+{
+    let true_data: [u8; <length(arruTrueValueAsByteArray)>] = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
+    let false_data: [u8; <length(arruFalseValueAsByteArray)>] = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
+    let tmp: &[u8] = if <p> { &true_data } else { &false_data };
+    pBitStrm.append_bits(tmp, <nSize>);
+}
+>>
+
+
+Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
+{
+    <if(bEncValIsTrue)>
+    let tmp: [u8; <length(arruTrueValueAsByteArray)>] = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
+    <else>
+    let tmp: [u8; <length(arruFalseValueAsByteArray)>] = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
+    <endif>
+    let (val, ok) = acn::bit_stream_read_bit_pattern(pBitStrm, &tmp, <nSize>);
+    <ptr> = val;
+    ret = ok;
+    <A(sErrCode)>
+    <if(!bEncValIsTrue)><p> = !<p>;<endif>
+}
+>>
+
+
+BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
+{
+    let true_data: [u8; <length(arruTrueValueAsByteArray)>] = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
+    let false_data: [u8; <length(arruFalseValueAsByteArray)>] = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
+    let tmp: &[u8] = if <p> { &true_data } else { &false_data };
+    pBitStrm.append_bits(tmp, <nSize>);
+}
+>>
+
+BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
+{
+    let true_data: [u8; <length(arruTrueValueAsByteArray)>] = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
+    let false_data: [u8; <length(arruFalseValueAsByteArray)>] = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
+    let (val, ok) = acn::bit_stream_decode_true_false_boolean(pBitStrm, &true_data, &false_data, <nSize>);
+    <ptr> = val;
+    ret = ok;
+    <A(sErrCode)>
+}
+>>
+
+
+Null_declare(p) ::= ""
+
+Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+<if(arruNullValueAsByteArray)>
+{
+    let tmp: [u8; <length(arruNullValueAsByteArray)>] = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
+    pBitStrm.append_bits(&tmp, <nSize>);
+}
+<endif>
+>>
+
+Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+<if(bSavePosition)>
+ret = acn::bit_stream_read_bit_pattern_ignore_value(pBitStrm, <nSize>);
+
+<else>
+<if(arruNullValueAsByteArray)>
+{
+    let tmp: [u8; <length(arruNullValueAsByteArray)>] = [<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
+    let (b_decoding_pattern_matches, ok) = acn::bit_stream_read_bit_pattern(pBitStrm, &tmp, <nSize>);
+    ret = ok && b_decoding_pattern_matches;
+    <A(sErrCode)>
+
+}
+
+<endif>
+
+<endif>
+>>
+
+Null_pattern2_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+<Null_pattern_encode(p=p, arruNullValueAsByteArray=arruNullValueAsByteArray, nSize=nSize, arrsBits=arrsBits, sErrCode=sErrCode, bSavePosition=bSavePosition)>
+>>
+
+Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+<Null_pattern_decode(p=p, arruNullValueAsByteArray=arruNullValueAsByteArray, nSize=nSize, arrsBits=arrsBits, sErrCode=sErrCode, bSavePosition=bSavePosition)>
+>>
+
+
+
+Enumerated_item_encode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
+<sName> => { <sIntVal> = <sItemVal>; }
+>>
+
+Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
+<nItemIdx> => { <p> = <sName>; }
+>>
+
+EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
+<sActualCodecFunc>
+>>
+
+EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
+<sActualCodecFunc>
+>>
+
+
+EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+match <p> {
+    <arrsItem; separator="\n">
+    _ => {                                    /*COVERAGE_IGNORE*/
+        ret = false;                            /*COVERAGE_IGNORE*/
+        *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
+    }
+}
+if ret {
+    <sActualCodecFunc>
+}
+>>
+
+EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+<sActualCodecFunc>
+if ret {
+    match <sIntVal> {
+        <arrsItem; separator="\n">
+        _ => {                                    /*COVERAGE_IGNORE*/
+            ret = false;                            /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
+        }
+    }
+} /*COVERAGE_IGNORE*/
+>>
+
+
+
+EnumeratedEncValues_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
+<sEnumIndex> = binary_search(&<td.encoded_values_array>, <td.encoded_values_array_count>, <p>);
+if <sEnumIndex> \>= 0 && <sEnumIndex> \<= <nLastItemIndex> {
+    <sIntVal> = <if(bEncodeValues)><td.encoded_values_array>[<sEnumIndex> as usize]<else><sEnumIndex><endif>;
+    <sActualCodecFunc>
+} else {
+    ret = false;
+    *pErrCode = <sErrCode>;
+}
+>>
+
+EnumeratedEncValues_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, sEnumIndex, nLastItemIndex, bEncodeValues) ::= <<
+<sActualCodecFunc>
+if ret {
+    <if(bEncodeValues)>
+    /*check if the value is in the encoded values list*/
+    <sEnumIndex> = binary_search(&<td.encoded_values_array>, <td.encoded_values_array_count>, <sIntVal>);
+    <else>
+    <sEnumIndex> = <sIntVal>;
+    <endif>
+    ret = ret && <sEnumIndex> \>= 0 && <sEnumIndex> \<= <nLastItemIndex>;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    <p> = if ret { <td.encoded_values_array>[<sEnumIndex> as usize] } else { <sFirstItemName> };
+
+} /*COVERAGE_IGNORE*/
+>>
+
+
+
+/* Strings */
+Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "acn::acn_enc_string_ascii_fix_size(pBitStrm, <nAsn1Max>, &(<p>).arr);"
+Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
+{
+    let ok = acn::acn_dec_string_ascii_fix_size(pBitStrm, <nAsn1Max>, &mut (<p>).arr);
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= "acn::acn_enc_string_ascii_null_terminated_mult(pBitStrm, <nAsn1Max>, &[<arruNullBytes; separator=\", \">], &(<p>).arr);"
+Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
+{
+    let ok = acn::acn_dec_string_ascii_null_terminated_mult(pBitStrm, <nAsn1Max>, &[<arruNullBytes; separator=", ">], &mut (<p>).arr);
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "acn::acn_enc_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);"
+Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld) ::= <<
+{
+    let ok = acn::acn_dec_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, <sExtFld> as i64, &mut (<p>).arr);
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "acn::acn_enc_string_ascii_internal_field_determinant(pBitStrm, <nAsn1Max>, <nAsn1Min>, &(<p>).arr);"
+Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
+{
+    let ok = acn::acn_dec_string_ascii_internal_field_determinant(pBitStrm, <nAsn1Max>, <nAsn1Min>, &mut (<p>).arr);
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+PrintAlphabet2(arrnCharSet) /*nogen*/ ::= <<
+static ALLOWED_CHAR_SET: [u8; <length(arrnCharSet)>] = [<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=", ">];
+>>
+
+Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+<PrintAlphabet2(arrnAlphabetAsciiCodes)>
+acn::acn_enc_string_char_index_fix_size(pBitStrm, <nAsn1Max>, &ALLOWED_CHAR_SET, &(<p>).arr);
+>>
+
+Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+<PrintAlphabet2(arrnAlphabetAsciiCodes)>
+{
+    let ok = acn::acn_dec_string_char_index_fix_size(pBitStrm, <nAsn1Max>, &ALLOWED_CHAR_SET, &mut (<p>).arr);
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+<PrintAlphabet2(arrnAlphabetAsciiCodes)>
+acn::acn_enc_string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, &ALLOWED_CHAR_SET, &(<p>).arr);
+>>
+
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+<PrintAlphabet2(arrnAlphabetAsciiCodes)>
+{
+    let ok = acn::acn_dec_string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, &ALLOWED_CHAR_SET, <sExtFld> as i64, &mut (<p>).arr);
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+acn::acn_enc_ia5string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);
+>>
+
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+{
+    let ok = acn::acn_dec_ia5string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, <sExtFld> as i64, &mut (<p>).arr);
+    ret = ok;
+}
+<A(sErrCode)>
+>>
+
+
+oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, noSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+ret = pBitStrm.octet_string_encode_no_length(&<p><sAcc>arr, <p><sAcc>n_count as usize);
+>>
+
+
+oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, noSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+<if(noSizeMin)>
+ret = (<noSizeMin> \<= <sExtFld><if(noSizeMax)> && <sExtFld> \<= <noSizeMax><endif>);
+if ret {
+    <p><sAcc>n_count = <sExtFld> as i32;
+    ret = pBitStrm.octet_string_decode_no_length(&mut <p><sAcc>arr, <p><sAcc>n_count as usize);
+    <A(sErrCode)>
+}
+<else>
+<if(noSizeMax)>
+ret = (<sExtFld> \<= <noSizeMax>);
+if ret {
+    <p><sAcc>n_count = <sExtFld> as i32;
+    ret = pBitStrm.octet_string_decode_no_length(&mut <p><sAcc>arr, <p><sAcc>n_count as usize);
+    <A(sErrCode)>
+}
+<else>
+<p><sAcc>n_count = <sExtFld> as i32;
+ret = pBitStrm.octet_string_decode_no_length(&mut <p><sAcc>arr, <p><sAcc>n_count as usize);
+<A(sErrCode)>
+<endif>
+<endif>
+>>
+
+oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+ret = pBitStrm.octet_string_encode_no_length(&<p><sAcc>arr, <nSizeMax> as usize);
+>>
+
+
+oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
+ret = (<if(noSizeMin)>(<noSizeMin> \<= <sExtFld>) && <endif>(<sExtFld> \<= <nSizeMax>));
+if ret {
+    ret = pBitStrm.octet_string_decode_no_length(&mut <p><sAcc>arr, <nSizeMax> as usize);
+    <A(sErrCode)>
+}
+>>
+
+
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+pBitStrm.encode_constraint_whole_number(<p><sAcc>n_count as i64, <nSizeMin>, <nSizeMax>);
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
+>>
+
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(<nSizeMin>, <nSizeMax>);
+    n_count = val;
+    ret = ok;
+}
+*pErrCode = if ret { 0 } else { <sErrCode> };
+<p><sAcc>n_count = n_count as i32;
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
+>>
+
+sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
+>>
+
+
+sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+ret = (<if(noSizeMin)>(<noSizeMin> \<= <sExtFld>) && <endif>(<sExtFld> \<= <nSizeMax>));
+if ret {
+    <p><sAcc>n_count = <sExtFld> as i32;
+    <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p,sAcc, "n_count"])>
+}
+>>
+
+sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
+>>
+
+
+sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+ret = (<if(noSizeMin)>(<noSizeMin> \<= <sExtFld>) && <endif>(<sExtFld> \<= <nSizeMax>));
+if ret {
+    <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
+}
+>>
+
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
+{
+    let null_bytes: [u8; <length(arruNullBytes)>] = [<arruNullBytes; separator=", ">];
+    pBitStrm.append_bits(&null_bytes, <nBitPatternLength>);
+}
+>>
+
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+<i> = 0;
+ret = true;
+let mut check_bit_pattern_present_result: i32 = 0;
+while ret && <i> \< <nSizeMax> && {
+    let null_bytes: [u8; <length(arruNullBytes)>] = [<arruNullBytes; separator=", ">];
+    check_bit_pattern_present_result = pBitStrm.check_bit_pattern_present(&null_bytes, <nBitPatternLength> as usize);
+    check_bit_pattern_present_result == 1
+} {
+    <sInternalItem>
+    <i> += 1;
+}
+
+if ret && (<i> == <nSizeMax>) && (check_bit_pattern_present_result == 1) {
+    let null_bytes: [u8; <length(arruNullBytes)>] = [<arruNullBytes; separator=", ">];
+    check_bit_pattern_present_result = pBitStrm.check_bit_pattern_present(&null_bytes, <nBitPatternLength> as usize);
+}
+
+
+if ret && (check_bit_pattern_present_result == 0) {
+    ret = false;            /*COVERAGE_IGNORE*/
+    *pErrCode = <sErrCode>;	/*COVERAGE_IGNORE*/
+} else if ret && (check_bit_pattern_present_result == 2) {
+    <p><sAcc>n_count = <i> as i32;
+    ret = true;
+    *pErrCode = 0;
+}
+
+>>
+
+/* ------------------------------------------------------------------------- */
+/* 'size deduced' (Docs/deduced-size-spec.md): the element count is not      */
+/* encoded; the decoder derives it from the remaining bits of the enclosing  */
+/* decoding region.  Region end = end of the bitstream view minus the        */
+/* compile-time trailing constant (nTrailingBits).                           */
+/* ------------------------------------------------------------------------- */
+
+str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits) ::= "acn::acn_enc_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);"
+str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits) ::= <<
+{
+    let ded_avail_bits = (pBitStrm.count * 8 - <nTrailingBits>) - (pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64);
+    let ded_count = ded_avail_bits / 8;
+    ret = (ded_avail_bits \>= 0) && (ded_count \<= <nAsn1Max> as i64);
+    <A(sErrCode)>
+    if ret {
+        ret = acn::acn_dec_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, ded_count as i64, &mut (<p>).arr);
+        <A(sErrCode)>
+    }
+}
+>>
+
+oct_deduced_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= <<
+ret = pBitStrm.octet_string_encode_no_length(&<p><sAcc>arr, <p><sAcc>n_count as usize);
+>>
+
+oct_deduced_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= <<
+{
+    let ded_avail_bits = (pBitStrm.count * 8 - <nTrailingBits>) - (pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64);
+    let ded_count = ded_avail_bits / 8;
+    ret = (ded_avail_bits \>= 0) && <if(noSizeMin)>(<noSizeMin> as i64 \<= ded_count) && <endif>(ded_count \<= <nSizeMax> as i64);
+    <A(sErrCode)>
+    if ret {
+        <p><sAcc>n_count = ded_count as i32;
+        ret = pBitStrm.octet_string_decode_no_length(&mut <p><sAcc>arr, <p><sAcc>n_count as usize);
+        <A(sErrCode)>
+    }
+}
+>>
+
+sqf_deduced_fix_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
+>>
+
+sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= <<
+{
+    let ded_avail_bits = (pBitStrm.count * 8 - <nTrailingBits>) - (pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64);
+    let ded_count = ded_avail_bits / <nIntItemSize>;
+    ret = (ded_avail_bits \>= 0) && (ded_avail_bits - ded_count * <nIntItemSize> \< 8) && <if(noSizeMin)>(<noSizeMin> as i64 \<= ded_count) && <endif>(ded_count \<= <nSizeMax> as i64);
+    <A(sErrCode)>
+    if ret {
+        <p><sAcc>n_count = ded_count as i32;
+        <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
+    }
+}
+>>
+
+sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
+>>
+
+sqf_deduced_var_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= <<
+{
+    let ded_budget_end = pBitStrm.count * 8 - <nTrailingBits>;
+    let mut ded_pos = pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64;
+    <i> = 0;
+    ret = (ded_pos \<= ded_budget_end);
+    <A(sErrCode)>
+    while ret && <i> \< <nSizeMax> as usize && ded_pos + <nIntItemMinSize> as i64 \<= ded_budget_end
+    {
+        <sInternalItem>
+        ded_pos = pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64;
+        if ret && ded_pos \> ded_budget_end {
+            ret = false;            /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>;	/*COVERAGE_IGNORE*/
+        }
+        <i> += 1;
+    }
+    if ret {
+        <p><sAcc>n_count = <i> as i32;
+        if (ded_budget_end - ded_pos \>= 8)<if(noSizeMin)> || (<i> \< <noSizeMin> as usize)<endif> {
+            ret = false;            /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>;	/*COVERAGE_IGNORE*/
+        }
+    }
+}
+>>
+
+
+
+bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
+pBitStrm.append_bits(&<p><sAcc>arr, <p><sAcc>n_count);
+>>
+
+bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
+<if(noSizeMin)>
+ret = (<noSizeMin> \<= <sExtFld><if(noSizeMax)> && <sExtFld> \<= <noSizeMax><endif>);
+if ret {
+    <p><sAcc>n_count = <sExtFld> as i32;
+    ret = pBitStrm.read_bits(&mut <p><sAcc>arr, <p><sAcc>n_count);
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+}
+<else>
+<if(noSizeMax)>
+ret = (<sExtFld> \<= <noSizeMax>);
+if ret {
+    <p><sAcc>n_count = <sExtFld> as i32;
+    ret = pBitStrm.read_bits(&mut <p><sAcc>arr, <p><sAcc>n_count);
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+}
+<else>
+<p><sAcc>n_count = <sExtFld> as i32;
+ret = pBitStrm.read_bits(&mut <p><sAcc>arr, <p><sAcc>n_count);
+*pErrCode = if ret { 0 } else { <sErrCode> };
+<endif>
+<endif>
+>>
+
+bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+pBitStrm.append_bits(&<p><sAcc>arr, <nSizeMax>);
+>>
+
+bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+ret = (<if(noSizeMin)>(<noSizeMin> \<= <sExtFld>) && <endif>(<sExtFld> \<= <nSizeMax>));
+if ret {
+    ret = pBitStrm.read_bits(&mut <p><sAcc>arr, <nSizeMax>);
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+pBitStrm.append_bits(&<p><sAcc>arr, <p><sAcc>n_count);
+{
+    let null_bytes: [u8; <length(arruNullBytes)>] = [<arruNullBytes; separator=", ">];
+    pBitStrm.append_bits(&null_bytes, <nBitPatternLength>);
+}
+>>
+
+bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+{
+    let null_bytes: [u8; <length(arruNullBytes)>] = [<arruNullBytes; separator=", ">];
+    let (n, ok) = pBitStrm.read_bits_nullterminated(&null_bytes, <nBitPatternLength> as usize, &mut <p><sAcc>arr, <nSizeMax> as i32);
+    <p><sAcc>n_count = n as i32;
+    ret = ok;
+}
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+
+
+
+RefTypeParam_tmpVar(sName, sTypeDecl) ::= "let mut <sName>: <sTypeDecl>;"
+
+
+ReferenceType1_encode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLocalPrms) ::= <<
+<arrsLocalPrms, arrsArgs: {lp,arg|<if(arg)><lp> = <arg>;// 3031<endif>}; separator="\n">
+ret = <sName>_ACN_Encode(&<p>, pBitStrm, pErrCode, false<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>);
+>>
+
+ReferenceType1_decode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLocalPrms) ::= <<
+<arrsLocalPrms, arrsArgs: {lp,arg|<if(arg)><lp> = <arg>; // 3030<endif>}; separator="\n">
+ret = <sName>_ACN_Decode(&mut <p>, pBitStrm, pErrCode<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>);
+>>
+
+
+
+/* SEQUENCE*/
+
+
+sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "pBitStrm.append_bit(<p><sAcc>exist.<sChName>);"
+sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
+{
+    let (val, ok) = pBitStrm.read_bit();
+    <soExistVar> = val;
+    ret = ok;
+}
+let _presence_<sChName>: bool = <soExistVar>;
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+
+sequence_presence_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
+ret = <p><sAcc>exist.<sChName> == <sAcnExpression>;
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+sequence_presence_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
+let _presence_<sChName>: bool = <sAcnExpression>;
+>>
+
+sequence_presence_optChild_pres_bool_encode(p, sAcc, sChName, sExtFldName) ::= ""
+sequence_presence_optChild_pres_bool_decode(p, sAcc, sChName, sExtFldName) ::= <<
+let _presence_<sChName>: bool = <sExtFldName>;
+>>
+
+sequence_presence_optChild_pres_int_encode(p, sAcc, sChName, sExtFldName, nIntVal) ::= ""
+sequence_presence_optChild_pres_int_decode(p, sAcc, sChName, sExtFldName, nIntVal) ::= <<
+let _presence_<sChName>: bool = <sExtFldName> == <nIntVal>;
+>>
+
+sequence_presence_optChild_pres_str_encode(p, sAcc, sChName, sExtFldName, sVal) ::= ""
+sequence_presence_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) ::= <<
+let _presence_<sChName>: bool = <sExtFldName> == "<sVal>";
+>>
+
+sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
+<sBitStreamPositionsLocalVar> = acn::acn_bit_stream_get_pos(pBitStrm); //save the initial position of the bit stream at
+>>
+
+sequence_save_bitStream_start_decode(sBitStreamPositionsLocalVar) ::=<<
+ret = true;
+<sBitStreamPositionsLocalVar> = acn::acn_bit_stream_get_pos(pBitStrm); //save the initial position of the bit stream
+>>
+
+sequence_save_bitstream_encode(sBitStreamPositionsLocalVar, sChName) ::=<<
+<sBitStreamPositionsLocalVar>.<sChName> = acn::acn_bit_stream_get_pos(pBitStrm); //save position of the bit stream
+>>
+
+sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
+<sBitStreamPositionsLocalVar>.<sChName> = acn::acn_bit_stream_get_pos(pBitStrm); //save position of the bit stream
+>>
+
+sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
+/*Encode <sChName> */
+if <sChName>_is_initialized {
+    ret = true;
+    <soSaveBitStrmPosStatement>
+    <sChildContent>
+} else {
+    *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
+    ret = false;                    /*COVERAGE_IGNORE*/
+}
+>>
+sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
+/*Decode <sChName> */
+<soSaveBitStrmPosStatement>
+<sChildContent>
+>>
+
+
+sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+/*Encode <sChName> */
+<soSaveBitStrmPosStatement>
+<sChildContent>
+>>
+sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+/*Decode <sChName> */
+<soSaveBitStrmPosStatement>
+<sChildContent>
+>>
+
+sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+/*Encode <sChName> */
+/* marked as ALWAYS PRESENT, so do not look in exist */
+<soSaveBitStrmPosStatement>
+<soChildContent>
+>>
+sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+/*Decode <sChName> */
+/* marked as ALWAYS PRESENT */
+<p><sAcc>exist.<sChName> = true;
+<soSaveBitStrmPosStatement>
+<soChildContent>
+>>
+
+sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+/*Encode <sChName> */
+/* marked as ALWAYS ABSENT, so do not encode anything */
+let _ = <p>;
+let _ = pBitStrm;
+<soSaveBitStrmPosStatement>
+>>
+sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+/*Decode <sChName> */
+/* marked as ALWAYS ABSENT, so do not decode anything */
+<soSaveBitStrmPosStatement>
+let _ = pBitStrm;
+<p><sAcc>exist.<sChName> = false;
+>>
+
+
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+/*Encode <sChName> */
+<soSaveBitStrmPosStatement>
+if <p><sAcc>exist.<sChName> {
+    <sChildContent>
+}
+>>
+
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+/*Decode <sChName> */
+<soSaveBitStrmPosStatement>
+if _presence_<sChName> {
+    <sChildContent>
+}
+<p><sAcc>exist.<sChName> = _presence_<sChName>;
+>>
+
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+<soSaveBitStrmPosStatement>
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement)>
+>>
+
+
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+/*Decode <sChName> */
+<soSaveBitStrmPosStatement>
+<p><sAcc>exist.<sChName> = _presence_<sChName>;
+if _presence_<sChName> {
+    <sChildContent>
+} else {
+    <sInitWithDefaultValue>
+}
+>>
+
+sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
+<sFncName>(<p>, &<sBitStreamStartPos>, &mut <sBitStreamPositionsNullPos>, pBitStrm);
+>>
+
+sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
+ret = <sFncName>(<p>, &<sBitStreamStartPos>, &mut <sBitStreamPositionsNullPos>, pBitStrm, pErrCode);
+>>
+
+sequence_call_post_encoding_function_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+/* extern fn <sFncName>(pPDU: &<sTypedefName>, pStartBitStrm: &BitStream, <sExtFuncsPositionsTypeName>, pEndBitStrm: &mut BitStream); */
+>>
+
+sequence_call_post_decoding_validator_prototype(sTypedefName, sFncName, sExtFuncsPositionsTypeName) ::= <<
+/* extern fn <sFncName>(pPDU: &<sTypedefName>, pStartBitStrm: &BitStream, <sExtFuncsPositionsTypeName>, pEndBitStrm: &mut BitStream, pErrorCode: &mut i32) -> bool; */
+>>
+
+
+/* SEQUENCE END */
+
+
+/* Choice like uper*/
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+<sChoiceTypeName>::<sChildID> => {
+    ret = false;
+    *pErrCode = <sErrorCodeName>;
+}
+>>
+
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+<nChildIndex> => {
+    ret = false;
+    *pErrCode = <sErrorCodeName>;
+}
+>>
+
+ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+<sChoiceTypeName>::<sChildID>(ref <sChildName>) => {
+    pBitStrm.encode_constraint_whole_number(<nChildIndex> as i64, 0, <nLastItemIndex>);
+    <sChildContent>
+}
+>>
+ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+<nChildIndex> => {
+    let mut <sChildName>_tmp: <sChildTypeDef> = <sChildInitExpr>;
+    <sChildContent>
+    asn1rust::asn1scc_assign!( <sChoiceTypeName>::<sChildID>(<sChildName>_tmp) => <p> );
+}
+>>
+
+Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
+match <p> {
+    <arrsChildren: {ch|<ch>}; separator="\n">
+    _ => { /*COVERAGE_IGNORE*/
+        *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
+        ret = false;                    /*COVERAGE_IGNORE*/
+    }
+} /*COVERAGE_IGNORE*/
+>>
+
+Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(0, <nLastItemIndex>);
+    <sChoiceIndexName> = val;
+    ret = ok;
+}
+*pErrCode = if ret { 0 } else { <sErrCode> };
+if ret {
+    match <sChoiceIndexName> {
+        <arrsChildren: {ch|<ch>}; separator="\n">
+        _ => { /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
+            ret = false;                /*COVERAGE_IGNORE*/
+        }
+    }
+} /*COVERAGE_IGNORE*/
+>>
+
+/* Choice with presence determinants */
+
+ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+<sChoiceTypeName>::<sChildID>(ref <sChildName>) => {
+    <sChildBody>
+}
+>>
+
+ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
+ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> == <sVal>)"
+ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "asn1rust::ia5_string_equal_str(&<sExtFld>.arr, \"<sVal>\")"
+
+ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+<if(!bFirst)>else <endif>if <arrsConditions; separator=" && "> {
+    let mut <sChildName>_tmp: <sChildTypeDef> = <sChildInitExpr>;
+    <sChildBody>
+    asn1rust::asn1scc_assign!( <sChoiceTypeName>::<sChildID>(<sChildName>_tmp) => <p> );
+}
+>>
+
+
+Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
+match <p> {
+    <arrsChildren; separator="\n">
+    _ => {
+        *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
+        ret = false;                    /*COVERAGE_IGNORE*/
+    }
+}
+>>
+
+Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
+*pErrCode = 0;
+<arrsChildren; separator="\n">
+else {
+    *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
+    ret = false;                    /*COVERAGE_IGNORE*/
+}
+>>
+
+
+/* Choice with Enum determinant */
+
+
+
+ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+<sChoiceTypeName>::<sChildID>(ref <sChildName>) => {
+    <sChildBody>
+}
+>>
+
+ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+<sEnmName> => {
+    let mut <sChildName>_tmp: <sChildTypeDef> = <sChildInitExpr>;
+    <sChildBody>
+    asn1rust::asn1scc_assign!( <sChoiceTypeName>::<sChildID>(<sChildName>_tmp) => <p> );
+}
+>>
+
+
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
+match <p> {
+    <arrsChildren; separator="\n">
+    _ => {
+        *pErrCode = 104;         /*COVERAGE_IGNORE*/
+        ret = false;                    /*COVERAGE_IGNORE*/
+    }
+}
+>>
+
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
+match <sEnmExtFld> {
+    <arrsChildren; separator="\n">
+    _ => {
+        *pErrCode = 104;         /*COVERAGE_IGNORE*/
+        ret = false;                    /*COVERAGE_IGNORE*/
+    }
+}
+>>
+
+
+/* Updates */
+
+
+
+
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
+<v>_is_initialized = true;
+<v> = <sCount>;
+>>
+
+SizeDependencyFixedSize(v, nFixedSize) ::= <<
+<v>_is_initialized = true;
+<v> = <nFixedSize>;
+>>
+
+
+
+
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
+<sChildCIDHolder>::<sChildCID>(..) => {
+    <v>_is_initialized = true;
+    <v> = <sEnumCName>;
+}
+>>
+
+ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
+match <sChPath> {
+    <arrsChoiceEnumItems; separator="\n">
+    _ => {
+        ret = false;                            /*COVERAGE_IGNORE*/
+    }
+}
+>>
+
+
+
+PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
+<v>_is_initialized = true;
+<v> = <sSeqPath><sAcc>exist.<sChildName>;
+>>
+
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName) ::= <<
+<sChoiceTypeName>::<sChildNamePresent>(..) => {
+    <v>_is_initialized = true;
+    <v> = <sChildRetVal>;
+}
+>>
+
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName) ::= <<
+<sChoiceTypeName>::<sChildNamePresent>(..) => {
+    <v>_is_initialized = true;
+    asn1rust::set_string(&mut <v>.arr, "<sChildRetVal>");
+}
+>>
+
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName) ::= <<
+match <sChPath> {
+    <arrsChoiceItems; separator="\n">
+    _ => {
+        ret = false;                            /*COVERAGE_IGNORE*/
+    }
+}
+>>
+
+
+
+MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> == <p2>)"
+MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "asn1rust::ia5_string_equal(&<p1>.arr, &<p2>.arr)"
+
+MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
+<if(!bIsFirst)>else <endif>if <sVi>_is_initialized { /*COVERAGE_IGNORE*/
+    <sV0> = <sVi>; /*COVERAGE_IGNORE*/
+} /*COVERAGE_IGNORE*/
+>>
+
+MultiAcnUpdate_get_first_init_value_str(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
+<if(!bIsFirst)>else <endif>if <sVi>_is_initialized { /*COVERAGE_IGNORE*/
+    <sV0> = <sVi>; /*COVERAGE_IGNORE*/
+} /*COVERAGE_IGNORE*/
+>>
+
+MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized && <sV0> == <sVi>) || !<sVi>_is_initialized)"
+MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized && asn1rust::ia5_string_equal(&<sV0>.arr, &<sVi>.arr)) || !<sVi>_is_initialized)"
+
+
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr) ::= <<
+{
+    <arrsLocalDeclarations; separator="\n">
+
+    <arrsLocalUpdateStatements; separator="\n">
+
+    if ret {
+
+        *pErrCode = <sErrCode>;
+        <arrsGetFirstIntValue; separator=" "> else {
+            ret = false; /*COVERAGE_IGNORE*/
+        }
+        if ret {
+            ret = (<arrsLocalCheckEquality; separator=" && ">);
+            <v>_is_initialized = true;
+        }
+    }
+}
+>>
+
+
+
+
+
+
+checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
+if <arrsCheckPaths; separator=" && "> {
+    <sUpdateStatement>
+}
+>>
+
+
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType) ::= <<
+{
+    /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
+    arr = [0u8; <sReqBytesForUperEncoding>];
+    bit_strm = BitStream::new(&mut arr);
+    {
+        let pBitStrm = &mut bit_strm;
+        <sInner>
+    }
+}
+if ret {
+    <v> = (<if(bIsOctet)>if bit_strm.current_bit == 0 { bit_strm.current_byte } else { bit_strm.current_byte + 1 }<else>bit_strm.current_byte * 8 + bit_strm.current_bit as i64<endif>) as <sLocalVarType>;
+    <v>_is_initialized = true;
+}
+
+>>
+
+
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
+ret = pBitStrm.octet_string_encode_no_length(&arr, <sExtField> as usize);
+>>
+
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
+/*open new scope to declare some variables*/
+{
+    let mut arr: [u8; <sReqBytesForUperEncoding> as usize] = [0; <sReqBytesForUperEncoding> as usize];
+    /*limit the temporary stream view to the actual region size ('size deduced' support)*/
+    ret = (<sExtField> as i64 \<= <sReqBytesForUperEncoding> as i64);
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    if ret {
+        /*decode to the temporary bitstream buffer */
+        ret = pBitStrm.octet_string_decode_no_length(&mut arr, <sExtField> as usize);
+        <A(sErrCode)>
+        if ret {
+            let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..<sExtField> as usize]);
+            let pBitStrm = &mut bit_strm;
+            <soInner>
+        }
+    }
+}
+>>
+
+/* CONTAINING with deferred patching: encode directly, PatchDet with measured distance */
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
+    ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);
+    if ret {
+        /*pad the contained encoding to the next byte boundary: the region is
+          measured in whole octets and the decoder resumes at a byte boundary*/
+        if pBitStrm.current_bit != 0 {
+            pBitStrm.append_n_bit_zero(8 - pBitStrm.current_bit); /*COVERAGE_IGNORE*/
+        }
+        let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
+        let acn_n_count = acn::acn_bit_stream_distance_in_bytes(acn_data_start, acn_data_end);
+        ret = <sPatchFuncName>(acn_n_count, pBitStrm, <sDetParamName>, pErrCode);
+        *pErrCode = <sErrCode>;
+        if !ret { return false; }
+    }
+}
+>>
+
+/* CONTAINING with deferred patching: limit stream view, decode directly */
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    let acn_saved_count = pBitStrm.count;
+    let acn_expected_end = pBitStrm.current_byte + <sDetParamName>.value as i64;
+    pBitStrm.count = acn_expected_end;
+    ret = <sFuncName>(&mut <p>, pBitStrm, pErrCode);
+    pBitStrm.count = acn_saved_count;
+    pBitStrm.current_byte = acn_expected_end;
+    pBitStrm.current_bit = 0;
+}
+>>
+
+/* CONTAINING with deferred patching, FIXED_SIZE: just call directly, no temp buffer */
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
+ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);
+>>
+
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
+ret = <sFuncName>(&mut <p>, pBitStrm, pErrCode);
+>>
+
+/* CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure + patch */
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+{
+    let acn_len_pos = acn::acn_bit_stream_get_pos(pBitStrm);
+    pBitStrm.encode_constraint_whole_number(<nMinSize> as i64, <nMinSize> as i64, <nMaxSize> as i64);
+    let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
+    ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);
+    if ret {
+        /*pad the contained encoding to the next byte boundary (see the
+          ext-field variant above)*/
+        if pBitStrm.current_bit != 0 {
+            pBitStrm.append_n_bit_zero(8 - pBitStrm.current_bit); /*COVERAGE_IGNORE*/
+        }
+        let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
+        let acn_n_count = acn::acn_bit_stream_distance_in_bytes(acn_data_start, acn_data_end);
+        acn::acn_bit_stream_set_pos(pBitStrm, acn_len_pos);
+        pBitStrm.encode_constraint_whole_number(acn_n_count as i64, <nMinSize> as i64, <nMaxSize> as i64);
+        acn::acn_bit_stream_set_pos(pBitStrm, acn_data_end);
+    }
+}
+>>
+
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+{
+    let (acn_n_count, ok) = pBitStrm.decode_constraint_whole_number(<nMinSize> as i64, <nMaxSize> as i64);
+    ret = ok;
+    if ret {
+        let acn_saved_count = pBitStrm.count;
+        let acn_expected_end = pBitStrm.current_byte + acn_n_count;
+        pBitStrm.count = acn_expected_end;
+        ret = <sFuncName>(&mut <p>, pBitStrm, pErrCode);
+        pBitStrm.count = acn_saved_count;
+        pBitStrm.current_byte = acn_expected_end;
+        pBitStrm.current_bit = 0;
+    }
+}
+>>
+
+/* CONTAINING ExternalField wrapper: wraps an inline body with save-pos/measure/PatchDet
+   Used when the contained type has ACN parameters (no standalone ACN function). */
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
+    <sBody>
+    if ret {
+        /*pad the contained encoding to the next byte boundary (see the
+          ext-field variant above)*/
+        if pBitStrm.current_bit != 0 {
+            pBitStrm.append_n_bit_zero(8 - pBitStrm.current_bit); /*COVERAGE_IGNORE*/
+        }
+        let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
+        let acn_n_count = acn::acn_bit_stream_distance_in_bytes(acn_data_start, acn_data_end);
+        ret = <sPatchFuncName>(acn_n_count, pBitStrm, <sDetParamName>, pErrCode);
+        *pErrCode = <sErrCode>;
+        if !ret { return false; }
+    }
+}
+>>
+
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    let acn_saved_count = pBitStrm.count;
+    let acn_expected_end = pBitStrm.current_byte + <sDetParamName>.value as i64;
+    pBitStrm.count = acn_expected_end;
+    <sBody>
+    pBitStrm.count = acn_saved_count;
+    pBitStrm.current_byte = acn_expected_end;
+    pBitStrm.current_bit = 0;
+}
+>>
+
+/* BIT STRING CONTAINING with deferred patching: encode directly, PatchDet with measured bit distance */
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
+    ret = <sFuncName>(<p>, pBitStrm, pErrCode, false);
+    if ret {
+        let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
+        let acn_n_count = acn::acn_bit_stream_distance_in_bits(acn_data_start, acn_data_end);
+        ret = <sPatchFuncName>(acn_n_count, pBitStrm, <sDetParamName>, pErrCode);
+        *pErrCode = <sErrCode>;
+        if !ret { return false; }
+    }
+}
+>>
+
+/* BIT STRING CONTAINING with deferred patching: limit stream view (bit-granular), decode directly */
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    let acn_start_bits = pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64;
+    let acn_end_bits = acn_start_bits + <sDetParamName>.value as i64;
+    let acn_saved_count = pBitStrm.count;
+    pBitStrm.count = (acn_end_bits + 7) / 8;
+    ret = <sFuncName>(<p>, pBitStrm, pErrCode);
+    pBitStrm.count = acn_saved_count;
+    pBitStrm.current_byte = acn_end_bits / 8;
+    pBitStrm.current_bit = (acn_end_bits % 8) as i32;
+}
+>>
+
+/* BIT STRING CONTAINING with deferred patching, FIXED_SIZE: just call directly, no temp buffer */
+bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
+ret = <sFuncName>(<p>, pBitStrm, pErrCode, false);
+>>
+
+bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
+ret = <sFuncName>(<p>, pBitStrm, pErrCode);
+>>
+
+/* BIT STRING CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure bits + patch */
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+{
+    let acn_len_pos = acn::acn_bit_stream_get_pos(pBitStrm);
+    pBitStrm.encode_constraint_whole_number(<nMinSize> as i64, <nMinSize> as i64, <nMaxSize> as i64);
+    let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
+    ret = <sFuncName>(<p>, pBitStrm, pErrCode, false);
+    if ret {
+        let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
+        let acn_n_count = acn::acn_bit_stream_distance_in_bits(acn_data_start, acn_data_end);
+        acn::acn_bit_stream_set_pos(pBitStrm, acn_len_pos);
+        pBitStrm.encode_constraint_whole_number(acn_n_count as i64, <nMinSize> as i64, <nMaxSize> as i64);
+        acn::acn_bit_stream_set_pos(pBitStrm, acn_data_end);
+    }
+}
+>>
+
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+{
+    let (acn_n_count, ok) = pBitStrm.decode_constraint_whole_number(<nMinSize> as i64, <nMaxSize> as i64);
+    ret = ok;
+    if ret {
+        let acn_start_bits = pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64;
+        let acn_end_bits = acn_start_bits + acn_n_count;
+        let acn_saved_count = pBitStrm.count;
+        pBitStrm.count = (acn_end_bits + 7) / 8;
+        ret = <sFuncName>(<p>, pBitStrm, pErrCode);
+        pBitStrm.count = acn_saved_count;
+        pBitStrm.current_byte = acn_end_bits / 8;
+        pBitStrm.current_bit = (acn_end_bits % 8) as i32;
+    }
+}
+>>
+
+/* BIT STRING CONTAINING ExternalField wrapper: wraps inline body with bit-granular measurement/limiting */
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
+    <sBody>
+    if ret {
+        let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
+        let acn_n_count = acn::acn_bit_stream_distance_in_bits(acn_data_start, acn_data_end);
+        ret = <sPatchFuncName>(acn_n_count, pBitStrm, <sDetParamName>, pErrCode);
+        *pErrCode = <sErrCode>;
+        if !ret { return false; }
+    }
+}
+>>
+
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+{
+    let acn_start_bits = pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64;
+    let acn_end_bits = acn_start_bits + <sDetParamName>.value as i64;
+    let acn_saved_count = pBitStrm.count;
+    pBitStrm.count = (acn_end_bits + 7) / 8;
+    <sBody>
+    pBitStrm.count = acn_saved_count;
+    pBitStrm.current_byte = acn_end_bits / 8;
+    pBitStrm.current_bit = (acn_end_bits % 8) as i32;
+}
+>>
+
+bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
+pBitStrm.append_bits(&arr, <sExtField> as i32);
+>>
+
+bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
+/*open new scope to declare some variables*/
+{
+    /*decode to a temporary bitstream*/
+    let mut arr: [u8; <sReqBytesForUperEncoding> as usize] = [0; <sReqBytesForUperEncoding> as usize];
+    ret = (<sExtField> as i64 \<= <sReqBitsForUperEncoding> as i64);
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    if ret {
+        ret = pBitStrm.read_bits(&mut arr, <sExtField> as i32);
+        if ret {
+            let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..<sReqBytesForUperEncoding> as usize]);
+            ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
+        }
+    }
+}
+>>
+
+
+
+rtlModuleName() ::= ""
+sparkAnnotations_encode(sTypeDefName) ::= ""
+sparkAnnotations_decode(sTypeDefName) ::= ""
+
+
+
+octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+/*open new scope to declare some variables*/
+{
+    /*encode to a temporary bitstream*/
+    let mut arr: [u8; <sReqBytesForAcnEncoding> as usize] = [0; <sReqBytesForAcnEncoding> as usize];
+    let mut bit_strm = BitStream::new(&mut arr);
+
+    ret = <sFuncName>(&<p>, &mut bit_strm, pErrCode, false);
+    if ret {
+        let n_count = if bit_strm.current_bit == 0 { bit_strm.current_byte as i32 } else { (bit_strm.current_byte + 1) as i32 };
+        <if(bFixedSize)>
+        ret = pBitStrm.octet_string_encode_no_length(&arr, n_count as usize);
+
+        <else>
+        pBitStrm.encode_constraint_whole_number(n_count as i64, <nMinSize> as i64, <nMaxSize> as i64);
+        ret = pBitStrm.octet_string_encode_no_length(&arr, n_count as usize);
+
+        <endif>
+    }
+}
+>>
+
+octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+/*open new scope to declare some variables*/
+{
+    /*decode to a temporary bitstream whose view is limited to the actual
+      region size ('size deduced' support)*/
+    let mut arr: [u8; <sReqBytesForAcnEncoding> as usize] = [0; <sReqBytesForAcnEncoding> as usize];
+
+    <if(bFixedSize)>
+    ret = pBitStrm.octet_string_decode_no_length(&mut arr, <nMinSize> as usize);
+    if ret {
+        let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..<nMinSize> as usize]);
+        ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
+    }
+
+    <else>
+    let mut n_count: i64;
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(<nMinSize> as i64, <nMaxSize> as i64);
+    n_count = val;
+    ret = ok;
+    if ret {
+        ret = pBitStrm.octet_string_decode_no_length(&mut arr, n_count as usize);
+        if ret {
+            let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..n_count as usize]);
+            ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
+        }
+    }
+
+    <endif>
+}
+>>
+
+bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+/*open new scope to declare some variables*/
+{
+    /*encode to a temporary bitstream*/
+    let mut arr: [u8; <sReqBytesForAcnEncoding> as usize] = [0; <sReqBytesForAcnEncoding> as usize];
+    let mut bit_strm = BitStream::new(&mut arr);
+
+    ret = <sFuncName>(&<p>, &mut bit_strm, pErrCode, false);
+    if ret {
+        let n_count = (bit_strm.current_byte * 8 + bit_strm.current_bit as i64) as i32;
+        <if(bFixedSize)>
+        pBitStrm.append_bits(&arr, n_count);
+
+        <else>
+        pBitStrm.encode_constraint_whole_number(n_count as i64, <nMinSize> as i64, <nMaxSize> as i64);
+        pBitStrm.append_bits(&arr, n_count);
+
+        <endif>
+
+
+    }
+}
+>>
+
+bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+/*open new scope to declare some variables*/
+{
+    /*decode to a temporary bitstream*/
+    let mut arr: [u8; <sReqBytesForAcnEncoding> as usize] = [0; <sReqBytesForAcnEncoding> as usize];
+
+    <if(bFixedSize)>
+    ret = pBitStrm.read_bits(&mut arr, <nMinSize>);
+    if ret {
+        let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..<sReqBytesForAcnEncoding> as usize]);
+        ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
+    }
+
+    <else>
+    let mut n_count: i64;
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(<nMinSize> as i64, <nMaxSize> as i64);
+    n_count = val;
+    ret = ok;
+    if ret {
+        ret = pBitStrm.read_bits(&mut arr, n_count as i32);
+        if ret {
+            let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..<sReqBytesForAcnEncoding> as usize]);
+            ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
+        }
+    }
+
+    <endif>
+}
+>>
+
+
+/* ========================================================================
+   ACN Deferred Patching Templates
+   Used when --acn-deferred flag is enabled.
+   ======================================================================== */
+
+/* Declare an AcnInsertedFieldRef local variable */
+acn_deferred_det_declare_encode(sDetName) ::= "let mut <sDetName>: acn::AcnInsertedFieldRef = acn::AcnInsertedFieldRef::default();"
+acn_deferred_det_declare_decode(sDetName) ::= "let mut <sDetName>: acn::AcnInsertedFieldRef = acn::AcnInsertedFieldRef::default();"
+
+/* Reserve space in the bitstream (calls Acn_InitDet_XXX).
+   "value" variant: det is a local AcnInsertedFieldRef variable — pass address.
+   "ptr" variant: det is an AcnInsertedFieldRef* formal parameter — pass as-is. */
+acn_deferred_det_init_value_encode(sInitFuncName, sDetName) ::= <<
+<sInitFuncName>(pBitStrm, &mut <sDetName>);
+>>
+acn_deferred_det_init_value_decode(sInitFuncName, sDetName) ::= <<
+/* decode: no init needed */
+>>
+acn_deferred_det_init_ptr_encode(sInitFuncName, sDetName) ::= <<
+<sInitFuncName>(pBitStrm, <sDetName>);
+>>
+acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
+/* decode: no init needed */
+>>
+
+/* Patch the value at the saved position (calls Acn_PatchDet_XXX) */
+/* "value" variant: det is a local AcnInsertedFieldRef variable — pass address.
+   "ptr" variant: det is an AcnInsertedFieldRef* formal parameter — pass as-is. */
+acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>(<sValue> as u64, pBitStrm, &mut <sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if !ret { return false; }
+>>
+acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>(<sValue> as u64, pBitStrm, <sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if !ret { return false; }
+>>
+acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+
+/* _with_size variants: InitDet/PatchDet for arbitrary bit widths (nBits parameter) */
+acn_deferred_det_init_value_with_size_encode(sInitFuncName, nBits, sDetName) ::= <<
+<sInitFuncName>(pBitStrm, <nBits>, &mut <sDetName>);
+>>
+acn_deferred_det_init_value_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
+/* decode: no init needed */
+>>
+
+acn_deferred_det_init_ptr_with_size_encode(sInitFuncName, nBits, sDetName) ::= <<
+<sInitFuncName>(pBitStrm, <nBits>, <sDetName>);
+>>
+acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
+/* decode: no init needed */
+>>
+
+acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>(<sValue> as u64, pBitStrm, <nBits>, &mut <sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if !ret { return false; }
+>>
+acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+
+acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>(<sValue> as u64, pBitStrm, <nBits>, <sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if !ret { return false; }
+>>
+acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+
+/* IA5String PatchDet variants: pass string value directly (no asn1SccUint cast) */
+acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>(<sValue>, pBitStrm, <nBits>, &mut <sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if !ret { return false; }
+>>
+acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+ret = <sPatchFuncName>(<sValue>, pBitStrm, <nBits>, <sDetName>, pErrCode);
+*pErrCode = <sErrCode>;
+if !ret { return false; }
+>>
+acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+/* decode: no patch needed */
+>>
+
+/* Extra formal parameter for a function receiving a deferred determinant */
+acn_deferred_det_formal_param_encode(sDetName) ::= "<sDetName>: &mut acn::AcnInsertedFieldRef"
+acn_deferred_det_formal_param_decode(sDetName) ::= "<sDetName>: &mut acn::AcnInsertedFieldRef"
+
+/* Pass a deferred determinant as actual parameter in a function call */
+acn_deferred_det_actual_param_encode(sDetName) ::= "&mut <sDetName>"
+acn_deferred_det_actual_param_decode(sDetName) ::= "&mut <sDetName>"
+
+/* Save current bitstream position */
+acn_deferred_det_save_pos_encode(sVarName) ::= "let <sVarName> = acn::acn_bit_stream_get_pos(pBitStrm);"
+acn_deferred_det_save_pos_decode(sVarName) ::= "let <sVarName> = acn::acn_bit_stream_get_pos(pBitStrm);"
+
+/* Compute distance in bytes between two positions */
+acn_deferred_det_distance_bytes_encode(sStart, sEnd) ::= "acn::acn_bit_stream_distance_in_bytes(<sStart>, <sEnd>)"
+acn_deferred_det_distance_bytes_decode(sStart, sEnd) ::= "acn::acn_bit_stream_distance_in_bytes(<sStart>, <sEnd>)"
+
+/* ========================================================================
+   ACN Deferred Patching — Value Expression & Structural Templates
+   ======================================================================== */
+
+/* Group A: PatchDet value expressions (codec-independent) */
+
+/* CHOICE kind field access */
+acn_deferred_det_kind_access(p, sAcc) ::= "<p><sAcc>kind"
+
+/* Presence-bool value expression: (parent->exist.child == 1) */
+acn_deferred_det_value_presence_bool(p, sAcc, sChildName) ::= "(<p><sAcc>exist.<sChildName>)"
+
+/* Switch case item for integer/enum presence or choice determinant */
+acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "    <sCaseName>(..) => { <sVarName> = <sValue>; }"
+
+/* Full switch block for integer presence or choice determinant */
+acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= <<
+let mut <sVarName>: u64;
+match <sKindAccess> {
+<arrsCaseItems; separator="\n">
+    _ => { ret = false; } /*COVERAGE_IGNORE*/
+}
+if !ret { return false; }
+>>
+
+/* Switch case item for string presence */
+acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= <<    <sCaseName>(..) => { <sVarName> = "<sValue>"; }>>
+
+/* Full switch block for string presence */
+acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= <<
+let mut <sVarName>: &str;
+match <sKindAccess> {
+<arrsCaseItems; separator="\n">
+    _ => { ret = false; } /*COVERAGE_IGNORE*/
+}
+if !ret { return false; }
+>>
+
+/* Group B: Fallback PatchDet (encode-only, decode is empty) */
+
+/* Fallback patch without nBits */
+acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= <<
+if !<sDetName>.is_set {
+    <sPatchFuncName>(<sDefaultVal> as u64, pBitStrm, &mut <sDetName>, pErrCode); /*COVERAGE_IGNORE*/
+}
+>>
+acn_deferred_det_fallback_value_decode(sPatchFuncName, sDefaultVal, sDetName) ::= ""
+
+/* Fallback patch with nBits */
+acn_deferred_det_fallback_value_with_size_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= <<
+if !<sDetName>.is_set {
+    <sPatchFuncName>(<sDefaultVal> as u64, pBitStrm, <nBits>, &mut <sDetName>, pErrCode); /*COVERAGE_IGNORE*/
+}
+>>
+acn_deferred_det_fallback_value_with_size_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
+
+/* Fallback patch for IA5String */
+acn_deferred_det_fallback_value_str_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= <<
+if !<sDetName>.is_set {
+    <sPatchFuncName>(<sDefaultVal>, pBitStrm, <nBits>, &mut <sDetName>, pErrCode); /*COVERAGE_IGNORE*/
+}
+>>
+acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
+
+/* Group C: Decode redirect */
+
+/* Assignment after temp-variable decode: det.value = (asn1SccUint)tmp; */
+acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> = <sTmpName> as u64;"
+
+/* Boolean tmp variant — C cast works as for int.  Kept as a distinct macro so
+   strongly-typed backends (Ada) can emit a different conversion. */
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> = <sTmpName> as u64;"
+
+/* Enum tmp variant — same C output as int (enum→uint is implicit).  The
+   sEnumTypeName parameter is unused in C; Ada needs it for 'Enum_Rep. */
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "<sDetAccess> = <sTmpName> as u64;"
+
+/* Group D: Access paths (codec-independent) */
+
+/* Local det value access: det.value */
+acn_deferred_det_access_value(sDetName) ::= "<sDetName>.value"
+
+/* Pointer det value access: det->value */
+acn_deferred_det_access_ptr(sDetName) ::= "<sDetName>.value"
+
+/* Pointer det value access used as a boolean (e.g. for present-when bool deps).
+   In C, det->value is truthy as-is; emit the same expression to preserve byte
+   identity with the existing _ptr access. */
+acn_deferred_det_access_bool_ptr(sDetName) ::= "<sDetName>.value"
+
+/* Local det string value access: det.str_value */
+acn_deferred_det_access_str_value(sDetName) ::= "<sDetName>.str_value"
+
+/* Pointer det string value access: det->str_value */
+acn_deferred_det_access_str_ptr(sDetName) ::= "<sDetName>.str_value"
+
+/* Struct field access via pointer: rootId->field.field */
+acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "<sRootId>.<sFieldPath>"
+
+/* Group E: Miscellaneous */
+
+/* UPER offset subtraction expression */
+acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
+
+/* Wrap a preBlock and patchCall in braces */
+acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<
+{
+<sPreBlock>
+<sPatchCall>
+}
+>>
+
+/* AcnInsertedFieldRef type name */
+acn_deferred_det_type_name() ::= "acn::AcnInsertedFieldRef"
+
+/* AcnInsertedFieldRef zero initializer */
+acn_deferred_det_init_expr() ::= "acn::AcnInsertedFieldRef::default()"

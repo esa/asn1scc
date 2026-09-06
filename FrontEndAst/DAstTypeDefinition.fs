@@ -395,6 +395,9 @@ let createEnumerated_u (args:CommandLineSettings) (lm:LanguageMacros)  (id:Refer
         match td.kind with
         | NonPrimitiveNewTypeDefinition              ->
             let completeDefinition = define_new_enumerated td arrsEnumNames arrsEnumNamesAndValues nIndexMax macros
+            let sFirstEnumName = arrsEnumNames |> Seq.head
+            let defaultImpl = sprintf "impl Default for %s { fn default() -> Self { %s::%s } }" td.typeName td.typeName sFirstEnumName
+            let completeDefinition = completeDefinition + "\n" + defaultImpl
             let privateDefinition =
                 match args.isEnumEfficientEnabled items.Length with
                 | false -> None

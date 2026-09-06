@@ -1,0 +1,164 @@
+group rust_variables;
+
+PrintIntValue(nValue) ::= "<nValue>"
+
+PrintRealValue(dValue) ::= "<dValue>f64"
+
+PrintEnumValue(sValue) ::= "<sValue>"
+
+PrintRefValue1(sValue) ::= "<sValue>"
+PrintRefValue2(sModName,sValue) ::= "<sModName>::<sValue>"
+
+
+PrintStringValue(arrsVals, arrsNullChars) ::= <<
+[<arrsVals:{v|<v>}; separator=", "><if(arrsNullChars)>, <arrsNullChars; separator=", "><endif>]
+>>
+
+PrintSingleStringValue(sValue) ::= <<
+"<sValue>"
+>>
+
+PrintLF() ::= "b'\\n'"
+PrintCR() ::= "b'\\r'"
+PrintHT() ::= "b'\\t'"
+
+
+PrintStringValueNull() ::= "0"
+
+PrintCharValue(cValue) ::= "b'<cValue>'"
+
+PrintBooleanValue(bValue) ::= "<if(bValue)>true<else>false<endif>"
+
+PrintNullValue() ::= "()"
+
+PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) /*nogen*/ ::= <<
+[<arruBytes:{b|0x<b;format="X2">}; separator=", ">]
+>>
+
+
+PrintOctetStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arruBytes, nCount) ::= <<
+<td.typeName> { <if(!bIsFixedSize)>n_count: <nCount> as i32, <endif>arr: [<arruBytes:{b|0x<b;format="X2">}; separator=", ">] }
+>>
+
+PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount, arruBytes, nBytesCount) ::= <<
+<td.typeName> { <if(!bIsFixedSize)>n_count: <nCount> as i32, <endif>arr: [<arruBytes:{b|0x<b;format="X2">}; separator=", ">] }
+>>
+
+
+PrintBitOrOctetStringValueAsCompoundLiteral(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, arruBytes, nCount) ::= <<
+<td.typeName> { <if(!bIsFixedSize)>n_count: <nCount> as i32, <endif>arr: [<arruBytes:{b|0x<b;format="X2">}; separator=", ">] }
+>>
+
+
+PrintOctetArrayAsCompoundLiteral(arruBytes) ::= <<
+[<arruBytes:{b|0x<b;format="X2">}; separator=", ">]
+>>
+
+PrintBitArrayAsCompoundLiteral(arruBits) ::= <<
+[<arruBits:{b|<b>}; separator=", ">]
+>>
+
+PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount) ::= <<
+Asn1ObjectIdentifier { values: [<arrnValues; separator=", ">], n_count: <nCount> }
+>>
+
+PrintObjectIdentifierValueAsCompoundLiteral(arrnValues, nCount) ::= <<
+Asn1ObjectIdentifier { values: [<arrnValues; separator=", ">], n_count: <nCount> }
+>>
+
+
+
+
+PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+Asn1LocalTime { hours: <tv.hours>, mins: <tv.mins>, secs: <tv.secs>, fraction: <tv.secsFraction> }
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+Asn1UtcTime { hours: <tv.hours>, mins: <tv.mins>, secs: <tv.secs>, fraction: <tv.secsFraction> }
+>>
+
+
+PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+Asn1TimeWithTimeZone { hours: <tv.hours>, mins: <tv.mins>, secs: <tv.secs>, fraction: <tv.secsFraction>, tz: Asn1TimeZone { sign: <tz.sign>, hours: <tz.hours>, mins: <tz.mins> } }
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/) ::= <<
+Asn1Date { years: <dt.years>, months: <dt.months>, days: <dt.days> }
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+Asn1DateLocalTime { date: <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, time: <PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td=td,tv=tv)> }
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_UtcTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+Asn1DateUtcTime { date: <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, time: <PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td=td,tv=tv)> }
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+Asn1DateTimeWithTimeZone { date: <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, time: <PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td=td,tv=tv)> }
+>>
+
+
+
+
+
+
+PrintTimeValue_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+Asn1LocalTime { hours: <tv.hours>, mins: <tv.mins>, secs: <tv.secs>, fraction: <tv.secsFraction> }
+>>
+
+PrintTimeValue_Asn1UtcTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+Asn1UtcTime { hours: <tv.hours>, mins: <tv.mins>, secs: <tv.secs>, fraction: <tv.secsFraction> }
+>>
+
+
+PrintTimeValue_Asn1LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+Asn1TimeWithTimeZone { hours: <tv.hours>, mins: <tv.mins>, secs: <tv.secs>, fraction: <tv.secsFraction>, tz: Asn1TimeZone { sign: <tz.sign>, hours: <tz.hours>, mins: <tz.mins> } }
+>>
+
+PrintTimeValue_Asn1Date(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/) ::= <<
+Asn1Date { years: <dt.years>, months: <dt.months>, days: <dt.days> }
+>>
+
+PrintTimeValue_Asn1Date_LocalTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+Asn1DateLocalTime { date: Asn1Date { years: <dt.years>, months: <dt.months>, days: <dt.days> }, time: Asn1LocalTime { hours: <tv.hours>, mins: <tv.mins>, secs: <tv.secs>, fraction: <tv.secsFraction> } }
+>>
+
+PrintTimeValue_Asn1Date_UtcTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+Asn1DateUtcTime { date: Asn1Date { years: <dt.years>, months: <dt.months>, days: <dt.days> }, time: Asn1UtcTime { hours: <tv.hours>, mins: <tv.mins>, secs: <tv.secs>, fraction: <tv.secsFraction> } }
+>>
+
+PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+Asn1DateTimeWithTimeZone { date: Asn1Date { years: <dt.years>, months: <dt.months>, days: <dt.days> }, time: Asn1TimeWithTimeZone { hours: <tv.hours>, mins: <tv.mins>, secs: <tv.secs>, fraction: <tv.secsFraction>, tz: Asn1TimeZone { sign: <tz.sign>, hours: <tz.hours>, mins: <tz.mins> } } }
+>>
+
+
+
+
+PrintSequenceValueChild(sName, sInnerValue) ::= "<sName>: <sInnerValue>"
+PrintSequenceValueOptionalChild(sName, sInnerValue) ::= "<sName>: <sInnerValue>"
+PrintSequenceValue_child_exists(sName, sExistsBit) ::= "<sName>: <sExistsBit> != 0"
+
+PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<
+<sTasName> {
+    <if(arrsOptionalPresentFields)>
+    exist: <sTasName>_exist {
+        <arrsOptionalPresentFields; separator=",\n">
+    },
+    <endif>
+    <arrsChildren; separator=",\n">
+}
+>>
+
+PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheckedUnions) ::= <<
+<sTasName>::<sChildNamePresent>(<sChildVal>)
+>>
+
+
+PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
+pub const <sName>: <sTypeDecl> = <sValue>;
+>>
+
+PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, arrsInnerValues, sDefValue) ::= <<
+<td.typeName> { <if(!bIsFixedSize)>n_count: <nLength> as i32, <endif>arr: [<arrsInnerValues; separator=", ">] }
+>>

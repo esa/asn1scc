@@ -19,7 +19,7 @@ let GetEncodingString (lm:LanguageMacros) = function
 
 let includedPackages r (lm:LanguageMacros) =
     match lm.lg.hasModules with
-    | false     -> r.programUnits |> Seq.map(fun x -> x.testcase_specFileName)
+    | false     -> r.programUnits |> Seq.map(fun x -> System.IO.Path.GetFileNameWithoutExtension(x.testcase_specFileName))
     | true      -> r.programUnits |> Seq.collect(fun x -> [x.name; x.testcase_name])
 
 
@@ -27,7 +27,10 @@ let rec gAmber (t:Asn1Type) =
     match t.Kind with
     | Integer      _ -> "&"  , "&"
     | Real         _ -> "&"  , "&"
-    | IA5String    _ -> ""  , ""
+    | IA5String    _ ->
+        match ProgrammingLanguage.ActiveLanguages.Head with
+        | Rust -> "&" , "&"
+        | _ -> ""  , ""
     | OctetString  _ -> "&" , "&"
     | NullType     _ -> "&"  , "&"
     | BitString    _ -> "&" , "&"
@@ -265,7 +268,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
         let testCaseFileName = sprintf "test_case_%03d" fileIndex
 
-        let contentC = printTestCaseFileBody testCaseFileName (includedPackages r lm) arrsTestFunctionBodies
+        let contentC = printTestCaseFileBody testCaseFileName (includedPackages r lm) arrsTestFunctionBodies (r.programUnits |> List.map (fun pu -> pu.name))
         let outCFileName = Path.Combine(outDir, testCaseFileName + "." + lm.lg.BodyExtension)
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 
@@ -279,13 +282,15 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
         Seq.map(fun (i, fnc) -> fnc i) |>
         Seq.toList |> List.unzip3
 
-    let includedPackages =
-        [1 .. nFiles] |>
-        List.map (fun fileIndex -> sprintf "test_case_%03d" fileIndex )
+    let autoTcsMods = r.programUnits |> List.map (fun pu -> pu.testcase_name)
+    let atcIncludedPackages =
+        ([1 .. nFiles] |>
+        List.map (fun fileIndex -> sprintf "test_case_%03d" fileIndex ))
+        @ autoTcsMods
     let contentH = lm.atc.PrintATCRunnerDefinition()
     let hasTestSuiteRunner = not (String.IsNullOrWhiteSpace contentH)
 
-    let contentC = lm.atc.PrintATCRunner TestSuiteFileName includedPackages [] func_invocations [] [] false
+    let contentC = lm.atc.PrintATCRunner TestSuiteFileName atcIncludedPackages [] func_invocations [] [] false
     let outCFileName =
         match hasTestSuiteRunner with
         | true  -> Path.Combine(outDir, TestSuiteFileName + "." + lm.lg.BodyExtension)
