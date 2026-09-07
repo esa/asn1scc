@@ -1,0 +1,21 @@
+-- Requirement 30: SEQUENCE OF with size constraints (variable size)
+-- Tests SEQUENCE OF with SIZE(min..max) constraints
+
+SequenceOfSizeRange DEFINITIONS ::= BEGIN
+
+    VariableArray1 ::= SEQUENCE (SIZE(1..8)) OF INTEGER
+
+    VariableArray2 ::= SEQUENCE (SIZE(0..64)) OF BOOLEAN
+
+    VariableArray3 ::= SEQUENCE (SIZE(4..128)) OF OCTET STRING (SIZE(8))
+
+    VariableArray4 ::= SEQUENCE (SIZE(1..256)) OF REAL
+
+    TestStruct ::= SEQUENCE {
+        small VariableArray1,
+        medium VariableArray2,
+        large VariableArray3,
+        floats VariableArray4
+    }
+
+END

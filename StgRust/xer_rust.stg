@@ -3,7 +3,7 @@ group rust_xer;
 rtlModuleName() ::= ""
 
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 pub const <sErrCode>: i32 = <nErrValue>;
 >>
 
@@ -280,7 +280,7 @@ ret = xer::decode_bit_string(p_byte_strm, <sTag>, &mut <p><sAcc>arr, <nSizeMax> 
 
 
 
-SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
 /* SEQUENCE OF Encode*/
 ret = xer::encode_complex_element_start(p_byte_strm, <sTag>, None, <nLevel>);
 *p_err_code = if ret { 0 } else { <sErrCode> };
@@ -298,7 +298,7 @@ if ret {
 >>
 
 
-SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
 /* SEQUENCE OF Decode*/
 ret = xer::decode_complex_element_start(p_byte_strm, <sTag>, None);
 if ret {
@@ -332,12 +332,12 @@ if ret {
 
 /* SEQUENCE Start*/
 
-Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag) ::= <<
+Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 /*Encode <sChName> */
 <sChildContent>
 >>
 
-Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag) ::= <<
+Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 /*Decode <sChName> */
 ret = xer::next_start_element_is(p_byte_strm, "<sChildTag>");
 if ret {
@@ -345,14 +345,14 @@ if ret {
 }
 >>
 
-Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 /*Encode <sChName> */
 if <p><sAcc>exist.<sChName> {
     <sChildContent>
 }
 >>
 
-Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
 /*Decode <sChName> */
 if xer::next_start_element_is(p_byte_strm, "<sChildTag>") {
     <p><sAcc><sChName> = Some(Default::default());
@@ -362,12 +362,12 @@ if xer::next_start_element_is(p_byte_strm, "<sChildTag>") {
 }
 >>
 
-Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
+Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
 <Sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, sChildTag=sChildTag)>
 >>
 
 
-Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
+Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
 /*Decode <sChName> */
 if xer::next_start_element_is(p_byte_strm, "<sChildTag>") {
     <p><sAcc><sChName> = Some(Default::default());
@@ -487,5 +487,5 @@ if ret {
 
 
 
-call_base_type_func_encode(p, soXmlTag, sFuncName) ::= "ret = <sFuncName>_aux(&<p>, <if(soXmlTag)><soXmlTag><else>\"\"<endif>, p_byte_strm, p_err_code, false);"
-call_base_type_func_decode(p, soXmlTag, sFuncName) ::= "ret = <sFuncName>_aux(&mut <p>, <if(soXmlTag)><soXmlTag><else>\"\"<endif>, p_byte_strm, p_err_code);"
+call_base_type_func_encode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(&<p>, <if(soXmlTag)><soXmlTag><else>\"\"<endif>, p_byte_strm, p_err_code, false);"
+call_base_type_func_decode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(&mut <p>, <if(soXmlTag)><soXmlTag><else>\"\"<endif>, p_byte_strm, p_err_code);"

@@ -1,0 +1,41 @@
+-- Requirement 33: CHOICE with determinant ACN attribute
+-- Tests ACN determinant attribute to specify choice selector
+
+ChoiceDeterminant DEFINITIONS ::= BEGIN
+
+    MessageType ::= ENUMERATED {
+        command(0),
+        telemetry(1),
+        event(2),
+        file(3)
+    }
+
+    MessagePayload ::= CHOICE {
+        command SEQUENCE {
+            commandId INTEGER,
+            parameters OCTET STRING (SIZE(16))
+        },
+        telemetry SEQUENCE {
+            sensorId INTEGER,
+            value REAL
+        },
+        event SEQUENCE {
+            eventId INTEGER,
+            severity INTEGER (0..3)
+        },
+        file SEQUENCE {
+            filename IA5String (SIZE(32)),
+            size INTEGER
+        }
+    }
+
+    Message ::= SEQUENCE {
+        payload MessagePayload
+    }
+
+    TestStruct ::= SEQUENCE {
+        message1 Message,
+        message2 Message
+    }
+
+END

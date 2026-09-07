@@ -1,0 +1,45 @@
+-- Requirement 39 & 40: Module imports and cross-module type references
+-- Tests IMPORTS declarations and referencing types from other modules
+
+ImportsUserModule DEFINITIONS ::= BEGIN
+
+    -- Import types from base module
+    IMPORTS
+        Timestamp,
+        Temperature,
+        Identifier,
+        StatusCode,
+        Header,
+        Coordinates,
+        ShortString
+    FROM ImportsBaseTypes;
+
+    -- Use imported types in new definitions
+    SensorReading ::= SEQUENCE {
+        header Header,
+        sensorId Identifier,
+        temperature Temperature,
+        location Coordinates,
+        status StatusCode,
+        notes ShortString OPTIONAL
+    }
+
+    TelemetryPacket ::= SEQUENCE {
+        timestamp Timestamp,
+        readings SEQUENCE (SIZE(1..10)) OF SensorReading
+    }
+
+    SystemStatus ::= SEQUENCE {
+        systemId Identifier,
+        overallStatus StatusCode,
+        timestamp Timestamp,
+        description ShortString
+    }
+
+    TestStruct ::= SEQUENCE {
+        reading SensorReading,
+        packet TelemetryPacket,
+        status SystemStatus
+    }
+
+END

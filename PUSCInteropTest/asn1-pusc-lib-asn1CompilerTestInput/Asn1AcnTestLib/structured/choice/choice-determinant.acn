@@ -1,0 +1,27 @@
+-- ACN encoding with determinant attribute for CHOICE
+
+ChoiceDeterminant DEFINITIONS ::= BEGIN
+
+    MessageType [] {}
+
+    MessagePayload <MessageType: msgType> [determinant msgType]
+    {
+        command [],
+        telemetry [],
+        event [],
+        file []
+    }
+
+    Message []
+    {
+        msgType MessageType [],
+        payload <msgType> []
+    }
+
+    TestStruct []
+    {
+        message1 [],
+        message2 []
+    }
+
+END

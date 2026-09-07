@@ -18,7 +18,7 @@ Last bump performed in this repo: net9.0  ->  net10.0  (May 2026).
    BackendAst/BackendAst.fsproj
    CommonTypes/CommonTypes.fsproj
    FrontEndAst/FrontEndAst.fsproj
-   PUSCScalaTest/PUSCScalaTest.csproj
+   PUSCInteropTest/PUSCInteropTest.csproj
    ST/ST.fsproj
    StgAda/StgAda.fsproj
    StgC/StgC.fsproj

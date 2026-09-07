@@ -1,0 +1,8 @@
+ColorMod DEFINITIONS ::= BEGIN
+    
+    MySeq [] {
+        activeColor RGB [],
+        beta        [],
+        colorData   [determinant activeColor]
+    }
+END

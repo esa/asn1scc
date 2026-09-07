@@ -1,0 +1,45 @@
+-- Requirement 35: ENUMERATED with ACN size attribute
+-- Tests ACN size attribute to specify enumerated encoding size
+
+EnumeratedAcnSize DEFINITIONS ::= BEGIN
+
+    TwoBitEnum ::= ENUMERATED {
+        value0(0),
+        value1(1),
+        value2(2),
+        value3(3)
+    }
+
+    FourBitEnum ::= ENUMERATED {
+        opt0(0),
+        opt1(1),
+        opt2(2),
+        opt3(3),
+        opt4(4),
+        opt5(5),
+        opt6(6),
+        opt7(7),
+        opt8(8),
+        opt9(9),
+        opt10(10),
+        opt11(11),
+        opt12(12),
+        opt13(13),
+        opt14(14),
+        opt15(15)
+    }
+
+    EightBitEnum ::= ENUMERATED {
+        first(0),
+        second(1),
+        third(2),
+        last(255)
+    }
+
+    TestStruct ::= SEQUENCE {
+        twobit TwoBitEnum,
+        fourbit FourBitEnum,
+        eightbit EightBitEnum
+    }
+
+END

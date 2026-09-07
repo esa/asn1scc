@@ -1,4 +1,4 @@
-﻿open Argu
+open Argu
 open FsUtils
 open System
 open System.Numerics
@@ -14,6 +14,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-Ada")>]Ada_Lang
     | [<Unique; AltCommandLine("-Scala")>]Scala_Lang
     | [<Unique; AltCommandLine("-Rust")>]Rust_Lang
+    | [<Unique; AltCommandLine("-python")>]Python_Lang
     | [<Unique; AltCommandLine("-uPER")>]UPER_enc
     | [<Unique; AltCommandLine("-XER")>]XER_enc
     | [<Unique; AltCommandLine("-ACN")>]ACN_enc
@@ -46,6 +47,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-asn1")>]   Debug_Asn1 of string option
     | [<Unique; AltCommandLine("-mfm")>]   Mapping_Functions_Module of string
     | [<Unique; AltCommandLine("-debug")>]   Debug
+    | [<Unique; AltCommandLine("-printTemplateInfo")>]   PrintTemplateInfo
     | [<Unique; AltCommandLine("-sm")>]   Streaming_Mode
     | [<Unique; AltCommandLine("-ig")>]   Init_Globals
     | [<Unique; AltCommandLine("-es")>]   Handle_Empty_Sequences
@@ -64,6 +66,7 @@ with
             | Ada_Lang         -> "generate code for the Ada/SPARK programming language"
             | Scala_Lang       -> "generate code for the Scala programming language"
             | Rust_Lang        -> "generate code for the Rust programming language"
+            | Python_Lang      -> "(Experimental) generate code for the Python programming language"
             | UPER_enc         -> "generates encoding and decoding functions for unaligned Packed Encoding Rules (uPER)"
             | XER_enc          -> "generates encoding and decoding functions for XML Encoding Rules (XER)"
             | ACN_enc          -> "generates encoding and decoding functions using the ASSERT ASN.1 encoding Control Notation"
@@ -111,6 +114,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | IcdPdus       _   -> "A comma-separated list of top-level type assignments (PDUs). Only these types and their transitive dependencies will have encode/decode functions generated. Also limits ICD output to the listed types. Enclose in double quotes if multiple, e.g. -icdPdus \"TypeA,TypeB\"."
             | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
             | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
+            | PrintTemplateInfo  -> "Add line number comments to generated code indicating the source location that generated each line"
             | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
             | Word_Size _       -> "Defines the size of asn1SccSint and asn1SccUint types. Valid values are 8 bytes (default) and 4 bytes. If you pass 4 then you should compile the C code -DWORD_SIZE=4. (Applicable only to C.)"
             | Fp_Word_Size _    -> "Defines the size of the REAL type. Valid values are 8 bytes (default) which corresponds to double and 4 bytes which corresponds to float. If you pass 4 then you should compile the C code -DFP_WORD_SIZE=4. (Applicable only to C.)"
@@ -122,7 +126,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | Include_Func _    -> "Include a function from the RTL. The function name is expected as argument. This argument can be repeated many times. This argument is supported only for C"
             | Log_Execution_Time           -> "Enables detailed logging of execution time."
             | StainlessInvertibility -> "(Scala backend only) Generate invertibility conditions and lemmas"
-            | Acn_V2 -> "(Experimental, C only) Enable ACN deferred patching: separate functions for reference types with ACN parameters, reserve+patch determinants instead of temporary buffers."
+            | Acn_V2 -> "(C and Ada) Enable ACN deferred patching: separate functions for reference types with ACN parameters, reserve+patch determinants instead of temporary buffers."
 
 
 let printVersion () =
@@ -177,6 +181,7 @@ let c_macro =
             atc = new ITestCases_c.ITestCases_c()
             xer = new IXer_c.IXer_c()
             src = new ISrcBody_c.ISrcBody_c()
+            encodings = []
         }
 let scala_macro =
         {
@@ -191,6 +196,23 @@ let scala_macro =
             atc = new ITestCases_scala.ITestCases_scala()
             xer = new IXer_scala.IXer_scala()
             src = new ISrcBody_scala.ISrcBody_scala()
+            encodings = []
+        }
+        
+let python_macro =
+        {
+            LanguageMacros.equal = new IEqual_python.IEqual_python()
+            init = new IInit_python.IInit_python()
+            typeDef = new ITypeDefinition_python.ITypeDefinition_python()
+            lg = new LangGeneric_python.LangGeneric_python();
+            isvalid= new IIsValid_python.IIsValid_python()
+            vars = new IVariables_python.IVariables_python()
+            uper = new IUper_python.IUper_python()
+            acn = new IAcn_python.IAcn_python()
+            atc = new ITestCases_python.ITestCases_python()
+            xer = new IXer_python.IXer_python()
+            src = new ISrcBody_python.ISrcBody_python()
+            encodings = []
         }
 let ada_macro =
         {
@@ -205,6 +227,7 @@ let ada_macro =
             atc = new ITestCases_a.ITestCases_a()
             xer = new IXer_a.IXer_a()
             src = new ISrcBody_a.ISrcBody_a()
+            encodings = []
         }
 let rust_macro =
         {
@@ -219,8 +242,9 @@ let rust_macro =
             atc = new ITestCases_rust.ITestCases_rust()
             xer = new IXer_rust.IXer_rust()
             src = new ISrcBody_rust.ISrcBody_rust()
+            encodings = []
         }
-let allMacros = [ (C, c_macro); (Scala, scala_macro); (Ada, ada_macro); (Rust, rust_macro)]
+let allMacros = [ (C, c_macro); (Scala, scala_macro); (Python, python_macro); (Ada, ada_macro); (Rust, rust_macro)]
 let getLanguageMacro (l:ProgrammingLanguage) =
     allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
 
@@ -247,6 +271,7 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | Ada_Lang         -> ()
     | Scala_Lang       -> ()
     | Rust_Lang        -> ()
+    | Python_Lang       -> ()
     | UPER_enc         -> ()
     | XER_enc          -> ()
     | ACN_enc          -> ()
@@ -302,6 +327,7 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | DetectPdus                -> ()
     | AdaUses                   -> ()
     | ACND                      -> ()
+    | PrintTemplateInfo          -> ()
     | Debug_Asn1  _             -> ()
     | Word_Size  ws             ->
         match ws with
@@ -330,7 +356,7 @@ let checkArgument (cliArgs : CliArguments list) arg =
         | false -> raise (UserException ("The -if option is supported only for C."))
     | StainlessInvertibility -> ()
     | Acn_V2 ->
-        match cliArgs |> List.exists (fun a -> a = Scala_Lang) with
+        match cliArgs |> List.exists (fun a -> a = Scala_Lang || a = Python_Lang) with
         | true  -> raise (UserException ("The --acn-deferred option is supported only for C and Ada."))
         | false -> ()
 
@@ -392,9 +418,10 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         renamePolicy =
             match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
             | []    ->
-                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang || a = Scala_Lang || a = Rust_Lang) with
+                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang || a = Scala_Lang || a = Python_Lang || a = Rust_Lang) with
                 | [ C_lang ]    -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
-                | [ Scala_Lang ]-> CommonTypes.EnumRenamePolicy.SelectiveEnumerants // TODO: Scala
+                | [ Scala_Lang ]-> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
+                | [ Python_Lang ]-> CommonTypes.EnumRenamePolicy.NoRenamePolicy
                 | [ Ada_Lang ]  -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
                 | [ Rust_Lang ] -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | []            -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
@@ -414,7 +441,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _ when vl = "AUTO"          -> Some FieldPrefixAuto
                 | _                 -> Some (FieldPrefixUserValue vl)
         targetLanguages =
-            args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | Rust_Lang -> Some (CommonTypes.ProgrammingLanguage.Rust) | _ -> None)
+            args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | Python_Lang -> Some (CommonTypes.ProgrammingLanguage.Python) | Rust_Lang -> Some (CommonTypes.ProgrammingLanguage.Rust) | _ -> None)
 
         userRtlFunctionsToGenerate =
             args |> List.choose(fun a -> match a with Include_Func fnName -> Some fnName | _ -> None)
@@ -422,7 +449,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         objectIdentifierMaxLength = 20I
         handleEmptySequences = parserResults.Contains <@ Handle_Empty_Sequences @>
 
-        blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala());(ProgrammingLanguage.Rust, new LangGeneric_rust.LangBasic_rust()) ]
+        blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala());(ProgrammingLanguage.Python, new LangGeneric_python.LangBasic_python());(ProgrammingLanguage.Rust, new LangGeneric_rust.LangBasic_rust()) ]
         stainlessInvertibility = args |> List.exists (fun a -> match a with StainlessInvertibility -> true | _ -> false)
         acnDeferred = parserResults.Contains <@ Acn_V2 @>
     }
@@ -436,6 +463,7 @@ let setActiveLanguages args =
             | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) 
             | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) 
             | Rust_Lang -> Some (CommonTypes.ProgrammingLanguage.Rust) 
+            | Python_Lang -> Some (CommonTypes.ProgrammingLanguage.Python) 
             | _ -> None)
     match activeLangs with
     | [] ->     ProgrammingLanguage.ActiveLanguages <- [CommonTypes.ProgrammingLanguage.C]
@@ -456,12 +484,13 @@ let main0 argv =
         cliArgs |> Seq.iter (checkArgument cliArgs)
         setActiveLanguages cliArgs
 
-
-
         let args = constructCommandLineSettings cliArgs parserResults
         let outDir = parserResults.GetResult(<@Out@>, defaultValue = ".")
 
         // create front ent ast
+
+        // Enable line number printing if requested
+        ST.printTemplateInfo <- parserResults.Contains <@ PrintTemplateInfo @>
 
         let debugFunc (r:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst) =
             match parserResults.Contains <@ Debug_Asn1 @> with
@@ -472,17 +501,19 @@ let main0 argv =
             | false -> ()
 
         // TODO frontend typo
-        let activeLangs = 
-            allMacros |> List.filter(fun (lang,_) -> ProgrammingLanguage.ActiveLanguages |> List.exists (fun l -> l = lang)) 
+        let activeLangs =
+            allMacros
+            |> List.filter(fun (lang,_) -> ProgrammingLanguage.ActiveLanguages |> List.exists (fun l -> l = lang))
+            |> List.map(fun (lang, lm) -> (lang, { lm with encodings = args.encodings }))
             
-        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args activeLangs debugFunc)
+        let frontEndAst, acnDeps = TL "FrontEndMain.constructAst" (fun () -> FrontEndMain.constructAst args activeLangs debugFunc)
 
 
         // print front ent ast as xml
         match args.AstXmlAbsFileName with
         | ""    -> ()
         | _     ->
-            TL "ExportToXml.exportFile" (fun () -> ExportToXml.exportFile frontEntAst acnDeps args.AstXmlAbsFileName)
+            TL "ExportToXml.exportFile" (fun () -> ExportToXml.exportFile frontEndAst acnDeps args.AstXmlAbsFileName)
 
         let icdStgFileName =
             match parserResults.TryGetResult (<@CustomIcdAcn@>) with
@@ -498,17 +529,20 @@ let main0 argv =
             List.choose (fun a ->
                 match a with
                 | C_lang                ->
-                    let lm = getLanguageMacro C
-                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
+                    let lm = { getLanguageMacro C with encodings = args.encodings }
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
                 | Scala_Lang              ->
-                    let lm = getLanguageMacro Scala
-                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Scala lm args.encodings))
+                    let lm = { getLanguageMacro Scala with encodings = args.encodings }
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Scala lm args.encodings))
                 | Ada_Lang              ->
-                    let lm = getLanguageMacro Ada
-                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
+                    let lm = { getLanguageMacro Ada with encodings = args.encodings }
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
+                | Python_Lang              ->
+                    let lm = { getLanguageMacro Python with encodings = args.encodings }
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Python lm args.encodings))
                 | Rust_Lang              ->
-                    let lm = getLanguageMacro Rust
-                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Rust lm args.encodings))
+                    let lm = { getLanguageMacro Rust with encodings = args.encodings }
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Rust lm args.encodings))
                 | _             -> None)
 
         let createDirectories baseDir (lm:LanguageMacros) target =
@@ -524,7 +558,7 @@ let main0 argv =
         //generate code
         backends |>
             Seq.iter (fun r ->
-                let lm = getLanguageMacro r.lang
+                let lm = { getLanguageMacro r.lang with encodings = args.encodings }
                 createDirectories outDir lm args.target
                 let dirInfo = lm.lg.getDirInfo args.target outDir
                 //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
@@ -558,8 +592,9 @@ let main0 argv =
                             atc = new ITestCases_c.ITestCases_c()
                             xer = new IXer_c.IXer_c()
                             src = new ISrcBody_c.ISrcBody_c()
+                            encodings = args.encodings
                         }
-                TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
+                TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
             | x::_  -> x
 
         let generateCustomStgCode () =

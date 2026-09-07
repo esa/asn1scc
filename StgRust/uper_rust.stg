@@ -8,6 +8,9 @@ rtlModuleName() ::= ""
 call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);"
 call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(&mut <p>, pBitStrm, pErrCode);"
 
+call_superclass_func_encode(p, sFuncName) ::= "ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);"
+call_superclass_func_decode(p, sFuncName) ::= "ret = <sFuncName>(&mut <p>, pBitStrm, pErrCode);"
+
 
 
 
@@ -17,7 +20,7 @@ call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(&mut <p>, pBitSt
 
 
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 pub const <sErrCode>: i32 = <nErrValue>;
 >>
 
@@ -27,7 +30,7 @@ pub const <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: usize = <nMaxBytesInPER>;
 pub const <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: usize = <nMaxBitsInPER>;
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 pub fn <sFuncName>(<sVarName>: &<sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32, bCheckConstraints: bool) -> bool {
     let mut ret: bool = true;
 <if(bVarNameIsUnreferenced)>
@@ -63,7 +66,7 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 pub fn <sFuncName>(<sVarName>: &mut <sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32) -> bool {
     let mut ret: bool = true;
     *pErrCode = 0;
@@ -139,8 +142,8 @@ ret = ok;
 
 
 /*case: A:: = INTEGER (-5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "pBitStrm.encode_constraint_whole_number(<p>, <nMin>, <nMax>);"
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= "pBitStrm.encode_constraint_whole_number(<p>, <nMin>, <nMax>);"
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_constraint_whole_number(<nMin>, <nMax>);
     <p> = val;
@@ -150,8 +153,8 @@ IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= "pBitStrm.encode_constraint_pos_whole_number(<p> as u64, <nMin>, <nMax>);"
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= "pBitStrm.encode_constraint_pos_whole_number(<p> as u64, <nMin>, <nMax>);"
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_constraint_pos_whole_number(<nMin>, <nMax>);
     <p> = val;
@@ -162,8 +165,8 @@ IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAs
 
 
 /*case: A :: = INTEGER */
-IntUnconstrained_encode(p, sErrCode, bCoverageIgnore) ::= "pBitStrm.encode_unconstrained_whole_number(<p>);"
-IntUnconstrained_decode(p, sErrCode, bCoverageIgnore) ::= <<
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, soType) ::= "pBitStrm.encode_unconstrained_whole_number(<p>);"
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_unconstrained_whole_number();   <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
     <p> = val;
@@ -186,8 +189,8 @@ IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
 
 
 /*case: A:: = INTEGER (-5..MAX) */
-IntSemiConstraint_encode(p, nMin, sErrCode) ::= "pBitStrm.encode_semi_constraint_whole_number(<p>, <nMin>);"
-IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraint_encode(p, nMin, sErrCode, soType) ::= "pBitStrm.encode_semi_constraint_whole_number(<p>, <nMin>);"
+IntSemiConstraint_decode(p, nMin, sErrCode, soType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_semi_constraint_whole_number(<nMin>);
     <p> = val;
@@ -198,8 +201,8 @@ IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
 
 
 /*case: A:: = INTEGER (5..MAX) */
-IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "pBitStrm.encode_semi_constraint_pos_whole_number(<p> as u64, <nMin>);"
-IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
+IntSemiConstraintPos_encode(p, nMin, sErrCode, soType) ::= "pBitStrm.encode_semi_constraint_pos_whole_number(<p> as u64, <nMin>);"
+IntSemiConstraintPos_decode(p, nMin, sErrCode, soType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_semi_constraint_pos_whole_number(<nMin>);
     <p> = val;
@@ -210,12 +213,12 @@ IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
 
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, sConst, sErrCode) ::=<<
+IntNoneRequired_encode(p, sConst, sErrCode, soType) ::=<<
 /* No need to encode value since it will always be <sConst> */
 let _ = pBitStrm;
 >>
 
-IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode, soType) ::= <<
 <p> = <sConst>;
 let _ = pBitStrm;
 ret = true;
@@ -250,18 +253,18 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
 if <sRootBaseConstraint> {
     pBitStrm.append_bit_zero(); /* write extension bit, value within root range, so ext bit is zero */
     <sIntBody>
 } else {
     /* value is not within root range, so ext bit is one and value is encoded as unconstrained */
     pBitStrm.append_bit_one();
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, bCoverageIgnore=false, soType=soType)>
 }
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
 
 
 /* INTETEGER END*/
@@ -269,9 +272,9 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRo
 
 
 
-Boolean_encode(p, sErrCode) ::= "pBitStrm.append_bit(<p>);"
+Boolean_encode(p, sErrCode, sType) ::= "pBitStrm.append_bit(<p>);"
 
-Boolean_decode(p, sErrCode) ::= <<
+Boolean_decode(p, sErrCode, sType) ::= <<
 {
     let (val, ok) = pBitStrm.read_bit();
     <p> = val;
@@ -280,8 +283,8 @@ Boolean_decode(p, sErrCode) ::= <<
 }
 >>
 
-Real_encode(p, sSuffix, sErrCode) ::= "pBitStrm.encode_real(<p>);"
-Real_decode(p, sSuffix, sErrCode) ::= <<
+Real_encode(p, sSuffix, sErrCode, sType) ::= "pBitStrm.encode_real(<p>);"
+Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_real<sSuffix>();
     <p> = val;
@@ -440,25 +443,25 @@ sequence_presence_bit_fix_decode(p, sAcc, sChName, soExistVar, sErrCode, sVal) :
 >>
 
 
-sequence_mandatory_child_encode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
 /*Encode <sChName> */
 <sChildContent>
 >>
 
-sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
 /*Decode <sChName> */
 <sChildContent>
 >>
 
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, bIsPrimitive) ::= <<
 /*Encode <sChName> */
 if <p><sAcc>exist.<sChName> {
     <sChildContent>
 }
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, bIsPrimitive) ::= <<
 /*Decode <sChName> */
 <p><sAcc>exist.<sChName> = _presence_<sChName>;
 if _presence_<sChName> {
@@ -467,12 +470,12 @@ if _presence_<sChName> {
 >>
 
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue) ::= <<
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, sChildContent=sChildContent)>
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue, bIsPrimitive) ::= <<
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, sChildContent=sChildContent, bIsPrimitive=bIsPrimitive)>
 >>
 
 
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue, bIsPrimitive) ::= <<
 /*Decode <sChName> */
 <p><sAcc>exist.<sChName> = _presence_<sChName>;
 if _presence_<sChName> {
@@ -507,7 +510,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 <p>[<nFixedSize>] = 0x0;
 >>
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 let n_string_length = <p>.len() as i64;
 /*ret = n_string_length \>= <nSizeMin> && n_string_length \<= <nSizeMax>;*/
 pBitStrm.encode_constraint_whole_number(n_string_length, <nSizeMin>, <nSizeMax>);
@@ -515,7 +518,7 @@ pBitStrm.encode_constraint_whole_number(n_string_length, <nSizeMin>, <nSizeMax>)
 
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_constraint_whole_number(<nSizeMin>, <nSizeMax>);
     let n_string_length = val;
@@ -948,7 +951,7 @@ if ret {
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
@@ -963,7 +966,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBit
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/
@@ -979,7 +982,7 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBit
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
@@ -994,7 +997,7 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBi
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/
@@ -1017,7 +1020,7 @@ sparkAnnotations_encode(sTypeDefName) ::= <<
 sparkAnnotations_decode(sTypeDefName) ::= <<
 >>
 
-Null_declare(p) ::= ""
+Null_declare(p, sType) ::= ""
 
 decode_nullType(p) ::= <<
 /*no encoding/decoding is required*/

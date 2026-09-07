@@ -7,11 +7,11 @@ getStringSize(p) ::= "<p>.len() as u64"
 getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p><sAcc>n_count as u64"
 
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment, sFieldPath) ::= <<
 pub const <sErrCode>: i32 = <nErrValue>;  /*<soErrorCodeComment>*/
 >>
 
-EmitAcnParameter(sName, sType) ::= "<sType>, <sName>"
+EmitAcnParameter(sName, sType, sDefaultValue) ::= "<sType>, <sName>"
 
 EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 pub const <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING: usize = <nMaxBytesInACN>;
@@ -24,7 +24,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 pub fn <sFuncName>(<sVarName>: &<sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32, bCheckConstraints: bool<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> bool {
     let mut ret: bool = true;
 <if(bVarNameIsUnreferenced)>
@@ -60,7 +60,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
 pub fn <sFuncName>(<sVarName>: &mut <sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> bool {
     let mut ret: bool = true;
 <if(bVarNameIsUnreferenced)>
@@ -130,8 +130,8 @@ acn::acn_align_to<sAlignmentValue>(pBitStrm, false);
 
 
 
-PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, <nFixedSize>);"
-PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_positive_integer_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, <nFixedSize>);"
+PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_positive_integer_const_size<sSsuffix>(pBitStrm, <nFixedSize>);
     <p> = val;
@@ -141,8 +141,8 @@ PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM,
 <A(sErrCode)>
 >>
 
-PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_8(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
-PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_positive_integer_const_size_8(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_positive_integer_const_size_8<sSsuffix>(pBitStrm);
     <p> = val;
@@ -152,8 +152,8 @@ PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin,
 <A(sErrCode)>
 >>
 
-PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_big_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
-PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_positive_integer_const_size_big_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_positive_integer_const_size_big_endian_16<sSsuffix>(pBitStrm);
     <p> = val;
@@ -163,8 +163,8 @@ PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMF
 <A(sErrCode)>
 >>
 
-PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_big_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
-PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_positive_integer_const_size_big_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_positive_integer_const_size_big_endian_32<sSsuffix>(pBitStrm);
     <p> = val;
@@ -174,8 +174,8 @@ PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMF
 <A(sErrCode)>
 >>
 
-PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
-PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_positive_integer_const_size_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_positive_integer_const_size_big_endian_64<sSsuffix>(pBitStrm);
     <p> = val;
@@ -185,8 +185,8 @@ PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMF
 <A(sErrCode)>
 >>
 
-PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_little_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
-PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_positive_integer_const_size_little_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_positive_integer_const_size_little_endian_16<sSsuffix>(pBitStrm);
     <p> = val;
@@ -196,8 +196,8 @@ PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, s
 <A(sErrCode)>
 >>
 
-PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_little_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
-PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_positive_integer_const_size_little_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_positive_integer_const_size_little_endian_32<sSsuffix>(pBitStrm);
     <p> = val;
@@ -207,8 +207,8 @@ PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, s
 <A(sErrCode)>
 >>
 
-PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_positive_integer_const_size_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
-PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_positive_integer_const_size_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_positive_integer_const_size_little_endian_64<sSsuffix>(pBitStrm);
     <p> = val;
@@ -218,8 +218,8 @@ PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, s
 <A(sErrCode)>
 >>
 
-PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= "acn::acn_enc_int_positive_integer_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
-PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
+PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, sType) ::= "acn::acn_enc_int_positive_integer_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_positive_integer_var_size_length_embedded<sSsuffix>(pBitStrm);
     <p> = val;
@@ -230,8 +230,8 @@ PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM
 >>
 
 
-TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>, <nFixedSize>);"
-TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_twos_complement_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>, <nFixedSize>);"
+TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_twos_complement_const_size<sSsuffix>(pBitStrm, <nFixedSize>);
     <p> = val;
@@ -241,8 +241,8 @@ TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, 
 <A(sErrCode)>
 >>
 
-TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_8(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
-TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_twos_complement_const_size_8(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_twos_complement_const_size_8<sSsuffix>(pBitStrm);
     <p> = val;
@@ -252,8 +252,8 @@ TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, 
 <A(sErrCode)>
 >>
 
-TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_big_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
-TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_twos_complement_const_size_big_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_twos_complement_const_size_big_endian_16<sSsuffix>(pBitStrm);
     <p> = val;
@@ -263,8 +263,8 @@ TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM
 <A(sErrCode)>
 >>
 
-TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_big_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
-TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_twos_complement_const_size_big_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_twos_complement_const_size_big_endian_32<sSsuffix>(pBitStrm);
     <p> = val;
@@ -274,8 +274,8 @@ TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM
 <A(sErrCode)>
 >>
 
-TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
-TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_twos_complement_const_size_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_twos_complement_const_size_big_endian_64<sSsuffix>(pBitStrm);
     <p> = val;
@@ -285,8 +285,8 @@ TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM
 <A(sErrCode)>
 >>
 
-TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_little_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
-TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_twos_complement_const_size_little_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_twos_complement_const_size_little_endian_16<sSsuffix>(pBitStrm);
     <p> = val;
@@ -296,8 +296,8 @@ TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, so
 <A(sErrCode)>
 >>
 
-TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_little_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
-TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_twos_complement_const_size_little_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_twos_complement_const_size_little_endian_32<sSsuffix>(pBitStrm);
     <p> = val;
@@ -307,8 +307,8 @@ TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, so
 <A(sErrCode)>
 >>
 
-TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_twos_complement_const_size_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
-TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_twos_complement_const_size_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_twos_complement_const_size_little_endian_64<sSsuffix>(pBitStrm);
     <p> = val;
@@ -318,8 +318,8 @@ TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, so
 <A(sErrCode)>
 >>
 
-TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "acn::acn_enc_int_twos_complement_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
-TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= "acn::acn_enc_int_twos_complement_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_twos_complement_var_size_length_embedded<sSsuffix>(pBitStrm);
     <p> = val;
@@ -330,8 +330,8 @@ TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM)
 >>
 
 
-BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= "acn::acn_enc_int_bcd_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, <nNibbles>);"
-BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
+BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles, sType) ::= "acn::acn_enc_int_bcd_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, <nNibbles>);"
+BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_bcd_const_size<sSsuffix>(pBitStrm, <nNibbles>);
     <p> = val;
@@ -341,8 +341,8 @@ BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNi
 <A(sErrCode)>
 >>
 
-BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "acn::acn_enc_int_bcd_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
-BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= "acn::acn_enc_int_bcd_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_bcd_var_size_length_embedded<sSsuffix>(pBitStrm);
     <p> = val;
@@ -352,8 +352,8 @@ BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 <A(sErrCode)>
 >>
 
-BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "acn::acn_enc_int_bcd_var_size_null_terminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
-BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= "acn::acn_enc_int_bcd_var_size_null_terminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>);"
+BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_int_bcd_var_size_null_terminated<sSsuffix>(pBitStrm);
     <p> = val;
@@ -363,8 +363,8 @@ BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, 
 <A(sErrCode)>
 >>
 
-ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "acn::acn_enc_sint_ascii_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>, <nSizeInBytes>);"
-ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= "acn::acn_enc_sint_ascii_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>, <nSizeInBytes>);"
+ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_sint_ascii_const_size<sSsuffix>(pBitStrm, <nSizeInBytes>);
     <p> = val;
@@ -374,8 +374,8 @@ ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, n
 <A(sErrCode)>
 >>
 
-ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "acn::acn_enc_sint_ascii_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
-ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
+ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= "acn::acn_enc_sint_ascii_var_size_length_embedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>);"
+ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_sint_ascii_var_size_length_embedded<sSsuffix>(pBitStrm);
     <p> = val;
@@ -385,8 +385,8 @@ ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 <A(sErrCode)>
 >>
 
-ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "acn::acn_enc_sint_ascii_var_size_null_terminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>, &[<arruNullBytes; separator=\", \">]);"
-ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= "acn::acn_enc_sint_ascii_var_size_null_terminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as i64<endif>, &[<arruNullBytes; separator=\", \">]);"
+ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_sint_ascii_var_size_null_terminated<sSsuffix>(pBitStrm, &[<arruNullBytes; separator=", ">]);
     <p> = val;
@@ -396,8 +396,8 @@ ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin
 <A(sErrCode)>
 >>
 
-ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "acn::acn_enc_uint_ascii_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, <nSizeInBytes>);"
-ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= "acn::acn_enc_uint_ascii_const_size(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, <nSizeInBytes>);"
+ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_uint_ascii_const_size<sSsuffix>(pBitStrm, <nSizeInBytes>);
     <p> = val;
@@ -407,8 +407,8 @@ ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperM
 <A(sErrCode)>
 >>
 
-ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "acn::acn_enc_uint_ascii_var_size_null_terminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, &[<arruNullBytes; separator=\", \">]);"
-ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= "acn::acn_enc_uint_ascii_var_size_null_terminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p> as u64<endif>, &[<arruNullBytes; separator=\", \">]);"
+ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_uint_ascii_var_size_null_terminated<sSsuffix>(pBitStrm, &[<arruNullBytes; separator=", ">]);
     <p> = val;
@@ -420,8 +420,8 @@ ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUp
 
 
 
-Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "acn::acn_enc_real_ieee754_32_big_endian(pBitStrm, <p> as f64);"
-Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
+Real_32_big_endian_encode(p, sSuffix, sErrCode, sType) ::= "acn::acn_enc_real_ieee754_32_big_endian(pBitStrm, <p> as f64);"
+Real_32_big_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_real_ieee754_32_big_endian<sSuffix>(pBitStrm);
     <p> = val;
@@ -430,8 +430,8 @@ Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
 <A(sErrCode)>
 >>
 
-Real_64_big_endian_encode(p, sErrCode) ::= "acn::acn_enc_real_ieee754_64_big_endian(pBitStrm, <p>);"
-Real_64_big_endian_decode(p, sErrCode) ::= <<
+Real_64_big_endian_encode(p, sErrCode, sType) ::= "acn::acn_enc_real_ieee754_64_big_endian(pBitStrm, <p>);"
+Real_64_big_endian_decode(p, sErrCode, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_real_ieee754_64_big_endian(pBitStrm);
     <p> = val;
@@ -440,8 +440,8 @@ Real_64_big_endian_decode(p, sErrCode) ::= <<
 <A(sErrCode)>
 >>
 
-Real_32_little_endian_encode(p, sSuffix, sErrCode) ::= "acn::acn_enc_real_ieee754_32_little_endian(pBitStrm, <p> as f64);"
-Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
+Real_32_little_endian_encode(p, sSuffix, sErrCode, sType) ::= "acn::acn_enc_real_ieee754_32_little_endian(pBitStrm, <p> as f64);"
+Real_32_little_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_real_ieee754_32_little_endian<sSuffix>(pBitStrm);
     <p> = val;
@@ -450,8 +450,8 @@ Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
 <A(sErrCode)>
 >>
 
-Real_64_little_endian_encode(p, sErrCode) ::= "acn::acn_enc_real_ieee754_64_little_endian(pBitStrm, <p>);"
-Real_64_little_endian_decode(p, sErrCode) ::= <<
+Real_64_little_endian_encode(p, sErrCode, sType) ::= "acn::acn_enc_real_ieee754_64_little_endian(pBitStrm, <p>);"
+Real_64_little_endian_decode(p, sErrCode, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_real_ieee754_64_little_endian(pBitStrm);
     <p> = val;
@@ -488,7 +488,7 @@ if ret {
 
 
 
-Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
+Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode, sType) ::= <<
 {
     let true_data: [u8; <length(arruTrueValueAsByteArray)>] = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
     let false_data: [u8; <length(arruFalseValueAsByteArray)>] = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
@@ -498,7 +498,7 @@ Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 >>
 
 
-Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
+Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode, sType) ::= <<
 {
     <if(bEncValIsTrue)>
     let tmp: [u8; <length(arruTrueValueAsByteArray)>] = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
@@ -514,7 +514,7 @@ Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 >>
 
 
-BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
+BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode, sType) ::= <<
 {
     let true_data: [u8; <length(arruTrueValueAsByteArray)>] = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
     let false_data: [u8; <length(arruFalseValueAsByteArray)>] = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
@@ -523,7 +523,7 @@ BooleanTrueFalse_encode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueA
 }
 >>
 
-BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode) ::= <<
+BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsTrueBits, arrsFalseBits, sErrCode, sType) ::= <<
 {
     let true_data: [u8; <length(arruTrueValueAsByteArray)>] = [<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
     let false_data: [u8; <length(arruFalseValueAsByteArray)>] = [<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">];
@@ -535,7 +535,7 @@ BooleanTrueFalse_decode(p, ptr, nSize, arruTrueValueAsByteArray, arruFalseValueA
 >>
 
 
-Null_declare(p) ::= ""
+Null_declare(p, sType) ::= ""
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>
@@ -659,8 +659,8 @@ Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 <A(sErrCode)>
 >>
 
-Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= "acn::acn_enc_string_ascii_null_terminated_mult(pBitStrm, <nAsn1Max>, &[<arruNullBytes; separator=\", \">], &(<p>).arr);"
-Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
+Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= "acn::acn_enc_string_ascii_null_terminated_mult(pBitStrm, <nAsn1Max>, &[<arruNullBytes; separator=\", \">], &(<p>).arr);"
+Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 {
     let ok = acn::acn_dec_string_ascii_null_terminated_mult(pBitStrm, <nAsn1Max>, &[<arruNullBytes; separator=", ">], &mut (<p>).arr);
     ret = ok;
@@ -668,8 +668,8 @@ Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::
 <A(sErrCode)>
 >>
 
-Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "acn::acn_enc_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);"
-Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld) ::= <<
+Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= "acn::acn_enc_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);"
+Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
 {
     let ok = acn::acn_dec_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, <sExtFld> as i64, &mut (<p>).arr);
     ret = ok;
@@ -677,8 +677,8 @@ Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFl
 <A(sErrCode)>
 >>
 
-Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "acn::acn_enc_string_ascii_internal_field_determinant(pBitStrm, <nAsn1Max>, <nAsn1Min>, &(<p>).arr);"
-Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
+Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= "acn::acn_enc_string_ascii_internal_field_determinant(pBitStrm, <nAsn1Max>, <nAsn1Min>, &(<p>).arr);"
+Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
 {
     let ok = acn::acn_dec_string_ascii_internal_field_determinant(pBitStrm, <nAsn1Max>, <nAsn1Min>, &mut (<p>).arr);
     ret = ok;
@@ -690,12 +690,12 @@ PrintAlphabet2(arrnCharSet) /*nogen*/ ::= <<
 static ALLOWED_CHAR_SET: [u8; <length(arrnCharSet)>] = [<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=", ">];
 >>
 
-Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 acn::acn_enc_string_char_index_fix_size(pBitStrm, <nAsn1Max>, &ALLOWED_CHAR_SET, &(<p>).arr);
 >>
 
-Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 {
     let ok = acn::acn_dec_string_char_index_fix_size(pBitStrm, <nAsn1Max>, &ALLOWED_CHAR_SET, &mut (<p>).arr);
@@ -704,12 +704,12 @@ Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCode
 <A(sErrCode)>
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 acn::acn_enc_string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, &ALLOWED_CHAR_SET, &(<p>).arr);
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 {
     let ok = acn::acn_dec_string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, &ALLOWED_CHAR_SET, <sExtFld> as i64, &mut (<p>).arr);
@@ -719,11 +719,11 @@ Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, ar
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 acn::acn_enc_ia5string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);
 >>
 
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
 {
     let ok = acn::acn_dec_ia5string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, <sExtFld> as i64, &mut (<p>).arr);
     ret = ok;
@@ -775,12 +775,12 @@ if ret {
 >>
 
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 pBitStrm.encode_constraint_whole_number(<p><sAcc>n_count as i64, <nSizeMin>, <nSizeMax>);
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_constraint_whole_number(<nSizeMin>, <nSizeMax>);
     n_count = val;
@@ -816,7 +816,7 @@ if ret {
 }
 >>
 
-oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
 {
     let null_bytes: [u8; <length(arruNullBytes)>] = [<arruNullBytes; separator=", ">];
@@ -824,7 +824,7 @@ oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, a
 }
 >>
 
-oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
 <i> = 0;
 ret = true;
 let mut check_bit_pattern_present_result: i32 = 0;
@@ -861,8 +861,8 @@ if ret && (check_bit_pattern_present_result == 0) {
 /* compile-time trailing constant (nTrailingBits).                           */
 /* ------------------------------------------------------------------------- */
 
-str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits) ::= "acn::acn_enc_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);"
-str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits) ::= <<
+str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= "acn::acn_enc_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);"
+str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= <<
 {
     let ded_avail_bits = (pBitStrm.count * 8 - <nTrailingBits>) - (pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64);
     let ded_count = ded_avail_bits / 8;
@@ -983,7 +983,7 @@ if ret {
 }
 >>
 
-bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
 pBitStrm.append_bits(&<p><sAcc>arr, <p><sAcc>n_count);
 {
     let null_bytes: [u8; <length(arruNullBytes)>] = [<arruNullBytes; separator=", ">];
@@ -991,7 +991,7 @@ pBitStrm.append_bits(&<p><sAcc>arr, <p><sAcc>n_count);
 }
 >>
 
-bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
 {
     let null_bytes: [u8; <length(arruNullBytes)>] = [<arruNullBytes; separator=", ">];
     let (n, ok) = pBitStrm.read_bits_nullterminated(&null_bytes, <nBitPatternLength> as usize, &mut <p><sAcc>arr, <nSizeMax> as i32);
@@ -1072,7 +1072,7 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 <sBitStreamPositionsLocalVar>.<sChName> = acn::acn_bit_stream_get_pos(pBitStrm); //save position of the bit stream
 >>
 
-sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
+sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 /*Encode <sChName> */
 if <sChName>_is_initialized {
     ret = true;
@@ -1083,31 +1083,31 @@ if <sChName>_is_initialized {
     ret = false;                    /*COVERAGE_IGNORE*/
 }
 >>
-sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
+sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 /*Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
 
-sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 /*Encode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
-sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement, sChildTypedef, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 /*Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 /*Encode <sChName> */
 /* marked as ALWAYS PRESENT, so do not look in exist */
 <soSaveBitStrmPosStatement>
 <soChildContent>
 >>
-sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 /*Decode <sChName> */
 /* marked as ALWAYS PRESENT */
 <p><sAcc>exist.<sChName> = true;
@@ -1115,14 +1115,14 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildEx
 <soChildContent>
 >>
 
-sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 /*Encode <sChName> */
 /* marked as ALWAYS ABSENT, so do not encode anything */
 let _ = <p>;
 let _ = pBitStrm;
 <soSaveBitStrmPosStatement>
 >>
-sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
 /*Decode <sChName> */
 /* marked as ALWAYS ABSENT, so do not decode anything */
 <soSaveBitStrmPosStatement>
@@ -1131,7 +1131,7 @@ let _ = pBitStrm;
 >>
 
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 /*Encode <sChName> */
 <soSaveBitStrmPosStatement>
 if <p><sAcc>exist.<sChName> {
@@ -1139,7 +1139,7 @@ if <p><sAcc>exist.<sChName> {
 }
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, arrsAcnParams, bChildHasAcnChildrenToReturn, soAlignmentCode, bInlineRequired) ::= <<
 /*Decode <sChName> */
 <soSaveBitStrmPosStatement>
 if _presence_<sChName> {
@@ -1148,13 +1148,13 @@ if _presence_<sChName> {
 <p><sAcc>exist.<sChName> = _presence_<sChName>;
 >>
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
 <soSaveBitStrmPosStatement>
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement)>
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement, bIsPrimitive=bIsPrimitive, bChildHasAcnChildrenToReturn=bChildHasAcnChildrenToReturn, soAlignmentCode=soAlignmentCode)>
 >>
 
 
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement, bIsPrimitive, bChildHasAcnChildrenToReturn, soAlignmentCode) ::= <<
 /*Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <p><sAcc>exist.<sChName> = _presence_<sChName>;
@@ -1244,7 +1244,7 @@ if ret {
 
 /* Choice with presence determinants */
 
-ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive, arrsAcnParams) ::= <<
 <sChoiceTypeName>::<sChildID>(ref <sChildName>) => {
     <sChildBody>
 }
@@ -1254,7 +1254,7 @@ ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> == <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "asn1rust::ia5_string_equal_str(&<sExtFld>.arr, \"<sVal>\")"
 
-ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsPrimitive, arrsAcnParams) ::= <<
 <if(!bFirst)>else <endif>if <arrsConditions; separator=" && "> {
     let mut <sChildName>_tmp: <sChildTypeDef> = <sChildInitExpr>;
     <sChildBody>
@@ -1263,7 +1263,7 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 >>
 
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 match <p> {
     <arrsChildren; separator="\n">
     _ => {
@@ -1273,7 +1273,7 @@ match <p> {
 }
 >>
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
 *pErrCode = 0;
 <arrsChildren; separator="\n">
 else {
@@ -1302,7 +1302,7 @@ ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sCh
 >>
 
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
 match <p> {
     <arrsChildren; separator="\n">
     _ => {
@@ -1312,7 +1312,7 @@ match <p> {
 }
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
 match <sEnmExtFld> {
     <arrsChildren; separator="\n">
     _ => {
@@ -1341,7 +1341,7 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
 <sChildCIDHolder>::<sChildCID>(..) => {
     <v>_is_initialized = true;
     <v> = <sEnumCName>;
@@ -1724,7 +1724,7 @@ sparkAnnotations_decode(sTypeDefName) ::= ""
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
@@ -1746,7 +1746,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream whose view is limited to the actual
@@ -1777,7 +1777,7 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
@@ -1801,7 +1801,7 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/

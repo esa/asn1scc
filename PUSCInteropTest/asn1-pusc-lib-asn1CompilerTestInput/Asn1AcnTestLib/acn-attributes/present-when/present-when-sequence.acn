@@ -1,0 +1,50 @@
+-- ACN encoding with present-when for sequence optional components
+
+PresentWhenSequence DEFINITIONS ::= BEGIN
+
+    ConditionalSequence []
+    {
+        hasExtension BOOLEAN [],
+        baseField [size 8, encoding pos-int],
+        extensionField [present-when hasExtension, size 16, encoding pos-int]
+    }
+
+    MultiConditional []
+    {
+        hasData1 BOOLEAN [],
+        hasData2 BOOLEAN [],
+        hasData3 BOOLEAN [],
+        data1 [present-when hasData1],
+        data2 [present-when hasData2],
+        data3 [present-when hasData3, size 8, encoding pos-int]
+    }
+
+    ComplexConditional []
+    {
+        hasFieldA BOOLEAN [],
+        hasFieldB BOOLEAN [],
+        fieldA [present-when hasFieldA, size 8, encoding pos-int],
+        fieldB [present-when hasFieldB],
+        mandatoryField []
+    }
+
+    NestedConditional []
+    {
+        enableNested BOOLEAN [],
+        nested [present-when enableNested]
+        {
+            hasExtra BOOLEAN [],
+            value [],
+            extra [present-when hasExtra]
+        }
+    }
+
+    TestStruct []
+    {
+        seq1 [],
+        seq2 [],
+        seq3 [],
+        seq4 []
+    }
+
+END

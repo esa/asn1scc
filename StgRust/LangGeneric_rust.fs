@@ -45,6 +45,9 @@ type LangBasic_rust() =
 
 type LangGeneric_rust() =
     inherit ILangGeneric()
+        override this.isObjectOriented = false
+        override this.nullTerminatorByte = Some 0uy
+
         override _.ArrayStartIndex = 0
 
         override _.intValueToString (i:BigInteger) (intClass:Asn1AcnAst.IntegerClass) =
@@ -143,7 +146,7 @@ type LangGeneric_rust() =
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._rust_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._rust_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._rust_name
-        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) : string =
+        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) (_currentModule:string) : string =
             let name = ToC c.present_when_name
             if name.EndsWith("_PRESENT") then name.Substring(0, name.Length - 8) else name
 
@@ -328,8 +331,14 @@ type LangGeneric_rust() =
             let CreateRustMainFile (r:AstRoot)  outDir  =
                 //Main file for test cases
                 let printMain = test_cases_rust.PrintMain
-                let pduMods = r.programUnits |> List.collect (fun pu -> [pu.name; pu.testcase_name])
-                let tcMods = arrsSrcTstFiles |> List.map (fun f -> Path.GetFileNameWithoutExtension(f))
+                let formatMod (modName: string) =
+                    if String.IsNullOrEmpty(modName) then ""
+                    elif Char.IsDigit(modName.[0]) then
+                        sprintf "#[path = \"%s.rs\"] mod _%s;\n#[path = \"%sDef.rs\"] mod _%sDef;" modName modName modName modName
+                    else
+                        sprintf "mod %s;\nmod %sDef;" modName modName
+                let pduMods = r.programUnits |> List.collect (fun pu -> [formatMod pu.name; formatMod pu.testcase_name])
+                let tcMods = arrsSrcTstFiles |> List.map (fun f -> formatMod (Path.GetFileNameWithoutExtension(f)))
                 let content = printMain "testsuite" (pduMods @ tcMods)
                 let outFileName = Path.Combine(outDir, "mainprogram.rs")
                 File.WriteAllText(outFileName, content.Replace("\r",""))
@@ -377,6 +386,18 @@ type LangGeneric_rust() =
                 if idx > 0 then pre_name.Substring(idx + 1) else pre_name
             sprintf "let %s(ref %s) = %s" vPat varName (arg.joined this)
 
+        override this.wrapIA5StringValue typeRef modName literal =
+            this.getQualifiedTypeName typeRef modName + " { arr: " + literal + " }"
+
+        override _.formatEnumValueInit (enumTd: FE_EnumeratedTypeDefinition) itemCName _defaultValue =
+            let typeNameNoPrefix = if enumTd.typeName.StartsWith("ASN1SCC_") then enumTd.typeName.Substring(8) else enumTd.typeName
+            enumTd.typeName + "::" + typeNameNoPrefix + "_" + itemCName
+
+        override _.charToNumericValueExpression charValue = sprintf "b%s" charValue
+
+
+
+
 
 /// LanguageMacros wiring for the Rust backend.
 /// Models after `c_macro` in Program.fs:165.
@@ -396,4 +417,5 @@ let rust_macro =
             atc                     = new ITestCases_rust.ITestCases_rust()
             xer                     = new IXer_rust.IXer_rust()
             src                     = new ISrcBody_rust.ISrcBody_rust()
+            encodings               = []
         }

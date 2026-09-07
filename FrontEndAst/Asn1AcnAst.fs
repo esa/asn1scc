@@ -286,6 +286,7 @@ type NamedItem = {
     Name:StringLoc
     c_name:string
     scala_name:string
+    python_name:string
     ada_name:string
     rust_name:string
     definitionValue : BigInteger          // the value in the header file
@@ -786,6 +787,7 @@ and Asn1Child = {
     Name                        : StringLoc
     _c_name                     : string
     _scala_name                 : string
+    _python_name                : string
     _ada_name                   : string
     _rust_name                  : string
     Type                        : Asn1Type
@@ -823,6 +825,7 @@ and ChChildInfo = {
     Name                        : StringLoc
     _c_name                     : string
     _scala_name                 : string
+    _python_name                : string
     _ada_name                   : string
     _rust_name                  : string
     present_when_name           : string // Does not contain the "_PRESENT". Not to be used directly by backends.
@@ -870,6 +873,7 @@ type TypeAssignment = {
     Name:StringLoc
     c_name:string
     scala_name:string
+    python_name:string
     ada_name:string
     rust_name:string
     Type:Asn1Type
@@ -883,6 +887,7 @@ type ValueAssignment = {
     Name:StringLoc
     c_name:string
     scala_name:string
+    python_name:string
     ada_name:string
     rust_name:string
     Type:Asn1Type

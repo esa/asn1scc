@@ -1,0 +1,37 @@
+-- Requirement 43: present-when ACN attribute for conditional encoding of optional sequence components
+-- Tests ACN present-when attribute for conditional field presence in sequences
+
+PresentWhenSequence DEFINITIONS ::= BEGIN
+
+    ConditionalSequence ::= SEQUENCE {
+        baseField INTEGER (0..255),
+        extensionField INTEGER (0..65535) OPTIONAL
+    }
+
+    MultiConditional ::= SEQUENCE {
+        data1 OCTET STRING (SIZE(8)) OPTIONAL,
+        data2 OCTET STRING (SIZE(16)) OPTIONAL,
+        data3 INTEGER (0..255) OPTIONAL
+    }
+
+    ComplexConditional ::= SEQUENCE {
+        fieldA INTEGER (0..255) OPTIONAL,
+        fieldB REAL OPTIONAL,
+        mandatoryField INTEGER
+    }
+
+    NestedConditional ::= SEQUENCE {
+        nested SEQUENCE {
+            value INTEGER,
+            extra INTEGER OPTIONAL
+        } OPTIONAL
+    }
+
+    TestStruct ::= SEQUENCE {
+        seq1 ConditionalSequence,
+        seq2 MultiConditional,
+        seq3 ComplexConditional,
+        seq4 NestedConditional
+    }
+
+END

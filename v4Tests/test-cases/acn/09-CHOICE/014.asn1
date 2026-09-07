@@ -1,0 +1,20 @@
+--NOCOVERAGE
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+T-UInt8 ::= INTEGER (0..255)
+
+T-Thing ::= CHOICE {
+field1 T-UInt8,
+field2 T-UInt8,
+field3 T-UInt8
+}
+
+-- Unioned WITH COMPONENTS on a CHOICE: field1 OR field2 may be selected,
+-- field3 is never permitted. The permitted set is {field1, field2}, so field3
+-- must be marked ALWAYS ABSENT and the ACN choice index must shrink to 1 bit.
+-- Regression for commit 3219b052 (unioned WITH COMPONENTS was previously ignored).
+T-SubThing ::= T-Thing (WITH COMPONENTS {field1 PRESENT} | WITH COMPONENTS {field2 PRESENT})
+
+END
+
+--TCFS     014.acn

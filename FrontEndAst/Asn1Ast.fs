@@ -1,4 +1,4 @@
-﻿(*
+(*
 * Copyright (c) 2008-2012 Semantix and (c) 2012-2015 Neuropublic
 *
 * This file is part of the ASN1SCC tool.
@@ -103,6 +103,7 @@ type NamedItem = {
     Name:StringLoc
     c_name:string
     scala_name:string
+    python_name:string
     ada_name:string
     rust_name:string
     _value:Asn1Value option
@@ -164,6 +165,7 @@ and ChildInfo = {
     Name                        : StringLoc;
     c_name                      : string
     scala_name                  : string
+    python_name                 : string
     ada_name                    : string
     rust_name                   : string
     present_when_name           : string // used only by choices. Does not contain the "_PRESENT". Not to be used directly by backends.
@@ -177,6 +179,7 @@ type TypeAssignment = {
     Name:StringLoc
     c_name:string
     scala_name:string
+    python_name:string
     ada_name:string
     rust_name:string
     Type:Asn1Type
@@ -188,6 +191,7 @@ type ValueAssignment = {
     Name:StringLoc
     c_name:string
     scala_name:string
+    python_name:string
     ada_name:string
     rust_name:string
     Type:Asn1Type
@@ -404,6 +408,7 @@ type NamedItem with
         |C      -> ToC2 (r.args.TypePrefix + c.c_name)
         |Scala  -> ToC2 (r.args.TypePrefix + c.scala_name)
         |Rust   -> ToC2 (r.args.TypePrefix + c.rust_name)
+        |Python  -> ToC2 (r.args.TypePrefix + c.python_name)
 
 type Asn1Constraint with
     member this.Asn1Con =

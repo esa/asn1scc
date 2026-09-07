@@ -1,0 +1,31 @@
+-- Requirement 32: Basic CHOICE support
+-- Tests fundamental ASN.1 CHOICE discriminated union type
+
+ChoiceBasic DEFINITIONS ::= BEGIN
+
+    SimpleChoice ::= CHOICE {
+        intValue INTEGER,
+        boolValue BOOLEAN,
+        stringValue IA5String (SIZE(0..24))
+    }
+
+    TypedChoice ::= CHOICE {
+        temperature REAL,
+        pressure INTEGER (0..1000),
+        status ENUMERATED { ok(0), warning(1), error(2) },
+        message IA5String (SIZE(64))
+    }
+
+    NestedChoice ::= CHOICE {
+        simple SimpleChoice,
+        typed TypedChoice,
+        nullValue NULL
+    }
+
+    TestStruct ::= SEQUENCE {
+        choice1 SimpleChoice,
+        choice2 TypedChoice,
+        choice3 NestedChoice
+    }
+
+END

@@ -1,0 +1,48 @@
+-- Requirement 37 & 52: Subtyping with WITH COMPONENTS constraint
+-- Tests ASN.1 subtyping using WITH COMPONENTS
+
+SubtypingWithComponents DEFINITIONS ::= BEGIN
+
+    -- Base sequence type
+    PersonInfo ::= SEQUENCE {
+        name IA5String (SIZE(10..100)),
+        age INTEGER (0..120) OPTIONAL,
+        email IA5String (SIZE(10..100)) OPTIONAL,
+        phone IA5String (SIZE(10..100)) OPTIONAL
+    }
+
+    -- Subtype requiring specific fields
+    MandatoryContactInfo ::= PersonInfo (WITH COMPONENTS {
+        name,
+        email PRESENT
+    })
+
+    -- Subtype forbidding specific fields
+    BasicInfo ::= PersonInfo (WITH COMPONENTS {
+        name,
+        age PRESENT,
+        email ABSENT,
+        phone ABSENT
+    })
+
+    -- Base choice type
+    DataValue ::= CHOICE {
+        intValue INTEGER,
+        realValue REAL,
+        stringValue IA5String (SIZE(10..100))
+    }
+
+    -- Subtype constraining choice alternatives
+    NumericValue ::= DataValue (WITH COMPONENTS {
+        intValue PRESENT
+    } | WITH COMPONENTS {
+        realValue PRESENT
+    })
+
+    TestStruct ::= SEQUENCE {
+        contact MandatoryContactInfo,
+        basic BasicInfo,
+        numValue NumericValue
+    }
+
+END

@@ -238,7 +238,12 @@ AllExceptConstraint(sCon)  ::= "(!<sCon>)"
 
 ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> &&  !<sCon2>)"
 
-callAlphaFunc(sFuncName, p) ::= "<sFuncName>_chars_are_valid(&(<p>).arr)"
+methodNameSuffix() ::= "_IsConstraintValid"
+
+callAlphaFunc(sFuncName, p) ::= "<if(sFuncName)><sFuncName>_<endif>chars_are_valid(&(<p>).arr)"
+callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<if(sFuncName)><sFuncName>_<endif>chars_are_valid_<nIdx>(&(<p>).arr)"
+alphaFuncBaseName(p) ::= "<if(p)><p>_<endif>chars_are_valid_0"
+alphaFuncNameWithIndex(p, nIdx) ::= "<if(p)><p>_<endif>chars_are_valid_<nIdx>"
 
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" && \">"
 
@@ -252,6 +257,7 @@ ret = <arrsConstraints; separator=" && ">;
 
 
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(&<p>, pErrCode);"
+call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(&<p>, pErrCode);"
 
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(&<p>, pErrCode)"
 

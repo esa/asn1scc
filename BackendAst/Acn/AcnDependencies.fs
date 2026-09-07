@@ -143,7 +143,7 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
             match m.Name.Value = o.modName.Value with
             | true  -> ToC2(r.args.TypePrefix + o.tasName.Value)
             | false -> (ToC o.modName.Value) + "." + ToC2(r.args.TypePrefix + o.tasName.Value)
-    let baseFncName = baseTypeDefinitionName + "_ACN" + Encode.suffix
+    let baseFncName = baseTypeDefinitionName + "_ACN" + (lm.lg.codecSuffix Encode)
     let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
     let asn1TypeD = us.newTypesMap[d.asn1Type] :?> Asn1Type
     let asn1TypeD = match asn1TypeD.Kind with ReferenceType  o -> o.resolvedType.ActualType | _  -> asn1TypeD
@@ -158,6 +158,19 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
 
     let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
         let v = lm.lg.getValue vTarget.accessPath
+        let (ReferenceToType depNodes) = d.asn1Type
+        let depResolvable =
+            nestingScope.parents |> List.exists (fun (_, t) ->
+                let (ReferenceToType scopeNodes) = t.id
+                let n = List.length scopeNodes
+                n >= 2 && n <= List.length depNodes && List.take n depNodes = scopeNodes)
+        if not depResolvable then
+            // Parent scope unreachable from the current nesting. Only Python tolerates this
+            // (types generated standalone); the other backends must fail loudly rather than
+            // silently drop the determinant update and emit a wrong-but-compiling encoding.
+            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
+            else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
+        else
         let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath false lm pBase
         let sInner =
@@ -201,12 +214,28 @@ and private handlePresenceBool (ctx: DepContext) (us: State) =
         let parDecTypeSeq =
             match d.asn1Type with
             | ReferenceToType (nodes) -> ReferenceToType (nodes |> List.rev |> List.tail |> List.rev)
-        let pBase, relPath = resolveDepScope nestingScope pSrcRoot parDecTypeSeq
-        let pDecParSeq, checkPath = getAccessFromScopeNodeList relPath false lm pBase
-        let updateStatement = lm.acn.PresenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC d.asn1Type.lastItem)
-        match checkPath with
-        | []    -> updateStatement
-        | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
+        let (ReferenceToType parDecNodes) = parDecTypeSeq
+        // Only generate the presence update if the parent sequence is reachable from the current nesting scope.
+        // When a type is processed standalone (e.g. TM-HEADER without TM-PACKET as parent), the dep scope
+        // cannot be resolved and we must skip the update to avoid accessing a non-existent field.
+        let depResolvable =
+            nestingScope.parents |> List.exists (fun (_, t) ->
+                let (ReferenceToType scopeNodes) = t.id
+                let n = List.length scopeNodes
+                n >= 2 && n <= List.length parDecNodes && List.take n parDecNodes = scopeNodes)
+        if not depResolvable then
+            // Parent scope unreachable from the current nesting. Only Python tolerates this
+            // (types generated standalone); the other backends must fail loudly rather than
+            // silently drop the determinant update and emit a wrong-but-compiling encoding.
+            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
+            else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
+        else
+            let pBase, relPath = resolveDepScope nestingScope pSrcRoot parDecTypeSeq
+            let pDecParSeq, checkPath = getAccessFromScopeNodeList relPath false lm pBase
+            let updateStatement = lm.acn.PresenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC d.asn1Type.lastItem)
+            match checkPath with
+            | []    -> updateStatement
+            | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
     let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
         match atc.testCaseTypeIDsMap.TryFind(d.asn1Type) with
         | Some _    -> Some TcvComponentPresent
@@ -219,6 +248,21 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
     let icdComments = icdCommentsForDependency ctx.d
     let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
         let v = lm.lg.getValue vTarget.accessPath
+        let (ReferenceToType depNodes) = d.asn1Type
+        // Skip update when the dep target type is not reachable from the current nesting scope
+        // (e.g. the parent type containing the choice field is not an ancestor of this type).
+        let depResolvable =
+            nestingScope.parents |> List.exists (fun (_, t) ->
+                let (ReferenceToType scopeNodes) = t.id
+                let n = List.length scopeNodes
+                n >= 2 && n <= List.length depNodes && List.take n depNodes = scopeNodes)
+        if not depResolvable then
+            // Parent scope unreachable from the current nesting. Only Python tolerates this
+            // (types generated standalone); the other backends must fail loudly rather than
+            // silently drop the determinant update and emit a wrong-but-compiling encoding.
+            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
+            else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
+        else
         let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
         let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
@@ -226,7 +270,7 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
             chc.children |>
             List.map(fun ch ->
                 let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+                let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch m.Name.Value
                 let unsigned =
                     match child.Type with
                     | AcnInteger int -> int.isUnsigned
@@ -264,13 +308,17 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
             chc.children |>
             List.map(fun ch ->
                 let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+                let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch m.Name.Value
                 match pres with
                 | PresenceInt   (_, intVal) ->
                     raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))
                 | PresenceStr   (_, strVal) ->
                     let arrNulls = [0 .. ((int str.maxSize.acn)- strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
-                    let bytesStr = Array.append (System.Text.Encoding.ASCII.GetBytes strVal.Value) [| 0uy |]
+                    let bytesStr =
+                        let baseBytes = System.Text.Encoding.ASCII.GetBytes strVal.Value
+                        match lm.lg.nullTerminatorByte with
+                        | Some nullByte -> Array.append baseBytes [| nullByte |]
+                        | None -> baseBytes
                     lm.acn.ChoiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls sChoiceTypeName)
         let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName
         match checkPath with
@@ -299,10 +347,10 @@ and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.Reference
         let choicePath, checkPath = getAccessFromScopeNodeList relPath false lm pBase
         let arrsChildUpdates =
             chc.children |>
-            List.map(fun ch ->
+            List.mapi(fun idx ch ->
                 let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = ch.Name.Value)
                 let choiceName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName //chc.typeDef[Scala].typeName
-                lm.acn.ChoiceDependencyEnum_Item v (lm.lg.presentWhenName0 None ch) choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) isOptional)
+                lm.acn.ChoiceDependencyEnum_Item v (lm.lg.presentWhenName0 None ch) choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) (bigint idx) isOptional)
         let updateStatement = lm.acn.ChoiceDependencyEnum v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates isOptional (initExpr r lm m child.Type)
         // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for
         // accessing enums fields instead of a compiler-unchecked access
@@ -332,8 +380,9 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
         let ret, ns = handleSingleUpdateDependency r deps lm m d1 us
         ret, ns
     | d1::dds         ->
-        let _errCodeName = ToC ("ERR_ACN" + (Encode.suffix.ToUpper()) + "_UPDATE_" + ((acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-        let errCode, us = getNextValidErrorCode us _errCodeName None
+        let _errCodeName = ToC ("ERR_ACN" + ((lm.lg.codecSuffix Encode).ToUpper()) + "_UPDATE_" + ((acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+        let errFieldPath = match acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
+        let errCode, us = getNextValidErrorCode us _errCodeName None errFieldPath
 
         let ds = d1::dds
         let c_name0 = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) 0

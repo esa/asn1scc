@@ -1,0 +1,39 @@
+-- Requirement 47: ACN field parametrization based on nested structure subfields
+-- Tests ACN parametrization using values from nested structures
+
+NestedAcnParametrization DEFINITIONS ::= BEGIN
+
+    Config ::= SEQUENCE {
+        flags INTEGER (0..15)
+    }
+
+    DataPacket ::= SEQUENCE {
+        config Config,
+        payload OCTET STRING (SIZE(2..20))
+    }
+
+    NestedConfig ::= SEQUENCE {
+        header SEQUENCE {
+            version INTEGER (0..15)
+        },
+        data OCTET STRING (SIZE(2..20))
+    }
+
+    ComplexNested ::= SEQUENCE {
+        metadata SEQUENCE {
+            info SEQUENCE {
+                dummy NULL
+            },
+            flags INTEGER (0..15)
+        },
+        mainData OCTET STRING (SIZE(2..20)),
+        extraData OCTET STRING (SIZE(2..20))
+    }
+
+    TestStruct ::= SEQUENCE {
+        packet DataPacket,
+        nested NestedConfig,
+        cmplex ComplexNested
+    }
+
+END

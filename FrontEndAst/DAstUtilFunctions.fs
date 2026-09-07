@@ -99,17 +99,25 @@ type LocalVariable with
 
 type TypeDefinitionOrReference with
 
-    member this.longTypedefName2 bHasModules =
-        match this with
-        | TypeDefinition  td ->
-            td.typedefName
-        | ReferenceToExistingDefinition ref ->
-            match ref.programUnit with
-            | Some pu ->
-                match bHasModules with
-                | true   -> pu + "." + ref.typedefName
-                | false     -> ref.typedefName
-            | None    -> ref.typedefName
+    member this.longTypedefName2 (lg: ILangGeneric option) (hasModules: bool) (moduleName: string) =
+        let moduleName = ToC moduleName
+        match lg with
+        | Some l -> l.longTypedefName2 this hasModules moduleName
+        | None ->
+            match this with
+            | TypeDefinition  td ->
+                td.typedefName
+            | ReferenceToExistingDefinition ref ->
+                match ref.programUnit with
+                | Some pu ->
+                    match hasModules with
+                    | true   ->
+                        match pu with
+                        | "" -> ref.typedefName
+                        | k when k = moduleName -> ref.typedefName
+                        | _ -> pu + "." + ref.typedefName
+                    | false     -> ref.typedefName
+                | None    -> ref.typedefName
 
     member this.getAsn1Name (typePrefix : string) =
         let typedefName =
@@ -193,10 +201,11 @@ type Asn1AcnAst.ChChildInfo with
 type ChChildInfo with
     member this.presentWhenName (defOrRef:TypeDefinitionOrReference option) l =
         match l with
-        | C     -> (ToC this._present_when_name_private) + "_PRESENT"
-        | Scala -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Scala
-        | Rust  -> (ToC this._present_when_name_private)
-        | Ada   ->
+        | C      -> (ToC this._present_when_name_private) + "_PRESENT"
+        | Scala  -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Scala
+        | Python -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Python
+        | Rust   -> (ToC this._present_when_name_private)
+        | Ada    ->
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC this._present_when_name_private) + "_PRESENT")
             | _       -> (ToC this._present_when_name_private) + "_PRESENT"
@@ -205,10 +214,11 @@ type ChChildInfo with
 type Asn1AcnAst.NamedItem      with
     member this.CEnumName l =
         match l with
-        | C     -> this.c_name
-        | Scala -> this.scala_name
-        | Ada   -> this.ada_name
-        | Rust  -> this.rust_name
+        | C      -> this.c_name
+        | Scala  -> this.scala_name
+        | Ada    -> this.ada_name
+        | Rust   -> this.rust_name
+        | Python -> this.python_name
 
 
 type Asn1AcnAst.Asn1Type with
@@ -743,6 +753,7 @@ type Asn1Child with
         | Scala     -> this._scala_name
         | Ada       -> this._ada_name
         | Rust      -> this._rust_name
+        | Python    -> this._python_name
     member this.acnMinSizeInBits =
         match this.Optionality with
         | Some(AlwaysAbsent) -> 0I
@@ -854,7 +865,7 @@ type Asn1Value with
         | ReferenceToValue (typePath,(VA2 vasName)::[]) -> ToC vasName
         | ReferenceToValue (typePath, vasPath)      ->
             let longName = (typePath.Tail |> List.map (fun i -> i.StrValue))@ (vasPath |> List.map (fun i -> i.StrValue))  |> Seq.StrJoin "_"
-            ToC2(longName.Replace("#","elem").L1)
+            ToC2(longName.Replace("#","elm").L1)
 
     member this.BaseValue =
         match this.kind with
@@ -948,7 +959,7 @@ let hasXerEncodeFunction (encFunc : XerFunction option)  =
     | None  -> false
     | Some (XerFunction fnc) ->
             let p = {CodegenScope.modName = ""; accessPath = AccessPath.valueEmptyPath "dummy"}
-            let errCode = {ErrorCode.errCodeName = "DUMMY_ERR"; errCodeValue=0; comment=None}
+            let errCode = {ErrorCode.errCodeName = "DUMMY_ERR"; errCodeValue=0; comment=None; fieldPath=""}
             match fnc.funcBody_e errCode p None  with
             | None   -> false
             | Some _ -> true
@@ -1013,17 +1024,6 @@ let rec GetMySelfAndChildren3 visitChildPredicate (t:Asn1Type) =
     } |> Seq.toList
 
 
-let getFuncNameGeneric (typeDefinition:TypeDefinitionOrReference) nameSuffix  =
-    match typeDefinition with
-    | ReferenceToExistingDefinition  refEx  -> None
-    | TypeDefinition   td                   -> Some (td.typedefName + nameSuffix)
-
-let getFuncNameGeneric2 (typeDefinition:TypeDefinitionOrReference) =
-    match typeDefinition with
-    | ReferenceToExistingDefinition  refEx  -> None
-    | TypeDefinition   td                   -> Some (td.typedefName)
-
-
 let nestItems joinItems2 children =
     let printChild (content:string) (soNestedContent:string option) =
         match soNestedContent with
@@ -1040,29 +1040,35 @@ let nestItems_ret (lm:LanguageMacros) children =
     nestItems  lm.isvalid.JoinTwoIfFirstOk children
 
 
-let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) (o:Asn1AcnAst.ReferenceType) (id:ReferenceToType) (methodSuffix:string) (codec:CommonTypes.Codec) =
+let getBaseTypeDefName (lm:LanguageMacros) (baseTypeDefinitionName: string) (moduleName: string) (t: Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType): string =
+    match lm.lg.hasModules with
+    | false     -> baseTypeDefinitionName
+    | true   ->
+        // Compare ToC'd module names: if the type being generated lives in a different
+        // module than where the ultimate typedef is defined (moduleName), add the prefix.
+        // Using moduleName (not o.modName.Value) handles multi-hop aliases correctly:
+        // e.g. Baz ::= Bar ::= Foo where Foo is in module A, Baz/Bar in module B.
+        match ToC t.id.ModName = moduleName with
+        | true  -> baseTypeDefinitionName
+        | false -> moduleName + "." + baseTypeDefinitionName
+
+let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) (methodSuffix:string) (codec:CommonTypes.Codec) =
     let moduleName, typeDefinitionName0 =
         match typeDefinition with
         | ReferenceToExistingDefinition refToExist   ->
             match refToExist.programUnit with
             | Some md -> md, refToExist.typedefName
-            | None    -> ToC id.ModName, refToExist.typedefName
+            | None    -> ToC t.id.ModName, refToExist.typedefName
         | TypeDefinition                tdDef        ->
             match tdDef.baseType with
-            | None -> ToC id.ModName, tdDef.typedefName
+            | None -> ToC t.id.ModName, tdDef.typedefName
             | Some refToExist ->
                 match refToExist.programUnit with
                 | Some md -> md, refToExist.typedefName
-                | None    -> ToC id.ModName, refToExist.typedefName
+                | None    -> ToC t.id.ModName, refToExist.typedefName
 
-    let baseTypeDefinitionName =
-        match lm.lg.hasModules with
-        | false     -> typeDefinitionName0
-        | true   ->
-            match id.ModName = o.modName.Value with
-            | true  -> typeDefinitionName0
-            | false -> moduleName + "." + typeDefinitionName0
-    baseTypeDefinitionName, baseTypeDefinitionName + methodSuffix + codec.suffix
+    let baseTypeDefinitionName = getBaseTypeDefName lm typeDefinitionName0 moduleName t o
+    baseTypeDefinitionName, lm.lg.constructFuncName baseTypeDefinitionName methodSuffix (lm.lg.codecSuffix codec)
 
 
 let serializeIcdTasToXml (icdTypeAss: IcdTypeAss) =

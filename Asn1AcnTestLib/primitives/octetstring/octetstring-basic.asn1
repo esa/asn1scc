@@ -1,0 +1,14 @@
+-- Requirement 21: Basic OCTET STRING support
+-- Tests fundamental ASN.1 OCTET STRING type for byte-oriented data
+
+OctetstringBasic DEFINITIONS ::= BEGIN
+
+    UnconstrainedOctetString ::= OCTET STRING (SIZE(24))
+
+    TestStruct ::= SEQUENCE {
+        buffer1 OCTET STRING (SIZE(8)),
+        buffer2 OCTET STRING (SIZE(16)),
+        data UnconstrainedOctetString
+    }
+
+END

@@ -1,0 +1,37 @@
+-- ACN encoding with byte alignment
+
+AlignmentByte DEFINITIONS ::= BEGIN
+
+        UnalignedData []
+    {
+        flags [],
+        value1 [size 8, encoding pos-int],
+        value2 [size 16, encoding pos-int]
+    }
+
+        ByteAlignedData []
+    {
+        flags [],
+        aligned1 [align-to-next byte, size 8, encoding pos-int],
+        flags2 [],
+        aligned2 [align-to-next byte, size 16, encoding pos-int],
+        flags3 [],
+        aligned3 [align-to-next byte, size 8, encoding pos-int]
+    }
+
+        MixedAlignment []
+    {
+        header [size 4, encoding pos-int],
+        data1 [align-to-next byte],
+        flags [],
+        data2 [align-to-next byte]
+    }
+
+    TestStruct []
+    {
+        unaligned [],
+        aligned [],
+        mixed []
+
+    }
+END

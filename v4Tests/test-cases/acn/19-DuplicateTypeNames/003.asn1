@@ -1,0 +1,11 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    -- Two unrelated SEQUENCEs with a same-named FROM-constrained IA5String field
+    A ::= SEQUENCE { name IA5String (SIZE(1..10)) (FROM("A".."Z")) }
+    B ::= SEQUENCE { name IA5String (SIZE(1..10)) (FROM("0".."9")) }
+
+END
+
+
+--TCLS     A[]
+--TCLS     B[]

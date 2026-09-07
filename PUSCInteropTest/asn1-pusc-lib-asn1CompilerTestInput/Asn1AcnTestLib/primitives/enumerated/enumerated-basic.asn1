@@ -1,0 +1,34 @@
+-- Requirement 34: Basic ENUMERATED support
+-- Tests fundamental ASN.1 ENUMERATED type with named integer values
+
+EnumeratedBasic DEFINITIONS ::= BEGIN
+
+    Color ::= ENUMERATED {
+        red(0),
+        green(1),
+        blue(2),
+        yellow(3)
+    }
+
+    Status ::= ENUMERATED {
+        idle(0),
+        active(1),
+        suspended(2),
+        terminated(3),
+        error(4)
+    }
+
+    Priority ::= ENUMERATED {
+        low(0),
+        medium(1),
+        high(2),
+        critical(3)
+    }
+
+    TestStruct ::= SEQUENCE {
+        currentColor Color,
+        systemStatus Status,
+        taskPriority Priority
+    }
+
+END

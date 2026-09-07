@@ -1,0 +1,13 @@
+ColorMod DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+    RGB ::= ENUMERATED {green, red, blue}
+
+    MySeq ::= SEQUENCE {
+        beta BOOLEAN,
+        colorData CHOICE {
+            green REAL,
+            red INTEGER,
+            blue IA5String (SIZE(1..20))
+        }
+    }
+END

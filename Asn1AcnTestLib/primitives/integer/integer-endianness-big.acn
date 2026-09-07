@@ -1,0 +1,18 @@
+-- ACN encoding with big-endian byte ordering
+
+IntegerEndiannessBig DEFINITIONS ::= BEGIN
+
+    BigEndianInt16 [size 16, encoding pos-int, endianness big]
+
+    BigEndianInt32 [size 32, encoding pos-int, endianness big]
+
+    BigEndianInt64 [size 64, encoding pos-int, endianness big]
+
+    TestStruct []
+    {
+        value16 [],
+        value32 [],
+        value64 []
+    }
+
+END

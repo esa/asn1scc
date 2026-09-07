@@ -8,6 +8,8 @@ import getopt
 import subprocess
 import distutils.spawn as spawn
 
+os.environ["DOTNET_ROOT"] = "/usr/share/dotnet"
+
 # Globals
 
 rootDir = None
@@ -82,7 +84,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     astXml  = targetDir + os.sep + "ast.xml"
     #launcher = '' if sys.platform == 'cygwin' else 'mono '
     #path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
-    path_to_asn1scc = "../asn1scc/bin/Debug/net10.0/linux-x64/publish/asn1scc"
+    path_to_asn1scc = os.path.abspath(rootDir + "/../asn1scc/bin/Debug/net10.0/linux-x64/publish/asn1scc")
     if xerMode:
         encodingFlags = " -XER "
         inputFiles = "'" + resolvedir(asn1File) + "'"
@@ -131,6 +133,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         elif language == 'Rust':
             res = mysystem("cd " + targetDir + os.sep + "; cargo build", False)
             return
+        elif language == 'python':
+            return  # No compilation step for Python; asn1scc success is sufficient
         else:
             # Scala
             res = mysystem("cd " + targetDir + os.sep + "; sbt compile", False)
@@ -224,7 +228,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         raise Exception('TestFailed')
         #
         # res = mysystem("CC=gcc make coverage >covlog.txt 2>&1", True)
-        res = mysystem("make coverage >covlog.txt 2>&1", True)
+        makeTarget = "coverage" if bRunCodeCoverage else ""
+        res = mysystem(f"make {makeTarget} >covlog.txt 2>&1", True)
         if res != 0 and behavior != 2:
             PrintFailed("run time failure")
             PrintFailed("covlog.txt is ...")
@@ -250,6 +255,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                     lines = filter(lambda x : "####" in x, lines)
                     lines = filter(lambda x : "COVERAGE_IGNORE" not in x, lines)
                     lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != 'end;', lines)
+                    lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != 'declare', lines)
                     lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "default:", lines)
                     lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "break;", lines)
                     lines = list(lines)
@@ -301,6 +307,14 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                 "BUG in python script, Unexpected combination "
                 "of res, behavior")
         os.chdir(prevDir)
+    elif language == 'python':
+        pytest_bin = "uvx --python 3.11 pytest" if shutil.which("uvx") else "python3 -m pytest"
+        pyCmd = "cd " + targetDir + os.sep + "; " + pytest_bin
+        ret = mysystem(pyCmd, True)
+        if ret != 0 and ret != 5:  # exit code 5 = no tests collected, treat as success
+            PrintFailed(pyCmd)
+            mysystem("cat tmp.err"+"_"+language, True)
+            sys.exit(1)
     else:
         # Scala
         pass
@@ -524,7 +538,7 @@ def usage():
     print("where <options> are:")
     print("Mandatory:")
     print("     -l, --lang  <language_name>")
-    print("           where <language_name> is c, Ada, Scala or Rust")
+    print("           where <language_name> is c, Ada, Scala, python, or Rust")
     print("Optional:")
     print("     -t, --testCaseSet  <asn1File> or <testcaseDir>")
     print("     -s, --slim")
@@ -534,8 +548,8 @@ def usage():
     print("           override the output/working directory (default: tmp_<lang>)")
     print("     --icd-pdus <types>")
     print("           comma-separated list of PDU type names (passed as -icdPdus to asn1scc)")
-    global_errors.append(f'Failed {asn1} {acn} in {language}')
-    raise Exception('TestFailed')
+    global_errors.append('Usage error')
+    sys.exit(1)
 
 
 def main():
@@ -573,7 +587,7 @@ def main():
             bAll = True
         elif opt in ("-l", "--lang"):
             lang = arg
-        elif opt in ("-t", "--testCase"):
+        elif opt in ("-t", "--testCaseSet", "--testCase"):
             testCaseSet = arg
         elif opt in ("-c", "--cntTest"):
             cntTest = True
@@ -595,8 +609,9 @@ def main():
         submain("Ada", "ACN", "", cntTest, workDir)
         submain("Scala", "ACN", "", cntTest, workDir)
         submain("Rust", "ACN", "", cntTest, workDir)
+        submain("python", "ACN", "", cntTest, workDir)
     else:
-        if lang not in ["c", "Ada", 'Scala', 'Rust']:
+        if lang not in ["c", "Ada", 'Scala', 'python', 'Rust']:
             print("Invalid language argument")
             usage()
 
@@ -608,8 +623,7 @@ def main():
         if lang == "Rust":
             if shutil.which("cargo") is None:
                 print("Error: 'cargo' not found in PATH. Install Rust toolchain (rustup).")
-                global_errors.append(f'Failed {asn1} {acn} in {language}')
-                raise Exception('TestFailed')
+                sys.exit(1)
 
         #f = open(language+"_log.txt", 'a')
         #f.write("==========================================\n")

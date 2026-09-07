@@ -1,0 +1,18 @@
+-- Requirement 23: OCTET STRING with ACN size attribute
+-- Tests ACN size attribute to specify octet string length
+
+OctetstringAcnSize DEFINITIONS ::= BEGIN
+
+    DynamicOctetString1 ::= OCTET STRING (SIZE(0..255))
+
+    DynamicOctetString2 ::= OCTET STRING (SIZE(0..1024))
+
+    DynamicOctetString3 ::= OCTET STRING (SIZE(0..65535))
+
+    TestStruct ::= SEQUENCE {
+        data1 DynamicOctetString1,
+        data2 DynamicOctetString2,
+        data3 DynamicOctetString3
+    }
+
+END

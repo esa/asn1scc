@@ -17,9 +17,9 @@ pub fn <sFuncName>(<sVarName>: &mut <sTypeDefName>)
 >>
 
 
-initInteger(sVal, sValue, bIsOptional, sResVar) ::= "<sVal> = <sValue>;"
-initReal(sVal, dValue, bIsOptional, sResVar) ::= "<sVal> = <dValue>f64;"
-initBoolean(sVal, bValue, bIsOptional, sResVar) ::= "<sVal> = <if(bValue)>true<else>false<endif>;"
+initInteger(sVal, sValue, bIsOptional, sResVar, sType) ::= "<sVal> = <sValue>;"
+initReal(sVal, dValue, bIsOptional, sResVar, sType) ::= "<sVal> = <dValue>f64;"
+initBoolean(sVal, bValue, bIsOptional, sResVar, sType) ::= "<sVal> = <if(bValue)>true<else>false<endif>;"
 
 initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
@@ -79,7 +79,7 @@ assignString(p, sValue) ::= "<p> = <sValue>;"
 
 initIA5String(sPtr, sValue, bIsOptional, sResVar) ::= "<sPtr> = <sValue>;"
 initEnumerated(sVal, sValue, sTypeDefName, bIsOptional, sResVar) ::= "<sVal> = <sValue>;"
-initNull(sVal, bIsOptional, sResVar) ::= "<sVal> = ();"
+initNull(sVal, bIsOptional, sResVar, sType) ::= "<sVal> = ();"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar, sInitChar) ::= <<
 <if(bZero)>
