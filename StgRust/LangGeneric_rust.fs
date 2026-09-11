@@ -187,6 +187,7 @@ type LangGeneric_rust() =
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.rust_name
 
         override this.hasModules = false
+        override _.usesBooleanPresenceBits = true
         override this.allowsSrcFilesWithNoFunctions = true
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
@@ -394,6 +395,85 @@ type LangGeneric_rust() =
             enumTd.typeName + "::" + typeNameNoPrefix + "_" + itemCName
 
         override _.charToNumericValueExpression charValue = sprintf "b%s" charValue
+
+        override _.charLiteralFromAsciiCode asciiCode =
+            sprintf "b'%c'" (char (int asciiCode))
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Overrides for the language-specific ILangGeneric members added to
+        // eliminate hard-coded `match ProgrammingLanguage.ActiveLanguages.Head
+        // with | Rust -> ...` blocks in the F# backend.
+        // Each override mirrors the Rust-specific behaviour that was previously
+        // inlined in DAstVariables.fs, DastValidate2.fs, DastTestCaseCreation.fs,
+        // DAstInitialize.fs, DAstEqual.fs, DAstTypeDefinition.fs, etc.
+        // ─────────────────────────────────────────────────────────────────────
+
+        /// Rust null-type init literal is the unit value `()`.
+        override _.nullTypeInitExpression = "()"
+
+        /// Rust complex-type default init is `Default::default()`.
+        override _.complexTypeDefaultInit = "Default::default()"
+
+        /// Rust uses no function-definition annotations.
+        override _.funcDefAnnotations _ = []
+
+        /// Wrap an IA5String constant-init in a struct literal when a typedef
+        /// name is available, otherwise return the init string as-is.
+        override _.wrapIA5StringConstantInit tdName initStr =
+            if tdName = "" then initStr
+            else sprintf "%s { arr: %s }" tdName initStr
+
+        /// Rust uses inline init expressions (`initExpressionFnc()`) rather
+        /// than function-call form for complex child types.
+        override _.useInlineInitExpression = true
+
+        /// Rust pads byte arrays to their maximum size in value literals.
+        /// (The existing `padArraysWithDefaultValues` is also `true` for Rust,
+        /// but it is a separate abstract member without a default; this member
+        /// is the one with a default used by the value-literal code path.)
+        override _.padByteArraysToMaxSize = true
+
+        /// Rust wraps optional values in `Some(...)`.
+        override _.wrapOptionalValueInSome childValue =
+            sprintf "Some(%s)" childValue
+
+        /// Rust absent optional literal is `None`.
+        override _.absentOptionalExpression = "None"
+
+        /// Rust uses `&` (borrow) for IA5String test-case ambers; all other
+        /// types use the caller's default (handled by the call site, not here).
+        override _.getAmberForType kind =
+            match kind with
+            | Asn1AcnAst.IA5String _ -> ("&", "&")
+            | _ -> ("", "")
+
+        /// Rust validation literals for character sets are byte-slice `b"..."`
+        /// literals, with escape sequences for control characters.
+        override _.charSetToValidationLiteral (v: string) =
+            if v.Length > 1 then
+                sprintf "b\"%s\"" v
+            elif v.Length = 1 then
+                let c = v.ToCharArray().[0]
+                if   c = CommonTypes.CharCR  then "b\"\\r\""
+                elif c = CommonTypes.CharLF  then "b\"\\n\""
+                elif c = CommonTypes.CharHT  then "b\"\\t\""
+                elif c = CommonTypes.CharNul then "b\"\\0\""
+                else sprintf "b\"%c\"" c
+            else
+                "b\"\""
+
+        /// Rust choice-child comparison temp vars use suffixes "1" and "2".
+        /// `childName` is already the backend child name (passed by the call
+        /// site via `getAsn1ChChildBackendName0 o`).
+        override _.getChoiceChildComparisonNames _ _ _ childName =
+            (childName + "1", childName + "2")
+
+        /// Rust uses the default `extractDefaultInitValue` for choice test-case
+        /// init — no override needed (default returns "" which triggers that path).
+
+        /// Rust generates a `Default` impl for each enumerated type.
+        override _.generateEnumDefaultImpl typeName firstEnumName =
+            sprintf "impl Default for %s { fn default() -> Self { %s::%s } }" typeName typeName firstEnumName
 
 
 

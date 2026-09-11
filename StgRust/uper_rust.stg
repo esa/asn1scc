@@ -260,7 +260,7 @@ if <sRootBaseConstraint> {
 } else {
     /* value is not within root range, so ext bit is one and value is encoded as unconstrained */
     pBitStrm.append_bit_one();
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, bCoverageIgnore=false, soType=soType)>
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, soType=sType)>
 }
 >>
 

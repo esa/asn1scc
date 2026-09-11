@@ -86,7 +86,7 @@ initNull(sVal, bIsOptional, sResVar, sType) ::= "<sVal> = 0;"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero, sResVar, sInitChar) ::= <<
 <if(bZero)>
-memset(<p>, <sInitChar>, <nSize>);
+memset(<p>, <charLiteral(nAsciiCode=sInitChar)>, <nSize>);
 <p>[<nSize>] = 0;
 
 <else>

@@ -88,17 +88,11 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
 
 
 let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:Asn1AcnAst.ChChildInfo) (newChild:Asn1Type) (v1:CodegenScope) (v2:CodegenScope)  =
+    let childName = lm.lg.getAsn1ChChildBackendName0 o
+    let name1, name2 = lm.lg.getChoiceChildComparisonNames o (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) childName
     let p1,p2 =
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | ProgrammingLanguage.Scala ->
-            ({v1 with accessPath = lm.lg.getChChild v1.accessPath (sprintf "%s_%s_tmp" (v1.accessPath.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String}),
-            ({v2 with accessPath = lm.lg.getChChild v2.accessPath (sprintf "%s_%s_tmp" (v2.accessPath.joined lm.lg) (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String})
-        | Rust ->
-            ({v1 with accessPath = lm.lg.getChChild v1.accessPath ((lm.lg.getAsn1ChChildBackendName0 o) + "1") newChild.isIA5String}),
-            ({v2 with accessPath = lm.lg.getChChild v2.accessPath ((lm.lg.getAsn1ChChildBackendName0 o) + "2") newChild.isIA5String})
-        | _ ->
-            ({v1 with accessPath = lm.lg.getChChild v1.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String}),
-            ({v2 with accessPath = lm.lg.getChChild v2.accessPath (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String})
+        ({v1 with accessPath = lm.lg.getChChild v1.accessPath name1 newChild.isIA5String}),
+        ({v2 with accessPath = lm.lg.getChChild v2.accessPath name2 newChild.isIA5String})
 
     let sInnerStatement, lvars =
         match newChild.equalFunction.isEqualFuncName with

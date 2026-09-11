@@ -40,7 +40,7 @@ while <i>\<= <nMaxSizePlusOne> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nMaxSizePlusOne>);
     <if(bZero)>
     if <i> \<= <nSize> then
-        <p>(<i>) := <sInitChar>;
+        <p>(<i>) := <charLiteral(nAsciiCode=sInitChar)>;
     else
         <p>(<i>) := <rtlModuleName()>.NUL;
 

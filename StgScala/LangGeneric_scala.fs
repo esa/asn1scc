@@ -276,6 +276,41 @@ type LangGeneric_scala() =
         override this.getAlignmentDWordTypeName = "Int"
         override this.shouldApplyToCToPackageName = true
 
+        // ── New ILangGeneric overrides (task t2b) ──────────────────────
+
+        /// Scala function annotations: `["extern"]` for UPER/ACN, `["extern"; "pure"]` for init.
+        override _.funcDefAnnotations (ft: FunctionType) =
+            match ft with
+            | InitFunctionType -> ["extern"; "pure"]
+            | UperEncDecFunctionType | AcnEncDecFunctionType -> ["extern"]
+            | _ -> ["extern"]
+
+        /// Format a choice-child test-case init expression.
+        /// Scala: `sChildTypeDef + "_Initialize()"` (the init methodNameSuffix is "_Initialize").
+        override _.formatChoiceTestCaseInit (sChildTypeDef: string) =
+            sChildTypeDef + "_Initialize()"
+
+        /// Format the init statement for a test case.
+        /// Scala: prepend `"val tc_data = "` for Integer kinds; identity for all others.
+        /// The caller resolves ReferenceType before calling (as in the original code).
+        override _.formatInitStatementForTestCase (typeKind: Asn1AcnAst.Asn1TypeKind) _modName _tasName (initStatement: string) =
+            match typeKind with
+            | Asn1AcnAst.Integer _ -> "val tc_data = " + initStatement
+            | _ -> initStatement
+
+        /// Format an ACN determinant update statement.
+        /// Scala wraps with: `val {choicePath} = {checkPath[0]}.{choicePath}\n{updateStatement}`
+        /// where checkPath[0] has "isInstanceOf" replaced by "asInstanceOf".
+        override _.formatAcnDeterminantUpdate (choicePath: string) (checkPath: string list) (updateStatement: string) =
+            match checkPath.Length > 0 && checkPath[0].Contains("isInstanceOf") with
+            | true -> sprintf "val %s = %s.%s\n%s" choicePath (checkPath[0].Replace("isInstanceOf", "asInstanceOf")) choicePath updateStatement
+            | false -> updateStatement
+
+        /// Produce (v1_name, v2_name) for choice-child equality comparison temp variables.
+        /// Scala uses `"{path}_{childName}_tmp"` for each side with its own path.
+        override _.getChoiceChildComparisonNames (_o: Asn1AcnAst.ChChildInfo) (path1: string) (path2: string) (childName: string) : string * string =
+            (sprintf "%s_%s_tmp" path1 childName, sprintf "%s_%s_tmp" path2 childName)
+
         override this.getSeqChildIsPresent (sel: AccessPath) (childName: string) =
             sprintf "%s%s%s.isDefined" (sel.joined this) (this.getAccess sel) childName
 

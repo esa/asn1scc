@@ -24,7 +24,7 @@ let printOctetStringValueAsCompoundLiteral  (lm:LanguageMacros) curProgramUnitNa
     let printOct = lm.vars.PrintBitOrOctetStringValueAsCompoundLiteral
 
     let td = (lm.lg.getSizeableTypeDefinition  o.typeDef).longTypedefName2 lm.lg.hasModules curProgramUnitName
-    let bytes = match ProgrammingLanguage.ActiveLanguages.Head with | Rust -> padBytes bytes (int o.maxSize.uper) | _ -> bytes
+    let bytes = if lm.lg.padByteArraysToMaxSize then padBytes bytes (int o.maxSize.uper) else bytes
     printOct td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
 
 let printTimeValue (lm:LanguageMacros) (td) (v:TimeValue) =
@@ -42,7 +42,7 @@ let printBitStringValueAsCompoundLiteral  (lm:LanguageMacros) curProgramUnitName
     let printOct =  lm.vars.PrintBitOrOctetStringValueAsCompoundLiteral
     let td = (lm.lg.getSizeableTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules curProgramUnitName
     let bytes = lm.lg.bitStringValueToByteArray v |> Seq.toList
-    let bytes = match ProgrammingLanguage.ActiveLanguages.Head with | Rust -> padBytes bytes (int ((o.maxSize.uper + 7I) / 8I)) | _ -> bytes
+    let bytes = if lm.lg.padByteArraysToMaxSize then padBytes bytes (int ((o.maxSize.uper + 7I) / 8I)) else bytes
     printOct td (o.minSize.uper = o.maxSize.uper) bytes o.minSize.uper
 
 let convertStringValue2TargetLangStringLiteral (lm:LanguageMacros) mxSizeUper (v:StringValue) =
@@ -50,29 +50,15 @@ let convertStringValue2TargetLangStringLiteral (lm:LanguageMacros) mxSizeUper (v
     let vStr = CommonTypes.StringValue2String parts
     let arrNulls = [0 .. ((int mxSizeUper) - vStr.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
     let pParts =
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Rust ->
-            // For Rust, expand each string part into individual byte literals (e.g. b'G', b'e', ...)
-            // so the result is a valid [u8; N] array initializer
-            parts |>
-            List.collect(fun s ->
-                match s with
-                | CStringValue  sv -> sv |> Seq.map(fun ch -> sprintf "b'%c'" ch) |> Seq.toList
-                | SpecialCharacter  CarriageReturn -> [lm.vars.PrintCR ()]
-                | SpecialCharacter  LineFeed       -> [lm.vars.PrintLF ()]
-                | SpecialCharacter  HorizontalTab  -> [lm.vars.PrintHT ()]
-                | SpecialCharacter  NullCharacter  -> [lm.vars.PrintStringValueNull ()]
-            )
-        | _ ->
-            parts |>
-            List.map(fun s ->
-                match s with
-                | CStringValue  sv -> lm.vars.PrintSingleStringValue (sv.Replace("\"","\"\""))
-                | SpecialCharacter  CarriageReturn -> lm.vars.PrintCR ()
-                | SpecialCharacter  LineFeed       -> lm.vars.PrintLF ()
-                | SpecialCharacter  HorizontalTab  -> lm.vars.PrintHT ()
-                | SpecialCharacter  NullCharacter  -> lm.vars.PrintStringValueNull ()
-            )
+        parts |>
+        List.collect(fun s ->
+            match s with
+            | CStringValue  sv -> sv |> Seq.map(fun ch -> lm.vars.PrintCharValue ch) |> Seq.toList
+            | SpecialCharacter  CarriageReturn -> [lm.vars.PrintCR ()]
+            | SpecialCharacter  LineFeed       -> [lm.vars.PrintLF ()]
+            | SpecialCharacter  HorizontalTab  -> [lm.vars.PrintHT ()]
+            | SpecialCharacter  NullCharacter  -> [lm.vars.PrintStringValueNull ()]
+        )
     lm.vars.PrintStringValue pParts arrNulls
 
 let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:string)  (t:Asn1Type) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) =
@@ -97,19 +83,19 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
             match t.ActualType.Kind with
             | OctetString os    ->
                 let td =  lm.lg.getSizeableTypeDefinition os.baseInfo.typeDef
-                let bytes = match ProgrammingLanguage.ActiveLanguages.Head with | Rust -> padBytesArray bytes (int os.baseInfo.maxSize.uper) | _ -> bytes
+                let bytes = if lm.lg.padByteArraysToMaxSize then padBytesArray bytes (int os.baseInfo.maxSize.uper) else bytes
                 lm.vars.PrintOctetStringValue td (os.baseInfo.minSize.uper = os.baseInfo.maxSize.uper) bytes (BigInteger bytes.Length)
             | BitString   bs    ->
                 let td =  lm.lg.getSizeableTypeDefinition bs.baseInfo.typeDef
                 let arBits = v.ToCharArray() |> Array.map(fun x -> x.ToString())
-                let bytes = match ProgrammingLanguage.ActiveLanguages.Head with | Rust -> padBytesArray bytes (int ((bs.baseInfo.maxSize.uper + 7I) / 8I)) | _ -> bytes
+                let bytes = if lm.lg.padByteArraysToMaxSize then padBytesArray bytes (int ((bs.baseInfo.maxSize.uper + 7I) / 8I)) else bytes
                 lm.vars.PrintBitStringValue td (bs.baseInfo.minSize.uper = bs.baseInfo.maxSize.uper) arBits (BigInteger arBits.Length) bytes (BigInteger bytes.Length)
             | _         -> raise(BugErrorException "unexpected type")
         | OctetStringValue  v ->
             match t.ActualType.Kind with
             | OctetString os    ->
                 let td =  lm.lg.getSizeableTypeDefinition os.baseInfo.typeDef
-                let v = match ProgrammingLanguage.ActiveLanguages.Head with | Rust -> padBytes v (int os.baseInfo.maxSize.uper) | _ -> v
+                let v = if lm.lg.padByteArraysToMaxSize then padBytes v (int os.baseInfo.maxSize.uper) else v
                 lm.vars.PrintOctetStringValue td (os.baseInfo.minSize.uper = os.baseInfo.maxSize.uper) v (BigInteger v.Length)
             | BitString   bs    ->
                 let td =  lm.lg.getSizeableTypeDefinition bs.baseInfo.typeDef
@@ -135,12 +121,10 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                 let aa = lm.lg.typeDef oi.baseInfo.typeDef
                 let oidValues = v.Values |> List.map fst
                 let oidValues = 
-                    match ProgrammingLanguage.ActiveLanguages.Head with
-                    | Rust ->
-                        // Rust requires the full fixed-size array; pad with zeros to max length
+                    if lm.lg.padByteArraysToMaxSize then
                         let maxLen = int r.args.objectIdentifierMaxLength
                         oidValues @ (List.init (maxLen - oidValues.Length) (fun _ -> 0I))
-                    | _ -> oidValues
+                    else oidValues
                 lm.vars.PrintObjectIdentifierValue aa oidValues (BigInteger v.Values.Length)
             | _         -> raise(BugErrorException "unexpected type")
         | TimeValue v       ->
@@ -159,11 +143,10 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                         lm.lg.maybeWrapValueInConstructor so.childType.typeDefinitionOrReference so.childType.ActualType.Kind (ToC so.childType.id.ModName) v)
                 let sDefValue = so.childType.initFunction.initExpressionFnc ()
                 let childVals =
-                    match ProgrammingLanguage.ActiveLanguages.Head with
-                    | Rust ->
+                    if lm.lg.padByteArraysToMaxSize then
                         let maxLen = int so.baseInfo.maxSize.uper
                         childVals @ (List.init (maxLen - childVals.Length) (fun _ -> sDefValue))
-                    | _ -> childVals
+                    else childVals
                 lm.vars.PrintSequenceOfValue td (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) (BigInteger v.Length) childVals sDefValue
             | _         -> raise(BugErrorException "unexpected type")
         | SeqValue          v ->
@@ -302,12 +285,12 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
         match v with
         | OctetStringValue  v ->
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
-            let v = match ProgrammingLanguage.ActiveLanguages.Head with | Rust -> padBytes v (int o.maxSize.uper) | _ -> v
+            let v = if lm.lg.padByteArraysToMaxSize then padBytes v (int o.maxSize.uper) else v
             PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) v (BigInteger v.Length)
         | BitStringValue    v ->
             let bytes = bitStringValueToByteArray (StringLoc.ByValue v) |> Seq.toList
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
-            let bytes = match ProgrammingLanguage.ActiveLanguages.Head with | Rust -> padBytes bytes (int ((o.maxSize.uper + 7I) / 8I)) | _ -> bytes
+            let bytes = if lm.lg.padByteArraysToMaxSize then padBytes bytes (int ((o.maxSize.uper + 7I) / 8I)) else bytes
             PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
@@ -321,11 +304,10 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t
         | ObjOrRelObjIdValue  v ->
             let oidValues = v.Values |> List.map fst
             let oidValues =
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Rust ->
+                if lm.lg.padByteArraysToMaxSize then
                     let maxLen = int r.args.objectIdentifierMaxLength
                     oidValues @ (List.init (maxLen - oidValues.Length) (fun _ -> 0I))
-                | _ -> oidValues
+                else oidValues
             lm.vars.PrintObjectIdentifierValue  td oidValues (BigInteger v.Values.Length)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
@@ -351,11 +333,11 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
             let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
             let arBits = v.ToCharArray() |> Array.map(fun x -> x.ToString())
-            let bytes = match ProgrammingLanguage.ActiveLanguages.Head with | Rust -> padBytesArray bytes (int ((o.maxSize.uper + 7I) / 8I)) | _ -> bytes
+            let bytes = if lm.lg.padByteArraysToMaxSize then padBytesArray bytes (int ((o.maxSize.uper + 7I) / 8I)) else bytes
             PrintBitStringValue td (o.minSize.uper = o.maxSize.uper) arBits (BigInteger arBits.Length) bytes (BigInteger bytes.Length)
         | OctetStringValue  v ->
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
-            let v = match ProgrammingLanguage.ActiveLanguages.Head with | Rust -> padBytes v (int o.maxSize.uper) | _ -> v
+            let v = if lm.lg.padByteArraysToMaxSize then padBytes v (int o.maxSize.uper) else v
             PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) v (BigInteger v.Length)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
@@ -372,12 +354,10 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
             let sDefValue =  childType.initFunction.initExpressionFnc ()
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
             let childVals =
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Rust ->
-                    // Rust requires the full fixed-size array; pad with default values to max size
+                if lm.lg.padByteArraysToMaxSize then
                     let maxLen = int o.maxSize.uper
                     childVals @ (List.init (maxLen - childVals.Length) (fun _ -> sDefValue))
-                | _ -> childVals
+                else childVals
             PrintSequenceOfValue td (o.minSize.uper = o.maxSize.uper) (BigInteger chVals.Length) childVals sDefValue
 
         | RefValue ((md,vs),ov)   -> vs
@@ -414,9 +394,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         | Some v    ->
                             let childValue = x.Type.printValue curProgramUnitName (Some gv) v.Value.kind
                             let childValue =
-                                match ProgrammingLanguage.ActiveLanguages.Head, x.Optionality with
-                                | Rust, Some _ -> sprintf "Some(%s)" childValue
-                                | _ -> childValue
+                                match x.Optionality with
+                                | Some _ -> lm.lg.wrapOptionalValueInSome childValue
+                                | None -> childValue
                             Some (lm.vars.PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) childValue)
                         | None      ->
                             let childValue =
@@ -426,17 +406,21 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                                     | Some zz    ->
                                         let v = (mapValue zz).kind
                                         let childVal = x.Type.printValue curProgramUnitName (Some gv) v
-                                        match ProgrammingLanguage.ActiveLanguages.Head with
-                                        | Rust -> Some(sprintf "Some(%s)" childVal)
-                                        | _ -> Some(childVal)
+                                        Some (lm.lg.wrapOptionalValueInSome childVal)
                                     | None      -> 
-                                        match ProgrammingLanguage.ActiveLanguages.Head with
-                                        | Rust -> Some("None")
-                                        | _ -> match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
+                                        if lm.lg.absentOptionalExpression <> "" then
+                                            Some(lm.lg.absentOptionalExpression)
+                                        else
+                                            match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
                                 | _             -> 
-                                    match ProgrammingLanguage.ActiveLanguages.Head, x.Optionality with
-                                    | Rust, Some _ -> Some("None")
-                                    | _ -> match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
+                                    match x.Optionality with
+                                    | Some _ ->
+                                        if lm.lg.absentOptionalExpression <> "" then
+                                            Some(lm.lg.absentOptionalExpression)
+                                        else
+                                            match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
+                                    | None ->
+                                        match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
                             match childValue with
                             | None  -> None
                             | Some childValue -> Some (PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) childValue) )

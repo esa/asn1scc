@@ -1450,6 +1450,26 @@ type LangGeneric_python() =
         | ASN1SCC_FP32                      -> this.castExpression pp realTypeName
         | _                                 -> pp
 
+    // Python: re-type a structured alias TAS's test value to the alias class so the
+    // generic XER encoder dispatches to the alias's encoder and uses the alias element
+    // tag. uPER/ACN have no element tags, so this is a no-op there. Only structured
+    // kinds are handled: scalar/enum/null alias values are already alias-typed and
+    // re-wrapping would corrupt them (and NULL objects reject __class__).
+    override _.formatInitStatementForTestCase (typeKind: Asn1AcnAst.Asn1TypeKind) (modName: string) (tasName: string) (initStatement: string) : string =
+        let rec resolveKind (k: Asn1AcnAst.Asn1TypeKind) : Asn1AcnAst.Asn1TypeKind =
+            match k with
+            | Asn1AcnAst.ReferenceType rt -> resolveKind rt.resolvedType.Kind
+            | _ -> k
+        match typeKind with
+        | Asn1AcnAst.ReferenceType _ ->
+            match resolveKind typeKind with
+            | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.SequenceOf _
+            | Asn1AcnAst.OctetString _ | Asn1AcnAst.BitString _ | Asn1AcnAst.IA5String _ ->
+                let qualifiedAlias = if modName = "" then tasName else modName + "." + tasName
+                initStatement + "\n" + sprintf "tc_data.__class__ = %s" qualifiedAlias
+            | _ -> initStatement
+        | _ -> initStatement
+
     // Placeholder methods for features not yet implemented in Python
     // override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =
     //     []

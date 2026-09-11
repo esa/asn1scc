@@ -202,33 +202,22 @@ let foldSizableConstraint (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) hasCount co
 let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeId:ReferenceToType)   (c:IA5StringConstraint) (us0:State) =
     let print_AlphabetCheckFunc = lm.isvalid.Print_AlphabetCheckFunc
     let stringContainsChar    (v:String)  =
+        let rustStr = lm.lg.charSetToValidationLiteral v
         let newStr =
-            match ProgrammingLanguage.ActiveLanguages.Head with
-            | Rust ->
-                // For Rust, produce a byte slice for the character set
-                if v.Length>1 then
-                    sprintf "b\"%s\"" v
-                elif v.Length = 1 then
-                    let c = v.ToCharArray()[0]
-                    if   c = CommonTypes.CharCR  then "b\"\\r\""
-                    elif c = CommonTypes.CharLF  then "b\"\\n\""
-                    elif c = CommonTypes.CharHT  then "b\"\\t\""
-                    elif c = CommonTypes.CharNul then "b\"\\0\""
-                    else sprintf "b\"%c\"" c
-                else
-                    "b\"\""
-            | _ ->
-                if v.Length>1 then
-                    v.IDQ
-                elif v.Length = 1 then
-                    let c = v.ToCharArray()[0]
-                    if   c = CommonTypes.CharCR  then lm.vars.PrintCR ()
-                    elif c = CommonTypes.CharLF  then lm.vars.PrintLF ()
-                    elif c = CommonTypes.CharHT  then lm.vars.PrintHT ()
-                    elif c = CommonTypes.CharNul then lm.vars.PrintStringValueNull ()
-                    else v.IDQ
-                else
-                    v.IDQ
+            if rustStr <> v then
+                // Rust override produced a byte-slice literal (b"...")
+                rustStr
+            elif v.Length>1 then
+                v.IDQ
+            elif v.Length = 1 then
+                let c = v.ToCharArray()[0]
+                if   c = CommonTypes.CharCR  then lm.vars.PrintCR ()
+                elif c = CommonTypes.CharLF  then lm.vars.PrintLF ()
+                elif c = CommonTypes.CharHT  then lm.vars.PrintHT ()
+                elif c = CommonTypes.CharNul then lm.vars.PrintStringValueNull ()
+                else v.IDQ
+            else
+                v.IDQ
         lm.isvalid.stringContainsChar newStr
 
     let foldRangeCharCon (lm:LanguageMacros)   (c:CharTypeConstraint)  st =
@@ -320,11 +309,10 @@ let objIdConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
             (fun (p:CodegenScope) ->
                 let oidValues = v.Values |> List.map fst
                 let oidValues =
-                    match ProgrammingLanguage.ActiveLanguages.Head with
-                    | Rust ->
+                    if l.lg.padArraysWithDefaultValues then
                         let maxLen = int r.args.objectIdentifierMaxLength
                         oidValues @ (List.init (maxLen - oidValues.Length) (fun _ -> 0I))
-                    | _ -> oidValues
+                    else oidValues
                 let lit = printObjectIdentifierValue oidValues (BigInteger v.Values.Length)
                 VCBExpression (objId_equal (p.accessPath.joined l.lg) lit)) ,s)
         c
@@ -920,11 +908,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
             let childFnc =
                 let newFunc =
                     (fun (p:CodegenScope) ->
-                        let localTmpVarName =
-                            match ProgrammingLanguage.ActiveLanguages.Head with
-                            | Scala -> child._scala_name
-                            | Rust -> ""
-                            | _ -> ""
+                        let localTmpVarName = ""
                         match func p with
                         | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name sChoiceTypeName, lv)
                         | ValidationStatementFalse   (st,lv)

@@ -407,13 +407,12 @@ let createEnumerated_u (args:CommandLineSettings) (lm:LanguageMacros)  (id:Refer
         match td.kind with
         | NonPrimitiveNewTypeDefinition              ->
             let completeDefinition = define_new_enumerated td arrsEnumNames arrsEnumNamesAndValues nIndexMax macros lm.encodings
+            let enumDefaultImpl = lm.lg.generateEnumDefaultImpl td.typeName (arrsEnumNames |> Seq.head)
             let completeDefinition =
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | ProgrammingLanguage.Rust ->
-                    let sFirstEnumName = arrsEnumNames |> Seq.head
-                    let defaultImpl = sprintf "impl Default for %s { fn default() -> Self { %s::%s } }" td.typeName td.typeName sFirstEnumName
-                    completeDefinition + "\n" + defaultImpl
-                | _ -> completeDefinition
+                if System.String.IsNullOrEmpty enumDefaultImpl then
+                    completeDefinition
+                else
+                    completeDefinition + "\n" + enumDefaultImpl
             let privateDefinition =
                 match args.isEnumEfficientEnabled items.Length with
                 | false -> None

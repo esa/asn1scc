@@ -93,10 +93,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         match ch.Type with
         | Asn1AcnAst.AcnInteger _ -> "0"
         | Asn1AcnAst.AcnBoolean _ -> lm.lg.FalseLiteral
-        | Asn1AcnAst.AcnNullType _ -> 
-            match ProgrammingLanguage.ActiveLanguages.Head with
-            | ProgrammingLanguage.Rust -> "()"
-            | _ -> "0"
+        | Asn1AcnAst.AcnNullType _ -> lm.lg.nullTypeInitExpression
         | Asn1AcnAst.AcnReferenceToEnumerated e ->
             lm.lg.getNamedItemBackendName (Some (defOrRef r m e)) e.enumerated.items.Head
         | Asn1AcnAst.AcnReferenceToIA5String s ->

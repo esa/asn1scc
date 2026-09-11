@@ -8,7 +8,7 @@ import getopt
 import subprocess
 import distutils.spawn as spawn
 
-os.environ["DOTNET_ROOT"] = "/usr/share/dotnet"
+os.environ["DOTNET_ROOT"] = os.environ.get("DOTNET_ROOT", "/home/maxime/.dotnet")
 
 # Globals
 

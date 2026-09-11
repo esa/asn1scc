@@ -46,17 +46,14 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
     | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 
 
-let rec extractDefaultInitValue (childType: Asn1TypeKind): String =
+let rec extractDefaultInitValue (lm:LanguageMacros) (childType: Asn1TypeKind): String =
     match childType with
     | Integer i -> i.baseInfo.defaultInitVal
     | Real r -> r.baseInfo.defaultInitVal
     | NullType n -> n.baseInfo.defaultInitVal
     | Boolean b -> b.baseInfo.defaultInitVal
-    | ReferenceType rt -> extractDefaultInitValue rt.resolvedType.Kind
-    | _ ->
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Rust -> "Default::default()"
-        | _ -> "null"
+    | ReferenceType rt -> extractDefaultInitValue lm rt.resolvedType.Kind
+    | _ -> lm.lg.complexTypeDefaultInit
 
 let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind =
     match t with

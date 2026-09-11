@@ -311,11 +311,7 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.
             |x::_ -> lm.lg.doubleValueToString x
             | [] -> lm.lg.doubleValueToString 0.0
         | true  -> lm.lg.doubleValueToString 0.0
-    let annots =
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Scala -> ["extern"; "pure"]
-        | Rust -> []
-        | _ -> []
+    let annots = lm.lg.funcDefAnnotations InitFunctionType
     createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] [] annots
 
 let fragmentationCases seqOfCase maxSize =
@@ -343,6 +339,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
                 iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
         let tlLit = DAstVariables.convertStringValue2TargetLangStringLiteral lm (int o.maxSize.uper) vl
+        let tlLit = lm.lg.wrapIA5StringValue (lm.lg.definitionOrRef t.typeDefinitionOrReference) (ToC t.id.ModName) tlLit
         initIA5String (lm.lg.getValue p.accessPath) tlLit p.accessPath.isOptional resVar
 
     //let ii = t.id.SequenceOfLevel + 1
@@ -354,8 +351,8 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
         |> Array.tryFind(fun x -> x >= 32I && x <= 126I)
     let sFirstNonNullChar =
         match firstPrintableAsciiCode with
-        | Some c  -> sprintf "'%c'" (char (int c))
-        | None    -> "'\0'"
+        | Some c  -> lm.lg.charLiteralFromAsciiCode (c.ToString())
+        | None    -> lm.lg.charLiteralFromAsciiCode "0"
     let testCaseFuncs =
         let seqOfCase (nSize:BigInteger)  =
             let initTestCaseFunc (p:CodegenScope) =
@@ -388,11 +385,8 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
         {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
     let constantInitExpression () = 
         let initStr = lm.lg.initializeString firstPrintableAsciiCode (int o.maxSize.uper)
-        if lm.lg.GetType().FullName.Contains("rust") then
-            let tdName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
-            if tdName = "" then initStr else sprintf "%s { arr: %s }" tdName initStr
-        else
-            initStr
+        let tdName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
+        lm.lg.wrapIA5StringConstantInit tdName initStr
     createInitFunctionCommon r lm t typeDefinition funcBody zero testCaseFuncs constantInitExpression constantInitExpression [] [] []
 
 let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.OctetString ) (typeDefinition:TypeDefinitionOrReference) (isValidFunction:IsValidFunction option) =
@@ -494,9 +488,7 @@ let createNullTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1Ac
         let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         initNull (lm.lg.getValue p.accessPath) p.accessPath.isOptional resVar sType
     let constantInitExpression () = 
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | ProgrammingLanguage.Rust -> "()"
-        | _ -> "0"
+        lm.lg.nullTypeInitExpression
     let testCaseFuncs: AutomaticTestCase list =
         [{AutomaticTestCase.initTestCaseFunc =
             (fun p ->
@@ -758,7 +750,7 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
 let getChildExpression (lm:LanguageMacros) (childType:Asn1Type) =
     match childType.initFunction.initFunction with
     | Some cn when childType.isComplexType -> 
-        if lm.lg.GetType().FullName.Contains("rust") then
+        if lm.lg.useInlineInitExpression then
             childType.initFunction.initExpressionFnc()
         else
             cn.funcName + (lm.lg.init.initMethSuffix childType.Kind)
@@ -767,10 +759,7 @@ let getChildExpression (lm:LanguageMacros) (childType:Asn1Type) =
 let getChildExpressionGlobal (lm:LanguageMacros) (childType:Asn1Type) =
     match childType.initFunction.initGlobal with
     | Some cn when childType.isComplexType -> 
-        if lm.lg.GetType().FullName.Contains("rust") then
-            cn.globalName
-        else
-            cn.globalName
+        cn.globalName
     | _ -> childType.initFunction.initExpressionGlobalFnc ()
 
 let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.SequenceOf  ) (typeDefinition:TypeDefinitionOrReference) (childType:Asn1Type)  =
@@ -957,12 +946,12 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         | None  ->
                             match seqChild.Optionality with
                             | None      -> None
-                            | Some _    -> Some (initSequence_optionalChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName seqChild) "0" "")
+                            | Some _    -> Some (initSequence_optionalChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName seqChild) (if lm.lg.usesBooleanPresenceBits then lm.lg.FalseLiteral else "0") "")
                         | Some chv  ->
                             let chContent = seqChild.Type.initFunction.initByAsn1Value ({p with accessPath = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName seqChild) seqChild.Type.isIA5String seqChild.Optionality.IsSome}) chv.Value.kind
                             match seqChild.Optionality with
                             | None      -> Some chContent
-                            | Some _    -> Some (initSequence_optionalChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName seqChild) "1" chContent)
+                            | Some _    -> Some (initSequence_optionalChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName seqChild) (if lm.lg.usesBooleanPresenceBits then lm.lg.TrueLiteral else "1") chContent)
                     | AcnChild _     -> None)
 
             | _               -> raise(BugErrorException "UnexpectedValue")
@@ -1216,7 +1205,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                                 chChild.chType.initFunction.initByAsn1Value ({p with accessPath = lm.lg.getChChild p.accessPath (lm.lg.getAsn1ChChildBackendName chChild) chChild.chType.isIA5String}) iv.Value.kind
                             | true ->
                                 chChild.chType.initFunction.initByAsn1Value ({CodegenScope.modName = t.id.ModName; accessPath = AccessPath.valueEmptyPath sChildTempVarName}) iv.Value.kind
-                        Some (initChoice (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) chContent (lm.lg.presentWhenName (Some typeDefinition) chChild) sChildName sChildTypeName sChoiceTypeName sChildTempVarName (extractDefaultInitValue chChild.chType.Kind) lm.lg.init.choiceComponentTempInit)
+                        Some (initChoice (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) chContent (lm.lg.presentWhenName (Some typeDefinition) chChild) sChildName sChildTypeName sChoiceTypeName sChildTempVarName (extractDefaultInitValue lm chChild.chType.Kind) lm.lg.init.choiceComponentTempInit)
                         )
 
             | _               -> raise(BugErrorException "UnexpectedValue")
@@ -1250,11 +1239,8 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                         childContent.funcBody, childContent.localVariables
 
                     let sChildTempDefaultInit =
-                        match ProgrammingLanguage.ActiveLanguages.Head with
-                        | ProgrammingLanguage.Scala ->
-                            sChildTypeDef + (lm.init.methodNameSuffix()) + "()"
-                        | Rust -> (extractDefaultInitValue ch.chType.Kind)
-                        | _ -> (extractDefaultInitValue ch.chType.Kind)
+                        let formatted = lm.lg.formatChoiceTestCaseInit sChildTypeDef
+                        if formatted <> "" then formatted else (extractDefaultInitValue lm ch.chType.Kind)
                     let funcBody = initTestCase_choice_child (p.accessPath.joinedUnchecked lm.lg PartialAccess) (lm.lg.getAccess p.accessPath) childContent_funcBody sChildID sChildName  sChildTypeDef typeDefName sChildTempVarName sChildTempDefaultInit p.accessPath.isOptional resVar
                     {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables = childContent_localVariables}
                 let combinedTestCase =
@@ -1298,7 +1284,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                         else
                             initChildWithInitFunc (lm.lg.getPointer chp.accessPath) initProc.funcName, []
                     | true   -> initChildWithInitFunc (sChildName + "_tmp") initProc.funcName, []
-            let funcBody = initChoice (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childContent_funcBody sChildID sChildName sChildTypeDef typeDefinitionName sChildTempVarName (extractDefaultInitValue ch.chType.Kind) lm.lg.init.choiceComponentTempInit
+            let funcBody = initChoice (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childContent_funcBody sChildID sChildName sChildTypeDef typeDefinitionName sChildTempVarName (extractDefaultInitValue lm ch.chType.Kind) lm.lg.init.choiceComponentTempInit
 
             {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables = childContent_localVariables}
         match children with
@@ -1372,7 +1358,7 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
                     | true  -> funcName, globalName
                     | false -> moduleName + "." + funcName, moduleName + "." + globalName
             let constantInitExpression () = 
-                if lm.lg.GetType().FullName.Contains("rust") then
+                if lm.lg.useInlineInitExpression then
                     bs.initExpressionFnc ()
                 else
                     baseFncName + lm.lg.init.initMethSuffix baseType.Kind
