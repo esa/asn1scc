@@ -35,6 +35,10 @@ PrintStringValueNull()	::= "NullType"
 
 PrintCharValue(cValue)    ::= "'<cValue>'"
 
+PrintStringChar(cValue)   ::= <<
+"<cValue>"
+>>
+
 PrintBooleanValue(bValue)    ::= "<if(bValue)>True<else>False<endif>"
 
 PrintNullValue()    ::= ""

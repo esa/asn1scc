@@ -40,6 +40,10 @@ PrintEnumValue(sValue)	::= "<sValue>"
 
 PrintCharValue(cValue)	::= "'<cValue>'"
 
+PrintStringChar(cValue)	::= <<
+"<cValue>"
+>>
+
 PrintBooleanValue(bValue)	::= "<if(bValue)>True<else>FALSE<endif>"
 
 PrintNullValue()	::= "0"
