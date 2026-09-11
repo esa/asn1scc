@@ -35,3 +35,9 @@ cd ../asn1python || exit 1
 uvx --python=3.11 pytest tests -v || exit 1
 # Python code readability and type-hint checks
 ./tools/check_generated_code.sh || exit 1
+
+# Rust regression tests (non-slim + slim mode)
+cd ../v4Tests || exit 1
+../regression/bin/Debug/net10.0/regression -l Rust -ws 4 -s false -p 12 || exit 1
+../regression/bin/Debug/net10.0/regression -l Rust -ws 4 -s true -p 12 || exit 1
+../regression/bin/Debug/net10.0/regression -l Rust -ws 8 -s true -p 12 || exit 1

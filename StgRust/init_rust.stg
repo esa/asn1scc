@@ -18,7 +18,7 @@ pub fn <sFuncName>(<sVarName>: &mut <sTypeDefName>)
 
 
 initInteger(sVal, sValue, bIsOptional, sResVar, sType) ::= "<sVal> = <sValue>;"
-initReal(sVal, dValue, bIsOptional, sResVar, sType) ::= "<sVal> = <dValue>f64;"
+initReal(sVal, dValue, bIsOptional, sResVar, sType) ::= "<sVal> = <dValue>f64 as _;"
 initBoolean(sVal, bValue, bIsOptional, sResVar, sType) ::= "<sVal> = <if(bValue)>true<else>false<endif>;"
 
 initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"

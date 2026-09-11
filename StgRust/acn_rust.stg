@@ -2,9 +2,9 @@
 group rust_acn;
 
 
-getStringSize(p) ::= "<p>.len() as u64"
+getStringSize(p) ::= "<p>.len() as _"
 
-getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p><sAcc>n_count as u64"
+getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p><sAcc>n_count as _"
 
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment, sFieldPath) ::= <<

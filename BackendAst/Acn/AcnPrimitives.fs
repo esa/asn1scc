@@ -84,7 +84,7 @@ let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
         let sIntActualMax (nBits:int) =
             let a = 2I**(nBits-1) - 1I
             min a nUperMax
-        let sSsuffix = DAstUPer.getIntDecFuncSuffix intClass
+        let sSsuffix = lm.lg.getIntDecFuncSuffix intClass
         let castPp encFuncBits = DAstUPer.castPp r lm codec pp intClass encFuncBits
         let word_size_in_bits = (int r.args.integerSizeInBytes)*8
 

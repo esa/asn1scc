@@ -426,6 +426,7 @@ type ILangGeneric () =
     abstract member TrueLiteral      :string
     abstract member FalseLiteral     :string
     abstract member emptyStatement   :string
+    default _.emptyStatement = ""
     abstract member bitStreamName    :string
     abstract member unaryNotOperator :string
     abstract member modOp            :string
@@ -716,6 +717,22 @@ type ILangGeneric () =
     /// Replaces DAstTypeDefinition.fs:411-416.
     abstract member generateEnumDefaultImpl : typeName:string -> firstEnumName:string -> string
     default _.generateEnumDefaultImpl _typeName _firstEnumName = ""
+
+    /// Returns the language-specific suffix for ACN integer decode function names.
+    /// E.g. C uses "Int8", Rust uses "_i8". Empty string means no suffix (full-width type).
+    abstract member getIntDecFuncSuffix : Asn1AcnAst.IntegerClass -> string
+    default _.getIntDecFuncSuffix intClass =
+        match intClass with
+        | Asn1AcnAst.ASN1SCC_Int8      _ -> "Int8"
+        | Asn1AcnAst.ASN1SCC_Int16     _ -> "Int16"
+        | Asn1AcnAst.ASN1SCC_Int32     _ -> "Int32"
+        | Asn1AcnAst.ASN1SCC_Int64     _ -> ""
+        | Asn1AcnAst.ASN1SCC_Int       _ -> ""
+        | Asn1AcnAst.ASN1SCC_UInt8     _ -> "UInt8"
+        | Asn1AcnAst.ASN1SCC_UInt16    _ -> "UInt16"
+        | Asn1AcnAst.ASN1SCC_UInt32    _ -> "UInt32"
+        | Asn1AcnAst.ASN1SCC_UInt64    _ -> ""
+        | Asn1AcnAst.ASN1SCC_UInt      _ -> ""
 
     abstract member getRealEncodingSuffix: floatingPointSizeInBytes:BigInteger -> RealClass -> string
     default _.getRealEncodingSuffix _ cls =

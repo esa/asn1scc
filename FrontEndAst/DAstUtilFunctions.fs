@@ -1025,6 +1025,7 @@ let nestItems joinItems2 children =
     let printChild (content:string) (soNestedContent:string option) =
         match soNestedContent with
         | None                -> content
+        | Some sNestedContent when String.IsNullOrWhiteSpace sNestedContent -> content
         | Some sNestedContent -> joinItems2 content sNestedContent
     let rec printChildren children : Option<string> =
         match children with

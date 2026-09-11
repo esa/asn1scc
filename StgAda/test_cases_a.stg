@@ -240,8 +240,12 @@ use type <rtlModuleName()>.Asn1UInt;
 use type <rtlModuleName()>.Asn1Int;
 use type <rtlModuleName()>.BIT;
 pragma Warnings (On, "use clause for type");
+pragma Warnings (Off, "no entities of * are referenced");
+pragma Warnings (Off, "use clause for package * has no effect");
 <arrsIncludedModules:{inc| with <inc>;}; separator="\n">
 <arrsIncludedModules:{inc| use <inc>;}; separator="\n">
+pragma Warnings (On, "no entities of * are referenced");
+pragma Warnings (On, "use clause for package * has no effect");
 
 function MainProgram return Integer
 is

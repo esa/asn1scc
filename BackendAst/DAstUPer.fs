@@ -178,7 +178,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     let IntRootExt2             = lm.uper.IntRootExt2
     let rootCons = cons |> List.choose(fun x -> match x with RangeRootConstraint(_, a) |RangeRootConstraint2(_, a,_) -> Some(x) |_ -> None)
 
-    let suffix = getIntDecFuncSuffix intClass
+    let suffix = lm.lg.getIntDecFuncSuffix intClass
     let castPp encFuncBits = castPp r lm codec pp intClass encFuncBits
 
     let sType = lm.lg.getLongTypedefNameFromReferenceToTypeAndCodegenScope typeId typeDefinition p
@@ -821,12 +821,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                         | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables)
                     | Some Asn1AcnAst.AlwaysPresent ->
                         TL "handleChild_14" (fun () -> 
+                        let childBody = if String.IsNullOrWhiteSpace childContent.funcBody then lm.lg.emptyStatement else childContent.funcBody
                         if lm.lg.usesWrappedOptional then
-                            Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables
+                            Some (sequence_optional_child pp access childName childBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables
                         else
                             match codec with
-                            | CommonTypes.Encode -> Some childContent.funcBody, childContent.localVariables
-                            | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables)
+                            | CommonTypes.Encode -> Some childBody, childContent.localVariables
+                            | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables)
                     | Some (Asn1AcnAst.Optional opt) ->
                         TL "handleChild_15" (fun () ->
                         match opt.defaultValue with

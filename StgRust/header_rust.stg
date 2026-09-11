@@ -99,7 +99,7 @@ Define_new_enumerated_item(td/*:FE_EnumeratedTypeDefinition*/, sName, nValue) ::
 Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= "// pub const <td.typeName>_<sAsn1Name>: <td.typeName> = <td.typeName>::<sCName>;"
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros, arr_Asn1Encoding) ::= <<
-#[repr(i64)]
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum <td.typeName> {
     <arrsEnumNamesAndValues:{it|<it>}; separator=",\n">,
@@ -148,6 +148,7 @@ pub const <td.encoded_values_array_count>: usize = <prTd.encoded_values_array_co
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars, arr_Asn1Encoding) ::= <<
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct <td.typeName> {
     pub arr: [u8; <nCMax>],
@@ -187,6 +188,7 @@ pub type <td.typeName> = <prTd.typeName>;
 /***********************************       OCTET STRING    ************************************************************/
 
 Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, arrsInvariants, arr_Asn1Encoding) ::= <<
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct <td.typeName> {
 <if(!bFixedSize)>
@@ -238,6 +240,7 @@ pub const <td.typeName>_<sTargetLangBitName>: u64 = 0x<sHexValue>;  /*<sComment>
 Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits, arrsInvariants, arr_Asn1Encoding) ::= <<
 <arrsNamedBits:{it|<it>}; separator="\n">
 
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct <td.typeName> {
 <if(!bFixedSize)>
@@ -287,6 +290,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 
 <soChildDefinition>
 
+#[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct <td.typeName> {
 <if(!bFixedSize)>
@@ -326,6 +330,7 @@ Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptional
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildrenDefinitions; separator= "\n">
 <if (arrsNullFieldsSavePos)>
+#[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct <td.extension_function_positions> {
     <arrsNullFieldsSavePos; separator="\n">
@@ -333,12 +338,14 @@ pub struct <td.extension_function_positions> {
 
 <endif>
 <if(arrsOptionalChildren)>
+#[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct <td.typeName>_exist {
     <arrsOptionalChildren; separator=",\n">
 }
 <endif>
 
+#[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct <td.typeName> {
     <if(arrsOptionalChildren)>pub exist: <td.typeName>_exist,<endif>
@@ -368,6 +375,7 @@ Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildN
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildrenDefinitions; separator= "\n">
 
+#[repr(C, i32)]
 #[derive(Debug, Clone, Copy)]
 pub enum <td.typeName> {
     <arrsChildren:{ch|<ch>}; separator=",\n">,

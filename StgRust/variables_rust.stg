@@ -2,7 +2,7 @@ group rust_variables;
 
 PrintIntValue(nValue) ::= "<nValue>"
 
-PrintRealValue(dValue) ::= "<dValue>f64"
+PrintRealValue(dValue) ::= "<dValue>f64 as _"
 
 PrintEnumValue(sValue) ::= "<sValue>"
 

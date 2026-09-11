@@ -62,6 +62,16 @@ echo "run c tests, with word-size=8, slim-mode=true"
 echo "run Ada tests, with word-size=8, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l Ada -ws 8 -s false -p 48 || exit 1
 
+# Rust tests (non-slim + slim mode)
+echo "run Rust tests, with word-size=4, slim-mode=false"
+../regression/bin/Debug/net10.0/regression -l Rust -ws 4 -s false -p 12 || exit 1
+
+echo "run Rust tests, with word-size=4, slim-mode=true"
+../regression/bin/Debug/net10.0/regression -l Rust -ws 4 -s true -p 12 || exit 1
+
+echo "run Rust tests, with word-size=8, slim-mode=true"
+../regression/bin/Debug/net10.0/regression -l Rust -ws 8 -s true -p 12 || exit 1
+
 # Scala & Interop tests
 echo "run scala tests"
 cd ../PUSCInteropTest || exit 1

@@ -475,6 +475,21 @@ type LangGeneric_rust() =
         override _.generateEnumDefaultImpl typeName firstEnumName =
             sprintf "impl Default for %s { fn default() -> Self { %s::%s } }" typeName typeName firstEnumName
 
+        /// Rust ACN decode functions use snake_case suffixes (_i8, _i16, etc.)
+        /// instead of the C-style PascalCase suffixes (Int8, Int16, etc.).
+        override _.getIntDecFuncSuffix intClass =
+            match intClass with
+            | Asn1AcnAst.ASN1SCC_Int8      _ -> "_i8"
+            | Asn1AcnAst.ASN1SCC_Int16     _ -> "_i16"
+            | Asn1AcnAst.ASN1SCC_Int32     _ -> "_i32"
+            | Asn1AcnAst.ASN1SCC_Int64     _ -> ""
+            | Asn1AcnAst.ASN1SCC_Int       _ -> ""
+            | Asn1AcnAst.ASN1SCC_UInt8     _ -> "_u8"
+            | Asn1AcnAst.ASN1SCC_UInt16    _ -> "_u16"
+            | Asn1AcnAst.ASN1SCC_UInt32    _ -> "_u32"
+            | Asn1AcnAst.ASN1SCC_UInt64    _ -> ""
+            | Asn1AcnAst.ASN1SCC_UInt      _ -> ""
+
 
 
 
