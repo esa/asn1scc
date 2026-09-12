@@ -304,6 +304,10 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
         let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
         let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
+        let sInsertedFieldTypeName =
+            match child.Type with
+            | AcnReferenceToIA5String s -> ToC (r.args.TypePrefix + s.tasName.Value)
+            | _ -> sChoiceTypeName
         let arrsChildUpdates =
             chc.children |>
             List.map(fun ch ->
@@ -319,7 +323,7 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
                         match lm.lg.nullTerminatorByte with
                         | Some nullByte -> Array.append baseBytes [| nullByte |]
                         | None -> baseBytes
-                    lm.acn.ChoiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls sChoiceTypeName)
+                    lm.acn.ChoiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls sChoiceTypeName sInsertedFieldTypeName)
         let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName
         match checkPath with
         | []    -> updateStatement

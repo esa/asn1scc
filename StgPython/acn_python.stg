@@ -1316,9 +1316,9 @@ if <v>_choice == <sChildNamePresent>:
     <v>_is_initialized = True
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChildTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
 if <v>_choice == <sChildNamePresent>:
-    <v> = <sChildTypeName>(arr=[<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">])
+    <v> = <sInsertedFieldTypeName>(arr=[<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">])
     <v>_is_initialized = True
 >>
 

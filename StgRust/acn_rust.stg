@@ -1371,7 +1371,7 @@ ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeNam
 }
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
 <sChoiceTypeName>::<sChildNamePresent>(..) => {
     <v>_is_initialized = true;
     asn1rust::set_string(&mut <v>.arr, "<sChildRetVal>");

@@ -1029,7 +1029,7 @@ case _: <sChildNamePresent> =>
     <sChildRetVal>
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
 case _: <sChildNamePresent> =>
     Vector.fromList(List(<arruChildRetValBytes:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))
 >>

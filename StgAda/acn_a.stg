@@ -1312,7 +1312,7 @@ when <sChildNamePresent> =>
 	<v> := <sChildRetVal>;
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
 when <sChildNamePresent> =>
     <v>_is_initialized := True;
 	<v> := "<sChildRetVal>"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=" & "><endif>;
