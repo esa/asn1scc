@@ -893,7 +893,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
             let childFnc =
                 let newFunc =
                     (fun (p:CodegenScope) ->
-                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name sChoiceTypeName, []))
+                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name sChoiceTypeName sChildTypeName, []))
                 newFunc
             Some(IsValidEmbedded {|isValidStatement = childFnc; localVars = []; alphaFuncs = []; childErrCodes = [] |}), us
         | Some (isValidFunction)    ->
@@ -911,9 +911,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                     (fun (p:CodegenScope) ->
                         let localTmpVarName = ""
                         match func p with
-                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name sChoiceTypeName, lv)
+                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name sChoiceTypeName sChildTypeName, lv)
                         | ValidationStatementFalse   (st,lv)
-                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false c_name sChoiceTypeName, lv) )
+                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false c_name sChoiceTypeName sChildTypeName, lv) )
                         //| ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv) )

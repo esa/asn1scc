@@ -304,7 +304,7 @@ Choice_child_always_absent_Exp(p, sAcc, sChPresent, sChoiceTypeName) ::= <<
 !matches!(<p>, <sChoiceTypeName>::<sChPresent>(..))
 >>
 
-choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName, sChoiceTypeName) ::= <<
+choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName, sChoiceTypeName, sChildTypeName) ::= <<
 <sChoiceTypeName>::<sChPresent>(ref <sChildName>) => {
     <sChildBody>
 }
