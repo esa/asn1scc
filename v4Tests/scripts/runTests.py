@@ -485,7 +485,7 @@ def prepare_and_run_item(cfg: TestConfig, item: WorkItem):
     if not cfg.xerMode:
         if item.acn_file:
             shutil.copyfile(item.acn_file, os.path.join(targetDir, "sample1.acn"))
-        elif item.acn_content:
+        else:
             CreateACNFile(targetDir, item.acn_content)
 
     try:

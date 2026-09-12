@@ -494,12 +494,13 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
                     fnc chp), ns
 
         let childCheck =
+            let sChildLocalName = l.lg.getAsn1ChChildBackendName ch
             let newChildCheckFnc (p:CodegenScope) =
                 match childCheck p with
-                | VCBExpression  exp -> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) "" (l.lg.getAccess p.accessPath) presentWhenName (expressionToStatement exp) sChoiceTypeName, [])
-                | VCBStatement   (stat, lv1)-> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) "" (l.lg.getAccess p.accessPath) presentWhenName stat sChoiceTypeName, lv1)
+                | VCBExpression  exp -> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) sChildLocalName (l.lg.getAccess p.accessPath) presentWhenName (expressionToStatement exp) sChoiceTypeName, [])
+                | VCBStatement   (stat, lv1)-> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) sChildLocalName (l.lg.getAccess p.accessPath) presentWhenName stat sChoiceTypeName, lv1)
                 | VCBTrue            -> VCBTrue
-                | VCBFalse           -> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) "" (l.lg.getAccess p.accessPath) (presentWhenName) (expressionToStatement "FALSE") sChoiceTypeName, [])
+                | VCBFalse           -> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) sChildLocalName (l.lg.getAccess p.accessPath) (presentWhenName) (expressionToStatement "FALSE") sChoiceTypeName, [])
 
             newChildCheckFnc
 
