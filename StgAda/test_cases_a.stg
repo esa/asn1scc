@@ -322,7 +322,7 @@ invokeTestCaseAsFunc(sFuncName) ::= <<
 
 
 emitTestCaseAsFunc_h(sFuncName) ::= <<
-procedure <sFuncName> (totalErrors : in out Integer);
+procedure <sFuncName> ( totalErrors : in out Integer);
 >>
 
 emitTestCaseAsFunc_dummy_init(sTypeName, sFuncName, sDummyVarname) ::= <<
@@ -420,8 +420,9 @@ end <sFuncName>;
 
 printTestCaseFileDef(sPackageName, arrsIncludedModules, arrsTestFunctionDefs) ::= <<
 
-package <sPackageName> is
-<arrsTestFunctionDefs:{tas|   <tas>}; separator="\n">
+package <sPackageName> 
+is
+<arrsTestFunctionDefs:{tas|<tas>}; separator="\n">
 
 end <sPackageName>;
 >>

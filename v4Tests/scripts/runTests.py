@@ -185,6 +185,19 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
             results.add_pass()
             return
 
+    # For Ada: add 'pragma Style_Checks (Off);' to generated test_case_*.ads files
+    # to suppress -gnaty style errors on auto-generated spec files.
+    # The gprbuild coverage target uses -gnaty (style checks) which flags
+    # indentation and spacing issues in generated test case specs.
+    if language == 'Ada':
+        import glob as _glob
+        for ads in _glob.glob(os.path.join(targetDir, "test_case_*.ads")):
+            with open(ads, 'r') as f:
+                content = f.read()
+            if 'pragma Style_Checks (Off)' not in content:
+                with open(ads, 'w') as f:
+                    f.write('pragma Style_Checks (Off);\n' + content)
+
     no_automatic_test_cases = "NO_AUTOMATIC_TEST_CASES" in open(asn1File, 'r').readlines()[0]
     if no_automatic_test_cases:
         if language == "c":
