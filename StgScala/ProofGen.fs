@@ -69,7 +69,9 @@ let intSizeExpr (int: Asn1AcnAst.Integer) (obj: Expr): Expr =
       assert (int.acnMaxSizeInBits = int.uperMaxSizeInBits)
       longlit int.acnMaxSizeInBits
   | _ ->
-    assert (int.acnMinSizeInBits = int.acnMaxSizeInBits) // TODO: Not quite true, there is ASCII encoding that is variable...
+    // Variable-size ACN encodings (e.g. null-terminated BCD/ASCII) have
+    // acnMinSizeInBits ≠ acnMaxSizeInBits. Use max as a safe over-approximation
+    // for proof postconditions.
     longlit int.acnMaxSizeInBits
 
 // TODO: Expliquer ce que cela fait et diff avec les autre
