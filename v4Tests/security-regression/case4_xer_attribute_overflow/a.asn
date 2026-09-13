@@ -1,0 +1,9 @@
+MOD-A DEFINITIONS ::=
+BEGIN
+
+	PDU ::= SEQUENCE {
+		a INTEGER (0..10),
+		b INTEGER (0..10)
+	}
+
+END

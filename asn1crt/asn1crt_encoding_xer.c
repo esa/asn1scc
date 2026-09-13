@@ -207,13 +207,43 @@ Token LA(ByteStream* pByteStrm) {
 
 
 
-void AddAttribute(XmlAttributeArray* pAttrArray, const char* attr, const char* val)
-{
-	assert(((unsigned)pAttrArray->nCount) < (sizeof(XmlAttributeArray) - sizeof(int)) / sizeof(XmlAttribute));
+/*
+Maximum number of attributes an XmlAttributeArray can hold (the capacity of
+its fixed-size attrs[] member).
+*/
+#define MAX_NUM_OF_XML_ATTRIBUTES	((int)(sizeof(((XmlAttributeArray*)0)->attrs) / sizeof(((XmlAttributeArray*)0)->attrs[0])))
 
-	strcpy(pAttrArray->attrs[pAttrArray->nCount].Name, attr);
-	strcpy(pAttrArray->attrs[pAttrArray->nCount].Value, val);
+/*
+Appends one attribute to pAttrArray.
+
+Returns FALSE (and leaves pAttrArray untouched) when the attribute cannot be
+stored safely: pAttrArray is NULL (the caller did not provide attribute
+storage), the array is already full, or the name/value does not fit in the
+fixed-size Name/Value fields. The check must be a run-time check and not an
+assert(): the array holds attacker-controlled data and production builds are
+compiled with -DNDEBUG.
+*/
+flag AddAttribute(XmlAttributeArray* pAttrArray, const char* attr, const char* val)
+{
+	size_t attrLen;
+	size_t valLen;
+
+	if (pAttrArray == NULL)
+		return FALSE;
+	if (pAttrArray->nCount < 0 || pAttrArray->nCount >= MAX_NUM_OF_XML_ATTRIBUTES)
+		return FALSE;
+
+	attrLen = strlen(attr);
+	valLen = strlen(val);
+	if (attrLen >= sizeof(pAttrArray->attrs[0].Name))
+		return FALSE;
+	if (valLen >= sizeof(pAttrArray->attrs[0].Value))
+		return FALSE;
+
+	memcpy(pAttrArray->attrs[pAttrArray->nCount].Name, attr, attrLen + 1);
+	memcpy(pAttrArray->attrs[pAttrArray->nCount].Value, val, valLen + 1);
 	pAttrArray->nCount++;
+	return TRUE;
 }
 
 /*
@@ -391,7 +421,11 @@ flag Xer_DecodeAttributes(ByteStream* pByteStrm, XmlAttributeArray* pAttrs, int 
 			*pErrCode = ERR_INVALID_XML_FILE; /* +++ */
 			return FALSE;
 		}
-		AddAttribute(pAttrs, t1.Value, t2.Value);
+		/* Fail closed: an attribute that cannot be stored makes the whole document invalid. */
+		if (!AddAttribute(pAttrs, t1.Value, t2.Value)) {
+			*pErrCode = ERR_INVALID_XML_FILE;
+			return FALSE;
+		}
 	}
 	return TRUE;
 }
