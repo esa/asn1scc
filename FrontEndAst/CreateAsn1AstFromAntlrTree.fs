@@ -19,6 +19,21 @@ let ConstraintNodes = [ asn1Parser.EXT_MARK; asn1Parser.UnionMark; asn1Parser.AL
                         asn1Parser.VALUE_RANGE_EXPR; asn1Parser.SUBTYPE_EXPR; asn1Parser.SIZE_EXPR; asn1Parser.PERMITTED_ALPHABET_EXPR;
                         asn1Parser.WITH_COMPONENT_CONSTR; asn1Parser.WITH_COMPONENTS_CONSTR ]
 
+let unsupportedExtensionsMessage =
+    "Unsupported ASN.1 feature (extensions)\n\nASN1SCC targets the S/W of space vehicles (it has been built and it is being\n\
+    maintained under European Space Agency's supervision). This means that\n\
+    we target ASN.1 grammars where the maximum message representation can be\n\
+    statically computed (and reserved) at compile-time.\n\n\
+    Think about it: what would you do when the embedded platform in your satellite\n\
+    runs out of memory? Blue screen? :-)\n\n\
+    Most telecom protocols (i.e. telecom-related ASN.1 grammars) are unfortunately\n\
+    not in that category (of grammars we support) - for example, the '...'\n\
+    construct allows the data of that message to potentially expand (in e.g.\n\
+    future versions of the protocols) with additional information. That however\n\
+    means that we can't statically compute the maximum size of these messages,\n\
+    which is, in effect, infinite.\n"
+
+
 
 let TimeClassMap  =
     [
@@ -491,10 +506,13 @@ let rec CreateType integerSizeInBytes (tasParameters : TemplateParameter list) (
             | asn1Parser.REAL               -> Ok Real
             | asn1Parser.BOOLEAN            -> Ok Boolean
             | asn1Parser.CHOICE_TYPE        ->
-                result {
-                    let! ch = CreateChoiceChild  integerSizeInBytes tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments
-                    return (Choice ch )
-                }
+                match getOptionalChildByType(typeNode, asn1Parser.CHOICE_EXT_BODY) with
+                | Some extBody  -> Error (Semantic_Error(extBody.Location, unsupportedExtensionsMessage))
+                | None          ->
+                    result {
+                        let! ch = CreateChoiceChild  integerSizeInBytes tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments
+                        return (Choice ch )
+                    }
             | asn1Parser.SET_TYPE
             | asn1Parser.SEQUENCE_TYPE      ->
                 result {
@@ -502,10 +520,13 @@ let rec CreateType integerSizeInBytes (tasParameters : TemplateParameter list) (
                     return (Sequence ch)
                 }
             | asn1Parser.ENUMERATED_TYPE    ->
-                result {
-                    let! items = CreateNamedItems integerSizeInBytes  astRoot  typeNode fileTokens alreadyTakenComments
-                    return (Enumerated items)
-                }
+                match getOptionalChildByType(typeNode, asn1Parser.EXT_MARK) with
+                | Some extMark  -> Error (Semantic_Error(extMark.Location, unsupportedExtensionsMessage))
+                | None          ->
+                    result {
+                        let! items = CreateNamedItems integerSizeInBytes  astRoot  typeNode fileTokens alreadyTakenComments
+                        return (Enumerated items)
+                    }
             | asn1Parser.BIT_STRING_TYPE    ->
                 result {
                     let! items = CreateNamedBitList integerSizeInBytes  astRoot  typeNode fileTokens alreadyTakenComments
@@ -653,18 +674,7 @@ and CreateSequenceChild integerSizeInBytes  (tasParameters : TemplateParameter l
             | asn1Parser.SEQUENCE_EXT_BODY
             | asn1Parser.SEQUENCE_EXT_GROUP
             | asn1Parser.CHOICE_EXT_BODY ->
-                return! Error(Semantic_Error(x.Location, "Unsupported ASN.1 feature (extensions)\n\nASN1SCC targets the S/W of space vehicles (it has been built and it is being\n\
-                    maintained under European Space Agency's supervision). This means that\n\
-                    we target ASN.1 grammars where the maximum message representation can be\n\
-                    statically computed (and reserved) at compile-time.\n\n\
-                    Think about it: what would you do when the embedded platform in your satellite\n\
-                    runs out of memory? Blue screen? :-)\n\n\
-                    Most telecom protocols (i.e. telecom-related ASN.1 grammars) are unfortunately\n\
-                    not in that category (of grammars we support) - for example, the '...'\n\
-                    construct allows the data of that message to potentially expand (in e.g.\n\
-                    future versions of the protocols) with additional information. That however\n\
-                    means that we can't statically compute the maximum size of these messages,\n\
-                    which is, in effect, infinite.\n"))
+                return! Error(Semantic_Error(x.Location, unsupportedExtensionsMessage))
             | _ -> return! Error (Bug_Error("Unexpected input in CreateSequenceChild"))
         }
     let asn1Children =
