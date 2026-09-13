@@ -295,7 +295,8 @@ type LangGeneric_scala() =
         /// The caller resolves ReferenceType before calling (as in the original code).
         override _.formatInitStatementForTestCase (typeKind: Asn1AcnAst.Asn1TypeKind) _modName _tasName (initStatement: string) =
             match typeKind with
-            | Asn1AcnAst.Integer _ -> "val tc_data = " + initStatement
+            | Asn1AcnAst.Integer _ when not (initStatement.StartsWith("val tc_data = ")) ->
+                "val tc_data = " + initStatement
             | _ -> initStatement
 
         /// Format an ACN determinant update statement.

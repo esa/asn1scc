@@ -306,7 +306,13 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
         let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
         let sInsertedFieldTypeName =
             match child.Type with
-            | AcnReferenceToIA5String s -> ToC (r.args.TypePrefix + s.tasName.Value)
+            | AcnReferenceToIA5String s ->
+                let ref : CommonTypes.ReferenceToExistingDefinition = {
+                    programUnit = Some s.modName.Value
+                    typedefName = ToC (r.args.TypePrefix + s.tasName.Value)
+                    definedInRtl = false
+                }
+                lm.lg.longTypedefName2 (ReferenceToExistingDefinition ref) lm.lg.hasModules m.Name.Value
             | _ -> sChoiceTypeName
         let arrsChildUpdates =
             chc.children |>
