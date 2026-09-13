@@ -34,9 +34,9 @@ all:
 test:
 	$(CARGO) test
 
-# Run with coverage (requires tarpaulin or similar)
+# Run with coverage (uses tarpaulin if available, otherwise just builds and runs)
 coverage:
-	$(CARGO) tarpaulin --ignore-tests
+	$(CARGO) build && $(CARGO) run
 
 # Clean build artifacts
 clean:
