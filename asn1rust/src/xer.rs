@@ -359,7 +359,10 @@ fn la(p_strm: &mut ByteStream) -> Token {
 /// does not fit in the fixed-size fields. The caller must treat a `false`
 /// return as an invalid-XML error and stop decoding.
 fn add_attribute(p_attr_array: &mut XmlAttributeArray, attr: &str, val: &str) -> bool {
-    if (p_attr_array.n_count as usize) >= p_attr_array.attrs.len() {
+    // Reject negative n_count (matches C: pAttrArray->nCount < 0).
+    // In Rust this is defensive — n_count should never be negative, but it
+    // is a public i32 field that external (e.g. #[repr(C)]) code could set.
+    if p_attr_array.n_count < 0 || (p_attr_array.n_count as usize) >= p_attr_array.attrs.len() {
         return false;
     }
     let idx = p_attr_array.n_count as usize;
