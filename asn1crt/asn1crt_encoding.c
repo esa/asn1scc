@@ -38,6 +38,7 @@ void ByteStream_AttachBuffer(ByteStream* pStrm, unsigned char* buf, long count)
     pStrm->count = count;
     pStrm->buf = buf;
     pStrm->currentByte = 0;
+    pStrm->EncodeWhiteSpace = FALSE;
 }
 
 asn1SccSint ByteStream_GetLength(ByteStream* pStrm)
@@ -97,7 +98,7 @@ void BitStream_AttachBuffer2(BitStream* pBitStrm, unsigned char* buf, long count
 
 asn1SccSint BitStream_GetLength(BitStream* pBitStrm)
 {
-	int ret = pBitStrm->currentByte;
+	long ret = pBitStrm->currentByte;
 	if (pBitStrm->currentBit)
 		ret++;
 	return ret;
@@ -229,6 +230,9 @@ void BitStream_AppendBit(BitStream* pBitStrm, flag v)
 
 flag BitStream_ReadBit(BitStream* pBitStrm, flag* v)
 {
+	if (pBitStrm->currentByte < 0 || pBitStrm->currentByte >= pBitStrm->count ||
+		pBitStrm->currentBit < 0 || pBitStrm->currentBit > 7)
+		return FALSE;
 	*v = pBitStrm->buf[pBitStrm->currentByte] & masks[pBitStrm->currentBit];
 
 	if (pBitStrm->currentBit<7)
@@ -242,6 +246,10 @@ flag BitStream_ReadBit(BitStream* pBitStrm, flag* v)
 }
 
 flag BitStream_PeekBit(BitStream* pBitStrm) {
+	/* This legacy API returns the bit value, not a success flag. */
+	if (pBitStrm->currentByte < 0 || pBitStrm->currentByte >= pBitStrm->count ||
+		pBitStrm->currentBit < 0 || pBitStrm->currentBit > 7)
+		return FALSE;
 	return pBitStrm->buf[pBitStrm->currentByte] & masks[pBitStrm->currentBit];
 }
 
@@ -294,6 +302,13 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 {
 	int cb = pBitStrm->currentBit;
 	int ncb = 8 - cb;
+	if (cb < 0 || cb > 7 || pBitStrm->currentByte < 0 ||
+		pBitStrm->currentByte >= pBitStrm->count)
+		return FALSE;
+#ifndef ASN1SCC_STREAMING
+	if (cb && pBitStrm->count - pBitStrm->currentByte < 2)
+		return FALSE;
+#endif
 
 	byte mask = (byte)~masksb[ncb];
 
@@ -313,26 +328,39 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 
 flag BitStream_AppendByteArray(BitStream* pBitStrm, const byte arr[], const int arr_len)
 {
+#ifdef ASN1SCC_STREAMING
+    if (arr_len < 0) return FALSE;
+    for (int i = 0; i < arr_len; i++)
+        if (!BitStream_AppendByte0(pBitStrm, arr[i])) return FALSE;
+    return TRUE;
+#else
     //static byte  masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
     //static byte masksb[] = { 0x00, 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF };
 
     int cb = pBitStrm->currentBit;
     int ncb = 8 - cb;
 
-    byte mask = (byte)~masksb[ncb];
-    byte nmask = (byte)~mask;
+    byte mask;
+    byte nmask;
     //if (pBitStrm->currentByte + (int)arr_len + (cb > 0 ? 1 : 0) >= pBitStrm->count)
-    if ( (pBitStrm->currentByte + arr_len)*8 + cb > pBitStrm->count*8)
+    if (arr_len < 0 || cb < 0 || cb > 7 || pBitStrm->currentByte < 0 ||
+        pBitStrm->currentByte > pBitStrm->count ||
+        arr_len > pBitStrm->count - pBitStrm->currentByte ||
+        (arr_len > 0 && cb && arr_len == pBitStrm->count - pBitStrm->currentByte))
         return FALSE;
 
     if (arr_len> 0) {
+        mask = (byte)~masksb[ncb];
+        nmask = (byte)~mask;
         byte v = arr[0];
         pBitStrm->buf[pBitStrm->currentByte] &= mask;       //make zero right bits (i.e. the ones that will get the new value)
         pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> cb);  //shift right and then populate current byte
         bitstream_push_data_if_required(pBitStrm);
 
-        pBitStrm->buf[pBitStrm->currentByte] &= nmask;
-        pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << ncb);
+        if (cb) {
+            pBitStrm->buf[pBitStrm->currentByte] &= nmask;
+            pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << ncb);
+        }
     }
 
     for (int i = 1; i < arr_len - 1; i++) {
@@ -355,16 +383,23 @@ flag BitStream_AppendByteArray(BitStream* pBitStrm, const byte arr[], const int 
         }
     }
     return TRUE;
+#endif
 }
 
 
 flag BitStream_ReadByte(BitStream* pBitStrm, byte* v)
 {
+#ifdef ASN1SCC_STREAMING
+    return BitStream_ReadByteArray(pBitStrm, v, 1);
+#else
     int cb = pBitStrm->currentBit;			//bit position in the current byte
 
     //check if the available bytes are enough
 	int requiredBytes = (cb > 0) ? 2 : 1;
-	int availableBytes = pBitStrm->count - pBitStrm->currentByte;
+	long availableBytes;
+	if (cb < 0 || cb > 7 || pBitStrm->currentByte < 0 || pBitStrm->currentByte > pBitStrm->count)
+		return FALSE;
+	availableBytes = pBitStrm->count - pBitStrm->currentByte;
 
 	if (availableBytes < requiredBytes) {
 		return FALSE;
@@ -380,6 +415,7 @@ flag BitStream_ReadByte(BitStream* pBitStrm, byte* v)
 	}
 
 	return TRUE;
+#endif
 }
 
 
@@ -388,22 +424,29 @@ flag BitStream_ReadByte(BitStream* pBitStrm, byte* v)
 flag BitStream_ReadByteArray(BitStream* pBitStrm, byte* arr, int arr_len) {
     int cb = pBitStrm->currentBit;
     int ncb = 8 - cb;
-	byte* rb = &pBitStrm->buf[pBitStrm->currentByte];
 	byte* wb = arr;
+	if (arr_len < 0 || cb < 0 || cb > 7 || pBitStrm->currentByte < 0 ||
+		pBitStrm->currentByte > pBitStrm->count)
+		return FALSE;
 
 #ifndef ASN1SCC_STREAMING
-    if ( (pBitStrm->currentByte + arr_len)*8 + cb > pBitStrm->count*8)
+    if (arr_len > pBitStrm->count - pBitStrm->currentByte ||
+        (arr_len > 0 && cb && arr_len == pBitStrm->count - pBitStrm->currentByte))
         return FALSE;
 #endif
 
     for (int i = 0; i < arr_len; i++) {
-		*wb = (byte)((*rb) << cb);
-		rb++;
+		if (pBitStrm->currentByte >= pBitStrm->count)
+			return FALSE;
+		*wb = (byte)(pBitStrm->buf[pBitStrm->currentByte++] << cb);
 		bitstream_fetch_data_if_required(pBitStrm);
-		*wb |= (byte)((*rb) >> ncb);
+		if (cb) {
+			if (pBitStrm->currentByte >= pBitStrm->count)
+				return FALSE;
+			*wb |= (byte)(pBitStrm->buf[pBitStrm->currentByte] >> ncb);
+		}
 		wb++;
     }
-	pBitStrm->currentByte += arr_len;
     return TRUE;
 }
 
@@ -430,6 +473,8 @@ flag BitStream_ReadByte2(BitStream2* pBitStrm, byte* v)
 
 flag BitStream_ReadBits(BitStream* pBitStrm, byte* BuffToWrite, int nbits)
 {
+    if (nbits < 0)
+        return FALSE;
     int bytesToRead = nbits / 8;
     int remainingBits = nbits % 8;
     flag ret;
@@ -496,6 +541,13 @@ flag BitStream_ReadPartialByte(BitStream* pBitStrm, byte *v, byte nbits)
 	int cb = pBitStrm->currentBit;
 	int totalBits = cb + nbits;
 	int totalBitsForNextByte;
+	if (nbits == 0 || nbits > 7 || cb < 0 || cb > 7 ||
+		pBitStrm->currentByte < 0 || pBitStrm->currentByte >= pBitStrm->count)
+		return FALSE;
+#ifndef ASN1SCC_STREAMING
+	if (totalBits > 8 && pBitStrm->count - pBitStrm->currentByte < 2)
+		return FALSE;
+#endif
 
 	if (totalBits <= 8) {
 		*v = (byte)((pBitStrm->buf[pBitStrm->currentByte] >> (8 - totalBits)) & masksb[nbits]);
@@ -510,6 +562,8 @@ flag BitStream_ReadPartialByte(BitStream* pBitStrm, byte *v, byte nbits)
 		totalBitsForNextByte = totalBits - 8;
 		*v = (byte)(pBitStrm->buf[pBitStrm->currentByte++] << totalBitsForNextByte);
 		bitstream_fetch_data_if_required(pBitStrm);
+		if (pBitStrm->currentByte >= pBitStrm->count)
+			return FALSE;
 		*v |= (byte)(pBitStrm->buf[pBitStrm->currentByte] >> (8 - totalBitsForNextByte));
 		*v &= masksb[nbits];
 		pBitStrm->currentBit = totalBitsForNextByte;
@@ -629,6 +683,8 @@ void BitStream_EncodeNonNegativeInteger(BitStream* pBitStrm, asn1SccUint v)
 
 flag BitStream_DecodeNonNegativeInteger(BitStream* pBitStrm, asn1SccUint* v, int nBits)
 {
+	if (nBits < 0 || nBits > WORD_SIZE * 8)
+		return FALSE;
 #if WORD_SIZE==8
 	asn1SccUint32 hi = 0;
 	asn1SccUint32 lo = 0;
@@ -761,7 +817,7 @@ int GetLengthInBytesOfSInt(asn1SccSint v)
 	if (v >= 0)
 		return GetLengthSIntHelper((asn1SccUint)v);
 
-	return GetLengthSIntHelper((asn1SccUint)(-v - 1));
+	return GetLengthSIntHelper((asn1SccUint)(-(v + 1)));
 }
 
 
@@ -772,13 +828,13 @@ void BitStream_EncodeConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint v, a
 	int nBits;
 	asn1SccUint range;
 	assert(min <= max);
-	range = (asn1SccUint)(max - min);
+	range = (asn1SccUint)max - (asn1SccUint)min;
 	if (!range)
 		return;
 	nRangeBits = GetNumberOfBitsForNonNegativeInteger(range);
-	nBits = GetNumberOfBitsForNonNegativeInteger((asn1SccUint)(v - min));
+	nBits = GetNumberOfBitsForNonNegativeInteger((asn1SccUint)v - (asn1SccUint)min);
 	BitStream_AppendNBitZero(pBitStrm, nRangeBits - nBits);
-	BitStream_EncodeNonNegativeInteger(pBitStrm, (asn1SccUint)(v - min));
+	BitStream_EncodeNonNegativeInteger(pBitStrm, (asn1SccUint)v - (asn1SccUint)min);
 }
 
 void BitStream_EncodeConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint v, asn1SccUint min, asn1SccUint max)
@@ -802,7 +858,7 @@ flag BitStream_DecodeConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v, 
 {
 	asn1SccUint uv;
 	int nRangeBits;
-	asn1SccUint range = (asn1SccUint)(max - min);
+	asn1SccUint range = (asn1SccUint)max - (asn1SccUint)min;
 
 	ASSERT_OR_RETURN_FALSE(min <= max);
 
@@ -820,7 +876,7 @@ flag BitStream_DecodeConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v, 
 	{
 		if (uv > range)
 			return FALSE;
-		*v = ((asn1SccSint)uv) + min;
+		*v = uint2int(uv + (asn1SccUint)min, WORD_SIZE);
 		return TRUE;
 	}
 	return FALSE;
@@ -917,14 +973,14 @@ void BitStream_EncodeSemiConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint 
 {
 	int nBytes;
 	assert(v >= min);
-	nBytes = GetLengthInBytesOfUInt((asn1SccUint)(v - min));
+	nBytes = GetLengthInBytesOfUInt(((asn1SccUint)v - (asn1SccUint)min));
 
 	/* encode length */
 	BitStream_EncodeConstraintWholeNumber(pBitStrm, nBytes, 0, 255); /*8 bits, first bit is always 0*/
 																	 /* put required zeros*/
-	BitStream_AppendNBitZero(pBitStrm, nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((asn1SccUint)(v - min)));
+	BitStream_AppendNBitZero(pBitStrm, nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(((asn1SccUint)v - (asn1SccUint)min)));
 	/*Encode number */
-	BitStream_EncodeNonNegativeInteger(pBitStrm, (asn1SccUint)(v - min));
+	BitStream_EncodeNonNegativeInteger(pBitStrm, ((asn1SccUint)v - (asn1SccUint)min));
 }
 
 void BitStream_EncodeSemiConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint v, asn1SccUint min)
@@ -946,18 +1002,20 @@ flag BitStream_DecodeSemiConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint*
 {
 	asn1SccSint nBytes;
 	int i;
+	asn1SccUint decoded = 0;
 	*v = 0;
 	if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, &nBytes, 0, 255))
 		return FALSE;
-	if (nBytes > WORD_SIZE)
+	if (nBytes < 1 || nBytes > WORD_SIZE)
 		return FALSE;
 	for (i = 0; i<nBytes; i++) {
 		byte b = 0;
 		if (!BitStream_ReadByte(pBitStrm, &b))
 			return FALSE;
-		*v = (*v << 8) | b;
+		decoded = (decoded << 8) | b;
 	}
-	*v += min;
+	if (decoded > (MAX_INT >> 1) - (asn1SccUint)min) return FALSE;
+	*v = uint2int(decoded + (asn1SccUint)min, WORD_SIZE);
 	return TRUE;
 }
 
@@ -968,7 +1026,7 @@ flag BitStream_DecodeSemiConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUi
 	*v = 0;
 	if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, &nBytes, 0, 255))
 		return FALSE;
-	if (nBytes > WORD_SIZE)
+	if (nBytes < 1 || nBytes > WORD_SIZE)
 		return FALSE;
 	for (i = 0; i<nBytes; i++) {
 		byte b = 0;
@@ -976,6 +1034,7 @@ flag BitStream_DecodeSemiConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUi
 			return FALSE;
 		*v = (*v << 8) | b;
 	}
+	if (*v > MAX_INT - min) return FALSE;
 	*v += min;
 	return TRUE;
 }
@@ -993,8 +1052,8 @@ void BitStream_EncodeUnConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint v)
 		BitStream_EncodeNonNegativeInteger(pBitStrm, (asn1SccUint)(v));
 	}
 	else {
-		BitStream_AppendNBitOne(pBitStrm, nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((asn1SccUint)(-v - 1)));
-		BitStream_EncodeNonNegativeIntegerNeg(pBitStrm, (asn1SccUint)(-v - 1), 1);
+		BitStream_AppendNBitOne(pBitStrm, nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((asn1SccUint)(-(v + 1))));
+		BitStream_EncodeNonNegativeIntegerNeg(pBitStrm, (asn1SccUint)(-(v + 1)), 1);
 	}
 }
 
@@ -1003,23 +1062,25 @@ flag BitStream_DecodeUnConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v
 	asn1SccSint nBytes;
 	int i;
 	flag valIsNegative;
+	asn1SccUint decoded;
 
 
 	if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, &nBytes, 0, 255))
 		return FALSE;
-	if (nBytes > WORD_SIZE)
+	if (nBytes < 1 || nBytes > WORD_SIZE)
 		return FALSE;
 
 	valIsNegative = BitStream_PeekBit(pBitStrm);
 
-	*v = valIsNegative ? MAX_INT : 0;
+	decoded = valIsNegative ? MAX_INT : 0;
 
 	for (i = 0; i<nBytes; i++) {
 		byte b = 0;
 		if (!BitStream_ReadByte(pBitStrm, &b))
 			return FALSE;
-		*v = (*v << 8) | b;
+		decoded = (decoded << 8) | b;
 	}
+	*v = uint2int(decoded, WORD_SIZE);
 
 	return TRUE;
 }
@@ -1114,25 +1175,14 @@ asn1Real GetDoubleByMantissaAndExp(asn1SccUint mantissa, int exponent)
 #ifdef USE_LDEXP
 	return (asn1Real)ldexp((double)mantissa, exponent);
 #else
-	asn1Real ret = 1.0;
+	asn1Real ret = (asn1Real)mantissa;
 	if (mantissa == 0)
 		return 0.0;
-
-	if (exponent >= 0) {
-		while (exponent) {
-			ret = ret * 2.0;
-			exponent--;
-		}
-		return (asn1Real)mantissa*ret;
-	}
-	else {
-		exponent = -exponent;
-		while (exponent) {
-			ret = ret * 2.0;
-			exponent--;
-		}
-		return ((asn1Real)mantissa) / ret;
-	}
+	if (exponent > DBL_MAX_EXP) return INFINITY;
+	if (exponent < -(DBL_MAX_EXP + DBL_MANT_DIG + WORD_SIZE * 8)) return 0.0;
+	while (exponent > 0) { ret *= 2.0; exponent--; }
+	while (exponent < 0) { ret /= 2.0; exponent++; }
+	return ret;
 #endif
 }
 
@@ -1205,8 +1255,8 @@ void BitStream_EncodeReal(BitStream* pBitStrm, asn1Real v)
 		BitStream_EncodeNonNegativeInteger(pBitStrm, (asn1SccUint)exponent);
 	}
 	else {
-		BitStream_AppendNBitOne(pBitStrm, nExpLen * 8 - GetNumberOfBitsForNonNegativeInteger((asn1SccUint)(-exponent - 1)));
-		BitStream_EncodeNonNegativeIntegerNeg(pBitStrm, (asn1SccUint)(-exponent - 1), 1);
+		BitStream_AppendNBitOne(pBitStrm, nExpLen * 8 - GetNumberOfBitsForNonNegativeInteger((asn1SccUint)(-(exponent + 1))));
+		BitStream_EncodeNonNegativeIntegerNeg(pBitStrm, (asn1SccUint)(-(exponent + 1)), 1);
 	}
 
 
@@ -1232,6 +1282,8 @@ flag BitStream_DecodeReal(BitStream* pBitStrm, asn1Real* v)
 	}
 
 	if (!BitStream_ReadByte(pBitStrm, &header))
+		return FALSE;
+	if (header >= 0x40 && header <= 0x43 && length != 1)
 		return FALSE;
 
 	if (header == 0x40)
@@ -1268,10 +1320,14 @@ flag DecodeRealAsBinaryEncoding(BitStream* pBitStrm, int length, byte header, as
 	unsigned factor = 1;
 	int expLen;
 	int exponent;
+	asn1SccUint32 exponentBits;
+	asn1SccSint64 scaledExponent;
 	flag expIsNegative = FALSE;
 	int expFactor = 1;
 	asn1SccUint N = 0;
 	int i;
+	if ((header & 0x80) == 0 || (header & 0x30) == 0x30)
+		return FALSE;
 
 	if (header & 0x40)
 		sign = -1;
@@ -1288,17 +1344,24 @@ flag DecodeRealAsBinaryEncoding(BitStream* pBitStrm, int length, byte header, as
 	factor <<= F;
 
 	expLen = (header & 0x03) + 1;
+	if (expLen == 4) {
+		byte explicitLength;
+		if (length < 1 || !BitStream_ReadByte(pBitStrm, &explicitLength)) return FALSE;
+		length--;
+		expLen = explicitLength;
+	}
 
-	if (expLen>length)
+	if (expLen < 1 || expLen > 4 || expLen >= length || length - expLen > WORD_SIZE)
 		return FALSE;
 	expIsNegative = BitStream_PeekBit(pBitStrm);
-	exponent = expIsNegative ? 0xFFFFFFFF : 0;
+	exponentBits = expIsNegative ? UINT32_MAX : 0;
 	for (i = 0; i<expLen; i++) {
 		byte b = 0;
 		if (!BitStream_ReadByte(pBitStrm, &b))
 			return FALSE;
-		exponent = exponent << 8 | b;
+		exponentBits = (exponentBits << 8) | b;
 	}
+	exponent = expIsNegative ? -(int)(~exponentBits) - 1 : (int)exponentBits;
 
 	length -= expLen;
 
@@ -1311,7 +1374,11 @@ flag DecodeRealAsBinaryEncoding(BitStream* pBitStrm, int length, byte header, as
 
 
 	/*  *v = N*factor * pow(base,exp);*/
-	*v = GetDoubleByMantissaAndExp(N*factor, expFactor*exponent);
+	(void)factor;
+	scaledExponent = (asn1SccSint64)expFactor * exponent + F;
+	if (scaledExponent > DBL_MAX_EXP) *v = N == 0 ? 0.0 : INFINITY;
+	else if (scaledExponent < -(DBL_MAX_EXP + DBL_MANT_DIG + WORD_SIZE * 8)) *v = 0.0;
+	else *v = GetDoubleByMantissaAndExp(N, (int)scaledExponent);
 
 	if (sign<0)
 		*v = -(*v);
@@ -1390,23 +1457,28 @@ flag BitStream_EncodeOctetString_no_length (BitStream* pBitStrm, const byte* arr
 	int cb = pBitStrm->currentBit;
 	//int i1;
 	flag ret = TRUE;
+	if (nCount < 0 || pBitStrm->currentByte < 0 || pBitStrm->currentByte > pBitStrm->count)
+		return FALSE;
 
 	if (cb == 0) {
 #ifdef ASN1SCC_STREAMING
 		int remainingBytesToSend = nCount;
 		while (remainingBytesToSend > 0) {
+			if (pBitStrm->currentByte >= pBitStrm->count)
+				return FALSE;
 			int currentBatch =
 				pBitStrm->currentByte + remainingBytesToSend <= pBitStrm->count ?
 				remainingBytesToSend :
 				pBitStrm->count - pBitStrm->currentByte;
 
 			memcpy(&pBitStrm->buf[pBitStrm->currentByte], arr, currentBatch);
+			arr += currentBatch;
 			pBitStrm->currentByte += currentBatch;
 			bitstream_push_data_if_required(pBitStrm);
 			remainingBytesToSend -= currentBatch;
 		}
 #else
-		ret = pBitStrm->currentByte + nCount <= pBitStrm->count;
+		ret = nCount <= pBitStrm->count - pBitStrm->currentByte;
 		if (ret) {
 			memcpy(&pBitStrm->buf[pBitStrm->currentByte], arr, nCount);
 			pBitStrm->currentByte += nCount;
@@ -1431,23 +1503,28 @@ flag BitStream_DecodeOctetString_no_length(BitStream* pBitStrm, byte* arr, int n
     int cb = pBitStrm->currentBit;
     //int i1;
 	flag ret=TRUE;
+	if (nCount < 0 || pBitStrm->currentByte < 0 || pBitStrm->currentByte > pBitStrm->count)
+		return FALSE;
 
     if (cb == 0) {
 #ifdef ASN1SCC_STREAMING
         int remainingBytesToRead = nCount;
         while (remainingBytesToRead > 0) {
+            if (pBitStrm->currentByte >= pBitStrm->count)
+                return FALSE;
             int currentBatch =
                 pBitStrm->currentByte + remainingBytesToRead <= pBitStrm->count ?
                 remainingBytesToRead :
                 pBitStrm->count - pBitStrm->currentByte;
 
             memcpy(arr, &pBitStrm->buf[pBitStrm->currentByte], currentBatch);
+            arr += currentBatch;
             pBitStrm->currentByte += currentBatch;
             bitstream_fetch_data_if_required(pBitStrm);
             remainingBytesToRead -= currentBatch;
         }
 #else
-        ret = pBitStrm->currentByte + nCount <= pBitStrm->count;
+        ret = nCount <= pBitStrm->count - pBitStrm->currentByte;
         if (ret) {
             memcpy(arr, &pBitStrm->buf[pBitStrm->currentByte], nCount);
             pBitStrm->currentByte += nCount;
@@ -1631,7 +1708,7 @@ flag BitStream_DecodeOctetString(BitStream* pBitStrm, byte* arr, int* nCount, as
 		*nCount = (int)nCountL;
 		ret = ret && (nCountL >= asn1SizeMin && nCountL <= asn1SizeMax);
 		if (ret) {
-			BitStream_DecodeOctetString_no_length(pBitStrm, arr, *nCount);
+			ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, *nCount);
 		}
 	}
 	else {
@@ -1802,7 +1879,7 @@ void bitstream_push_data_if_required(BitStream* pStrm) {
 
 flag BitStream_DecodeReal_fp32(BitStream* pBitStrm, float* v)
 {
-	asn1Real rv;
+	asn1Real rv = 0;
 	flag ret = BitStream_DecodeReal(pBitStrm, &rv);
 	*v = (float)rv;
 	return ret;

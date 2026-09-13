@@ -5,6 +5,7 @@
 #include <float.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #include "asn1crt_encoding_ber.h"
 
@@ -13,7 +14,7 @@ int GetLengthInBytesOfSInt(asn1SccSint v);
 
 static flag ByteStream_PutByte(ByteStream* pStrm, byte v)
 {
-	if (pStrm->currentByte + 1>pStrm->count + 1)
+	if (pStrm->currentByte < 0 || pStrm->currentByte >= pStrm->count)
 		return FALSE;
 
 	pStrm->buf[pStrm->currentByte] = v;
@@ -22,7 +23,7 @@ static flag ByteStream_PutByte(ByteStream* pStrm, byte v)
 }
 
 static flag ByteStream_GetByte(ByteStream* pStrm, byte* v) {
-	if (pStrm->currentByte + 1>pStrm->count + 1)
+	if (pStrm->currentByte < 0 || pStrm->currentByte >= pStrm->count)
 		return FALSE;
 	*v = pStrm->buf[pStrm->currentByte];
 	pStrm->currentByte++;
@@ -92,7 +93,7 @@ flag BerDecodeTag(ByteStream* pByteStrm, BerTag tag, int *pErrCode) {
 		tgCopy >>= 8;
 		tagSize++;
 	}
-	PrimitiveBit = (BerTag)(0x20 << ((tagSize - 1) * 8));
+	PrimitiveBit = (BerTag)0x20 << ((tagSize - 1) * 8);
 
 	while (tagSize>0) {
 		if (!ByteStream_GetByte(pByteStrm, &curByte)) {
@@ -160,6 +161,10 @@ flag BerDecodeLength(ByteStream* pByteStrm, int* value, int *pErrCode)
 
 		if (!ByteStream_GetByte(pByteStrm, &curByte)) {
 			*pErrCode = ERR_INSUFFICIENT_DATA;
+			return FALSE;
+		}
+		if (ret > ((unsigned int)INT_MAX - curByte) / 256) {
+			*pErrCode = ERR_BER_LENGTH_MISMATCH;
 			return FALSE;
 		}
 		ret <<= 8;
@@ -249,6 +254,10 @@ flag BerDecodeInteger(ByteStream* pByteStrm, BerTag tag, asn1SccSint *value, int
 		return FALSE;
 	if (!BerDecodeLength(pByteStrm, &length, pErrCode))
 		return FALSE;
+	if (length < 1 || length > WORD_SIZE) {
+		*pErrCode = ERR_BER_LENGTH_MISMATCH;
+		return FALSE;
+	}
 
 	for (i = 0; i<length; i++) {
 		byte curByte;
@@ -308,7 +317,7 @@ flag BerDecodeBoolean(ByteStream* pByteStrm, BerTag tag, flag *value, int *pErrC
 	return TRUE;
 }
 
-flag BerEncodeReal(ByteStream* pByteStrm, BerTag tag, double value, int *pErrCode) {
+flag BerEncodeReal(ByteStream* pByteStrm, BerTag tag, asn1Real value, int *pErrCode) {
 	byte buf[100];
 	BitStream tmp;
 	byte length;
@@ -338,7 +347,7 @@ flag BerEncodeReal(ByteStream* pByteStrm, BerTag tag, double value, int *pErrCod
 
 }
 
-flag BerDecodeReal(ByteStream* pByteStrm, BerTag tag, double *value, int *pErrCode) {
+flag BerDecodeReal(ByteStream* pByteStrm, BerTag tag, asn1Real *value, int *pErrCode) {
 	/*  int length=0;
 	byte buf[100];*/
 	BitStream tmp;
@@ -385,6 +394,7 @@ flag BerDecodeIA5String(ByteStream* pByteStrm, BerTag tag, char* value, int maxL
 	int i;
 	int length = 0;
 	byte curByte;
+	if (maxLength < 1) { *pErrCode = ERR_BER_LENGTH_MISMATCH; return FALSE; }
 
 	memset(value, 0x0, (size_t)maxLength);
 
@@ -392,6 +402,10 @@ flag BerDecodeIA5String(ByteStream* pByteStrm, BerTag tag, char* value, int maxL
 		return FALSE;
 	if (!BerDecodeLength(pByteStrm, &length, pErrCode))
 		return FALSE;
+	if (length < 0 || length >= maxLength) {
+		*pErrCode = ERR_BER_LENGTH_MISMATCH;
+		return FALSE;
+	}
 
 
 	for (i = 0; i<length; i++) {
@@ -481,9 +495,18 @@ flag BerDecodeBitString(ByteStream* pByteStrm, BerTag tag, byte* value, int *bit
 
 	if (!BerDecodeLength(pByteStrm, &length, pErrCode))
 		return FALSE;
+	if (maxBitCount < 0 || length < 1 || length - 1 > maxBytesLen) {
+		*pErrCode = ERR_BER_LENGTH_MISMATCH;
+		return FALSE;
+	}
 
 	if (!ByteStream_GetByte(pByteStrm, &lastByteUnusedBits)) {
 		*pErrCode = ERR_INSUFFICIENT_DATA;
+		return FALSE;
+	}
+	if (lastByteUnusedBits > 7 || (length == 1 && lastByteUnusedBits != 0) ||
+		(asn1SccSint64)(length - 1) * 8 - lastByteUnusedBits > maxBitCount) {
+		*pErrCode = ERR_BER_LENGTH_MISMATCH;
 		return FALSE;
 	}
 
@@ -533,6 +556,7 @@ flag BerDecodeOctetString(ByteStream* pByteStrm, BerTag tag, byte* value, int *o
 	int i;
 	int length = 0;
 	byte curByte;
+	if (maxOctCount < 0) { *pErrCode = ERR_BER_LENGTH_MISMATCH; return FALSE; }
 
 	memset(value, 0x0, (size_t)maxOctCount);
 
@@ -540,6 +564,10 @@ flag BerDecodeOctetString(ByteStream* pByteStrm, BerTag tag, byte* value, int *o
 		return FALSE;
 	if (!BerDecodeLength(pByteStrm, &length, pErrCode))
 		return FALSE;
+	if (length < 0 || length > maxOctCount) {
+		*pErrCode = ERR_BER_LENGTH_MISMATCH;
+		return FALSE;
+	}
 
 	if (octCount != NULL)
 		*octCount = length <= maxOctCount ? length : maxOctCount;

@@ -24,20 +24,14 @@ const asn1SccUint32 ber_aux[] = {
 #endif
 
 asn1SccUint int2uint(asn1SccSint v) {
-    asn1SccUint ret = 0;
-    if (v < 0) {
-        ret = (asn1SccUint)(-v - 1);
-        ret = ~ret;
-    }
-    else {
-        ret = (asn1SccUint)v;
-    };
-    return ret;
+    return (asn1SccUint)v;
 }
 
 asn1SccSint uint2int(asn1SccUint v, int uintSizeInBytes) {
     int i;
     asn1SccUint tmp = 0x80;
+    if (uintSizeInBytes < 1 || uintSizeInBytes > WORD_SIZE)
+        return 0;
     flag bIsNegative = (v & (tmp << ((uintSizeInBytes - 1) * 8)))>0;
     if (!bIsNegative)
         return (asn1SccSint)v;
@@ -116,11 +110,12 @@ void ObjectIdentifier_Init(Asn1ObjectIdentifier *pVal) {
 }
 
 flag ObjectIdentifier_isValid(const Asn1ObjectIdentifier *pVal) {
-	return (pVal->nCount >= 2) && (pVal->values[0] <= 2) && (pVal->values[1] <= 39);
+	return (pVal->nCount >= 2) && (pVal->nCount <= OBJECT_IDENTIFIER_MAX_LENGTH) &&
+		(pVal->values[0] <= 2) && (pVal->values[0] == 2 || pVal->values[1] <= 39);
 }
 
 flag RelativeOID_isValid(const Asn1ObjectIdentifier *pVal) {
-	return pVal->nCount > 0;
+	return pVal->nCount > 0 && pVal->nCount <= OBJECT_IDENTIFIER_MAX_LENGTH;
 }
 
 flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectIdentifier *pVal2) {

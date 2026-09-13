@@ -62,8 +62,10 @@ flag <sFuncName>_aux(<sTypeDefName><sStar> <sVarName>, const char* xmlTag, ByteS
 	(void)xmlTag;
 	(void)pByteStrm;
 	(void)pErrCode;
+	*pErrCode = 0;
 
 	<sContent>
+	if (!ret && *pErrCode == 0) *pErrCode = ERR_INVALID_XML_FILE;
 
 	return ret;
 }
@@ -82,8 +84,15 @@ ret = Xer_EncodeInteger(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 Integer_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-ret = Xer_DecodeInteger(pByteStrm, <sTag>, <p>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
+{
+    asn1SccSint decodedInteger = 0;
+    ret = Xer_DecodeInteger(pByteStrm, <sTag>, &decodedInteger, pErrCode);
+    if (ret) {
+        *(<p>) = decodedInteger;
+        ret = (asn1SccSint)*(<p>) == decodedInteger;
+    }
+}
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
@@ -92,8 +101,15 @@ ret = Xer_EncodePosInteger(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 IntegerPos_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-ret = Xer_DecodePosInteger(pByteStrm, <sTag>, <p>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
+{
+    asn1SccUint decodedInteger = 0;
+    ret = Xer_DecodePosInteger(pByteStrm, <sTag>, &decodedInteger, pErrCode);
+    if (ret) {
+        *(<p>) = decodedInteger;
+        ret = (asn1SccUint)*(<p>) == decodedInteger;
+    }
+}
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
@@ -104,7 +120,7 @@ ret = Xer_EncodeBoolean(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 
 Boolean_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = Xer_DecodeBoolean(pByteStrm, <sTag>, <p>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
@@ -116,8 +132,12 @@ ret = Xer_EncodeReal(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 >>
 
 Real_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-ret = Xer_DecodeReal(pByteStrm, <sTag>, <p>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
+{
+    asn1Real decodedReal = 0;
+    ret = Xer_DecodeReal(pByteStrm, <sTag>, &decodedReal, pErrCode);
+    if (ret) *(<p>) = decodedReal;
+}
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
@@ -129,7 +149,7 @@ ret = Xer_EncodeObjectIdentifier(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 
 ObjectIdentifier_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = Xer_DecodeObjectIdentifier(pByteStrm, <sTag>, <p>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
@@ -141,7 +161,7 @@ ret = Xer_Encode_<sTimeSubType>(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 
 TimeType_decode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = Xer_Decode_<sTimeSubType>(pByteStrm, <sTag>, <p>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
@@ -154,20 +174,20 @@ ret = Xer_EncodeNull(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 
 Null_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = Xer_DecodeNull(pByteStrm, <sTag>, <p>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
 
 
-String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+String_encode(p, sTag, nLevel, soCheckExp, sErrCode, nMaxLength) ::= <<
 ret = Xer_EncodeString(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
-String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-ret = Xer_DecodeString(pByteStrm, <sTag>, <p>, sizeof(<p>), pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
+String_decode(p, sTag, nLevel, soCheckExp, sErrCode, nMaxLength) ::= <<
+ret = Xer_DecodeString(pByteStrm, <sTag>, <p>, <nMaxLength> + 1, pErrCode);
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
@@ -203,11 +223,12 @@ Enumerated_decode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
         <arrsItems; separator="\n">
 	    else {
 		    *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+		    ret = FALSE; /*COVERAGE_IGNORE*/
 	    }
     } else {
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     }
-	<if(soCheckExp)><soCheckExp><endif>
+	<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 	*pErrCode = ret  ? 0 : <sErrCode>;
 }
 >>
@@ -220,7 +241,7 @@ ret = Xer_EncodeOctetString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)>
 
 OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = Xer_DecodeOctetString(pByteStrm, <sTag>, <p><sAcc>arr, <nSizeMax>, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
@@ -231,8 +252,8 @@ ret = Xer_EncodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p
 >>
 
 BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-ret = Xer_DecodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <nSizeMax>, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
-<if(soCheckExp)><soCheckExp><endif>
+ret = Xer_DecodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, sizeof(<p><sAcc>arr), <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
@@ -277,10 +298,11 @@ if (ret) {
     }
 }
 <if(bFixedSize)>
-*pErrCode = (ret && <sI> == <nSizeMax>) ? 0 : <sErrCode>;
+ret = ret && <sI> == <nSizeMax>;
+*pErrCode = ret ? 0 : <sErrCode>;
 
 <else>
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if (ret) { <soCheckExp> }<endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 
 <endif>
@@ -433,7 +455,9 @@ ret = Xer_DecodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode);
 *pErrCode = ret ? 0 : <sErrCode>;
 if (ret) {
     <sMainBody>
-    ret = Xer_DecodeComplexElementEnd(pByteStrm, <sTag>, pErrCode);
+    if (ret) {
+        ret = Xer_DecodeComplexElementEnd(pByteStrm, <sTag>, pErrCode);
+    }
 	*pErrCode = ret ? 0 : <sErrCode>;
 }
 >>
@@ -443,6 +467,3 @@ if (ret) {
 
 call_base_type_func_encode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>NULL<endif>, pByteStrm, pErrCode, FALSE);"
 call_base_type_func_decode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>NULL<endif>, pByteStrm, pErrCode);"
-
-
-

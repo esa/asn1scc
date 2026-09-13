@@ -118,11 +118,11 @@ codec.decode_null(<sTag>)
 
 
 
-String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+String_encode(p, sTag, nLevel, soCheckExp, sErrCode, nMaxLength) ::= <<
 codec.encode_string(<sTag>, ''.join(chr(c) for c in <p>.arr), <nLevel>)
 >>
 
-String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+String_decode(p, sTag, nLevel, soCheckExp, sErrCode, nMaxLength) ::= <<
 <p> = cls([ord(c) for c in codec.decode_string(<sTag>)])
 <if(soCheckExp)><soCheckExp><endif>
 >>

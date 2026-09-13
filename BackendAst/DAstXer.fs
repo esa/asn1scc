@@ -246,7 +246,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_IA5String o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = String pp xmlTag.p nLevel (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = String pp xmlTag.p nLevel (checkExp isValidFunc p) errCode.errCodeName o.maxSize.uper codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
@@ -457,5 +457,4 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
     | false ->
         baseType.getXerFunction codec, us
-
 

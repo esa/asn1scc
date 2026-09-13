@@ -11,14 +11,11 @@ This test verifies that the decoder now **fails safely** (returns an error) inst
 - `a.asn`  
   Minimal ASN.1 grammar used to generate a XER decoder.
 
-- `malicious.xml`  
-  Crafted XER input with oversized element content intended to trigger the overflow.
-
 - `reproduce_issue.sh`  
   Script that:
   1. Runs `asn1scc` with XER support
-  2. Builds the generated code
-  3. Invokes the decoder on `malicious.xml`
+  2. Builds the generated code with NDEBUG and AddressSanitizer/UndefinedBehaviorSanitizer
+  3. Runs valid and oversized input checks in separate processes using `regression_test.c`
 
 - `SECURITY_ISSUE_1_XER_BUFFER_OVERFLOW.md`  
   Original security report and proposed fix.
