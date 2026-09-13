@@ -4,7 +4,7 @@ Executive summary
 =================
 
 This is the source code of the ASN1SCC compiler - an ASN.1 compiler that
-targets **C**, **Ada**, **Scala** and **Python** while placing specific emphasis on embedded systems.
+targets **C**, **Ada**, **Scala**, **Python** and **Rust** while placing specific emphasis on embedded systems.
 
 ASN1SCC is the ASN.1 compiler of the **European Space Agency** and is used is space missions to support binary encoding needs in satellite systems flight and ground software.
 
@@ -16,6 +16,20 @@ To know more you can also read [this conference paper about ASN1SCC (PDF)](http:
 or a [blog post with hands-on examples](https://www.thanassis.space/asn1.html).
 Suffice to say, if you are developing for embedded systems, it will probably
 interest you.
+
+Supported target languages and encodings
+========================================
+
+| Language | uPER | ACN | XER | BER |
+|----------|------|-----|-----|-----|
+| C        | ✅   | ✅  | ✅  | ✅  |
+| Ada      | ✅   | ✅  | ✅  | ❌  |
+| Scala    | ✅   | ✅  | ❌  | ❌  |
+| Python   | ✅   | ✅  | ❌  | ❌  |
+| Rust     | ✅   | ✅  | ✅  | ❌  |
+
+The C and Ada backends are the most mature and full-featured. The Rust backend
+supports uPER, ACN and XER. The Scala and Python backends support uPER and ACN.
 
 Compilation
 ===========
@@ -58,14 +72,48 @@ On Linux (debian) the build can be done with the following command:
 
 Under Windows, you can also open open `asn1scc.sln` and build the `asn1scc` project (right-click/build)
 
+## Install Rust (for Rust backend tests)
+
+If you want to run the Rust backend tests, install the Rust toolchain:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+## Install Python 3 and pytest (for Python backend tests)
+
+If you want to run the Python backend tests, install Python 3 and pytest:
+
+```bash
+sudo apt-get install python3 python3-pip
+pip3 install pytest
+```
+
 ## Run the tests - if you want to:
 
     cd v4Tests
     make
 
-Note that in order to run the tests you need both GCC and GNAT.
-The tests will process hundreds of ASN.1 grammars, generate C and
-Ada source code, compile it, run it, and check the coverage results.
+Note that in order to run the tests you need GCC, GNAT (Ada compiler),
+Rust (cargo) and Python 3 with pytest, depending on which backends you
+want to exercise. The tests will process hundreds of ASN.1 grammars,
+generate source code for each target language, compile it, run it, and
+check the coverage results.
+
+To run tests for a specific backend only:
+
+    cd v4Tests
+    make cTests        # C backend only
+    make adaTests      # Ada backend only
+    make rustTests      # Rust backend only
+    make pythonTests    # Python backend only
+    make scalaTests     # Scala backend only
+
+You can also run individual test cases with the Python test runner:
+
+    cd v4Tests
+    python3 scripts/runTests.py -l Rust -s              # Rust slim mode
+    python3 scripts/runTests.py -l c -t test-cases/acn/01-INTEGER/001.asn1
 
 Continuous integration and Docker image
 =======================================
@@ -126,6 +174,57 @@ This is an example of use, assuming you have created the ASN.1 sample given abov
 
 ```bash
 $ asn1scc -c -uPER sample.asn
+```
+
+### Generating Rust code
+
+To generate Rust source code from an ASN.1 grammar:
+
+```bash
+$ asn1scc -Rust -uPER -atc -typePrefix ASN1SCC_ -o out_dir sample.asn
+```
+
+This produces a Rust project with:
+- `asn1rust/` — the runtime library crate (encoding/decoding primitives)
+- `sampleDef.rs` — type definitions (structs, enums)
+- `sample.rs` — encode/decode function implementations
+- `mainprogram.rs` — entry point for automatic test cases
+- `test_case_001.rs`, `test_case_002.rs`, ... — individual test case files
+- `Cargo.toml` — project manifest
+
+Compile and run the generated test cases:
+
+```bash
+$ cd out_dir
+$ cargo run
+```
+
+For ACN encoding with a custom encoding specification file:
+
+```bash
+$ asn1scc -Rust -ACN -atc -typePrefix ASN1SCC_ -o out_dir sample.asn sample.acn
+```
+
+For XER encoding:
+
+```bash
+$ asn1scc -Rust -xer -atc -typePrefix ASN1SCC_ -o out_dir sample.asn
+```
+
+### Generating Python code
+
+To generate Python source code from an ASN.1 grammar:
+
+```bash
+$ asn1scc -python -uPER -atc -typePrefix T -o out_dir sample.asn
+```
+
+This produces Python files with type definitions, encode/decode functions,
+and automatic test cases. Run the tests with:
+
+```bash
+$ cd out_dir
+$ pytest
 ```
 
 We will write a simple C function that creates a variable of type "Message", then encode it and print the resulting binary data:
@@ -211,6 +310,9 @@ The Python backend was developed by:
 * Julia Hartmann (Ateleris)
 * Luca Schafroth (Ateleris)
 * Manuel Stutz (Ateleris)
+
+The Rust backend was developed by:
+* Maxime Perrotin (European Space Agency)
 
 
 
