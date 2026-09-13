@@ -82,6 +82,31 @@ with
 
     //member this.content = String.Join(Environment.NewLine, this.lines)
 
+type private LspBasicC() =
+    inherit ILangBasic()
+    override _.cmp (s1:string) (s2:string) = s1 = s2
+    override _.isCaseSensitive = true
+    override _.keywords = CommonTypes.c_keywords
+    override _.isKeyword token = CommonTypes.c_keywords.Contains token
+    override _.OnTypeNameConflictTryAppendModName = true
+    override _.declare_IntegerNoRTL = "", "asn1SccSint", "INTEGER"
+    override _.declare_PosIntegerNoRTL = "", "asn1SccUint", "INTEGER"
+    override _.getRealRtlTypeName = "", "asn1Real", "REAL"
+    override _.getObjectIdentifierRtlTypeName relativeId =
+        "", "Asn1ObjectIdentifier", (if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER")
+    override _.getTimeRtlTypeName timeClass =
+        let asn1Name = "TIME"
+        match timeClass with
+        | Asn1LocalTime _ -> "", "Asn1LocalTime", asn1Name
+        | Asn1UtcTime _ -> "", "Asn1UtcTime", asn1Name
+        | Asn1LocalTimeWithTimeZone _ -> "", "Asn1TimeWithTimeZone", asn1Name
+        | Asn1Date -> "", "Asn1Date", asn1Name
+        | Asn1Date_LocalTime _ -> "", "Asn1DateLocalTime", asn1Name
+        | Asn1Date_UtcTime _ -> "", "Asn1DateUtcTime", asn1Name
+        | Asn1Date_LocalTimeWithTimeZone _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
+    override _.getNullRtlTypeName = "", "NullType", "NULL"
+    override _.getBoolRtlTypeName = "", "flag", "BOOLEAN"
+
 let defaultCommandLineSettings  =
     {
         CommandLineSettings.asn1Files = []
@@ -104,13 +129,13 @@ let defaultCommandLineSettings  =
         streamingModeSupport = false
         renamePolicy = CommonTypes.EnumRenamePolicy.NoRenamePolicy
         fieldPrefix = None
-        targetLanguages = []
+        targetLanguages = [ProgrammingLanguage.C]
         objectIdentifierMaxLength = 20I
         generateConstInitGlobals = false
         icdPdus = None
         detectPdus = false
         handleEmptySequences = false
-        blm = []
+        blm = [(ProgrammingLanguage.C, LspBasicC() :> ILangBasic)]
         userRtlFunctionsToGenerate= []
         enum_Items_To_Enable_Efficient_Enumerations = System.UInt32.MaxValue
         stainlessInvertibility = false
