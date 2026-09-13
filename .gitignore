@@ -1432,3 +1432,10 @@ details-docs/
 acnv2/*
 
 .fake
+
+# Generated coverage reports (container exports and optional local runs)
+/coverage-results/
+/v4Tests/coverage-results/
+/coverage-inventory/
+/coverage-historical/
+/coverage-all/
