@@ -421,6 +421,12 @@ type ILangGeneric () =
     abstract member requiresHandlingOfEmptySequences : bool
     abstract member requiresHandlingOfZeroArrays : bool
 
+    /// Sanitize a program-unit / module name so it is a valid identifier in the
+    /// target language.  Default returns the name unchanged; Rust overrides to
+    /// replace hyphens with underscores and prefix a leading underscore when the
+    /// name starts with a digit.
+    abstract member sanitizeModuleName : string -> string
+
     abstract member supportsStaticVerification      : bool
     abstract member AssignOperator   :string
     abstract member TrueLiteral      :string
@@ -750,6 +756,7 @@ type ILangGeneric () =
         this.getParamType t c
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
+    default this.sanitizeModuleName (name: string) = name
     default this.RtlFuncNames = []
     default this.getQualifiedTypeName (tdr: TypeDefinitionOrReference) (_modName: string) : string =
         this.getLongTypedefName tdr

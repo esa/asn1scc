@@ -340,10 +340,10 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let bXer = r.args.encodings |> Seq.exists ((=) XER)
             let arrsUtilityDefines = []
             let puCorrName =
-                if lm.lg.shouldApplyToCToPackageName then ToC (pu.name) else pu.name
+                if lm.lg.shouldApplyToCToPackageName then ToC (pu.name) else lm.lg.sanitizeModuleName pu.name
 
             let definitionsContntent =
-                lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
+                lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName (pu.importedProgramUnits |> List.map lm.lg.sanitizeModuleName) typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
 
             let fileName = Path.Combine(outDir, pu.specFileName)
             File.WriteAllText(fileName, definitionsContntent.Replace("\r",""))
@@ -369,7 +369,8 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                                 yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef))
                         } |> Seq.choose id |> Seq.toList
                 let testcase_specFileName = Path.Combine(outDir, pu.testcase_specFileName)
-                let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesSpecFile (ToC pu.testcase_specFileName) pu.name (pu.name::pu.importedProgramUnits) typeDefs
+                let puName = lm.lg.sanitizeModuleName pu.name
+                let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesSpecFile (ToC pu.testcase_specFileName) puName (puName::(pu.importedProgramUnits |> List.map lm.lg.sanitizeModuleName)) typeDefs
                 File.WriteAllText(testcase_specFileName, tstCasesHdrContent.Replace("\r",""))
 
             //source file
@@ -469,7 +470,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let puCorrName =
                 match r.lang with
                 | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
-                | _ -> pu.name
+                | _ -> lm.lg.sanitizeModuleName pu.name
             let srcBody = lm.src.printSourceFile puCorrName arrsImportedFiles pu.importedTypes arrsUserDefinedFunctions (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
 
             let eqContntent =
@@ -518,11 +519,11 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 let bXer = r.args.encodings |> Seq.exists((=) XER)
                 let tstCasesHdrContent =
                     match lm.lg.allowsSrcFilesWithNoFunctions with
-                    | true     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+                    | true     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile (lm.lg.sanitizeModuleName pu.name) pu.testcase_specFileName (pu.importedProgramUnits |> List.map lm.lg.sanitizeModuleName) [] encDecFuncs bXer)
                     | false   ->
                         match encDecFuncs with
                         | []    -> None
-                        | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+                        | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile (lm.lg.sanitizeModuleName pu.name) pu.testcase_specFileName (pu.importedProgramUnits |> List.map lm.lg.sanitizeModuleName) [] encDecFuncs bXer)
 
                 tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
             (definitionsContntent, srcBody)

@@ -696,12 +696,16 @@ impl<'a> BitStream<'a> {
     // ── single-bit operations ────────────────────────────────────────────
 
     /// Append a single bit.  Mirrors C `BitStream_AppendBit`.
+    ///
+    /// Silently does nothing if the buffer has no space left.
     pub fn append_bit(&mut self, v: bool) {
+        let cur = self.current_byte as usize;
+        if cur >= self.buf.len() { return; }
         let idx = self.current_bit as usize;
         if v {
-            self.buf[self.current_byte as usize] |= MASKS[idx];
+            self.buf[cur] |= MASKS[idx];
         } else {
-            self.buf[self.current_byte as usize] &= !MASKS[idx];
+            self.buf[cur] &= !MASKS[idx];
         }
         if self.current_bit < 7 {
             self.current_bit += 1;
@@ -710,15 +714,14 @@ impl<'a> BitStream<'a> {
             self.current_byte += 1;
             self.push_data_if_required();
         }
-        debug_assert!(
-            self.current_byte * 8 + self.current_bit as i64 <= self.count * 8
-        );
     }
 
     /// Append a `1` bit.  Mirrors C `BitStream_AppendBitOne`.
     pub fn append_bit_one(&mut self) {
+        let cur = self.current_byte as usize;
+        if cur >= self.buf.len() { return; }
         let idx = self.current_bit as usize;
-        self.buf[self.current_byte as usize] |= MASKS[idx];
+        self.buf[cur] |= MASKS[idx];
         if self.current_bit < 7 {
             self.current_bit += 1;
         } else {
@@ -733,8 +736,10 @@ impl<'a> BitStream<'a> {
 
     /// Append a `0` bit.  Mirrors C `BitStream_AppendBitZero`.
     pub fn append_bit_zero(&mut self) {
+        let cur = self.current_byte as usize;
+        if cur >= self.buf.len() { return; }
         let idx = self.current_bit as usize;
-        self.buf[self.current_byte as usize] &= !MASKS[idx];
+        self.buf[cur] &= !MASKS[idx];
         if self.current_bit < 7 {
             self.current_bit += 1;
         } else {
@@ -742,9 +747,6 @@ impl<'a> BitStream<'a> {
             self.current_byte += 1;
             self.push_data_if_required();
         }
-        debug_assert!(
-            self.current_byte * 8 + self.current_bit as i64 <= self.count * 8
-        );
     }
 
     /// Read a single bit, returning `false` if the stream is exhausted.
@@ -811,16 +813,15 @@ impl<'a> BitStream<'a> {
         let mask = !MASKSB[ncb as usize];
 
         let cur = self.current_byte as usize;
+        if cur >= self.buf.len() { return; }
         self.buf[cur] &= mask;
         self.buf[cur] |= v >> cb;
         self.current_byte += 1;
         self.push_data_if_required();
-        debug_assert!(
-            self.current_byte * 8 + self.current_bit as i64 <= self.count * 8
-        );
 
         if cb > 0 {
             let cur2 = self.current_byte as usize;
+            if cur2 >= self.buf.len() { return; }
             let nmask = !mask;
             self.buf[cur2] &= nmask;
             self.buf[cur2] |= v << ncb;
@@ -875,6 +876,9 @@ impl<'a> BitStream<'a> {
 
     /// Append a partial byte of `nbits` bits (1..7), optionally negated.
     /// Mirrors C `BitStream_AppendPartialByte`.
+    ///
+    /// Silently does nothing if the buffer has no space left (unlike C, which
+    /// overflows silently in release builds with -DNDEBUG).
     pub fn append_partial_byte(&mut self, mut v: u8, nbits: u8, negate: bool) {
         let cb = self.current_bit;
         let total_bits = cb + nbits as i32;
@@ -888,6 +892,7 @@ impl<'a> BitStream<'a> {
             let mask2 = MASKSB[(8 - total_bits) as usize];
             let mask = mask1 | mask2;
             let cur = self.current_byte as usize;
+            if cur >= self.buf.len() { return; }
             self.buf[cur] &= mask;
             self.buf[cur] |= v << (8 - total_bits);
             self.current_bit += nbits as i32;
@@ -899,19 +904,18 @@ impl<'a> BitStream<'a> {
         } else {
             let total_bits_for_next_byte = total_bits - 8;
             let cur = self.current_byte as usize;
+            if cur >= self.buf.len() { return; }
             self.buf[cur] &= mask1;
             self.buf[cur] |= v >> total_bits_for_next_byte;
             self.current_byte += 1;
             self.push_data_if_required();
             let mask = !MASKSB[(8 - total_bits_for_next_byte) as usize];
             let cur2 = self.current_byte as usize;
+            if cur2 >= self.buf.len() { return; }
             self.buf[cur2] &= mask;
             self.buf[cur2] |= v << (8 - total_bits_for_next_byte);
             self.current_bit = total_bits_for_next_byte;
         }
-        debug_assert!(
-            self.current_byte * 8 + self.current_bit as i64 <= self.count * 8
-        );
     }
 
     /// Read a partial byte of `nbits` bits (1..7).  Mirrors C

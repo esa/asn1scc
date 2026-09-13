@@ -19,7 +19,7 @@ let GetEncodingString (lm:LanguageMacros) = function
 
 let includedPackages r (lm:LanguageMacros) =
     match lm.lg.hasModules with
-    | false     -> r.programUnits |> Seq.map(fun x -> System.IO.Path.GetFileNameWithoutExtension(x.testcase_specFileName))
+    | false     -> r.programUnits |> Seq.map(fun x -> lm.lg.sanitizeModuleName (System.IO.Path.GetFileNameWithoutExtension(x.testcase_specFileName)))
     | true      -> r.programUnits |> Seq.collect(fun x -> [x.name; x.testcase_name])
 
 
@@ -268,7 +268,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
         let testCaseFileName = sprintf "test_case_%03d" fileIndex
 
-        let contentC = printTestCaseFileBody testCaseFileName (includedPackages r lm) arrsTestFunctionBodies (r.programUnits |> List.map (fun pu -> pu.name))
+        let contentC = printTestCaseFileBody testCaseFileName (includedPackages r lm) arrsTestFunctionBodies (r.programUnits |> List.map (fun pu -> lm.lg.sanitizeModuleName pu.name))
         let outCFileName = Path.Combine(outDir, testCaseFileName + "." + lm.lg.BodyExtension)
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 
@@ -286,7 +286,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
         Seq.map(fun (i, fnc) -> fnc i) |>
         Seq.toList |> List.unzip3
 
-    let autoTcsMods = r.programUnits |> List.map (fun pu -> pu.testcase_name)
+    let autoTcsMods = r.programUnits |> List.map (fun pu -> lm.lg.sanitizeModuleName pu.testcase_name)
     let atcIncludedPackages =
         ([1 .. nFiles] |>
         List.map (fun fileIndex -> sprintf "test_case_%03d" fileIndex ))

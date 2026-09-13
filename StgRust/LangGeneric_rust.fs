@@ -76,6 +76,22 @@ type LangGeneric_rust() =
         override _.requiresHandlingOfEmptySequences = true
         override _.requiresHandlingOfZeroArrays = true
 
+        /// Rust module names must be valid identifiers: alphanumeric + underscore,
+        /// cannot start with a digit.  Hyphens in ASN.1 module names are replaced
+        /// with underscores and a leading underscore is added if the name starts
+        /// with a digit.
+        override _.sanitizeModuleName (name: string) =
+            let sb = new System.Text.StringBuilder()
+            for c in name do
+                if System.Char.IsLetterOrDigit(c) || c = '_' then
+                    sb.Append(c) |> ignore
+                else
+                    sb.Append('_') |> ignore
+            let result = sb.ToString()
+            if System.String.IsNullOrEmpty(result) then "_"
+            elif System.Char.IsDigit(result.[0]) then "_" + result
+            else result
+
 
         override this.getPointer (sel: AccessPath) =
             // For Rust, getPointer returns the dereferenced path for ByPointer (top-level
@@ -333,11 +349,14 @@ type LangGeneric_rust() =
                 //Main file for test cases
                 let printMain = test_cases_rust.PrintMain
                 let formatMod (modName: string) =
+                    let safeName = this.sanitizeModuleName modName
+                    let safeNameDef = safeName + "Def"
                     if String.IsNullOrEmpty(modName) then ""
-                    elif Char.IsDigit(modName.[0]) then
-                        sprintf "#[path = \"%s.rs\"] mod _%s;\n#[path = \"%sDef.rs\"] mod _%sDef;" modName modName modName modName
+                    elif modName <> safeName then
+                        // Original name is not a valid Rust identifier; use #[path = ...]
+                        sprintf "#[path = \"%s.rs\"] mod %s;\n#[path = \"%sDef.rs\"] mod %s;" modName safeName modName safeNameDef
                     else
-                        sprintf "mod %s;\nmod %sDef;" modName modName
+                        sprintf "mod %s;\nmod %s;" modName safeNameDef
                 let pduMods = r.programUnits |> List.collect (fun pu -> [formatMod pu.name; formatMod pu.testcase_name])
                 let tcMods = arrsSrcTstFiles |> List.map (fun f -> formatMod (Path.GetFileNameWithoutExtension(f)))
                 let content = printMain "testsuite" (pduMods @ tcMods)
