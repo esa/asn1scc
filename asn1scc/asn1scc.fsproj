@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -29,6 +29,12 @@
       <EmbeddedResource Include="..\asn1scala\lib\stainless-library_3-0.9.8.7.jar">
       <Link>stainless-library_3-0.9.8.7.jar</Link>
     </EmbeddedResource>
+      <EmbeddedResource Include="..\asn1rust\Cargo.toml" Link="Cargo.toml" />
+      <EmbeddedResource Include="..\asn1rust\src\lib.rs" Link="lib.rs" />
+      <EmbeddedResource Include="..\asn1rust\src\uper.rs" Link="uper.rs" />
+      <EmbeddedResource Include="..\asn1rust\src\acn.rs" Link="acn.rs" />
+      <EmbeddedResource Include="..\asn1rust\src\xer.rs" Link="xer.rs" />
+      <EmbeddedResource Include="..\asn1rust\src\ber.rs" Link="ber.rs" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_constants.py" Link="asn1_constants.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_exceptions.py" Link="asn1_exceptions.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\asn1_types.py" Link="asn1_types.py" />
@@ -45,7 +51,6 @@
     <EmbeddedResource Include="..\asn1python\src\asn1python\xer_codec.py" Link="xer_codec.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\xer_encoder.py" Link="xer_encoder.py" />
     <EmbeddedResource Include="..\asn1python\src\asn1python\xer_decoder.py" Link="xer_decoder.py" />
-    
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
 
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />

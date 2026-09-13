@@ -171,7 +171,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             let childBody =
                 let sChoiceTypeName = typeDefinitionName
                 match child.Optionality with
-                | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName codec)
+                | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName sChoiceTypeName codec)
                 | Some (ChoiceAlwaysPresent)
                 | None  ->
                     match ec with

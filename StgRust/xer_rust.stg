@@ -1,0 +1,491 @@
+group rust_xer;
+
+rtlModuleName() ::= ""
+
+
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
+pub const <sErrCode>: i32 = <nErrValue>;
+>>
+
+
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
+<arrsErrcodes; separator="\n">
+pub const <sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING: usize = <nMaxBytesInXER>;
+>>
+
+EmitTypeAssignment_encode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp) ::= <<
+pub fn <sFuncName>_aux(<sVarName>: &<sTypeDefName><sStar>, xml_tag: &str, p_byte_strm: &mut ByteStream, p_err_code: &mut i32, b_check_constraints: bool) -> bool {
+    let mut ret: bool = true;
+    let _ = <sVarName>;
+    let _ = xml_tag;
+    let _ = p_byte_strm;
+
+    <arrsLocalVariables:{lv|<lv>}; separator="\n">
+    <if(soIValidFuncName)>
+    *p_err_code = 0;
+    ret = if b_check_constraints { <soIValidFuncName>(<sVarName>, p_err_code) } else { true };
+    if ret {
+        <sContent>
+    }
+
+    <else>
+    *p_err_code = 0;
+    let _ = b_check_constraints;
+    <sContent>
+
+    <endif>
+
+    ret
+}
+
+pub fn <sFuncName>(<sVarName>: &<sTypeDefName><sStar>, p_byte_strm: &mut ByteStream, p_err_code: &mut i32, b_check_constraints: bool) -> bool {
+    <sFuncName>_aux(<sVarName>, "<sTasName>", p_byte_strm, p_err_code, b_check_constraints)
+}
+>>
+
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
+<arrsErrcodes; separator="\n">
+>>
+
+EmitTypeAssignment_decode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp) ::= <<
+pub fn <sFuncName>_aux(<sVarName>: &mut <sTypeDefName><sStar>, xml_tag: &str, p_byte_strm: &mut ByteStream, p_err_code: &mut i32) -> bool {
+    let mut ret: bool = true;
+    <arrsLocalVariables:{lv|<lv>}; separator="\n">
+    let _ = <sVarName>;
+    let _ = xml_tag;
+    let _ = p_byte_strm;
+    let _ = p_err_code;
+
+    <sContent>
+
+    ret
+}
+
+pub fn <sFuncName>(<sVarName>: &mut <sTypeDefName><sStar>, p_byte_strm: &mut ByteStream, p_err_code: &mut i32) -> bool {
+    <sFuncName>_aux(<sVarName>, "<sTasName>", p_byte_strm, p_err_code)
+}
+>>
+
+
+
+
+Integer_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = xer::encode_integer(p_byte_strm, <sTag>, <p>, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+Integer_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+{
+    if let Some(val) = xer::decode_integer(p_byte_strm, <sTag>) {
+        <p> = val;
+        ret = true;
+    } else {
+        ret = false;
+    }
+    <if(soCheckExp)><soCheckExp><endif>
+    *p_err_code = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+IntegerPos_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = xer::encode_pos_integer(p_byte_strm, <sTag>, <p> as u64, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+IntegerPos_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+{
+    if let Some(val) = xer::decode_pos_integer(p_byte_strm, <sTag>) {
+        <p> = val as i64;
+        ret = true;
+    } else {
+        ret = false;
+    }
+    <if(soCheckExp)><soCheckExp><endif>
+    *p_err_code = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+Boolean_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = xer::encode_boolean(p_byte_strm, <sTag>, <p>, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+Boolean_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+{
+    if let Some(val) = xer::decode_boolean(p_byte_strm, <sTag>) {
+        <p> = val;
+        ret = true;
+    } else {
+        ret = false;
+    }
+    <if(soCheckExp)><soCheckExp><endif>
+    *p_err_code = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+
+
+Real_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = xer::encode_real(p_byte_strm, <sTag>, <p>, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+Real_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+{
+    if let Some(val) = xer::decode_real(p_byte_strm, <sTag>) {
+        <p> = val;
+        ret = true;
+    } else {
+        ret = false;
+    }
+    <if(soCheckExp)><soCheckExp><endif>
+    *p_err_code = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+
+
+ObjectIdentifier_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = xer::encode_object_identifier(p_byte_strm, <sTag>, <p>, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+ObjectIdentifier_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = xer::decode_object_identifier(p_byte_strm, <sTag>, &mut <p>);
+<if(soCheckExp)><soCheckExp><endif>
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+
+
+TimeType_encode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = <sTimeSubType>::xer_encode(p_byte_strm, <sTag>, <p>, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+TimeType_decode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = <sTimeSubType>::xer_decode(p_byte_strm, <sTag>, &mut <p>);
+<if(soCheckExp)><soCheckExp><endif>
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+
+
+Null_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = xer::encode_null(p_byte_strm, <sTag>, <p>, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+Null_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = xer::decode_null(p_byte_strm, <sTag>);
+<if(soCheckExp)><soCheckExp><endif>
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+
+
+String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = xer::encode_string(p_byte_strm, <sTag>, <p>, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+{
+    let mut tmp: [u8; 1024] = [0; 1024];
+    ret = xer::decode_string(p_byte_strm, <sTag>, &mut tmp, 1024);
+    if ret {
+        let mut i: usize = 0;
+        while i \< tmp.len() && tmp[i] != 0 {
+            <p>[i] = tmp[i];
+            i += 1;
+        }
+    }
+    <if(soCheckExp)><soCheckExp><endif>
+    *p_err_code = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+
+
+Enumerated_item_encode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
+<sItemID> => {
+    ret = xer::encode_enumerated(p_byte_strm, <sTag>, "<sXerValue>", <nLevel>);
+    *p_err_code = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+Enumerated_encode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
+match <p> {
+    <arrsItems; separator="\n">
+    _ => {                        /*COVERAGE_IGNORE*/
+        *p_err_code = <sErrCode>; /*COVERAGE_IGNORE*/
+        ret = false;              /*COVERAGE_IGNORE*/
+    }
+}
+>>
+
+
+
+Enumerated_item_decode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
+<if(!bFirst)>else <endif>if enm_label == "<sXerValue>" {
+    <p> = <sItemID>;
+}
+>>
+
+Enumerated_decode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
+{
+    let mut enm_label: [u8; 200] = [0; 200];
+    ret = xer::decode_enumerated(p_byte_strm, <sTag>, &mut enm_label);
+    if ret {
+        let enm_label_str = {
+            let len = enm_label.iter().position(|&b| b == 0).unwrap_or(enm_label.len());
+            std::str::from_utf8(&enm_label[..len]).unwrap_or("")
+        };
+        <arrsItems; separator="\n">
+        else {                     /*COVERAGE_IGNORE*/
+            *p_err_code = <sErrCode>; /*COVERAGE_IGNORE*/
+        }
+    } else {
+        *p_err_code = <sErrCode>; /*COVERAGE_IGNORE*/
+    }
+    <if(soCheckExp)><soCheckExp><endif>
+    *p_err_code = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+
+
+OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+ret = xer::encode_octet_string(p_byte_strm, <sTag>, &<p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>n_count<else><nSizeMax><endif> as i32, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+ret = xer::decode_octet_string(p_byte_strm, <sTag>, &mut <p><sAcc>arr, <nSizeMax> as i32, <if(!bIsFixedSize)>&mut <p><sAcc>n_count<else>&mut { let mut dummy = 0i32; &mut dummy }<endif>);
+<if(soCheckExp)><soCheckExp><endif>
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+
+BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+ret = xer::encode_bit_string(p_byte_strm, <sTag>, &<p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>n_count<else><nSizeMax><endif> as i32, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+ret = xer::decode_bit_string(p_byte_strm, <sTag>, &mut <p><sAcc>arr, <nSizeMax> as i32, <if(!bIsFixedSize)>&mut <p><sAcc>n_count<else>&mut { let mut dummy = 0i32; &mut dummy }<endif>);
+<if(soCheckExp)><soCheckExp><endif>
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+
+
+SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
+/* SEQUENCE OF Encode*/
+ret = xer::encode_complex_element_start(p_byte_strm, <sTag>, None, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+if ret {
+    <sI> = 0;
+    while <sI> \< <if(!bFixedSize)><p><sAcc>n_count<else><nSizeMax><endif> as usize && ret {
+        <sChildBody>
+        <sI> += 1;
+    }
+    if ret {
+        ret = xer::encode_complex_element_end(p_byte_strm, <sTag>, <nLevel>);
+        *p_err_code = if ret { 0 } else { <sErrCode> };
+    }
+}
+>>
+
+
+SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode, sElemTypeDef) ::= <<
+/* SEQUENCE OF Decode*/
+ret = xer::decode_complex_element_start(p_byte_strm, <sTag>, None);
+if ret {
+    <if(!bFixedSize)><p><sAcc>n_count = 0;<endif>
+    <sI> = 0;
+    while ret && !xer::next_end_element_is(p_byte_strm, <sTag>) {
+        if <sI> \>= <nSizeMax> as usize {
+            ret = false;
+            *p_err_code = <sErrCode>;
+            break;
+        }
+        <sChildBody>
+        <sI> += 1;
+        <if(!bFixedSize)><p><sAcc>n_count += 1;<endif>
+    }
+    if ret {
+        ret = xer::decode_complex_element_end(p_byte_strm, <sTag>);
+    }
+}
+<if(bFixedSize)>
+*p_err_code = if ret && <sI> == <nSizeMax> as usize { 0 } else { <sErrCode> };
+
+<else>
+<if(soCheckExp)><soCheckExp><endif>
+*p_err_code = if ret { 0 } else { <sErrCode> };
+
+<endif>
+>>
+
+
+
+/* SEQUENCE Start*/
+
+Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
+/*Encode <sChName> */
+<sChildContent>
+>>
+
+Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
+/*Decode <sChName> */
+ret = xer::next_start_element_is(p_byte_strm, "<sChildTag>");
+if ret {
+    <sChildContent>
+}
+>>
+
+Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
+/*Encode <sChName> */
+if <p><sAcc>exist.<sChName> {
+    <sChildContent>
+}
+>>
+
+Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sChildTypeDef) ::= <<
+/*Decode <sChName> */
+if xer::next_start_element_is(p_byte_strm, "<sChildTag>") {
+    <p><sAcc><sChName> = Some(Default::default());
+    <sChildContent>
+} else {
+    <p><sAcc><sChName> = None;
+}
+>>
+
+Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
+<Sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, sChildTag=sChildTag)>
+>>
+
+
+Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue, sChildTypeDef) ::= <<
+/*Decode <sChName> */
+if xer::next_start_element_is(p_byte_strm, "<sChildTag>") {
+    <p><sAcc><sChName> = Some(Default::default());
+    <sChildContent>
+} else {
+    <sInitWithDefaultValue>
+}
+>>
+
+
+SEQUENCE_start_encode(p, sTag, nLevel, sErrCode, bEmptySequence) ::= <<
+ret = xer::encode_complex_element_start(p_byte_strm, <sTag>, None, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+SEQUENCE_start_decode(p, sTag, nLevel, sErrCode, bEmptySequence) ::= <<
+ret = xer::decode_complex_element_start(p_byte_strm, <sTag>, None);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+
+SEQUENCE_end_encode(sTag, nLevel, sErrCode) ::= <<
+ret = xer::encode_complex_element_end(p_byte_strm, <sTag>, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+SEQUENCE_end_decode(sTag, nLevel, sErrCode) ::= <<
+ret = xer::decode_complex_element_end(p_byte_strm, <sTag>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+>>
+
+
+SEQUENCE_xer_encode(sChildren) ::= <<
+/* SEQUENCE Encode*/
+<sChildren>
+>>
+
+SEQUENCE_xer_decode(sChildren) ::= <<
+/* SEQUENCE Decode*/
+<sChildren>
+>>
+
+
+
+
+
+
+CHOICE_child_encode(p, sAcc, sChID, sChildBody, bFirst, sChildTag, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+<sChoiceTypeName>::<sChID>(ref <sChildName>) => {
+    <sChildBody>
+}
+>>
+
+
+CHOICE_child_decode(p, sAcc, sChID, sChildBody, bFirst, sChildTag, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+<if(!bFirst)>else <endif>if next_tag_str == "<sChildTag>" {
+    let mut <sChildName>: <sChildTypeDef> = <sChildTypeDef>::default();
+    <sChildBody>
+    *<p> = <sChoiceTypeName>::<sChID>(<sChildName>);
+}
+>>
+
+
+CHOICE_no_tag_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
+match <p> {
+    <arrsChildren; separator="\n">
+    _ => {                        /*COVERAGE_IGNORE*/
+        *p_err_code = <sErrCode>; /*COVERAGE_IGNORE*/
+        ret = false;              /*COVERAGE_IGNORE*/
+    }
+}
+>>
+
+CHOICE_no_tag_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
+{
+    let mut next_tag: [u8; 256] = [0; 256];
+    ret = xer::la_next_element_tag(p_byte_strm, &mut next_tag);
+    if ret {
+        let next_tag_str = {
+            let len = next_tag.iter().position(|&b| b == 0).unwrap_or(next_tag.len());
+            std::str::from_utf8(&next_tag[..len]).unwrap_or("")
+        };
+        <arrsChildren; separator="\n">
+        else {                     /*COVERAGE_IGNORE*/
+            ret = false;           /*COVERAGE_IGNORE*/
+            *p_err_code = <sErrCode>; /*COVERAGE_IGNORE*/
+        }
+    }
+}
+>>
+
+CHOICE_encode(p, sAcc, sTag, nLevel, sMainBody, sErrCode) ::= <<
+/* CHOICE Encode*/
+ret = xer::encode_complex_element_start(p_byte_strm, <sTag>, None, <nLevel>);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+if ret {
+    <sMainBody>
+    if ret {
+        ret = xer::encode_complex_element_end(p_byte_strm, <sTag>, <nLevel>);
+        *p_err_code = if ret { 0 } else { <sErrCode> };
+    }
+}
+>>
+
+
+CHOICE_decode(p, sAcc, sTag, nLevel, sMainBody, sErrCode) ::= <<
+/* CHOICE Decode*/
+ret = xer::decode_complex_element_start(p_byte_strm, <sTag>, None);
+*p_err_code = if ret { 0 } else { <sErrCode> };
+if ret {
+    <sMainBody>
+    ret = xer::decode_complex_element_end(p_byte_strm, <sTag>);
+    *p_err_code = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+
+
+
+call_base_type_func_encode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(&<p>, <if(soXmlTag)><soXmlTag><else>\"\"<endif>, p_byte_strm, p_err_code, false);"
+call_base_type_func_decode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(&mut <p>, <if(soXmlTag)><soXmlTag><else>\"\"<endif>, p_byte_strm, p_err_code);"

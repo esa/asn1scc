@@ -1,4 +1,4 @@
-﻿open Argu
+open Argu
 open FsUtils
 open System
 open System.Numerics
@@ -13,6 +13,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-c")>]C_lang
     | [<Unique; AltCommandLine("-Ada")>]Ada_Lang
     | [<Unique; AltCommandLine("-Scala")>]Scala_Lang
+    | [<Unique; AltCommandLine("-Rust")>]Rust_Lang
     | [<Unique; AltCommandLine("-python")>]Python_Lang
     | [<Unique; AltCommandLine("-uPER")>]UPER_enc
     | [<Unique; AltCommandLine("-XER")>]XER_enc
@@ -64,6 +65,7 @@ with
             | C_lang           -> "generate code for the C/C++ programming language"
             | Ada_Lang         -> "generate code for the Ada/SPARK programming language"
             | Scala_Lang       -> "generate code for the Scala programming language"
+            | Rust_Lang        -> "generate code for the Rust programming language"
             | Python_Lang      -> "(Experimental) generate code for the Python programming language"
             | UPER_enc         -> "generates encoding and decoding functions for unaligned Packed Encoding Rules (uPER)"
             | XER_enc          -> "generates encoding and decoding functions for XML Encoding Rules (XER)"
@@ -132,7 +134,7 @@ let printVersion () =
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
 
-    let version = "4.8.1.0"
+    let version = "5.0.0.0"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -227,7 +229,22 @@ let ada_macro =
             src = new ISrcBody_a.ISrcBody_a()
             encodings = []
         }
-let allMacros = [ (C, c_macro); (Scala, scala_macro); (Python, python_macro); (Ada, ada_macro)]
+let rust_macro =
+        {
+            LanguageMacros.equal = new IEqual_rust.IEqual_rust()
+            init = new IInit_rust.IInit_rust()
+            typeDef = new ITypeDefinition_rust.ITypeDefinition_rust()
+            lg = new LangGeneric_rust.LangGeneric_rust()
+            isvalid = new IIsValid_rust.IIsValid_rust()
+            vars = new IVariables_rust.IVariables_rust()
+            uper = new IUper_rust.IUper_rust()
+            acn = new IAcn_rust.IAcn_rust()
+            atc = new ITestCases_rust.ITestCases_rust()
+            xer = new IXer_rust.IXer_rust()
+            src = new ISrcBody_rust.ISrcBody_rust()
+            encodings = []
+        }
+let allMacros = [ (C, c_macro); (Scala, scala_macro); (Python, python_macro); (Ada, ada_macro); (Rust, rust_macro)]
 let getLanguageMacro (l:ProgrammingLanguage) =
     allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
 
@@ -253,6 +270,7 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | C_lang           -> ()
     | Ada_Lang         -> ()
     | Scala_Lang       -> ()
+    | Rust_Lang        -> ()
     | Python_Lang       -> ()
     | UPER_enc         -> ()
     | XER_enc          -> ()
@@ -400,11 +418,12 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         renamePolicy =
             match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
             | []    ->
-                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang || a = Scala_Lang || a = Python_Lang) with
+                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang || a = Scala_Lang || a = Python_Lang || a = Rust_Lang) with
                 | [ C_lang ]    -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | [ Scala_Lang ]-> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | [ Python_Lang ]-> CommonTypes.EnumRenamePolicy.NoRenamePolicy
                 | [ Ada_Lang ]  -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
+                | [ Rust_Lang ] -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | []            -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | _             -> raise (UserException ("Please select only one of target languages, not both."))
             | rp::_    ->
@@ -422,7 +441,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _ when vl = "AUTO"          -> Some FieldPrefixAuto
                 | _                 -> Some (FieldPrefixUserValue vl)
         targetLanguages =
-            args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | Python_Lang -> Some (CommonTypes.ProgrammingLanguage.Python) | _ -> None)
+            args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | Python_Lang -> Some (CommonTypes.ProgrammingLanguage.Python) | Rust_Lang -> Some (CommonTypes.ProgrammingLanguage.Rust) | _ -> None)
 
         userRtlFunctionsToGenerate =
             args |> List.choose(fun a -> match a with Include_Func fnName -> Some fnName | _ -> None)
@@ -430,7 +449,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         objectIdentifierMaxLength = 20I
         handleEmptySequences = parserResults.Contains <@ Handle_Empty_Sequences @>
 
-        blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala());(ProgrammingLanguage.Python, new LangGeneric_python.LangBasic_python()) ]
+        blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala());(ProgrammingLanguage.Python, new LangGeneric_python.LangBasic_python());(ProgrammingLanguage.Rust, new LangGeneric_rust.LangBasic_rust()) ]
         stainlessInvertibility = args |> List.exists (fun a -> match a with StainlessInvertibility -> true | _ -> false)
         acnDeferred = parserResults.Contains <@ Acn_V2 @>
     }
@@ -443,6 +462,7 @@ let setActiveLanguages args =
             | C_lang -> Some (CommonTypes.ProgrammingLanguage.C) 
             | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) 
             | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) 
+            | Rust_Lang -> Some (CommonTypes.ProgrammingLanguage.Rust) 
             | Python_Lang -> Some (CommonTypes.ProgrammingLanguage.Python) 
             | _ -> None)
     match activeLangs with
@@ -520,6 +540,9 @@ let main0 argv =
                 | Python_Lang              ->
                     let lm = { getLanguageMacro Python with encodings = args.encodings }
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Python lm args.encodings))
+                | Rust_Lang              ->
+                    let lm = { getLanguageMacro Rust with encodings = args.encodings }
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEndAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Rust lm args.encodings))
                 | _             -> None)
 
         let createDirectories baseDir (lm:LanguageMacros) target =

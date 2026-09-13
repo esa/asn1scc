@@ -39,12 +39,12 @@ let OptFlatMap fun1 u =
        | None   -> None
        | Some uuu -> fun1 uuu
 
-let rec getAmberDecode (t:Asn1AcnAst.Asn1Type) =
+let rec getAmberDecode (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) =
     match t.Kind with
     | Asn1AcnAst.IA5String    _ -> ""
     | Asn1AcnAst.NumericString _ -> ""
-    | Asn1AcnAst.ReferenceType z -> getAmberDecode z.resolvedType
-    | _                          -> "&"
+    | Asn1AcnAst.ReferenceType z -> getAmberDecode lm z.resolvedType
+    | _                          -> lm.lg.amberDecodePrefix
 
 let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : UPerFunction option) (decFunc : UPerFunction option)   (us:State)  =
     let sEnc = lm.lg.atc.uperPrefix
@@ -64,8 +64,8 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
     let p   = lm.lg.getParamTypeAtc t Encode //  t.getParamType l Encode
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath //p.arg.getStar l
-    let sAmberDecode = getAmberDecode t
-    let sAmberIsValid = getAmberDecode t
+    let sAmberDecode = getAmberDecode lm t
+    let sAmberIsValid = getAmberDecode lm t
 
     match funcName  with
     | None              -> None, us
@@ -154,8 +154,8 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let p  = lm.lg.getParamTypeAtc t Encode
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
-    let sAmberDecode = getAmberDecode t
-    let sAmberIsValid = getAmberDecode t
+    let sAmberDecode = getAmberDecode lm t
+    let sAmberIsValid = getAmberDecode lm t
     let bHasAcnEncodeFunction = hasAcnEncodeFunction encFunc t.acnParameters t.id.tasInfo
     match bHasAcnEncodeFunction with
     | false -> None, us
@@ -241,8 +241,8 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let p   = lm.lg.getParamTypeAtc t Encode
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
-    let sAmberDecode = getAmberDecode t
-    let sAmberIsValid = getAmberDecode t
+    let sAmberDecode = getAmberDecode lm t
+    let sAmberIsValid = getAmberDecode lm t
 
     match funcName  with
     | None              -> None, us

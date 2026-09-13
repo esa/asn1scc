@@ -84,7 +84,7 @@ let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
         let sIntActualMax (nBits:int) =
             let a = 2I**(nBits-1) - 1I
             min a nUperMax
-        let sSsuffix = DAstUPer.getIntDecFuncSuffix intClass
+        let sSsuffix = lm.lg.getIntDecFuncSuffix intClass
         let castPp encFuncBits = DAstUPer.castPp r lm codec pp intClass encFuncBits
         let word_size_in_bits = (int r.args.integerSizeInBytes)*8
 
@@ -339,10 +339,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
 
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult=Some icd})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
-    let annots =
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Scala -> ["extern"]
-        | _ -> []
+    let annots = lm.lg.funcDefAnnotations AcnEncDecFunctionType
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations annots us
 
 

@@ -128,6 +128,14 @@ type BigIntegerFormatRenderer() =
                         (int64 uInt).ToString() + "L"
                     else
                         obj.ToString() + "L"
+            | CommonTypes.ProgrammingLanguage.Rust ->
+                if obj = (BigInteger Int64.MinValue) then
+                    "i64::MIN"
+                else
+                    if (obj > BigInteger Int64.MaxValue) then
+                        obj.ToString() + "u64"
+                    else
+                        obj.ToString() + "i64"
             | _ -> obj.ToString()
     static member TS2(o:Object, format) =
         let frmStr = "{0:" + format + "}";

@@ -49,7 +49,7 @@
   </ItemGroup>
 
 	<Target Name="GenerateStringTemplates" BeforeTargets="CoreCompile">
-		<Exec Command="dotnet ../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll ../StgScala/backends.xml 4 AbstractMacros.fs" WorkingDirectory="$(ProjectDir)" />
+		<Exec Command="dotnet ../parseStg2/bin/$(Configuration)/$(TargetFramework)/parseStg2.dll ../StgScala/backends.xml 4 AbstractMacros.fs" WorkingDirectory="$(ProjectDir)" />
 	</Target>
 
 </Project>

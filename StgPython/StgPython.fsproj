@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -95,7 +95,7 @@
     </ItemGroup>
 
     <Target Name="GenerateStringTemplates" BeforeTargets="CoreCompile">
-        <Exec Command="dotnet ../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll backends.xml 3" WorkingDirectory="$(ProjectDir)" />
+        <Exec Command="dotnet ../parseStg2/bin/$(Configuration)/$(TargetFramework)/parseStg2.dll backends.xml 3" WorkingDirectory="$(ProjectDir)" />
     </Target>
 
 </Project>

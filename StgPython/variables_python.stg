@@ -35,6 +35,10 @@ PrintStringValueNull()	::= "NullType"
 
 PrintCharValue(cValue)    ::= "'<cValue>'"
 
+PrintStringChar(cValue)   ::= <<
+"<cValue>"
+>>
+
 PrintBooleanValue(bValue)    ::= "<if(bValue)>True<else>False<endif>"
 
 PrintNullValue()    ::= ""
@@ -141,6 +145,7 @@ PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/,
 
 
 PrintSequenceValueChild(sName, sInnerValue) ::= "<sName>=<sInnerValue>"
+PrintSequenceValueOptionalChild(sName, sInnerValue) ::= "<sName>=<sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= ""
 
 PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<

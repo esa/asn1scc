@@ -1,4 +1,4 @@
-﻿module DAstVariables
+module DAstVariables
 
 open System
 open System.Numerics
@@ -11,10 +11,20 @@ open DAstUtilFunctions
 open Language
 
 
+/// Pads a byte list to the given length with zeros (for Rust fixed-size arrays).
+let private padBytes (bytes: byte list) (maxLen: int) =
+    bytes @ (List.init (maxLen - bytes.Length) (fun _ -> 0uy))
+
+/// Pads a byte array to the given length with zeros (for Rust fixed-size arrays).
+let private padBytesArray (bytes: byte array) (maxLen: int) =
+    Array.append bytes (Array.init (maxLen - bytes.Length) (fun _ -> 0uy))
+
+
 let printOctetStringValueAsCompoundLiteral  (lm:LanguageMacros) curProgramUnitName  (o:Asn1AcnAst.OctetString) (bytes : byte list) =
     let printOct = lm.vars.PrintBitOrOctetStringValueAsCompoundLiteral
 
     let td = (lm.lg.getSizeableTypeDefinition  o.typeDef).longTypedefName2 lm.lg.hasModules curProgramUnitName
+    let bytes = if lm.lg.padByteArraysToMaxSize then padBytes bytes (int o.maxSize.uper) else bytes
     printOct td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
 
 let printTimeValue (lm:LanguageMacros) (td) (v:TimeValue) =
@@ -31,7 +41,8 @@ let printTimeValue (lm:LanguageMacros) (td) (v:TimeValue) =
 let printBitStringValueAsCompoundLiteral  (lm:LanguageMacros) curProgramUnitName  (o:Asn1AcnAst.BitString) (v : BitStringValue) =
     let printOct =  lm.vars.PrintBitOrOctetStringValueAsCompoundLiteral
     let td = (lm.lg.getSizeableTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules curProgramUnitName
-    let bytes = lm.lg.bitStringValueToByteArray v
+    let bytes = lm.lg.bitStringValueToByteArray v |> Seq.toList
+    let bytes = if lm.lg.padByteArraysToMaxSize then padBytes bytes (int ((o.maxSize.uper + 7I) / 8I)) else bytes
     printOct td (o.minSize.uper = o.maxSize.uper) bytes o.minSize.uper
 
 let convertStringValue2TargetLangStringLiteral (lm:LanguageMacros) mxSizeUper (v:StringValue) =
@@ -40,13 +51,13 @@ let convertStringValue2TargetLangStringLiteral (lm:LanguageMacros) mxSizeUper (v
     let arrNulls = [0 .. ((int mxSizeUper) - vStr.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
     let pParts =
         parts |>
-        List.map(fun s ->
+        List.collect(fun s ->
             match s with
-            | CStringValue  sv -> lm.vars.PrintSingleStringValue (sv.Replace("\"","\"\""))
-            | SpecialCharacter  CarriageReturn -> lm.vars.PrintCR ()
-            | SpecialCharacter  LineFeed       -> lm.vars.PrintLF ()
-            | SpecialCharacter  HorizontalTab  -> lm.vars.PrintHT ()
-            | SpecialCharacter  NullCharacter  -> lm.vars.PrintStringValueNull ()
+            | CStringValue  sv -> sv |> Seq.map(fun ch -> lm.vars.PrintStringChar ch) |> Seq.toList
+            | SpecialCharacter  CarriageReturn -> [lm.vars.PrintCR ()]
+            | SpecialCharacter  LineFeed       -> [lm.vars.PrintLF ()]
+            | SpecialCharacter  HorizontalTab  -> [lm.vars.PrintHT ()]
+            | SpecialCharacter  NullCharacter  -> [lm.vars.PrintStringValueNull ()]
         )
     lm.vars.PrintStringValue pParts arrNulls
 
@@ -72,16 +83,19 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
             match t.ActualType.Kind with
             | OctetString os    ->
                 let td =  lm.lg.getSizeableTypeDefinition os.baseInfo.typeDef
+                let bytes = if lm.lg.padByteArraysToMaxSize then padBytesArray bytes (int os.baseInfo.maxSize.uper) else bytes
                 lm.vars.PrintOctetStringValue td (os.baseInfo.minSize.uper = os.baseInfo.maxSize.uper) bytes (BigInteger bytes.Length)
             | BitString   bs    ->
                 let td =  lm.lg.getSizeableTypeDefinition bs.baseInfo.typeDef
                 let arBits = v.ToCharArray() |> Array.map(fun x -> x.ToString())
+                let bytes = if lm.lg.padByteArraysToMaxSize then padBytesArray bytes (int ((bs.baseInfo.maxSize.uper + 7I) / 8I)) else bytes
                 lm.vars.PrintBitStringValue td (bs.baseInfo.minSize.uper = bs.baseInfo.maxSize.uper) arBits (BigInteger arBits.Length) bytes (BigInteger bytes.Length)
             | _         -> raise(BugErrorException "unexpected type")
         | OctetStringValue  v ->
             match t.ActualType.Kind with
             | OctetString os    ->
                 let td =  lm.lg.getSizeableTypeDefinition os.baseInfo.typeDef
+                let v = if lm.lg.padByteArraysToMaxSize then padBytes v (int os.baseInfo.maxSize.uper) else v
                 lm.vars.PrintOctetStringValue td (os.baseInfo.minSize.uper = os.baseInfo.maxSize.uper) v (BigInteger v.Length)
             | BitString   bs    ->
                 let td =  lm.lg.getSizeableTypeDefinition bs.baseInfo.typeDef
@@ -105,7 +119,13 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
             match t.ActualType.Kind with
             | ObjectIdentifier oi   ->
                 let aa = lm.lg.typeDef oi.baseInfo.typeDef
-                lm.vars.PrintObjectIdentifierValue aa (v.Values |> List.map fst) (BigInteger v.Values.Length)
+                let oidValues = v.Values |> List.map fst
+                let oidValues = 
+                    if lm.lg.padByteArraysToMaxSize then
+                        let maxLen = int r.args.objectIdentifierMaxLength
+                        oidValues @ (List.init (maxLen - oidValues.Length) (fun _ -> 0I))
+                    else oidValues
+                lm.vars.PrintObjectIdentifierValue aa oidValues (BigInteger v.Values.Length)
             | _         -> raise(BugErrorException "unexpected type")
         | TimeValue v       ->
             match t.ActualType.Kind with
@@ -122,6 +142,11 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                     rawChildVals |> List.map (fun v ->
                         lm.lg.maybeWrapValueInConstructor so.childType.typeDefinitionOrReference so.childType.ActualType.Kind (ToC so.childType.id.ModName) v)
                 let sDefValue = so.childType.initFunction.initExpressionFnc ()
+                let childVals =
+                    if lm.lg.padByteArraysToMaxSize then
+                        let maxLen = int so.baseInfo.maxSize.uper
+                        childVals @ (List.init (maxLen - childVals.Length) (fun _ -> sDefValue))
+                    else childVals
                 lm.vars.PrintSequenceOfValue td (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) (BigInteger v.Length) childVals sDefValue
             | _         -> raise(BugErrorException "unexpected type")
         | SeqValue          v ->
@@ -260,10 +285,12 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
         match v with
         | OctetStringValue  v ->
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
+            let v = if lm.lg.padByteArraysToMaxSize then padBytes v (int o.maxSize.uper) else v
             PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) v (BigInteger v.Length)
         | BitStringValue    v ->
             let bytes = bitStringValueToByteArray (StringLoc.ByValue v) |> Seq.toList
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
+            let bytes = if lm.lg.padByteArraysToMaxSize then padBytes bytes (int ((o.maxSize.uper + 7I) / 8I)) else bytes
             PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
@@ -275,7 +302,13 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t
         let td = lm.lg.typeDef o.typeDef
         match v with
         | ObjOrRelObjIdValue  v ->
-            lm.vars.PrintObjectIdentifierValue  td (v.Values |> List.map fst) (BigInteger v.Values.Length)
+            let oidValues = v.Values |> List.map fst
+            let oidValues =
+                if lm.lg.padByteArraysToMaxSize then
+                    let maxLen = int r.args.objectIdentifierMaxLength
+                    oidValues @ (List.init (maxLen - oidValues.Length) (fun _ -> 0I))
+                else oidValues
+            lm.vars.PrintObjectIdentifierValue  td oidValues (BigInteger v.Values.Length)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
     printValue
@@ -300,9 +333,11 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
             let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
             let arBits = v.ToCharArray() |> Array.map(fun x -> x.ToString())
+            let bytes = if lm.lg.padByteArraysToMaxSize then padBytesArray bytes (int ((o.maxSize.uper + 7I) / 8I)) else bytes
             PrintBitStringValue td (o.minSize.uper = o.maxSize.uper) arBits (BigInteger arBits.Length) bytes (BigInteger bytes.Length)
         | OctetStringValue  v ->
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
+            let v = if lm.lg.padByteArraysToMaxSize then padBytes v (int o.maxSize.uper) else v
             PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) v (BigInteger v.Length)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
@@ -318,6 +353,11 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
             let childVals = chVals |> List.map (fun chv -> childType.printValue curProgramUnitName (Some gv) chv.kind)
             let sDefValue =  childType.initFunction.initExpressionFnc ()
             let td = lm.lg.getSizeableTypeDefinition o.typeDef
+            let childVals =
+                if lm.lg.padByteArraysToMaxSize then
+                    let maxLen = int o.maxSize.uper
+                    childVals @ (List.init (maxLen - childVals.Length) (fun _ -> sDefValue))
+                else childVals
             PrintSequenceOfValue td (o.minSize.uper = o.maxSize.uper) (BigInteger chVals.Length) childVals sDefValue
 
         | RefValue ((md,vs),ov)   -> vs
@@ -353,6 +393,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         match v |> Seq.tryFind(fun chv -> chv.name = x.Name.Value) with
                         | Some v    ->
                             let childValue = x.Type.printValue curProgramUnitName (Some gv) v.Value.kind
+                            let childValue =
+                                match x.Optionality with
+                                | Some _ -> lm.lg.wrapOptionalValueInSome childValue
+                                | None -> childValue
                             Some (lm.vars.PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) childValue)
                         | None      ->
                             let childValue =
@@ -361,9 +405,22 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                                     match opt.defaultValue with
                                     | Some zz    ->
                                         let v = (mapValue zz).kind
-                                        Some(x.Type.printValue curProgramUnitName (Some gv) v)
-                                    | None      -> match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
-                                | _             -> match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
+                                        let childVal = x.Type.printValue curProgramUnitName (Some gv) v
+                                        Some (lm.lg.wrapOptionalValueInSome childVal)
+                                    | None      -> 
+                                        if lm.lg.absentOptionalExpression <> "" then
+                                            Some(lm.lg.absentOptionalExpression)
+                                        else
+                                            match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
+                                | _             -> 
+                                    match x.Optionality with
+                                    | Some _ ->
+                                        if lm.lg.absentOptionalExpression <> "" then
+                                            Some(lm.lg.absentOptionalExpression)
+                                        else
+                                            match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
+                                    | None ->
+                                        match lm.lg.supportsInitExpressions with false -> None | true -> Some (x.Type.initFunction.initExpressionFnc ())
                             match childValue with
                             | None  -> None
                             | Some childValue -> Some (PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) childValue) )

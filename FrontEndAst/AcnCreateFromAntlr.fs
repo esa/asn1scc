@@ -1,4 +1,4 @@
-﻿(*
+(*
 * Copyright (c) 2008-2012 Semantix and (c) 2012-2015 Neuropublic
 *
 * This file is part of the ASN1SCC tool.
@@ -773,7 +773,7 @@ let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*La
 
     let mapItem (i:int) (itm:Asn1Ast.NamedItem) =
         let definitionValue = Asn1Ast.GetValueAsInt itm._value.Value asn1
-        let c_name, s_name, p_name, a_name =
+        let c_name, s_name, p_name, a_name, r_name =
             match asn1.args.renamePolicy with
             | AlwaysPrefixTypeName      ->
                 let typeName0 lang =
@@ -793,14 +793,15 @@ let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*La
                 let s_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 Scala)
                 let p_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 Python)
                 let a_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 Ada)
-                c_tpname + "_" + itm.c_name, s_tpname + "_" + itm.scala_name, p_tpname + "_" + itm.python_name, a_tpname + "_" + itm.ada_name
+                let r_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 Rust)
+                c_tpname + "_" + itm.c_name, s_tpname + "_" + itm.scala_name, p_tpname + "_" + itm.python_name, a_tpname + "_" + itm.ada_name, r_tpname + "_" + itm.rust_name
             | _     ->
-                asn1.args.TypePrefix + itm.c_name, asn1.args.TypePrefix + itm.scala_name, asn1.args.TypePrefix + itm.python_name, asn1.args.TypePrefix + itm.ada_name
+                asn1.args.TypePrefix + itm.c_name, asn1.args.TypePrefix + itm.scala_name, asn1.args.TypePrefix + itm.python_name, asn1.args.TypePrefix + itm.ada_name, asn1.args.TypePrefix + itm.rust_name
 
         match acnType with
         | None  ->
             let acnEncodeValue = (BigInteger i)
-            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = c_name; scala_name = s_name;  python_name = p_name;  ada_name = a_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}
+            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = c_name; scala_name = s_name; python_name = p_name; ada_name = a_name; rust_name = r_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}
         | Some acnType ->
             let acnEncodeValue =
                 match tryGetProp props (fun x -> match x with ENCODE_VALUES -> Some true | _ -> None) with
@@ -812,7 +813,7 @@ let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*La
                         | None          -> definitionValue
                     | None      -> definitionValue
                 | None      -> (BigInteger i)
-            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = c_name; scala_name = s_name; python_name = p_name; ada_name = a_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}
+            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = c_name; scala_name = s_name; python_name = p_name; ada_name = a_name; rust_name = r_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}
 
     let items0, userDefinedValues =
         match items |> Seq.exists (fun nm -> nm._value.IsSome) with
@@ -1338,17 +1339,17 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 match cc with
                 | None      ->
                     let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) None None [] childWithCons [] acnParamSubst [] None None referencedBy caller us
-                    Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _python_name = c.python_name; _ada_name = c.ada_name; Type = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments=[]}), us1
+                    Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _python_name = c.python_name; _ada_name = c.ada_name; _rust_name = c.rust_name; Type = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments=[]}), us1
                 | Some cc   ->
                     match cc.asn1Type with
                     | None  ->
                         let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList acnParamSubst [] None None referencedBy caller us
-                        Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _python_name = c.python_name; _ada_name = c.ada_name; Type = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments}), us1
+                        Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _python_name = c.python_name; _ada_name = c.ada_name; _rust_name = c.rust_name; Type = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments}), us1
                     | Some xx  ->
                         let newType, us1 = mapAcnParamTypeToAcnAcnInsertedType asn1 lms acn xx cc.childEncodingSpec.acnProperties  (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) us
                         let id = ReferenceToType(curPath@[SEQ_CHILD (c.Name.Value, isOptional)])
                         let c_name = getAcnDeterminantName id
-                        AcnChild({AcnChild.Name = c.Name; c_name = c_name; id = id; Type = newType; Comments = cc.comments |> Seq.toArray}), us1
+                        AcnChild({AcnChild.Name = c.Name; c_name = c_name; rust_name = c_name; id = id; Type = newType; Comments = cc.comments |> Seq.toArray}), us1
 
             let mergedChildren, chus =
                 match acnType with
@@ -1380,7 +1381,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                                     let newType, nest = mapAcnParamTypeToAcnAcnInsertedType asn1 lms acn xx acnChild.childEncodingSpec.acnProperties (curPath@[SEQ_CHILD (acnChild.name.Value, false)]) st
                                     let id = ReferenceToType(curPath@[SEQ_CHILD (acnChild.name.Value, false)])
                                     let c_name = getAcnDeterminantName id
-                                    AcnChild({AcnChild.Name = acnChild.name; id = id; c_name = c_name; Type = newType; Comments = acnChild.comments |> Seq.toArray}), nest
+                                    AcnChild({AcnChild.Name = acnChild.name; id = id; c_name = c_name; rust_name = c_name; Type = newType; Comments = acnChild.comments |> Seq.toArray}), nest
                                 | None ->
                                     raise(SemanticError(acnChild.name.Location, (sprintf "invalid name %s" acnChild.name.Value)))) us1
 
@@ -1529,14 +1530,14 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 match cc with
                 | None      ->
                     let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) None None [] childWithCons [] acnParamSubst [] None  None  referencedBy caller us
-                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _python_name = c.python_name; _ada_name = c.ada_name; Type = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments|> Seq.toList; acnComments = []; present_when_name = present_when_name; Optionality = newOptionality}, us1
+                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _python_name = c.python_name; _ada_name = c.ada_name; _rust_name = c.rust_name; Type = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments|> Seq.toList; acnComments = []; present_when_name = present_when_name; Optionality = newOptionality}, us1
                 | Some cc   ->
                     let enumClassName =
                         match us.args.targetLanguages with
                         | Scala::x -> typeDef[Scala].typeName
                         | _ -> ""
                     let newChild, us1 = mergeType asn1 acn typeIdsSet lms m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList acnParamSubst [] None  None referencedBy caller us
-                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _python_name = c.python_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments ; present_when_name = present_when_name; Optionality = newOptionality}, us1
+                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _python_name = c.python_name; _ada_name = c.ada_name; _rust_name = c.rust_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments ; present_when_name = present_when_name; Optionality = newOptionality}, us1
             let mergedChildren, chus =
                 match acnType with
                 | None            -> children |> foldMap (fun st ch -> mergeChild None ch st) us1
@@ -1793,6 +1794,7 @@ let private mergeTAS (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map<Strin
             scala_name = tas.scala_name
             python_name = tas.python_name
             ada_name = tas.ada_name
+            rust_name = tas.rust_name
             Type = newType
             asn1Comments = tas.Comments |> Seq.toList
             acnComments = acnComments
@@ -1812,6 +1814,7 @@ let private mergeValueAssignment (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet
             scala_name = vas.scala_name
             python_name = vas.python_name
             ada_name = vas.ada_name
+            rust_name = vas.rust_name
             Type = newType
             Value = ValuesMapping.mapValue asn1 vas.Type vas.Value
         }

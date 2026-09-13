@@ -1,0 +1,10 @@
+group rust_isvalid;
+
+
+
+
+makeExpressionToStatement(sIsValidExp, sErrCode) ::= <<
+ret = <sIsValidExp>;
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+

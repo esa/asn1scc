@@ -1,4 +1,4 @@
-﻿module Language
+module Language
 
 open AcnGenericTypes
 open Asn1AcnAst
@@ -426,6 +426,7 @@ type ILangGeneric () =
     abstract member TrueLiteral      :string
     abstract member FalseLiteral     :string
     abstract member emptyStatement   :string
+    default _.emptyStatement = ""
     abstract member bitStreamName    :string
     abstract member unaryNotOperator :string
     abstract member modOp            :string
@@ -486,6 +487,12 @@ type ILangGeneric () =
     abstract member nullTerminatorByte: byte option
     abstract member charToNumericValueExpression : string -> string
     default this.charToNumericValueExpression charValue = charValue
+
+    /// Converts an ASCII code (given as a decimal string) to a character literal
+    /// in the target language (e.g. `'A'` for C, `b'A'` for Rust).
+    abstract member charLiteralFromAsciiCode : string -> string
+    default this.charLiteralFromAsciiCode asciiCode =
+        sprintf "'%c'" (char (int asciiCode))
     abstract member validationStringPrefix : string
     default this.validationStringPrefix = "str"
     abstract member shouldRemoveModulePrefixFromTypedef : bool
@@ -516,6 +523,9 @@ type ILangGeneric () =
     abstract member shouldWriteThenAppendTestSuite : bool
     default this.shouldWriteThenAppendTestSuite = false
     abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
+
+    abstract member padArraysWithDefaultValues : bool
+    abstract member amberDecodePrefix : string
 
     abstract member toHex : int -> string
     abstract member uper  : Uper_parts;
@@ -568,6 +578,162 @@ type ILangGeneric () =
     abstract member generateSequenceSubtypeDefinitions: dealiased: string -> Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> Asn1AcnAst.Asn1Child list -> string list
     abstract member real_annotations : string list
     abstract member getTypeBasedSuffix: FunctionType -> Asn1AcnAst.Asn1TypeKind -> string
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Language-specific behaviour members added to eliminate hard-coded
+    // `match ProgrammingLanguage.ActiveLanguages.Head with | Rust -> ... | _ -> ...`
+    // in the F# backend.  Each has a sensible default (the C/Ada behaviour)
+    // and is overridden only by the backend that needs different output.
+    // ─────────────────────────────────────────────────────────────────────
+
+    /// Init expression for a NullType constant.
+    /// Default "0" (C/Ada/Scala/Python); Rust overrides to "()".
+    /// Replaces DAstConstruction.fs:97, DAstInitialize.fs:497.
+    abstract member nullTypeInitExpression : string
+    default _.nullTypeInitExpression = "0"
+
+    /// Default init value for complex types (the fall-through arm of
+    /// extractDefaultInitValue).
+    /// Default "null" (C/Ada/Scala/Python); Rust overrides to "Default::default()".
+    /// Replaces DAstUtilFunctions.fs:57.
+    abstract member complexTypeDefaultInit : string
+    default _.complexTypeDefaultInit = "null"
+
+    /// Annotations (e.g. `"extern"`, `"pure"`) attached to a generated
+    /// function definition.  The `FunctionType` argument lets backends
+    /// choose different annotations per function kind.
+    /// Default: `[]` for all function types.
+    /// Scala overrides: `["extern"]` for UPER/ACN/XER, `["extern"; "pure"]` for init.
+    /// Replaces DAstInitialize.fs:315, FE_TypeDefinition.fs:622,
+    /// DAstUPer.fs:267, AcnPrimitives.fs:343.
+    abstract member funcDefAnnotations : FunctionType -> string list
+    default _.funcDefAnnotations _ = []
+
+    /// Wrap an IA5String constant-initialisation expression in a language-
+    /// specific struct literal when needed.
+    /// Default: returns `initStr` unchanged (identity).
+    /// Rust overrides: `if tdName = "" then initStr else sprintf "%s { arr: %s }" tdName initStr`.
+    /// Replaces DAstInitialize.fs:391-393.
+    abstract member wrapIA5StringConstantInit : tdName:string -> initStr:string -> string
+    default _.wrapIA5StringConstantInit _tdName initStr = initStr
+
+    /// Whether to use the inline init expression (`initExpressionFnc()`)
+    /// instead of a function-call (`funcName + initMethSuffix`) for complex
+    /// child types.
+    /// Default: `false` (use function-call form — C/Ada/Scala/Python).
+    /// Rust overrides: `true`.
+    /// Replaces DAstInitialize.fs:761-764, 1374-1378.
+    abstract member useInlineInitExpression : bool
+    default _.useInlineInitExpression = false
+
+    /// Whether the choice-child temp default-init uses the Scala form
+    /// `sChildTypeDef + methodNameSuffix + "()"` rather than
+    /// `extractDefaultInitValue chType.Kind`.
+    /// Default: `false` (use extractDefaultInitValue — C/Ada/Rust/Python).
+    /// Scala overrides: `true`.
+    /// Replaces DAstInitialize.fs:1253-1257.
+    abstract member scalaChoiceInitSuffix : bool
+    default _.scalaChoiceInitSuffix = false
+
+    /// Whether byte arrays and similar fixed-size collections must be padded
+    /// to their maximum size in generated value literals.
+    /// Default: `false` (C/Ada/Scala/Python).
+    /// Rust overrides: `true`.
+    /// Replaces the `match Rust -> padBytes ... | _ -> ...` blocks in DAstVariables.fs.
+    abstract member padByteArraysToMaxSize : bool
+    default _.padByteArraysToMaxSize = false
+
+    /// Wrap an optional child value in the language's `Some(...)` constructor.
+    /// Default: identity (the value is used as-is).
+    /// Rust overrides: `sprintf "Some(%s)" childValue`.
+    /// Replaces DAstVariables.fs:417-435.
+    abstract member wrapOptionalValueInSome : childValue:string -> string
+    default _.wrapOptionalValueInSome childValue = childValue
+
+    /// The expression used for an *absent* optional child in a value literal.
+    /// Empty string means "fall back to supportsInitExpressions logic".
+    /// Default: `""` (C/Ada/Scala — use initExpressionFnc or None).
+    /// Rust overrides: `"None"`.
+    /// Replaces DAstVariables.fs:433-438.
+    abstract member absentOptionalExpression : string
+    default _.absentOptionalExpression = ""
+
+    /// Amber (pointer-prefix) pair for test-case generation, per type kind.
+    /// Returns (encAmber, initAmber).
+    /// Default: `("", "")` for IA5String (all others use the caller's default).
+    /// Rust overrides: `("&", "&")` for IA5String.
+    /// Replaces DastTestCaseCreation.fs:31.
+    abstract member getAmberForType : Asn1AcnAst.Asn1TypeKind -> string * string
+    default _.getAmberForType _ = ("", "")
+
+    /// Format the init statement for a value-assignment or automatic test
+    /// case.  The type-kind, module name, and TAS name are provided so
+    /// backends can prepend/append language-specific boilerplate.
+    /// Default: identity (return initStatement unchanged).
+    /// Scala overrides: prepend `"val tc_data = "` for Integer.
+    /// Python overrides: append `"tc_data.__class__ = %s" qualifiedAlias` for structured ReferenceType.
+    /// Replaces DastTestCaseCreation.fs:85-111, 145-155.
+    abstract member formatInitStatementForTestCase : Asn1AcnAst.Asn1TypeKind -> modName:string -> tasName:string -> initStatement:string -> string
+    default _.formatInitStatementForTestCase _typeKind _modName _tasName initStatement = initStatement
+
+    /// Convert a character-set string to the target language's validation
+    /// literal (e.g. Rust `b"..."` byte-slice vs C `"..."` double-quoted).
+    /// The `lm` (LanguageMacros) is NOT available here; the default delegates
+    /// to the existing `v.IDQ` and `lm.vars.Print*` functions — but since
+    /// those require `lm`, the default returns the raw string and the F# call
+    /// site handles the non-Rust path.  Rust overrides to produce `b"..."`.
+    /// Replaces DastValidate2.fs:206-231.
+    abstract member charSetToValidationLiteral : string -> string
+    default _.charSetToValidationLiteral v = v
+
+    /// Produce the (v1_name, v2_name) pair used for choice-child equality
+    /// comparison temp variables.
+    /// Default: `(childName, childName)` (same name for both sides — C/Ada/Python).
+    /// Scala overrides: `(sprintf "%s_%s_tmp" path1 childName, sprintf "%s_%s_tmp" path2 childName)`.
+    /// Rust overrides: `(childName + "1", childName + "2")`.
+    /// Replaces DAstEqual.fs:92-101.
+    abstract member getChoiceChildComparisonNames : Asn1AcnAst.ChChildInfo -> path1:string -> path2:string -> childName:string -> string * string
+    default _.getChoiceChildComparisonNames _ _ _ childName = (childName, childName)
+
+    /// Format the default-init expression for a choice child temp variable
+    /// in a test-case init function.
+    /// Default: `""` — the F# call site uses `extractDefaultInitValue` when
+    /// this returns empty (C/Ada/Rust/Python).
+    /// Scala overrides: returns `sChildTypeDef + suffix + "()"`.
+    /// Replaces DAstInitialize.fs:1253-1257.
+    abstract member formatChoiceTestCaseInit : sChildTypeDef:string -> string
+    default _.formatChoiceTestCaseInit _ = ""
+
+    /// Format an ACN determinant update statement.
+    /// Default: returns `updateStatement` unchanged.
+    /// Scala overrides: wraps with `sprintf "val %s = %s.%s\n%s" choicePath checkPath[0] choicePath updateStatement`.
+    /// Replaces AcnDependencies.fs:358-364.
+    abstract member formatAcnDeterminantUpdate : choicePath:string -> checkPath:string list -> updateStatement:string -> string
+    default _.formatAcnDeterminantUpdate _choicePath _checkPath updateStatement = updateStatement
+
+    /// Generate a `Default` impl for an enumerated type.
+    /// Default: `""` (no impl — C/Ada/Scala/Python).
+    /// Rust overrides: `sprintf "impl Default for %s { fn default() -> Self { %s::%s } }" typeName typeName firstEnumName`.
+    /// Replaces DAstTypeDefinition.fs:411-416.
+    abstract member generateEnumDefaultImpl : typeName:string -> firstEnumName:string -> string
+    default _.generateEnumDefaultImpl _typeName _firstEnumName = ""
+
+    /// Returns the language-specific suffix for ACN integer decode function names.
+    /// E.g. C uses "Int8", Rust uses "_i8". Empty string means no suffix (full-width type).
+    abstract member getIntDecFuncSuffix : Asn1AcnAst.IntegerClass -> string
+    default _.getIntDecFuncSuffix intClass =
+        match intClass with
+        | Asn1AcnAst.ASN1SCC_Int8      _ -> "Int8"
+        | Asn1AcnAst.ASN1SCC_Int16     _ -> "Int16"
+        | Asn1AcnAst.ASN1SCC_Int32     _ -> "Int32"
+        | Asn1AcnAst.ASN1SCC_Int64     _ -> ""
+        | Asn1AcnAst.ASN1SCC_Int       _ -> ""
+        | Asn1AcnAst.ASN1SCC_UInt8     _ -> "UInt8"
+        | Asn1AcnAst.ASN1SCC_UInt16    _ -> "UInt16"
+        | Asn1AcnAst.ASN1SCC_UInt32    _ -> "UInt32"
+        | Asn1AcnAst.ASN1SCC_UInt64    _ -> ""
+        | Asn1AcnAst.ASN1SCC_UInt      _ -> ""
+
     abstract member getRealEncodingSuffix: floatingPointSizeInBytes:BigInteger -> RealClass -> string
     default _.getRealEncodingSuffix _ cls =
         match cls with

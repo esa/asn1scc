@@ -161,6 +161,9 @@ let findCrossSequenceAcnDeps (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
 type LangGeneric_python() =
     inherit ILangGeneric()
 
+    override _.padArraysWithDefaultValues = false
+    override _.amberDecodePrefix = ""
+
     override _.programUnitImportStatement (puName: string) : string option =
         Some $"import asn1pylib.asn1src.{puName}\n"
 
@@ -967,6 +970,7 @@ type LangGeneric_python() =
                             AcnChild.Name = StringLoc.ByValue crossDep.acnChildCName
                             id = crossDep.acnChildId
                             c_name = crossDep.acnChildCName
+                            rust_name = crossDep.acnChildCName
                             Type = match crossDep.dependency.determinant with
                                    | AcnChildDeterminant ch -> ch.Type
                                    | _ -> failwith "Expected AcnChildDeterminant"
@@ -1371,7 +1375,7 @@ type LangGeneric_python() =
         let CreatePythonMainFile (r:AstRoot) outDir  =
             // Main file for test case
             let printMain = test_cases_python.PrintMain
-            let content = printMain "testsuite"
+            let content = printMain "testsuite" (r.programUnits |> List.map (fun pu -> pu.name))
             let outFileName = Path.Combine(outDir, "mainprogram.py")
             File.WriteAllText(outFileName, content.Replace("\r",""))
 
@@ -1445,6 +1449,26 @@ type LangGeneric_python() =
         | ASN1SCC_REAL when fpWordSize = 4I -> this.castExpression pp real32TypeName
         | ASN1SCC_FP32                      -> this.castExpression pp realTypeName
         | _                                 -> pp
+
+    // Python: re-type a structured alias TAS's test value to the alias class so the
+    // generic XER encoder dispatches to the alias's encoder and uses the alias element
+    // tag. uPER/ACN have no element tags, so this is a no-op there. Only structured
+    // kinds are handled: scalar/enum/null alias values are already alias-typed and
+    // re-wrapping would corrupt them (and NULL objects reject __class__).
+    override _.formatInitStatementForTestCase (typeKind: Asn1AcnAst.Asn1TypeKind) (modName: string) (tasName: string) (initStatement: string) : string =
+        let rec resolveKind (k: Asn1AcnAst.Asn1TypeKind) : Asn1AcnAst.Asn1TypeKind =
+            match k with
+            | Asn1AcnAst.ReferenceType rt -> resolveKind rt.resolvedType.Kind
+            | _ -> k
+        match typeKind with
+        | Asn1AcnAst.ReferenceType _ ->
+            match resolveKind typeKind with
+            | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.SequenceOf _
+            | Asn1AcnAst.OctetString _ | Asn1AcnAst.BitString _ | Asn1AcnAst.IA5String _ ->
+                let qualifiedAlias = if modName = "" then tasName else modName + "." + tasName
+                initStatement + "\n" + sprintf "tc_data.__class__ = %s" qualifiedAlias
+            | _ -> initStatement
+        | _ -> initStatement
 
     // Placeholder methods for features not yet implemented in Python
     // override this.generateSequenceAuxiliaries (r: Asn1AcnAst.AstRoot) (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) (sq: Asn1AcnAst.Sequence) (nestingScope: NestingScope) (sel: Selection) (codec: Codec): string list =

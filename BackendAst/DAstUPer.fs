@@ -1,4 +1,4 @@
-﻿module DAstUPer
+module DAstUPer
 open System
 open System.Numerics
 open System.Globalization
@@ -23,10 +23,14 @@ let nestChildItems  (lm:LanguageMacros) (codec:CommonTypes.Codec) children =
 let adaptArgument (lm: LanguageMacros) (codec: CommonTypes.Codec) (p: CodegenScope): string * string option =
     // For Copy decoding kind, the return expression is the variable in which we save the decoding result
     match codec with
-    | Encode -> lm.lg.getValue p.accessPath, None
+    | Encode ->
+        let v = lm.lg.getValue p.accessPath
+        v, None
     | Decode ->
         match lm.lg.decodingKind with
-        | InPlace -> lm.lg.getPointer p.accessPath, None
+        | InPlace ->
+            let v = lm.lg.getPointer p.accessPath
+            v, None
         | Copy ->
             let res = p.accessPath.asIdentifier lm.lg
             res, Some res
@@ -36,7 +40,12 @@ let adaptArgumentPtr (lm: LanguageMacros) (codec: CommonTypes.Codec) (p: Codegen
     | Decode, Copy ->
         let res = p.accessPath.asIdentifier lm.lg
         res, Some res
-    | _ -> lm.lg.getPointer p.accessPath, None
+    | Encode, _ ->
+        let v = lm.lg.getPointer p.accessPath
+        v, None
+    | Decode, _ ->
+        let v = lm.lg.getPointer p.accessPath
+        v, None
 
 let adaptArgumentValue (lm: LanguageMacros) (codec: CommonTypes.Codec) (p: CodegenScope): string * string option =
     match codec, lm.lg.decodingKind with
@@ -169,7 +178,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     let IntRootExt2             = lm.uper.IntRootExt2
     let rootCons = cons |> List.choose(fun x -> match x with RangeRootConstraint(_, a) |RangeRootConstraint2(_, a,_) -> Some(x) |_ -> None)
 
-    let suffix = getIntDecFuncSuffix intClass
+    let suffix = lm.lg.getIntDecFuncSuffix intClass
     let castPp encFuncBits = castPp r lm codec pp intClass encFuncBits
 
     let sType = lm.lg.getLongTypedefNameFromReferenceToTypeAndCodegenScope typeId typeDefinition p
@@ -254,10 +263,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonT
         let funcBodyContent = Real castPp sSuffix errCode.errCodeName sType codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
-    let annots =
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Scala -> ["extern"]
-        | _ -> []
+    let annots = lm.lg.funcDefAnnotations UperEncDecFunctionType
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations annots us
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
@@ -782,6 +788,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let props = TL "handleChild_09" (fun () -> {info=(Asn1Child child).toAsn1AcnAst; sel=childSel; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits})
             let newAcc = TL "handleChild_10" (fun () -> {childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits})
 
+            let childContentResult =
+                match childContentResult with
+                | Some c -> Some c
+                | None when child.Optionality.IsSome ->
+                    Some { funcBody = ""; errCodes = []; localVariables = []; bValIsUnReferenced = true; bBsIsUnReferenced = true; resultExpr = None; auxiliaries = [] }
+                | None -> None
+
             match childContentResult with
             | None ->
                 // Copy-decoding expects to have a result expression (even if unused), so we pick the initExpression
@@ -808,12 +821,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                         | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables)
                     | Some Asn1AcnAst.AlwaysPresent ->
                         TL "handleChild_14" (fun () -> 
+                        let childBody = if String.IsNullOrWhiteSpace childContent.funcBody then lm.lg.emptyStatement else childContent.funcBody
                         if lm.lg.usesWrappedOptional then
-                            Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables
+                            Some (sequence_optional_child pp access childName childBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables
                         else
                             match codec with
-                            | CommonTypes.Encode -> Some childContent.funcBody, childContent.localVariables
-                            | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childContent.funcBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables)
+                            | CommonTypes.Encode -> Some childBody, childContent.localVariables
+                            | CommonTypes.Decode -> Some (sequence_optional_child pp access childName childBody existVar childContent.resultExpr childTypeDef isPrimitiveType codec), childContent.localVariables)
                     | Some (Asn1AcnAst.Optional opt) ->
                         TL "handleChild_15" (fun () ->
                         match opt.defaultValue with
@@ -938,8 +952,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                     | true when codec=Decode ->
                         let childp = ({p with accessPath = AccessPath.valueEmptyPath ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
                         match child.chType.ActualType.Kind with
-                        | NullType _    -> uper_a.decode_nullType childp.accessPath.rootId
-                        | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.accessPath.rootId
+                        | NullType _    -> lm.uper.decode_nullType childp.accessPath.rootId
+                        | Sequence _    -> lm.uper.decode_empty_sequence_emptySeq childp.accessPath.rootId
                         | _             -> lm.lg.createSingleLineComment "no encoding/decoding is required"
                     | true   -> lm.lg.createSingleLineComment "no encoding/decoding is required"
                 mk_choice_child childContent, [], [], []

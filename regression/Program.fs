@@ -192,6 +192,10 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
             else
                 if (bNoAtc || not bRunCodeCoverage) then
                     markSuccess "Make OK"
+                elif lang = "Rust" then
+                    // Rust coverage uses cargo build + cargo run (tarpaulin optional);
+                    // no .gcov file is produced, so just verify the build/run succeeded
+                    markSuccess "Cargo build and run OK"
                 else
                     let restoreSrcLine (l:string) =
                         ((l.Split(':')[2..]) |> StrJoin ":").Trim()

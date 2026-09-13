@@ -1432,3 +1432,5 @@ details-docs/
 acnv2/*
 
 .fake
+# Rust build artifacts
+asn1rust/target/

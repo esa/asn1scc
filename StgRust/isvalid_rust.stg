@@ -1,0 +1,375 @@
+group rust_isvalid;
+
+rtlModuleName() ::= ""
+
+
+JoinItems(sPart, soNestedPart) ::= <<
+<sPart>
+<if(soNestedPart)>
+if ret {
+    <soNestedPart>
+}
+
+<endif>
+>>
+
+JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
+<sStr1>
+if ret {
+    <sStr2>
+}
+>>
+
+JoinItems2(sPart, sNestedPart) ::= <<
+<sPart>
+if ret {
+    <sNestedPart>
+}
+>>
+
+
+
+
+always_true_statement ()::= <<
+ret = true;
+>>
+
+always_false_statement(sErrorCodeName)::= <<
+ret = false;
+*pErrCode = <sErrorCodeName>;
+>>
+
+
+makeExpressionToStatement0(sIsValidExp) ::= <<
+ret = <sIsValidExp>;
+>>
+
+convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
+ret = <sIsValidExp>;
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+
+convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
+<sStatement>
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+
+convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
+ret = true;
+*pErrCode = 0;
+>>
+convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
+ret = false;
+*pErrCode = <sErrCode>;
+>>
+
+
+/*
+*****************************************************************************************
+ C H E C K   C O N S T R A I N T S      F U N C T I O N S
+*****************************************************************************************
+*/
+
+
+EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
+pub const <sErrCode>: i32 = <nErrValue>;  /*<arrsErrorCodeComments : {x|<x>}; separator = "\n">*/
+>>
+EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
+<arrsErrcodes; separator="\n">
+>>
+
+
+EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
+<arrsAlphaFuncs; separator="\n">
+pub fn <sFuncName>(<sVarName>: &<sTypeDefName>, pErrCode: &mut i32) -> bool {
+    let mut ret: bool = true;
+    <arrsLocalVars; separator="\n">
+<if(bUnreferenced)>
+    let _ = <sVarName>;
+
+<endif>
+    <sContent>
+
+    return ret;
+}
+>>
+
+
+GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch) ::= <<
+<if(bBinarySearch)>binary_search<else>linear_search<endif>(<sEnumValuesArray>, <sExp>) \>= 0
+>>
+
+ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
+ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
+ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
+ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)"
+ExpOr(sExp1, sExp2) ::= "((<sExp1>) || (<sExp2>))"
+ExpAnd(sExp1, sExp2) ::= "(<sExp1> && <sExp2>)"
+ExpAndMulti(arrsExp) ::= <<
+<arrsExp; separator=" && ">
+>>
+ExpNot(sExp) ::= "(!<sExp>)"
+StrLen(sExp) ::= "<sExp>.len() as i64"
+ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>n_count as i64"
+
+
+ExpressionToStatement(sExp1) ::=<<
+ret = <sExp1>;
+>>
+
+StatementOrStatement(sStat1, sStat2) ::= <<
+<sStat1>
+if !ret {
+    <sStat2>
+}
+>>
+
+
+ExpressionOrStatement(sExp1, sStat2) ::= <<
+ret = <sExp1>;
+if !ret {
+    <sStat2>
+}
+>>
+
+StatementOrExpression(sStat1, sExp2) ::= <<
+<sStat1>
+if !ret {
+    ret = <sExp2>;
+}
+>>
+
+StatementAndStatement(sStat1, sStat2) ::= <<
+<sStat1>
+if ret {
+    <sStat2>
+}
+>>
+
+ExpressionAndStatement(sExp1, sStat2) ::= <<
+ret = <sExp1>;
+if ret {
+    <sStat2>
+}
+>>
+
+StatementAndExpression(sStat1, sExp2) ::= <<
+<sStat1>
+if ret {
+    ret = <sExp2>;
+}
+>>
+
+StatementNot(sStat) ::= <<
+<sStat>
+ret = !ret;
+>>
+
+StatementExceptStatement(sStat1, sStat2) ::= <<
+<sStat1>
+if ret {
+    <sStat2>
+    ret = !ret;
+}
+>>
+
+ExpressionExceptStatement(sExp1, sStat2) ::= <<
+ret = <sExp1>;
+if ret {
+    <sStat2>
+    ret = !ret;
+}
+>>
+
+StatementExceptExpression(sStat1, sExp2) ::= <<
+<sStat1>
+if ret {
+    ret = !(<sExp2>);
+}
+>>
+
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+let mut <i>: usize = 0;
+while ret && <i> \< <if(!bIsFixedSize)><p><sAcc>n_count as usize<else><nFixedSize><endif> {
+    <sInnerStatement>
+    <i> += 1;
+}
+>>
+
+
+
+Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
+pub fn <sFuncName>(str: &[u8]) -> bool {
+    let mut ret: bool = true;
+    let mut i: usize = 0;
+
+    while i \< str.len() && str[i] != 0 && ret {
+        ret = ret && (<arrsAlphaConBody; separator=" && ">);
+        i += 1;
+    }
+    return ret;
+}
+>>
+
+
+
+SingleValConstraint(p, v) ::= "(<p> == <v>)"
+
+
+
+
+
+stringContainsChar(sStrVal, p) ::= "(<sStrVal>).iter().any(|&c| c == <p>)"
+
+RangeConstraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> && <p> \<<if(bMax)>=<endif> <v2>)"
+
+RangeConstraint_val_MAX(p, v, bMin) ::= "(<p> \><if(bMin)>=<endif> <v>)"
+
+RangeConstraint_MIN_val(p, v, bMax) ::= "(<p> \<<if(bMax)>=<endif> <v>)"
+
+
+AND_Constraint(sCon1, sCon2) ::= "(<sCon1> && <sCon2>)"
+
+OR_Constraint(sCon1, sCon2) ::= "(<sCon1> || <sCon2>)"
+
+AllExceptConstraint(sCon)  ::= "(!<sCon>)"
+
+ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> &&  !<sCon2>)"
+
+methodNameSuffix() ::= "_IsConstraintValid"
+
+callAlphaFunc(sFuncName, p) ::= "<if(sFuncName)><sFuncName>_<endif>chars_are_valid(&(<p>).arr)"
+callAlphaFuncWithIndex(sFuncName, p, nIdx) ::= "<if(sFuncName)><sFuncName>_<endif>chars_are_valid_<nIdx>(&(<p>).arr)"
+alphaFuncBaseName(p) ::= "<if(p)><p>_<endif>chars_are_valid_0"
+alphaFuncNameWithIndex(p, nIdx) ::= "<if(p)><p>_<endif>chars_are_valid_<nIdx>"
+
+PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" && \">"
+
+
+
+
+Emit_type(arrsConstraints, sErrCodeName) ::= <<
+ret = <arrsConstraints; separator=" && ">;
+*pErrCode = if ret { 0 } else { <sErrCodeName> };
+>>
+
+
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(&<p>, pErrCode);"
+call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(&<p>, pErrCode);"
+
+call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(&<p>, pErrCode)"
+
+
+
+
+/* SEQUENCE start*/
+
+
+Sequence_OptionalChild(p, sAcc,  sChName, sInnerStatement) ::= <<
+if <p><sAcc>exist.<sChName> {
+    <sInnerStatement>
+}
+>>
+
+
+Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
+ret = <p><sAcc>exist.<sChName> == <sPresOrAbs>;
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+
+Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
+<p><sAcc>exist.<sChName> == <sPresOrAbs>
+>>
+
+
+
+/* SEQUENCE end*/
+
+
+/* CHOICE start*/
+
+Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement, sChoiceTypeName) ::= <<
+if let <sChoiceTypeName>::<sChPresent>(ref <sPLocal>) = <p> {
+    <sInnerStatement>
+}
+>>
+
+Choice_child_always_present_Exp(p, sAcc, sChPresent, sChoiceTypeName) ::= <<
+matches!(<p>, <sChoiceTypeName>::<sChPresent>(..))
+>>
+
+Choice_child_always_absent_Exp(p, sAcc, sChPresent, sChoiceTypeName) ::= <<
+!matches!(<p>, <sChoiceTypeName>::<sChPresent>(..))
+>>
+
+choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName, sChoiceTypeName, sChildTypeName) ::= <<
+<sChoiceTypeName>::<sChPresent>(ref <sChildName>) => {
+    <sChildBody>
+}
+>>
+
+
+choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
+match <p> {
+    <arrsChildren; separator="\n">
+    _ => {
+        *pErrCode = <sErrCodeForInvalidCase>;
+        ret = false;
+    }
+}
+>>
+
+/* CHOICE end*/
+
+
+
+
+
+
+sequenceOf(p,sAcc, i, bIsFixedSize, nFixedSize, soIsValidSizeExp, soErrCode, soInnerStatement) ::= <<
+<if(!bIsFixedSize)>
+ret = <soIsValidSizeExp>;
+*pErrCode = if ret { 0 } else { <soErrCode> };
+
+<endif>
+<if (soInnerStatement)>
+let mut <i>: usize = 0;
+while ret && <i> \< <if(!bIsFixedSize)><p><sAcc>n_count as usize<else><nFixedSize><endif> {
+    <soInnerStatement>
+    <i> += 1;
+}
+
+<endif>
+>>
+
+sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+let mut <i>: usize = 0;
+while ret && <i> \< <if(!bIsFixedSize)><p><sAcc>n_count as usize<else><nFixedSize><endif> {
+    <sInnerStatement>
+    <i> += 1;
+}
+>>
+
+
+octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
+octet_string_equal(&<p><sAccess>arr[0..<p><sAccess>n_count as usize], &<sOctArrayLiteral>[0..<nVarLength>])
+>>
+
+octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
+octet_string_equal(&<p><sAccess>arr[0..<nFixedSize>], &<sOctArrayLiteral>[0..<nVarLength>])
+>>
+
+bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+bit_string_equal(<p><sAccess>n_count, &<p><sAccess>arr, &<sOctArrayLiteral>)
+>>
+
+bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+bit_string_equal(<nFixedSize>, &<p><sAccess>arr, &<sOctArrayLiteral>)
+>>
+
+
+objId_equal(p, sObjIdLiteral)::=<<
+*(<p>) == <sObjIdLiteral>
+>>

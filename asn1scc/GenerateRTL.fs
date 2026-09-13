@@ -1,4 +1,4 @@
-﻿module GenerateRTL
+module GenerateRTL
 open FsUtils
 open System
 open System.Numerics
@@ -8,7 +8,10 @@ open AbstractMacros
 open System.Resources
 open Language
 
-let writeTextFile fileName (content:String) =
+let writeTextFile (fileName: string) (content:String) =
+    let dir = Path.GetDirectoryName(fileName)
+    if not (String.IsNullOrEmpty(dir)) then
+        Directory.CreateDirectory(dir) |> ignore
     File.WriteAllText(fileName, content.Replace("\r",""))
 
 
@@ -240,6 +243,46 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
             let content = aux_a.PrintGpsProject bn dirs
             //let content = (rm.GetString(("asn1_"+bn+".gpr"),null))
             writeTextFile filename    content)
+
+    | ProgrammingLanguage.Rust ->
+        // The user's generated project is a binary crate that depends on the
+        // asn1rust runtime library crate. The runtime .rs files are written to
+        // rootDir/asn1rust/src/ (via writeResource → di.asn1rtlDir).
+        //
+        // Write the user's project Cargo.toml (binary crate depending on asn1rust).
+        let cargoToml =
+            "[package]\n" +
+            "name = \"asn1scc_project\"\n" +
+            "version = \"0.1.0\"\n" +
+            "edition = \"2021\"\n" +
+            "\n" +
+            "[dependencies]\n" +
+            "asn1rust = { path = \"asn1rust\" }\n" +
+            "\n" +
+            "[[bin]]\n" +
+            "name = \"mainprogram\"\n" +
+            "path = \"mainprogram.rs\"\n" +
+            "\n" +
+            "[profile.release]\n" +
+            "opt-level = 3\n"
+        writeTextFile (Path.Combine(rootDir, "Cargo.toml")) cargoToml
+        // Write the asn1rust library crate's Cargo.toml to rootDir/asn1rust/.
+        // The embedded resource "Cargo.toml" is the library's Cargo.toml
+        // which declares [lib] path = "src/lib.rs".
+        let rtlCargoToml = getResourceAsString "Cargo.toml"
+        writeTextFile (Path.Combine(rootDir, "asn1rust", "Cargo.toml")) rtlCargoToml
+        // Write all Rust runtime source files (goes to asn1rtlDir, i.e. rootDir/asn1rust/src/)
+        writeResource di "lib.rs" None
+        writeResource di "uper.rs" None
+        writeResource di "acn.rs" None
+        writeResource di "xer.rs" None
+        writeResource di "ber.rs" None
+        // The Rust runtime is a single crate — all encoding modules are compiled together.
+        // No unused function stripping needed (Rust compiler handles dead code elimination).
+        // No WORD_SIZE/FP_WORD_SIZE patching needed (Rust uses generics/conditional compilation).
+        match args.encodings with
+        | [] -> ()
+        | _ -> ()  // all encodings are included in the Rust runtime by default
 
 
 let test2() =

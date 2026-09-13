@@ -265,6 +265,7 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
         else
         let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
+        let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
         let arrsChildUpdates =
             chc.children |>
             List.map(fun ch ->
@@ -276,9 +277,9 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
                     | AcnNullType _ -> true
                     | _ -> raise (BugErrorException "???")
                 match pres with
-                | PresenceInt   (_, intVal) -> lm.acn.ChoiceDependencyIntPres_child v presentWhenName (lm.lg.asn1SccIntValueToString intVal.Value unsigned)
+                | PresenceInt   (_, intVal) -> lm.acn.ChoiceDependencyIntPres_child v presentWhenName (lm.lg.asn1SccIntValueToString intVal.Value unsigned) sChoiceTypeName
                 | PresenceStr   (_, strVal) -> raise(SemanticError(strVal.Location, "Unexpected presence condition. Expected integer, found string")))
-        let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates
+        let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName
         match checkPath with
         | []    -> updateStatement
         | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
@@ -302,6 +303,17 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
         let v = lm.lg.getValue vTarget.accessPath
         let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
+        let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
+        let sInsertedFieldTypeName =
+            match child.Type with
+            | AcnReferenceToIA5String s ->
+                let ref : CommonTypes.ReferenceToExistingDefinition = {
+                    programUnit = Some s.modName.Value
+                    typedefName = ToC (r.args.TypePrefix + s.tasName.Value)
+                    definedInRtl = false
+                }
+                lm.lg.longTypedefName2 (ReferenceToExistingDefinition ref) lm.lg.hasModules m.Name.Value
+            | _ -> sChoiceTypeName
         let arrsChildUpdates =
             chc.children |>
             List.map(fun ch ->
@@ -317,12 +329,8 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
                         match lm.lg.nullTerminatorByte with
                         | Some nullByte -> Array.append baseBytes [| nullByte |]
                         | None -> baseBytes
-                    let childTypeName =
-                        match child.Type with
-                        | AcnReferenceToIA5String t -> lm.lg.getLongTypedefName (lm.lg.definitionOrRef t.str.definitionOrRef)
-                        | _ -> ""
-                    lm.acn.ChoiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls childTypeName)
-        let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates
+                    lm.acn.ChoiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls sChoiceTypeName sInsertedFieldTypeName)
+        let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName
         match checkPath with
         | []    -> updateStatement
         | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
@@ -352,17 +360,11 @@ and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.Reference
             List.mapi(fun idx ch ->
                 let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = ch.Name.Value)
                 let choiceName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName //chc.typeDef[Scala].typeName
-                lm.acn.ChoiceDependencyEnum_Item v ch.presentWhenName choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) idx isOptional)
+                lm.acn.ChoiceDependencyEnum_Item v (lm.lg.presentWhenName0 None ch) choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) (bigint idx) isOptional)
         let updateStatement = lm.acn.ChoiceDependencyEnum v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates isOptional (initExpr r lm m child.Type)
         // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for
         // accessing enums fields instead of a compiler-unchecked access
-        let updateStatement2 =
-            match ProgrammingLanguage.ActiveLanguages.Head with
-            | Scala ->
-                match checkPath.Length > 0 && checkPath[0].Contains("isInstanceOf") with
-                | true -> (sprintf "val %s = %s.%s\n%s" (choicePath.accessPath.joined lm.lg) (checkPath[0].Replace("isInstanceOf", "asInstanceOf")) (choicePath.accessPath.joined lm.lg) updateStatement)
-                | false -> updateStatement
-            | _ -> updateStatement
+        let updateStatement2 = lm.lg.formatAcnDeterminantUpdate (choicePath.accessPath.joined lm.lg) checkPath updateStatement
         match checkPath with
         | []    -> updateStatement2
         | _     -> lm.acn.checkAccessPath checkPath updateStatement2 v (initExpr r lm m child.Type)

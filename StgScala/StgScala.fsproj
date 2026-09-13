@@ -98,6 +98,6 @@
     <PackageReference Update="FSharp.Core" Version="9.0.300-beta.25079.4" />
   </ItemGroup>
   <Target Name="GenerateStringTemplates" BeforeTargets="CoreCompile">
-    <Exec Command="dotnet ../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll backends.xml 3" WorkingDirectory="$(ProjectDir)" />
+    <Exec Command="dotnet ../parseStg2/bin/$(Configuration)/$(TargetFramework)/parseStg2.dll backends.xml 3" WorkingDirectory="$(ProjectDir)" />
   </Target>
 </Project>

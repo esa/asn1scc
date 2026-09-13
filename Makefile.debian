@@ -1,15 +1,30 @@
 all: build
 
-build: dotnet-debian.SENTINEL
-	dotnet build -c Release Antlr/
-	dotnet build -c Release parseStg2/
-	dotnet build -c Release "asn1scc.sln"
+build: build-release
 
-publish: build
+publish: publish-release
+
+build-debug: dotnet-debian.SENTINEL
+	dotnet build -c Debug Antlr/
+	dotnet build -c Debug parseStg2/
+	dotnet build -c Debug "asn1scc.sln"
+
+publish-debug: build-debug
+	dotnet publish -c Debug --self-contained true -r linux-x64  asn1scc.sln
+
+publish-release: build-release
 	dotnet publish -c Release --self-contained true -r linux-x64  asn1scc.sln
 
 publish-win64: build
+	dotnet publish -c Debug --self-contained true -r win-x64  asn1scc.sln
+
+publish-win64-release: build-release
 	dotnet publish -c Release --self-contained true -r win-x64  asn1scc.sln
+
+build-release: dotnet-debian.SENTINEL
+	dotnet build -c Release Antlr/
+	dotnet build -c Release parseStg2/
+	dotnet build -c Release "asn1scc.sln"
 
 dotnet-debian.SENTINEL:
 	# install dotnet on debian (https://docs.microsoft.com/en-us/dotnet/core/install/linux-debian)
@@ -30,4 +45,13 @@ clean:
 distclean: clean
 	rm dotnet-debian.SENTINEL
 
-.PHONY: all tests clean
+# Remove all temporary build artefacts and binary folders for both Debug and Release.
+# This includes bin/ and obj/ directories for every project, top-level bin/,
+# generated test output directories, and the publish output directories.
+clean-all:
+	find . -maxdepth 2 -type d \( -name bin -o -name obj \) -exec rm -rf {} +
+	rm -rf bin
+	rm -rf v4Tests/tmp_rust_diag v4Tests/tmp_Rust v4Tests/tmp_c v4Tests/tmp_Ada v4Tests/tmp_python
+	rm -f packages-microsoft-prod.deb
+
+.PHONY: all tests clean clean-all distclean build build-release publish publish-release publish-win64 publish-win64-release

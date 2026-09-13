@@ -1,4 +1,4 @@
-﻿module DastValidate2
+module DastValidate2
 
 open System
 open System.Numerics
@@ -202,8 +202,12 @@ let foldSizableConstraint (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) hasCount co
 let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeId:ReferenceToType)   (c:IA5StringConstraint) (us0:State) =
     let print_AlphabetCheckFunc = lm.isvalid.Print_AlphabetCheckFunc
     let stringContainsChar    (v:String)  =
+        let rustStr = lm.lg.charSetToValidationLiteral v
         let newStr =
-            if v.Length>1 then
+            if rustStr <> v then
+                // Rust override produced a byte-slice literal (b"...")
+                rustStr
+            elif v.Length>1 then
                 v.IDQ
             elif v.Length = 1 then
                 let c = v.ToCharArray()[0]
@@ -294,7 +298,7 @@ let booleanConstraint2ValidationCodeBlock  (lm:LanguageMacros) (c:BoolConstraint
     foldGenericCon lm  (fun v -> v.ToString().ToLower()) c st
 
 
-let objIdConstraint2ValidationCodeBlock  (l:LanguageMacros) (c:ObjectIdConstraint) st =
+let objIdConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (c:ObjectIdConstraint) st =
     let objId_equal = l.isvalid.objId_equal
 
     let printObjectIdentifierValue = l.vars.PrintObjectIdentifierValueAsCompoundLiteral
@@ -303,7 +307,13 @@ let objIdConstraint2ValidationCodeBlock  (l:LanguageMacros) (c:ObjectIdConstrain
         (fun _ (a,b)  s           ->
             let v =  Asn1DefinedObjectIdentifierValue(a,b)
             (fun (p:CodegenScope) ->
-                let lit = printObjectIdentifierValue (v.Values |> List.map fst) (BigInteger v.Values.Length)
+                let oidValues = v.Values |> List.map fst
+                let oidValues =
+                    if l.lg.padArraysWithDefaultValues then
+                        let maxLen = int r.args.objectIdentifierMaxLength
+                        oidValues @ (List.init (maxLen - oidValues.Length) (fun _ -> 0I))
+                    else oidValues
+                let lit = printObjectIdentifierValue oidValues (BigInteger v.Values.Length)
                 VCBExpression (objId_equal (p.accessPath.joined l.lg) lit)) ,s)
         c
         st
@@ -387,7 +397,7 @@ let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMac
     | NullType o, NullConstraint                -> (fun p -> VCBTrue), st
     | Boolean o, BoolConstraint c               -> booleanConstraint2ValidationCodeBlock l c st
     | Enumerated o, EnumConstraint c            -> enumeratedConstraint2ValidationCodeBlock  l  o.baseInfo o.definitionOrRef c st
-    | ObjectIdentifier o, ObjectIdConstraint c  -> objIdConstraint2ValidationCodeBlock l c st
+    | ObjectIdentifier o, ObjectIdConstraint c  -> objIdConstraint2ValidationCodeBlock r l c st
     | TimeType o, TimeConstraint c              -> timeConstraint2ValidationCodeBlock l (l.lg.typeDef o.baseInfo.typeDef) c st
     | Sequence o, SeqConstraint c               ->
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.SeqValue) = VCBTrue //currently single value constraints are ignored.
@@ -467,6 +477,7 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
     let expressionToStatement               = l.isvalid.ExpressionToStatement
     let choice_child_always_present_Exp   = l.isvalid.Choice_child_always_present_Exp
     let choice_child_always_absent_Exp    = l.isvalid.Choice_child_always_absent_Exp
+    let sChoiceTypeName = defOrRef.longTypedefName2 (Some l.lg) l.lg.hasModules typeId.ModName
 
 
     let handleNamedConstraint curState (nc:NamedConstraint) =
@@ -483,12 +494,13 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
                     fnc chp), ns
 
         let childCheck =
+            let sChildLocalName = l.lg.getAsn1ChChildBackendName ch
             let newChildCheckFnc (p:CodegenScope) =
                 match childCheck p with
-                | VCBExpression  exp -> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) "" (l.lg.getAccess p.accessPath) presentWhenName (expressionToStatement exp), [])
-                | VCBStatement   (stat, lv1)-> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) "" (l.lg.getAccess p.accessPath) presentWhenName stat, lv1)
+                | VCBExpression  exp -> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) sChildLocalName (l.lg.getAccess p.accessPath) presentWhenName (expressionToStatement exp) sChoiceTypeName, [])
+                | VCBStatement   (stat, lv1)-> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) sChildLocalName (l.lg.getAccess p.accessPath) presentWhenName stat sChoiceTypeName, lv1)
                 | VCBTrue            -> VCBTrue
-                | VCBFalse           -> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) "" (l.lg.getAccess p.accessPath) (presentWhenName) (expressionToStatement "FALSE"), [])
+                | VCBFalse           -> VCBStatement (choice_OptionalChild (p.accessPath.joined l.lg) sChildLocalName (l.lg.getAccess p.accessPath) (presentWhenName) (expressionToStatement "FALSE") sChoiceTypeName, [])
 
             newChildCheckFnc
 
@@ -497,10 +509,10 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
             | Asn1Ast.NoMark        -> []
             | Asn1Ast.MarkOptional  -> []
             | Asn1Ast.MarkAbsent    ->
-                let isExp = (fun (p:CodegenScope) -> VCBExpression (choice_child_always_absent_Exp (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) presentWhenName  ))
+                let isExp = (fun (p:CodegenScope) -> VCBExpression (choice_child_always_absent_Exp (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) presentWhenName sChoiceTypeName ))
                 [isExp]
             | Asn1Ast.MarkPresent    ->
-                let isExp = (fun (p:CodegenScope) -> VCBExpression (choice_child_always_present_Exp (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) presentWhenName ))
+                let isExp = (fun (p:CodegenScope) -> VCBExpression (choice_child_always_present_Exp (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) presentWhenName sChoiceTypeName ))
                 [isExp]
 
         presentAbsent@[childCheck], ns
@@ -690,7 +702,7 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:
     let conToStrFunc_basic (p:CodegenScope)  =
         VCBExpression (l.lg.getObjectIdentifierIsValidExpr p o.relativeObjectId)
 
-    let fnc, ns = o.cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock l c us) us
+    let fnc, ns = o.cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock r l c us) us
     let fncs = conToStrFunc_basic::fnc
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
@@ -869,6 +881,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
     let choice_check_children             = l.isvalid.choice
     let always_true_statement             = l.isvalid.always_true_statement
     let always_false_statement            = l.isvalid.always_false_statement
+    let sChoiceTypeName                    = typeDefinition.longTypedefName2 (Some l.lg) l.lg.hasModules t.moduleName
 
 
     let handleChild (child:ChChildInfo) (us:State) =
@@ -880,7 +893,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
             let childFnc =
                 let newFunc =
                     (fun (p:CodegenScope) ->
-                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name sChildTypeName, []))
+                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name sChoiceTypeName sChildTypeName, []))
                 newFunc
             Some(IsValidEmbedded {|isValidStatement = childFnc; localVars = []; alphaFuncs = []; childErrCodes = [] |}), us
         | Some (isValidFunction)    ->
@@ -896,14 +909,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
             let childFnc =
                 let newFunc =
                     (fun (p:CodegenScope) ->
-                        let localTmpVarName =
-                            match ProgrammingLanguage.ActiveLanguages.Head with
-                            | Scala -> child._scala_name
-                            | _ -> ""
+                        let localTmpVarName = ""
                         match func p with
-                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name sChildTypeName, lv)
+                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name sChoiceTypeName sChildTypeName, lv)
                         | ValidationStatementFalse   (st,lv)
-                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false c_name sChildTypeName, lv) )
+                        | ValidationStatement   (st,lv)  -> ValidationStatement (choice_child presentWhenName st false c_name sChoiceTypeName sChildTypeName, lv) )
                         //| ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv) )
@@ -980,7 +990,7 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l refTypeId c us) {us with alphaIndex=0; alphaFuncs=[]}
     | ObjectIdentifier _ ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.ObjectIdConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock l c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock r l c us) us
     | TimeType tt   ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.TimeConstraint z -> Some z | _ -> None )
         cons |> Asn1Fold.foldMap (fun us c -> timeConstraint2ValidationCodeBlock l (l.lg.typeDef tt.baseInfo.typeDef) c us) us

@@ -59,6 +59,7 @@
     <ProjectReference Include="..\StgPython\StgPython.fsproj" />
     <ProjectReference Include="..\StgScala\StgScala.fsproj" />
     <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
+    <ProjectReference Include="..\StgRust\StgRust.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="antlr.runtime">

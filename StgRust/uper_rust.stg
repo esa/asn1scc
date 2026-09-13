@@ -1,0 +1,1049 @@
+group rust_uper;
+
+rtlModuleName() ::= ""
+
+
+
+
+call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);"
+call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(&mut <p>, pBitStrm, pErrCode);"
+
+call_superclass_func_encode(p, sFuncName) ::= "ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);"
+call_superclass_func_decode(p, sFuncName) ::= "ret = <sFuncName>(&mut <p>, pBitStrm, pErrCode);"
+
+
+
+
+/*******************************************************/
+/*   U P E R                                           */
+/*******************************************************/
+
+
+
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
+pub const <sErrCode>: i32 = <nErrValue>;
+>>
+
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+<arrsErrcodes; separator="\n">
+pub const <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: usize = <nMaxBytesInPER>;
+pub const <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: usize = <nMaxBitsInPER>;
+>>
+
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+pub fn <sFuncName>(<sVarName>: &<sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32, bCheckConstraints: bool) -> bool {
+    let mut ret: bool = true;
+<if(bVarNameIsUnreferenced)>
+    let _ = <sVarName>;
+
+<endif>
+<if(bBsIsUnreferenced)>
+    let _ = pBitStrm;
+
+<endif>
+
+    <arrsLocalVariables:{lv|<lv>}; separator="\n">
+    <if(soIValidFuncName)>
+    *pErrCode = 0;
+    ret = if bCheckConstraints { <soIValidFuncName>(<sVarName>, pErrCode) } else { true };
+    if ret && *pErrCode == 0 {
+        <sContent>
+    } /*COVERAGE_IGNORE*/
+
+    <else>
+    *pErrCode = 0;
+    let _ = bCheckConstraints;
+
+    <sContent>
+
+    <endif>
+
+    ret
+}
+>>
+
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+<arrsErrcodes; separator="\n">
+>>
+
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+pub fn <sFuncName>(<sVarName>: &mut <sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32) -> bool {
+    let mut ret: bool = true;
+    *pErrCode = 0;
+<if(bVarNameIsUnreferenced)>
+    let _ = <sVarName>;
+
+<endif>
+<if(bBsIsUnreferenced)>
+    let _ = pBitStrm;
+
+<endif>
+
+    <arrsLocalVariables:{lv|<lv>}; separator="\n">
+
+    <sContent>
+
+    ret<if(soIValidFuncName)> && <soIValidFuncName>(<sVarName>, pErrCode)<endif>
+}
+>>
+
+
+
+
+InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<
+pBitStrm.append_byte0(<p><sAcc>arr[<i>]);
+>>
+
+InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
+{
+    let (val, ok) = pBitStrm.read_byte();
+    <p><sAcc>arr[<i>] = val;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+PrintAlphabet2(arrnCharSet) /*nogen*/::= <<
+static ALLOWED_CHAR_SET: [u8; <length(arrnCharSet)>] = [<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=", ">];
+>>
+
+InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
+<PrintAlphabet2(arrnAlphabetAsciiCodes)>
+let char_index = get_char_index(<p>[<i>] as char, &ALLOWED_CHAR_SET);
+pBitStrm.encode_constraint_whole_number(char_index as i64, 0, <nLastItemIndex>);
+>>
+
+InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
+<PrintAlphabet2(arrnAlphabetAsciiCodes)>
+let mut char_index: i64 = 0;
+let (val, ok) = pBitStrm.decode_constraint_whole_number(0, <nLastItemIndex>);
+char_index = val;
+ret = ok;
+*pErrCode = if ret { 0 } else { <sErrCode> };
+if ret && (char_index \< 0 || char_index \> <nLastItemIndex>) { ret = false; *pErrCode = <sErrCode>; }
+<p>[<i>] = if ret { ALLOWED_CHAR_SET[char_index as usize] } else { 0 };
+>>
+
+InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
+pBitStrm.encode_constraint_whole_number(<p>[<i>] as i64, 0, 127);
+>>
+
+InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
+let mut char_value: i64 = 0;
+let (val, ok) = pBitStrm.decode_constraint_whole_number(0, 127);
+char_value = val;
+ret = ok;
+*pErrCode = if ret { 0 } else { <sErrCode> };
+<p>[<i>] = char_value as u8;
+>>
+
+
+/* INTETEGER START*/
+
+
+/*case: A:: = INTEGER (-5..20) */
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= "pBitStrm.encode_constraint_whole_number(<p>, <nMin>, <nMax>);"
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soType) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(<nMin>, <nMax>);
+    <p> = val as _;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+/*case: Positive fully constraint A:: = INTEGER (5..20) */
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= "pBitStrm.encode_constraint_pos_whole_number(<p> as u64, <nMin>, <nMax>);"
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode, soRangeAssert, soType) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_constraint_pos_whole_number(<nMin>, <nMax>);
+    <p> = val as _;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+
+/*case: A :: = INTEGER */
+IntUnconstrained_encode(p, sErrCode, bCoverageIgnore, soType) ::= "pBitStrm.encode_unconstrained_whole_number(<p>);"
+IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_unconstrained_whole_number();   <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
+    <p> = val as _;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };                               <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
+}
+>>
+
+/*case: A :: = INTEGER(MIN..5) */
+IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "pBitStrm.encode_unconstrained_whole_number(<p>);"
+IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_unconstrained_whole_number();
+    <p> = val as _;
+    ret = ok;
+    *pErrCode = if (ret<if(soCheckExp)> && (<soCheckExp>)<endif>) { 0 } else { <sErrCode> };
+}
+>>
+
+
+
+/*case: A:: = INTEGER (-5..MAX) */
+IntSemiConstraint_encode(p, nMin, sErrCode, soType) ::= "pBitStrm.encode_semi_constraint_whole_number(<p>, <nMin>);"
+IntSemiConstraint_decode(p, nMin, sErrCode, soType) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_semi_constraint_whole_number(<nMin>);
+    <p> = val as _;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+
+/*case: A:: = INTEGER (5..MAX) */
+IntSemiConstraintPos_encode(p, nMin, sErrCode, soType) ::= "pBitStrm.encode_semi_constraint_pos_whole_number(<p> as u64, <nMin>);"
+IntSemiConstraintPos_decode(p, nMin, sErrCode, soType) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_semi_constraint_pos_whole_number(<nMin>);
+    <p> = val as _;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+
+/*case: A:: = INTEGER (5..5) */
+IntNoneRequired_encode(p, sConst, sErrCode, soType) ::=<<
+/* No need to encode value since it will always be <sConst> */
+let _ = pBitStrm;
+>>
+
+IntNoneRequired_decode(p, sConst, sErrCode, soType) ::= <<
+<p> = <sConst>;
+let _ = pBitStrm;
+ret = true;
+*pErrCode = 0;
+>>
+
+
+/*case: A:: = INTEGER (5..40,...) */
+IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+pBitStrm.append_bit_zero(); /* write extension bit*/
+<sIntBody>
+>>
+
+
+IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+{
+    let mut ext_bit: bool = false;
+    /* read extension bit*/
+    let (val, ok) = pBitStrm.read_bit();
+    ext_bit = val;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    if ret {
+        if !ext_bit { /* ext bit is zero ==> value is expected with root range*/
+            <sIntBody>
+        } else {
+            <IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="true")>
+        }
+    }
+}
+>>
+
+
+/*case: A:: = INTEGER (5..40,..., 60..70) */
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
+if <sRootBaseConstraint> {
+    pBitStrm.append_bit_zero(); /* write extension bit, value within root range, so ext bit is zero */
+    <sIntBody>
+} else {
+    /* value is not within root range, so ext bit is one and value is encoded as unconstrained */
+    pBitStrm.append_bit_one();
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, soType=sType)>
+}
+>>
+
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
+
+
+/* INTETEGER END*/
+
+
+
+
+Boolean_encode(p, sErrCode, sType) ::= "pBitStrm.append_bit(<p>);"
+
+Boolean_decode(p, sErrCode, sType) ::= <<
+{
+    let (val, ok) = pBitStrm.read_bit();
+    <p> = val;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+Real_encode(p, sSuffix, sErrCode, sType) ::= "pBitStrm.encode_real(<p>);"
+Real_decode(p, sSuffix, sErrCode, sType) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_real<sSuffix>();
+    <p> = val;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+}
+>>
+
+ObjectIdentifier_encode(p, sErrCode) ::= "ret = (<p>).uper_encode(pBitStrm);"
+ObjectIdentifier_decode(p, sErrCode) ::= <<
+ret = (<p>).uper_decode(pBitStrm);
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+
+RelativeOID_encode(p, sErrCode) ::= "ret = (<p>).relative_uper_encode(pBitStrm);"
+RelativeOID_decode(p, sErrCode) ::= <<
+ret = (<p>).relative_uper_decode(pBitStrm);
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+
+Time_encode(p, sTimeSubType, sErrCode) ::= "ret = <sTimeSubType>::uper_encode(<p>, pBitStrm);"
+Time_decode(p, sTimeSubType, sErrCode) ::= <<
+ret = <sTimeSubType>::uper_decode(<p>, pBitStrm);
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+
+
+
+Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
+<sName> => {
+    pBitStrm.encode_constraint_whole_number(<nIndex>, 0, <nLastItemIndex>);
+}
+>>
+
+Enumerated_item_decode(p, sName, nIndex, nLastItemIndex) ::= <<
+<nIndex> => {
+    <p> = <sName>;
+}
+>>
+
+Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
+match <p> {
+    <arrsItem; separator="\n">
+    _ => {                    /*COVERAGE_IGNORE*/
+        *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+        ret = false;            /*COVERAGE_IGNORE*/
+    }
+}
+>>
+
+Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
+{
+    let mut enum_index: i64;
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(0, <nLastItemIndex>);
+    enum_index = val;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    if ret {
+        match enum_index {
+            <arrsItem; separator="\n">
+            _ => {                        /*COVERAGE_IGNORE*/
+                *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
+                ret = false;                /*COVERAGE_IGNORE*/
+            }
+        }
+    } else {
+        <p> = <sFirstItemName>;             /*COVERAGE_IGNORE*/
+    }
+}
+>>
+
+Enumerated_no_switch_encode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
+<sEnumIndex> = binary_search(&<td.encoded_values_array>, <p>);
+ret = <sEnumIndex> \>= 0 && <sEnumIndex> \<= <nLastItemIndex>;
+if ret {
+    pBitStrm.encode_constraint_whole_number(<sEnumIndex> as i64, 0, <nLastItemIndex>);
+}
+*pErrCode = if ret { 0 } else { <sErrCode> };
+
+>>
+
+Enumerated_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sErrCode, sEnumIndex, nLastItemIndex, sFirstItemName) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(0, <nLastItemIndex>);
+    <sEnumIndex> = val;
+    ret = ok && <sEnumIndex> \>= 0 && <sEnumIndex> \<= <nLastItemIndex>;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    <p> = if ret { <td.encoded_values_array>[<sEnumIndex> as usize] } else { <sFirstItemName> };
+}
+>>
+
+
+/* CHOICE START*/
+
+choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
+<sChoiceTypeName>::<sChildID>(ref <sChildName>) => {
+    pBitStrm.encode_constraint_whole_number(<nChildIndex>, 0, <nLastItemIndex>);
+    <sChildContent>
+}
+>>
+
+choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
+<nChildIndex> => {
+    let mut <sChildName>_tmp: <sChildTypeDef> = <sChildInitExpr>;
+    <sChildContent>
+    asn1rust::asn1scc_assign!( <sChoiceTypeName>::<sChildID>(<sChildName>_tmp) => <p> );
+}
+>>
+
+choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, bIntroSnap) ::= <<
+match <p> {
+<arrsChildren: {ch|<ch>}; separator="\n">
+_ => {                            /*COVERAGE_IGNORE*/
+    *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
+    ret = false;                    /*COVERAGE_IGNORE*/
+}
+}
+>>
+
+choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, bIntroSnap) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(0, <nLastItemIndex>);
+    <sChoiceIndexName> = val;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    if ret {
+        match <sChoiceIndexName> {
+        <arrsChildren: {ch|<ch>}; separator="\n">
+        _ => {                        /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
+            ret = false;                /*COVERAGE_IGNORE*/
+        }
+        }
+    }  /*COVERAGE_IGNORE*/
+}
+>>
+
+/* CHOICE END*/
+
+
+
+/* SEQUENCE START */
+sequence_presence_bit_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "pBitStrm.append_bit(<p><sAcc>exist.<sChName>);"
+sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
+let mut _presence_<sChName>: bool = false;
+let (val, ok) = pBitStrm.read_bit();
+_presence_<sChName> = val;
+ret = ok;
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+
+sequence_presence_bit_fix_encode(p, sAcc, sChName, soExistVar, sErrCode, sVal) ::= "pBitStrm.append_bit(<sVal>);"
+
+sequence_presence_bit_fix_decode(p, sAcc, sChName, soExistVar, sErrCode, sVal) ::= <<
+<sequence_presence_bit_decode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, sErrCode=sErrCode)>
+>>
+
+
+sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
+/*Encode <sChName> */
+<sChildContent>
+>>
+
+sequence_mandatory_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, bIsPrimitive) ::= <<
+/*Decode <sChName> */
+<sChildContent>
+>>
+
+
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, bIsPrimitive) ::= <<
+/*Encode <sChName> */
+if <p><sAcc>exist.<sChName> {
+    <sChildContent>
+}
+>>
+
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, bIsPrimitive) ::= <<
+/*Decode <sChName> */
+<p><sAcc>exist.<sChName> = _presence_<sChName>;
+if _presence_<sChName> {
+    <sChildContent>
+}
+>>
+
+
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue, bIsPrimitive) ::= <<
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, sChildContent=sChildContent, bIsPrimitive=bIsPrimitive)>
+>>
+
+
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, sInitWithDefaultValue, bIsPrimitive) ::= <<
+/*Decode <sChName> */
+<p><sAcc>exist.<sChName> = _presence_<sChName>;
+if _presence_<sChName> {
+    <sChildContent>
+} else {
+    <sInitWithDefaultValue>
+}
+>>
+
+sequence_build(p, sTypeDefName, bIsOptional, arrsChildren) ::= ""
+
+
+/* SEQUENCE END */
+
+loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
+let mut <i>: usize = 0;
+while <i> \< (<fixedSize> as usize) && ret {
+    <sInternalItem>
+    <i> += 1;
+}
+>>
+
+
+/* IA5String & Numeric String */
+
+str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
+>>
+
+str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
+<p>[<nFixedSize>] = 0x0;
+>>
+
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+let n_string_length = <p>.len() as i64;
+/*ret = n_string_length \>= <nSizeMin> && n_string_length \<= <nSizeMax>;*/
+pBitStrm.encode_constraint_whole_number(n_string_length, <nSizeMin>, <nSizeMax>);
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="n_string_length as usize")>
+
+>>
+
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(<nSizeMin>, <nSizeMax>);
+    let n_string_length = val;
+    ret = ok;
+    <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="n_string_length as usize")>
+    <p>[n_string_length as usize] = 0x0;
+}
+>>
+
+
+
+/* SEQUENCE OF & OCTET STRING*/
+seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
+>>
+
+seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
+>>
+
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+pBitStrm.encode_constraint_whole_number(<p><sAcc>n_count as i64, <nSizeMin>, <nSizeMax>);
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count as usize"])>
+>>
+
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(<nSizeMin>, <nSizeMax>);
+    let n_count = val;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    <p><sAcc>n_count = n_count as i32;
+    <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count as usize"])>
+}
+>>
+
+
+
+octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+ret = pBitStrm.octet_string_encode_no_length(&<p><sAcc>arr, <nFixedSize> as usize);
+>>
+
+octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+ret = pBitStrm.octet_string_decode_no_length(&mut <p><sAcc>arr, <nFixedSize> as usize);
+>>
+
+octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
+pBitStrm.encode_constraint_whole_number(<p><sAcc>n_count as i64, <nSizeMin>, <nSizeMax>);
+ret = pBitStrm.octet_string_encode_no_length(&<p><sAcc>arr, <p><sAcc>n_count as usize);
+>>
+
+octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(<nSizeMin>, <nSizeMax>);
+    let n_count = val;
+    ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    <p><sAcc>n_count = n_count as i32;
+    ret = pBitStrm.octet_string_decode_no_length(&mut <p><sAcc>arr, <p><sAcc>n_count as usize);
+}
+>>
+
+
+
+
+/* BIT STRING*/
+bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= "pBitStrm.append_bits(&<p><sAcc>arr, <nFixedSize>);"
+bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
+ret = pBitStrm.read_bits(&mut <p><sAcc>arr, <nFixedSize>);
+*pErrCode = if ret { 0 } else { <sErrCode> };
+>>
+
+bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
+pBitStrm.encode_constraint_whole_number(<p><sAcc>n_count as i64, <nSizeMin>, <nSizeMax>);
+<bitString_FixSize_encode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"n_count"], sErrCode=sErrCode)>
+>>
+
+bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(<nSizeMin>, <nSizeMax>);
+    let n_count = val;
+    ret = ok;
+    if ret {
+        <p><sAcc>n_count = n_count as i32;
+        <bitString_FixSize_decode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "n_count"], sErrCode=sErrCode)>
+    }
+}
+>>
+
+
+FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+//encode <nBlocks64K> x 64K Blocks
+<sCurBlockSize> = 0x10000;
+<sCurOffset> = 0;
+let mut <sBlockIndex>: i32 = 0;
+while <sBlockIndex> \< <nBlocks64K> {
+    pBitStrm.encode_constraint_whole_number(0xC4, 0, 0xFF);
+    <if(bIsBitStringType)>
+    pBitStrm.append_bits(&<p><sAcc>arr[(<sCurOffset>/8) as usize ..], <sCurBlockSize> as i32);
+
+    <else>
+    <sBLI> = <sCurOffset> as usize;
+    while <sBLI> \< (<sCurBlockSize> + <sCurOffset>) as usize
+    {
+        <sInternalItem>
+        <sBLI> += 1;
+    }
+
+    <endif>
+    <sCurOffset> += <sCurBlockSize>;
+    <sBlockIndex> += 1;
+}
+>>
+
+FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+//encode <nBlockSize> Block
+<sCurBlockSize> = <nBlockSize>;
+pBitStrm.encode_constraint_whole_number(<sBlockId>, 0, 0xFF);
+<if(bIsBitStringType)>
+pBitStrm.append_bits(&<p><sAcc>arr[(<sCurOffset>/8) as usize ..], <sCurBlockSize> as i32);
+
+<else>
+<sBLI> = <sCurOffset> as usize;
+while <sBLI> \< (<sCurBlockSize> + <sCurOffset>) as usize
+{
+    <sInternalItem>
+    <sBLI> += 1;
+}
+
+<endif>
+<sCurOffset> += <sCurBlockSize>;
+>>
+
+FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
+//encode remaining <nRemainingItemsVar> items
+<if(bRemainingItemsWithinByte)>
+pBitStrm.encode_constraint_whole_number(<nRemainingItemsVar>, 0, 0xFF);
+
+<else>
+pBitStrm.append_bit(true);
+pBitStrm.encode_constraint_whole_number(<nRemainingItemsVar>, 0, 0x7FFF);
+
+<endif>
+<if(bIsBitStringType)>
+pBitStrm.append_bits(&<p><sAcc>arr[(<sCurOffset>/8) as usize ..], <nRemainingItemsVar> as i32);
+
+<else>
+<sBLI> = <sCurOffset> as usize;
+while <sBLI> \< (<sCurOffset> + <nRemainingItemsVar>) as usize
+{
+    <sInternalItem>
+    <sBLI> += 1;
+}
+
+<endif>
+>>
+
+FixedSize_Fragmentation_sqf_encode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
+<arrsEncodingParts; separator="\n">
+>>
+
+Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
+<sRemainingItemsVar> = <if(bIsAsciiString)><p>.len() as i64<else><if(bIsVariableSize)><p><sAcc>n_count as i64<else><nSizeMax><endif><endif>;
+<sCurBlockSize> = 0;
+<sCurOffset> = 0;
+<sBlockIndex> = 0;
+while <sRemainingItemsVar> \>= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)><p>.len() as i64<else><if(bIsVariableSize)><p><sAcc>n_count as i64<else><nSizeMax><endif><endif>
+{
+    if <sRemainingItemsVar> \>= 0x10000
+    {
+        <sCurBlockSize> = 0x10000;
+        pBitStrm.encode_constraint_whole_number(0xC4, 0, 0xFF);
+    }
+    else if <sRemainingItemsVar> \>= 0xC000
+    {
+        <sCurBlockSize> = 0xC000;
+        pBitStrm.encode_constraint_whole_number(0xC3, 0, 0xFF);
+    }
+    else if <sRemainingItemsVar> \>= 0x8000
+    {
+        <sCurBlockSize> = 0x8000;
+        pBitStrm.encode_constraint_whole_number(0xC2, 0, 0xFF);
+    }
+    else
+    {
+        <sCurBlockSize> = 0x4000;
+        pBitStrm.encode_constraint_whole_number(0xC1, 0, 0xFF);
+    }
+
+    <if(bIsBitStringType)>
+    pBitStrm.append_bits(&<p><sAcc>arr[(<sCurOffset>/8) as usize ..], <sCurBlockSize> as i32);
+    <else>
+    <sBLI> = <sCurOffset> as usize;
+    while <sBLI> \< (<sCurBlockSize> + <sCurOffset>) as usize
+    {
+        <sInternalItem>
+        <sBLI> += 1;
+    }
+    <endif>
+    <sCurOffset> += <sCurBlockSize>;
+    <sRemainingItemsVar> -= <sCurBlockSize>;
+    <sBlockIndex> += 1;
+}
+
+if <sRemainingItemsVar> \<= 0x7F {
+    pBitStrm.encode_constraint_whole_number(<sRemainingItemsVar>, 0, 0xFF);
+} else {
+    pBitStrm.append_bit(true);
+    pBitStrm.encode_constraint_whole_number(<sRemainingItemsVar>, 0, 0x7FFF);
+}
+
+<if(bIsBitStringType)>
+pBitStrm.append_bits(&<p><sAcc>arr[(<sCurOffset>/8) as usize ..], <sRemainingItemsVar> as i32);
+<else>
+<sBLI> = <sCurOffset> as usize;
+while <sBLI> \< (<sCurOffset> + <sRemainingItemsVar>) as usize
+{
+    <sInternalItem>
+    <sBLI> += 1;
+}
+<endif>
+>>
+
+
+FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+//we expect to decode <nBlocks64K> Blocks and each block must contain 64K elements. Each block must begin with the byte 0xC4
+<sCurBlockSize> = 0x10000;
+<sCurOffset> = 0;
+*pErrCode = <sErrCodeName>;
+let mut <sBlockIndex>: i32 = 0;
+while ret && <sBlockIndex> \< <nBlocks64K> {
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(0, 0xFF);
+    <sRemainingItemsVar> = val;
+    ret = ok && (<sRemainingItemsVar> == 0xC4);
+    *pErrCode = if ret { 0 } else { <sErrCodeName> };
+    if ret {
+        <if(bIsBitStringType)>
+        ret = pBitStrm.read_bits(&mut <p><sAcc>arr[(<sCurOffset>/8) as usize..], <sCurBlockSize> as i32);
+        *pErrCode = if ret { 0 } else { <sErrCodeName> };
+
+        <else>
+        <sBLI> = <sCurOffset> as usize;
+        while <sBLI> \< (<sCurBlockSize> + <sCurOffset>) as usize {
+            <sInternalItem>
+            <sBLI> += 1;
+        }
+
+        <endif>
+        <sCurOffset> += <sCurBlockSize>;
+    }
+    <sBlockIndex> += 1;
+}
+>>
+
+
+FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+//decode a single Block with <nBlockSize> items
+<sCurBlockSize> = <nBlockSize>;
+let (val, ok) = pBitStrm.decode_constraint_whole_number(0, 0xFF);
+<sRemainingItemsVar> = val;
+ret = ok && (<sRemainingItemsVar> == <sBlockId>);
+*pErrCode = if ret { 0 } else { <sErrCodeName> };
+if ret {
+<if(bIsBitStringType)>
+    ret = pBitStrm.read_bits(&mut <p><sAcc>arr[(<sCurOffset>/8) as usize..], <sCurBlockSize> as i32);
+    *pErrCode = if ret { 0 } else { <sErrCodeName> };
+
+    <else>
+    <sBLI> = <sCurOffset> as usize;
+    while <sBLI> \< (<sCurBlockSize> + <sCurOffset>) as usize {
+        <sInternalItem>
+        <sBLI> += 1;
+    }
+
+    <endif>
+    <sCurOffset> += <sCurBlockSize>;
+}
+>>
+
+FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
+//decode remaining <nRemainingItemsVar> items
+<if(bRemainingItemsWithinByte)>
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(0, 0xFF);
+    <sRemainingItemsVar> = val;
+    ret = ok && (<sRemainingItemsVar> == <nRemainingItemsVar>);
+}
+
+<else>
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(0, 0xFFFF);
+    <sRemainingItemsVar> = val;
+    ret = ok && ((0x8000 & <sRemainingItemsVar>) \> 0) && ((0x7FFF & <sRemainingItemsVar>) == <nRemainingItemsVar>);
+}
+
+<endif>
+if ret {
+    <if(bIsBitStringType)>
+    ret = pBitStrm.read_bits(&mut <p><sAcc>arr[(<sCurOffset>/8) as usize..], <nRemainingItemsVar> as i32);
+    *pErrCode = if ret { 0 } else { <sErrCodeName> };
+
+    <else>
+    <sBLI> = <sCurOffset> as usize;
+    while <sBLI> \< (<sCurOffset> + <nRemainingItemsVar>) as usize
+    {
+        <sInternalItem>
+        <sBLI> += 1;
+    }
+
+    <endif>
+}
+>>
+
+FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
+<arrsEncodingParts; separator="\n">
+<if(bIsBitStringType)>
+<p>[<nFixedSize>] = 0x0;
+
+<endif>
+>>
+
+
+Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
+<sRemainingItemsVar> = 0;
+<sCurBlockSize> = 0;
+<sCurOffset> = 0;
+<if(bIsVariableSize)><sLengthTmp> = 0;<endif>
+let (val, ok) = pBitStrm.decode_constraint_whole_number(0, 0xFF);
+<sRemainingItemsVar> = val;
+ret = ok;
+*pErrCode = if ret { 0 } else { <sErrCodeName> };
+if ret {
+    while ret && (<sRemainingItemsVar> & 0xC0) == 0xC0
+    {
+        if <sRemainingItemsVar> == 0xC4 {
+            <sCurBlockSize> = 0x10000;
+        } else if <sRemainingItemsVar> == 0xC3 {
+            <sCurBlockSize> = 0xC000;
+        } else if <sRemainingItemsVar> == 0xC2 {
+            <sCurBlockSize> = 0x8000;
+        } else if <sRemainingItemsVar> == 0xC1 {
+            <sCurBlockSize> = 0x4000;
+        } else {
+            *pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
+            return false; /*COVERAGE_IGNORE*/
+        }
+        if <sCurOffset> + <sCurBlockSize> \> <nSizeMax>
+        {
+            *pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
+            return false; /*COVERAGE_IGNORE*/
+        }
+
+        <if(bIsBitStringType)>
+        ret = pBitStrm.read_bits(&mut <p><sAcc>arr[(<sCurOffset>/8) as usize..], <sCurBlockSize> as i32);
+        *pErrCode = if ret { 0 } else { <sErrCodeName> };
+        <else>
+        <sBLI> = <sCurOffset> as usize;
+        while ret && (<sBLI> \< (<sCurOffset> + <sCurBlockSize>) as usize) {
+            <sInternalItem>
+            <sBLI> += 1;
+        }
+        <endif>
+
+        if ret {
+            <if(bIsVariableSize)><sLengthTmp> += <sCurBlockSize>;<endif>
+            <sCurOffset> += <sCurBlockSize>;
+            let (val2, ok2) = pBitStrm.decode_constraint_whole_number(0, 0xFF);
+            <sRemainingItemsVar> = val2;
+            ret = ok2;
+            *pErrCode = if ret { 0 } else { <sErrCodeName> };
+        }
+    }
+    if ret {
+        if (<sRemainingItemsVar> & 0x80) \> 0
+        {
+            let mut len2: i64;
+            <sRemainingItemsVar> \<\<= 8;
+            let (val3, ok3) = pBitStrm.decode_constraint_whole_number(0, 0xFF);
+            len2 = val3;
+            ret = ok3;
+            *pErrCode = if ret { 0 } else { <sErrCodeName> };
+            if ret {
+                <sRemainingItemsVar> |= len2;
+                <sRemainingItemsVar> &= 0x7FFF;
+            }
+        }
+        ret = ret && (<sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>);
+        *pErrCode = if ret { 0 } else { <sErrCodeName> };
+        if ret {
+            <if(bIsBitStringType)>
+            ret = pBitStrm.read_bits(&mut <p><sAcc>arr[(<sCurOffset>/8) as usize..], <sRemainingItemsVar> as i32);
+            *pErrCode = if ret { 0 } else { <sErrCodeName> };
+            <else>
+            <sBLI> = <sCurOffset> as usize;
+            while ret && (<sBLI> \< (<sCurOffset> + <sRemainingItemsVar>) as usize) {
+                <sInternalItem>
+                <sBLI> += 1;
+            }
+            <endif>
+            if ret {
+                <if(bIsVariableSize)><sLengthTmp> += <sRemainingItemsVar>;<endif>
+
+                <if(bIsVariableSize)>
+                if <sLengthTmp> \>= <nSizeMin> && <sLengthTmp> \<= <nSizeMax> {
+                    <if(!bIsAsciiString)>
+                    <p><sAcc>n_count = <sLengthTmp> as i32;
+
+                    <else>
+                    <p>[<sLengthTmp> as usize] = 0x0;
+
+                    <endif>
+                } else {
+                    ret = false;  /*COVERAGE_IGNORE*/
+                    *pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
+                }
+
+                <else>
+                    <if(bIsAsciiString)>
+                    <p>[<nSizeMax>] = 0x0;
+
+                    <endif>
+
+                <endif>
+            }
+        }
+    }
+}
+>>
+
+
+
+
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+/*open new scope to declare some variables*/
+{
+    /*encode to a temporary bitstream*/
+    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
+    let mut bit_strm = BitStream::new(&mut arr);
+
+    ret = <sFuncName>(&<p>, &mut bit_strm, pErrCode, false);
+    if ret {
+        let n_count = if bit_strm.current_bit == 0 { bit_strm.current_byte } else { bit_strm.current_byte + 1 };
+        ret = pBitStrm.octet_string_encode(&arr, n_count as i32, <nMinSize>, <nMaxSize>);
+    }
+}
+>>
+
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+/*open new scope to declare some variables*/
+{
+    /*decode to a temporary bitstream*/
+    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
+    let n_count;
+    let (dec_count, ok) = pBitStrm.octet_string_decode(&mut arr, <nMinSize>, <nMaxSize>);
+    n_count = dec_count;
+    ret = ok;
+    if ret {
+        let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..n_count as usize]);
+        ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
+    }
+}
+>>
+
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+/*open new scope to declare some variables*/
+{
+    /*encode to a temporary bitstream*/
+    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
+    let mut bit_strm = BitStream::new(&mut arr);
+
+    ret = <sFuncName>(&<p>, &mut bit_strm, pErrCode, false);
+    if ret {
+        let n_count = bit_strm.current_byte * 8 + bit_strm.current_bit as i64;
+        ret = pBitStrm.bit_string_encode(&arr, n_count as i32, <nMinSize>, <nMaxSize>);
+    }
+}
+>>
+
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+/*open new scope to declare some variables*/
+{
+    /*decode to a temporary bitstream*/
+    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
+    let n_count;
+    let (dec_count, ok) = pBitStrm.bit_string_decode(&mut arr, <nMinSize>, <nMaxSize>);
+    n_count = dec_count;
+    ret = ok;
+    if ret {
+        let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..(n_count as usize + 7) / 8]);
+        ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
+    }
+}
+>>
+
+
+sparkAnnotations_encode(sTypeDefName) ::= <<
+>>
+
+sparkAnnotations_decode(sTypeDefName) ::= <<
+>>
+
+Null_declare(p, sType) ::= ""
+
+decode_nullType(p) ::= <<
+/*no encoding/decoding is required*/
+>>
+
+decode_empty_sequence_emptySeq(p) ::= <<
+/*no encoding/decoding is required*/
+>>
+
+JoinItems(sPart, soNestedPart) ::= <<
+<sPart>
+<if(soNestedPart)>
+if ret {
+    <soNestedPart>
+}
+
+<endif>
+>>
+
+update_array_item(p, sI, sExpr) ::= ""
+
+InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
+>>
+
+InternalItem_bit_str_decode(p, i, sErrCode) ::=<<
+>>

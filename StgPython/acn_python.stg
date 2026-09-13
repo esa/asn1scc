@@ -1168,12 +1168,12 @@ if not res:
 
 
 /* Choice like uper */
-ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
 if <p> == <sChildID>:
     return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 >>
 
-ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
 if <p> == <nChildIndex>:
     return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 >>
@@ -1310,19 +1310,19 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 <v>_is_initialized = True
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName) ::= <<
 if <v>_choice == <sChildNamePresent>:
     <v> = <sChildRetVal>
     <v>_is_initialized = True
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChildTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
 if <v>_choice == <sChildNamePresent>:
-    <v> = <sChildTypeName>(arr=[<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">])
+    <v> = <sInsertedFieldTypeName>(arr=[<arruChildRetValBytes:{b|0x<b;format="X2">}; separator=", ">])
     <v>_is_initialized = True
 >>
 
-ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName) ::= <<
 <v>_choice = <sChPath>.kind
 <arrsChoiceItems; separator="\nel">
 >>

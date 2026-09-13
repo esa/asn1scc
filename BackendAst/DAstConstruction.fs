@@ -1,4 +1,4 @@
-﻿module DAstConstruction
+module DAstConstruction
 open System
 open System.Numerics
 open System.IO
@@ -30,6 +30,7 @@ let private mapAcnParameter (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         loc = prm.loc
         id = prm.id
         c_name = DAstACN.getAcnDeterminantName prm.id
+        rust_name = DAstACN.getAcnDeterminantName prm.id
         typeDefinitionBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnParameterDeterminant prm)
 
         //funcUpdateStatement00 = funcUpdateStatement
@@ -92,7 +93,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         match ch.Type with
         | Asn1AcnAst.AcnInteger _ -> "0"
         | Asn1AcnAst.AcnBoolean _ -> lm.lg.FalseLiteral
-        | Asn1AcnAst.AcnNullType _ -> "0"
+        | Asn1AcnAst.AcnNullType _ -> lm.lg.nullTypeInitExpression
         | Asn1AcnAst.AcnReferenceToEnumerated e ->
             lm.lg.getNamedItemBackendName (Some (defOrRef r m e)) e.enumerated.items.Head
         | Asn1AcnAst.AcnReferenceToIA5String s ->
@@ -115,6 +116,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
             AcnChild.Name               = ch.Name
             id                          = ch.id
             c_name                      = c_name
+            rust_name                   = c_name
             Type                        = ch.Type
             typeDefinitionBodyWithinSeq = tdBodyWithinSeq
             funcBody                    = DAstACN.handleAlignmentForAcnTypes r lm acnAlignment newFuncBody
@@ -638,6 +640,7 @@ let private createAsn1Child (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1A
             _scala_name        = ch._scala_name
             _python_name        = ch._python_name
             _ada_name          = ch._ada_name
+            _rust_name         = ch._rust_name
             Type               = newChildType
             Optionality        = ch.Optionality
             // acnArgs            = ch.acnArgs
@@ -688,6 +691,7 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         loc = acnChild.Name.Location
                         id = acnChild.id
                         c_name = DAstACN.getAcnDeterminantName acnChild.id
+                        rust_name = DAstACN.getAcnDeterminantName acnChild.id
                         typeDefinitionBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r lm (Asn1AcnAst.AcnChildDeterminant acnChild)
                     }
                     Some acnParam
@@ -808,6 +812,7 @@ let private createChoiceChild (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn
             _scala_name         = ch._scala_name
             _python_name         = ch._python_name
             _ada_name           = ch._ada_name
+            _rust_name          = ch._rust_name
             _present_when_name_private  = ch.present_when_name
             acnPresentWhenConditions = ch.acnPresentWhenConditions
             chType              = newChildType
@@ -990,6 +995,7 @@ let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnA
         scala_name = tas.scala_name
         python_name = tas.python_name
         ada_name = tas.ada_name
+        rust_name = tas.rust_name
         Type = newType
         Comments = tas.Comments |> Seq.toArray
     },ns
@@ -1015,6 +1021,7 @@ let private mapVas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (allNewTypeAss
         scala_name = vas.scala_name
         python_name = vas.python_name
         ada_name = vas.ada_name
+        rust_name = vas.rust_name
         Type = newType
         Value = mapValue vas.Value
     },ns

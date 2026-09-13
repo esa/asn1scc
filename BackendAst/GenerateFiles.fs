@@ -1,4 +1,4 @@
-﻿module GenerateFiles
+module GenerateFiles
 
 open System
 open System.IO
@@ -255,11 +255,11 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                             if reqACN && r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
                                 yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef + "\n" + z.func))
                         } |> Seq.choose id |> Seq.toList
-                    
+
                 let testcase_specFileName = Path.Combine(outDir, pu.testcase_specFileName)
                 let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesBodyFile (ToC pu.testcase_specFileName) pu.name (pu.name::pu.importedProgramUnits) [""] typeDefs false
                 File.WriteAllText(testcase_specFileName, tstCasesHdrContent.Replace("\r",""))
-                
+
             definitionsContent, "BODY"
         else
             //header file
