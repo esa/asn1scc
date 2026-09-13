@@ -1443,3 +1443,10 @@ asn1rust/target/
 /cs
 v4Tests/*_log.txt
 v4Tests/tmp_*/
+
+# Generated coverage reports (container exports and optional local runs)
+/coverage-results/
+/v4Tests/coverage-results/
+/coverage-inventory/
+/coverage-historical/
+/coverage-all/
