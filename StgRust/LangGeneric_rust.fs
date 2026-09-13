@@ -415,8 +415,22 @@ type LangGeneric_rust() =
 
         override _.charToNumericValueExpression charValue = sprintf "b%s" charValue
 
-        override _.charLiteralFromAsciiCode asciiCode =
-            sprintf "b'%c'" (char (int asciiCode))
+        override _.escapeStringLiteral (s:string) =
+            s |> Seq.map(fun c ->
+                match c with
+                | '\\' -> "\\\\"
+                | '"'  -> "\\\""
+                | c when System.Char.IsControl c -> sprintf "\\x%02X" (int c)
+                | c   -> string c) |> String.concat ""
+
+        override _.charLiteral (c:char) =
+            match c with
+            | '\\' -> "b'\\\\'"
+            | '\'' -> "b'\\''"
+            | c when System.Char.IsControl c -> sprintf "b'\\x%02X'" (int c)
+            | c    -> sprintf "b'%c'" c
+
+        override _.quoteStringLiteral (s:string) = sprintf "b\"%s\"" s
 
         // ─────────────────────────────────────────────────────────────────────
         // Overrides for the language-specific ILangGeneric members added to

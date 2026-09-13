@@ -248,6 +248,12 @@ type ILangGeneric () =
     abstract member intValueToString : BigInteger -> Asn1AcnAst.IntegerClass -> string;
     abstract member doubleValueToString : double -> string
     abstract member initializeString :BigInteger option -> int -> string    //the ascii code to use for initialization, and the length of the string
+    /// Escapes the content of a string value so that it can be placed between the double quotes of a string literal of the target language
+    abstract member escapeStringLiteral : string -> string
+    /// Wraps an escaped string in the target language's string literal quotes (e.g. "..." or b"...")
+    abstract member quoteStringLiteral : string -> string
+    /// Renders a single character as a character literal of the target language
+    abstract member charLiteral : char -> string
     abstract member supportsInitExpressions : bool
     abstract member setNamedItemBackendName0 : Asn1Ast.NamedItem -> string -> Asn1Ast.NamedItem
     abstract member getNamedItemBackendName0 : Asn1Ast.NamedItem -> string
@@ -495,10 +501,6 @@ type ILangGeneric () =
     default this.charToNumericValueExpression charValue = charValue
 
     /// Converts an ASCII code (given as a decimal string) to a character literal
-    /// in the target language (e.g. `'A'` for C, `b'A'` for Rust).
-    abstract member charLiteralFromAsciiCode : string -> string
-    default this.charLiteralFromAsciiCode asciiCode =
-        sprintf "'%c'" (char (int asciiCode))
     abstract member validationStringPrefix : string
     default this.validationStringPrefix = "str"
     abstract member shouldRemoveModulePrefixFromTypedef : bool

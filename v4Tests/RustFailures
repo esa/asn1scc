@@ -1,0 +1,7 @@
+Failed 01-INTEGER/005.asn1 MyPDU[] in Rust
+Failed 16-mantis/0000774-DataTypesSimulink.asn1 MyInt[] in Rust
+Failed 16-mantis/0000806.asn1 MyInt[] in Rust
+Failed 16-mantis/0000807.asn1 0000807.acn in Rust
+Failed 16-mantis/0000807b.asn1 0000807b.acn in Rust
+Failed 16-mantis/000724-DataTypesSimulink.asn1 MyInt[] in Rust
+Failed 20-WithComponents/008.asn1 MySeq[] in Rust

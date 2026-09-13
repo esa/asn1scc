@@ -1,0 +1,24 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	-- Quotation marks and backslashes inside IA5String values and constraints
+	-- must be reproduced verbatim by every backend (a "" pair is one quotation mark).
+
+	MyPDU ::= IA5String (SIZE(1..40))
+
+	quoted    MyPDU ::= "say ""hi"" now"
+	backslash MyPDU ::= "C:\dir\file\"
+	escapes   MyPDU ::= "no\nnewline\0here\ttab"
+	mixed     MyPDU ::= "\"""
+
+	ExactStr ::= IA5String (SIZE(12))
+	exact ExactStr ::= "say ""hi"" now"
+
+	Alphabet ::= IA5String (SIZE(1..10)) (FROM ("a".."z" | """" | "\" | "'"))
+	alpha1 Alphabet ::= "ab""cd\'"
+
+	Range ::= IA5String (SIZE(1..10)) (FROM ("'".."\"))
+	range1 Range ::= "A'\"
+
+END
+
+--TCLS     MyPDU[]

@@ -466,11 +466,25 @@ type LangGeneric_python() =
     override _.doubleValueToString (v:double) =
         v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-    override _.initializeString (asciiCode:BigInteger option) (stringSize: int) =
+    override this.initializeString (asciiCode:BigInteger option) (stringSize: int) =
         match asciiCode with
-        | Some ac -> $"\"%c{char ac}\" * %d{stringSize} + \"\\x00\""
+        | Some ac -> $"\"{this.escapeStringLiteral (string (char ac))}\" * %d{stringSize} + \"\\x00\""
         | None -> $"\"\\x00\" * %d{stringSize}"
+    override _.escapeStringLiteral (s:string) =
+        s |> Seq.map(fun c ->
+            match c with
+            | '\\' -> "\\\\"
+            | '"'  -> "\\\""
+            | c when Char.IsControl c -> sprintf "\\x%02X" (int c)
+            | c    -> string c) |> String.concat ""
+    override _.charLiteral (c:char) =
+        match c with
+        | '\\' -> "'\\\\'"
+        | '\'' -> "'\\''"
+        | c when Char.IsControl c -> sprintf "'\\x%02X'" (int c)
+        | c    -> sprintf "'%c'" c
 
+    override _.quoteStringLiteral (s:string) = s.IDQ
 
     override _.supportsInitExpressions = true
 

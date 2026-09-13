@@ -351,8 +351,8 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
         |> Array.tryFind(fun x -> x >= 32I && x <= 126I)
     let sFirstNonNullChar =
         match firstPrintableAsciiCode with
-        | Some c  -> lm.lg.charLiteralFromAsciiCode (c.ToString())
-        | None    -> lm.lg.charLiteralFromAsciiCode "0"
+        | Some c  -> lm.lg.charLiteral (char (int c))
+        | None    -> lm.lg.charLiteral '\000'
     let testCaseFuncs =
         let seqOfCase (nSize:BigInteger)  =
             let initTestCaseFunc (p:CodegenScope) =

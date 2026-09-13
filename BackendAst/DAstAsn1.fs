@@ -28,7 +28,7 @@ let rec printAsn1Value (v:Asn1AcnAst.Asn1Value) =
     | Asn1AcnAst.RealValue           v       -> stg_asn1.Print_RealValue v.Value
     | Asn1AcnAst.StringValue(parts,_)          ->
         match parts with
-        | (CStringValue v)::[] ->        stg_asn1.Print_StringValue v
+        | (CStringValue v)::[] ->        stg_asn1.Print_StringValue (CommonTypes.escapeAsn1String v)
         | _     ->        stg_asn1.Print_SeqOfValue (parts |> List.map(fun p -> p.AsAsn1))
     | Asn1AcnAst.BooleanValue        v       -> stg_asn1.Print_BooleanValue v.Value
     | Asn1AcnAst.BitStringValue      v       -> stg_asn1.Print_BitStringValue v.Value
@@ -107,9 +107,9 @@ let foldStringCon    (c:IA5StringConstraint)  =
         (fun _ e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
         (fun _ e s            -> stg_asn1.Print_RootConstraint e, s)
         (fun _ e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun _ v  s           -> stg_asn1.Print_SingleValueConstraint (stg_asn1.Print_StringValue v ),s)
+        (fun _ v  s           -> stg_asn1.Print_SingleValueConstraint (stg_asn1.Print_StringValue (CommonTypes.escapeAsn1String v) ),s)
         (fun _ intCon s       -> foldRangeCon  (fun i -> i.ToString()) (fun i -> i.ToString()) intCon , s)
-        (fun _ alphcon s      -> foldRangeCon  (fun i -> "\"" + i.ToString() + "\"") (fun i -> "\"" + i.ToString() + "\"") alphcon,s)
+        (fun _ alphcon s      -> foldRangeCon  (fun i -> "\"" + CommonTypes.escapeAsn1String (i.ToString()) + "\"") (fun i -> "\"" + CommonTypes.escapeAsn1String (i.ToString()) + "\"") alphcon,s)
         c
         0 |> fst
 

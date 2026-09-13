@@ -97,6 +97,21 @@ type LangGeneric_c() =
             match asciiCode with
             | Some ac -> sprintf "{ [0 ... %d] = 0x%X, [%d] = 0x0}" (stringSize-1) (int ac) stringSize
             | None ->   sprintf "{ [0 ... %d] = 0x0 }" stringSize
+        override _.escapeStringLiteral (s:string) =
+            s |> Seq.map(fun c ->
+                match c with
+                | '\\' -> "\\\\"
+                | '"'  -> "\\\""
+                | c when Char.IsControl c -> sprintf "\\%03o" (int c)
+                | c    -> string c) |> String.concat ""
+        override _.charLiteral (c:char) =
+            match c with
+            | '\\' -> "'\\\\'"
+            | '\'' -> "'\\''"
+            | c when Char.IsControl c -> sprintf "'\\%03o'" (int c)
+            | c    -> sprintf "'%c'" c
+
+        override _.quoteStringLiteral (s:string) = s.IDQ
 
         override _.supportsInitExpressions = false
         override _.requiresHandlingOfEmptySequences = true

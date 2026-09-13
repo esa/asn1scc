@@ -1100,6 +1100,9 @@ type SpecialCharacter =
     | HorizontalTab    // The horizontal tabulation (HT) or character tabulation, which in ASCII has the decimal character code of 9
     | NullCharacter    // 0x0
 
+/// Escapes the content of a string so that it can be written inside an ASN.1 cstring (X.680 12.14: " is written as "")
+let escapeAsn1String (s:string) = s.Replace("\"", "\"\"")
+
 type SingleStringValue =
     | CStringValue  of string
     | SpecialCharacter of SpecialCharacter
@@ -1113,7 +1116,7 @@ type SingleStringValue =
             | SpecialCharacter NullCharacter -> new String(Char.MinValue, 1)
         member this.AsAsn1 =
             match this with
-            | CStringValue  v -> "\"" + v + "\""
+            | CStringValue  v -> "\"" + escapeAsn1String v + "\""
             | SpecialCharacter CarriageReturn -> "cr"
             | SpecialCharacter LineFeed -> "lf"
             | SpecialCharacter HorizontalTab -> "ht"

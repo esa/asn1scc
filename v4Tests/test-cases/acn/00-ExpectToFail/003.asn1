@@ -1,0 +1,10 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	-- Extension markers are not supported. Until this fix an ENUMERATED with '...'
+	-- was silently compiled as a non-extensible type (no extension bit, additions
+	-- folded into the root), so it must be rejected exactly like a SEQUENCE.
+	MyPDU ::= ENUMERATED { active, idle, error, ... }
+
+END
+
+--TCLFC    MyPDU[]          $$$ sample1.asn1:6:45: error: Unsupported ASN.1 feature (extensions)ASN1SCC targets the S/W of space vehicles (it has been built and it is beingmaintained under European Space Agency's supervision). This means thatwe target ASN.1 grammars where the maximum message representation can bestatically computed (and reserved) at compile-time.Think about it: what would you do when the embedded platform in your satelliteruns out of memory? Blue screen? :-)Most telecom protocols (i.e. telecom-related ASN.1 grammars) are unfortunatelynot in that category (of grammars we support) - for example, the '...'construct allows the data of that message to potentially expand (in e.g.future versions of the protocols) with additional information. That howevermeans that we can't statically compute the maximum size of these messages,which is, in effect, infinite.

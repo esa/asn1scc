@@ -24,7 +24,7 @@ let rec PrintAsn1Value (v:Asn1Value) =
     |RealValue(v)            -> stg_asn1.Print_RealValue v.Value
     |StringValue(parts,_)          ->
         match parts with
-        | (CStringValue v)::[] ->        stg_asn1.Print_StringValue v
+        | (CStringValue v)::[] ->        stg_asn1.Print_StringValue (CommonTypes.escapeAsn1String v)
         | _     ->        stg_asn1.Print_SeqOfValue (parts |> List.map(fun p -> p.AsAsn1))
     |TimeValue v             ->
         stg_asn1.Print_TimeValue (asn1DateTimeValueToString  v.Value)
