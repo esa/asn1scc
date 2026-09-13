@@ -32,7 +32,10 @@ use crate::*;
 ///
 /// Mirrors C's static `ByteStream_PutByte`.
 fn byte_stream_put_byte(p_strm: &mut ByteStream, v: u8) -> bool {
-    if p_strm.current_byte + 1 > p_strm.count + 1 {
+    // Off-by-one fix: `current_byte + 1 > count + 1` simplifies to
+    // `current_byte > count`, which allows writing at index `count` (one past
+    // end).  Use `>=` to reject (matches C: `currentByte >= count`).
+    if p_strm.current_byte >= p_strm.count {
         return false;
     }
     p_strm.buf[p_strm.current_byte as usize] = v;
@@ -46,7 +49,8 @@ fn byte_stream_put_byte(p_strm: &mut ByteStream, v: u8) -> bool {
 ///
 /// Mirrors C's static `ByteStream_GetByte`.
 fn byte_stream_get_byte(p_strm: &mut ByteStream) -> Option<u8> {
-    if p_strm.current_byte + 1 > p_strm.count + 1 {
+    // Off-by-one fix: same as byte_stream_put_byte — use `>=` instead of `> + 1`.
+    if p_strm.current_byte >= p_strm.count {
         return None;
     }
     let v = p_strm.buf[p_strm.current_byte as usize];
@@ -276,6 +280,11 @@ pub fn ber_decode_length(p_strm: &mut ByteStream, value: &mut i32, p_err_code: &
                 return false;
             }
         };
+        // Overflow check (matches C: `ret > (INT_MAX - curByte) / 256` → FALSE).
+        if ret > (u32::MAX - b as u32) / 256 {
+            *p_err_code = ErrorCode::BerLengthMismatch;
+            return false;
+        }
         ret <<= 8;
         ret |= b as u32;
     }
@@ -374,6 +383,12 @@ pub fn ber_decode_integer(
     }
     let mut length: i32 = 0;
     if !ber_decode_length(p_strm, &mut length, p_err_code) {
+        return false;
+    }
+
+    // Length range check (matches C: `length < 1 || length > WORD_SIZE` → FALSE).
+    if length < 1 || length > 8 {
+        *p_err_code = ErrorCode::BerLengthMismatch;
         return false;
     }
 
@@ -572,6 +587,12 @@ pub fn ber_decode_ia5_string(
     max_length: i32,
     p_err_code: &mut ErrorCode,
 ) -> bool {
+    // Validate max_length (matches C: `maxLength < 1` → FALSE).
+    if max_length < 1 {
+        *p_err_code = ErrorCode::BerLengthMismatch;
+        return false;
+    }
+
     // Zero the output buffer (matching C's memset).
     for b in value[..max_length as usize].iter_mut() {
         *b = 0;
@@ -582,6 +603,13 @@ pub fn ber_decode_ia5_string(
     }
     let mut length: i32 = 0;
     if !ber_decode_length(p_strm, &mut length, p_err_code) {
+        return false;
+    }
+
+    // Reject when length >= max_length (matches C: `length >= maxLength` → FALSE).
+    // This ensures there is room for a NUL terminator.
+    if length >= max_length {
+        *p_err_code = ErrorCode::BerLengthMismatch;
         return false;
     }
 
@@ -699,6 +727,13 @@ pub fn ber_decode_bit_string(
 ) -> bool {
     let mut length: i32 = 0;
     let mut n_bit_cnt: i32 = 0;
+
+    // Validate max_bit_count (matches C: `maxBitCount < 0` → FALSE).
+    if max_bit_count < 0 {
+        *p_err_code = ErrorCode::BerLengthMismatch;
+        return false;
+    }
+
     let mut max_bytes_len = max_bit_count / 8;
     if max_bit_count % 8 != 0 {
         max_bytes_len += 1;
@@ -711,13 +746,31 @@ pub fn ber_decode_bit_string(
         return false;
     }
 
-    let mut last_byte_unused_bits = match byte_stream_get_byte(p_strm) {
+    // Validate length (matches C: `length < 1` → FALSE).
+    if length < 1 {
+        *p_err_code = ErrorCode::BerLengthMismatch;
+        return false;
+    }
+
+    let last_byte_unused_bits = match byte_stream_get_byte(p_strm) {
         Some(b) => b,
         None => {
             *p_err_code = ErrorCode::InsufficientData;
             return false;
         }
     };
+
+    // Validate unused bits (matches C: `lastByteUnusedBits > 7` → FALSE).
+    if last_byte_unused_bits > 7 {
+        *p_err_code = ErrorCode::BerLengthMismatch;
+        return false;
+    }
+
+    // Reject when content bytes exceed buffer (matches C: `length - 1 > maxBytesLen` → FALSE).
+    if length - 1 > max_bytes_len {
+        *p_err_code = ErrorCode::BerLengthMismatch;
+        return false;
+    }
 
     for i in 0..length - 1 {
         let cur_byte = match byte_stream_get_byte(p_strm) {
@@ -727,12 +780,8 @@ pub fn ber_decode_bit_string(
                 return false;
             }
         };
-        if i < max_bytes_len {
-            n_bit_cnt += 8;
-            value[i as usize] = cur_byte;
-        } else {
-            last_byte_unused_bits = 0;
-        }
+        n_bit_cnt += 8;
+        value[i as usize] = cur_byte;
     }
 
     n_bit_cnt -= last_byte_unused_bits as i32;
@@ -786,6 +835,12 @@ pub fn ber_decode_octet_string(
 ) -> bool {
     let mut length: i32 = 0;
 
+    // Validate max_oct_count (matches C: `maxOctCount < 0` → FALSE).
+    if max_oct_count < 0 {
+        *p_err_code = ErrorCode::BerLengthMismatch;
+        return false;
+    }
+
     // Zero the output buffer (matching C's memset).
     for b in value[..max_oct_count as usize].iter_mut() {
         *b = 0;
@@ -798,7 +853,13 @@ pub fn ber_decode_octet_string(
         return false;
     }
 
-    *oct_count = if length <= max_oct_count { length } else { max_oct_count };
+    // Reject when length exceeds max (matches C: `length > maxOctCount` → FALSE).
+    if length > max_oct_count {
+        *p_err_code = ErrorCode::BerLengthMismatch;
+        return false;
+    }
+
+    *oct_count = length;
 
     for i in 0..length as usize {
         let cur_byte = match byte_stream_get_byte(p_strm) {
@@ -808,9 +869,7 @@ pub fn ber_decode_octet_string(
                 return false;
             }
         };
-        if i < max_oct_count as usize {
-            value[i] = cur_byte;
-        }
+        value[i] = cur_byte;
     }
     true
 }
@@ -1230,10 +1289,12 @@ mod tests {
         let text = b"Hello World";
         assert!(ber_encode_ia5_string(&mut strm, TAG_IA5STRING, text, 11, &mut err));
 
+        // With the security fix, decoding an 11-byte string into a 5-byte buffer
+        // is rejected (length >= max_length) rather than silently truncated.
         strm.current_byte = 0;
         let mut value = [0u8; 5]; // max_length = 5
-        assert!(ber_decode_ia5_string(&mut strm, TAG_IA5STRING, &mut value, 5, &mut err));
-        assert_eq!(&value, b"Hello");
+        assert!(!ber_decode_ia5_string(&mut strm, TAG_IA5STRING, &mut value, 5, &mut err));
+        assert_eq!(err, ErrorCode::BerLengthMismatch);
     }
 
     #[test]

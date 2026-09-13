@@ -160,6 +160,10 @@ fn subidentifiers_uper_decode(
 
         b_last_octet = (cur_byte & 0x80) == 0;
         cur_octet_value = cur_byte & 0x7F;
+        // Overflow check: shifting left by 7 must not exceed i64::MAX.
+        if *si_value > (i64::MAX as u64 >> 7) {
+            return false;
+        }
         *si_value <<= 7;
         *si_value |= cur_octet_value as Asn1SccUint;
     }
@@ -182,6 +186,9 @@ fn decode_length(bs: &mut BitStream, total_size: &mut Asn1SccSint) -> bool {
     }
     *total_size = ts;
     if *total_size > 0x7F {
+        if *total_size >= 0xC0 {
+            return false;
+        }
         let (len2, ok2) = bs.decode_constraint_whole_number(0, 0xFF);
         if !ok2 {
             return false;
@@ -211,6 +218,11 @@ impl ObjectIdentifier {
         // A sub-identifier takes at most sizeof(asn1SccUint) + 2 octets.
         let mut tmp = [0u8; OBJECT_IDENTIFIER_MAX_LENGTH * (WORD_SIZE as usize + 2)];
         let mut total_size: usize = 0;
+
+        // Validate the OID and check for overflow when combining the first two arcs.
+        if !self.0.is_valid() || self.0.values[1] > i64::MAX as u64 - self.0.values[0] * 40 {
+            return false;
+        }
 
         // Combine the first two arcs.
         subidentifiers_uper_encode(&mut tmp, &mut total_size, self.0.values[0] * 40 + self.0.values[1]);
@@ -260,8 +272,8 @@ impl ObjectIdentifier {
             return false;
         }
         self.0.n_count = 2;
-        self.0.values[0] = si / 40;
-        self.0.values[1] = si % 40;
+        self.0.values[0] = if si < 80 { si / 40 } else { 2 };
+        self.0.values[1] = si - self.0.values[0] * 40;
 
         // Remaining sub-identifiers.
         while total_size > 0 && self.0.n_count < OBJECT_IDENTIFIER_MAX_LENGTH as i32 {

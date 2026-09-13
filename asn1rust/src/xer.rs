@@ -109,7 +109,16 @@ fn uint_to_string(v: Asn1SccUint) -> String {
 /// so that `1.0 <= |v| < 10.0`, and the mantissa is printed with enough
 /// digits (1 if integral, up to 17 otherwise) followed by `E<exponent>`.
 fn double_to_string(mut v: f64) -> String {
-    if v.abs() < 1e-17 {
+    // Handle special values before the normalisation loops (matches C
+    // Double2String: isnan → "NaN", isinf → "INF"/"-INF", v == 0 → "0").
+    // Without these checks the `while v.abs() >= 10.0` loop would hang on ±Inf.
+    if v.is_nan() {
+        return "NaN".to_string();
+    }
+    if v.is_infinite() {
+        return if v < 0.0 { "-INF".to_string() } else { "INF".to_string() };
+    }
+    if v == 0.0 {
         return "0".to_string();
     }
 
@@ -392,10 +401,18 @@ fn add_attribute(p_attr_array: &mut XmlAttributeArray, attr: &str, val: &str) ->
 /// newline.
 ///
 /// Mirrors C `Xer_EncodeXmlHeader`.
-pub fn encode_xml_header(p_byte_strm: &mut ByteStream, xml_header: Option<&str>) {
+///
+/// Returns `false` if the header does not fit in the buffer
+/// (matches C: `count <= 0 || len >= count` → return FALSE).
+pub fn encode_xml_header(p_byte_strm: &mut ByteStream, xml_header: Option<&str>) -> bool {
     let hdr = xml_header.unwrap_or(DEFAULT_XML_HEADER);
     let bytes = hdr.as_bytes();
     let len = bytes.len() as i64;
+    // Bounds check: if the header length >= count (buffer size), we cannot
+    // safely write it.  This prevents a panic on undersized buffers.
+    if len >= p_byte_strm.count {
+        return false;
+    }
     // C does strcpy at buf[0]; we do the same — reset cursor.
     p_byte_strm.current_byte = 0;
     p_byte_strm.buf[..bytes.len()].copy_from_slice(bytes);
@@ -404,6 +421,7 @@ pub fn encode_xml_header(p_byte_strm: &mut ByteStream, xml_header: Option<&str>)
         p_byte_strm.buf[p_byte_strm.current_byte as usize] = b'\n';
         p_byte_strm.current_byte += 1;
     }
+    true
 }
 
 /// Write an XML comment `<!--comment-->` to the stream.
@@ -1398,10 +1416,22 @@ pub fn decode_octet_string(
         }
     }
 
+    // Validate: odd-length hex string is malformed (matches C: len % 2 != 0 → FALSE).
+    if j % 2 != 0 {
+        return false;
+    }
+
+    // Validate: decoded byte count must not exceed buffer_max_size
+    // (matches C: len / 2 > bufferMaxSize → FALSE).
+    let byte_count = j / 2;
+    if byte_count > buffer_max_size as usize {
+        return false;
+    }
+
     // Convert hex pairs to bytes.
     let mut _byte_count = 0i32;
     let mut i = 0usize;
-    while i < j && (i / 2) < buffer_max_size as usize {
+    while i < j {
         let nibble = match char_to_nibble(cleaned[i]) {
             Some(n) => n,
             None => return false,
@@ -1415,7 +1445,7 @@ pub fn decode_octet_string(
         _byte_count = ((i + 1) / 2) as i32;
     }
 
-    *n_count = j as i32 / 2 + (if j % 2 != 0 { 1 } else { 0 });
+    *n_count = j as i32 / 2;
     true
 }
 
@@ -1458,6 +1488,12 @@ pub fn decode_bit_string(
         bytes += 1;
     }
 
+    // Validate: decoded byte count must not exceed buffer_max_size
+    // (matches C: bytes > bufferMaxSize → FALSE).
+    if bytes > buffer_max_size {
+        return false;
+    }
+
     // Zero the output.
     for b in value.iter_mut().take(bytes as usize) {
         *b = 0;
@@ -1465,7 +1501,11 @@ pub fn decode_bit_string(
 
     // Convert bits to bytes.
     let mut i = 0usize;
-    while i < j && (i / 8) < buffer_max_size as usize {
+    while i < j {
+        // Validate that each character is '0' or '1' (matches C: tmp[i] != '0' && tmp[i] != '1' → FALSE).
+        if cleaned[i] != b'0' && cleaned[i] != b'1' {
+            return false;
+        }
         let cur_val = (cleaned[i] - b'0') as u8;
         let cur_bit = 7 - (i % 8) as i32;
         value[i / 8] |= cur_val << cur_bit;
@@ -1856,7 +1896,7 @@ mod tests {
     fn test_encode_xml_header_default() {
         let mut buf = make_encode_buf(256);
         let mut strm = ByteStream::init(&mut buf);
-        encode_xml_header(&mut strm, None);
+        assert!(encode_xml_header(&mut strm, None));
         let len = strm.current_byte as usize;
         let s = std::str::from_utf8(&strm.buf[..len]).unwrap();
         assert_eq!(s, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -1866,10 +1906,18 @@ mod tests {
     fn test_encode_xml_header_custom() {
         let mut buf = make_encode_buf(256);
         let mut strm = ByteStream::init(&mut buf);
-        encode_xml_header(&mut strm, Some("<?xml version=\"1.1\"?>"));
+        assert!(encode_xml_header(&mut strm, Some("<?xml version=\"1.1\"?>")));
         let len = strm.current_byte as usize;
         let s = std::str::from_utf8(&strm.buf[..len]).unwrap();
         assert_eq!(s, "<?xml version=\"1.1\"?>\n");
+    }
+
+    #[test]
+    fn test_encode_xml_header_too_large() {
+        // Header is 38 bytes + newline; a 20-byte buffer should be rejected.
+        let mut buf = make_encode_buf(20);
+        let mut strm = ByteStream::init(&mut buf);
+        assert!(!encode_xml_header(&mut strm, None));
     }
 
     // ── encode_comment ──

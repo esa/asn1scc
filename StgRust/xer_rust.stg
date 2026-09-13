@@ -77,12 +77,12 @@ ret = xer::encode_integer(p_byte_strm, <sTag>, <p>, <nLevel>);
 Integer_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 {
     if let Some(val) = xer::decode_integer(p_byte_strm, <sTag>) {
-        <p> = val;
+        <p> = val as _;
         ret = true;
     } else {
         ret = false;
     }
-    <if(soCheckExp)><soCheckExp><endif>
+    <if(soCheckExp)>if ret { <soCheckExp> }<endif>
     *p_err_code = if ret { 0 } else { <sErrCode> };
 }
 >>
@@ -95,12 +95,12 @@ ret = xer::encode_pos_integer(p_byte_strm, <sTag>, <p> as u64, <nLevel>);
 IntegerPos_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 {
     if let Some(val) = xer::decode_pos_integer(p_byte_strm, <sTag>) {
-        <p> = val as i64;
+        <p> = val as _;
         ret = true;
     } else {
         ret = false;
     }
-    <if(soCheckExp)><soCheckExp><endif>
+    <if(soCheckExp)>if ret { <soCheckExp> }<endif>
     *p_err_code = if ret { 0 } else { <sErrCode> };
 }
 >>
@@ -118,7 +118,7 @@ Boolean_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
     } else {
         ret = false;
     }
-    <if(soCheckExp)><soCheckExp><endif>
+    <if(soCheckExp)>if ret { <soCheckExp> }<endif>
     *p_err_code = if ret { 0 } else { <sErrCode> };
 }
 >>
@@ -133,12 +133,12 @@ ret = xer::encode_real(p_byte_strm, <sTag>, <p>, <nLevel>);
 Real_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 {
     if let Some(val) = xer::decode_real(p_byte_strm, <sTag>) {
-        <p> = val;
+        <p> = val as _;
         ret = true;
     } else {
         ret = false;
     }
-    <if(soCheckExp)><soCheckExp><endif>
+    <if(soCheckExp)>if ret { <soCheckExp> }<endif>
     *p_err_code = if ret { 0 } else { <sErrCode> };
 }
 >>
@@ -152,7 +152,7 @@ ret = xer::encode_object_identifier(p_byte_strm, <sTag>, <p>, <nLevel>);
 
 ObjectIdentifier_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = xer::decode_object_identifier(p_byte_strm, <sTag>, &mut <p>);
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if ret { <soCheckExp> }<endif>
 *p_err_code = if ret { 0 } else { <sErrCode> };
 >>
 
@@ -165,7 +165,7 @@ ret = <sTimeSubType>::xer_encode(p_byte_strm, <sTag>, <p>, <nLevel>);
 
 TimeType_decode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = <sTimeSubType>::xer_decode(p_byte_strm, <sTag>, &mut <p>);
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if ret { <soCheckExp> }<endif>
 *p_err_code = if ret { 0 } else { <sErrCode> };
 >>
 
@@ -178,21 +178,21 @@ ret = xer::encode_null(p_byte_strm, <sTag>, <p>, <nLevel>);
 
 Null_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = xer::decode_null(p_byte_strm, <sTag>);
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if ret { <soCheckExp> }<endif>
 *p_err_code = if ret { 0 } else { <sErrCode> };
 >>
 
 
 
-String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+String_encode(p, sTag, nLevel, soCheckExp, sErrCode, nMaxLength) ::= <<
 ret = xer::encode_string(p_byte_strm, <sTag>, <p>, <nLevel>);
 *p_err_code = if ret { 0 } else { <sErrCode> };
 >>
 
-String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+String_decode(p, sTag, nLevel, soCheckExp, sErrCode, nMaxLength) ::= <<
 {
     let mut tmp: [u8; 1024] = [0; 1024];
-    ret = xer::decode_string(p_byte_strm, <sTag>, &mut tmp, 1024);
+    ret = xer::decode_string(p_byte_strm, <sTag>, &mut tmp, (<nMaxLength> + 1) as usize);
     if ret {
         let mut i: usize = 0;
         while i \< tmp.len() && tmp[i] != 0 {
@@ -200,7 +200,7 @@ String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
             i += 1;
         }
     }
-    <if(soCheckExp)><soCheckExp><endif>
+    <if(soCheckExp)>if ret { <soCheckExp> }<endif>
     *p_err_code = if ret { 0 } else { <sErrCode> };
 }
 >>
@@ -244,11 +244,12 @@ Enumerated_decode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
         <arrsItems; separator="\n">
         else {                     /*COVERAGE_IGNORE*/
             *p_err_code = <sErrCode>; /*COVERAGE_IGNORE*/
+            ret = false;              /*COVERAGE_IGNORE*/
         }
     } else {
         *p_err_code = <sErrCode>; /*COVERAGE_IGNORE*/
     }
-    <if(soCheckExp)><soCheckExp><endif>
+    <if(soCheckExp)>if ret { <soCheckExp> }<endif>
     *p_err_code = if ret { 0 } else { <sErrCode> };
 }
 >>
@@ -262,7 +263,7 @@ ret = xer::encode_octet_string(p_byte_strm, <sTag>, &<p><sAcc>arr, <if(!bIsFixed
 
 OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = xer::decode_octet_string(p_byte_strm, <sTag>, &mut <p><sAcc>arr, <nSizeMax> as i32, <if(!bIsFixedSize)>&mut <p><sAcc>n_count<else>&mut { let mut dummy = 0i32; &mut dummy }<endif>);
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if ret { <soCheckExp> }<endif>
 *p_err_code = if ret { 0 } else { <sErrCode> };
 >>
 
@@ -274,7 +275,7 @@ ret = xer::encode_bit_string(p_byte_strm, <sTag>, &<p><sAcc>arr, <if(!bIsFixedSi
 
 BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = xer::decode_bit_string(p_byte_strm, <sTag>, &mut <p><sAcc>arr, <nSizeMax> as i32, <if(!bIsFixedSize)>&mut <p><sAcc>n_count<else>&mut { let mut dummy = 0i32; &mut dummy }<endif>);
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if ret { <soCheckExp> }<endif>
 *p_err_code = if ret { 0 } else { <sErrCode> };
 >>
 
@@ -319,10 +320,11 @@ if ret {
     }
 }
 <if(bFixedSize)>
-*p_err_code = if ret && <sI> == <nSizeMax> as usize { 0 } else { <sErrCode> };
+    ret = ret && <sI> == <nSizeMax> as usize;
+    *p_err_code = if ret { 0 } else { <sErrCode> };
 
 <else>
-<if(soCheckExp)><soCheckExp><endif>
+<if(soCheckExp)>if ret { <soCheckExp> }<endif>
 *p_err_code = if ret { 0 } else { <sErrCode> };
 
 <endif>
@@ -479,8 +481,10 @@ ret = xer::decode_complex_element_start(p_byte_strm, <sTag>, None);
 *p_err_code = if ret { 0 } else { <sErrCode> };
 if ret {
     <sMainBody>
-    ret = xer::decode_complex_element_end(p_byte_strm, <sTag>);
-    *p_err_code = if ret { 0 } else { <sErrCode> };
+    if ret {
+        ret = xer::decode_complex_element_end(p_byte_strm, <sTag>);
+        *p_err_code = if ret { 0 } else { <sErrCode> };
+    }
 }
 >>
 

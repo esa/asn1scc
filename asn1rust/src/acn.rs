@@ -641,11 +641,21 @@ pub fn acn_dec_int_bcd_const_size(
     p_bit_strm: &mut BitStream,
     encoded_size_in_nibbles: i32,
 ) -> (Asn1SccUint, bool) {
+    if encoded_size_in_nibbles < 0 {
+        return (0, false);
+    }
     let mut ret: Asn1SccUint = 0;
     let mut remaining = encoded_size_in_nibbles;
     while remaining > 0 {
         let (digit, ok) = p_bit_strm.read_partial_byte(4);
         if !ok {
+            return (0, false);
+        }
+        if digit > 9 {
+            return (0, false);
+        }
+        // Overflow check: ret * 10 + digit must not overflow
+        if ret > (Asn1SccUint::MAX - digit as Asn1SccUint) / 10 {
             return (0, false);
         }
         ret *= 10;
@@ -678,6 +688,9 @@ pub fn acn_dec_int_bcd_var_size_length_embedded(
     if n_nibbles as i32 > 2 * WORD_SIZE {
         return (0, false);
     }
+    if n_nibbles as i32 > 20 {
+        return (0, false);
+    }
     acn_dec_int_bcd_const_size(p_bit_strm, n_nibbles as i32)
 }
 
@@ -703,8 +716,15 @@ pub fn acn_dec_int_bcd_var_size_null_terminated(
         if !ok {
             return (0, false);
         }
-        if digit > 9 {
+        if digit == 0xF {
             break;
+        }
+        if digit > 9 {
+            return (0, false);
+        }
+        // Overflow check: ret * 10 + digit must not overflow
+        if ret > (Asn1SccUint::MAX - digit as Asn1SccUint) / 10 {
+            return (0, false);
         }
         ret *= 10;
         ret += digit as Asn1SccUint;
@@ -754,6 +774,10 @@ pub fn acn_dec_uint_ascii_const_size(
             return (0, false);
         }
         let d = (digit - b'0') as Asn1SccUint;
+        // Overflow check: ret * 10 + d must not overflow
+        if ret > (Asn1SccUint::MAX - d) / 10 {
+            return (0, false);
+        }
         ret *= 10;
         ret += d;
         remaining -= 1;
@@ -956,6 +980,15 @@ pub fn acn_dec_uint_ascii_var_size_null_terminated(
     }
     while &null_characters[..sz] != &tmp[..sz] {
         let digit = tmp[0];
+        // Validate: digit must be an ASCII digit
+        if !(digit >= b'0' && digit <= b'9') {
+            return (0, false);
+        }
+        let d = (digit - b'0') as Asn1SccUint;
+        // Overflow check: ret * 10 + d must not overflow
+        if ret > (Asn1SccUint::MAX - d) / 10 {
+            return (0, false);
+        }
         // shift left
         for j in 0..sz - 1 {
             tmp[j] = tmp[j + 1];
@@ -965,7 +998,6 @@ pub fn acn_dec_uint_ascii_var_size_null_terminated(
             return (0, false);
         }
         tmp[sz - 1] = b;
-        let d = (digit.wrapping_sub(b'0')) as Asn1SccUint;
         ret *= 10;
         ret += d;
     }
@@ -1638,6 +1670,9 @@ pub fn acn_dec_string_ascii_null_terminated_mult(
     null_character: &[u8],
     str_val: &mut [u8],
 ) -> bool {
+    if max < 0 {
+        return false;
+    }
     let sz = null_character.len().min(10);
     let mut tmp = [0u8; 10];
     let fill_len = (max as usize + 1).min(str_val.len());
@@ -1652,7 +1687,7 @@ pub fn acn_dec_string_ascii_null_terminated_mult(
         tmp[j] = b;
     }
     let mut i: Asn1SccSint = 0;
-    while i <= max && &null_character[..sz] != &tmp[..sz] {
+    while i < max && &null_character[..sz] != &tmp[..sz] {
         str_val[i as usize] = tmp[0];
         i += 1;
         for j in 0..sz - 1 {
@@ -1676,11 +1711,10 @@ pub fn acn_dec_string_ascii_external_field_determinant(
     ext_size_determinant_fld: Asn1SccSint,
     str_val: &mut [u8],
 ) -> bool {
-    let chars = if ext_size_determinant_fld <= max {
-        ext_size_determinant_fld
-    } else {
-        max
-    };
+    if ext_size_determinant_fld > max {
+        return false;
+    }
+    let chars = ext_size_determinant_fld;
     acn_dec_string_ascii_private(p_bit_strm, max, chars, str_val)
 }
 
@@ -1714,6 +1748,9 @@ fn acn_dec_string_char_index_private(
     str_val: &mut [u8],
 ) -> bool {
     let char_set_size = allowed_char_set.len() as Asn1SccSint;
+    if max < 0 || characters_to_decode > max || char_set_size < 1 {
+        return false;
+    }
     let fill_len = (max as usize + 1).min(str_val.len());
     for j in 0..fill_len {
         str_val[j] = 0;
@@ -1754,11 +1791,10 @@ pub fn acn_dec_string_char_index_external_field_determinant(
     ext_size_determinant_fld: Asn1SccSint,
     str_val: &mut [u8],
 ) -> bool {
-    let chars = if ext_size_determinant_fld <= max {
-        ext_size_determinant_fld
-    } else {
-        max
-    };
+    if ext_size_determinant_fld > max {
+        return false;
+    }
+    let chars = ext_size_determinant_fld;
     acn_dec_string_char_index_private(p_bit_strm, max, chars, allowed_char_set, str_val)
 }
 
@@ -1791,11 +1827,10 @@ pub fn acn_dec_ia5string_char_index_external_field_determinant(
     ext_size_determinant_fld: Asn1SccSint,
     str_val: &mut [u8],
 ) -> bool {
-    let chars = if ext_size_determinant_fld <= max {
-        ext_size_determinant_fld
-    } else {
-        max
-    };
+    if ext_size_determinant_fld > max {
+        return false;
+    }
+    let chars = ext_size_determinant_fld;
     acn_dec_string_char_index_private(p_bit_strm, max, chars, &IA5_CHAR_SET, str_val)
 }
 
@@ -1865,7 +1900,10 @@ pub fn acn_dec_int_positive_integer_const_size_u8(
     encoded_size_in_bits: i32,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size(p_bit_strm, encoded_size_in_bits);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 /// Decode a positive integer from a constant-size bit field into a `u16`.
@@ -1875,7 +1913,10 @@ pub fn acn_dec_int_positive_integer_const_size_u16(
     encoded_size_in_bits: i32,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size(p_bit_strm, encoded_size_in_bits);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a positive integer from a constant-size bit field into a `u32`.
@@ -1885,7 +1926,10 @@ pub fn acn_dec_int_positive_integer_const_size_u32(
     encoded_size_in_bits: i32,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size(p_bit_strm, encoded_size_in_bits);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1898,7 +1942,10 @@ pub fn acn_dec_int_positive_integer_const_size_8_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_8(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1911,7 +1958,10 @@ pub fn acn_dec_int_positive_integer_const_size_big_endian_16_u16(
     p_bit_strm: &mut BitStream,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_big_endian_16(p_bit_strm);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a positive integer from big-endian 16-bit into a `u8`.
@@ -1920,7 +1970,10 @@ pub fn acn_dec_int_positive_integer_const_size_big_endian_16_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_big_endian_16(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1933,7 +1986,10 @@ pub fn acn_dec_int_positive_integer_const_size_big_endian_32_u32(
     p_bit_strm: &mut BitStream,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_big_endian_32(p_bit_strm);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 /// Decode a positive integer from big-endian 32-bit into a `u16`.
@@ -1942,7 +1998,10 @@ pub fn acn_dec_int_positive_integer_const_size_big_endian_32_u16(
     p_bit_strm: &mut BitStream,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_big_endian_32(p_bit_strm);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a positive integer from big-endian 32-bit into a `u8`.
@@ -1951,7 +2010,10 @@ pub fn acn_dec_int_positive_integer_const_size_big_endian_32_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_big_endian_32(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1964,7 +2026,10 @@ pub fn acn_dec_int_positive_integer_const_size_big_endian_64_u32(
     p_bit_strm: &mut BitStream,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_big_endian_64(p_bit_strm);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 /// Decode a positive integer from big-endian 64-bit into a `u16`.
@@ -1973,7 +2038,10 @@ pub fn acn_dec_int_positive_integer_const_size_big_endian_64_u16(
     p_bit_strm: &mut BitStream,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_big_endian_64(p_bit_strm);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a positive integer from big-endian 64-bit into a `u8`.
@@ -1982,7 +2050,10 @@ pub fn acn_dec_int_positive_integer_const_size_big_endian_64_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_big_endian_64(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1995,7 +2066,10 @@ pub fn acn_dec_int_positive_integer_const_size_little_endian_16_u16(
     p_bit_strm: &mut BitStream,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_little_endian_16(p_bit_strm);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a positive integer from little-endian 16-bit into a `u8`.
@@ -2004,7 +2078,10 @@ pub fn acn_dec_int_positive_integer_const_size_little_endian_16_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_little_endian_16(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2017,7 +2094,10 @@ pub fn acn_dec_int_positive_integer_const_size_little_endian_32_u32(
     p_bit_strm: &mut BitStream,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_little_endian_32(p_bit_strm);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 /// Decode a positive integer from little-endian 32-bit into a `u16`.
@@ -2026,7 +2106,10 @@ pub fn acn_dec_int_positive_integer_const_size_little_endian_32_u16(
     p_bit_strm: &mut BitStream,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_little_endian_32(p_bit_strm);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a positive integer from little-endian 32-bit into a `u8`.
@@ -2035,7 +2118,10 @@ pub fn acn_dec_int_positive_integer_const_size_little_endian_32_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_little_endian_32(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2048,7 +2134,10 @@ pub fn acn_dec_int_positive_integer_const_size_little_endian_64_u32(
     p_bit_strm: &mut BitStream,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_little_endian_64(p_bit_strm);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 /// Decode a positive integer from little-endian 64-bit into a `u16`.
@@ -2057,7 +2146,10 @@ pub fn acn_dec_int_positive_integer_const_size_little_endian_64_u16(
     p_bit_strm: &mut BitStream,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_little_endian_64(p_bit_strm);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a positive integer from little-endian 64-bit into a `u8`.
@@ -2066,7 +2158,10 @@ pub fn acn_dec_int_positive_integer_const_size_little_endian_64_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_positive_integer_const_size_little_endian_64(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2079,7 +2174,10 @@ pub fn acn_dec_int_positive_integer_var_size_length_embedded_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_positive_integer_var_size_length_embedded(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 /// Decode a positive integer (var-size length-embedded) into a `u16`.
@@ -2088,7 +2186,10 @@ pub fn acn_dec_int_positive_integer_var_size_length_embedded_u16(
     p_bit_strm: &mut BitStream,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_positive_integer_var_size_length_embedded(p_bit_strm);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a positive integer (var-size length-embedded) into a `u32`.
@@ -2097,7 +2198,10 @@ pub fn acn_dec_int_positive_integer_var_size_length_embedded_u32(
     p_bit_strm: &mut BitStream,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_int_positive_integer_var_size_length_embedded(p_bit_strm);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2111,7 +2215,10 @@ pub fn acn_dec_int_twos_complement_const_size_i8(
     encoded_size_in_bits: i32,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size(p_bit_strm, encoded_size_in_bits);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 /// Decode a signed integer from a two's complement constant-size bit field into an `i16`.
@@ -2121,7 +2228,10 @@ pub fn acn_dec_int_twos_complement_const_size_i16(
     encoded_size_in_bits: i32,
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size(p_bit_strm, encoded_size_in_bits);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed integer from a two's complement constant-size bit field into an `i32`.
@@ -2131,7 +2241,10 @@ pub fn acn_dec_int_twos_complement_const_size_i32(
     encoded_size_in_bits: i32,
 ) -> (i32, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size(p_bit_strm, encoded_size_in_bits);
-    (v as i32, ok)
+    if !ok || v > i32::MAX as Asn1SccSint || v < i32::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2144,7 +2257,10 @@ pub fn acn_dec_int_twos_complement_const_size_8_i8(
     p_bit_strm: &mut BitStream,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_8(p_bit_strm);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2157,7 +2273,10 @@ pub fn acn_dec_int_twos_complement_const_size_big_endian_16_i16(
     p_bit_strm: &mut BitStream,
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_big_endian_16(p_bit_strm);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed integer from big-endian 16-bit into an `i8`.
@@ -2166,7 +2285,10 @@ pub fn acn_dec_int_twos_complement_const_size_big_endian_16_i8(
     p_bit_strm: &mut BitStream,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_big_endian_16(p_bit_strm);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2179,7 +2301,10 @@ pub fn acn_dec_int_twos_complement_const_size_big_endian_32_i32(
     p_bit_strm: &mut BitStream,
 ) -> (i32, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_big_endian_32(p_bit_strm);
-    (v as i32, ok)
+    if !ok || v > i32::MAX as Asn1SccSint || v < i32::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i32, true)
 }
 
 /// Decode a signed integer from big-endian 32-bit into an `i16`.
@@ -2188,7 +2313,10 @@ pub fn acn_dec_int_twos_complement_const_size_big_endian_32_i16(
     p_bit_strm: &mut BitStream,
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_big_endian_32(p_bit_strm);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed integer from big-endian 32-bit into an `i8`.
@@ -2197,7 +2325,10 @@ pub fn acn_dec_int_twos_complement_const_size_big_endian_32_i8(
     p_bit_strm: &mut BitStream,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_big_endian_32(p_bit_strm);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2210,7 +2341,10 @@ pub fn acn_dec_int_twos_complement_const_size_big_endian_64_i32(
     p_bit_strm: &mut BitStream,
 ) -> (i32, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_big_endian_64(p_bit_strm);
-    (v as i32, ok)
+    if !ok || v > i32::MAX as Asn1SccSint || v < i32::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i32, true)
 }
 
 /// Decode a signed integer from big-endian 64-bit into an `i16`.
@@ -2219,7 +2353,10 @@ pub fn acn_dec_int_twos_complement_const_size_big_endian_64_i16(
     p_bit_strm: &mut BitStream,
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_big_endian_64(p_bit_strm);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed integer from big-endian 64-bit into an `i8`.
@@ -2228,7 +2365,10 @@ pub fn acn_dec_int_twos_complement_const_size_big_endian_64_i8(
     p_bit_strm: &mut BitStream,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_big_endian_64(p_bit_strm);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2241,7 +2381,10 @@ pub fn acn_dec_int_twos_complement_const_size_little_endian_16_i16(
     p_bit_strm: &mut BitStream,
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_little_endian_16(p_bit_strm);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed integer from little-endian 16-bit into an `i8`.
@@ -2250,7 +2393,10 @@ pub fn acn_dec_int_twos_complement_const_size_little_endian_16_i8(
     p_bit_strm: &mut BitStream,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_little_endian_16(p_bit_strm);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2263,7 +2409,10 @@ pub fn acn_dec_int_twos_complement_const_size_little_endian_32_i32(
     p_bit_strm: &mut BitStream,
 ) -> (i32, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_little_endian_32(p_bit_strm);
-    (v as i32, ok)
+    if !ok || v > i32::MAX as Asn1SccSint || v < i32::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i32, true)
 }
 
 /// Decode a signed integer from little-endian 32-bit into an `i16`.
@@ -2272,7 +2421,10 @@ pub fn acn_dec_int_twos_complement_const_size_little_endian_32_i16(
     p_bit_strm: &mut BitStream,
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_little_endian_32(p_bit_strm);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed integer from little-endian 32-bit into an `i8`.
@@ -2281,7 +2433,10 @@ pub fn acn_dec_int_twos_complement_const_size_little_endian_32_i8(
     p_bit_strm: &mut BitStream,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_little_endian_32(p_bit_strm);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2294,7 +2449,10 @@ pub fn acn_dec_int_twos_complement_const_size_little_endian_64_i32(
     p_bit_strm: &mut BitStream,
 ) -> (i32, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_little_endian_64(p_bit_strm);
-    (v as i32, ok)
+    if !ok || v > i32::MAX as Asn1SccSint || v < i32::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i32, true)
 }
 
 /// Decode a signed integer from little-endian 64-bit into an `i16`.
@@ -2303,7 +2461,10 @@ pub fn acn_dec_int_twos_complement_const_size_little_endian_64_i16(
     p_bit_strm: &mut BitStream,
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_little_endian_64(p_bit_strm);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed integer from little-endian 64-bit into an `i8`.
@@ -2312,7 +2473,10 @@ pub fn acn_dec_int_twos_complement_const_size_little_endian_64_i8(
     p_bit_strm: &mut BitStream,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_int_twos_complement_const_size_little_endian_64(p_bit_strm);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2325,7 +2489,10 @@ pub fn acn_dec_int_twos_complement_var_size_length_embedded_i8(
     p_bit_strm: &mut BitStream,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_int_twos_complement_var_size_length_embedded(p_bit_strm);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 /// Decode a signed integer (var-size length-embedded) into an `i16`.
@@ -2334,7 +2501,10 @@ pub fn acn_dec_int_twos_complement_var_size_length_embedded_i16(
     p_bit_strm: &mut BitStream,
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_int_twos_complement_var_size_length_embedded(p_bit_strm);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed integer (var-size length-embedded) into an `i32`.
@@ -2343,7 +2513,10 @@ pub fn acn_dec_int_twos_complement_var_size_length_embedded_i32(
     p_bit_strm: &mut BitStream,
 ) -> (i32, bool) {
     let (v, ok) = acn_dec_int_twos_complement_var_size_length_embedded(p_bit_strm);
-    (v as i32, ok)
+    if !ok || v > i32::MAX as Asn1SccSint || v < i32::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2357,7 +2530,10 @@ pub fn acn_dec_int_bcd_const_size_u8(
     encoded_size_in_nibbles: i32,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_bcd_const_size(p_bit_strm, encoded_size_in_nibbles);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 /// Decode a BCD integer (const size) into a `u16`.
@@ -2367,7 +2543,10 @@ pub fn acn_dec_int_bcd_const_size_u16(
     encoded_size_in_nibbles: i32,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_bcd_const_size(p_bit_strm, encoded_size_in_nibbles);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a BCD integer (const size) into a `u32`.
@@ -2377,7 +2556,10 @@ pub fn acn_dec_int_bcd_const_size_u32(
     encoded_size_in_nibbles: i32,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_int_bcd_const_size(p_bit_strm, encoded_size_in_nibbles);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2390,7 +2572,10 @@ pub fn acn_dec_int_bcd_var_size_length_embedded_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_bcd_var_size_length_embedded(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 /// Decode a BCD integer (var-size length-embedded) into a `u16`.
@@ -2399,7 +2584,10 @@ pub fn acn_dec_int_bcd_var_size_length_embedded_u16(
     p_bit_strm: &mut BitStream,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_bcd_var_size_length_embedded(p_bit_strm);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a BCD integer (var-size length-embedded) into a `u32`.
@@ -2408,7 +2596,10 @@ pub fn acn_dec_int_bcd_var_size_length_embedded_u32(
     p_bit_strm: &mut BitStream,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_int_bcd_var_size_length_embedded(p_bit_strm);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2421,7 +2612,10 @@ pub fn acn_dec_int_bcd_var_size_null_terminated_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_int_bcd_var_size_null_terminated(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 /// Decode a BCD integer (var-size null-terminated) into a `u16`.
@@ -2430,7 +2624,10 @@ pub fn acn_dec_int_bcd_var_size_null_terminated_u16(
     p_bit_strm: &mut BitStream,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_int_bcd_var_size_null_terminated(p_bit_strm);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode a BCD integer (var-size null-terminated) into a `u32`.
@@ -2439,7 +2636,10 @@ pub fn acn_dec_int_bcd_var_size_null_terminated_u32(
     p_bit_strm: &mut BitStream,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_int_bcd_var_size_null_terminated(p_bit_strm);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2453,7 +2653,10 @@ pub fn acn_dec_sint_ascii_const_size_i8(
     encoded_size_in_bytes: i32,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_sint_ascii_const_size(p_bit_strm, encoded_size_in_bytes);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 /// Decode a signed ASCII integer (const size) into an `i16`.
@@ -2463,7 +2666,10 @@ pub fn acn_dec_sint_ascii_const_size_i16(
     encoded_size_in_bytes: i32,
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_sint_ascii_const_size(p_bit_strm, encoded_size_in_bytes);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed ASCII integer (const size) into an `i32`.
@@ -2473,7 +2679,10 @@ pub fn acn_dec_sint_ascii_const_size_i32(
     encoded_size_in_bytes: i32,
 ) -> (i32, bool) {
     let (v, ok) = acn_dec_sint_ascii_const_size(p_bit_strm, encoded_size_in_bytes);
-    (v as i32, ok)
+    if !ok || v > i32::MAX as Asn1SccSint || v < i32::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2486,7 +2695,10 @@ pub fn acn_dec_sint_ascii_var_size_length_embedded_i8(
     p_bit_strm: &mut BitStream,
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_sint_ascii_var_size_length_embedded(p_bit_strm);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 /// Decode a signed ASCII integer (var-size length-embedded) into an `i16`.
@@ -2495,7 +2707,10 @@ pub fn acn_dec_sint_ascii_var_size_length_embedded_i16(
     p_bit_strm: &mut BitStream,
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_sint_ascii_var_size_length_embedded(p_bit_strm);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed ASCII integer (var-size length-embedded) into an `i32`.
@@ -2504,7 +2719,10 @@ pub fn acn_dec_sint_ascii_var_size_length_embedded_i32(
     p_bit_strm: &mut BitStream,
 ) -> (i32, bool) {
     let (v, ok) = acn_dec_sint_ascii_var_size_length_embedded(p_bit_strm);
-    (v as i32, ok)
+    if !ok || v > i32::MAX as Asn1SccSint || v < i32::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2518,7 +2736,10 @@ pub fn acn_dec_sint_ascii_var_size_null_terminated_i8(
     null_characters: &[u8],
 ) -> (i8, bool) {
     let (v, ok) = acn_dec_sint_ascii_var_size_null_terminated(p_bit_strm, null_characters);
-    (v as i8, ok)
+    if !ok || v > i8::MAX as Asn1SccSint || v < i8::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i8, true)
 }
 
 /// Decode a signed ASCII integer (var-size null-terminated) into an `i16`.
@@ -2528,7 +2749,10 @@ pub fn acn_dec_sint_ascii_var_size_null_terminated_i16(
     null_characters: &[u8],
 ) -> (i16, bool) {
     let (v, ok) = acn_dec_sint_ascii_var_size_null_terminated(p_bit_strm, null_characters);
-    (v as i16, ok)
+    if !ok || v > i16::MAX as Asn1SccSint || v < i16::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i16, true)
 }
 
 /// Decode a signed ASCII integer (var-size null-terminated) into an `i32`.
@@ -2538,7 +2762,10 @@ pub fn acn_dec_sint_ascii_var_size_null_terminated_i32(
     null_characters: &[u8],
 ) -> (i32, bool) {
     let (v, ok) = acn_dec_sint_ascii_var_size_null_terminated(p_bit_strm, null_characters);
-    (v as i32, ok)
+    if !ok || v > i32::MAX as Asn1SccSint || v < i32::MIN as Asn1SccSint {
+        return (0, false);
+    }
+    (v as i32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2552,7 +2779,10 @@ pub fn acn_dec_uint_ascii_const_size_u8(
     encoded_size_in_bytes: i32,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_uint_ascii_const_size(p_bit_strm, encoded_size_in_bytes);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 /// Decode an unsigned ASCII integer (const size) into a `u16`.
@@ -2562,7 +2792,10 @@ pub fn acn_dec_uint_ascii_const_size_u16(
     encoded_size_in_bytes: i32,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_uint_ascii_const_size(p_bit_strm, encoded_size_in_bytes);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode an unsigned ASCII integer (const size) into a `u32`.
@@ -2572,7 +2805,10 @@ pub fn acn_dec_uint_ascii_const_size_u32(
     encoded_size_in_bytes: i32,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_uint_ascii_const_size(p_bit_strm, encoded_size_in_bytes);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2585,7 +2821,10 @@ pub fn acn_dec_uint_ascii_var_size_length_embedded_u8(
     p_bit_strm: &mut BitStream,
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_uint_ascii_var_size_length_embedded(p_bit_strm);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 /// Decode an unsigned ASCII integer (var-size length-embedded) into a `u16`.
@@ -2594,7 +2833,10 @@ pub fn acn_dec_uint_ascii_var_size_length_embedded_u16(
     p_bit_strm: &mut BitStream,
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_uint_ascii_var_size_length_embedded(p_bit_strm);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode an unsigned ASCII integer (var-size length-embedded) into a `u32`.
@@ -2603,7 +2845,10 @@ pub fn acn_dec_uint_ascii_var_size_length_embedded_u32(
     p_bit_strm: &mut BitStream,
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_uint_ascii_var_size_length_embedded(p_bit_strm);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2617,7 +2862,10 @@ pub fn acn_dec_uint_ascii_var_size_null_terminated_u8(
     null_characters: &[u8],
 ) -> (u8, bool) {
     let (v, ok) = acn_dec_uint_ascii_var_size_null_terminated(p_bit_strm, null_characters);
-    (v as u8, ok)
+    if !ok || v > u8::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u8, true)
 }
 
 /// Decode an unsigned ASCII integer (var-size null-terminated) into a `u16`.
@@ -2627,7 +2875,10 @@ pub fn acn_dec_uint_ascii_var_size_null_terminated_u16(
     null_characters: &[u8],
 ) -> (u16, bool) {
     let (v, ok) = acn_dec_uint_ascii_var_size_null_terminated(p_bit_strm, null_characters);
-    (v as u16, ok)
+    if !ok || v > u16::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u16, true)
 }
 
 /// Decode an unsigned ASCII integer (var-size null-terminated) into a `u32`.
@@ -2637,7 +2888,10 @@ pub fn acn_dec_uint_ascii_var_size_null_terminated_u32(
     null_characters: &[u8],
 ) -> (u32, bool) {
     let (v, ok) = acn_dec_uint_ascii_var_size_null_terminated(p_bit_strm, null_characters);
-    (v as u32, ok)
+    if !ok || v > u32::MAX as Asn1SccUint {
+        return (0, false);
+    }
+    (v as u32, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────

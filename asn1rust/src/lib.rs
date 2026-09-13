@@ -121,11 +121,12 @@ impl Asn1ObjectIdentifier {
     }
 
     /// Returns `true` when the OID is structurally valid: at least two arcs,
-    /// first arc ≤ 2, second arc ≤ 39.
+    /// first arc ≤ 2, and second arc ≤ 39 unless the first arc is 2 (X.660 rule:
+    /// second arc is unlimited when first arc is 2).
     pub fn is_valid(&self) -> bool {
         self.n_count >= 2
             && self.values[0] <= 2
-            && self.values[1] <= 39
+            && (self.values[0] == 2 || self.values[1] <= 39)
     }
 
     /// Returns `true` when the value is a valid relative OID (at least one arc).
@@ -153,7 +154,9 @@ impl Asn1ObjectIdentifier {
 
 #[allow(non_snake_case)]
 pub fn ObjectIdentifier_isValid(pVal: Asn1ObjectIdentifier) -> bool {
-    pVal.n_count >= 2 && pVal.values[0] <= 2 && pVal.values[1] <= 39
+    pVal.n_count >= 2
+        && pVal.values[0] <= 2
+        && (pVal.values[0] == 2 || pVal.values[1] <= 39)
 }
 
 #[allow(non_snake_case)]
@@ -376,6 +379,9 @@ pub fn int2uint(v: Asn1SccSint) -> Asn1SccUint {
 /// the original signed value.  Mirrors C `uint2int`.
 #[inline]
 pub fn uint2int(v: Asn1SccUint, uint_size_in_bytes: i32) -> Asn1SccSint {
+    if uint_size_in_bytes < 1 || uint_size_in_bytes > 8 {
+        return 0;
+    }
     let tmp: Asn1SccUint = 0x80;
     let is_negative = (v & (tmp << ((uint_size_in_bytes - 1) * 8))) > 0;
     if !is_negative {
@@ -753,6 +759,9 @@ impl<'a> BitStream<'a> {
     /// Mirrors C `BitStream_ReadBit`.
     pub fn read_bit(&mut self) -> (bool, bool) {
         // returns (value, success)
+        if self.current_byte as usize >= self.count as usize {
+            return (false, false);
+        }
         let idx = self.current_bit as usize;
         let v = self.buf[self.current_byte as usize] & MASKS[idx];
         if self.current_bit < 7 {
@@ -769,6 +778,9 @@ impl<'a> BitStream<'a> {
     /// Peek the current bit without advancing the cursor.
     /// Mirrors C `BitStream_PeekBit`.
     pub fn peek_bit(&self) -> bool {
+        if self.current_byte as usize >= self.count as usize {
+            return false;
+        }
         let idx = self.current_bit as usize;
         self.buf[self.current_byte as usize] & MASKS[idx] != 0
     }
@@ -832,6 +844,12 @@ impl<'a> BitStream<'a> {
     /// `BitStream_AppendByte0`.
     pub fn append_byte0(&mut self, v: u8) -> bool {
         let cb = self.current_bit;
+        if self.current_byte as usize >= self.count as usize {
+            return false;
+        }
+        if cb > 0 && self.current_byte as usize + 1 >= self.count as usize {
+            return false;
+        }
         let ncb = 8 - cb;
         let mask = !MASKSB[ncb as usize];
 
@@ -924,6 +942,13 @@ impl<'a> BitStream<'a> {
         let cb = self.current_bit;
         let total_bits = cb + nbits as i32;
         let mut v: u8;
+
+        if self.current_byte as usize >= self.count as usize {
+            return (0, false);
+        }
+        if total_bits > 8 && self.current_byte as usize + 1 >= self.count as usize {
+            return (0, false);
+        }
 
         if total_bits <= 8 {
             let cur = self.current_byte as usize;
@@ -1133,6 +1158,9 @@ impl<'a> BitStream<'a> {
     /// Decode a non-negative integer of `n_bits` bits.
     /// Mirrors C `BitStream_DecodeNonNegativeInteger`.
     pub fn decode_non_negative_integer(&mut self, n_bits: i32) -> (Asn1SccUint, bool) {
+        if n_bits > 64 {
+            return (0, false);
+        }
         if n_bits <= 32 {
             let (lo, ok) = self.decode_non_negative_integer32_neg(n_bits);
             return (lo as Asn1SccUint, ok);
@@ -1515,6 +1543,9 @@ impl<'a> BitStream<'a> {
             return (0.0, false);
         }
         let header = header_byte;
+        if header >= 0x40 && header <= 0x43 && length != 1 {
+            return (0.0, false);
+        }
         if header == 0x40 {
             return (f64::INFINITY, true);
         }
@@ -1531,8 +1562,13 @@ impl<'a> BitStream<'a> {
     }
 
     fn decode_real_as_binary_encoding(&mut self, mut length: i32, header: u8) -> (f64, bool) {
+        // (a) Validate header: bit 7 must be set, and bits 4-5 must not both be set.
+        if (header & 0x80) == 0 || (header & 0x30) == 0x30 {
+            return (0.0, false);
+        }
+
         let mut sign = 1;
-        let mut exp_factor = 1;
+        let mut exp_factor: i32 = 1;
         if header & 0x40 != 0 {
             sign = -1;
         }
@@ -1541,22 +1577,43 @@ impl<'a> BitStream<'a> {
         } else if header & 0x20 != 0 {
             exp_factor = 4;
         }
-        let f = (header & 0x0C) >> 2;
-        let factor: u32 = 1 << f;
-        let exp_len = (header & 0x03) as i32 + 1;
+        let f = ((header & 0x0C) >> 2) as i32;
+        let factor: u32 = 1u32 << f;
+        let mut exp_len = (header & 0x03) as i32 + 1;
 
-        if exp_len > length {
+        // expLen == 4 means the actual exponent length follows as an explicit byte.
+        if exp_len == 4 {
+            if length < 1 {
+                return (0.0, false);
+            }
+            let (explicit_len, ok) = self.read_byte();
+            if !ok {
+                return (0.0, false);
+            }
+            length -= 1;
+            exp_len = explicit_len as i32;
+        }
+
+        // (b) Validate expLen and remaining length.
+        if exp_len < 1 || exp_len > 4 || exp_len >= length || (length - exp_len) > WORD_SIZE {
             return (0.0, false);
         }
+
+        // (c) Read exponent with sign extension for negative exponents.
         let exp_is_negative = self.peek_bit();
-        let mut exponent: i32 = if exp_is_negative { -1 } else { 0 };
+        let mut exponent_bits: u32 = if exp_is_negative { u32::MAX } else { 0 };
         for _ in 0..exp_len {
             let (b, ok) = self.read_byte();
             if !ok {
                 return (0.0, false);
             }
-            exponent = (exponent << 8) | b as i32;
+            exponent_bits = (exponent_bits << 8) | b as u32;
         }
+        let exponent: i32 = if exp_is_negative {
+            -(!(exponent_bits as i32)) - 1
+        } else {
+            exponent_bits as i32
+        };
         length -= exp_len;
 
         let mut n: Asn1SccUint = 0;
@@ -1568,7 +1625,18 @@ impl<'a> BitStream<'a> {
             n = (n << 8) | b as Asn1SccUint;
         }
 
-        let mut v = Self::get_double_by_mantissa_and_exp(n * factor as Asn1SccUint, exp_factor * exponent);
+        // (d) Clamp the scaled exponent to avoid overflow / underflow.
+        let scaled_exponent: i64 = exp_factor as i64 * exponent as i64 + f as i64;
+        let mut v = if scaled_exponent > i64::from(f64::MAX_EXP) {
+            if n == 0 { 0.0 } else { f64::INFINITY }
+        } else if scaled_exponent < -(i64::from(f64::MAX_EXP) + i64::from(f64::MANTISSA_DIGITS) + WORD_SIZE as i64 * 8) {
+            0.0
+        } else {
+            // C folds F into the exponent (scaledExponent) and uses the raw
+            // mantissa N, so we do the same rather than premultiplying by `factor`.
+            let _ = factor; // unused — kept for parity with C variable
+            Self::get_double_by_mantissa_and_exp(n, scaled_exponent as i32)
+        };
         if sign < 0 {
             v = -v;
         }
