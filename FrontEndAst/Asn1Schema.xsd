@@ -480,6 +480,12 @@
             <xsd:attribute name="uperMinSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="size" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="termination-pattern" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="acnSizeClass" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="lengthDeterminantSizeInBits" use="optional"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="sizeField" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="terminationPattern" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="minSize" use="optional"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="maxSize" use="optional"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
         </xsd:complexType>
     </xsd:element>
 
@@ -516,6 +522,12 @@
             <xsd:attribute name="uperMinSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="size" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="termination-pattern" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="acnSizeClass" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="lengthDeterminantSizeInBits" use="optional"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="sizeField" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="terminationPattern" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="minSize" use="optional"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="maxSize" use="optional"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
         </xsd:complexType>
     </xsd:element>
 
@@ -561,7 +573,9 @@
 
     <xsd:element name="Item" >
         <xsd:complexType>
-            <xsd:sequence/>
+            <xsd:sequence>
+                <xsd:element ref="AsnComment" minOccurs="0" maxOccurs="1"/>
+            </xsd:sequence>
             <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="CName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="ScalaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
@@ -651,6 +665,12 @@
             <xsd:attribute name="uperMinSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="size" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="termination-pattern" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="acnSizeClass" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="lengthDeterminantSizeInBits" use="optional"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="sizeField" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="terminationPattern" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="minSize" use="optional"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="maxSize" use="optional"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
         </xsd:complexType>
     </xsd:element>
 
@@ -825,6 +845,9 @@
             <xsd:attribute name="uperMaxSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="uperMinSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="determinant" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="acnChoiceEncClass" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="choiceIndexSizeInBits" use="optional"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="presenceWhenFields" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
         </xsd:complexType>
     </xsd:element>
 

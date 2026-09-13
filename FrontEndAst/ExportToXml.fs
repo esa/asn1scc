@@ -302,10 +302,32 @@ let exportSizeableSizeProp (a:AcnSizeableSizeProperty option) =
     | Some SzDeduced                             -> [XAttribute(xname "size", "deduced" )]
     | None                     -> []
 
+let exportSizeableEncodingClass (enc:SizeableAcnEncodingClass) =
+    match enc with
+    | SZ_EC_FIXED_SIZE                      -> [XAttribute(xname "acnSizeClass", "fixed")]
+    | SZ_EC_LENGTH_EMBEDDED nBits           -> [XAttribute(xname "acnSizeClass", "length-embedded"); XAttribute(xname "lengthDeterminantSizeInBits", nBits)]
+    | SZ_EC_ExternalField (RelativePath p)  -> [XAttribute(xname "acnSizeClass", "external-field"); XAttribute(xname "sizeField", (p |> Seq.StrJoin "."))]
+    | SZ_EC_TerminationPattern pat          -> [XAttribute(xname "acnSizeClass", "termination-pattern"); XAttribute(xname "terminationPattern", pat.Value)]
+    | SZ_EC_Deduced                         -> [XAttribute(xname "acnSizeClass", "deduced")]
+
 let exportChoiceDeterminant (a:RelativePath option) =
     match a with
     | Some (RelativePath path) -> [XAttribute(xname "determinant", (path |> Seq.StrJoin ".") )]
     | None                     -> []
+
+let exportChoiceEncodingClass (ti:Choice) =
+    let acnChildren = ti.children |> List.filter(fun c -> match c.Optionality with Some ChoiceAlwaysAbsent -> false | _ -> true)
+    match ti.acnProperties.enumDeterminant with
+    | Some _ -> [XAttribute(xname "acnChoiceEncClass", "enum-determinant")]
+    | None   ->
+        match acnChildren |> List.exists(fun c -> not (List.isEmpty c.acnPresentWhenConditions)) with
+        | true  ->
+            let extFields = acnChildren |> List.collect(fun c -> c.acnPresentWhenConditions) |> List.map(fun x -> x.relativePath.AsString) |> Seq.distinct |> Seq.StrJoin ","
+            [XAttribute(xname "acnChoiceEncClass", "presence-when"); XAttribute(xname "presenceWhenFields", extFields)]
+        | false ->
+            let nAlternatives = BigInteger(Seq.length acnChildren)
+            let indexSize = GetChoiceUperDeterminantLengthInBits nAlternatives
+            [XAttribute(xname "acnChoiceEncClass", "uper-index"); XAttribute(xname "choiceIndexSizeInBits", indexSize)]
 
 let exprtRefTypeArgument ((RelativePath path): RelativePath) =
      [XElement(xname "argument", (path |> Seq.StrJoin ".") )]
@@ -393,6 +415,9 @@ let private exportType (t:Asn1Type) =
                         (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
                         (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportSizeableSizeProp ti.acnProperties.sizeProp),
+                        (exportSizeableEncodingClass ti.acnEncodingClass),
+                        XAttribute(xname "minSize", ti.minSize.acn),
+                        XAttribute(xname "maxSize", ti.maxSize.acn),
                         XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printOctetStringVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printOctetStringVal ))
                         ), us )
@@ -413,6 +438,9 @@ let private exportType (t:Asn1Type) =
                         (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
                         (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportSizeableSizeProp ti.acnProperties.sizeProp),
+                        (exportSizeableEncodingClass ti.acnEncodingClass),
+                        XAttribute(xname "minSize", ti.minSize.acn),
+                        XAttribute(xname "maxSize", ti.maxSize.acn),
                         XElement(xname namedBitsTag, ti.namedBitList |> List.map printNamedBit),
                         XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printBitStringVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printBitStringVal ))
@@ -444,8 +472,8 @@ let private exportType (t:Asn1Type) =
                                                                     XAttribute(xname "Value", c.definitionValue),
                                                                     XAttribute(xname "Line", c.Name.Location.srcLine),
                                                                     XAttribute(xname "acnEncodeValue", c.acnEncodeValue),
-
-                                                                    XAttribute(xname "CharPositionInLine", c.Name.Location.charPos)
+                                                                    XAttribute(xname "CharPositionInLine", c.Name.Location.charPos),
+                                                                    (if c.Comments.Length > 0 then XElement(xname "AsnComment", (c.Comments |> Seq.StrJoin "\n")) else null)
                                                                 ))),
                         XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printEnumVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printEnumVal ))
@@ -462,6 +490,9 @@ let private exportType (t:Asn1Type) =
                             (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
                             (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                             (exportSizeableSizeProp ti.acnProperties.sizeProp),
+                            (exportSizeableEncodingClass ti.acnEncodingClass),
+                            XAttribute(xname "minSize", ti.minSize.acn),
+                            XAttribute(xname "maxSize", ti.maxSize.acn),
                             XElement(xname constraintsTag, ti.cons |> List.map(printSequenceOfConstraint printSeqOfValue )),
                             XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSequenceOfConstraint printSeqOfValue )),
                             nc), us )
@@ -558,6 +589,7 @@ let private exportType (t:Asn1Type) =
                                 (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
                                 (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                                 (exportChoiceDeterminant ti.acnProperties.enumDeterminant),
+                                (exportChoiceEncodingClass ti),
                                 children,
                                 XElement(xname constraintsTag, ti.cons |> List.map(printSeqOrChoiceConstraint printChoiceValue )),
                                 XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSeqOrChoiceConstraint printChoiceValue ))
