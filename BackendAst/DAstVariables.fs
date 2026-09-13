@@ -42,7 +42,7 @@ let convertStringValue2TargetLangStringLiteral (lm:LanguageMacros) mxSizeUper (v
         parts |>
         List.map(fun s ->
             match s with
-            | CStringValue  sv -> lm.vars.PrintSingleStringValue (sv.Replace("\"","\"\""))
+            | CStringValue  sv -> lm.vars.PrintSingleStringValue (lm.lg.escapeStringLiteral sv)
             | SpecialCharacter  CarriageReturn -> lm.vars.PrintCR ()
             | SpecialCharacter  LineFeed       -> lm.vars.PrintLF ()
             | SpecialCharacter  HorizontalTab  -> lm.vars.PrintHT ()

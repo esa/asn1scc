@@ -147,6 +147,19 @@ type LangGeneric_scala() =
 
         override _.initializeString (asciiCode:BigInteger option) stringSize = 
             sprintf "Vector.fill[UByte](%d.toInt+1)(0x0.toRawUByte)" stringSize
+        override _.escapeStringLiteral (s:string) =
+            s |> Seq.map(fun c ->
+                match c with
+                | '\\' -> "\\\\"
+                | '"'  -> "\\\""
+                | c when Char.IsControl c -> sprintf "\\u%04X" (int c)
+                | c    -> string c) |> String.concat ""
+        override _.charLiteral (c:char) =
+            match c with
+            | '\\' -> "'\\\\'"
+            | '\'' -> "'\\''"
+            | c when Char.IsControl c -> sprintf "'\\u%04X'" (int c)
+            | c    -> sprintf "'%c'" c
 
         override _.supportsInitExpressions = false
 

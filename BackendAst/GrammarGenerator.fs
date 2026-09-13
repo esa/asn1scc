@@ -129,7 +129,7 @@ let rec printValue (v:Asn1Value) : string =
     match v.Kind with
     |   IntegerValue        v       -> stg_asn1.Print_IntegerValue v.Value
     |   RealValue           v       -> stg_asn1.Print_RealValue v.Value
-    |   StringValue         v       -> stg_asn1.Print_StringValue v.Value
+    |   StringValue         v       -> stg_asn1.Print_StringValue (escapeAsn1String v.Value)
     |   BooleanValue        v       -> stg_asn1.Print_BooleanValue v.Value
     |   BitStringValue      v       -> stg_asn1.Print_BitStringValue v.Value
     |   OctetStringValue    v       -> stg_asn1.Print_OctetStringValue (v |> List.map (fun b -> b.Value))

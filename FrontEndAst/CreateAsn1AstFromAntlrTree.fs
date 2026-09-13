@@ -178,7 +178,8 @@ let rec CreateValue integerSizeInBytes (astRoot:list<ITree>) (tree:ITree ) : Res
                 | asn1Parser.TRUE                   -> Ok (BooleanValue(tree.GetValueL true))
                 | asn1Parser.FALSE                  -> Ok (BooleanValue(tree.GetValueL false))
                 | asn1Parser.StringLiteral          ->
-                    let text = tree.Text.Substring(1, tree.Text.Length-2)
+                    // X.680 12.14: a pair of quotation marks inside a cstring denotes a single quotation mark
+                    let text = tree.Text.Substring(1, tree.Text.Length-2).Replace("\"\"", "\"")
                     Ok (StringValue({ StringLoc.Value = text; Location = tree.Location}))
                 | asn1Parser.NULL                   -> Ok NullValue
                 | asn1Parser.BitStringLiteral       -> Ok (BitStringValue(tree.GetValueL(GetActualString(tree.Text))))

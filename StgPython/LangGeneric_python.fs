@@ -467,6 +467,19 @@ type LangGeneric_python() =
         match asciiCode with
         | Some ac -> $"\"%c{char ac}\" * %d{stringSize} + \"\\x00\""
         | None -> $"\"\\x00\" * %d{stringSize}"
+    override _.escapeStringLiteral (s:string) =
+        s |> Seq.map(fun c ->
+            match c with
+            | '\\' -> "\\\\"
+            | '"'  -> "\\\""
+            | c when Char.IsControl c -> sprintf "\\x%02X" (int c)
+            | c    -> string c) |> String.concat ""
+    override _.charLiteral (c:char) =
+        match c with
+        | '\\' -> "'\\\\'"
+        | '\'' -> "'\\''"
+        | c when Char.IsControl c -> sprintf "'\\x%02X'" (int c)
+        | c    -> sprintf "'%c'" c
 
 
     override _.supportsInitExpressions = true

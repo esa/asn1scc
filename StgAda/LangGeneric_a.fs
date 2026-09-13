@@ -136,6 +136,16 @@ type LangGeneric_a() =
             match asciiCode with
             | Some ac -> sprintf "(1 .. %d => '%c', %d => adaasn1rtl.NUL)" (stringSize) (char (int ac)) (stringSize+1)
             | None ->   sprintf "(others => adaasn1rtl.NUL)"
+        override _.escapeStringLiteral (s:string) =
+            s |> Seq.map(fun c ->
+                match c with
+                | '"' -> "\"\""
+                | c when Char.IsControl c -> sprintf "\" & Character'Val(%d) & \"" (int c)
+                | c   -> string c) |> String.concat ""
+        override _.charLiteral (c:char) =
+            match c with
+            | c when Char.IsControl c -> sprintf "Character'Val(%d)" (int c)
+            | c -> sprintf "'%c'" c
 
         override _.supportsInitExpressions = true
 

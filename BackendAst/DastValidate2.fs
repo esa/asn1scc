@@ -204,20 +204,20 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
     let stringContainsChar    (v:String)  =
         let newStr =
             if v.Length>1 then
-                v.IDQ
+                (lm.lg.escapeStringLiteral v).IDQ
             elif v.Length = 1 then
                 let c = v.ToCharArray()[0]
                 if   c = CommonTypes.CharCR  then lm.vars.PrintCR ()
                 elif c = CommonTypes.CharLF  then lm.vars.PrintLF ()
                 elif c = CommonTypes.CharHT  then lm.vars.PrintHT ()
                 elif c = CommonTypes.CharNul then lm.vars.PrintStringValueNull ()
-                else v.IDQ
+                else (lm.lg.escapeStringLiteral v).IDQ
             else
-                v.IDQ
+                (lm.lg.escapeStringLiteral v).IDQ
         lm.isvalid.stringContainsChar newStr
 
     let foldRangeCharCon (lm:LanguageMacros)   (c:CharTypeConstraint)  st =
-        let valToStrFunc1 v = lm.lg.charToNumericValueExpression (v.ToString().ISQ)
+        let valToStrFunc1 (v:char) = lm.lg.charToNumericValueExpression (lm.lg.charLiteral v)
         foldRangeTypeConstraint   (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
             (fun _ (v:string)  s  -> (fun p -> VCBExpression (stringContainsChar v (p.accessPath.joined lm.lg))) ,s)
             (fun _ v1 v2  minIsIn maxIsIn s   ->
@@ -229,7 +229,7 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
 
     let typeName = ToC ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm"))
     foldStringTypeConstraint2 (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
-        (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpStringEqual (p.accessPath.joined lm.lg) v.IDQ))  ,s)
+        (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpStringEqual (p.accessPath.joined lm.lg) (lm.lg.escapeStringLiteral v).IDQ))  ,s)
         (fun _ intCon s     -> foldSizeRangeTypeConstraint r lm (fun l p -> lm.isvalid.StrLen (p.accessPath.joined lm.lg)) intCon s)
         (fun _ alphcon (s:State)      ->
             let alphaBody p =
