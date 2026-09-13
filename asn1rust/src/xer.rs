@@ -352,16 +352,29 @@ fn la(p_strm: &mut ByteStream) -> Token {
 
 /// Add a name/value attribute pair to an `XmlAttributeArray`.
 ///
-/// Mirrors C `AddAttribute`.  The C version asserts capacity; we silently
-/// ignore overflow to avoid panics.
-fn add_attribute(p_attr_array: &mut XmlAttributeArray, attr: &str, val: &str) {
+/// Mirrors C `AddAttribute` (security-fixed version, ESACERT #74508).
+///
+/// Returns `false` (and leaves `p_attr_array` untouched) when the attribute
+/// cannot be stored safely: the array is already full, or the name/value
+/// does not fit in the fixed-size fields. The caller must treat a `false`
+/// return as an invalid-XML error and stop decoding.
+fn add_attribute(p_attr_array: &mut XmlAttributeArray, attr: &str, val: &str) -> bool {
     if (p_attr_array.n_count as usize) >= p_attr_array.attrs.len() {
-        return;
+        return false;
     }
     let idx = p_attr_array.n_count as usize;
+    // Reject oversized names/values rather than silently truncating them
+    // (matches the C security fix: attrLen >= sizeof(Name) → reject).
+    if attr.len() >= p_attr_array.attrs[idx].name.len() {
+        return false;
+    }
+    if val.len() >= p_attr_array.attrs[idx].value.len() {
+        return false;
+    }
     write_str_to_buf(&mut p_attr_array.attrs[idx].name, attr);
     write_str_to_buf(&mut p_attr_array.attrs[idx].value, val);
     p_attr_array.n_count += 1;
+    true
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -591,7 +604,11 @@ pub fn decode_attributes(
         }
         let name = read_str_from_buf(&t1.value);
         let val = read_str_from_buf(&t2.value);
-        add_attribute(p_attrs, &name, &val);
+        // Fail closed: an attribute that cannot be stored makes the whole
+        // document invalid (mirrors C security fix, ESACERT #74508).
+        if !add_attribute(p_attrs, &name, &val) {
+            return false;
+        }
     }
     true
 }
@@ -2395,8 +2412,8 @@ mod tests {
     #[test]
     fn test_add_attribute() {
         let mut attrs = XmlAttributeArray::new();
-        add_attribute(&mut attrs, "name1", "val1");
-        add_attribute(&mut attrs, "name2", "val2");
+        assert!(add_attribute(&mut attrs, "name1", "val1"));
+        assert!(add_attribute(&mut attrs, "name2", "val2"));
         assert_eq!(attrs.n_count, 2);
         assert_eq!(read_str_from_buf(&attrs.attrs[0].name), "name1");
         assert_eq!(read_str_from_buf(&attrs.attrs[0].value), "val1");
@@ -2412,7 +2429,7 @@ mod tests {
         strm.encode_white_space = true;
 
         let mut attrs = XmlAttributeArray::new();
-        add_attribute(&mut attrs, "xmlns", "http://example.com");
+        assert!(add_attribute(&mut attrs, "xmlns", "http://example.com"));
 
         assert!(encode_complex_element_start(&mut strm, "root", Some(&attrs), 0));
         let len = strm.current_byte as usize;
@@ -2482,5 +2499,49 @@ mod tests {
         assert!(encoded_str.contains("<age>30</age>"));
         assert!(encoded_str.contains("<active><true/></active>"));
         assert!(encoded_str.contains("</Person>"));
+    }
+
+    // ── Security regression: ESACERT #74508 ──
+    // AddAttribute must reject a full array instead of writing past it,
+    // and must reject oversized names/values instead of truncating silently.
+    #[test]
+    fn test_add_attribute_rejects_full_array() {
+        let mut attrs = XmlAttributeArray::new();
+        // Fill all 20 slots
+        for i in 0..20 {
+            assert!(add_attribute(&mut attrs, &format!("n{i}"), "v"));
+        }
+        assert_eq!(attrs.n_count, 20);
+        // The 21st attribute must be rejected, not silently dropped or overflowed.
+        assert!(!add_attribute(&mut attrs, "overflow", "v"));
+        // n_count must not have changed.
+        assert_eq!(attrs.n_count, 20);
+    }
+
+    #[test]
+    fn test_add_attribute_rejects_oversized_name() {
+        let mut attrs = XmlAttributeArray::new();
+        // Name field is [u8; 50] → a 50-char name (exactly field length) is rejected
+        // because there's no room for the NUL terminator.
+        let long_name = "a".repeat(50);
+        assert!(!add_attribute(&mut attrs, &long_name, "v"));
+        assert_eq!(attrs.n_count, 0);
+        // A 49-char name fits (with NUL).
+        let fitting_name = "a".repeat(49);
+        assert!(add_attribute(&mut attrs, &fitting_name, "v"));
+        assert_eq!(attrs.n_count, 1);
+    }
+
+    #[test]
+    fn test_add_attribute_rejects_oversized_value() {
+        let mut attrs = XmlAttributeArray::new();
+        // Value field is [u8; 100] → a 100-char value is rejected.
+        let long_val = "x".repeat(100);
+        assert!(!add_attribute(&mut attrs, "name", &long_val));
+        assert_eq!(attrs.n_count, 0);
+        // A 99-char value fits.
+        let fitting_val = "x".repeat(99);
+        assert!(add_attribute(&mut attrs, "name", &fitting_val));
+        assert_eq!(attrs.n_count, 1);
     }
 }
