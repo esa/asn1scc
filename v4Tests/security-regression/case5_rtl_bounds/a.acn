@@ -1,0 +1,3 @@
+RTL-TEST DEFINITIONS ::= BEGIN
+Text [encoding ASCII, size null-terminated, termination-pattern '0000'H]
+END

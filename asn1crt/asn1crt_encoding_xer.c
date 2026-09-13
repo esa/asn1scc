@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <errno.h>
 
 #include "asn1crt_encoding_xer.h"
 
@@ -22,7 +23,11 @@ char* UInt2String(asn1SccUint v) {
 }
 
 char* Double2String(double v) {
-	if (fabs(v) < 1e-17)
+	if (isnan(v))
+		return "NaN";
+	if (isinf(v))
+		return v < 0 ? "-INF" : "INF";
+	if (v == 0)
 		return "0";
 
 	static char tmp[256];
@@ -49,7 +54,7 @@ char* Double2String(double v) {
 }
 
 flag GetNextChar(ByteStream* pStrm, char* c) {
-	if (pStrm->currentByte >= pStrm->count)
+	if (pStrm->currentByte < 0 || pStrm->currentByte >= pStrm->count)
 		return FALSE;
 	*c = (char)pStrm->buf[pStrm->currentByte];
 	pStrm->currentByte++;
@@ -97,12 +102,13 @@ flag ByteStream_PutNL(ByteStream* pStrm)
 
 flag ByteStream_AppendString(ByteStream* pStrm, const char* v)
 {
-	int len = (int)strlen(v);
-	if (pStrm->currentByte + len >= pStrm->count)
+	size_t len = strlen(v);
+	if (pStrm->currentByte < 0 || pStrm->currentByte >= pStrm->count ||
+		len >= (size_t)(pStrm->count - pStrm->currentByte))
 		return FALSE;
 
-	strcat((char*)&pStrm->buf[pStrm->currentByte], v);
-	pStrm->currentByte += len;
+	memcpy(&pStrm->buf[pStrm->currentByte], v, len + 1);
+	pStrm->currentByte += (long)len;
 	return TRUE;
 }
 
@@ -111,9 +117,9 @@ flag ByteStream_AppendString(ByteStream* pStrm, const char* v)
 #define WORD_ID 1000
 
 flag isPartOfID(char c) {
-	if (isalpha(c))
+	if (isalpha((unsigned char)c))
 		return TRUE;
-	if (isdigit(c))
+	if (isdigit((unsigned char)c))
 		return TRUE;
 	if (c == '.')
 		return TRUE;
@@ -133,6 +139,8 @@ Token NT(ByteStream* pByteStrm) {
 	char *tmp;
 	size_t written = 0;
 	memset(&ret, 0x0, sizeof(Token));
+	if (pByteStrm->currentByte < 0)
+		return ret;
 
 	while (pByteStrm->currentByte < pByteStrm->count && isspace(pByteStrm->buf[pByteStrm->currentByte]))
 		pByteStrm->currentByte++;
@@ -193,7 +201,7 @@ Token NT(ByteStream* pByteStrm) {
 }
 
 Token LA(ByteStream* pByteStrm) {
-	int tmp;
+	long tmp;
 	Token ret;
 	tmp = pByteStrm->currentByte;
 
@@ -228,7 +236,7 @@ flag AddAttribute(XmlAttributeArray* pAttrArray, const char* attr, const char* v
 	size_t attrLen;
 	size_t valLen;
 
-	if (pAttrArray == NULL)
+	if (pAttrArray == NULL || attr == NULL || val == NULL)
 		return FALSE;
 	if (pAttrArray->nCount < 0 || pAttrArray->nCount >= MAX_NUM_OF_XML_ATTRIBUTES)
 		return FALSE;
@@ -298,8 +306,10 @@ flag Xer_DecodePrimitiveElement(ByteStream* pByteStrm, const char* elementTag, c
 	Token t;
 	char c = 0x0;
 
-	strcpy(pDecodedValue, "");
 	*pErrCode = ERR_INVALID_XML_FILE; /* +++ */
+	if (maxLen == 0 || pDecodedValue == NULL || elementTag == NULL)
+		return FALSE;
+	pDecodedValue[0] = '\0';
 
 	if (NT(pByteStrm).TokenID != '<') {
 		*pErrCode = ERR_INVALID_XML_FILE; /* +++ */
@@ -603,12 +613,6 @@ flag Xer_EncodeBoolean(ByteStream* pByteStrm, const char* elementTag, flag value
 
 flag Xer_EncodeEnumerated(ByteStream* pByteStrm, const char* elementTag, const char* value, int *pErrCode, int level)
 {
-	char tmp[256];
-	memset(tmp, 0x0, sizeof(tmp));
-	strcat(tmp, "<");
-	strcat(tmp, value);
-	strcat(tmp, "/>");
-
 	if (elementTag == NULL || strlen(elementTag) == 0)
 		return Xer_EncodePrimitiveElement(pByteStrm, value, "", pErrCode, level);
 
@@ -764,20 +768,40 @@ flag Xer_DecodeNull(ByteStream* pByteStrm, const char* elementTag, NullType* val
 flag Xer_DecodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSint* value, int *pErrCode)
 {
 	char tmp[256];
+	char* end;
+	intmax_t parsed;
 	memset(tmp, 0x0, sizeof(tmp));
 	if (!Xer_DecodePrimitiveElement(pByteStrm, elementTag, tmp, sizeof(tmp), pErrCode))
 		return FALSE;
-	*value = atoll(tmp);
+	errno = 0;
+	parsed = strtoimax(tmp, &end, 10);
+	if (end == tmp || errno == ERANGE)
+		return FALSE;
+	while (isspace((unsigned char)*end)) end++;
+	if (*end != '\0' || parsed < -(intmax_t)(MAX_INT >> 1) - 1 || parsed > (intmax_t)(MAX_INT >> 1))
+		return FALSE;
+	*value = (asn1SccSint)parsed;
 	return TRUE;
 }
 
 flag Xer_DecodePosInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccUint* value, int *pErrCode)
 {
 	char tmp[256];
+	char* end;
+	char* start = tmp;
+	uintmax_t parsed;
 	memset(tmp, 0x0, sizeof(tmp));
 	if (!Xer_DecodePrimitiveElement(pByteStrm, elementTag, tmp, sizeof(tmp), pErrCode))
 		return FALSE;
-	*value = strtoull(tmp, NULL, 10);
+	while (isspace((unsigned char)*start)) start++;
+	if (*start == '-') return FALSE;
+	errno = 0;
+	parsed = strtoumax(start, &end, 10);
+	if (end == start || errno == ERANGE || parsed > MAX_INT)
+		return FALSE;
+	while (isspace((unsigned char)*end)) end++;
+	if (*end != '\0') return FALSE;
+	*value = (asn1SccUint)parsed;
 	return TRUE;
 }
 
@@ -835,13 +859,20 @@ flag Xer_DecodeEnumerated(ByteStream* pByteStrm, const char* elementTag, char* v
 	return TRUE;
 }
 
-flag Xer_DecodeReal(ByteStream* pByteStrm, const char* elementTag, double* value, int *pErrCode)
+flag Xer_DecodeReal(ByteStream* pByteStrm, const char* elementTag, asn1Real* value, int *pErrCode)
 {
 	char tmp[256];
+	char* end;
+	double parsed;
 	memset(tmp, 0x0, sizeof(tmp));
 	if (!Xer_DecodePrimitiveElement(pByteStrm, elementTag, tmp, sizeof(tmp), pErrCode))
 		return FALSE;
-	*value = atof(tmp);
+	errno = 0;
+	parsed = strtod(tmp, &end);
+	if (end == tmp || (errno == ERANGE && isinf(parsed))) return FALSE;
+	while (isspace((unsigned char)*end)) end++;
+	if (*end != '\0') return FALSE;
+	*value = (asn1Real)parsed;
 	return TRUE;
 }
 
@@ -882,12 +913,14 @@ flag Xer_DecodeOctetString(ByteStream* pByteStrm, const char* elementTag, byte v
 	len = (int)strlen(tmp);
 
 	for (i = 0; i<len; i++) {
-		if (isspace(tmp[i]))
+		if (isspace((unsigned char)tmp[i]))
 			continue;
 		tmp[j++] = tmp[i];
 	}
 
 	len = j;
+	if (bufferMaxSize < 0 || len % 2 != 0 || len / 2 > bufferMaxSize)
+		return FALSE;
 
 	for (i = 0; i<len && i / 2 < bufferMaxSize; i++) {
 		byte nibble;
@@ -912,33 +945,28 @@ flag Xer_DecodeOctetString(ByteStream* pByteStrm, const char* elementTag, byte v
 flag Xer_DecodeObjectIdentifier(ByteStream* pByteStrm, const char* elementTag, Asn1ObjectIdentifier *pVal, int *pErrCode)
 {
 	char tmp[1024];
-	int len = 0;
-	int i;
-	int j = 0;
-	char delim[] = ".";
+	char* ptr = tmp;
+	Asn1ObjectIdentifier decoded = {0};
 	memset(tmp, 0x0, sizeof(tmp));
 	if (!Xer_DecodePrimitiveElement(pByteStrm, elementTag, tmp, sizeof(tmp), pErrCode))
 		return FALSE;
 
-	len = (int)strlen(tmp);
-
-	for (i = 0; i<len; i++) {
-		if (isspace(tmp[i]))
-			continue;
-		tmp[j++] = tmp[i];
+	for (;;) {
+		char* end;
+		uintmax_t arc;
+		while (isspace((unsigned char)*ptr)) ptr++;
+		if (*ptr < '0' || *ptr > '9' || decoded.nCount >= OBJECT_IDENTIFIER_MAX_LENGTH)
+			return FALSE;
+		errno = 0;
+		arc = strtoumax(ptr, &end, 10);
+		if (errno == ERANGE || arc > MAX_INT) return FALSE;
+		decoded.values[decoded.nCount++] = (asn1SccUint)arc;
+		while (isspace((unsigned char)*end)) end++;
+		if (*end == '\0') break;
+		if (*end != '.') return FALSE;
+		ptr = end + 1;
 	}
-
-	len = j;
-
-	char *ptr = strtok(tmp, delim);
-	i = 0;
-	while (ptr != NULL && i < OBJECT_IDENTIFIER_MAX_LENGTH)
-	{
-		pVal->values[i++] = atoll(tmp);
-
-		ptr = strtok(NULL, delim);
-	}
-
+	*pVal = decoded;
 	return TRUE;
 }
 
@@ -975,7 +1003,7 @@ flag Xer_DecodeBitString(ByteStream* pByteStrm, const char* elementTag, byte val
 
 	len = (int)strlen(tmp);
 	for (i = 0; i<len; i++) {
-		if (isspace(tmp[i]))
+		if (isspace((unsigned char)tmp[i]))
 			continue;
 		tmp[j++] = tmp[i];
 	}
@@ -984,6 +1012,11 @@ flag Xer_DecodeBitString(ByteStream* pByteStrm, const char* elementTag, byte val
 	bytes = len / 8;
 	if (len % 8)
 		bytes++;
+	if (bufferMaxSize < 0 || bytes > bufferMaxSize)
+		return FALSE;
+	for (i = 0; i < len; i++)
+		if (tmp[i] != '0' && tmp[i] != '1')
+			return FALSE;
 
 	memset(value, 0x0, (size_t)bytes);
 
@@ -1004,7 +1037,7 @@ flag Xer_DecodeBitString(ByteStream* pByteStrm, const char* elementTag, byte val
 flag Xer_NextEndElementIs(ByteStream* pByteStrm, const char* elementTag)
 {
 	Token t;
-	int save = pByteStrm->currentByte;
+	long save = pByteStrm->currentByte;
 
 	if (NT(pByteStrm).TokenID != '<') {
 		pByteStrm->currentByte = save;
@@ -1036,7 +1069,7 @@ flag Xer_NextEndElementIs(ByteStream* pByteStrm, const char* elementTag)
 flag Xer_NextStartElementIs(ByteStream* pByteStrm, const char* elementTag)
 {
 	Token t;
-	int save = pByteStrm->currentByte;
+	long save = pByteStrm->currentByte;
 
 	if (NT(pByteStrm).TokenID != '<') {
 		pByteStrm->currentByte = save;
@@ -1075,7 +1108,7 @@ flag Xer_NextStartElementIs(ByteStream* pByteStrm, const char* elementTag)
 flag Xer_LA_NextElementTag(ByteStream* pByteStrm, char* elementTag)
 {
 	Token t;
-	int save = pByteStrm->currentByte;
+	long save = pByteStrm->currentByte;
 
 	if (NT(pByteStrm).TokenID != '<') {
 		pByteStrm->currentByte = save;
@@ -1135,8 +1168,11 @@ void Xer_EncodeXmlHeader(ByteStream* pByteStrm, const char* xmlHeader)
 	if (xmlHeader != NULL)
 		hdr = xmlHeader;
 
-	strcpy((char*)pByteStrm->buf, hdr);
-	pByteStrm->currentByte = (long)strlen(hdr);
+	size_t len = strlen(hdr);
+	if (pByteStrm->count <= 0 || len >= (size_t)pByteStrm->count)
+		return;
+	memcpy(pByteStrm->buf, hdr, len);
+	pByteStrm->currentByte = (long)len;
 	pByteStrm->buf[pByteStrm->currentByte++] = '\n';
 }
 

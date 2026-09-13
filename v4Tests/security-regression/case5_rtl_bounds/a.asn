@@ -1,0 +1,14 @@
+RTL-TEST DEFINITIONS ::= BEGIN
+Bits ::= BIT STRING (SIZE(8))
+VarBits ::= BIT STRING (SIZE(1..8))
+Octets ::= OCTET STRING (SIZE(1..2))
+Truth ::= BOOLEAN
+Small ::= INTEGER (0..7)
+Signed ::= INTEGER
+Number ::= REAL
+Identifier ::= OBJECT IDENTIFIER
+Text ::= IA5String (SIZE(0..3))
+Label ::= ENUMERATED { first, second }
+Pair ::= SEQUENCE (SIZE(2)) OF INTEGER (0..10)
+Select ::= CHOICE { selection Label, amount INTEGER (0..10) }
+END

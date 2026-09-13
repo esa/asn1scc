@@ -160,12 +160,12 @@ ret = Xer_DecodeNull(pByteStrm, <sTag>, <p>, pErrCode);
 
 
 
-String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+String_encode(p, sTag, nLevel, soCheckExp, sErrCode, nMaxLength) ::= <<
 ret = Xer_EncodeString(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
-String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+String_decode(p, sTag, nLevel, soCheckExp, sErrCode, nMaxLength) ::= <<
 ret = Xer_DecodeString(pByteStrm, <sTag>, <p>, sizeof(<p>), pErrCode);
 <if(soCheckExp)><soCheckExp><endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
@@ -432,6 +432,5 @@ if (ret) {
 
 call_base_type_func_encode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(<p>, <soXmlTag>, pByteStrm, pErrCode, FALSE);"
 call_base_type_func_decode(p, soXmlTag, sFuncName, sBaseTypeName) ::= "ret = <sFuncName>_aux(<p>, <soXmlTag>, pByteStrm, pErrCode);"
-
 
 

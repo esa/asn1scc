@@ -36,6 +36,8 @@ void ObjectIdentifier_uper_encode(BitStream* pBitStrm, const Asn1ObjectIdentifie
 	int totalSize = 0;
 
 	int i = 0;
+	if (!ObjectIdentifier_isValid(pVal) || pVal->values[1] > MAX_INT - pVal->values[0] * 40)
+		return;
 	ObjectIdentifier_subidentifiers_uper_encode(tmp, &totalSize, pVal->values[0] * 40 + pVal->values[1]);
 	for (i = 2; i < pVal->nCount; i++) {
 		ObjectIdentifier_subidentifiers_uper_encode(tmp, &totalSize, pVal->values[i]);
@@ -61,6 +63,7 @@ void RelativeOID_uper_encode(BitStream* pBitStrm, const Asn1ObjectIdentifier *pV
 	byte tmp[OBJECT_IDENTIFIER_MAX_LENGTH * (sizeof(asn1SccUint) + 2)];
 	int totalSize = 0;
 	int i = 0;
+	if (!RelativeOID_isValid(pVal)) return;
 
 	for (i = 0; i < pVal->nCount; i++) {
 		ObjectIdentifier_subidentifiers_uper_encode(tmp, &totalSize, pVal->values[i]);
@@ -95,10 +98,11 @@ static flag ObjectIdentifier_subidentifiers_uper_decode(BitStream* pBitStrm, asn
 
 		bLastOctet = ((curByte & 0x80) == 0);
 		curOctetValue = curByte & 0x7F;
+		if (*siValue > (MAX_INT >> 7)) return FALSE;
 		(*siValue) <<= 7;
 		(*siValue) |= curOctetValue;
 	}
-	return TRUE;
+	return bLastOctet;
 }
 
 static flag ObjectIdentifier_uper_decode_length(BitStream* pBitStrm, asn1SccSint* totalSize) {
@@ -106,13 +110,14 @@ static flag ObjectIdentifier_uper_decode_length(BitStream* pBitStrm, asn1SccSint
 	if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, totalSize, 0, 0xFF))
 		return FALSE;
 	if (*totalSize > 0x7F) {
+		if (*totalSize >= 0xC0) return FALSE;
 		if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF))
 			return false;
 		(*totalSize) <<= 8;
 		(*totalSize) |= len2;
 		(*totalSize) &= 0x7FFF;
 	}
-	return true;
+	return *totalSize > 0;
 }
 
 flag ObjectIdentifier_uper_decode(BitStream* pBitStrm, Asn1ObjectIdentifier *pVal) {
@@ -127,8 +132,8 @@ flag ObjectIdentifier_uper_decode(BitStream* pBitStrm, Asn1ObjectIdentifier *pVa
 	if (!ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, &totalSize, &si))
 		return FALSE;
 	pVal->nCount = 2;
-	pVal->values[0] = si / 40;
-	pVal->values[1] = si % 40;
+	pVal->values[0] = si < 80 ? si / 40 : 2;
+	pVal->values[1] = si - pVal->values[0] * 40;
 	while (totalSize > 0 && pVal->nCount < OBJECT_IDENTIFIER_MAX_LENGTH)
 	{
 		if (!ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, &totalSize, &si))

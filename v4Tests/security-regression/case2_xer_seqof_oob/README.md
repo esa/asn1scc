@@ -14,9 +14,8 @@ This test verifies that the decoder now **detects the condition early and fails 
 - `reproduce_issue.sh`  
   Script that:
   1. Runs `asn1scc` with XER support
-  2. Builds the generated code
-  3. Generates a malicious XER/XML input with more elements than allowed
-  4. Invokes the decoder on that input
+  2. Builds the generated code with NDEBUG and AddressSanitizer/UndefinedBehaviorSanitizer
+  3. Runs valid and oversized input checks in separate processes using `regression_test.c`
 
 - `SECURITY_ISSUE_2_XER_SEQUENCEOF_OOB.md`  
   Original security report and proposed fix.

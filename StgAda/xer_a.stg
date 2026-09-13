@@ -150,12 +150,12 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 
 
 
-String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+String_encode(p, sTag, nLevel, soCheckExp, sErrCode, nMaxLength) ::= <<
 adaasn1rtl.encoding.xer.Xer_EncodeString(bs, <sTag>, <p>, ret, <nLevel>);
 ret.ErrorCode := <sErrCode>;
 >>
 
-String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+String_decode(p, sTag, nLevel, soCheckExp, sErrCode, nMaxLength) ::= <<
 adaasn1rtl.encoding.xer.Xer_DecodeString(bs, <sTag>, <p>, ret);
 <if(soCheckExp)><soCheckExp><endif>
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
@@ -466,4 +466,3 @@ call_base_type_func_encode(p, soXmlTag, sFuncName, sBaseTypeName) ::= <<
 call_base_type_func_decode(p, soXmlTag, sFuncName, sBaseTypeName) ::= <<
 <sFuncName>_aux(<p>, <if(soXmlTag)><soXmlTag><else>""<endif>, bs, ret);
 >>
-
