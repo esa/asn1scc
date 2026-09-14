@@ -22,6 +22,27 @@ pub mod uper;
 pub mod xer;
 
 // ─────────────────────────────────────────────────────────────────────────
+//  Trait for checking if a character is in a character set
+//  Works for both single u8 values (e.g. b'\n') and byte slices (e.g. b"ABC")
+// ─────────────────────────────────────────────────────────────────────────
+
+pub trait CharSetContains {
+    fn char_set_contains(&self, c: u8) -> bool;
+}
+
+impl CharSetContains for u8 {
+    fn char_set_contains(&self, c: u8) -> bool { *self == c }
+}
+
+impl CharSetContains for [u8] {
+    fn char_set_contains(&self, c: u8) -> bool { self.contains(&c) }
+}
+
+impl<const N: usize> CharSetContains for [u8; N] {
+    fn char_set_contains(&self, c: u8) -> bool { self.contains(&c) }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 //  Type aliases
 // ─────────────────────────────────────────────────────────────────────────
 

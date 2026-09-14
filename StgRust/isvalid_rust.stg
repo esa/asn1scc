@@ -221,7 +221,7 @@ SingleValConstraint(p, v) ::= "(<p> == <v>)"
 
 
 
-stringContainsChar(sStrVal, p) ::= "(<sStrVal>).iter().any(|&c| c == <p>)"
+stringContainsChar(sStrVal, p) ::= "(<sStrVal>).char_set_contains(<p>)"
 
 RangeConstraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> && <p> \<<if(bMax)>=<endif> <v2>)"
 
