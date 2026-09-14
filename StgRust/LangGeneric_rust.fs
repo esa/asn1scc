@@ -413,7 +413,7 @@ type LangGeneric_rust() =
             let typeNameNoPrefix = if enumTd.typeName.StartsWith("ASN1SCC_") then enumTd.typeName.Substring(8) else enumTd.typeName
             enumTd.typeName + "::" + typeNameNoPrefix + "_" + itemCName
 
-        override _.charToNumericValueExpression charValue = sprintf "b%s" charValue
+        override _.charToNumericValueExpression charValue = charValue
 
         override _.escapeStringLiteral (s:string) =
             s |> Seq.map(fun c ->
