@@ -312,7 +312,7 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
                     typedefName = ToC (r.args.TypePrefix + s.tasName.Value)
                     definedInRtl = false
                 }
-                lm.lg.longTypedefName2 (ReferenceToExistingDefinition ref) lm.lg.hasModules m.Name.Value
+                lm.lg.longTypedefName2 (ReferenceToExistingDefinition ref) lm.lg.hasModules (ToC m.Name.Value)
             | _ -> sChoiceTypeName
         let arrsChildUpdates =
             chc.children |>
