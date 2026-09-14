@@ -8,7 +8,7 @@ dotnet build Antlr/
 dotnet build parseStg2/
 dotnet build "asn1scc.sln"
 
-REGRESSION="regression/bin/Debug/net10.0/regression"
+REGRESSION="../regression/bin/Debug/net10.0/regression"
 cd v4Tests || exit 1
 
 # ── Run all regression groups in parallel background jobs ──────────────

@@ -25,7 +25,7 @@ dotnet build Antlr/
 dotnet build parseStg2/
 dotnet build "asn1scc.sln"
 
-REGRESSION="regression/bin/Debug/net10.0/regression"
+REGRESSION="../regression/bin/Debug/net10.0/regression"
 
 case "$GROUP" in
 
@@ -33,31 +33,31 @@ case "$GROUP" in
     echo "=== C regression tests ==="
     cd v4Tests || exit 1
     # Run all C configurations serially (each uses -p 4 internally)
-    $REGRESSION -l c -ws 4 -s false -p 4 || exit 1
-    $REGRESSION -l c -ws 8 -s true -p 4 -ig || exit 1
-    $REGRESSION -l c -ws 8 -s true -p 4 || exit 1
-    $REGRESSION -l c -ws 8 -s false -p 4 || exit 1
+    "$REGRESSION" -l c -ws 4 -s false -p 4 || exit 1
+    "$REGRESSION" -l c -ws 8 -s true -p 4 -ig || exit 1
+    "$REGRESSION" -l c -ws 8 -s true -p 4 || exit 1
+    "$REGRESSION" -l c -ws 8 -s false -p 4 || exit 1
     # ACN v2
-    $REGRESSION -l c -ws 4 -s false -p 4 -acnv2 || exit 1
-    $REGRESSION -l c -ws 8 -s true -p 4 -acnv2 || exit 1
-    $REGRESSION -l c -ws 8 -s false -p 4 -acnv2 || exit 1
+    "$REGRESSION" -l c -ws 4 -s false -p 4 -acnv2 || exit 1
+    "$REGRESSION" -l c -ws 8 -s true -p 4 -acnv2 || exit 1
+    "$REGRESSION" -l c -ws 8 -s false -p 4 -acnv2 || exit 1
     ;;
 
   ada)
     echo "=== Ada regression tests ==="
     cd v4Tests || exit 1
-    $REGRESSION -l Ada -ws 4 -s false -p 4 || exit 1
-    $REGRESSION -l Ada -ws 8 -s false -p 4 || exit 1
+    "$REGRESSION" -l Ada -ws 4 -s false -p 4 || exit 1
+    "$REGRESSION" -l Ada -ws 8 -s false -p 4 || exit 1
     # ACN v2
-    $REGRESSION -l Ada -ws 4 -s false -p 4 -acnv2 || exit 1
-    $REGRESSION -l Ada -ws 8 -s false -p 4 -acnv2 || exit 1
+    "$REGRESSION" -l Ada -ws 4 -s false -p 4 -acnv2 || exit 1
+    "$REGRESSION" -l Ada -ws 8 -s false -p 4 -acnv2 || exit 1
     ;;
 
   python)
     echo "=== Python regression tests ==="
     cd v4Tests || exit 1
-    $REGRESSION -l python -ws 4 -s false -p 4 || exit 1
-    $REGRESSION -l python -ws 8 -s false -p 4 || exit 1
+    "$REGRESSION" -l python -ws 4 -s false -p 4 || exit 1
+    "$REGRESSION" -l python -ws 8 -s false -p 4 || exit 1
     # Python runtime unit tests
     cd ../asn1python || exit 1
     uvx --python=3.11 pytest tests -v || exit 1
@@ -68,8 +68,8 @@ case "$GROUP" in
   rust)
     echo "=== Rust regression tests ==="
     cd v4Tests || exit 1
-    $REGRESSION -l Rust -ws 4 -s false -p 4 || exit 1
-    $REGRESSION -l Rust -ws 8 -s false -p 4 || exit 1
+    "$REGRESSION" -l Rust -ws 4 -s false -p 4 || exit 1
+    "$REGRESSION" -l Rust -ws 8 -s false -p 4 || exit 1
     ;;
 
   scala)
