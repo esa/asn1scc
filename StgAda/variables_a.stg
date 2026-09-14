@@ -38,10 +38,10 @@ PrintRefValue2(sModName,sValue)	::= "<sModName>.<sValue>"
 PrintEnumValue(sValue)	::= "<sValue>"
 
 
-PrintCharValue(cValue)	::= "'<cValue>'"
+PrintCharValue(cValue)	::= "'<sValue>'"
 
-PrintStringChar(cValue)	::= <<
-"<cValue>"
+PrintStringChar(sValue)	::= <<
+"<sValue>"
 >>
 
 PrintBooleanValue(bValue)	::= "<if(bValue)>True<else>FALSE<endif>"

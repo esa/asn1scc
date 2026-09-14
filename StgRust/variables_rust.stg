@@ -25,9 +25,9 @@ PrintHT() ::= "b'\\t'"
 
 PrintStringValueNull() ::= "0"
 
-PrintCharValue(cValue) ::= "b'<cValue>'"
+PrintCharValue(cValue) ::= "b'<sValue>'"
 
-PrintStringChar(cValue) ::= "b'<cValue>'"
+PrintStringChar(sValue) ::= "b'<sValue>'"
 
 PrintBooleanValue(bValue) ::= "<if(bValue)>true<else>false<endif>"
 

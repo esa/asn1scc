@@ -420,6 +420,7 @@ type LangGeneric_rust() =
                 match c with
                 | '\\' -> "\\\\"
                 | '"'  -> "\\\""
+                | '\'' -> "\\'"
                 | c when System.Char.IsControl c -> sprintf "\\x%02X" (int c)
                 | c   -> string c) |> String.concat ""
 

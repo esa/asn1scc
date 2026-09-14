@@ -33,10 +33,10 @@ PrintHT() ::= <<
 
 PrintStringValueNull()	::= "NullType"
 
-PrintCharValue(cValue)    ::= "'<cValue>'"
+PrintCharValue(cValue)    ::= "'<sValue>'"
 
-PrintStringChar(cValue)   ::= <<
-"<cValue>"
+PrintStringChar(sValue)   ::= <<
+"<sValue>"
 >>
 
 PrintBooleanValue(bValue)    ::= "<if(bValue)>True<else>False<endif>"

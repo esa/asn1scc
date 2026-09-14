@@ -53,7 +53,7 @@ let convertStringValue2TargetLangStringLiteral (lm:LanguageMacros) mxSizeUper (v
         parts |>
         List.collect(fun s ->
             match s with
-            | CStringValue  sv -> sv |> Seq.map(fun ch -> lm.vars.PrintStringChar ch) |> Seq.toList
+            | CStringValue  sv -> sv |> Seq.map(fun ch -> lm.vars.PrintStringChar (lm.lg.escapeStringLiteral (string ch))) |> Seq.toList
             | SpecialCharacter  CarriageReturn -> [lm.vars.PrintCR ()]
             | SpecialCharacter  LineFeed       -> [lm.vars.PrintLF ()]
             | SpecialCharacter  HorizontalTab  -> [lm.vars.PrintHT ()]
