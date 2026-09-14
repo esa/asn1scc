@@ -95,7 +95,7 @@ isEqual_Enumerated(p1, p2) ::= "<isEqual_Integer(p1=p1,p2=p2)>"
 
 isEqual_Boolean(p1, p2) ::= "(<p1> == <p2>)"
 
-isEqual_Real(p1, p2) ::= "asn1_real_equal(<p1>, <p2>)"
+isEqual_Real(p1, p2) ::= "asn1_real_equal(<p1> as f64, <p2> as f64)"
 
 isEqual_IA5String(p1, p2) /*nogen*/::= "asn1rust::ia5_string_equal(&<p1>.arr, &<p2>.arr)"
 
