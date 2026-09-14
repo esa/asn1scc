@@ -15,7 +15,7 @@ publish-debug: build-debug
 publish-release: build-release
 	dotnet publish -c Release --self-contained true -r linux-x64  asn1scc.sln
 
-publish-win64: build
+publish-win64: build-debug
 	dotnet publish -c Debug --self-contained true -r win-x64  asn1scc.sln
 
 publish-win64-release: build-release

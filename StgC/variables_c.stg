@@ -33,7 +33,7 @@ PrintHT() ::= <<
 
 PrintStringValueNull()	::= <<"\0">>
 
-PrintCharValue(cValue)    ::= "'<sValue>'"
+PrintCharValue(cValue)    ::= "'<cValue>'"
 
 PrintStringChar(sValue)   ::= <<
 "<sValue>"
@@ -170,7 +170,6 @@ PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/,
 
 
 PrintSequenceValueChild(sName, sInnerValue) ::= ".<sName> = <sInnerValue>"
-PrintSequenceValueOptionalChild(sName, sInnerValue) ::= ".<sName> = <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= ".<sName> = <sExistsBit>"
 
 PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<{

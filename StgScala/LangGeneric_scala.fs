@@ -259,7 +259,6 @@ type LangGeneric_scala() =
         override this.initMethod           = InitMethod.Procedure
         override _.decodingKind = Copy
         override _.usesWrappedOptional = true
-        override _.padArraysWithDefaultValues = false
         override _.amberDecodePrefix = "&"
         override _.usesBooleanPresenceBits = true
         override _.usesChoiceTempVarPath = true

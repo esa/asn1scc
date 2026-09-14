@@ -79,8 +79,6 @@ type IVariables_rust() =
             variables_rust.PrintTimeValue_Asn1Date_LocalTimeWithTimeZone  td dt tv tz 
         override this.PrintSequenceValueChild  (sName:string) (sInnerValue:string) =
             variables_rust.PrintSequenceValueChild  sName sInnerValue 
-        override this.PrintSequenceValueOptionalChild  (sName:string) (sInnerValue:string) =
-            variables_rust.PrintSequenceValueOptionalChild  sName sInnerValue 
         override this.PrintSequenceValue_child_exists  (sName:string) (sExistsBit:string) =
             variables_rust.PrintSequenceValue_child_exists  sName sExistsBit 
         override this.PrintSequenceValue  (td:FE_SequenceTypeDefinition) (sTasName:string) (arrsChildren:seq<string>) (arrsOptionalPresentFields:seq<string>) =

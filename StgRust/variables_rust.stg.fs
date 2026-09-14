@@ -151,10 +151,6 @@ let PrintSequenceValueChild (sName:string) (sInnerValue:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "variables_rust" "PrintSequenceValueChild" [("sName",(if sName = null then null else ST.StrHelper sName:>Object) );("sInnerValue",(if sInnerValue = null then null else ST.StrHelper sInnerValue:>Object) )]
 
-let PrintSequenceValueOptionalChild (sName:string) (sInnerValue:string) =
-    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "variables_rust" "PrintSequenceValueOptionalChild" [("sName",(if sName = null then null else ST.StrHelper sName:>Object) );("sInnerValue",(if sInnerValue = null then null else ST.StrHelper sInnerValue:>Object) )]
-
 let PrintSequenceValue_child_exists (sName:string) (sExistsBit:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "variables_rust" "PrintSequenceValue_child_exists" [("sName",(if sName = null then null else ST.StrHelper sName:>Object) );("sExistsBit",(if sExistsBit = null then null else ST.StrHelper sExistsBit:>Object) )]

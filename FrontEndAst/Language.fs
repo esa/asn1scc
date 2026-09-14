@@ -532,7 +532,6 @@ type ILangGeneric () =
     default this.shouldWriteThenAppendTestSuite = false
     abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
 
-    abstract member padArraysWithDefaultValues : bool
     abstract member amberDecodePrefix : string
 
     abstract member toHex : int -> string
@@ -634,15 +633,6 @@ type ILangGeneric () =
     abstract member useInlineInitExpression : bool
     default _.useInlineInitExpression = false
 
-    /// Whether the choice-child temp default-init uses the Scala form
-    /// `sChildTypeDef + methodNameSuffix + "()"` rather than
-    /// `extractDefaultInitValue chType.Kind`.
-    /// Default: `false` (use extractDefaultInitValue — C/Ada/Rust/Python).
-    /// Scala overrides: `true`.
-    /// Replaces DAstInitialize.fs:1253-1257.
-    abstract member scalaChoiceInitSuffix : bool
-    default _.scalaChoiceInitSuffix = false
-
     /// Whether byte arrays and similar fixed-size collections must be padded
     /// to their maximum size in generated value literals.
     /// Default: `false` (C/Ada/Scala/Python).
@@ -686,14 +676,6 @@ type ILangGeneric () =
 
     /// Convert a character-set string to the target language's validation
     /// literal (e.g. Rust `b"..."` byte-slice vs C `"..."` double-quoted).
-    /// The `lm` (LanguageMacros) is NOT available here; the default delegates
-    /// to the existing `v.IDQ` and `lm.vars.Print*` functions — but since
-    /// those require `lm`, the default returns the raw string and the F# call
-    /// site handles the non-Rust path.  Rust overrides to produce `b"..."`.
-    /// Replaces DastValidate2.fs:206-231.
-    abstract member charSetToValidationLiteral : string -> string
-    default _.charSetToValidationLiteral v = v
-
     /// Produce the (v1_name, v2_name) pair used for choice-child equality
     /// comparison temp variables.
     /// Default: `(childName, childName)` (same name for both sides — C/Ada/Python).
@@ -747,6 +729,21 @@ type ILangGeneric () =
         match cls with
         | ASN1SCC_REAL | ASN1SCC_FP64 -> ""
         | ASN1SCC_FP32                -> "_fp32"
+
+    /// True when a string value must be rendered as a sequence of single-character
+    /// literals (Rust: `[b'a', b'b', 0]`). False keeps one literal for the whole string.
+    abstract member stringValueAsCharList : bool
+    default _.stringValueAsCharList = false
+
+    /// True when the generated test-suite runner must import the <pu>_auto_tcs units
+    /// (Rust `use crate::<pu>_auto_tcs::*;`). C/Ada/Scala/Python: false.
+    abstract member atcRunnerImportsAutoTcsUnits : bool
+    default _.atcRunnerImportsAutoTcsUnits = false
+
+    /// True when an OPTIONAL child whose encoder produces no statements must still be
+    /// emitted through sequence_optional_child (Rust: the presence flag is assigned there).
+    abstract member emitOptionalChildWithEmptyBody : bool
+    default _.emitOptionalChildWithEmptyBody = false
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         this.getParamTypeSuffix t "" c

@@ -791,7 +791,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let childContentResult =
                 match childContentResult with
                 | Some c -> Some c
-                | None when child.Optionality.IsSome ->
+                | None when lm.lg.emitOptionalChildWithEmptyBody && child.Optionality.IsSome ->
                     Some { funcBody = ""; errCodes = []; localVariables = []; bValIsUnReferenced = true; bBsIsUnReferenced = true; resultExpr = None; auxiliaries = [] }
                 | None -> None
 

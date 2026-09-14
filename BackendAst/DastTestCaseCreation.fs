@@ -286,7 +286,11 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
         Seq.map(fun (i, fnc) -> fnc i) |>
         Seq.toList |> List.unzip3
 
-    let autoTcsMods = r.programUnits |> List.map (fun pu -> lm.lg.sanitizeModuleName pu.testcase_name)
+    let autoTcsMods =
+        if lm.lg.atcRunnerImportsAutoTcsUnits then
+            r.programUnits |> List.map (fun pu -> lm.lg.sanitizeModuleName pu.testcase_name)
+        else
+            []
     let atcIncludedPackages =
         ([1 .. nFiles] |>
         List.map (fun fileIndex -> sprintf "test_case_%03d" fileIndex ))

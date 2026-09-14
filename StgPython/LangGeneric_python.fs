@@ -161,7 +161,6 @@ let findCrossSequenceAcnDeps (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
 type LangGeneric_python() =
     inherit ILangGeneric()
 
-    override _.padArraysWithDefaultValues = false
     override _.amberDecodePrefix = ""
 
     override _.programUnitImportStatement (puName: string) : string option =

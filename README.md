@@ -35,12 +35,13 @@ Supported target languages and encodings
 |----------|:----:|:---:|:---:|:---:|
 | C        | ✅   | ✅  | ✅  | ✅  |
 | Ada      | ✅   | ✅  | ✅  | —   |
-| Rust     | ✅   | ✅  | ✅  | —   |
+| Rust     | ✅   | ✅  | ⚠️  | —   |
 | Scala    | ✅   | ✅  | —   | —   |
 | Python   | ✅   | ✅  | ✅  | —   |
 
 The C and Ada backends are the most mature and full-featured. The Rust
-backend supports uPER, ACN and XER. The Scala and Python backends support
+backend supports uPER, ACN and XER (XER is implemented but not yet
+exercised in CI). The Scala and Python backends support
 uPER, ACN and (for Python) XER.
 
 Compilation

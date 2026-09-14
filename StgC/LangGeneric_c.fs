@@ -209,7 +209,6 @@ type LangGeneric_c() =
         override this.initMethod           = InitMethod.Procedure
         override _.decodingKind = InPlace
         override _.usesWrappedOptional = false
-        override _.padArraysWithDefaultValues = false
         override _.amberDecodePrefix = "&"
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText

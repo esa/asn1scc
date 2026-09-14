@@ -305,7 +305,7 @@ let objIdConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
             (fun (p:CodegenScope) ->
                 let oidValues = v.Values |> List.map fst
                 let oidValues =
-                    if l.lg.padArraysWithDefaultValues then
+                    if l.lg.padByteArraysToMaxSize then
                         let maxLen = int r.args.objectIdentifierMaxLength
                         oidValues @ (List.init (maxLen - oidValues.Length) (fun _ -> 0I))
                     else oidValues

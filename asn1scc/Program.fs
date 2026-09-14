@@ -65,7 +65,7 @@ with
             | C_lang           -> "generate code for the C/C++ programming language"
             | Ada_Lang         -> "generate code for the Ada/SPARK programming language"
             | Scala_Lang       -> "generate code for the Scala programming language"
-            | Rust_Lang        -> "generate code for the Rust programming language"
+            | Rust_Lang        -> "(Experimental) generate code for the Rust programming language"
             | Python_Lang      -> "(Experimental) generate code for the Python programming language"
             | UPER_enc         -> "generates encoding and decoding functions for unaligned Packed Encoding Rules (uPER)"
             | XER_enc          -> "generates encoding and decoding functions for XML Encoding Rules (XER)"
@@ -134,7 +134,7 @@ let printVersion () =
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
 
-    let version = "5.0.0.0"
+    let version = "4.9.0.0"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -486,6 +486,10 @@ let main0 argv =
 
         let args = constructCommandLineSettings cliArgs parserResults
         let outDir = parserResults.GetResult(<@Out@>, defaultValue = ".")
+
+        // Propagate the type prefix to the Rust LangGeneric so it can strip
+        // it from type names when constructing enum variant paths.
+        (rust_macro.lg :?> LangGeneric_rust.LangGeneric_rust).TypePrefix <- args.TypePrefix
 
         // create front ent ast
 

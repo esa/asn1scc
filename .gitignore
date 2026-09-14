@@ -1434,3 +1434,12 @@ acnv2/*
 .fake
 # Rust build artifacts
 asn1rust/target/
+
+# By-products of running asn1scc -x ast.xml in the repository root
+/ast.xml
+/backend_ast.xml
+/Asn1Schema.xsd
+/packages-microsoft-prod.deb
+/cs
+v4Tests/*_log.txt
+v4Tests/tmp_*/

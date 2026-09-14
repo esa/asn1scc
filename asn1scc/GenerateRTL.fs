@@ -280,9 +280,6 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
         // The Rust runtime is a single crate — all encoding modules are compiled together.
         // No unused function stripping needed (Rust compiler handles dead code elimination).
         // No WORD_SIZE/FP_WORD_SIZE patching needed (Rust uses generics/conditional compilation).
-        match args.encodings with
-        | [] -> ()
-        | _ -> ()  // all encodings are included in the Rust runtime by default
 
 
 let test2() =

@@ -308,7 +308,7 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
             match child.Type with
             | AcnReferenceToIA5String s ->
                 let ref : CommonTypes.ReferenceToExistingDefinition = {
-                    programUnit = Some s.modName.Value
+                    programUnit = Some (ToC s.modName.Value)
                     typedefName = ToC (r.args.TypePrefix + s.tasName.Value)
                     definedInRtl = false
                 }

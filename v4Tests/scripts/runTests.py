@@ -10,7 +10,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import List, Optional
 
-os.environ["DOTNET_ROOT"] = os.environ.get("DOTNET_ROOT", "/home/maxime/.dotnet")
 
 # Thread-safe printing
 _print_lock = threading.Lock()
@@ -184,21 +183,6 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
         else:
             results.add_pass()
             return
-
-    # For Ada: add 'pragma Style_Checks (Off);' to all generated .ads/.adb files
-    # to suppress -gnaty style errors on auto-generated code and runtime files.
-    # The gprbuild coverage target uses -gnaty (style checks) which flags
-    # indentation, spacing, and casing issues. All files in the test directory
-    # are auto-generated (by asn1scc) or copied from the runtime library, so
-    # none of them should be subject to style checks.
-    if language == 'Ada':
-        import glob as _glob
-        for ada_file in _glob.glob(os.path.join(targetDir, "*.ad?")):
-            with open(ada_file, 'r') as f:
-                content = f.read()
-            if 'pragma Style_Checks (Off)' not in content:
-                with open(ada_file, 'w') as f:
-                    f.write('pragma Style_Checks (Off);\n' + content)
 
     no_automatic_test_cases = "NO_AUTOMATIC_TEST_CASES" in open(asn1File, 'r').readlines()[0]
     if no_automatic_test_cases:
@@ -579,6 +563,7 @@ def usage():
     safe_print("     --icd-pdus <types>")
     safe_print("           comma-separated list of PDU type names (passed as -icdPdus to asn1scc)")
     safe_print("     -j N, --jobs N    number of parallel threads (default: 1 = sequential)")
+    safe_print("     ASN1SCC=<path>    environment variable overriding the compiler path")
     sys.exit(1)
 
 
@@ -641,8 +626,9 @@ def main():
                 safe_print("Invalid -j value: " + arg)
                 usage()
 
-    path_to_asn1scc = os.path.abspath(
-        rootDir + "/../asn1scc/bin/Debug/net10.0/linux-x64/publish/asn1scc")
+    path_to_asn1scc = os.environ.get(
+        "ASN1SCC",
+        os.path.abspath(rootDir + "/../asn1scc/bin/Debug/net10.0/asn1scc"))
 
     if bAll:
         for l in ["c", "Ada", "Scala", "Rust", "python"]:

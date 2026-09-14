@@ -45,6 +45,7 @@ type LangBasic_rust() =
 
 type LangGeneric_rust() =
     inherit ILangGeneric()
+        member val TypePrefix = "" with get, set
         override this.isObjectOriented = false
         override this.nullTerminatorByte = Some 0uy
 
@@ -189,7 +190,6 @@ type LangGeneric_rust() =
         override this.initMethod           = InitMethod.Procedure
         override _.decodingKind = InPlace
         override _.usesWrappedOptional = false
-        override _.padArraysWithDefaultValues = true
         override _.amberDecodePrefix = "&mut "
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s as %s" sExp sCastType
         override this.createSingleLineComment (sText:string) = sprintf "// %s" sText
@@ -399,7 +399,7 @@ type LangGeneric_rust() =
                 else pre_name.LastIndexOf('_')
             let vPat =
                 if System.String.IsNullOrEmpty(chParent) then
-                    if idx > 0 then sprintf "ASN1SCC_%s::%s" (pre_name.Substring(0, idx)) pre_name
+                    if idx > 0 then sprintf "%s%s::%s" this.TypePrefix (pre_name.Substring(0, idx)) pre_name
                     else pre_name
                 else sprintf "%s::%s" chParent pre_name
             let varName =
@@ -409,8 +409,12 @@ type LangGeneric_rust() =
         override this.wrapIA5StringValue typeRef modName literal =
             this.getQualifiedTypeName typeRef modName + " { arr: " + literal + " }"
 
-        override _.formatEnumValueInit (enumTd: FE_EnumeratedTypeDefinition) itemCName _defaultValue =
-            let typeNameNoPrefix = if enumTd.typeName.StartsWith("ASN1SCC_") then enumTd.typeName.Substring(8) else enumTd.typeName
+        override this.formatEnumValueInit (enumTd: FE_EnumeratedTypeDefinition) itemCName _defaultValue =
+            let typeNameNoPrefix =
+                if this.TypePrefix.Length > 0 && enumTd.typeName.StartsWith(this.TypePrefix) then
+                    enumTd.typeName.Substring(this.TypePrefix.Length)
+                else
+                    enumTd.typeName
             enumTd.typeName + "::" + typeNameNoPrefix + "_" + itemCName
 
         override _.charToNumericValueExpression charValue = charValue
@@ -462,9 +466,6 @@ type LangGeneric_rust() =
         override _.useInlineInitExpression = true
 
         /// Rust pads byte arrays to their maximum size in value literals.
-        /// (The existing `padArraysWithDefaultValues` is also `true` for Rust,
-        /// but it is a separate abstract member without a default; this member
-        /// is the one with a default used by the value-literal code path.)
         override _.padByteArraysToMaxSize = true
 
         /// Rust wraps optional values in `Some(...)`.
@@ -480,21 +481,6 @@ type LangGeneric_rust() =
             match kind with
             | Asn1AcnAst.IA5String _ -> ("&", "&")
             | _ -> ("", "")
-
-        /// Rust validation literals for character sets are byte-slice `b"..."`
-        /// literals, with escape sequences for control characters.
-        override _.charSetToValidationLiteral (v: string) =
-            if v.Length > 1 then
-                sprintf "b\"%s\"" v
-            elif v.Length = 1 then
-                let c = v.ToCharArray().[0]
-                if   c = CommonTypes.CharCR  then "b\"\\r\""
-                elif c = CommonTypes.CharLF  then "b\"\\n\""
-                elif c = CommonTypes.CharHT  then "b\"\\t\""
-                elif c = CommonTypes.CharNul then "b\"\\0\""
-                else sprintf "b\"%c\"" c
-            else
-                "b\"\""
 
         /// Rust choice-child comparison temp vars use suffixes "1" and "2".
         /// `childName` is already the backend child name (passed by the call
@@ -529,27 +515,13 @@ type LangGeneric_rust() =
             | Asn1AcnAst.ASN1SCC_UInt64    _ -> ""
             | Asn1AcnAst.ASN1SCC_UInt      _ -> ""
 
+        /// Rust string values are rendered as `[b'a', b'b', 0]` arrays of byte literals.
+        override _.stringValueAsCharList = true
 
+        /// The Rust test-suite runner imports each <pu>_auto_tcs module via `use crate::...`.
+        override _.atcRunnerImportsAutoTcsUnits = true
 
+        /// Rust's sequence_optional_child_decode assigns the presence flag inside the macro,
+        /// so even an OPTIONAL child with no encoding statements must be emitted.
+        override _.emitOptionalChildWithEmptyBody = true
 
-
-/// LanguageMacros wiring for the Rust backend.
-/// Models after `c_macro` in Program.fs:165.
-/// The implementation class modules (IInit_rust, IEqual_rust, etc.) are generated
-/// from the .stg files by parseStg2 (reading backends.xml) at build time.
-/// The .stg.fs files won't exist until the MSBuild target runs.
-let rust_macro =
-        {
-            LanguageMacros.equal   = new IEqual_rust.IEqual_rust()
-            init                    = new IInit_rust.IInit_rust()
-            typeDef                 = new ITypeDefinition_rust.ITypeDefinition_rust()
-            lg                      = new LangGeneric_rust()
-            isvalid                 = new IIsValid_rust.IIsValid_rust()
-            vars                    = new IVariables_rust.IVariables_rust()
-            uper                    = new IUper_rust.IUper_rust()
-            acn                     = new IAcn_rust.IAcn_rust()
-            atc                     = new ITestCases_rust.ITestCases_rust()
-            xer                     = new IXer_rust.IXer_rust()
-            src                     = new ISrcBody_rust.ISrcBody_rust()
-            encodings               = []
-        }

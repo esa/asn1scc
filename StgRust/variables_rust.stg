@@ -25,7 +25,7 @@ PrintHT() ::= "b'\\t'"
 
 PrintStringValueNull() ::= "0"
 
-PrintCharValue(cValue) ::= "b'<sValue>'"
+PrintCharValue(cValue) ::= "b'<cValue>'"
 
 PrintStringChar(sValue) ::= "b'<sValue>'"
 
@@ -138,7 +138,6 @@ Asn1DateTimeWithTimeZone { date: Asn1Date { years: <dt.years>, months: <dt.month
 
 
 PrintSequenceValueChild(sName, sInnerValue) ::= "<sName>: <sInnerValue>"
-PrintSequenceValueOptionalChild(sName, sInnerValue) ::= "<sName>: <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= "<sName>: <sExistsBit> != 0"
 
 PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<
