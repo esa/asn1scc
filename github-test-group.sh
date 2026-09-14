@@ -9,10 +9,23 @@
 set -e
 
 GROUP="$1"
-REGRESSION="../regression/bin/Debug/net10.0/regression"
 
 # Source sdkman (needed for Scala/Java)
 source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
+
+# ── Build the solution first ──────────────────────────────────────────
+# The Docker image has the SDK and toolchain but does NOT pre-build
+# the .NET solution.  Every matrix job needs the compiler (asn1scc) and
+# the regression tool, so build them once at the top.
+#
+# Antlr and parseStg2 must be built before the main solution because
+# several F# projects run parseStg2 as a pre-build codegen step.
+echo "=== Building .NET solution ==="
+dotnet build Antlr/
+dotnet build parseStg2/
+dotnet build "asn1scc.sln"
+
+REGRESSION="regression/bin/Debug/net10.0/regression"
 
 case "$GROUP" in
 
