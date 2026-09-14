@@ -29,8 +29,8 @@ type IVariables_rust() =
             variables_rust.PrintStringValueNull  () 
         override this.PrintCharValue  (cValue:char) =
             variables_rust.PrintCharValue  cValue 
-        override this.PrintStringChar  (cValue:char) =
-            variables_rust.PrintStringChar  cValue 
+        override this.PrintStringChar  (sValue:string) =
+            variables_rust.PrintStringChar  sValue 
         override this.PrintBooleanValue  (bValue:bool) =
             variables_rust.PrintBooleanValue  bValue 
         override this.PrintNullValue  () =

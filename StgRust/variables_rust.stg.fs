@@ -51,9 +51,9 @@ let PrintCharValue (cValue:char) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "variables_rust" "PrintCharValue" [("cValue",cValue :>Object)]
 
-let PrintStringChar (cValue:char) =
+let PrintStringChar (sValue:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "variables_rust" "PrintStringChar" [("cValue",cValue :>Object)]
+    ST.call "variables_rust" "PrintStringChar" [("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) )]
 
 let PrintBooleanValue (bValue:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
