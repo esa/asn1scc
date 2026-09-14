@@ -283,11 +283,11 @@ Boolean_decode(p, sErrCode, sType) ::= <<
 }
 >>
 
-Real_encode(p, sSuffix, sErrCode, sType) ::= "pBitStrm.encode_real(<p>);"
+Real_encode(p, sSuffix, sErrCode, sType) ::= "pBitStrm.encode_real<sSuffix>(<p>);"
 Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_real<sSuffix>();
-    <p> = val;
+    <p> = val as _;
     ret = ok;
     *pErrCode = if ret { 0 } else { <sErrCode> };
 }

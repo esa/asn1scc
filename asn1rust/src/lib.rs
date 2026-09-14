@@ -1527,6 +1527,77 @@ impl<'a> BitStream<'a> {
         self.encode_non_negative_integer(mantissa);
     }
 
+    /// Encode a real value as 32-bit float (FP_WORD_SIZE=4).
+    /// Mirrors C `BitStream_EncodeReal` when `FP_WORD_SIZE == 4`.
+    /// Uses the 32-bit IEEE 754 bit representation to produce a compact encoding.
+    pub fn encode_real_fp32(&mut self, v: f64) {
+        // First convert to f32 (matching C's `float` precision)
+        let vf = v as f32;
+
+        // Handle special values (same as encode_real but on f32)
+        if vf.is_nan() {
+            self.encode_constraint_whole_number(1, 0, 0xFF);
+            self.encode_constraint_whole_number(0x42, 0, 0xFF);
+            return;
+        }
+        if vf == 0.0 {
+            // Covers both +0.0 and -0.0 (f32 comparison)
+            if v.is_sign_negative() {
+                self.encode_constraint_whole_number(1, 0, 0xFF);
+                self.encode_constraint_whole_number(0x43, 0, 0xFF);
+            } else {
+                self.encode_constraint_whole_number(0, 0, 0xFF);
+            }
+            return;
+        }
+        if vf.is_infinite() {
+            self.encode_constraint_whole_number(1, 0, 0xFF);
+            self.encode_constraint_whole_number(if vf > 0.0 { 0x40 } else { 0x41 }, 0, 0xFF);
+            return;
+        }
+
+        // Extract mantissa and exponent from the 32-bit float bit representation
+        let bits = vf.to_bits();
+        let exponent = ((bits & 0x7F800000) >> 23) as i32 - 127 - 23;
+        let mut mantissa = (bits & 0x007FFFFF) as u64;
+        mantissa |= 0x00800000; // implicit 1 bit
+
+        let mut header: u8 = 0x80;
+        if vf < 0.0 {
+            header |= 0x40;
+        }
+
+        let n_exp_len = get_length_in_bytes_of_sint(exponent as Asn1SccSint);
+        let n_man_len = get_length_in_bytes_of_uint(mantissa);
+        debug_assert!(n_exp_len <= 3);
+        if n_exp_len == 2 {
+            header |= 1;
+        } else if n_exp_len == 3 {
+            header |= 2;
+        }
+
+        self.encode_constraint_whole_number((1 + n_exp_len + n_man_len) as Asn1SccSint, 0, 0xFF);
+        self.encode_constraint_whole_number(header as Asn1SccSint, 0, 0xFF);
+
+        if exponent >= 0 {
+            self.append_n_bit_zero(
+                n_exp_len * 8 - get_number_of_bits_for_non_negative_integer(exponent as Asn1SccUint),
+            );
+            self.encode_non_negative_integer(exponent as Asn1SccUint);
+        } else {
+            self.append_n_bit_one(
+                n_exp_len * 8
+                    - get_number_of_bits_for_non_negative_integer(((-exponent) - 1) as Asn1SccUint),
+            );
+            self.encode_non_negative_integer_neg(((-exponent) - 1) as Asn1SccUint, true);
+        }
+
+        self.append_n_bit_zero(
+            n_man_len * 8 - get_number_of_bits_for_non_negative_integer(mantissa),
+        );
+        self.encode_non_negative_integer(mantissa);
+    }
+
     /// Decode a real value.
     /// Mirrors C `BitStream_DecodeReal`.
     pub fn decode_real(&mut self) -> (f64, bool) {

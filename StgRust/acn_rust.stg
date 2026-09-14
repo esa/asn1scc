@@ -424,7 +424,7 @@ Real_32_big_endian_encode(p, sSuffix, sErrCode, sType) ::= "acn::acn_enc_real_ie
 Real_32_big_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_real_ieee754_32_big_endian<sSuffix>(pBitStrm);
-    <p> = val;
+    <p> = val as _;
     ret = ok;
 }
 <A(sErrCode)>
@@ -434,7 +434,7 @@ Real_64_big_endian_encode(p, sErrCode, sType) ::= "acn::acn_enc_real_ieee754_64_
 Real_64_big_endian_decode(p, sErrCode, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_real_ieee754_64_big_endian(pBitStrm);
-    <p> = val;
+    <p> = val as _;
     ret = ok;
 }
 <A(sErrCode)>
@@ -444,7 +444,7 @@ Real_32_little_endian_encode(p, sSuffix, sErrCode, sType) ::= "acn::acn_enc_real
 Real_32_little_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_real_ieee754_32_little_endian<sSuffix>(pBitStrm);
-    <p> = val;
+    <p> = val as _;
     ret = ok;
 }
 <A(sErrCode)>
@@ -454,7 +454,7 @@ Real_64_little_endian_encode(p, sErrCode, sType) ::= "acn::acn_enc_real_ieee754_
 Real_64_little_endian_decode(p, sErrCode, sType) ::= <<
 {
     let (val, ok) = acn::acn_dec_real_ieee754_64_little_endian(pBitStrm);
-    <p> = val;
+    <p> = val as _;
     ret = ok;
 }
 <A(sErrCode)>

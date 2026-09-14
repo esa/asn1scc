@@ -511,6 +511,11 @@ type LangGeneric_rust() =
 
         /// Rust ACN decode functions use snake_case suffixes (_i8, _i16, etc.)
         /// instead of the C-style PascalCase suffixes (Int8, Int16, etc.).
+        override _.getRealEncodingSuffix (fpWordSize: System.Numerics.BigInteger) (cls: Asn1AcnAst.RealClass) =
+            match cls with
+            | Asn1AcnAst.ASN1SCC_FP32 -> "_fp32"
+            | Asn1AcnAst.ASN1SCC_FP64 -> ""
+            | Asn1AcnAst.ASN1SCC_REAL -> if fpWordSize = 4I then "_fp32" else ""
         override _.getIntDecFuncSuffix intClass =
             match intClass with
             | Asn1AcnAst.ASN1SCC_Int8      _ -> "_i8"
