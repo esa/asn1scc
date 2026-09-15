@@ -112,17 +112,11 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
         let alStr, nAlignmentVal =
             match al with
             | AcnGenericTypes.NextByte ->
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> "Byte", 8I
-                | _ -> lm.lg.getAlignmentByteTypeName, 8I
+                lm.lg.getAlignmentByteTypeName, 8I
             | AcnGenericTypes.NextWord ->
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> "Short", 16I
-                | _ -> lm.lg.getAlignmentWordTypeName, 16I
+                lm.lg.getAlignmentWordTypeName, 16I
             | AcnGenericTypes.NextDWord ->
-                match ProgrammingLanguage.ActiveLanguages.Head with
-                | Scala -> "Int", 32I
-                | _ -> lm.lg.getAlignmentDWordTypeName, 32I
+                lm.lg.getAlignmentDWordTypeName, 32I
         let newFuncBody st errCode prms nestingScope p =
             let content, ns1a = funcBody st errCode prms nestingScope p
             let newContent =

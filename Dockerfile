@@ -32,6 +32,15 @@ RUN set -xe \
     && apt-get purge --auto-remove \
     && apt-get clean
 
+# Install Rust toolchain (stable) for compiling and running generated Rust code
+# during the test suite (./scripts/runTests.py -l Rust -s)
+ENV RUSTUP_HOME="/usr/local/rustup"
+ENV CARGO_HOME="/usr/local/cargo"
+ENV PATH="/usr/local/cargo/bin:${PATH}"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+        sh -s -- -y --default-toolchain stable --profile minimal \
+    && rustc --version && cargo --version
+
 # Conditionally create non-root user and set permissions
 RUN if [ "$NON_ROOT_USER" = "true" ]; then \
     adduser --disabled-password --gecos '' --uid $USERID $USERNAME && \

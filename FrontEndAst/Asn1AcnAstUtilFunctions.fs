@@ -1,4 +1,4 @@
-﻿module Asn1AcnAstUtilFunctions
+module Asn1AcnAstUtilFunctions
 
 open System.Numerics
 open Antlr.Runtime.Tree
@@ -244,6 +244,7 @@ type Asn1Child with
         | CommonTypes.C         -> this._c_name
         | CommonTypes.Scala     -> this._scala_name
         | CommonTypes.Ada       -> this._ada_name
+        | CommonTypes.Rust      -> this._rust_name
         | CommonTypes.Python    -> this._python_name
 
     member this.acnMinSizeInBits =

@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# DEPRECATED: This script is superseded by runTests.py -j N (parallel mode).
+# It only supports C and Ada, uses outdated flags (typePrefix gmamais_, renamePolicy 2),
+# and has no Rust/Python/Scala support. Use runTests.py -j N instead.
+#
+# This file is kept for reference only. Do not use.
 
 import os
 import sys

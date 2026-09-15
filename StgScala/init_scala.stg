@@ -316,4 +316,4 @@ initSequenceExpr(sTypeDefName, arrsChildren, arrsOptionalChildren) ::= <<
 <sTypeDefName>(<arrsChildren; separator=", ">)
 >>
 
-initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "<sChildKind>(<sChildExpr>)"
+initChoiceExpr(sChildName, sChildKind, sChildExpr, sChoiceTypeName) ::= "<sChildKind>(<sChildExpr>)"

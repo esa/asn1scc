@@ -1046,14 +1046,14 @@ extern flag <sFncName>(const <sTypedefName>* pPDU, BitStream* pStartBitStrm, <sE
 
 
 /* Choice like uper*/
-ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
 case <sChildID>:
     ret = FALSE;
     *pErrCode = <sErrorCodeName>;
 	break;
 >>
 
-ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
 case <nChildIndex>:
     ret = FALSE;
     *pErrCode = <sErrorCodeName>;
@@ -1217,21 +1217,21 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 <v> = (<sSeqPath><sAcc>exist.<sChildName> == 1);
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName) ::= <<
 case <sChildNamePresent>:
 		<v>_is_initialized = TRUE;
 		<v> = <sChildRetVal>;
     break;
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChildTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
 case <sChildNamePresent>:
     <v>_is_initialized = TRUE;
 		strcpy(<v>, "<sChildRetVal>");
     break;
 >>
 
-ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName) ::= <<
 switch (<sChPath><sAcc>kind) {
     <arrsChoiceItems; separator="\n">
     default:

@@ -1,4 +1,4 @@
-﻿module LangGeneric_c
+module LangGeneric_c
 open CommonTypes
 open System.Numerics
 open DAst
@@ -111,6 +111,8 @@ type LangGeneric_c() =
             | c when Char.IsControl c -> sprintf "'\\%03o'" (int c)
             | c    -> sprintf "'%c'" c
 
+        override _.quoteStringLiteral (s:string) = s.IDQ
+
         override _.supportsInitExpressions = false
         override _.requiresHandlingOfEmptySequences = true
         override _.requiresHandlingOfZeroArrays = true
@@ -207,6 +209,7 @@ type LangGeneric_c() =
         override this.initMethod           = InitMethod.Procedure
         override _.decodingKind = InPlace
         override _.usesWrappedOptional = false
+        override _.amberDecodePrefix = "&"
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
 
@@ -347,7 +350,7 @@ type LangGeneric_c() =
             let CreateCMainFile (r:AstRoot)  outDir  =
                 //Main file for test cass
                 let printMain =    test_cases_c.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
-                let content = printMain "testsuite"
+                let content = printMain "testsuite" (r.programUnits |> List.map (fun pu -> pu.name))
                 let outFileName = Path.Combine(outDir, "mainprogram.c")
                 File.WriteAllText(outFileName, content.Replace("\r",""))
 

@@ -63,6 +63,7 @@ let CloneTypeAssignment (old:TypeAssignment) (m:Asn1Module) cons state =
         scala_name = old.scala_name
         python_name = old.python_name
         ada_name = old.ada_name
+        rust_name = old.rust_name
         Comments = old.Comments
         acnInfo = old.acnInfo
     },s
@@ -77,6 +78,7 @@ let CloneValueAssignment (old:ValueAssignment)  (m:Asn1Module) cons state=
         scala_name = old.scala_name
         python_name = old.python_name
         ada_name = old.ada_name
+        rust_name = old.rust_name
     },s
 
 let CloneType (old:Asn1Type) m key cons state =

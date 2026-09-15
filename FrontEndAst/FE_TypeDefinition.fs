@@ -618,10 +618,7 @@ let createReal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type
     let rtlModuleName = if lm.typeDef.rtlModuleName().IsEmptyOrNull then None else (Some (lm.typeDef.rtlModuleName ()))
 
     let td = lm.lg.typeDef o.typeDef
-    let annots =
-        match ProgrammingLanguage.ActiveLanguages.Head with
-        | Scala -> ["extern"]
-        | _ -> []
+    let annots = lm.lg.real_annotations
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
         let baseType = getRtlTypeName()

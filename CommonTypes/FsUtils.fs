@@ -120,6 +120,38 @@ let ToC (str:string) =  str.Replace('-','_').Replace('.','_').Replace("#","elm")
 
 let ToC2  =  ToC
 
+/// Rust reserved words (keywords + reserved identifiers).
+let rust_keywords = [ "as"; "break"; "const"; "continue"; "crate"; "else"; "enum"; "extern"; "false"; "fn"; "for"; "if"; "impl"; "in"; "let"; "loop"; "match"; "mod"; "move"; "mut"; "pub"; "ref"; "return"; "self"; "Self"; "static"; "struct"; "super"; "trait"; "true"; "type"; "unsafe"; "use"; "where"; "while"; "async"; "await"; "dyn"; "abstract"; "become"; "box"; "do"; "final"; "macro"; "override"; "priv"; "typeof"; "unsized"; "virtual"; "yield"; "try"; "union" ] |> Set.ofList
+
+/// Converts an ASN.1 name to a Rust-safe identifier (snake_case for variables/functions).
+/// Replace '-' with '_', prefix 'r' if starts with digit, append '_' if Rust keyword.
+let ToRust (str:string) =
+    let sanitize (s:string) =
+        s.Replace('-', '_').Replace('.', '_').Replace("#", "elm").Replace('(', '_').Replace(')', '_')
+    let startsWithDigit (s:string) = s.Length > 0 && System.Char.IsDigit(s.[0])
+    let prefixIfDigit (s:string) = if startsWithDigit s then "r" + s else s
+    let escapeKeyword (s:string) = if rust_keywords.Contains(s) then s + "_" else s
+    let result = sanitize str
+    let result = prefixIfDigit result
+    escapeKeyword result
+
+/// Converts an ASN.1 name to a Rust type name (PascalCase).
+let ToRustType (str:string) =
+    let sanitize (s:string) =
+        s.Replace('-', '_').Replace('.', '_').Replace("#", "elm").Replace('(', '_').Replace(')', '_')
+    let startsWithDigit (s:string) = s.Length > 0 && System.Char.IsDigit(s.[0])
+    let prefixIfDigit (s:string) = if startsWithDigit s then "r" + s else s
+    let escapeKeyword (s:string) = if rust_keywords.Contains(s) then s + "_" else s
+    let toPascalCase (s:string) =
+        s.Split([|'_'; '-'|], System.StringSplitOptions.RemoveEmptyEntries)
+        |> Array.map (fun w ->
+            if w.Length = 0 then w
+            else (System.Char.ToUpper(w.[0]).ToString() + (if w.Length > 1 then w.[1..] else "")))
+        |> String.concat ""
+    let result = toPascalCase (sanitize str)
+    let result = prefixIfDigit result
+    escapeKeyword result
+
 let doubleParseString  = "E19"
 
 type stringL  = (string*int)

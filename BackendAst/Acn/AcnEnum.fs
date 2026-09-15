@@ -56,7 +56,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
             let uperInt (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
                 let pp, resultExpr = adaptArgument lm codec p
                 let castPp  = DAstUPer.castPp r lm codec pp intTypeClass
-                let sSsuffix = DAstUPer.getIntDecFuncSuffix intTypeClass
+                let sSsuffix = lm.lg.getIntDecFuncSuffix intTypeClass
                 let word_size_in_bits = (int r.args.integerSizeInBytes)*8
                 let nbits = GetNumberOfBitsForNonNegativeInteger (max-min)
                 let rangeAssert =

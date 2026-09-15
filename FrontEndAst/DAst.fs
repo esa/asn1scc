@@ -879,6 +879,7 @@ type SequenceOf = {
 and AcnChild = {
     Name                        : StringLoc
     c_name                      : string
+    rust_name                    : string
     id                          : ReferenceToType
     Type                        : Asn1AcnAst.AcnInsertedType
     typeDefinitionBodyWithinSeq : string
@@ -893,6 +894,7 @@ and AcnChild = {
             Name = this.Name
             id = this.id
             c_name = this.c_name
+            rust_name = this.rust_name
             Type = this.Type
             Comments = this.Comments
         }
@@ -912,6 +914,7 @@ and Asn1Child = {
     _scala_name                 : string
     _python_name                 : string
     _ada_name                   : string
+    _rust_name                  : string
     isEqualBodyStats            : CodegenScope -> CodegenScope -> (string*(LocalVariable list)) option
     Type                        : Asn1Type
     Optionality                 : Asn1AcnAst.Asn1Optionality option
@@ -924,6 +927,7 @@ and Asn1Child = {
             _scala_name = this._scala_name
             _python_name = this._python_name
             _ada_name = this._ada_name
+            _rust_name = this._rust_name
             Type = this.Type.toAsn1AcnAst
             Optionality = this.Optionality
             asn1Comments = this.Comments |> Array.toList
@@ -966,6 +970,7 @@ and ChChildInfo = {
     _scala_name                 : string
     _python_name                : string
     _ada_name                   : string
+    _rust_name                  : string
     _present_when_name_private  : string // Does not contain the "_PRESENT". Not to be used directly by backends. Backends should use presentWhenName
     acnPresentWhenConditions    : AcnGenericTypes.AcnPresentWhenConditionChoiceChild list
     Comments                    : string array
@@ -1051,6 +1056,7 @@ and AcnChildUpdateResult = {
 and DastAcnParameter = {
     name        : string
     c_name      : string
+    rust_name   : string
     asn1Type    : AcnGenericTypes.AcnParamType
     loc         : SrcLoc
     id          : ReferenceToType
@@ -1195,6 +1201,7 @@ type TypeAssignment = {
     scala_name:string
     python_name:string
     ada_name:string
+    rust_name:string
     Type:Asn1Type
     Comments: string array
 }
@@ -1205,6 +1212,7 @@ type ValueAssignment = {
     scala_name:string
     python_name:string
     ada_name:string
+    rust_name:string
     Type    :Asn1Type
     Value   :Asn1Value
 }

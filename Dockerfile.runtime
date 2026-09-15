@@ -15,6 +15,14 @@ RUN apt update
 RUN apt install -y python3 \
     make openjdk-17-jre libgit2-dev libssl-dev ; apt clean
 
+# Install Rust toolchain (stable) for compiling and running generated Rust code
+ENV RUSTUP_HOME="/usr/local/rustup"
+ENV CARGO_HOME="/usr/local/cargo"
+ENV PATH="/usr/local/cargo/bin:${PATH}"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+        sh -s -- -y --default-toolchain stable --profile minimal \
+    && rustc --version && cargo --version
+
 RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt \
     set -ex ;\
     apt-get install -y git

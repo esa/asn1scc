@@ -1139,12 +1139,12 @@ if result.Success AND <sChoiceIndexName> \>= 0 AND  <sChoiceIndexName> \<= <nLas
 end if;
 >>
 
-ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
 when <sChildID> =>
     result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCodeName>);		-- COVERAGE_IGNORE
 >>
 
-ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
 when <nChildIndex> =>
     result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCodeName>);		-- COVERAGE_IGNORE
 >>
@@ -1300,19 +1300,19 @@ getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p>.Length"
 
 
 
-ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName) ::= <<
 case <sChPath><sAcc>kind is
     <arrsChoiceItems; separator="\n">
 end case;
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName) ::= <<
 when <sChildNamePresent> =>
     <v>_is_initialized := True;
 	<v> := <sChildRetVal>;
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChildTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
 when <sChildNamePresent> =>
     <v>_is_initialized := True;
 	<v> := "<sChildRetVal>"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=" & "><endif>;

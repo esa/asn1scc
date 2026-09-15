@@ -1,4 +1,4 @@
-﻿group c_variables;
+group c_variables;
 
 PrintIntValue(nValue) ::= "<nValue>"
 
@@ -34,6 +34,10 @@ PrintHT() ::= <<
 PrintStringValueNull()	::= "NULL"
 
 PrintCharValue(cValue)    ::= "'<cValue>'"
+
+PrintStringChar(sValue)   ::= <<
+"<sValue>"
+>>
 
 PrintBooleanValue(bValue)    ::= "<if(bValue)>true<else>false<endif>"
 

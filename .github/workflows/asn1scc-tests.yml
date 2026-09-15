@@ -8,18 +8,51 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  # ── Run tests in parallel matrix jobs ─────────────────────────────────
+  # Each job builds the Docker image (leveraging GitHub's Docker layer
+  # cache) and runs only its subset of the test suite.  All 6 groups
+  # run simultaneously on separate runners, cutting wall-clock time
+  # by ~6× compared to a single sequential job.
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [ c, ada, python, rust, scala, icd ]
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Build Docker image
-      run: docker build -t asn1scc .
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-    - name: Make build script executable
-      run: chmod +x ./github-build.sh
+    - name: Cache Docker layers
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ matrix.group }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-${{ matrix.group }}-
 
-    - name: Run container to build and test
-      run: docker run --rm -v ${{ github.workspace }}:/app asn1scc bash -c "./github-build.sh"
+    - name: Build Docker image (cached)
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: false
+        load: true
+        tags: asn1scc:latest
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.group }},mode=max
+
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-${{ matrix.group }} /tmp/.buildx-cache
+
+    - name: Make test script executable
+      run: chmod +x ./github-test-group.sh
+
+    - name: Run ${{ matrix.group }} tests
+      run: |
+        docker run --rm -v ${{ github.workspace }}:/app asn1scc:latest bash -c "./github-test-group.sh ${{ matrix.group }}"

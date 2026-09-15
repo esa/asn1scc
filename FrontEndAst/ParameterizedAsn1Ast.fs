@@ -101,6 +101,7 @@ and ValueAssignment = {
     c_name:string
     scala_name:string
     ada_name:string
+    rust_name:string
     Type:Asn1Type
     Value:Asn1Value
     Scope : ValueScope

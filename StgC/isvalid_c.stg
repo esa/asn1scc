@@ -1,4 +1,4 @@
-﻿group c_isvalid;
+group c_isvalid;
 
 rtlModuleName() ::= ""
 methodNameSuffix() ::= "_IsConstraintValid"
@@ -298,21 +298,21 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 
 /* CHOICE start*/
 
-Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement) ::= <<
+Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement, sChoiceTypeName) ::= <<
 if (<p><sAcc>kind == <sChPresent>) {
 	<sInnerStatement>
 }
 >>
 
-Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
+Choice_child_always_present_Exp(p, sAcc, sChPresent, sChoiceTypeName) ::= <<
 <p><sAcc>kind == <sChPresent>
 >>
 
-Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
+Choice_child_always_absent_Exp(p, sAcc, sChPresent, sChoiceTypeName) ::= <<
 <p><sAcc>kind != <sChPresent>
 >>
 
-choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName, sChildTypeName) ::= <<
+choice_child(sChPresent, sChildBody, bAlwaysAbsent, sChildName, sChoiceTypeName, sChildTypeName) ::= <<
 case <sChPresent> : <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
     <sChildBody>
     break;          <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
