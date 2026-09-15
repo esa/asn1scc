@@ -32,6 +32,16 @@ jobs:
         run: |
           docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testAdaContaining.py
           docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testAdaContaining.py --slim
+      - name: Check Ada initializers below references
+        run: |
+          initializer_status=0
+          docker run --name reference-initializers --network none --entrypoint python3 \
+            asn1scc-coverage:local /opt/coverage/testReferenceInitializers.py \
+            --outdir /results/reference-initializers || initializer_status=$?
+          mkdir -p coverage-results/reference-initializers
+          docker cp reference-initializers:/results/. \
+            coverage-results/reference-initializers/ || initializer_status=1
+          exit "$initializer_status"
       - name: Measure corpus and mode pilots
         shell: bash
         env:

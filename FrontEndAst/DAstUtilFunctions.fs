@@ -983,7 +983,9 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
 
 let rec GetMySelfAndChildren2 (lm:Language.LanguageMacros) (t:Asn1Type) (p:CodegenScope)=
     seq {
-        match t.Kind with
+        // References can emit initializers for their resolved children. Visit
+        // those children, but yield the reference itself only once below.
+        match t.ActualType.Kind with
         | SequenceOf(conType) ->
             let ii = t.id.SequenceOfLevel + 1
             let i = "0" //sprintf "i%d" ii

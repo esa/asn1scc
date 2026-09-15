@@ -300,6 +300,20 @@ Ada statement images. The all cohort is needed because the pilot excludes it:
     v4Tests/coverage/runCoverage.sh --metric stmt --language Ada --outdir coverage-results/null-stmt -- --cohort all --filter '18-NULL/001.asn1#1' --acn-v2
     v4Tests/coverage/runCoverage.sh --metric gcov --language Ada --outdir coverage-results/null-gcov -- --cohort all --filter '18-NULL/001.asn1#1' --acn-v2 --enforce-legacy-line-gate
 
+## Initializers below references
+
+The `16-mantis/0231` regression requires all 12 generated round trips and runtime
+coverage of the four element initializers below constrained array references.
+It checks the existing line gate in Ada legacy/v2, normal/slim. A separate driver
+checks initializer values, parent/element agreement and constraints; its calls
+do not contribute to the automatic suite's coverage evidence.
+
+    docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testReferenceInitializers.py
+
+Measure statements independently with the statement image and the all cohort:
+
+    v4Tests/coverage/runCoverage.sh --metric stmt --language Ada --outdir coverage-results/reference-stmt -- --cohort all --filter '16-mantis/0231.asn1#1' --acn-v2
+
 ## Bounded C encode pilot
 
 `--check-encode` enables `ASN1SCC_CHECK_ENCODE` when compiling the generated C
