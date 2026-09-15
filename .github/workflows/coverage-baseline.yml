@@ -28,6 +28,10 @@ jobs:
         run: docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testCollector.py
       - name: Check runner and build contracts
         run: docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testContracts.py
+      - name: Check Ada containing bounds and padding
+        run: |
+          docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testAdaContaining.py
+          docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testAdaContaining.py --slim
       - name: Measure corpus and mode pilots
         shell: bash
         env:

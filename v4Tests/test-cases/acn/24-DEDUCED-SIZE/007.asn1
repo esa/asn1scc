@@ -1,0 +1,33 @@
+-- NOCOVERAGE (Ada): gcov reports existing uPER CONTAINING temporary-stream declare lines as uncovered.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+    Item ::= INTEGER (0..4000)
+    -- Include empty and odd-sized contents. The maximum makes embedded lengths
+    -- eight bits wide, so deferred CONTAINING regions start on byte boundaries.
+    Items ::= SEQUENCE (SIZE(0..101)) OF Item
+
+    ExternalPdu ::= SEQUENCE {
+        prefix INTEGER (0..255),
+        payload OCTET STRING (CONTAINING Items),
+        tail INTEGER (0..255)
+    }
+
+    EmbeddedPdu ::= SEQUENCE {
+        prefix INTEGER (0..255),
+        payload OCTET STRING (CONTAINING Items),
+        tail INTEGER (0..255)
+    }
+
+    PairPdu ::= SEQUENCE {
+        first OCTET STRING (CONTAINING Items),
+        second OCTET STRING (CONTAINING Items),
+        tail INTEGER (0..255)
+    }
+
+    extOdd ExternalPdu ::= { prefix 17, payload { 42 }, tail 165 }
+    embOdd EmbeddedPdu ::= { prefix 17, payload { 42 }, tail 165 }
+    pairOdd PairPdu ::= { first { 42 }, second { 3000 }, tail 165 }
+    pairEmpty PairPdu ::= { first {}, second { 42 }, tail 165 }
+END
+
+--TCLS Item [encoding pos-int, size 12] Items [size deduced] ExternalPdu [] { prefix [encoding pos-int, size 8], len INTEGER [encoding pos-int, size 16], payload [size len], tail [encoding pos-int, size 8] } EmbeddedPdu [] { prefix [encoding pos-int, size 8], payload [], tail [encoding pos-int, size 8] } PairPdu [] { first [], second [], tail [encoding pos-int, size 8] }

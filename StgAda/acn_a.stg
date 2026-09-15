@@ -1384,12 +1384,13 @@ end if;
 /* CONTAINING with deferred patching.
    Encode: call inner _aux directly into the outer stream, measure the
    bytes/bits written, then PatchDet the determinant with the count.
-   Decode: read the count from the determinant (already decoded into
-   det.Value by the closure-converted parent), record the expected end
-   position, decode the inner type, then force the cursor to the
-   expected end so any unconsumed bytes inside the contained region are
-   skipped. (Ada Bitstream.Size_In_Bytes is an immutable discriminant,
-   so the C trick of temporarily reducing `count` does not translate.) */
+   OCTET STRING decode: validate the declared length, then decode through a
+   bounded copy of the stream prefix. Keeping absolute bit positions preserves
+   inner alignment; limiting Size_In_Bytes makes size-deduced contents see their
+   own region. The outer cursor resumes after that region, including padding.
+   Ada Bitstream.Size_In_Bytes is an immutable discriminant, so the C trick of
+   temporarily reducing `count` does not translate. BIT STRING handling below
+   still uses the original stream and advances to its recorded end. */
 
 octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
 declare
@@ -1399,6 +1400,10 @@ declare
 begin
     <sFuncName>_aux(<p>, bs, result);
     if result.Success then
+        --  OCTET STRING contents occupy whole bytes, including final padding.
+        if bs.Current_Bit_Pos mod 8 /= 0 then
+            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False);
+        end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
@@ -1411,12 +1416,27 @@ end;
 >>
 
 octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
-declare
-    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
-begin
-    <sFuncName>_aux(<p>, bs, result);
-    bs.Current_Bit_Pos := acn_expected_end;
-end;
+if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
+   <sDetParamName>.Value \<= adaasn1rtl.Asn1UInt((bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8)
+then
+    declare --COVERAGE_IGNORE
+        acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
+        acn_end_bytes : constant Natural := (acn_expected_end + 7) / 8;
+        acn_view : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, acn_end_bytes));
+    begin
+        --  Preserve absolute positions and streaming context in the bounded view.
+        acn_view.Buffer(1 .. acn_end_bytes) := bs.Buffer(1 .. acn_end_bytes);
+        acn_view.pushDataPrm := bs.pushDataPrm;
+        acn_view.fetchDataPrm := bs.fetchDataPrm;
+        acn_view.Current_Bit_Pos := (if acn_end_bytes = 0 then 8 else bs.Current_Bit_Pos);
+        <sFuncName>_aux(<p>, acn_view, result);
+        bs.pushDataPrm := acn_view.pushDataPrm;
+        bs.fetchDataPrm := acn_view.fetchDataPrm;
+        bs.Current_Bit_Pos := acn_expected_end;
+    end;
+else
+    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>); --COVERAGE_IGNORE
+end if;
 >>
 
 octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
@@ -1438,6 +1458,10 @@ begin
     acn_data_start := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     <sFuncName>_aux(<p>, bs, result);
     if result.Success then
+        --  OCTET STRING contents occupy whole bytes, including final padding.
+        if bs.Current_Bit_Pos mod 8 /= 0 then
+            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False);
+        end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_len_pos);
@@ -1450,13 +1474,30 @@ end;
 octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
 declare
     acn_nCount : Integer;
-    acn_expected_end : Natural;
 begin
     adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, <nMinSize>, <nMaxSize>, <nBits>, result.Success);
     if result.Success then
-        acn_expected_end := bs.Current_Bit_Pos + acn_nCount * 8;
-        <sFuncName>_aux(<p>, bs, result);
-        bs.Current_Bit_Pos := acn_expected_end;
+        if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
+           acn_nCount \>= 0 and then acn_nCount \<= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8
+        then
+            declare --COVERAGE_IGNORE
+                acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8;
+                acn_end_bytes : constant Natural := (acn_expected_end + 7) / 8;
+                acn_view : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, acn_end_bytes));
+            begin
+                --  Preserve absolute positions and streaming context in the bounded view.
+                acn_view.Buffer(1 .. acn_end_bytes) := bs.Buffer(1 .. acn_end_bytes);
+                acn_view.pushDataPrm := bs.pushDataPrm;
+                acn_view.fetchDataPrm := bs.fetchDataPrm;
+                acn_view.Current_Bit_Pos := (if acn_end_bytes = 0 then 8 else bs.Current_Bit_Pos);
+                <sFuncName>_aux(<p>, acn_view, result);
+                bs.pushDataPrm := acn_view.pushDataPrm;
+                bs.fetchDataPrm := acn_view.fetchDataPrm;
+                bs.Current_Bit_Pos := acn_expected_end;
+            end;
+        else
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => adaasn1rtl.ERR_INSUFFICIENT_DATA); --COVERAGE_IGNORE
+        end if;
     end if;
 end;
 >>
@@ -1469,6 +1510,10 @@ declare
 begin
     <sBody>
     if result.Success then
+        --  OCTET STRING contents occupy whole bytes, including final padding.
+        if bs.Current_Bit_Pos mod 8 /= 0 then
+            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False);
+        end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
@@ -1481,12 +1526,32 @@ end;
 >>
 
 octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
-declare
-    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
-begin
-    <sBody>
-    bs.Current_Bit_Pos := acn_expected_end;
-end;
+if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
+   <sDetParamName>.Value \<= adaasn1rtl.Asn1UInt((bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8)
+then
+    declare --COVERAGE_IGNORE
+        acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
+        acn_end_bytes : constant Natural := (acn_expected_end + 7) / 8;
+        acn_view : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, acn_end_bytes));
+        procedure Decode_Contained(bs : in out adaasn1rtl.encoding.Bitstream);
+        procedure Decode_Contained(bs : in out adaasn1rtl.encoding.Bitstream) is
+        begin
+            <sBody>
+        end Decode_Contained;
+    begin
+        --  Preserve absolute positions and streaming context in the bounded view.
+        acn_view.Buffer(1 .. acn_end_bytes) := bs.Buffer(1 .. acn_end_bytes);
+        acn_view.pushDataPrm := bs.pushDataPrm;
+        acn_view.fetchDataPrm := bs.fetchDataPrm;
+        acn_view.Current_Bit_Pos := (if acn_end_bytes = 0 then 8 else bs.Current_Bit_Pos);
+        Decode_Contained(acn_view);
+        bs.pushDataPrm := acn_view.pushDataPrm;
+        bs.fetchDataPrm := acn_view.fetchDataPrm;
+        bs.Current_Bit_Pos := acn_expected_end;
+    end;
+else
+    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>); --COVERAGE_IGNORE
+end if;
 >>
 
 bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<

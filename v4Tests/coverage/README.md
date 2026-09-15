@@ -180,5 +180,21 @@ Tests exercise failure reporting, timeout handling, missing profiles, partial
 lines, exemption accounting, exact-source branch IDs and reference mismatch
 detection. They do not require the host's Python or compiler.
 
+## Ada/v2 CONTAINING regressions
+
+The additional integration check compiles `24-DEDUCED-SIZE/007.asn1` and checks
+exact wire bytes, padding before following fields, adjacent and empty regions,
+acceptance of nonzero padding, and rejection of malformed length determinants.
+It uses the public decoders with full-capacity streams. It is a runtime check;
+it does not establish SPARK proof or an assertion-enabled decoding contract.
+
+    docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testAdaContaining.py
+    docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testAdaContaining.py --slim
+
+For a host with the compiler and GNAT installed, run
+`python3 v4Tests/coverage/testAdaContaining.py`. Optional `--compiler` and
+`--test-root` select another build/corpus. `--outdir` preserves generated code,
+commands and diagnostics in a new directory.
+
 Reference for gcov JSON semantics:
 https://gcc.gnu.org/onlinedocs/gcc/Invoking-Gcov.html
