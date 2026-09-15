@@ -271,8 +271,8 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
                 results.add_error(f'Failed {asn1} {acn} in {language}')
                 raise Exception('TestFailed')
     elif language == 'Ada':
-        makeTarget = "coverage" if bRunCodeCoverage else ""
-        res = mysystem(cfg, targetDir, f"make {makeTarget} >covlog.txt 2>&1", True, asn1, acn)
+        # NOCOVERAGE exempts the line gate; the coverage target also runs the tests.
+        res = mysystem(cfg, targetDir, "make coverage >covlog.txt 2>&1", True, asn1, acn)
         if res != 0 and behavior != 2:
             PrintFailed("run time failure")
             PrintFailed("covlog.txt is ...")
@@ -288,10 +288,8 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
             results.add_error(f'Failed {asn1} {acn} in {language}')
             raise Exception('TestFailed')
         elif behavior == 0 and res == 0:
-            # -- NOCOVERAGE
-            doCoverage = "-- NOCOVERAGE" not in open(os.path.join(targetDir, "sample1.asn1"), 'r').readlines()[0]
             runSpark = "RUN_SPARK" in open(os.path.join(targetDir, "sample1.asn1"), 'r').readlines()[0]
-            if doCoverage:
+            if bRunCodeCoverage:
                 gcov_path = os.path.join(targetDir, "obj_x86", "debug", "test_case.adb.gcov")
                 try:
                     with open(gcov_path, 'r') as f:

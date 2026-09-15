@@ -1,4 +1,4 @@
-# Reliable generated-code coverage (Phase 0b)
+# Generated-code coverage
 
 This lane builds asn1scc and measures its generated C/Ada code inside a Linux
 container. Docker is the only required host tool. The final image runs as UID
@@ -9,7 +9,7 @@ container. Docker is the only required host tool. The final image runs as UID
 
 From the repository root:
 
-    docker build -f v4Tests/coverage/Dockerfile -t asn1scc-coverage:phase0b .
+    docker build -f v4Tests/coverage/Dockerfile -t asn1scc-coverage:local .
 
 The base SDK image is pinned by digest. Package revisions and the exact source
 tree are recorded during the build; compiler bytes and tool versions are
@@ -22,7 +22,7 @@ notes from the context. The precompiled ANTLR dependency DLLs remain inputs.
 
 Run without network access. A named container retains reports even on failure:
 
-    docker run --name coverage-inventory --network none asn1scc-coverage:phase0b --outdir /results --inventory-only
+    docker run --name coverage-inventory --network none asn1scc-coverage:local --outdir /results --inventory-only
     docker cp coverage-inventory:/results ./coverage-inventory
 
 Do not add --rm if you intend to copy results afterwards. Use a new container
@@ -30,27 +30,32 @@ name per run. Every invocation creates a new report subdirectory and never
 overwrites another run. After copying results you can remove that specific
 finished container with docker rm.
 
-Reproduce all original 259 units and compare individual counts and input hashes:
+Reproduce all original 259 units and compare individual counts and input hashes
+(opt-in, using a compatible historical compiler and toolchain):
 
-    docker run --name coverage-historical --network none asn1scc-coverage:phase0b --outdir /results --cohort historical --compare-baseline
+    docker run --name coverage-historical --network none asn1scc-coverage:local --outdir /results --cohort historical --compare-baseline
     docker cp coverage-historical:/results ./coverage-historical
 
 Measure all runnable behavior-0 directives, including NOCOVERAGE:
 
-    docker run --name coverage-all --network none asn1scc-coverage:phase0b --outdir /results
+    docker run --name coverage-all --network none asn1scc-coverage:local --outdir /results --enforce-legacy-line-gate
     docker cp coverage-all:/results ./coverage-all
 
 Add --compare-baseline to an all-cohort run to compare the original 259 IDs
 within the expanded measurement, without rerunning that cohort separately.
+This is an exact reproducibility check, not the normal regression gate: newer
+compiler revisions can legitimately change generated source and coverage counts.
+The manual CI workflow always enforces the legacy line gate in each mode; its
+`compare_historical` input enables the additional historical check explicitly.
 
 The bounded pilot selects 12 directives covering integer, enum, strings/arrays,
 CHOICE, shared determinants, OPTIONAL, parameter passing, CONTAINING and deduced
 size. Run each mode separately so differences are visible:
 
-    docker run --name coverage-c-pilot --network none asn1scc-coverage:phase0b --outdir /results --cohort pilot
-    docker run --name coverage-c-v2 --network none asn1scc-coverage:phase0b --outdir /results --cohort pilot --acn-v2
-    docker run --name coverage-ada-pilot --network none asn1scc-coverage:phase0b --outdir /results --cohort pilot --language Ada
-    docker run --name coverage-ada-v2 --network none asn1scc-coverage:phase0b --outdir /results --cohort pilot --language Ada --acn-v2
+    docker run --name coverage-c-pilot --network none asn1scc-coverage:local --outdir /results --cohort pilot
+    docker run --name coverage-c-v2 --network none asn1scc-coverage:local --outdir /results --cohort pilot --acn-v2
+    docker run --name coverage-ada-pilot --network none asn1scc-coverage:local --outdir /results --cohort pilot --language Ada
+    docker run --name coverage-ada-v2 --network none asn1scc-coverage:local --outdir /results --cohort pilot --language Ada --acn-v2
 
 Use docker cp on each named container to export results. --filter accepts a
 unit/path substring; --limit caps selected units; --jobs controls compilation
@@ -96,6 +101,9 @@ field/goal IDs across code changes. The schema reserves semantic_goal_id and
 proof for later compiler metadata. Coverage accumulates generated instances:
 uPER code repeated across ACN directives and headers instantiated in multiple
 objects are not claimed as unique repository coverage.
+Changing only the test harness preserves codec branch IDs, provided the codec
+source and instrumentation toolchain remain the same. This supports attributing
+coverage changes to individual harness operations.
 
 Statement coverage is explicitly NOT measured by this gcov lane. For a future
 source-statement claim the selected separate instrumentation lane is
@@ -127,6 +135,27 @@ and gcov as separate checked stages. Formal SPARK proof is outside this lane,
 even for inputs marked RUN_SPARK. Missing GNAT artifacts cannot silently skip
 coverage. System headers outside the generated working tree are retained in raw
 gcov but excluded from the summarized generated/runtime/harness scope.
+Contract tests compare its flags with `StgAda/aux_a.stg` and compare the default
+compiler flags with `runTests.py`. `NOCOVERAGE` exempts a unit from the legacy
+line gate; both the collector and the regression runner still execute it.
+
+## Exporting an exact reference
+
+Export a new reference from a completed report directory without rerunning the
+compiler (Python standard library only):
+
+    python3 v4Tests/scripts/coverageCollector.py --from-run coverage-all/<run-id> --write-reference new-reference.json
+
+The source run must be complete and successful: C, uPER + legacy ACN, word-size
+8, non-slim, all or historical cohort, no filter or limit, and zero non-exempt
+legacy line misses. The exporter checks inventory, unit statuses, input hashes
+and summary totals; it retains compiler/toolchain provenance and artifact hashes.
+An existing destination is rejected. Review a new reference before adopting it;
+the checked-in historical reference remains unchanged.
+
+Use `--reference new-reference.json --cohort historical --compare-baseline` to
+reproduce the exported cohort. Here `historical` means the exact unit IDs in the
+supplied reference, which may differ from the original 259-unit cohort.
 
 ## Existing project images
 
@@ -140,11 +169,12 @@ standard-library collector tests with an explicit non-root user.
 
 The optional Makefile is run inside the container, for example:
 
-    docker run --name coverage-make-pilot --network none --entrypoint make asn1scc-coverage:phase0b -f /opt/coverage/Makefile branch-coverage
+    docker run --name coverage-make-pilot --network none --entrypoint make asn1scc-coverage:local -f /opt/coverage/Makefile branch-coverage
 
 ## Collector checks (inside the same image)
 
-    docker run --rm --network none --entrypoint python3 asn1scc-coverage:phase0b /opt/coverage/testCollector.py
+    docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testCollector.py
+    docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testContracts.py
 
 Tests exercise failure reporting, timeout handling, missing profiles, partial
 lines, exemption accounting, exact-source branch IDs and reference mismatch

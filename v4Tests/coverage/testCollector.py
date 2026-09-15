@@ -3,15 +3,16 @@ import contextlib
 import importlib.util
 import io
 import json
+import copy
 from pathlib import Path
 import sys
 import tempfile
 import unittest
 from unittest import mock
 
-SCRIPT = Path(__file__).with_name("coverageBaseline.py")
+SCRIPT = Path(__file__).with_name("coverageCollector.py")
 if not SCRIPT.exists():
-    SCRIPT = Path(__file__).resolve().parent.parent / "scripts/coverageBaseline.py"
+    SCRIPT = Path(__file__).resolve().parent.parent / "scripts/coverageCollector.py"
 SPEC = importlib.util.spec_from_file_location("collector", SCRIPT)
 c = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(c)
@@ -175,6 +176,72 @@ class CollectorTests(unittest.TestCase):
     def test_inventory_cannot_claim_to_check_baseline(self):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             c.arguments(["--inventory-only", "--compare-baseline"])
+
+    def reference_run(self):
+        stat = self.source_stats()
+        stat["component"] = "codec"
+        records = [{"unit": "a#1", "status": "ok", "input_sha256": "input",
+                    "nocoverage": False, "files": {"sample1.c": stat}}]
+        config = vars(c.arguments([]))
+        config = {k: str(v) if isinstance(v, Path) else v for k, v in config.items()}
+        manifest = {"configuration": config, "compiler": {"sha256": "compiler"}}
+        summary = {"status": "ok", "failures": 0, "errors": [], "threshold_failed": False,
+                   "measurements": c.aggregate(records), "unit_statuses": {"ok": 1}}
+        inventory = [{"unit": "a#1", "selection": "selected", "nocoverage": False,
+                      "input_sha256": "input"}]
+        for name, value in (("summary", summary), ("manifest", manifest), ("inventory", inventory)):
+            c.write_json(self.root / (name + ".json"), value)
+        (self.root / "units.jsonl").write_text(json.dumps(records[0]) + "\n")
+        return records, manifest, summary
+
+    def test_export_reference_round_trip_and_no_overwrite(self):
+        records, _, _ = self.reference_run()
+        target = self.root / "reference.json"
+        c.export_reference(self.root, target)
+        reference = json.loads(target.read_text())
+        self.assertTrue(c.compare_reference(records, reference)["matched"])
+        self.assertEqual(reference["provenance"]["manifest"]["compiler"]["sha256"], "compiler")
+        before = target.read_bytes()
+        with self.assertRaises(FileExistsError):
+            c.export_reference(self.root, target)
+        self.assertEqual(target.read_bytes(), before)
+
+    def test_export_rejects_failed_inventory_and_partial_runs(self):
+        _, manifest, summary = self.reference_run()
+        for status in ("failed", "inventory_only"):
+            with self.subTest(status=status), self.assertRaises(ValueError):
+                c.write_json(self.root / "summary.json", {**summary, "status": status})
+                c.export_reference(self.root, self.root / "reference.json")
+        c.write_json(self.root / "summary.json", summary)
+        for key, value in (("cohort", "pilot"), ("limit", 1), ("filter", "a"),
+                           ("language", "Ada"), ("acn_v2", True), ("inventory_only", True)):
+            modified = copy.deepcopy(manifest)
+            modified["configuration"][key] = value
+            c.write_json(self.root / "manifest.json", modified)
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                c.export_reference(self.root, self.root / "reference.json")
+
+    def test_export_rejects_missing_duplicate_failed_or_changed_records(self):
+        records, _, _ = self.reference_run()
+        for altered in ([], records * 2, [{**records[0], "status": "run_error"}],
+                        [{**records[0], "input_sha256": "changed"}],
+                        [{**records[0], "nocoverage": True}]):
+            (self.root / "units.jsonl").write_text("".join(json.dumps(r) + "\n" for r in altered))
+            with self.subTest(records=len(altered)), self.assertRaises(ValueError):
+                c.export_reference(self.root, self.root / "reference.json")
+
+    def test_export_rejects_summary_drift_and_ungated_line_misses(self):
+        records, _, summary = self.reference_run()
+        summary["measurements"]["components"]["codec"]["lines_hit"] += 1
+        c.write_json(self.root / "summary.json", summary)
+        with self.assertRaisesRegex(ValueError, "summary"):
+            c.export_reference(self.root, self.root / "reference.json")
+        records[0]["files"]["sample1.c"]["official_line_misses"] = [1]
+        summary["measurements"] = c.aggregate(records)
+        c.write_json(self.root / "summary.json", summary)
+        (self.root / "units.jsonl").write_text(json.dumps(records[0]) + "\n")
+        with self.assertRaisesRegex(ValueError, "line misses"):
+            c.export_reference(self.root, self.root / "reference.json")
 
 
 if __name__ == "__main__":

@@ -2,6 +2,11 @@ name: Generated-code coverage baseline
 
 on:
   workflow_dispatch:
+    inputs:
+      compare_historical:
+        description: 'Also require exact reproduction of the historical compiler baseline'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -18,11 +23,15 @@ jobs:
         run: |
           docker build -f v4Tests/coverage/Dockerfile \
             --build-arg SOURCE_REVISION="$GITHUB_SHA" \
-            -t asn1scc-coverage:phase0b .
+            -t asn1scc-coverage:local .
       - name: Check collector failure handling
-        run: docker run --rm --network none --entrypoint python3 asn1scc-coverage:phase0b /opt/coverage/testCollector.py
+        run: docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testCollector.py
+      - name: Check runner and build contracts
+        run: docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testContracts.py
       - name: Measure corpus and mode pilots
         shell: bash
+        env:
+          COMPARE_HISTORICAL: ${{ inputs.compare_historical }}
         run: |
           coverage_status=0
           measure() {
@@ -30,11 +39,15 @@ jobs:
             shift
             mkdir -p "coverage-results/$coverage_name"
             docker run --name "$coverage_name" --network none \
-              asn1scc-coverage:phase0b --outdir /results "$@" || coverage_status=1
+              asn1scc-coverage:local --outdir /results --enforce-legacy-line-gate "$@" || coverage_status=1
             docker cp "$coverage_name":/results/. \
               "coverage-results/$coverage_name/" || coverage_status=1
           }
-          measure baseline-c --compare-baseline
+          historical_args=()
+          if [[ "$COMPARE_HISTORICAL" == "true" ]]; then
+            historical_args+=(--compare-baseline)
+          fi
+          measure baseline-c "${historical_args[@]}"
           measure pilot-c-v2 --cohort pilot --acn-v2
           measure pilot-ada --cohort pilot --language Ada
           measure pilot-ada-v2 --cohort pilot --language Ada --acn-v2

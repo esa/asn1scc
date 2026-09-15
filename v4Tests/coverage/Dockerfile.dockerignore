@@ -7,6 +7,7 @@
 !StgAda/**
 !StgC/**
 !StgPython/**
+!StgRust/**
 !StgScala/**
 !StgVarious/**
 !asn1scc/**
@@ -15,7 +16,9 @@
 !ADA_RTL2/**
 !asn1scala/**
 !asn1python/**
-!v4Tests/scripts/coverageBaseline.py
+!asn1rust/**
+!v4Tests/scripts/coverageCollector.py
+!v4Tests/scripts/runTests.py
 !v4Tests/coverage/**
 !v4Tests/test-cases/acn/**
 !Directory.Build.*

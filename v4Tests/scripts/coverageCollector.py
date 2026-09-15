@@ -322,6 +322,14 @@ def compiler_flags(args):
     return flags
 
 
+def ada_build_command(jobs):
+    # Separate checked stages; flags are contract-tested against aux_a.stg.
+    return ["gprbuild", "-gnat2012", "-P", "asn1_x86.gpr", "mainprogram.adb",
+            "--subdirs=coverage", f"-j{jobs}", "-cargs", "-g", "-O0", "-gnatf",
+            "-gnaty", "-gnatg", "-fstack-check", "-gnatwe", "-gnatwa",
+            "-fprofile-arcs", "-ftest-coverage", "-largs", "-fprofile-arcs"]
+
+
 def measure_unit(unit, args, run_dir):
     token = digest(unit["unit"].encode())[:16]
     directory = run_dir / "units" / token
@@ -347,12 +355,7 @@ def measure_unit(unit, args, run_dir):
             executable = work / "mainprogram"
             expected = {p.name for p in work.glob("*.c") if file_component(p.name) == "codec"}
         else:
-            command = ["gprbuild", "-P", "asn1_x86.gpr", "mainprogram.adb",
-                       "--subdirs=coverage", f"-j{args.jobs}", "-cargs", "-gnat2012",
-                       "-g", "-O0", "-gnatf", "-gnaty", "-gnatg", "-fstack-check",
-                       "-gnatwe", "-gnatwa", "-fprofile-arcs", "-ftest-coverage",
-                       "-largs", "-fprofile-arcs"]
-            run_step(command, work, logs, "build", args.timeout, rec["steps"])
+            run_step(ada_build_command(args.jobs), work, logs, "build", args.timeout, rec["steps"])
             executable = work / "obj_x86" / "coverage" / "mainprogram"
             expected = {p.name for p in work.glob("*.adb") if file_component(p.name) == "codec"}
         run_step([str(executable)], executable.parent, logs, "run", args.timeout,
@@ -501,6 +504,55 @@ def percent(hit, total):
     return f"{100 * hit / total:.2f}%" if total else "n/a"
 
 
+def export_reference(run_dir, destination):
+    """Export exact codec counts from a complete, successful standard C run."""
+    summary = json.loads((run_dir / "summary.json").read_text())
+    manifest = json.loads((run_dir / "manifest.json").read_text())
+    inventory = json.loads((run_dir / "inventory.json").read_text())
+    config = manifest["configuration"]
+    if (summary["status"] != "ok" or summary["failures"] or summary["errors"]
+            or summary["threshold_failed"] or config["inventory_only"]):
+        raise ValueError("Reference requires a successful measurement run")
+    if (config["language"] != "c" or config["encodings"] != "both"
+            or config["acn_v2"] or config["slim"] or config["word_size"] != 8
+            or config["cohort"] not in ("all", "historical")
+            or config["filter"] or config["limit"]):
+        raise ValueError("Reference requires a complete all/historical C/both/legacy/8-byte/non-slim run")
+    selected = {u["unit"]: u for u in inventory if u["selection"] == "selected"}
+    records = [json.loads(line) for line in (run_dir / "units.jsonl").read_text().splitlines()]
+    if (not selected or len(records) != len(selected)
+            or {r["unit"] for r in records} != set(selected)
+            or any(r["status"] != "ok" for r in records)):
+        raise ValueError("Reference requires every selected unit exactly once with status ok")
+    measured = aggregate(records)
+    if (measured != summary["measurements"]
+            or summary["unit_statuses"] != {"ok": len(records)}):
+        raise ValueError("Run summary does not match unit records")
+    if measured["legacy_line_misses"]["enforced"]:
+        raise ValueError("Reference requires zero non-exempt legacy line misses")
+    units = {}
+    for rec in records:
+        if (not rec.get("input_sha256")
+                or rec["input_sha256"] != selected[rec["unit"]].get("input_sha256")
+                or rec["nocoverage"] != selected[rec["unit"]]["nocoverage"]):
+            raise ValueError("Unit input/exemption does not match inventory")
+        counts = aggregate([rec])["components"].get("codec")
+        if counts is None:
+            raise ValueError("Reference requires measured codec sources for every unit")
+        units[rec["unit"]] = {"input_sha256": rec["input_sha256"], **{
+            key: counts[key] for key in ("lines_total", "lines_hit", "branches_total", "branches_taken")}}
+    reference = {"schema_version": SCHEMA,
+                 "scope": "generated C codecs, uPER+legacy ACN, default word-size 8, non-slim",
+                 "origin": "Exported from a successful collector run; exact reproduction only",
+                 "provenance": {"manifest": manifest,
+                     "artifacts_sha256": {name: file_hash(run_dir / name) for name in (
+                         "summary.json", "manifest.json", "inventory.json", "units.jsonl")}},
+                 "units": units}
+    # References are reviewed artifacts; never overwrite one implicitly.
+    with destination.open("x") as stream:
+        stream.write(json.dumps(reference, indent=2, sort_keys=True) + "\n")
+
+
 def report(run_dir, summary):
     text = ["# Generated-code coverage", "",
             f"Run status: {summary['status']}. Measurement failures: {summary['failures']}.",
@@ -576,9 +628,16 @@ def arguments(argv=None):
     ap.add_argument("--build-manifest", type=Path, default=Path(os.environ.get(
         "ASN1SCC_BUILD_MANIFEST", str(V4 / "coverage/build.json"))))
     ap.add_argument("--write-build-manifest", type=Path)
+    ap.add_argument("--from-run", type=Path, help="Completed report directory to export; no measurement is run")
+    ap.add_argument("--write-reference", type=Path, help="New reference file (requires --from-run; never overwritten)")
     ap.add_argument("--source-root", type=Path, default=V4.parent)
     ap.add_argument("--source-revision", default="unspecified")
     args = ap.parse_args(argv)
+    if bool(args.from_run) != bool(args.write_reference):
+        ap.error("--from-run and --write-reference must be used together")
+    if args.from_run and (args.write_build_manifest or args.inventory_only or args.compare_baseline
+                         or args.enforce_legacy_line_gate or args.min_branch is not None):
+        ap.error("Reference export cannot be combined with measurement/build operations")
     if args.jobs < 1 or args.timeout < 1 or (args.limit is not None and args.limit < 1):
         ap.error("jobs, timeout and limit must be positive")
     if args.min_branch is not None and not 0 <= args.min_branch <= 100:
@@ -599,6 +658,14 @@ def arguments(argv=None):
 
 def main(argv=None):
     args = arguments(argv)
+    if args.from_run:
+        try:
+            export_reference(args.from_run.resolve(), args.write_reference)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            print(f"Reference export failed: {error}", file=sys.stderr)
+            return 1
+        print(f"Reference written: {args.write_reference}")
+        return 0
     if args.write_build_manifest:
         write_json(args.write_build_manifest, {
             "schema_version": SCHEMA, "source_revision": args.source_revision,

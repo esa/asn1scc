@@ -19,7 +19,7 @@ ARG SOURCE_REVISION=unspecified
 WORKDIR /src
 COPY --chown=10001:10001 . .
 USER 10001:10001
-RUN python3 v4Tests/scripts/coverageBaseline.py \
+RUN python3 v4Tests/scripts/coverageCollector.py \
         --write-build-manifest /opt/coverage/build.json \
         --source-root /src --source-revision "$SOURCE_REVISION" \
     && dotnet publish asn1scc/asn1scc.fsproj -c Release -o /opt/asn1scc -m:1
@@ -27,8 +27,9 @@ RUN python3 v4Tests/scripts/coverageBaseline.py \
 FROM toolchain AS runner
 COPY --from=build /opt/asn1scc/ /opt/asn1scc/
 COPY --from=build /opt/coverage/build.json /opt/coverage/build.json
-COPY v4Tests/scripts/coverageBaseline.py /opt/coverage/coverageBaseline.py
+COPY v4Tests/scripts/coverageCollector.py /opt/coverage/coverageCollector.py
 COPY v4Tests/coverage/ /opt/coverage/
+COPY StgAda/aux_a.stg v4Tests/scripts/runTests.py /opt/coverage/contracts/
 COPY v4Tests/test-cases/acn/ /opt/test-cases/acn/
 ENV ASN1SCC_COMPILER=/opt/asn1scc/asn1scc \
     ASN1SCC_TESTROOT=/opt/test-cases/acn \
@@ -36,5 +37,5 @@ ENV ASN1SCC_COMPILER=/opt/asn1scc/asn1scc \
     ASN1SCC_BUILD_MANIFEST=/opt/coverage/build.json
 USER 10001:10001
 WORKDIR /results
-ENTRYPOINT ["python3", "/opt/coverage/coverageBaseline.py"]
+ENTRYPOINT ["python3", "/opt/coverage/coverageCollector.py"]
 CMD ["--outdir", "/results"]
