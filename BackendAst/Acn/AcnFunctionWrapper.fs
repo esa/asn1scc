@@ -74,7 +74,6 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
     let p : CodegenScope = lm.lg.getParamTypeSuffix t sf codec
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
-    let sInitialExp = ""
     // Zero-bit encodings — a NULL without an ACN encoding pattern and an empty
     // SEQUENCE — have no funcBody on Encode (content = None below), so the
     // encoders never produce an icdResult and the type would silently vanish
@@ -144,6 +143,16 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let precondAnnots = lm.lg.generatePrecond r ACN t codec
                 let postcondAnnots = lm.lg.generatePostcond r ACN p t codec
                 let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
+                let sInitialExp =
+                    // A null attribute disables the optional template initializer.
+                    match content with
+                    | Some _ -> null
+                    | None ->
+                        match codec, lm.lg.initMethod with
+                        | Decode, InitMethod.Function -> soInitFuncName.orElse null
+                        | Encode, InitMethod.Function
+                        | Encode, InitMethod.Procedure
+                        | Decode, InitMethod.Procedure -> null
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, udfcs, auxiliaries, icdResult =
                     match content with
                     | None ->
@@ -223,7 +232,18 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     | Some tasInfo ->
                         let caller = {Caller.typeId = tasInfo; funcType= UperEncDecFunctionType}
                         let callee = {Callee.typeId = tasInfo; funcType=IsValidFunctionType}
-                        addFunctionCallToState ns1a caller callee
+                        let ns2 = addFunctionCallToState ns1a caller callee
+                        match codec, lm.lg.initMethod with
+                        | Decode, InitMethod.Function when content.IsNone ->
+                            // The empty Ada ACN decoder calls its initializer, also
+                            // when -icdPdus retains it through a reference codec.
+                            addFunctionCallToState ns2
+                                {caller with funcType=AcnEncDecFunctionType}
+                                {callee with funcType=InitFunctionType}
+                        | Encode, InitMethod.Function
+                        | Encode, InitMethod.Procedure
+                        | Decode, InitMethod.Function
+                        | Decode, InitMethod.Procedure -> ns2
                 func, funcDef, udfcs, auxiliaries, icdResult, ns2a
 
     let icdAux, ns3 =

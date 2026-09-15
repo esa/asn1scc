@@ -935,21 +935,16 @@ let hasAcnEncodeFunction (encFunc: AcnFunction option) acnParameters (tasInfo: T
     | Some fnc ->
         match acnParameters, tasInfo with
         | [], Some _ ->
-            let p = {CodegenScope.modName = ""; accessPath = AccessPath.valueEmptyPath "dummy"}
-            let ret,_ = fnc.funcBody emptyState [] (NestingScope.init 0I 0I []) p
-            match ret with
-            | None   -> false
-            | Some _ -> true
+            // A zero-bit encoding can have no inline body and still expose a
+            // callable codec. Automatic tests exercise that emitted function.
+            fnc.funcName.IsSome && fnc.func.IsSome
         | _     -> false
 
 let hasUperEncodeFunction (encFunc : UPerFunction option)  =
     match encFunc with
     | None  -> false
     | Some fnc ->
-            let p = {CodegenScope.modName = ""; accessPath = AccessPath.valueEmptyPath "dummy"}
-            match fnc.funcBody (NestingScope.init 0I 0I []) p false with
-            | None   -> false
-            | Some _ -> true
+        fnc.funcName.IsSome && fnc.func.IsSome
 
 let hasXerEncodeFunction (encFunc : XerFunction option)  =
     match encFunc with

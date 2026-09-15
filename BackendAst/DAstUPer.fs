@@ -92,12 +92,21 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
-    let sInitialExp = ""
     let func, funcDef, auxiliaries,ns2 =
             match funcName  with
             | None              -> None, None, [], ns
             | Some funcName     ->
                 let content = funcBody (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p false
+                let sInitialExp =
+                    // ST wraps non-null strings, including "", as truthy values.
+                    match content with
+                    | Some _ -> null
+                    | None ->
+                        match codec, lm.lg.initMethod with
+                        | Decode, InitMethod.Function -> soInitFuncName.orElse null
+                        | Encode, InitMethod.Function
+                        | Encode, InitMethod.Procedure
+                        | Decode, InitMethod.Procedure -> null
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, auxiliaries =
                     match content with
                     | None              ->
@@ -117,7 +126,16 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                     | Some tasInfo ->
                         let caller = {Caller.typeId = tasInfo; funcType= UperEncDecFunctionType}
                         let callee = {Callee.typeId = tasInfo; funcType=IsValidFunctionType}
-                        addFunctionCallToState ns caller callee
+                        let ns2 = addFunctionCallToState ns caller callee
+                        match codec, lm.lg.initMethod with
+                        | Decode, InitMethod.Function when content.IsNone ->
+                            // Empty Ada decoder wrappers initialize their OUT value.
+                            // Retain that initializer when -icdPdus selects a caller.
+                            addFunctionCallToState ns2 caller {callee with funcType=InitFunctionType}
+                        | Encode, InitMethod.Function
+                        | Encode, InitMethod.Procedure
+                        | Decode, InitMethod.Function
+                        | Decode, InitMethod.Procedure -> ns2
 
                 func, funcDef, auxiliaries, ns2
 
@@ -1058,4 +1076,3 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                     Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
                 | None -> None
             createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  [] us)
-

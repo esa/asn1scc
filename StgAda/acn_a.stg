@@ -108,6 +108,11 @@ pragma Unreferenced(bs);
 <endif>
     <arrsLocalVariables; separator="\n">
 begin
+    <if(sInitialExp)>
+    -- A codec with no inline decoding body must still define its outputs.
+    <sVarName> := <sInitialExp>;
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    <endif>
     <sContent>
 end <sFuncName>_aux;
 <if(bVarNameIsUnreferenced)>

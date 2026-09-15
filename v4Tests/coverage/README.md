@@ -280,6 +280,26 @@ For a host with the compiler and GNAT installed, run
 `--test-root` select another build/corpus. `--outdir` preserves generated code,
 commands and diagnostics in a new directory.
 
+## NULL codec regressions
+
+This check removes the value assignment from `18-NULL/001.asn1#1` and requires
+two real automatic tests (uPER and ACN). A separate Ada driver verifies that
+public and auxiliary NULL decoders define their outputs, encode/decode consume
+zero bits, and auxiliary calls preserve an existing non-byte-aligned stream.
+It runs legacy/v2, each in normal/slim mode, with the ordinary strict build flags.
+Each mode also tests a NULL alias selected with `-icdPdus`, ensuring that
+transitively needed codec initializers are emitted (four automatic tests).
+The selected-alias driver also runs without `-atc`, checking the production
+codec dependencies independently of the test harness.
+
+    docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testNullCodecs.py
+
+Measure the original fixture with statements after rebuilding the common and
+Ada statement images. The all cohort is needed because the pilot excludes it:
+
+    v4Tests/coverage/runCoverage.sh --metric stmt --language Ada --outdir coverage-results/null-stmt -- --cohort all --filter '18-NULL/001.asn1#1' --acn-v2
+    v4Tests/coverage/runCoverage.sh --metric gcov --language Ada --outdir coverage-results/null-gcov -- --cohort all --filter '18-NULL/001.asn1#1' --acn-v2 --enforce-legacy-line-gate
+
 ## Bounded C encode pilot
 
 `--check-encode` enables `ASN1SCC_CHECK_ENCODE` when compiling the generated C

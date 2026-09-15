@@ -834,7 +834,7 @@ let private emitSpecializedFunctionDecl
         ctx.lm.acn.EmitTypeAssignment_primitive
             varName sStar specFuncName isValidFuncName typeDefinitionName
             lvars finalBody.funcBody
-            None ""  // soSparkAnnotations, sInitialExp
+            None null  // soSparkAnnotations, no fallback initializer for finalBody
             deferredFormalParams deferredParamNames
             (ctx.t.acnMaxSizeInBits = 0I) finalBody.bBsIsUnReferenced bVarNameIsUnreferenced
             false

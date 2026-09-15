@@ -46,6 +46,29 @@ let rec getAmberDecode (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) =
     | Asn1AcnAst.ReferenceType z -> getAmberDecode lm z.resolvedType
     | _                          -> lm.lg.amberDecodePrefix
 
+// ATC wrappers for transitively retained codecs also call initialization,
+// equality and validation functions. Keep those with -icdPdus selection.
+let private addTestFunctionCalls (t:Asn1AcnAst.Asn1Type) funcType
+                                (eqFunc:EqualFunction) (isValidFunc:IsValidFunction option) us =
+    match t.id.tasInfo with
+    | None -> us
+    | Some tasInfo ->
+        let dependencies = [
+            yield InitFunctionType
+            match eqFunc.isEqualFuncName with
+            | Some _ -> yield EqualFunctionType
+            | None -> ()
+            match isValidFunc with
+            | Some fnc ->
+                match fnc.funcName with
+                | Some _ -> yield IsValidFunctionType
+                | None -> ()
+            | None -> ()
+        ]
+        dependencies |> List.fold (fun st dependency ->
+            addFunctionCallToState st {Caller.typeId=tasInfo; funcType=funcType}
+                {Callee.typeId=tasInfo; funcType=dependency}) us
+
 let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : UPerFunction option) (decFunc : UPerFunction option)   (us:State)  =
     let sEnc = lm.lg.atc.uperPrefix
 
@@ -122,7 +145,7 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
                     func                            = func
                     funcDef                         = funcDef
                 }
-            Some ret, us
+            Some ret, addTestFunctionCalls t UperEncDecFunctionType eqFunc isValidFunc us
         | false -> None, us
 
 let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : UPerFunction option) (decFunc : UPerFunction option)   (us:State)  =
@@ -215,7 +238,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         func                            = func
                         funcDef                         = funcDef
                     }
-                Some ret, us
+                Some ret, addTestFunctionCalls t AcnEncDecFunctionType eqFunc isValidFunc us
             | false -> None, us
 
 
