@@ -8,12 +8,12 @@ RUN set -xe \
     && apt-get purge --auto-remove \
     && apt-get clean
 
-# Install Rust toolchain (stable) for compiling and running generated Rust code
+# Install a pinned Rust toolchain (bump the version deliberately; "stable" would change on every image build) for compiling and running generated Rust code
 ENV RUSTUP_HOME="/usr/local/rustup"
 ENV CARGO_HOME="/usr/local/cargo"
 ENV PATH="/usr/local/cargo/bin:${PATH}"
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-        sh -s -- -y --default-toolchain stable --profile minimal \
+        sh -s -- -y --default-toolchain 1.98.1 --profile minimal \
     && rustc --version && cargo --version 
 
 # Install GNAT AND SPARK from AdaCore
