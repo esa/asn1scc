@@ -350,7 +350,11 @@ def measure_unit(unit, args, run_dir):
                   "sample1.asn1", "sample1.acn"], work, logs, "compile", args.timeout,
                  rec["steps"], strict_stderr=True)
         if args.language == "c":
-            run_step(["make", f"-j{args.jobs}", f"CC={args.gcc}"], work, logs,
+            if args.check_encode and not any("#ifdef ASN1SCC_CHECK_ENCODE" in p.read_text()
+                                             for p in work.glob("*_auto_tcs.c")):
+                raise StageError("compile", "Generated harness does not contain the checked/unchecked encode pilot")
+            cc = args.gcc + (" -DASN1SCC_CHECK_ENCODE" if args.check_encode else "")
+            run_step(["make", f"-j{args.jobs}", f"CC={cc}"], work, logs,
                      "build", args.timeout, rec["steps"])
             executable = work / "mainprogram"
             expected = {p.name for p in work.glob("*.c") if file_component(p.name) == "codec"}
@@ -516,7 +520,7 @@ def export_reference(run_dir, destination):
     if (config["language"] != "c" or config["encodings"] != "both"
             or config["acn_v2"] or config["slim"] or config["word_size"] != 8
             or config["cohort"] not in ("all", "historical")
-            or config["filter"] or config["limit"]):
+            or config["filter"] or config["limit"] or config.get("check_encode", False)):
         raise ValueError("Reference requires a complete all/historical C/both/legacy/8-byte/non-slim run")
     selected = {u["unit"]: u for u in inventory if u["selection"] == "selected"}
     records = [json.loads(line) for line in (run_dir / "units.jsonl").read_text().splitlines()]
@@ -610,6 +614,8 @@ def arguments(argv=None):
     ap.add_argument("--language", choices=("c", "Ada"), default="c")
     ap.add_argument("--encodings", choices=("both", "acn", "uper"), default="both")
     ap.add_argument("--acn-v2", action="store_true")
+    ap.add_argument("--check-encode", action="store_true",
+                    help="C harness pilot: compare checked and unchecked valid encodes")
     ap.add_argument("--slim", action="store_true")
     ap.add_argument("--word-size", type=int, choices=(4, 8), default=8)
     ap.add_argument("--cohort", choices=("all", "historical", "pilot"), default="all")
@@ -644,6 +650,8 @@ def arguments(argv=None):
         ap.error("min-branch must be between 0 and 100")
     if args.acn_v2 and args.encodings == "uper":
         ap.error("--acn-v2 requires ACN encoding")
+    if args.check_encode and (args.language != "c" or args.compare_baseline or args.from_run):
+        ap.error("--check-encode requires a C measurement without historical comparison/reference export")
     if args.inventory_only and (args.compare_baseline or args.enforce_legacy_line_gate
                                 or args.min_branch is not None):
         ap.error("Inventory-only cannot perform measurement or baseline gates")

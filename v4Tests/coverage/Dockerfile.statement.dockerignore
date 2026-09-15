@@ -1,0 +1,8 @@
+**
+!v4Tests/coverage/statementCollector.py
+!v4Tests/coverage/testStatement.py
+!v4Tests/coverage/statementPilot.py
+!v4Tests/coverage/runCoverage.sh
+!v4Tests/coverage/testDockerRunner.py
+!v4Tests/coverage/gnatcov/**
+**/__pycache__/**

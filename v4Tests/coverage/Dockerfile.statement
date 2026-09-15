@@ -1,0 +1,55 @@
+# syntax=docker/dockerfile:1
+# Build the common image with coverage/Dockerfile first. Select statement-ada
+# or statement-c explicitly; source-tool builds are isolated from measurement.
+ARG COVERAGE_IMAGE=asn1scc-coverage:local
+ARG GNATCOV_C_IMAGE=gnatcov-c-build
+
+FROM ${COVERAGE_IMAGE} AS gnatcov-c-build
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git python3-venv build-essential bison flex texinfo autoconf automake libtool \
+    pkg-config unzip xz-utils rsync libgmp-dev zlib1g-dev libzstd-dev \
+    libclang-16-dev llvm-16-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir /build && chown 10001:10001 /build
+USER 10001:10001
+WORKDIR /build
+RUN python3 -m venv /build/venv \
+    && /build/venv/bin/pip install e3-core==22.10.0 stevedore==5.9.1
+ENV PATH="/build/venv/bin:${PATH}"
+COPY --chown=10001:10001 v4Tests/coverage/gnatcov/ /build/recipe/
+RUN python3 /build/recipe/build.py
+
+# Override with a previously tagged gnatcov-c-build image to reuse the toolchain
+# when only asn1scc or the measurement scripts have changed.
+FROM ${GNATCOV_C_IMAGE} AS c-instrumenter
+
+FROM ${COVERAGE_IMAGE} AS statement-common
+USER root
+RUN mkdir /opt/gnatcov /opt/gnatcov-rts \
+    && chown 10001:10001 /opt/gnatcov-rts
+COPY v4Tests/coverage/statementCollector.py v4Tests/coverage/testStatement.py v4Tests/coverage/statementPilot.py /opt/coverage/
+COPY v4Tests/coverage/runCoverage.sh v4Tests/coverage/testDockerRunner.py /opt/coverage/
+ENV PATH="/opt/gnatcov/bin:${PATH}" \
+    GPR_PROJECT_PATH=/opt/gnatcov-rts/share/gpr
+ENTRYPOINT ["python3", "/opt/coverage/statementCollector.py"]
+
+FROM statement-common AS statement-ada
+ADD --checksum=sha256:6a186a9ba103dbc21957124769a4b51f2ccf87d6af1d81f474496fc480089a48 https://github.com/alire-project/GNAT-FSF-builds/releases/download/gnatcov-26.2-1/gnatcov-x86_64-linux-26.2-1.tar.gz /tmp/gnatcov.tar.gz
+RUN tar -xzf /tmp/gnatcov.tar.gz -C /opt/gnatcov --strip-components=1 \
+    && rm /tmp/gnatcov.tar.gz
+USER 10001:10001
+RUN gnatcov setup --prefix=/opt/gnatcov-rts \
+    && python3 /opt/coverage/testStatement.py --language Ada \
+    && python3 /opt/coverage/testDockerRunner.py
+CMD ["--language", "Ada", "--cohort", "pilot", "--outdir", "/results"]
+
+FROM statement-common AS statement-c
+RUN apt-get update && apt-get install -y --no-install-recommends libllvm16 \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=c-instrumenter /build/sandbox/x86_64-linux/gnatcov/install/ /opt/gnatcov/
+USER 10001:10001
+RUN gnatcov setup --prefix=/opt/gnatcov-rts \
+    && python3 /opt/coverage/testStatement.py --language c \
+    && python3 /opt/coverage/testDockerRunner.py
+CMD ["--language", "c", "--cohort", "pilot", "--outdir", "/results"]

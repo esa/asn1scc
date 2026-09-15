@@ -105,13 +105,97 @@ Changing only the test harness preserves codec branch IDs, provided the codec
 source and instrumentation toolchain remain the same. This supports attributing
 coverage changes to individual harness operations.
 
-Statement coverage is explicitly NOT measured by this gcov lane. For a future
-source-statement claim the selected separate instrumentation lane is
-GNATcoverage source instrumentation at --level=stmt for C/Ada, with its own
-tool/version and generated-code compatibility validation. This image does not
-provide gnatcov or claim statement/MC/DC evidence. Its line/block/branch data
-provides the diagnostic baseline needed to target missing behavior.
+Statement coverage is explicitly NOT measured by this gcov lane. The separate
+statement images described below use GNATcoverage source instrumentation at
+`--level=stmt`, with independent reports and tool provenance. The common image
+does not provide gnatcov. Its line/block/branch data remains a complementary
+diagnostic baseline; it is not statement or MC/DC evidence.
 See the [GNATcoverage instrumentation guide](https://docs.adacore.com/gnatcoverage-docs/html/src_traces.html).
+
+## Statement images and Docker orchestration
+
+`Dockerfile.statement` has two runtime targets sharing the existing compiler
+image. The initial statement lane supports Linux x86-64, native word size 8.
+
+| Target / image tag | Instrumenter |
+|---|---|
+| `statement-ada` | Checksum-pinned GNATcoverage FSF 26.2 binary (Ada support) |
+| `statement-c` | GNATcoverage 26.2 built with C support, using public AdaCore Clang bindings and LLVM 16 |
+
+The C build uses the release-matched GNAT 15.2 compiler to build the tool.
+Generated C/Ada programs still use the common image's GCC/GNAT 13 toolchain.
+Both runtime images build the coverage runtime with that measurement toolchain
+and must pass real source-trace calibration during their image build. Calibration
+checks an uncovered statement sharing a line with covered statements, then
+consolidates a second execution to cover it; corrupted XML reports are rejected.
+
+Build the common image, then the two statement images. Save the expensive C
+toolchain stage as a separate image so later compiler/runner changes can reuse it:
+
+    docker build -f v4Tests/coverage/Dockerfile -t asn1scc-coverage:local .
+    docker build -f v4Tests/coverage/Dockerfile.statement --target gnatcov-c-build -t asn1scc-gnatcov:26.2-c .
+    docker build -f v4Tests/coverage/Dockerfile.statement --target statement-c --build-arg GNATCOV_C_IMAGE=asn1scc-gnatcov:26.2-c -t asn1scc-coverage:statement-c .
+    docker build -f v4Tests/coverage/Dockerfile.statement --target statement-ada -t asn1scc-coverage:statement-ada .
+
+`COVERAGE_IMAGE` can select another common image in each statement build.
+Without `GNATCOV_C_IMAGE`, the C runtime target builds its instrumenter from
+source. The first source build can take tens of minutes. Rebuild the toolchain
+image when `gnatcov/build.py` or `gnatcov/sources.json` changes. The source pins,
+archive hashes, build recipes and installed-package inventory are retained in
+the C instrumenter's `toolchain-build.json`; preserve the final image ID too.
+The common build stage includes Java to regenerate gitignored ANTLR parsers
+from a clean checkout. No host compiler installation is required.
+
+The host orchestrator requires only Bash and Docker. It selects an image by
+metric and language, runs as UID/GID 10001 with no network or host mounts, and
+exports results even on failure. It neither pulls images nor deletes containers:
+
+    v4Tests/coverage/runCoverage.sh --metric stmt --language c --outdir coverage-results/stmt-c -- --cohort pilot
+    v4Tests/coverage/runCoverage.sh --metric stmt --language Ada --outdir coverage-results/stmt-ada -- --filter 01-INTEGER/001.asn1#1
+    v4Tests/coverage/runCoverage.sh --metric gcov --language c --outdir coverage-results/gcov-c -- --enforce-legacy-line-gate
+
+`--image` overrides the selected image; `--name` gives the retained container
+an explicit name. The default cohort is the bounded pilot. Supply collector
+options after `--`; set language and output directory before it. Every host
+output directory must be new. `container.json` records the actual image ID,
+user, network mode, mounts and final exit status.
+
+Run the original three-fixture checked/unchecked C comparison with statements:
+
+    v4Tests/coverage/runCoverage.sh --metric stmt --language c --encode-pilot --outdir coverage-results/stmt-encode-pilot
+
+This produces nine baseline/pilot pairs (uPER, legacy ACN and ACN-v2). It checks
+unchanged codec sources and obligations, preserved positive tests and no lost
+covered statements. The collector also verifies execution of every generated
+unchecked encode call site. Zero statement gain is a valid measured result;
+the earlier gcov branch gain is a different metric.
+
+### Statement report scope
+
+`statementCollector.py` retains commands, input/compiler hashes, source traces,
+SID files, XML/xcov reports, individual statement obligations and summaries.
+It cross-checks individual XML statements against GNATcoverage's per-file and
+global **statement** statistics, rather than using line percentages. Missing
+traces/SIDs, unmeasured codec bodies, zero executed tests, unknown/exempted
+coverage statuses and report inconsistencies fail the run. Uncovered statements
+are reported without an automatic percentage gate. Gcov gates and historical
+gcov reference export/comparison are rejected by this separate lane.
+
+Codec totals include generated codec/validation/equality/initialization sources.
+The C encode/decode harness is instrumented for activation diagnostics and kept
+separate from codec totals, as are any reported RTL headers. Counts accumulate
+generated instances across configurations. IDs use unit/configuration, source
+hash, statement spans and an occurrence ordinal; raw tool-local SCO IDs are
+retained separately. They are not semantic goal IDs across source rewrites.
+Nodes GNATcoverage marks as having no obligation remain explicitly listed.
+`COVERAGE_IGNORE` and `NOCOVERAGE` do not exclude statement obligations.
+
+Ada instrumented builds use GNATcoverage's documented configuration that ignores
+SPARK proof-only pragmas, because inserted counters are not SPARK constructs.
+The generated sources and runtime Pre/Post assertion policy are preserved.
+This lane does not claim SPARK proof, assertion coverage or ghost-code coverage;
+those are outside GNATcoverage's default `stmt` scope. See the
+[SPARK instrumentation instructions](https://docs.adacore.com/gnatcoverage-docs/html/gnatcov/src_traces.html#instrumentation-and-coverage-of-spark-code).
 
 ## Failure and gate behavior
 
@@ -195,6 +279,51 @@ For a host with the compiler and GNAT installed, run
 `python3 v4Tests/coverage/testAdaContaining.py`. Optional `--compiler` and
 `--test-root` select another build/corpus. `--outdir` preserves generated code,
 commands and diagnostics in a new directory.
+
+## Bounded C encode pilot
+
+`--check-encode` enables `ASN1SCC_CHECK_ENCODE` when compiling the generated C
+harness. After each successful checked binary encode, the harness encodes the
+same valid value with constraint checking disabled, into a separate buffer of
+the same capacity. It requires a true return value, identical byte/bit
+cursors and identical encoded bits. Unused low bits of the final byte are not
+compared. The shared-presence ACN fixture can leave a nonzero error code on a
+successful encode; the comparison uses the Boolean return value for success.
+The original checked stream is retained for the ordinary round trip.
+Error stage 5 identifies an unchecked-encode failure or mismatch. XER keeps its
+ordinary harness. The option is off by default and is rejected for Ada and
+historical comparison; pilot runs cannot be exported as standard references.
+
+Run the bounded comparison (three directives, each in uPER, legacy ACN and
+ACN-v2, with checking enabled only versus both modes):
+
+    python3 v4Tests/coverage/encodePilot.py --outdir /tmp/encode-pilot
+
+Or inside a newly built coverage image:
+
+    docker run --name encode-pilot --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/encodePilot.py --outdir /results/pilot
+
+The directives are `01-INTEGER/001.asn1#1`, `06-OCTET-STRING/004.asn1#2` and
+`10-SEQEUENCE/008.asn1#1`: scalar constraints, variable-length octets and shared
+OPTIONAL presence. `pilot.json` records each pair's codec counts, individual
+newly covered branch arms, test/additional-call counts and execution wall time.
+Each run retains the collector's source/tool hashes, commands and raw evidence.
+The comparison requires unchanged codec sources/branch identities and positive
+test counts, one additional encode per test, no lost branch arms or line-gate
+regression, and a positive branch gain for each selected unit/configuration.
+These are bounded pilot checks, not a general coverage percentage target.
+Short process wall times include startup and collector polling overhead; they
+are not a precise per-encode benchmark. No statement coverage is measured.
+
+Check the comparison oracle with fault injection in scratch copies of the
+generated integer/ACN pilot's work directory:
+
+    python3 v4Tests/coverage/testEncodeHarness.py --work /path/to/integer-acn/units/UNIT/work --outdir /tmp/encode-oracle
+
+This checks encode failure, error status, byte/bit lengths, full/partial-byte
+content and permitted padding differences under ASan/UBSan. It does not modify
+the retained coverage run. Truncation, invalid values and unequal-value tests
+remain later harness operations.
 
 Reference for gcov JSON semantics:
 https://gcc.gnu.org/onlinedocs/gcc/Invoking-Gcov.html

@@ -177,6 +177,12 @@ class CollectorTests(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             c.arguments(["--inventory-only", "--compare-baseline"])
 
+    def test_check_encode_rejects_unsupported_measurement_contracts(self):
+        for flags in (["--language", "Ada"], ["--compare-baseline"],
+                      ["--from-run", "run", "--write-reference", "reference.json"]):
+            with self.subTest(flags=flags), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                c.arguments(["--check-encode", *flags])
+
     def reference_run(self):
         stat = self.source_stats()
         stat["component"] = "codec"
@@ -214,7 +220,8 @@ class CollectorTests(unittest.TestCase):
                 c.export_reference(self.root, self.root / "reference.json")
         c.write_json(self.root / "summary.json", summary)
         for key, value in (("cohort", "pilot"), ("limit", 1), ("filter", "a"),
-                           ("language", "Ada"), ("acn_v2", True), ("inventory_only", True)):
+                           ("language", "Ada"), ("acn_v2", True), ("inventory_only", True),
+                           ("check_encode", True)):
             modified = copy.deepcopy(manifest)
             modified["configuration"][key] = value
             c.write_json(self.root / "manifest.json", modified)

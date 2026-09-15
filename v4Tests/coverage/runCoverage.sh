@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# Host entry point: Bash and Docker only; all measurement tools run in images.
+set -euo pipefail
+
+metric=gcov
+language=c
+image=
+outdir=
+container=
+encode_pilot=false
+
+usage() {
+    cat <<'EOF'
+Usage: runCoverage.sh [--metric gcov|stmt] [--language c|Ada]
+                      [--image IMAGE] [--outdir DIRECTORY] [--name CONTAINER]
+                      [--encode-pilot] [-- COLLECTOR_ARGUMENTS...]
+
+Defaults to the bounded pilot cohort. Pass -- --cohort all for a full run.
+--encode-pilot runs the paired three-fixture C experiment instead.
+Images must already be built; measurement runs have no network or host mounts.
+Containers and exported results are retained even when a measurement fails.
+EOF
+}
+
+while (($#)); do
+    case "$1" in
+        --metric|--language|--image|--outdir|--name)
+            if (($# < 2)); then usage >&2; exit 2; fi
+            case "$1" in
+                --metric) metric=$2 ;;
+                --language) language=$2 ;;
+                --image) image=$2 ;;
+                --outdir) outdir=$2 ;;
+                --name) container=$2 ;;
+            esac
+            shift 2 ;;
+        --encode-pilot) encode_pilot=true; shift ;;
+        --help|-h) usage; exit 0 ;;
+        --) shift; break ;;
+        *) usage >&2; exit 2 ;;
+    esac
+done
+case "$language" in c|C) language=c ;; ada|Ada) language=Ada ;; *) usage >&2; exit 2 ;; esac
+case "$metric" in gcov|stmt) ;; *) usage >&2; exit 2 ;; esac
+for argument in "$@"; do
+    case "$argument" in
+        --language|--language=*|--outdir|--outdir=*)
+            printf '%s\n' 'Set language/outdir as runner options before --.' >&2
+            exit 2 ;;
+    esac
+done
+
+if [[ "$metric" == gcov ]]; then
+    image=${image:-asn1scc-coverage:local}
+    script=/opt/coverage/coverageCollector.py
+else
+    case "$language" in
+        c) image=${image:-asn1scc-coverage:statement-c} ;;
+        Ada) image=${image:-asn1scc-coverage:statement-ada} ;;
+    esac
+    script=/opt/coverage/statementCollector.py
+fi
+arguments=(--outdir /results/measurement --language "$language" --cohort pilot)
+if [[ "$encode_pilot" == true ]]; then
+    if [[ "$language" != c ]]; then
+        printf '%s\n' 'The checked/unchecked encode pilot currently supports C only.' >&2
+        exit 2
+    fi
+    case "$metric" in
+        gcov) script=/opt/coverage/encodePilot.py ;;
+        stmt) script=/opt/coverage/statementPilot.py ;;
+    esac
+    arguments=(--outdir /results/pilot)
+fi
+
+container=${container:-coverage-${metric}-${language,,}-$(date -u +%Y%m%dT%H%M%S)-${RANDOM}}
+outdir=${outdir:-coverage-results/$container}
+mkdir -p -- "$(dirname -- "$outdir")"
+mkdir -- "$outdir"  # Refuse to overwrite an earlier result directory.
+outdir=$(cd -- "$outdir" && pwd -P)
+printf 'Image: %s\nContainer: %s\n' "$image" "$container"
+docker create --pull=never --name "$container" --network none --user 10001:10001 \
+    --entrypoint python3 "$image" "$script" "${arguments[@]}" "$@" > "$outdir/container.id"
+
+status=0
+docker start -a "$container" || status=$?
+docker inspect --format '{"image":{{json .Image}},"user":{{json .Config.User}},"network":{{json .HostConfig.NetworkMode}},"mounts":{{json .Mounts}},"status":{{json .State.Status}},"exit_code":{{json .State.ExitCode}}}' \
+    "$container" > "$outdir/container.json" || status=1
+docker inspect --format '{{.State.Status}} {{.State.ExitCode}}' "$container" > "$outdir/container.status" || status=1
+if read -r state code < "$outdir/container.status"; then
+    if [[ "$state" != exited ]]; then status=1
+    elif [[ "$code" != 0 ]]; then status=$code
+    fi
+else
+    status=1
+fi
+docker cp "$container:/results/." "$outdir/results" || status=1
+printf 'Results: %s\nExit status: %s\n' "$outdir" "$status"
+exit "$status"

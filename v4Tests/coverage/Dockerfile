@@ -16,6 +16,11 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 \
 
 FROM toolchain AS build
 ARG SOURCE_REVISION=unspecified
+USER root
+# ANTLR lexer/parser C# files are generated and gitignored. A clean checkout
+# must be able to regenerate them without a host Java/.NET installation.
+RUN apt-get update && apt-get install -y --no-install-recommends default-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY --chown=10001:10001 . .
 USER 10001:10001

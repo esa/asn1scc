@@ -73,10 +73,35 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
 // Encode value
 ret = <sFuncName>(<sVal>, &bitStrm, pErrCode, TRUE);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 1;
+#ifdef ASN1SCC_CHECK_ENCODE
+/* Compare only valid checked encodes, retaining their stream for the round trip. */
+if (ret) {
+    static byte uncheckedBuff[sizeof encBuff];
+    BitStream uncheckedStrm;
+    int uncheckedError = 0;
+    BitStream_Init(&uncheckedStrm, uncheckedBuff, bitStrm.count);
+    ret = <sFuncName>(<sVal>, &uncheckedStrm, &uncheckedError, FALSE);
+    /* Some successful ACN determinant updates leave a nonzero error code. */
+    ret = ret &&
+        uncheckedStrm.currentByte == bitStrm.currentByte &&
+        uncheckedStrm.currentBit == bitStrm.currentBit;
+    if (ret) {
+        ret = memcmp(encBuff, uncheckedBuff, (size_t)bitStrm.currentByte) == 0;
+        if (ret && bitStrm.currentBit != 0) {
+            unsigned int mask = 0xFFu \<\< (8 - bitStrm.currentBit);
+            ret = (encBuff[bitStrm.currentByte] & mask) ==
+                  (uncheckedBuff[bitStrm.currentByte] & mask);
+        }
+    }
+    *pErrCode = ret ? 0 : 5;
+}
+#endif
 >>
 
 Codec_Encode_XER(sModName, sFuncName, sVal, sTasName) ::= <<
-<Codec_Encode(sModName=sModName, sFuncName=sFuncName, sVal=sVal)>
+// Encode value
+ret = <sFuncName>(<sVal>, &bitStrm, pErrCode, TRUE);
+*pErrCode = (ret && *pErrCode ==0) ? 0 : 1;
 >>
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
@@ -414,6 +439,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
             break;
         case 4:
             output->report_failure_message("Test case '<sFuncName>' failed. Encoded and decoded messages are different.");
+            break;
+        case 5:
+            output->report_failure_message("Test case '<sFuncName>' failed. Checked and unchecked encodings differ or unchecked encoding failed.");
             break;
         default:
             output->report_failure_message("Unexpected error code in test case '<sFuncName>'.");
