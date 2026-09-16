@@ -148,6 +148,8 @@ def measure(unit, args, root):
                 record["decode_checks"] = c.decode_support().prepare(work, unit["unit"], args)
             if args.check_invalid_values:
                 record["invalid_value_checks"] = c.harness_support("invalidValueHarness").prepare(work, unit["unit"], args)
+            if args.check_invalid_streams:
+                record["invalid_stream_checks"] = c.harness_support("invalidStreamHarness").prepare(work, unit["unit"], args)
         suffix = ".c" if args.language == "c" else ".adb"
         bodies = sorted(p.name for p in work.glob("*" + suffix) if c.file_component(p.name) == "codec")
         # Instrument C encode/decode helpers too, to verify that the optional
@@ -189,6 +191,8 @@ def measure(unit, args, root):
             c.decode_support().verify_output((logs / "run.stdout").read_text(), record["decode_checks"])
         if args.check_invalid_values:
             c.harness_support("invalidValueHarness").verify_output((logs / "run.stdout").read_text(), record["invalid_value_checks"])
+        if args.check_invalid_streams:
+            c.harness_support("invalidStreamHarness").verify_output((logs / "run.stdout").read_text(), record["invalid_stream_checks"])
         record["files"] = read_report(work / "report", work)
         namespace = [unit["unit"], args.language, args.encodings, args.acn_v2, args.slim, args.word_size]
         for file in record["files"].values():

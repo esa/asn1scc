@@ -213,6 +213,24 @@ class CollectorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Reference requires"):
             c.export_reference(self.root, self.root / "invalid-reference.json")
 
+    def test_invalid_streams_reject_unsupported_contracts(self):
+        for flags in (["--language", "Ada"], ["--encodings", "both"], ["--encodings", "uper"],
+                      ["--check-encode"], ["--decode-stage", "truncate"], ["--check-invalid-values"],
+                      ["--compare-baseline"], ["--from-run", "run", "--write-reference", "reference.json"]):
+            with self.subTest(flags=flags), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                c.arguments(["--encodings", "acn", "--check-invalid-streams", *flags])
+
+    def test_invalid_streams_require_explicit_oracle_and_reject_reference_export(self):
+        with self.assertRaisesRegex(ValueError, "No explicit"):
+            c.harness_support("invalidStreamHarness").prepare(self.root, "unknown#1", c.arguments([]))
+        self.reference_run()
+        path = self.root / "manifest.json"
+        manifest = json.loads(path.read_text())
+        manifest["configuration"]["check_invalid_streams"] = True
+        c.write_json(path, manifest)
+        with self.assertRaisesRegex(ValueError, "Reference requires"):
+            c.export_reference(self.root, self.root / "invalid-reference.json")
+
     def reference_run(self):
         stat = self.source_stats()
         stat["component"] = "codec"

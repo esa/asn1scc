@@ -260,6 +260,47 @@ missing value execution, and removal of each selected validator statement.
 This is a bounded Phase-2b pilot, not general invalid-value synthesis or a
 claim that every defensive encoder branch is reachable by checked calls.
 
+### Bounded C invalid-stream pilot
+
+`--invalid-stream-pilot` measures baseline and fixed-layout mutations for
+`04-ENUMERATED/001.asn1#1`, separately in legacy ACN and ACN-v2. The enum's wire
+field starts at bit 0, is 10 bits wide and accepts only codes 50 and 60. Both
+valid values are encoded with constraint checking before mutating their bytes.
+
+    v4Tests/coverage/runCoverage.sh --metric gcov --language c --image asn1scc-coverage:invalid-streams-base --invalid-stream-pilot --outdir coverage-results/streams-gcov
+    v4Tests/coverage/runCoverage.sh --metric stmt --language c --image asn1scc-coverage:invalid-streams-statement-c --invalid-stream-pilot --outdir coverage-results/streams-stmt
+
+Build those tags with the common/C statement recipes above. This pilot changes
+only measurement tooling and adds an optional driver to the generated test main;
+compiler templates, codecs, RTL and original positive tests are unchanged.
+`--check-invalid-streams` selects the driver for an individual C/ACN measurement.
+Use `--cohort pilot --filter 04-ENUMERATED/001.asn1#1` so the substring filter
+does not also select #10/#11. Unknown fixtures, other encodings/languages and
+combinations with other harness operations are rejected.
+
+Each seed gets six decoder checks: original, codes 51/0/1023 (all rejected with
+`ERR_ACN_DECODE_MYPDU`), the other valid code, and a padding-only change. Field
+mutations preserve all six unused padding bits; the separate padding control
+flips one unused bit and must still decode to the original value. Every view
+is exactly two bytes. The oracle verifies the encoded field/layout, mutated
+field and padding, exact result/error/value, ten consumed bits, unchanged view
+length and unchanged decoder input. Outputs/errors are reset for every call.
+
+Both original automatic-test suites remain intact. The pilot adds two checked
+encodes and twelve decodes per configuration (six negative, six positive
+controls). All stages have a 30-second timeout. Reports retain source hashes,
+obligation/branch identities, no-loss comparisons and the exact two decoder
+default-rejection statements that must become covered. Existing NOCOVERAGE
+status affects only the legacy line gate; statements remain unexempted.
+
+    docker run --name stream-sanitizers --network none -v "$(pwd)/coverage-results/streams-gcov/results/pilot:/evidence:ro" --entrypoint python3 asn1scc-coverage:invalid-streams-base /opt/coverage/testInvalidStreamPilot.py --pilot-root /evidence --outdir /results/checks
+    docker cp stream-sanitizers:/results/checks coverage-results/streams-sanitizers
+
+ASan/UBSan runs use exact two-byte buffers. Deliberate defects check acceptance,
+errors, decoded values, writes, consumption, field offsets, padding, truncated
+views, skipped cases and removal of either target statement. This is a bounded
+Phase-3 pilot, not generic mutation synthesis or a claim about all decoder errors.
+
 ### Statement report scope
 
 `statementCollector.py` retains commands, input/compiler hashes, source traces,

@@ -346,7 +346,8 @@ def decode_support():
 
 
 def runtime_timeout(args):
-    return min(args.timeout, 30) if args.decode_stage != "baseline" or args.check_invalid_values else args.timeout
+    return min(args.timeout, 30) if (args.decode_stage != "baseline" or args.check_invalid_values
+                                   or args.check_invalid_streams) else args.timeout
 
 
 def measure_unit(unit, args, run_dir):
@@ -374,6 +375,8 @@ def measure_unit(unit, args, run_dir):
                 rec["decode_checks"] = decode_support().prepare(work, unit["unit"], args)
             if args.check_invalid_values:
                 rec["invalid_value_checks"] = harness_support("invalidValueHarness").prepare(work, unit["unit"], args)
+            if args.check_invalid_streams:
+                rec["invalid_stream_checks"] = harness_support("invalidStreamHarness").prepare(work, unit["unit"], args)
             if args.check_encode and not any("#ifdef ASN1SCC_CHECK_ENCODE" in p.read_text()
                                              for p in work.glob("*_auto_tcs.c")):
                 raise StageError("compile", "Generated harness does not contain the checked/unchecked encode pilot")
@@ -394,6 +397,8 @@ def measure_unit(unit, args, run_dir):
             decode_support().verify_output(output, rec["decode_checks"])
         if args.check_invalid_values:
             harness_support("invalidValueHarness").verify_output(output, rec["invalid_value_checks"])
+        if args.check_invalid_streams:
+            harness_support("invalidStreamHarness").verify_output(output, rec["invalid_stream_checks"])
         gcnotes = sorted(work.rglob("*.gcno"))
         if not gcnotes or not list(work.rglob("*.gcda")):
             raise StageError("gcov", "Missing instrumentation or runtime profile")
@@ -559,7 +564,7 @@ def export_reference(run_dir, destination):
             or config["cohort"] not in ("all", "historical")
             or config["filter"] or config["limit"] or config.get("check_encode", False)
             or config.get("decode_stage", "baseline") != "baseline"
-            or config.get("check_invalid_values", False)):
+            or config.get("check_invalid_values", False) or config.get("check_invalid_streams", False)):
         raise ValueError("Reference requires a complete all/historical C/both/legacy/8-byte/non-slim run")
     selected = {u["unit"]: u for u in inventory if u["selection"] == "selected"}
     records = [json.loads(line) for line in (run_dir / "units.jsonl").read_text().splitlines()]
@@ -659,6 +664,8 @@ def arguments(argv=None):
                     help="C decode pilot: actual byte length, optionally with fixture-specific prefix checks")
     ap.add_argument("--check-invalid-values", action="store_true",
                     help="C pilot: explicit invalid values with validation and checked-encode oracles")
+    ap.add_argument("--check-invalid-streams", action="store_true",
+                    help="C/ACN pilot: fixed-layout stream mutations with exact decoder oracles")
     ap.add_argument("--slim", action="store_true")
     ap.add_argument("--word-size", type=int, choices=(4, 8), default=8)
     ap.add_argument("--cohort", choices=("all", "historical", "pilot"), default="all")
@@ -701,6 +708,10 @@ def arguments(argv=None):
                                      or args.check_encode or args.decode_stage != "baseline"
                                      or args.compare_baseline or args.from_run):
         ap.error("--check-invalid-values requires C/both and cannot combine harness pilots or historical operations")
+    if args.check_invalid_streams and (args.language != "c" or args.encodings != "acn"
+                                      or args.check_encode or args.check_invalid_values or args.decode_stage != "baseline"
+                                      or args.compare_baseline or args.from_run):
+        ap.error("--check-invalid-streams requires C/ACN and cannot combine harness pilots or historical operations")
     if args.inventory_only and (args.compare_baseline or args.enforce_legacy_line_gate
                                 or args.min_branch is not None):
         ap.error("Inventory-only cannot perform measurement or baseline gates")

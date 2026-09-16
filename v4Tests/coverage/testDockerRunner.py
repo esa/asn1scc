@@ -79,6 +79,9 @@ class DockerRunnerTests(unittest.TestCase):
                         ['--language', 'Ada', '--decode-pilot'], ['--encode-pilot', '--decode-pilot'],
                         ['--language', 'Ada', '--invalid-value-pilot'],
                         ['--encode-pilot', '--invalid-value-pilot'], ['--decode-pilot', '--invalid-value-pilot'],
+                        ['--language', 'Ada', '--invalid-stream-pilot'],
+                        ['--encode-pilot', '--invalid-stream-pilot'], ['--decode-pilot', '--invalid-stream-pilot'],
+                        ['--invalid-value-pilot', '--invalid-stream-pilot'],
                         ['--', '--language', 'Ada'], ['--', '--outdir=/tmp/elsewhere']]:
             with self.subTest(options=options), tempfile.TemporaryDirectory() as temp:
                 result, calls = self.invoke(Path(temp), options)
@@ -101,6 +104,14 @@ class DockerRunnerTests(unittest.TestCase):
                 result, calls = self.invoke(Path(temp), ['--metric', metric, '--invalid-value-pilot'])
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('/opt/coverage/invalidValuePilot.py', calls[0])
+                self.assertEqual(calls[0][-2:], ['--metric', metric])
+
+    def test_invalid_stream_pilot_routes_both_metrics(self):
+        for metric in ('gcov', 'stmt'):
+            with self.subTest(metric=metric), tempfile.TemporaryDirectory() as temp:
+                result, calls = self.invoke(Path(temp), ['--metric', metric, '--invalid-stream-pilot'])
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('/opt/coverage/invalidStreamPilot.py', calls[0])
                 self.assertEqual(calls[0][-2:], ['--metric', metric])
 
 
