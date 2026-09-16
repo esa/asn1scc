@@ -217,6 +217,49 @@ executions must also fail collection. Gcov accounts for the driver as harness.
 The statement lane keeps the same codec/auto-test-helper instrumentation scope
 across stages and checks driver execution through the per-prefix results.
 
+### Bounded C invalid-value pilot
+
+`--invalid-value-pilot` compares existing positive tests with the same tests plus
+explicit invalid-value checks. It uses `09-CHOICE/003.asn1#3` and
+`09-CHOICE/011.asn1#1`, each with uPER + legacy ACN and uPER + ACN-v2. Each of
+the four configurations adds two invalid values and six API checks: direct
+validation, checked uPER encode and checked ACN encode for each value.
+
+    v4Tests/coverage/runCoverage.sh --metric gcov --language c --image asn1scc-coverage:invalid-values-base --invalid-value-pilot --outdir coverage-results/invalid-gcov
+    v4Tests/coverage/runCoverage.sh --metric stmt --language c --image asn1scc-coverage:invalid-values-statement-c --invalid-value-pilot --outdir coverage-results/invalid-stmt
+
+Build these tags using the common and C statement image recipes above. Compiler
+templates, generated codecs and RTL are unchanged by this pilot; the collector
+adds a fixture-specific driver to the generated measurement harness. The default
+positive tests remain unchanged. A standalone unit can opt in with
+`--check-invalid-values` (C/both only); unknown fixtures and combinations with
+other harness operations are rejected.
+
+The statement targets are the validator's two default-rejection statements for
+each CHOICE. The unset kind is an explicitly declared C `*_NONE` enumerator,
+not an invented out-of-range enum representation. A nested integer value 16
+outside 0..15 and a subtype's forbidden `field1` alternative are separate
+controls; their rejection may add branches without adding statements.
+All encoder calls use constraint checking. Tests require the exact expected
+error, false return, unchanged cursor/count and unchanged output buffer.
+Invalid objects are never passed to Equal or an unchecked encoder.
+
+Reports preserve the original positive counts, per-value/API outcomes, run
+times, unchanged codec hashes and obligation identities, and exact newly covered
+validator targets. Statements and gcov metrics remain separate. Every pilot
+stage has a 30-second timeout. The `NOCOVERAGE` marker on the restricted fixture
+retains its existing line-gate meaning and does not exempt statements.
+
+Run sanitizer and deliberate-failure checks on the exported artifacts:
+
+    docker run --name invalid-value-sanitizers --network none -v "$(pwd)/coverage-results/invalid-gcov/results/pilot:/evidence:ro" --entrypoint python3 asn1scc-coverage:invalid-values-base /opt/coverage/testInvalidValuePilot.py --pilot-root /evidence --outdir /results/checks
+    docker cp invalid-value-sanitizers:/results/checks coverage-results/invalid-sanitizers
+
+The checks exercise wrong acceptance/errors, buffer writes, cursor movement,
+missing value execution, and removal of each selected validator statement.
+This is a bounded Phase-2b pilot, not general invalid-value synthesis or a
+claim that every defensive encoder branch is reachable by checked calls.
+
 ### Statement report scope
 
 `statementCollector.py` retains commands, input/compiler hashes, source traces,

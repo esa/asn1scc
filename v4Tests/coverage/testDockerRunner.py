@@ -77,6 +77,8 @@ class DockerRunnerTests(unittest.TestCase):
     def test_invalid_or_conflicting_scope_is_rejected_before_docker(self):
         for options in [['--metric', 'unknown'], ['--language', 'Ada', '--encode-pilot'],
                         ['--language', 'Ada', '--decode-pilot'], ['--encode-pilot', '--decode-pilot'],
+                        ['--language', 'Ada', '--invalid-value-pilot'],
+                        ['--encode-pilot', '--invalid-value-pilot'], ['--decode-pilot', '--invalid-value-pilot'],
                         ['--', '--language', 'Ada'], ['--', '--outdir=/tmp/elsewhere']]:
             with self.subTest(options=options), tempfile.TemporaryDirectory() as temp:
                 result, calls = self.invoke(Path(temp), options)
@@ -91,6 +93,14 @@ class DockerRunnerTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('/opt/coverage/decodePilot.py', calls[0])
                 self.assertIn('decode-test-image', calls[0])
+                self.assertEqual(calls[0][-2:], ['--metric', metric])
+
+    def test_invalid_value_pilot_routes_both_metrics(self):
+        for metric in ('gcov', 'stmt'):
+            with self.subTest(metric=metric), tempfile.TemporaryDirectory() as temp:
+                result, calls = self.invoke(Path(temp), ['--metric', metric, '--invalid-value-pilot'])
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('/opt/coverage/invalidValuePilot.py', calls[0])
                 self.assertEqual(calls[0][-2:], ['--metric', metric])
 
 

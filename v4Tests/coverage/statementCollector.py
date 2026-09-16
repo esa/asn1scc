@@ -110,7 +110,7 @@ def instrument_and_run(work, project, units, args, logs, steps):
         # proof-only pragmas, not runtime checks or Pre/Post assertion policy.
         build.extend(["-cargs:Ada", "-gnatec=" + str(work / "instrument-spark.adc")])
     c.run_step(build, work, logs, "build", args.timeout, steps)
-    output = c.run_step([str(work / "mainprogram")], work, logs, "run", min(args.timeout, 30) if args.decode_stage != "baseline" else args.timeout,
+    output = c.run_step([str(work / "mainprogram")], work, logs, "run", c.runtime_timeout(args),
                         steps, strict_stderr=True)
     match = re.search(r"All test cases \((\d+)\) run successfully", output)
     if not match or int(match[1]) == 0:
@@ -146,6 +146,8 @@ def measure(unit, args, root):
             record["decode_checks"] = {"stage": "baseline", "prefix_checks": 0}
             if args.decode_stage != "baseline":
                 record["decode_checks"] = c.decode_support().prepare(work, unit["unit"], args)
+            if args.check_invalid_values:
+                record["invalid_value_checks"] = c.harness_support("invalidValueHarness").prepare(work, unit["unit"], args)
         suffix = ".c" if args.language == "c" else ".adb"
         bodies = sorted(p.name for p in work.glob("*" + suffix) if c.file_component(p.name) == "codec")
         # Instrument C encode/decode helpers too, to verify that the optional
@@ -185,6 +187,8 @@ def measure(unit, args, root):
             work, "statement.gpr", units, args, logs, record["steps"])
         if args.decode_stage != "baseline":
             c.decode_support().verify_output((logs / "run.stdout").read_text(), record["decode_checks"])
+        if args.check_invalid_values:
+            c.harness_support("invalidValueHarness").verify_output((logs / "run.stdout").read_text(), record["invalid_value_checks"])
         record["files"] = read_report(work / "report", work)
         namespace = [unit["unit"], args.language, args.encodings, args.acn_v2, args.slim, args.word_size]
         for file in record["files"].values():
