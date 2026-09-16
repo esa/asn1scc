@@ -42,6 +42,16 @@ jobs:
           docker cp reference-initializers:/results/. \
             coverage-results/reference-initializers/ || initializer_status=1
           exit "$initializer_status"
+      - name: Check Ada assertion contracts
+        run: |
+          contract_status=0
+          docker run --name ada-contracts --network none --entrypoint python3 \
+            asn1scc-coverage:local /opt/coverage/testAdaContracts.py \
+            --outdir /results/ada-contracts || contract_status=$?
+          mkdir -p coverage-results/ada-contracts
+          docker cp ada-contracts:/results/. \
+            coverage-results/ada-contracts/ || contract_status=1
+          exit "$contract_status"
       - name: Measure corpus and mode pilots
         shell: bash
         env:

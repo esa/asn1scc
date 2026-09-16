@@ -1,0 +1,7 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    Item ::= INTEGER (0..200)
+    Items ::= SEQUENCE (SIZE(0..2)) OF Item
+    RequiredItems ::= SEQUENCE (SIZE(1..2)) OF Item
+    ItemsAlias ::= Items
+    ItemsAliasChain ::= ItemsAlias
+END

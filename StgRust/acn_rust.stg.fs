@@ -899,6 +899,10 @@ let sparkAnnotations (sTypeDefName:string) codec =
     | Decode    ->
         ST.call "acn_rust" "sparkAnnotations_decode" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) )]
 
+let sparkAnnotations_deducedFixed (sTypeDefName:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "sparkAnnotations_deducedFixed" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) )]
+
 let octet_string_containing_func (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with

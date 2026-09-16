@@ -1,0 +1,5 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    Item [encoding pos-int, size 8]
+    Items [size deduced]
+    RequiredItems [size deduced]
+END

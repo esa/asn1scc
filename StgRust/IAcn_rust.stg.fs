@@ -261,6 +261,8 @@ type IAcn_rust() =
             acn_rust.rtlModuleName  () 
         override this.sparkAnnotations  (sTypeDefName:string) (codec:Codec) =
             acn_rust.sparkAnnotations  sTypeDefName codec
+        override this.sparkAnnotations_deducedFixed  (sTypeDefName:string) =
+            acn_rust.sparkAnnotations_deducedFixed  sTypeDefName
         override this.octet_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (codec:Codec) =
             acn_rust.octet_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding nBits nMinSize nMaxSize bFixedSize codec
         override this.bit_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (sReqBitsForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (codec:Codec) =

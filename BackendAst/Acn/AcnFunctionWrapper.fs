@@ -13,6 +13,35 @@ open Language
 
 open AcnHelpers
 
+// This decoder checks the deduced count before entering its fixed-width item
+// loop. Other decoders still rely on their maximum-capacity preconditions.
+let rec private hasBoundedFixedDeducedDecoder (t: Asn1AcnAst.Asn1Type) =
+    match t.acnAlignment with
+    | Some _ -> false // Alignment consumes bits before the count check.
+    | None ->
+        match t.Kind with
+        | Asn1AcnAst.SequenceOf sq ->
+            sq.acnEncodingClass = SZ_EC_Deduced &&
+            sq.child.acnMinSizeInBits > 0I &&
+            sq.child.acnMinSizeInBits = sq.child.acnMaxSizeInBits
+        | Asn1AcnAst.ReferenceType rf ->
+            match rf.encodingOptions with
+            | None -> hasBoundedFixedDeducedDecoder rf.resolvedType
+            | Some _ -> false // A CONTAINING wrapper reads its own framing.
+        | Asn1AcnAst.Integer _
+        | Asn1AcnAst.Real _
+        | Asn1AcnAst.IA5String _
+        | Asn1AcnAst.NumericString _
+        | Asn1AcnAst.OctetString _
+        | Asn1AcnAst.TimeType _
+        | Asn1AcnAst.BitString _
+        | Asn1AcnAst.Boolean _
+        | Asn1AcnAst.Enumerated _
+        | Asn1AcnAst.NullType _
+        | Asn1AcnAst.Sequence _
+        | Asn1AcnAst.Choice _
+        | Asn1AcnAst.ObjectIdentifier _ -> false
+
 
 // If the type assignment has acnParameters, then no function is generated.
 // This function can only be inlined by the calling function (i.e. by the parent
@@ -52,6 +81,12 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
     let EmitEncodingSizeConstants        =  lm.acn.EmitEncodingSizeConstants
 
     let typeDefinitionName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
+    let soSparkAnnotations =
+        match codec with
+        | Decode when hasBoundedFixedDeducedDecoder t ->
+            Some (lm.acn.sparkAnnotations_deducedFixed typeDefinitionName)
+        | Decode
+        | Encode -> soSparkAnnotations
     let sEncodingSizeConstant = EmitEncodingSizeConstants typeDefinitionName nMaxBytesInACN t.acnMaxSizeInBits
 
     let funcBodyAsSeqComp (st: State)

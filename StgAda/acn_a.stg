@@ -135,6 +135,18 @@ with
          not result.Success
 >>
 
+sparkAnnotations_deducedFixed(sTypeDefName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8,
+    Post =>
+      (result.Success and then bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos
+       and then bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+       and then bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8)
+      or else not result.Success
+>>
+
 sparkAnnotations_decode(sTypeDefName) ::= <<
 with
     Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING

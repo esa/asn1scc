@@ -300,6 +300,24 @@ Ada statement images. The all cohort is needed because the pilot excludes it:
     v4Tests/coverage/runCoverage.sh --metric stmt --language Ada --outdir coverage-results/null-stmt -- --cohort all --filter '18-NULL/001.asn1#1' --acn-v2
     v4Tests/coverage/runCoverage.sh --metric gcov --language Ada --outdir coverage-results/null-gcov -- --cohort all --filter '18-NULL/001.asn1#1' --acn-v2 --enforce-legacy-line-gate
 
+## Ada assertion contracts
+
+The assertion regression builds with the ordinary strict flags plus `-gnata`.
+It exercises short, empty and maximum fixed-width deduced lists, named aliases,
+invalid counts/values and retained scalar/encoder capacity guards. It also
+checks all 15 deferred patch variants at an end-of-stream cursor, including
+wire bytes, surrounding bits, repeated values and invalid slot/cursor guards.
+The original `24-DEDUCED-SIZE/004` and `/007` automatic suites and the
+CONTAINING driver run with assertions in legacy/v2, normal/slim modes.
+
+    docker run --rm --network none --entrypoint python3 asn1scc-coverage:local /opt/coverage/testAdaContracts.py
+
+Only unaligned fixed-width deduced SEQUENCE OF decoders and their ordinary
+aliases accept the smaller views through the adjusted contract. Other decoder
+and encoder capacity contracts remain in force. This is a runtime assertion
+regression, separate from statement coverage and SPARK proof. General bounded
+decoding and variable-width deduced elements remain outside its scope.
+
 ## Initializers below references
 
 The `16-mantis/0231` regression requires all 12 generated round trips and runtime
