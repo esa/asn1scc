@@ -105,7 +105,14 @@ ret = <sFuncName>(<sVal>, &bitStrm, pErrCode, TRUE);
 >>
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
+#ifdef ASN1SCC_DECODE_ACTUAL_LENGTH
+{
+    long encLenBytes = BitStream_GetLength(&bitStrm);
+    BitStream_AttachBuffer(&bitStrm, encBuff, (int)encLenBytes);
+}
+#else
 BitStream_AttachBuffer(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+#endif
 // Decode value
 ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 2;

@@ -9,6 +9,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 import gzip
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -330,6 +331,16 @@ def ada_build_command(jobs):
             "-fprofile-arcs", "-ftest-coverage", "-largs", "-fprofile-arcs"]
 
 
+def decode_support():
+    path = Path(__file__).with_name("decodeHarness.py")
+    if not path.exists():
+        path = V4 / "coverage/decodeHarness.py"
+    spec = importlib.util.spec_from_file_location("decode_harness", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def measure_unit(unit, args, run_dir):
     token = digest(unit["unit"].encode())[:16]
     directory = run_dir / "units" / token
@@ -350,10 +361,15 @@ def measure_unit(unit, args, run_dir):
                   "sample1.asn1", "sample1.acn"], work, logs, "compile", args.timeout,
                  rec["steps"], strict_stderr=True)
         if args.language == "c":
+            rec["decode_checks"] = {"stage": "baseline", "prefix_checks": 0}
+            if args.decode_stage != "baseline":
+                rec["decode_checks"] = decode_support().prepare(work, unit["unit"], args)
             if args.check_encode and not any("#ifdef ASN1SCC_CHECK_ENCODE" in p.read_text()
                                              for p in work.glob("*_auto_tcs.c")):
                 raise StageError("compile", "Generated harness does not contain the checked/unchecked encode pilot")
             cc = args.gcc + (" -DASN1SCC_CHECK_ENCODE" if args.check_encode else "")
+            if args.decode_stage != "baseline":
+                cc += " -DASN1SCC_DECODE_ACTUAL_LENGTH"
             run_step(["make", f"-j{args.jobs}", f"CC={cc}"], work, logs,
                      "build", args.timeout, rec["steps"])
             executable = work / "mainprogram"
@@ -362,8 +378,10 @@ def measure_unit(unit, args, run_dir):
             run_step(ada_build_command(args.jobs), work, logs, "build", args.timeout, rec["steps"])
             executable = work / "obj_x86" / "coverage" / "mainprogram"
             expected = {p.name for p in work.glob("*.adb") if file_component(p.name) == "codec"}
-        run_step([str(executable)], executable.parent, logs, "run", args.timeout,
+        output = run_step([str(executable)], executable.parent, logs, "run", min(args.timeout, 30) if args.decode_stage != "baseline" else args.timeout,
                  rec["steps"], strict_stderr=True)
+        if args.decode_stage != "baseline":
+            decode_support().verify_output(output, rec["decode_checks"])
         gcnotes = sorted(work.rglob("*.gcno"))
         if not gcnotes or not list(work.rglob("*.gcda")):
             raise StageError("gcov", "Missing instrumentation or runtime profile")
@@ -449,6 +467,13 @@ def measure_unit(unit, args, run_dir):
                 observed.add(source.name)
         if not expected or expected - observed:
             raise StageError("gcov", f"Unmeasured generated codec bodies: {sorted(expected - observed)}")
+        if args.decode_stage != "baseline":
+            calls = [line for file in rec["files"].values() if file["component"] == "harness"
+                     for line in file["lines"]
+                     if "BitStream_AttachBuffer(&bitStrm, encBuff, (int)encLenBytes)" in line["text"]]
+            if not calls or any(not line["count"] for line in calls):
+                raise ValueError("Actual-length attach call sites were not all executed")
+            rec["actual_length_decode_calls"] = sum(line["count"] for line in calls)
     except StageError as error:
         rec.update(status="timeout" if error.timeout else error.stage.split("-")[0] + "_error",
                    failed_stage=error.stage, detail=error.detail)
@@ -520,7 +545,8 @@ def export_reference(run_dir, destination):
     if (config["language"] != "c" or config["encodings"] != "both"
             or config["acn_v2"] or config["slim"] or config["word_size"] != 8
             or config["cohort"] not in ("all", "historical")
-            or config["filter"] or config["limit"] or config.get("check_encode", False)):
+            or config["filter"] or config["limit"] or config.get("check_encode", False)
+            or config.get("decode_stage", "baseline") != "baseline"):
         raise ValueError("Reference requires a complete all/historical C/both/legacy/8-byte/non-slim run")
     selected = {u["unit"]: u for u in inventory if u["selection"] == "selected"}
     records = [json.loads(line) for line in (run_dir / "units.jsonl").read_text().splitlines()]
@@ -616,6 +642,8 @@ def arguments(argv=None):
     ap.add_argument("--acn-v2", action="store_true")
     ap.add_argument("--check-encode", action="store_true",
                     help="C harness pilot: compare checked and unchecked valid encodes")
+    ap.add_argument("--decode-stage", choices=("baseline", "actual", "truncate"), default="baseline",
+                    help="C decode pilot: actual byte length, optionally with fixture-specific prefix checks")
     ap.add_argument("--slim", action="store_true")
     ap.add_argument("--word-size", type=int, choices=(4, 8), default=8)
     ap.add_argument("--cohort", choices=("all", "historical", "pilot"), default="all")
@@ -652,6 +680,8 @@ def arguments(argv=None):
         ap.error("--acn-v2 requires ACN encoding")
     if args.check_encode and (args.language != "c" or args.compare_baseline or args.from_run):
         ap.error("--check-encode requires a C measurement without historical comparison/reference export")
+    if args.decode_stage != "baseline" and (args.language != "c" or args.compare_baseline or args.from_run):
+        ap.error("--decode-stage requires a C measurement without historical comparison/reference export")
     if args.inventory_only and (args.compare_baseline or args.enforce_legacy_line_gate
                                 or args.min_branch is not None):
         ap.error("Inventory-only cannot perform measurement or baseline gates")

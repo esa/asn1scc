@@ -170,6 +170,53 @@ covered statements. The collector also verifies execution of every generated
 unchecked encode call site. Zero statement gain is a valid measured result;
 the earlier gcov branch gain is a different metric.
 
+### Bounded C decode pilot
+
+The decode pilot measures three stages independently: the existing positive
+round trips, the same tests with actual encoded byte-length attachment, then
+those tests plus four explicit prefix checks per configuration. Enable only
+actual-length attachment with `--decode-stage actual`; `truncate` additionally
+requires an explicitly supported unit/encoding. The generated test template
+uses `ASN1SCC_DECODE_ACTUAL_LENGTH`; codec and RTL bodies are unchanged.
+Lengths come from `BitStream_GetLength` and are rounded-up **bytes**, not bits.
+
+    v4Tests/coverage/runCoverage.sh --metric gcov --language c --image asn1scc-coverage:decode-pilot-base --decode-pilot --outdir coverage-results/decode-gcov
+    v4Tests/coverage/runCoverage.sh --metric stmt --language c --image asn1scc-coverage:decode-pilot-statement-c --decode-pilot --outdir coverage-results/decode-stmt
+
+Build the common image with the first tag above, then build `statement-c` using
+`COVERAGE_IMAGE=asn1scc-coverage:decode-pilot-base` and the reusable
+`GNATCOV_C_IMAGE=asn1scc-gnatcov:26.2-c`, as described above. Rebuild both images
+after generator changes; always use new output directories.
+
+The five configurations are `10-SEQEUENCE/008.asn1#1` (uPER), and
+`24-DEDUCED-SIZE/002.asn1#1` plus `24-DEDUCED-SIZE/001.asn1#2` (legacy ACN and
+ACN-v2). The first targets the enum decode-failure fallback; the second targets
+the deduced list's residual-byte error statements. The fixed-element list is
+a control for valid shorter prefixes. `decodeHarness.py` records each prefix,
+expected error, value and consumed length; this whitelist is not a generic
+"every truncated message must fail" rule. No automatic tests are deduplicated.
+
+`pilot.json` preserves separate baseline→actual and actual→truncate comparisons,
+positive-test counts, prefix outcomes, execution times and newly covered
+obligations/branch arms. Codec source and instrumentation identities must remain
+unchanged, with no lost coverage. Statement checks require the selected target
+statements to become covered. A zero gain at the actual-length stage is valid.
+Each executable is limited to 30 seconds; each configuration adds one encode
+and four decodes in the truncation stage, independently of encoded size.
+
+Run ASan/UBSan and failure-injection checks against the retained pilot artifacts:
+
+    docker run --name decode-sanitizers --network none -v "$(pwd)/coverage-results/decode-gcov/results/pilot:/evidence:ro" --entrypoint python3 asn1scc-coverage:decode-pilot-base /opt/coverage/testDecodePilot.py --pilot-root /evidence --outdir /results/checks
+    docker cp decode-sanitizers:/results/checks coverage-results/decode-sanitizers
+
+These rebuild uninstrumented generated sources with sanitizers, use exact-size
+prefix allocations (a poisoned sentinel for length zero), and require the
+oracles to reject wrong acceptance, rejection, error, value and consumption.
+A deliberate read beyond the view must be detected by ASan. Missing prefix
+executions must also fail collection. Gcov accounts for the driver as harness.
+The statement lane keeps the same codec/auto-test-helper instrumentation scope
+across stages and checks driver execution through the per-prefix results.
+
 ### Statement report scope
 
 `statementCollector.py` retains commands, input/compiler hashes, source traces,

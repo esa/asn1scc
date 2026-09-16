@@ -110,7 +110,7 @@ def instrument_and_run(work, project, units, args, logs, steps):
         # proof-only pragmas, not runtime checks or Pre/Post assertion policy.
         build.extend(["-cargs:Ada", "-gnatec=" + str(work / "instrument-spark.adc")])
     c.run_step(build, work, logs, "build", args.timeout, steps)
-    output = c.run_step([str(work / "mainprogram")], work, logs, "run", args.timeout,
+    output = c.run_step([str(work / "mainprogram")], work, logs, "run", min(args.timeout, 30) if args.decode_stage != "baseline" else args.timeout,
                         steps, strict_stderr=True)
     match = re.search(r"All test cases \((\d+)\) run successfully", output)
     if not match or int(match[1]) == 0:
@@ -142,6 +142,10 @@ def measure(unit, args, root):
         c.run_step([str(args.compiler), *c.compiler_flags(args), "-o", str(work),
                     "sample1.asn1", "sample1.acn"], work, logs, "compile", args.timeout,
                    record["steps"], strict_stderr=True)
+        if args.language == "c":
+            record["decode_checks"] = {"stage": "baseline", "prefix_checks": 0}
+            if args.decode_stage != "baseline":
+                record["decode_checks"] = c.decode_support().prepare(work, unit["unit"], args)
         suffix = ".c" if args.language == "c" else ".adb"
         bodies = sorted(p.name for p in work.glob("*" + suffix) if c.file_component(p.name) == "codec")
         # Instrument C encode/decode helpers too, to verify that the optional
@@ -157,6 +161,8 @@ def measure(unit, args, root):
             flags = ["-g", "-O0", "-Wall", "-Wextra", "-Werror", "-D_DEBUG"]
             if args.check_encode:
                 flags.append("-DASN1SCC_CHECK_ENCODE")
+            if args.decode_stage != "baseline":
+                flags.append("-DASN1SCC_DECODE_ACTUAL_LENGTH")
             language, main = "C", "mainprogram.c"
         else:
             flags = ["-gnat2012", "-g", "-O0", "-gnatf", "-gnatwa", "-fstack-check"]
@@ -177,6 +183,8 @@ def measure(unit, args, root):
             ' end Linker;\nend Statement;\n')
         record["positive_tests"], record["artifacts_sha256"] = instrument_and_run(
             work, "statement.gpr", units, args, logs, record["steps"])
+        if args.decode_stage != "baseline":
+            c.decode_support().verify_output((logs / "run.stdout").read_text(), record["decode_checks"])
         record["files"] = read_report(work / "report", work)
         namespace = [unit["unit"], args.language, args.encodings, args.acn_v2, args.slim, args.word_size]
         for file in record["files"].values():
@@ -192,6 +200,13 @@ def measure(unit, args, root):
             if not checks or any(o["status"] != "+" for o in checks):
                 raise ValueError("Unchecked encode call sites were not all executed")
             record["covered_unchecked_call_sites"] = len(checks)
+        if args.decode_stage != "baseline":
+            checks = [o for name in harness for o in record["files"].get(name, {}).get("obligations", [])
+                      if any("BitStream_AttachBuffer(&bitStrm, encBuff, (int)encLenBytes)" in span.get("src", "")
+                             for span in o["spans"])]
+            if not checks or any(o["status"] != "+" for o in checks):
+                raise ValueError("Actual-length attach call sites were not all executed")
+            record["covered_actual_length_call_sites"] = len(checks)
     except (c.StageError, OSError, ValueError, KeyError, ET.ParseError) as error:
         record.update(status="failed", detail=str(error),
                       failed_stage=error.stage if isinstance(error, c.StageError) else "collection")

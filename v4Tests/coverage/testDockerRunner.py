@@ -76,11 +76,22 @@ class DockerRunnerTests(unittest.TestCase):
 
     def test_invalid_or_conflicting_scope_is_rejected_before_docker(self):
         for options in [['--metric', 'unknown'], ['--language', 'Ada', '--encode-pilot'],
+                        ['--language', 'Ada', '--decode-pilot'], ['--encode-pilot', '--decode-pilot'],
                         ['--', '--language', 'Ada'], ['--', '--outdir=/tmp/elsewhere']]:
             with self.subTest(options=options), tempfile.TemporaryDirectory() as temp:
                 result, calls = self.invoke(Path(temp), options)
                 self.assertEqual(result.returncode, 2)
                 self.assertEqual(calls, [])
+
+    def test_decode_pilot_routes_both_metrics_and_explicit_image(self):
+        for metric in ('gcov', 'stmt'):
+            with self.subTest(metric=metric), tempfile.TemporaryDirectory() as temp:
+                result, calls = self.invoke(Path(temp), ['--metric', metric, '--decode-pilot',
+                                                         '--image', 'decode-test-image'])
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('/opt/coverage/decodePilot.py', calls[0])
+                self.assertIn('decode-test-image', calls[0])
+                self.assertEqual(calls[0][-2:], ['--metric', metric])
 
 
 if __name__ == '__main__':

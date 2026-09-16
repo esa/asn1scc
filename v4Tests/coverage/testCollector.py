@@ -183,6 +183,18 @@ class CollectorTests(unittest.TestCase):
             with self.subTest(flags=flags), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 c.arguments(["--check-encode", *flags])
 
+    def test_decode_rejects_unsupported_contracts(self):
+        for flags in (["--language", "Ada"], ["--compare-baseline"],
+                      ["--from-run", "run", "--write-reference", "reference.json"]):
+            with self.subTest(flags=flags), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                c.arguments(["--decode-stage", "actual", *flags])
+
+    def test_decode_rejects_unknown_truncation_oracle(self):
+        (self.root / "sample1_auto_tcs.c").write_text("#ifdef ASN1SCC_DECODE_ACTUAL_LENGTH\n")
+        for unit, encoding in (("unknown#1", "acn"), ("24-DEDUCED-SIZE/002.asn1#1", "uper")):
+            with self.subTest(unit=unit, encoding=encoding), self.assertRaisesRegex(ValueError, "No explicit"):
+                c.decode_support().prepare(self.root, unit, c.arguments(["--decode-stage", "truncate", "--encodings", encoding]))
+
     def reference_run(self):
         stat = self.source_stats()
         stat["component"] = "codec"

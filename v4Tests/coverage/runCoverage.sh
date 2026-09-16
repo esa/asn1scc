@@ -8,15 +8,17 @@ image=
 outdir=
 container=
 encode_pilot=false
+decode_pilot=false
 
 usage() {
     cat <<'EOF'
 Usage: runCoverage.sh [--metric gcov|stmt] [--language c|Ada]
                       [--image IMAGE] [--outdir DIRECTORY] [--name CONTAINER]
-                      [--encode-pilot] [-- COLLECTOR_ARGUMENTS...]
+                      [--encode-pilot|--decode-pilot] [-- COLLECTOR_ARGUMENTS...]
 
 Defaults to the bounded pilot cohort. Pass -- --cohort all for a full run.
 --encode-pilot runs the paired three-fixture C experiment instead.
+--decode-pilot measures baseline/actual-length/capped-prefix C stages instead.
 Images must already be built; measurement runs have no network or host mounts.
 Containers and exported results are retained even when a measurement fails.
 EOF
@@ -35,6 +37,7 @@ while (($#)); do
             esac
             shift 2 ;;
         --encode-pilot) encode_pilot=true; shift ;;
+        --decode-pilot) decode_pilot=true; shift ;;
         --help|-h) usage; exit 0 ;;
         --) shift; break ;;
         *) usage >&2; exit 2 ;;
@@ -61,6 +64,10 @@ else
     script=/opt/coverage/statementCollector.py
 fi
 arguments=(--outdir /results/measurement --language "$language" --cohort pilot)
+if [[ "$decode_pilot" == true && ( "$encode_pilot" == true || "$language" != c ) ]]; then
+    printf '%s\n' '--decode-pilot requires C and cannot be combined with --encode-pilot.' >&2
+    exit 2
+fi
 if [[ "$encode_pilot" == true ]]; then
     if [[ "$language" != c ]]; then
         printf '%s\n' 'The checked/unchecked encode pilot currently supports C only.' >&2
@@ -71,6 +78,10 @@ if [[ "$encode_pilot" == true ]]; then
         stmt) script=/opt/coverage/statementPilot.py ;;
     esac
     arguments=(--outdir /results/pilot)
+fi
+if [[ "$decode_pilot" == true ]]; then
+    script=/opt/coverage/decodePilot.py
+    arguments=(--outdir /results/pilot --metric "$metric")
 fi
 
 container=${container:-coverage-${metric}-${language,,}-$(date -u +%Y%m%dT%H%M%S)-${RANDOM}}
