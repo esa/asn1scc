@@ -1,5 +1,6 @@
 """Fixed-layout ACN enum mutations; no generic invalid-stream oracle is implied."""
 import hashlib
+import json
 import re
 
 UNIT = "04-ENUMERATED/001.asn1#1"
@@ -7,14 +8,43 @@ SEEDS = ("alpha", "beta")
 CASES = ("original", "code-51", "code-0", "code-1023", "other-valid", "padding-only")
 SUCCESS = (True, False, False, False, True, True)
 
-DRIVER = r'''
+# Only explicitly described wire layouts have an oracle. BCD bounds are decimal,
+# so every negative reaches the generated enum switch, not RTL digit rejection.
+LAYOUTS = {
+    UNIT: {"format": "pos-int", "bits": 10, "maximum": 1023,
+           "read": "return ((unsigned int)buffer[0] << 2) | ((unsigned int)buffer[1] >> 6);",
+           "write": """buffer[0] = (byte)(code >> 2);
+    buffer[1] = (byte)((buffer[1] & 0x3Fu) | ((code & 3u) << 6));"""},
+    "04-ENUMERATED/001.asn1#2": {
+        "format": "bcd", "bits": 12, "maximum": 999,
+        "read": """unsigned int hundreds = buffer[0] >> 4;
+    unsigned int tens = buffer[0] & 15u;
+    unsigned int ones = buffer[1] >> 4;
+    if (hundreds > 9 || tens > 9 || ones > 9) return 1000;
+    return hundreds * 100 + tens * 10 + ones;""",
+        "write": """buffer[0] = (byte)(((code / 100) << 4) | ((code / 10) % 10));
+    buffer[1] = (byte)((buffer[1] & 0x0Fu) | ((code % 10) << 4));"""},
+}
+SUPPORTED_UNITS = tuple(LAYOUTS)
+
+
+def cases_for(unit):
+    return ("original", "code-51", "code-0", f"code-{LAYOUTS[unit]['maximum']}",
+            "other-valid", "padding-only")
+
+DRIVER_TEMPLATE = r'''
 #include <stdio.h>
 #include <string.h>
 #include "sample1.h"
 
 static unsigned int coverage_wire_code(const byte *buffer)
 {
-    return ((unsigned int)buffer[0] << 2) | ((unsigned int)buffer[1] >> 6);
+    @READ@
+}
+
+static void coverage_write_code(byte *buffer, unsigned int code)
+{
+    @WRITE@
 }
 
 static int coverage_invalid_stream_checks(void)
@@ -22,7 +52,7 @@ static int coverage_invalid_stream_checks(void)
     static const ASN1SCC_MyPDU seeds[] = {MyPDU_alpha, MyPDU_beta};
     static const unsigned int codes[] = {50, 60};
     static const char *seed_names[] = {"alpha", "beta"};
-    static const char *cases[] = {"original", "code-51", "code-0", "code-1023", "other-valid", "padding-only"};
+    static const char *cases[] = {@CASES@};
     static const int success[] = {1, 0, 0, 0, 1, 1};
     for (int seed = 0; seed < 2; ++seed) {
         byte encoded[2] = {0};
@@ -32,24 +62,23 @@ static int coverage_invalid_stream_checks(void)
         if (ASN1SCC_MyPDU_REQUIRED_BYTES_FOR_ACN_ENCODING != 2
             || !ASN1SCC_MyPDU_ACN_Encode(&seeds[seed], &stream, &error, TRUE)
             || error != 0 || BitStream_GetLength(&stream) != 2
-            || stream.currentByte * 8 + stream.currentBit != 10
+            || stream.currentByte * 8 + stream.currentBit != @BITS@
             || coverage_wire_code(encoded) != codes[seed]) {
             puts("Invalid stream seed: unexpected encoding/layout");
             return 1;
         }
-        const unsigned int replacements[] = {codes[seed], 51, 0, 1023, codes[1 - seed], codes[seed]};
+        const unsigned int replacements[] = {codes[seed], 51, 0, @MAXIMUM@, codes[1 - seed], codes[seed]};
         for (int test = 0; test < 6; ++test) {
             byte mutated[2];
             byte saved[2];
             memcpy(mutated, encoded, sizeof mutated);
             if (test >= 1 && test <= 4) {
-                /* Field starts at bit 0, width 10, MSB first; preserve six padding bits. */
-                mutated[0] = (byte)(replacements[test] >> 2);
-                mutated[1] = (byte)((mutated[1] & 0x3Fu) | ((replacements[test] & 3u) << 6));
+                /* Replace only the field; preserve the rounded byte's padding. */
+                coverage_write_code(mutated, replacements[test]);
             }
             if (test == 5) mutated[1] ^= 1u;
             if (coverage_wire_code(mutated) != replacements[test]
-                || (test != 5 && (mutated[1] & 0x3Fu) != (encoded[1] & 0x3Fu))
+                || (test != 5 && (mutated[1] & @PAD_MASK@) != (encoded[1] & @PAD_MASK@))
                 || (test == 5 && (mutated[1] ^ encoded[1]) != 1u)) {
                 puts("Invalid stream mutation: unexpected field/padding change");
                 return 1;
@@ -62,7 +91,7 @@ static int coverage_invalid_stream_checks(void)
             error = 0;
             flag accepted = ASN1SCC_MyPDU_ACN_Decode(&decoded, &stream, &error);
             if (accepted != success[test] || error != (success[test] ? 0 : ERR_ACN_DECODE_MYPDU)
-                || stream.currentByte * 8 + stream.currentBit != 10 || stream.count != 2
+                || stream.currentByte * 8 + stream.currentBit != @BITS@ || stream.count != 2
                 || memcmp(mutated, saved, sizeof mutated) != 0
                 || (accepted && decoded != expected)) {
                 printf("Invalid stream %s/%s: unexpected result/error/value/stream\n", seed_names[seed], cases[test]);
@@ -76,6 +105,22 @@ static int coverage_invalid_stream_checks(void)
     return 0;
 }
 '''
+
+
+def driver_for(unit):
+    layout = LAYOUTS[unit]
+    substitutions = {"READ": layout["read"], "WRITE": layout["write"],
+                     "BITS": str(layout["bits"]), "MAXIMUM": str(layout["maximum"]),
+                     "PAD_MASK": hex((1 << (16 - layout["bits"])) - 1) + "u",
+                     "CASES": ", ".join(map(json.dumps, cases_for(unit)))}
+    driver = DRIVER_TEMPLATE
+    for key, value in substitutions.items():
+        driver = driver.replace("@" + key + "@", value)
+    return driver
+
+
+# Preserve the original single-unit entrypoint/constants for callers.
+DRIVER = driver_for(UNIT)
 
 
 def target_lines(work):
@@ -94,7 +139,7 @@ def target_lines(work):
 
 
 def prepare(work, unit, args):
-    if unit != UNIT or args.language != "c" or args.encodings != "acn":
+    if unit not in SUPPORTED_UNITS or args.language != "c" or args.encodings != "acn":
         raise ValueError("No explicit invalid-stream oracle for this unit/language/encoding")
     targets = target_lines(work)
     path = work / "mainprogram.c"
@@ -103,12 +148,15 @@ def prepare(work, unit, args):
     if text.count(old) != 1:
         raise ValueError("Unexpected generated test runner")
     replacement = "int positives = asn1scc_run_generated_testsuite(&output);\n    if (positives != 0) return positives;\n    return coverage_invalid_stream_checks();"
-    path.write_text(DRIVER + "\n" + text.replace(old, replacement))
-    return {"seeds": list(SEEDS), "cases": list(CASES), "success": list(SUCCESS),
-            "wire_codes": [50, 60], "invalid_codes": [51, 0, 1023],
-            "field_offset_bits": 0, "field_width_bits": 10, "attached_bytes": 2,
+    layout = LAYOUTS[unit]
+    driver = driver_for(unit)
+    path.write_text(driver + "\n" + text.replace(old, replacement))
+    return {"seeds": list(SEEDS), "cases": list(cases_for(unit)), "success": list(SUCCESS),
+            "wire_codes": [50, 60], "invalid_codes": [51, 0, layout["maximum"]],
+            "wire_format": layout["format"],
+            "field_offset_bits": 0, "field_width_bits": layout["bits"], "attached_bytes": 2,
             "encode_calls": 2, "decode_calls": 12, "negative_decodes": 6,
-            "target_lines": targets, "driver_sha256": hashlib.sha256(DRIVER.encode()).hexdigest()}
+            "target_lines": targets, "driver_sha256": hashlib.sha256(driver.encode()).hexdigest()}
 
 
 def verify_output(output, checks):
