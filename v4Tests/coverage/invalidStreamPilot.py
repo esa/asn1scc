@@ -35,6 +35,7 @@ def main():
     parser.add_argument("--outdir", type=Path, required=True)
     parser.add_argument("--compiler", type=Path, default=defaults.compiler)
     parser.add_argument("--test-root", type=Path, default=defaults.test_root)
+    parser.add_argument("--unit", choices=SUPPORTED_UNITS, help="Measure exactly one registered unit")
     args = parser.parse_args()
     root = args.outdir.resolve()
     root.mkdir(parents=True, exist_ok=False)
@@ -42,6 +43,8 @@ def main():
     measure = statementCollector.main if args.metric == "stmt" else c.main
     try:
         for index, (unit, mode, flags) in enumerate(configurations()):
+            if args.unit and unit != args.unit:
+                continue
             pair = []
             for enabled in (False, True):
                 stage = "mutations" if enabled else "baseline"
@@ -70,7 +73,7 @@ def main():
             if before["positive_tests"] != after["positive_tests"]:
                 raise ValueError("Positive test count drift")
             delta = compare_statements(before, after) if args.metric == "stmt" else compare_gcov(before, after)
-            targets = target_lines(pair[0][1] / before["directory"] / "work")
+            targets = target_lines(pair[0][1] / before["directory"] / "work", unit)
             if targets != after["invalid_stream_checks"]["target_lines"]:
                 raise ValueError("Target source drift")
             obligations = []

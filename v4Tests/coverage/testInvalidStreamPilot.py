@@ -6,11 +6,14 @@ import shutil
 import subprocess
 
 from encodePilot import c
-from invalidStreamHarness import LAYOUTS, cases_for, padding_bits, target_lines, verify_output
+from invalidStreamHarness import (LAYOUTS, STREAM_PROFILES, cases_for, padding_bits,
+                                  source_fault_lines, verify_output)
 from invalidStreamPilot import configurations
 
 
 def mutations_for(unit):
+    if unit in STREAM_PROFILES:
+        return profile_mutations(unit)
     cases = cases_for(unit)
     count = len(cases)
     other_valid = cases.index("other-valid")
@@ -46,6 +49,37 @@ def mutations_for(unit):
         zero_case = cases.index("code-0")
         mutations["negative-zero"] = (
             patch, patch + f"\n                if (test == {zero_case}) mutated[0] = 0x2D;")
+    return mutations
+
+
+def profile_mutations(unit):
+    """Shared faults target semantic operations, never fixture case positions."""
+    anchor = "        if (accepted != test->success"
+    padding = "        if (test->padding) input[size - 1] ^= 1u;"
+    profile = STREAM_PROFILES[unit]
+    mutations = {
+        "unexpected-acceptance": (anchor, "        if (!test->success) accepted = TRUE;\n" + anchor),
+        "wrong-error": (anchor, "        if (!test->success) error ^= 1;\n" + anchor),
+        "decoder-writes": (anchor, "        input[0] ^= 1u;\n" + anchor),
+        "wrong-consumption": (anchor, "        stream.currentBit ^= 1;\n" + anchor),
+        "wrong-view-count": (anchor, "        stream.count += 1;\n" + anchor),
+        "wrong-field-offset": ("unsigned int position = field.offset + bit;",
+                               "unsigned int position = field.offset + bit + 1;"),
+        "short-view": ("BitStream_AttachBuffer(&stream, input, size);",
+                       "BitStream_AttachBuffer(&stream, input, size - 1);"),
+        # Actually omit execution; the process succeeds but transcript checking fails.
+        "missing-case": ("case_index < case_count;", "case_index < case_count - 1;"),
+    }
+    if profile.get("value_fault"):
+        mutations["wrong-positive-value"] = (anchor,
+            "        if (test->success) { " + profile["value_fault"] + " }\n" + anchor)
+    if any(seed["bits"] % 8 for seed in profile["seeds"]):
+        mutations["changed-padding"] = (padding,
+            "        if (test->field_count) input[size - 1] ^= 1u;\n" + padding)
+        mutations["missing-padding-flip"] = ("if (test->padding) input[size - 1] ^= 1u;",
+                                             "if (test->padding) input[size - 1] ^= 0u;")
+    if profile.get("target_error"):
+        mutations.update({"missing-error-assignment": None, "missing-rejection-assignment": None})
     return mutations
 
 
@@ -87,8 +121,7 @@ def main():
                 else:
                     path = work / "sample1.c"
                     lines = path.read_text().splitlines()
-                    targets = target_lines(work)
-                    line = targets[1] if name == "missing-error-assignment" else targets[0]
+                    line = source_fault_lines(work, record["unit"])[name]
                     lines[line - 1] = "        ; /* deliberately removed target */"
                     path.write_text("\n".join(lines) + "\n")
             logs = work / "logs"

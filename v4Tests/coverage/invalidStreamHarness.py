@@ -1,4 +1,4 @@
-"""Fixed-layout ACN enum mutations; no generic invalid-stream oracle is implied."""
+"""Explicit ACN stream profiles, with bounded mutations and exact decode oracles."""
 import hashlib
 import json
 import re
@@ -78,7 +78,219 @@ LAYOUTS = {
         magnitude /= 10;
     }"""},
 }
-SUPPORTED_UNITS = tuple(LAYOUTS)
+# Typed profiles describe values and wire operations separately. The Python wire
+# oracle uses integer masks; the generated driver independently writes each bit.
+# Only registered, source-grounded profiles are supported (not inferred grammars).
+STREAM_PROFILES = {
+    "09-CHOICE/013.asn1#1": {
+        "type": "ASN1SCC_MyPDU",
+        "target_error": "ERR_ACN_DECODE_MYPDU_PAYLOAD",
+        "fields": ((4, 8), (12, 8)),
+        "invalid_fields": ((18, 1), (20, 2), (0, 0), (255, 255)),
+        "rejection_bits": 28,
+        "common": {"header.flags.arr[0]": "0", "header.sourceId": "0xA5", "crc": "0x5A"},
+        "seeds": (
+            {"name": "alt-17-1", "bits": 36, "wire": (1, 16, 26, 85, 160),
+             "assign": {"payload.kind": "MyPayload_alt_17_1_PRESENT", "payload.u.alt_17_1": "0"},
+             "value": {"payload.kind": "MyPayload_alt_17_1_PRESENT"}},
+            {"name": "alt-20-1", "bits": 60, "wire": (1, 64, 26, 80, 17, 35, 69, 160),
+             "assign": {"payload.kind": "MyPayload_alt_20_1_PRESENT",
+                        "payload.u.alt_20_1.parameterIds.nCount": "1",
+                        "payload.u.alt_20_1.parameterIds.arr[0]": "0x1234"},
+             "value": {"payload.kind": "MyPayload_alt_20_1_PRESENT",
+                       "payload.u.alt_20_1.parameterIds.nCount": "1",
+                       "payload.u.alt_20_1.parameterIds.arr[0]": "0x1234"}},
+        ),
+        "value_fault": "decoded.crc ^= 1u;",
+    },
+}
+SUPPORTED_UNITS = (*LAYOUTS, *STREAM_PROFILES)
+
+
+def stream_cases(profile, seed_index):
+    """Expand named operations without relying on case positions in the driver."""
+    seed = profile["seeds"][seed_index]
+    mutations = [("original", (), False)]
+    mutations += [("-".join(map(str, values)), tuple(zip(profile["fields"], values)), False)
+                  for values in profile["invalid_fields"]]
+    if seed["bits"] % 8:
+        mutations.append(("padding", (), True))
+    cases = []
+    for name, fields, padding in mutations:
+        wire = int.from_bytes(bytes(seed["wire"]), "big")
+        total_bits = len(seed["wire"]) * 8
+        for (offset, width), value in fields:
+            if not (0 <= offset and offset + width <= seed["bits"] and 0 <= value < 1 << width):
+                raise ValueError("Unbounded profile field mutation")
+            shift = total_bits - offset - width
+            wire = (wire & ~(((1 << width) - 1) << shift)) | (value << shift)
+        if padding:
+            wire ^= 1
+        success = not fields
+        cases.append({"name": f"seed{seed_index}-{name}", "fields": fields, "padding": padding,
+                      "wire": wire.to_bytes(len(seed["wire"]), "big"), "success": success,
+                      "bits": seed["bits"] if success else profile["rejection_bits"],
+                      "error": "0" if success else profile["target_error"]})
+    return cases
+
+
+def local_error_definitions(work, symbols):
+    """Make private decoder errors available only to the optional main driver."""
+    header = (work / "sample1.h").read_text()
+    source = (work / "sample1.c").read_text()
+    definitions = []
+    for symbol in sorted(set(symbols) - {"0"}):
+        pattern = r"^#define\s+" + re.escape(symbol) + r"\s+(\d+)\b"
+        if re.search(pattern, header, re.M):
+            continue
+        values = re.findall(pattern, source, re.M)
+        if len(values) != 1:
+            raise ValueError("Missing or ambiguous private decoder error: " + symbol)
+        definitions.append(f"#define {symbol} {values[0]}")
+    return "\n".join(definitions)
+
+
+STREAM_DRIVER = r'''
+#include <stdio.h>
+#include <string.h>
+#include "sample1.h"
+@ERRORS@
+
+typedef struct { unsigned int offset, width, value; } CoverageField;
+typedef struct {
+    const char *name;
+    const byte *wire;
+    const CoverageField *fields;
+    size_t field_count;
+    int padding, success, error, bits;
+} CoverageStreamCase;
+
+static int coverage_profile_value(const @TYPE@ *value, int seed_index)
+{
+    switch (seed_index) {
+@VALUES@
+    default: return 0;
+    }
+}
+
+static void coverage_profile_field(byte *input, CoverageField field)
+{
+    for (unsigned int bit = 0; bit < field.width; ++bit) {
+        unsigned int position = field.offset + bit;
+        byte mask = (byte)(1u << (7u - position % 8u));
+        input[position / 8u] = (byte)((input[position / 8u] & (byte)~mask)
+            | (((field.value >> (field.width - bit - 1u)) & 1u) ? mask : 0u));
+    }
+}
+
+static int coverage_profile_cases(const byte *encoded, size_t size, int seed_index,
+                                  const CoverageStreamCase *cases, size_t case_count)
+{
+    for (size_t case_index = 0; case_index < case_count; ++case_index) {
+        const CoverageStreamCase *test = &cases[case_index];
+        /* Exact-size stack views let ASan observe reads/writes beyond the wire. */
+        byte input[size], saved[size];
+        memcpy(input, encoded, size);
+        for (size_t field_index = 0; field_index < test->field_count; ++field_index) {
+            coverage_profile_field(input, test->fields[field_index]);
+        }
+        if (test->padding) input[size - 1] ^= 1u;
+        if (memcmp(input, test->wire, size) != 0) {
+            puts("Stream profile mutation: unexpected field/padding bytes");
+            return 1;
+        }
+        memcpy(saved, input, size);
+        @TYPE@ decoded;
+        memset(&decoded, 0, sizeof decoded);
+        if (test->success && coverage_profile_value(&decoded, seed_index)) {
+            puts("Stream profile: unexpected initial positive value");
+            return 1;
+        }
+        BitStream stream;
+        int error = 0;
+        BitStream_AttachBuffer(&stream, input, size);
+        flag accepted = @TYPE@_ACN_Decode(&decoded, &stream, &error);
+        if (accepted != test->success || error != test->error
+            || stream.currentByte * 8 + stream.currentBit != test->bits
+            || stream.count != (long)size || memcmp(input, saved, size) != 0
+            || (accepted && !coverage_profile_value(&decoded, seed_index))) {
+            printf("Stream profile @UNIT@/%s: unexpected result/error/value/stream\n", test->name);
+            return 1;
+        }
+        printf("Stream profile @UNIT@/%s: expected %s, OK\n", test->name,
+               test->success ? "success" : "rejection");
+    }
+    return 0;
+}
+
+static int coverage_invalid_stream_checks(void)
+{
+@SEEDS@
+    puts("Stream profile checks (@COUNT@) run successfully.");
+    return 0;
+}
+'''
+
+
+def stream_driver(work, unit):
+    profile = STREAM_PROFILES[unit]
+    typ = profile["type"]
+    values, blocks, all_cases = [], [], []
+    c_bytes = lambda wire: "{" + ", ".join(hex(b) for b in wire) + "}"
+    for index, seed in enumerate(profile["seeds"]):
+        fields = {**seed["value"], **profile["common"]}
+        predicate = " && ".join(f"value->{field} == {value}" for field, value in fields.items())
+        values.append(f"    case {index}: return {predicate};")
+        size = len(seed["wire"])
+        if size != (seed["bits"] + 7) // 8:
+            raise ValueError("Seed wire size does not match bit length")
+        assignments = "\n".join(f"        value.{field} = {value};"
+                                for field, value in {**profile["common"], **seed["assign"]}.items())
+        cases = stream_cases(profile, index)
+        all_cases.extend(cases)
+        declarations, rows = [], []
+        for number, case in enumerate(cases):
+            declarations.append(f"        static const byte wire_{number}[] = {c_bytes(case['wire'])};")
+            ops = ", ".join("{%d, %d, %d}" % (*field, value) for field, value in case["fields"])
+            if ops:
+                declarations.append(f"        static const CoverageField fields_{number}[] = {{{ops}}};")
+            rows.append(f"            {{{json.dumps(case['name'])}, wire_{number}, "
+                        + (f"fields_{number}" if ops else "NULL")
+                        + f", {len(case['fields'])}, {int(case['padding'])}, {int(case['success'])}, {case['error']}, {case['bits']}}}")
+        blocks.append(f'''    {{
+        {typ} value;
+        memset(&value, 0, sizeof value);
+{assignments}
+        byte encoded[{size}] = {{0}};
+        const byte canonical[{size}] = {c_bytes(seed['wire'])};
+        BitStream stream;
+        int error = 0;
+        BitStream_Init(&stream, encoded, sizeof encoded);
+        if (!{typ}_ACN_Encode(&value, &stream, &error, TRUE) || error != 0
+            || stream.currentByte * 8 + stream.currentBit != {seed['bits']}
+            || stream.count != {size} || BitStream_GetLength(&stream) != {size}
+            || memcmp(encoded, canonical, sizeof encoded) != 0) {{
+            puts("Stream profile seed: unexpected encoding/layout");
+            return 1;
+        }}
+{chr(10).join(declarations)}
+        static const CoverageStreamCase cases[] = {{
+{(',' + chr(10)).join(rows)}
+        }};
+        if (coverage_profile_cases(encoded, sizeof encoded, {index}, cases,
+                                   sizeof cases / sizeof cases[0])) return 1;
+    }}''')
+    driver = STREAM_DRIVER
+    replacements = {"UNIT": unit, "TYPE": typ, "VALUES": "\n".join(values),
+                    "SEEDS": "\n".join(blocks), "COUNT": str(len(all_cases)),
+                    "ERRORS": local_error_definitions(work, [case["error"] for case in all_cases])}
+    for key, value in replacements.items():
+        driver = driver.replace("@" + key + "@", value)
+    return driver, {"profile_unit": unit, "case_ids": [case["name"] for case in all_cases],
+                    "success": [case["success"] for case in all_cases],
+                    "encode_calls": len(profile["seeds"]), "decode_calls": len(all_cases),
+                    "negative_decodes": sum(not case["success"] for case in all_cases),
+                    "positive_decodes": sum(case["success"] for case in all_cases)}
 
 
 def attached_bytes(unit):
@@ -220,8 +432,16 @@ def driver_for(unit):
 DRIVER = driver_for(UNIT)
 
 
-def target_lines(work):
+def target_lines(work, unit=UNIT):
     lines = (work / "sample1.c").read_text().splitlines()
+    if unit in STREAM_PROFILES:
+        error = STREAM_PROFILES[unit]["target_error"]
+        if not error:
+            return []
+        matches = [i for i, line in enumerate(lines) if line.strip().startswith(f"*pErrCode = {error};")]
+        if len(matches) != 1 or not lines[matches[0] + 1].strip().startswith("ret = FALSE;"):
+            raise ValueError("Expected unique present-when error/rejection statements")
+        return [matches[0] + 1, matches[0] + 2]
     starts = [i for i, line in enumerate(lines) if line.startswith("flag ASN1SCC_MyPDU_ACN_Decode(")]
     if len(starts) != 1:
         raise ValueError("Missing or ambiguous target decoder")
@@ -235,16 +455,36 @@ def target_lines(work):
     return [matches[0] + 1, matches[0] + 2]
 
 
+def source_fault_lines(work, unit):
+    """Map semantic fault names even when generated assignment order differs."""
+    lines = (work / "sample1.c").read_text().splitlines()
+    result = {}
+    for line in target_lines(work, unit):
+        text = lines[line - 1].strip()
+        if text.startswith("*pErrCode = "):
+            result["missing-error-assignment"] = line
+        elif text.startswith("ret = FALSE;"):
+            result["missing-rejection-assignment"] = line
+        else:
+            raise ValueError("Unexpected target assignment")
+    return result
+
+
 def prepare(work, unit, args):
     if unit not in SUPPORTED_UNITS or args.language != "c" or args.encodings != "acn":
         raise ValueError("No explicit invalid-stream oracle for this unit/language/encoding")
-    targets = target_lines(work)
+    targets = target_lines(work, unit)
     path = work / "mainprogram.c"
     text = path.read_text()
     old = "return asn1scc_run_generated_testsuite(&output);"
     if text.count(old) != 1:
         raise ValueError("Unexpected generated test runner")
     replacement = "int positives = asn1scc_run_generated_testsuite(&output);\n    if (positives != 0) return positives;\n    return coverage_invalid_stream_checks();"
+    if unit in STREAM_PROFILES:
+        driver, checks = stream_driver(work, unit)
+        path.write_text(driver + "\n" + text.replace(old, replacement))
+        return {**checks, "target_lines": targets,
+                "driver_sha256": hashlib.sha256(driver.encode()).hexdigest()}
     layout = LAYOUTS[unit]
     driver = driver_for(unit)
     path.write_text(driver + "\n" + text.replace(old, replacement))
@@ -264,6 +504,27 @@ def verify_output(output, checks):
     positive = re.search(r"All test cases \((\d+)\) run successfully", output)
     if not positive or int(positive[1]) == 0:
         raise ValueError("Missing original positive tests")
+    if "profile_unit" in checks:
+        unit = checks["profile_unit"]
+        profile = STREAM_PROFILES[unit]
+        cases = [case for index in range(len(profile["seeds"])) for case in stream_cases(profile, index)]
+        expected_ids = [case["name"] for case in cases]
+        success = [case["success"] for case in cases]
+        if (checks["case_ids"] != expected_ids or checks["success"] != success
+                or checks["encode_calls"] != len(profile["seeds"])
+                or checks["decode_calls"] != len(cases)
+                or checks["negative_decodes"] != success.count(False)
+                or checks["positive_decodes"] != success.count(True)):
+            raise ValueError("Inconsistent stream profile accounting")
+        expected = [f"Stream profile {unit}/{case['name']}: expected "
+                    + ("success" if case["success"] else "rejection") + ", OK" for case in cases]
+        actual = [line for line in output.splitlines() if line.startswith("Stream profile ")
+                  and not line.startswith("Stream profile checks (")]
+        if actual != expected:
+            raise ValueError("Missing, duplicate or unexpected stream profile outcome")
+        if output.splitlines().count(f"Stream profile checks ({len(cases)}) run successfully.") != 1:
+            raise ValueError("Missing stream profile summary")
+        return
     count = len(checks["seeds"]) * len(checks["cases"])
     if len(checks["cases"]) != len(checks["success"]) or checks["decode_calls"] != count:
         raise ValueError("Inconsistent invalid-stream check accounting")

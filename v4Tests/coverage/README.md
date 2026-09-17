@@ -264,7 +264,7 @@ claim that every defensive encoder branch is reachable by checked calls.
 
 `--invalid-stream-pilot` measures baseline and fixed-layout mutations for
 every unit registered in `invalidStreamHarness.SUPPORTED_UNITS`, separately in
-legacy ACN and ACN-v2. Each layout records its alpha/beta wire mapping:
+legacy ACN and ACN-v2. The six enum layouts retain their alpha/beta wire mappings:
 
 | Unit | Wire field at bit 0 | Alpha / beta codes | Invalid enum codes | Padding bits |
 |---|---|---|---|---|
@@ -363,8 +363,8 @@ whole-project coverage completion.
     docker run --name stream-sanitizers --network none --user 10001:10001 --mount type=bind,source="$(pwd)/v4Tests",target=/variant,readonly -v "$(pwd)/coverage-results/streams-dev-gcov:/evidence:ro" --entrypoint python3 asn1scc-coverage:invalid-streams-base /variant/coverage/testInvalidStreamPilot.py --pilot-root /evidence --outdir /results/checks
     docker cp stream-sanitizers:/results/checks coverage-results/streams-sanitizers
 
-ASan/UBSan runs use the layout's exact two- or four-byte buffers for all twelve
-registered unit/mode configurations.
+ASan/UBSan runs use the layout's exact two- or four-byte buffers for the twelve
+enum unit/mode configurations.
 Deliberate defects check acceptance, errors, decoded values, writes, consumption,
 view counts, field offsets, padding, truncated views, skipped cases and removal
 of either target statement. Padding faults apply to every layout with unused
@@ -375,6 +375,66 @@ The other faults apply to ASCII as well. Missing-case injection omits the final 
 case for each layout and must be rejected by transcript verification.
 This is a bounded
 Phase-3 pilot, not generic mutation synthesis or a claim about all decoder errors.
+
+#### Compound present-when CHOICE
+
+The same registry also supports `09-CHOICE/013.asn1#1`, in both modes.
+`STREAM_PROFILES` describes typed seed assignments, canonical bytes, field
+offsets/widths, bounded mutations, positive field checks and rejection targets.
+The shared driver applies bit-field operations to checked encodings and compares
+the entire resulting wire against a separately constructed byte oracle before
+decoding. Case behavior is named in descriptors, not selected by test position.
+The original enum APIs, metadata and transcripts remain available.
+
+This profile encodes two valid seeds: `alt-17-1` (`01 10 1A 55 A0`, 36 bits)
+and `alt-20-1` with one parameter `0x1234`
+(`01 40 1A 50 11 23 45 A0`, 60 bits). Both use zero flags, sourceId `0xA5`
+and crc `0x5A`. Each seed has six cases: original; service/message selectors
+`(18,1)`, `(20,2)`, `(0,0)`, `(255,255)`; and a low padding-bit flip.
+Only the selector fields at bits 4 and 12 (eight bits each) change in rejection
+cases. Four low padding bits are present in each seed's last byte.
+
+Each configuration adds two checked encodes and twelve decodes: eight reject
+after exactly 28 bits with the generated payload decoder error, and four succeed
+after exactly 36 or 60 bits with error zero and the expected fields. Every call
+uses a fresh exact-size five- or eight-byte buffer, stream, output and error.
+Positive output starts with different fields; failed output is never validated
+or passed to Equal. Input bytes and view counts must remain unchanged.
+ACN-v2's private payload error definition is resolved uniquely from `sample1.c`
+and supplied only to the optional main driver. Codec/header files are untouched.
+
+New-profile metadata includes the exact unit, ordered case IDs, encode/decode
+counts and source-mapped target lines. Each case prints exactly one
+`Stream profile UNIT/CASE: expected success, OK` or `expected rejection, OK`
+line. Transcript verification rejects missing, duplicate, reordered or unexpected
+cases. Fault checks cover acceptance, error, positive fields, input writes,
+consumption, view count, selector offset, padding corruption/missing flip,
+short views, genuinely omitted execution and removal of either generated target
+assignment. Fault names map to source statements independently of their order.
+The full sanitizer suite now covers fourteen registered unit/mode configurations.
+
+`invalidStreamPilot.py --unit '09-CHOICE/013.asn1#1'` selects exactly this unit;
+omitting `--unit` measures all registered units. Positive-test counts come from
+each generated suite. Target-line lists are profile-specific, with the old enum
+mapping preserved. Reports retain the existing schema and work directories.
+
+The public pilot still compares original positives with added mutations. Its
+old enum gains are historical. Incremental campaign evidence must compare the
+actual committed base (including all six enum profiles) with the candidate
+across the fixed fifteen-unit, thirty-configuration cohort. Statement and gcov
+branch results must remain separate; the CHOICE target is two rejection/error
+statements per mode, with positive branch gains and no coverage loss anywhere.
+This does not establish whole-project completeness or unreachable statements.
+
+For a frozen campaign, use its pinned images and read-only tooling mounts,
+fresh output paths, no network and the campaign container label. For example:
+
+    docker run --name choice-streams-dev-UNIQUE --label asn1scc.campaign=coverage-night-20260917 --network none --user 10001:10001 --mount type=bind,source="$(pwd)/v4Tests",target=/variant,readonly --entrypoint python3 asn1scc-coverage:invalid-streams-base /variant/coverage/invalidStreamPilot.py --metric gcov --outdir /results/pilot
+
+Use `invalid-streams-statement-c` with `--metric stmt` for statement measurements.
+Preserve raw reports, generated sources, hashes and sanitizer/fault logs before
+removing a finished container. The campaign's independent verifier additionally
+checks the full committed-base comparison and canonical wire/source-fault oracles.
 
 ### Statement report scope
 
