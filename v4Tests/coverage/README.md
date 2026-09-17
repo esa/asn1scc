@@ -264,16 +264,20 @@ claim that every defensive encoder branch is reachable by checked calls.
 
 `--invalid-stream-pilot` measures baseline and fixed-layout mutations for
 every unit registered in `invalidStreamHarness.SUPPORTED_UNITS`, separately in
-legacy ACN and ACN-v2. Both enums accept codes 50 (alpha) and 60 (beta):
+legacy ACN and ACN-v2. Each layout records its alpha/beta wire mapping:
 
-| Unit | Wire field at bit 0 | Invalid enum codes | Padding bits |
-|---|---|---|---|
-| `04-ENUMERATED/001.asn1#1` | 10-bit positive integer | 51, 0, 1023 | 6 |
-| `04-ENUMERATED/001.asn1#2` | 12-bit BCD (three decimal nibbles) | 51, 0, 999 | 4 |
+| Unit | Wire field at bit 0 | Alpha / beta codes | Invalid enum codes | Padding bits |
+|---|---|---|---|---|
+| `04-ENUMERATED/001.asn1#1` | 10-bit positive integer | 50 / 60 | 51, 0, 1023 | 6 |
+| `04-ENUMERATED/001.asn1#2` | 12-bit BCD (three decimal nibbles) | 50 / 60 | 51, 0, 999 | 4 |
+| `04-ENUMERATED/001.asn1#5` | 10-bit positive integer | 1 / 200 | 51, 0, 1023 | 6 |
 
 Both valid values are encoded with constraint checking before mutating their
 bytes. BCD 050/060 encode alpha/beta; 051 is a valid BCD number rejected by the
 generated enum switch. No malformed decimal digit is needed to reach the target.
+The driver checks canonical seed bytes with zero padding: #1 uses `0C 80` /
+`0F 00`, #2 uses `05 00` / `06 00`, and #5 uses `00 40` / `32 00`.
+Unit #5 reuses the same field operations as #1 with its native numeric codes.
 
 Use images containing the current tooling with the common/C statement recipes
 above and fresh development tags; do not overwrite existing measurement images.
@@ -294,8 +298,8 @@ only measurement tooling and adds an optional driver to the generated test main;
 compiler templates, codecs, RTL and original positive tests are unchanged.
 `--check-invalid-streams` selects the driver for an individual C/ACN measurement.
 For standalone #1 use `--cohort pilot --filter 04-ENUMERATED/001.asn1#1` so the
-collector's substring filter does not also select #10/#11. For #2 use
-`--cohort all --filter 04-ENUMERATED/001.asn1#2`. The pilot itself supplies an
+collector's substring filter does not also select #10/#11. For #2 or #5 use
+`--cohort all --filter 04-ENUMERATED/001.asn1#2` (or `#5`). The pilot itself supplies an
 exact one-unit cohort and validates the resulting unit identity. Unknown fixtures,
 other encodings/languages and combinations with other harness operations are rejected.
 
@@ -315,8 +319,10 @@ default-rejection statements that must become covered. Existing NOCOVERAGE
 status affects only the legacy line gate; statements remain unexempted.
 `pilot.json` identifies every comparison/run by unit and mode, and records each
 run's relative directory for the sanitizer runner. Pilot baselines use only
-original positives: their #1 gains are historical and must not be counted as
-new progress against a base that already includes #1 mutations.
+original positives: gains for already-supported units are historical and must
+not be counted as new progress against a base that includes their mutations.
+Campaign comparisons must retain #1/#2 mutations in the committed baseline
+when measuring the additional coverage from #5.
 
     docker run --name stream-sanitizers --network none --user 10001:10001 --mount type=bind,source="$(pwd)/v4Tests",target=/variant,readonly -v "$(pwd)/coverage-results/streams-dev-gcov:/evidence:ro" --entrypoint python3 asn1scc-coverage:invalid-streams-base /variant/coverage/testInvalidStreamPilot.py --pilot-root /evidence --outdir /results/checks
     docker cp stream-sanitizers:/results/checks coverage-results/streams-sanitizers

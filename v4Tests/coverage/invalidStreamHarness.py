@@ -10,13 +10,16 @@ SUCCESS = (True, False, False, False, True, True)
 
 # Only explicitly described wire layouts have an oracle. BCD bounds are decimal,
 # so every negative reaches the generated enum switch, not RTL digit rejection.
-LAYOUTS = {
-    UNIT: {"format": "pos-int", "bits": 10, "maximum": 1023,
+POS_INT_LAYOUT = {"format": "pos-int", "bits": 10, "maximum": 1023,
            "read": "return ((unsigned int)buffer[0] << 2) | ((unsigned int)buffer[1] >> 6);",
            "write": """buffer[0] = (byte)(code >> 2);
-    buffer[1] = (byte)((buffer[1] & 0x3Fu) | ((code & 3u) << 6));"""},
+    buffer[1] = (byte)((buffer[1] & 0x3Fu) | ((code & 3u) << 6));"""}
+LAYOUTS = {
+    UNIT: {**POS_INT_LAYOUT, "codes": (50, 60),
+           "canonical_bytes": ((0x0C, 0x80), (0x0F, 0x00))},
     "04-ENUMERATED/001.asn1#2": {
-        "format": "bcd", "bits": 12, "maximum": 999,
+        "format": "bcd", "bits": 12, "maximum": 999, "codes": (50, 60),
+        "canonical_bytes": ((0x05, 0x00), (0x06, 0x00)),
         "read": """unsigned int hundreds = buffer[0] >> 4;
     unsigned int tens = buffer[0] & 15u;
     unsigned int ones = buffer[1] >> 4;
@@ -24,6 +27,9 @@ LAYOUTS = {
     return hundreds * 100 + tens * 10 + ones;""",
         "write": """buffer[0] = (byte)(((code / 100) << 4) | ((code / 10) % 10));
     buffer[1] = (byte)((buffer[1] & 0x0Fu) | ((code % 10) << 4));"""},
+    "04-ENUMERATED/001.asn1#5": {
+        **POS_INT_LAYOUT, "codes": (1, 200),
+        "canonical_bytes": ((0x00, 0x40), (0x32, 0x00))},
 }
 SUPPORTED_UNITS = tuple(LAYOUTS)
 
@@ -50,7 +56,8 @@ static void coverage_write_code(byte *buffer, unsigned int code)
 static int coverage_invalid_stream_checks(void)
 {
     static const ASN1SCC_MyPDU seeds[] = {MyPDU_alpha, MyPDU_beta};
-    static const unsigned int codes[] = {50, 60};
+    static const unsigned int codes[] = {@CODES@};
+    static const byte canonical[2][2] = {@CANONICAL@};
     static const char *seed_names[] = {"alpha", "beta"};
     static const char *cases[] = {@CASES@};
     static const int success[] = {1, 0, 0, 0, 1, 1};
@@ -63,7 +70,8 @@ static int coverage_invalid_stream_checks(void)
             || !ASN1SCC_MyPDU_ACN_Encode(&seeds[seed], &stream, &error, TRUE)
             || error != 0 || BitStream_GetLength(&stream) != 2
             || stream.currentByte * 8 + stream.currentBit != @BITS@
-            || coverage_wire_code(encoded) != codes[seed]) {
+            || coverage_wire_code(encoded) != codes[seed]
+            || memcmp(encoded, canonical[seed], sizeof encoded) != 0) {
             puts("Invalid stream seed: unexpected encoding/layout");
             return 1;
         }
@@ -110,6 +118,9 @@ static int coverage_invalid_stream_checks(void)
 def driver_for(unit):
     layout = LAYOUTS[unit]
     substitutions = {"READ": layout["read"], "WRITE": layout["write"],
+                     "CODES": ", ".join(map(str, layout["codes"])),
+                     "CANONICAL": ", ".join("{" + ", ".join(hex(b) for b in row) + "}"
+                                            for row in layout["canonical_bytes"]),
                      "BITS": str(layout["bits"]), "MAXIMUM": str(layout["maximum"]),
                      "PAD_MASK": hex((1 << (16 - layout["bits"])) - 1) + "u",
                      "CASES": ", ".join(map(json.dumps, cases_for(unit)))}
@@ -152,7 +163,7 @@ def prepare(work, unit, args):
     driver = driver_for(unit)
     path.write_text(driver + "\n" + text.replace(old, replacement))
     return {"seeds": list(SEEDS), "cases": list(cases_for(unit)), "success": list(SUCCESS),
-            "wire_codes": [50, 60], "invalid_codes": [51, 0, layout["maximum"]],
+            "wire_codes": list(layout["codes"]), "invalid_codes": [51, 0, layout["maximum"]],
             "wire_format": layout["format"],
             "field_offset_bits": 0, "field_width_bits": layout["bits"], "attached_bytes": 2,
             "encode_calls": 2, "decode_calls": 12, "negative_decodes": 6,
