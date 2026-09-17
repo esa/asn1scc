@@ -6,18 +6,21 @@ import shutil
 import subprocess
 
 from encodePilot import c
-from invalidStreamHarness import cases_for, padding_bits, target_lines, verify_output
+from invalidStreamHarness import LAYOUTS, cases_for, padding_bits, target_lines, verify_output
 from invalidStreamPilot import configurations
 
 
 def mutations_for(unit):
-    count = len(cases_for(unit))
+    cases = cases_for(unit)
+    count = len(cases)
+    other_valid = cases.index("other-valid")
+    first_invalid = next(i for i, case in enumerate(cases) if case.startswith("code-"))
     anchor = "            if (accepted != success[test]"
     patch = "                coverage_write_code(mutated, replacements[test]);"
     mutations = {
-        "unexpected-acceptance": (anchor, "            if (test == 1) accepted = TRUE;\n" + anchor),
+        "unexpected-acceptance": (anchor, f"            if (test == {first_invalid}) accepted = TRUE;\n" + anchor),
         "wrong-error": (anchor, "            if (!success[test]) error = 0;\n" + anchor),
-        "wrong-positive-value": (anchor, "            if (test == 4) decoded = seeds[seed];\n" + anchor),
+        "wrong-positive-value": (anchor, f"            if (test == {other_valid}) decoded = seeds[seed];\n" + anchor),
         "decoder-writes": (anchor, "            mutated[0] ^= 1u;\n" + anchor),
         "wrong-consumption": (anchor, "            stream.currentBit ^= 1;\n" + anchor),
         "wrong-view-count": (anchor, "            stream.count += 1;\n" + anchor),
@@ -31,6 +34,10 @@ def mutations_for(unit):
     }
     if padding_bits(unit):
         mutations["changed-padding"] = (patch, patch + "\n                mutated[1] ^= 1u;")
+    if LAYOUTS[unit]["format"] == "twos-complement":
+        mutations["unsigned-interpretation"] = (
+            "return raw >= 512u ? (int)raw - 1024 : (int)raw;", "return (int)raw;")
+        mutations["lost-sign-bit"] = (patch, patch + "\n                mutated[0] &= 0x7Fu;")
     return mutations
 
 

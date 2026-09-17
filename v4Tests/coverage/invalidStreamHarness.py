@@ -11,6 +11,7 @@ SUCCESS = (True, False, False, False, True, True)
 # Only explicitly described wire layouts have an oracle. Decimal bounds ensure
 # every negative reaches the generated enum switch, not RTL digit rejection.
 POS_INT_LAYOUT = {"format": "pos-int", "bits": 10, "maximum": 1023,
+           "invalid_codes": (51, 0, 1023),
            "read": "return ((unsigned int)buffer[0] << 2) | ((unsigned int)buffer[1] >> 6);",
            "write": """buffer[0] = (byte)(code >> 2);
     buffer[1] = (byte)((buffer[1] & 0x3Fu) | ((code & 3u) << 6));"""}
@@ -19,6 +20,7 @@ LAYOUTS = {
            "canonical_bytes": ((0x0C, 0x80), (0x0F, 0x00))},
     "04-ENUMERATED/001.asn1#2": {
         "format": "bcd", "bits": 12, "maximum": 999, "codes": (50, 60),
+        "invalid_codes": (51, 0, 999),
         "canonical_bytes": ((0x05, 0x00), (0x06, 0x00)),
         "read": """unsigned int hundreds = buffer[0] >> 4;
     unsigned int tens = buffer[0] & 15u;
@@ -32,6 +34,7 @@ LAYOUTS = {
         "canonical_bytes": ((0x00, 0x40), (0x32, 0x00))},
     "04-ENUMERATED/001.asn1#3": {
         "format": "ascii", "bits": 32, "maximum": 9999, "codes": (50, 60),
+        "invalid_codes": (51, 0, 9999),
         "canonical_bytes": ((0x30, 0x30, 0x35, 0x30), (0x30, 0x30, 0x36, 0x30)),
         "read": """unsigned int code = 0;
     for (int digit = 0; digit < 4; ++digit) {
@@ -43,6 +46,17 @@ LAYOUTS = {
         buffer[digit] = (byte)(0x30 + code % 10);
         code /= 10;
     }"""},
+    "04-ENUMERATED/002.asn1#1": {
+        "format": "twos-complement", "bits": 10, "maximum": 511,
+        "code_type": "int", "codes": (-1, -200), "invalid_codes": (-2, 0, -512, 511),
+        "canonical_bytes": ((0xFF, 0xC0), (0xCE, 0x00)),
+        "read": """unsigned int raw = ((unsigned int)buffer[0] << 2) | ((unsigned int)buffer[1] >> 6);
+    /* raw is at most 1023, so the cast and signed subtraction are defined. */
+    return raw >= 512u ? (int)raw - 1024 : (int)raw;""",
+        "write": """/* Convert the signed value to nonnegative wire bits before shifting. */
+    unsigned int raw = (unsigned int)(code < 0 ? code + 1024 : code);
+    buffer[0] = (byte)(raw >> 2);
+    buffer[1] = (byte)((buffer[1] & 0x3Fu) | ((raw & 3u) << 6));"""},
 }
 SUPPORTED_UNITS = tuple(LAYOUTS)
 
@@ -56,8 +70,8 @@ def padding_bits(unit):
 
 
 def cases_for(unit):
-    return ("original", "code-51", "code-0", f"code-{LAYOUTS[unit]['maximum']}",
-            "other-valid") + (("padding-only",) if padding_bits(unit) else ())
+    return (("original",) + tuple(f"code-{code}" for code in LAYOUTS[unit]["invalid_codes"])
+            + ("other-valid",) + (("padding-only",) if padding_bits(unit) else ()))
 
 
 def success_for(unit):
@@ -68,12 +82,12 @@ DRIVER_TEMPLATE = r'''
 #include <string.h>
 #include "sample1.h"
 
-static unsigned int coverage_wire_code(const byte *buffer)
+static @CODE_TYPE@ coverage_wire_code(const byte *buffer)
 {
     @READ@
 }
 
-static void coverage_write_code(byte *buffer, unsigned int code)
+static void coverage_write_code(byte *buffer, @CODE_TYPE@ code)
 {
     @WRITE@
 }
@@ -81,31 +95,32 @@ static void coverage_write_code(byte *buffer, unsigned int code)
 static int coverage_invalid_stream_checks(void)
 {
     static const ASN1SCC_MyPDU seeds[] = {MyPDU_alpha, MyPDU_beta};
-    static const unsigned int codes[] = {@CODES@};
+    static const @CODE_TYPE@ codes[] = {@CODES@};
     static const byte canonical[2][@BYTES@] = {@CANONICAL@};
     static const char *seed_names[] = {"alpha", "beta"};
     static const char *cases[] = {@CASES@};
     static const int success[] = {@SUCCESS@};
     for (int seed = 0; seed < 2; ++seed) {
         byte encoded[@BYTES@] = {0};
-        BitStream stream;
-        int error = 0;
-        BitStream_Init(&stream, encoded, sizeof encoded);
+        BitStream encode_stream;
+        int encode_error = 0;
+        BitStream_Init(&encode_stream, encoded, sizeof encoded);
         if (ASN1SCC_MyPDU_REQUIRED_BYTES_FOR_ACN_ENCODING != @BYTES@
-            || !ASN1SCC_MyPDU_ACN_Encode(&seeds[seed], &stream, &error, TRUE)
-            || error != 0 || BitStream_GetLength(&stream) != @BYTES@
-            || stream.currentByte * 8 + stream.currentBit != @BITS@
+            || !ASN1SCC_MyPDU_ACN_Encode(&seeds[seed], &encode_stream, &encode_error, TRUE)
+            || encode_error != 0 || BitStream_GetLength(&encode_stream) != @BYTES@
+            || encode_stream.currentByte * 8 + encode_stream.currentBit != @BITS@
             || coverage_wire_code(encoded) != codes[seed]
             || memcmp(encoded, canonical[seed], sizeof encoded) != 0) {
             puts("Invalid stream seed: unexpected encoding/layout");
             return 1;
         }
-        const unsigned int replacements[] = {@REPLACEMENTS@};
+        const @CODE_TYPE@ replacements[] = {@REPLACEMENTS@};
         for (int test = 0; test < @CASE_COUNT@; ++test) {
             byte mutated[@BYTES@];
             byte saved[@BYTES@];
+            BitStream stream;
             memcpy(mutated, encoded, sizeof mutated);
-            if (test >= 1 && test <= 4) {
+            if (test >= 1 && test <= @OTHER_VALID@) {
                 /* Replace only the field, preserving any rounded-byte padding. */
                 coverage_write_code(mutated, replacements[test]);
             }
@@ -117,9 +132,9 @@ static int coverage_invalid_stream_checks(void)
             memcpy(saved, mutated, sizeof saved);
             BitStream_AttachBuffer(&stream, mutated, sizeof mutated);
             /* A distinct initial output makes missing decoder assignments visible. */
-            ASN1SCC_MyPDU expected = test == 4 ? seeds[1 - seed] : seeds[seed];
+            ASN1SCC_MyPDU expected = test == @OTHER_VALID@ ? seeds[1 - seed] : seeds[seed];
             ASN1SCC_MyPDU decoded = expected == MyPDU_alpha ? MyPDU_beta : MyPDU_alpha;
-            error = 0;
+            int error = 0;
             flag accepted = ASN1SCC_MyPDU_ACN_Decode(&decoded, &stream, &error);
             if (accepted != success[test] || error != (success[test] ? 0 : ERR_ACN_DECODE_MYPDU)
                 || stream.currentByte * 8 + stream.currentBit != @BITS@ || stream.count != @BYTES@
@@ -145,10 +160,14 @@ def driver_for(unit):
     padding = padding_bits(unit)
     mask = hex((1 << padding) - 1) + "u"
     last = size - 1
-    replacements = ["codes[seed]", "51", "0", str(layout["maximum"]), "codes[1 - seed]"]
+    other_valid = cases.index("other-valid")
+    padding_case = cases.index("padding-only") if padding else None
+    replacements = ["codes[seed]", *map(str, layout["invalid_codes"]), "codes[1 - seed]"]
     if padding:
         replacements.append("codes[seed]")
     substitutions = {"READ": layout["read"], "WRITE": layout["write"],
+                     "CODE_TYPE": layout.get("code_type", "unsigned int"),
+                     "OTHER_VALID": str(other_valid),
                      "CODES": ", ".join(map(str, layout["codes"])),
                      "CANONICAL": ", ".join("{" + ", ".join(hex(b) for b in row) + "}"
                                             for row in layout["canonical_bytes"]),
@@ -156,9 +175,9 @@ def driver_for(unit):
                      "CASE_COUNT": str(len(cases)), "DECODE_COUNT": str(len(SEEDS) * len(cases)),
                      "REPLACEMENTS": ", ".join(replacements),
                      "SUCCESS": ", ".join(str(int(success)) for success in success_for(unit)),
-                     "PAD_MUTATION": f"if (test == 5) mutated[{last}] ^= 1u;" if padding else "",
-                     "PAD_CHECK": (f"\n                || (test != 5 && (mutated[{last}] & {mask}) != (encoded[{last}] & {mask}))"
-                                   f"\n                || (test == 5 && (mutated[{last}] ^ encoded[{last}]) != 1u)") if padding else "",
+                     "PAD_MUTATION": f"if (test == {padding_case}) mutated[{last}] ^= 1u;" if padding else "",
+                     "PAD_CHECK": (f"\n                || (test != {padding_case} && (mutated[{last}] & {mask}) != (encoded[{last}] & {mask}))"
+                                   f"\n                || (test == {padding_case} && (mutated[{last}] ^ encoded[{last}]) != 1u)") if padding else "",
                      "CASES": ", ".join(map(json.dumps, cases))}
     driver = DRIVER_TEMPLATE
     for key, value in substitutions.items():
@@ -200,7 +219,7 @@ def prepare(work, unit, args):
     path.write_text(driver + "\n" + text.replace(old, replacement))
     success = success_for(unit)
     return {"seeds": list(SEEDS), "cases": list(cases_for(unit)), "success": list(success),
-            "wire_codes": list(layout["codes"]), "invalid_codes": [51, 0, layout["maximum"]],
+            "wire_codes": list(layout["codes"]), "invalid_codes": list(layout["invalid_codes"]),
             "wire_format": layout["format"],
             "field_offset_bits": 0, "field_width_bits": layout["bits"], "attached_bytes": attached_bytes(unit),
             "padding_bits": padding_bits(unit),

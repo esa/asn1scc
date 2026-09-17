@@ -83,6 +83,8 @@ def main():
                         raise ValueError("Selected decoder obligation was not newly covered")
                     obligations.append(new)
             result["comparisons"].append({"mode": mode, "unit": unit, "positive_tests": before["positive_tests"],
+                                           "work_directories": {stage: str((run / record["directory"] / "work").relative_to(root))
+                                                                for stage, (record, run) in zip(("baseline", "mutations"), pair)},
                                            "target_lines": targets, "target_obligations": obligations, **delta})
             print(unit, mode, delta["before"], "->", delta["after"], flush=True)
         result["status"] = "ok"
