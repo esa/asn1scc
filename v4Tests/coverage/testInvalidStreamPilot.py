@@ -6,16 +6,12 @@ import shutil
 import subprocess
 
 from encodePilot import c
-from invalidStreamHarness import target_lines, verify_output
+from invalidStreamHarness import cases_for, padding_bits, target_lines, verify_output
 from invalidStreamPilot import configurations
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pilot-root", type=Path, required=True)
-    parser.add_argument("--outdir", type=Path, required=True)
-    args = parser.parse_args()
-    args.outdir.mkdir(parents=True, exist_ok=False)
+def mutations_for(unit):
+    count = len(cases_for(unit))
     anchor = "            if (accepted != success[test]"
     patch = "                coverage_write_code(mutated, replacements[test]);"
     mutations = {
@@ -27,13 +23,23 @@ def main():
         "wrong-view-count": (anchor, "            stream.count += 1;\n" + anchor),
         "wrong-field-offset": (patch, patch + "\n                mutated[1] = (byte)((mutated[1] >> 1) | (mutated[0] << 7));"
                                 "\n                mutated[0] >>= 1;"),
-        "changed-padding": (patch, patch + "\n                mutated[1] ^= 1u;"),
         "short-view": ("BitStream_AttachBuffer(&stream, mutated, sizeof mutated);",
                        "BitStream_AttachBuffer(&stream, mutated, sizeof mutated - 1);"),
-        "missing-case": ("test < 6", "test < 5"),
+        "missing-case": (f"test < {count}", f"test < {count - 1}"),
         "missing-error-assignment": None,
         "missing-rejection-assignment": None,
     }
+    if padding_bits(unit):
+        mutations["changed-padding"] = (patch, patch + "\n                mutated[1] ^= 1u;")
+    return mutations
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--pilot-root", type=Path, required=True)
+    parser.add_argument("--outdir", type=Path, required=True)
+    args = parser.parse_args()
+    args.outdir.mkdir(parents=True, exist_ok=False)
     report = {"status": "running", "checks": []}
     try:
         pilot = json.loads((args.pilot_root / "pilot.json").read_text())
@@ -44,8 +50,9 @@ def main():
         if len(runs) != len(expected) or {(r["unit"], r["mode"]) for r in runs} != expected:
             raise ValueError("Missing or duplicate registered unit/mode")
         jobs = [(index, run, name) for index, run in enumerate(runs)
-                for name in ("sanitizer", *mutations)]
+                for name in ("sanitizer", *mutations_for(run["unit"]))]
         for index, record, name in jobs:
+            mutations = mutations_for(record["unit"])
             source = (args.pilot_root / record["directory"] / "work").resolve()
             if not source.is_relative_to(args.pilot_root.resolve()):
                 raise ValueError("Pilot work directory escapes pilot root")

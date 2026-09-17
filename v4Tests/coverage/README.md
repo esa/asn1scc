@@ -270,6 +270,7 @@ legacy ACN and ACN-v2. Each layout records its alpha/beta wire mapping:
 |---|---|---|---|---|
 | `04-ENUMERATED/001.asn1#1` | 10-bit positive integer | 50 / 60 | 51, 0, 1023 | 6 |
 | `04-ENUMERATED/001.asn1#2` | 12-bit BCD (three decimal nibbles) | 50 / 60 | 51, 0, 999 | 4 |
+| `04-ENUMERATED/001.asn1#3` | 32-bit ASCII (four decimal bytes) | 50 / 60 | 51, 0, 9999 | 0 |
 | `04-ENUMERATED/001.asn1#5` | 10-bit positive integer | 1 / 200 | 51, 0, 1023 | 6 |
 
 Both valid values are encoded with constraint checking before mutating their
@@ -278,6 +279,10 @@ generated enum switch. No malformed decimal digit is needed to reach the target.
 The driver checks canonical seed bytes with zero padding: #1 uses `0C 80` /
 `0F 00`, #2 uses `05 00` / `06 00`, and #5 uses `00 40` / `32 00`.
 Unit #5 reuses the same field operations as #1 with its native numeric codes.
+ASCII #3 uses exactly `30 30 35 30` / `30 30 36 30` (`0050` / `0060`),
+without a terminator or padding. Its mutations are four valid decimal bytes
+(`0051`, `0000`, `9999`, or the other valid code), checked digit by digit and
+as a decimal value before decoding.
 
 Use images containing the current tooling with the common/C statement recipes
 above and fresh development tags; do not overwrite existing measurement images.
@@ -298,22 +303,26 @@ only measurement tooling and adds an optional driver to the generated test main;
 compiler templates, codecs, RTL and original positive tests are unchanged.
 `--check-invalid-streams` selects the driver for an individual C/ACN measurement.
 For standalone #1 use `--cohort pilot --filter 04-ENUMERATED/001.asn1#1` so the
-collector's substring filter does not also select #10/#11. For #2 or #5 use
-`--cohort all --filter 04-ENUMERATED/001.asn1#2` (or `#5`). The pilot itself supplies an
+collector's substring filter does not also select #10/#11. For #2, #3 or #5 use
+`--cohort all --filter 04-ENUMERATED/001.asn1#2` (or `#3` / `#5`). The pilot itself supplies an
 exact one-unit cohort and validates the resulting unit identity. Unknown fixtures,
 other encodings/languages and combinations with other harness operations are rejected.
 
-Each seed gets six decoder checks: original, the three invalid codes above (all
-rejected with `ERR_ACN_DECODE_MYPDU`), the other valid code, and a padding-only
-change. Field mutations preserve all unused padding bits; the separate padding control
-flips one unused bit and must still decode to the original value. Every view
-is exactly two bytes. The oracle verifies the encoded field/layout, mutated
-field and padding, exact result/error/value, 10 or 12 consumed bits, unchanged view
-length and unchanged decoder input. Outputs/errors are reset for every call.
+Each seed gets five decoder checks: original, the three invalid codes above (all
+rejected with FALSE and exactly `ERR_ACN_DECODE_MYPDU`), and the other valid code.
+Units #1/#2/#5 also get a sixth, padding-only check. Their field mutations preserve
+all unused padding bits; the separate padding control flips one unused bit and
+must still decode to the original value. ASCII has no padding check. Every view
+is exactly two bytes for #1/#2/#5 or four bytes for #3. The oracle verifies the
+encoded field/layout, mutated field and any padding, exact result/error/value,
+10, 12 or 32 consumed bits, unchanged view length and unchanged decoder input.
+Stream/output/error state is reset for every call; positive outputs start at
+the other valid enum value.
 
 All original automatic-test suites remain intact. The pilot adds two checked
-encodes and twelve decodes per configuration (six negative, six positive
-controls). All stages have a 30-second timeout. Reports retain source hashes,
+encodes per configuration. Units #1/#2/#5 have twelve decodes (six negative,
+six positive controls); ASCII #3 has ten (six negative, four positive controls).
+All stages have a 30-second timeout. Reports retain source hashes,
 obligation/branch identities, no-loss comparisons and the exact two decoder
 default-rejection statements that must become covered. Existing NOCOVERAGE
 status affects only the legacy line gate; statements remain unexempted.
@@ -321,16 +330,21 @@ status affects only the legacy line gate; statements remain unexempted.
 run's relative directory for the sanitizer runner. Pilot baselines use only
 original positives: gains for already-supported units are historical and must
 not be counted as new progress against a base that includes their mutations.
-Campaign comparisons must retain #1/#2 mutations in the committed baseline
-when measuring the additional coverage from #5.
+Campaign comparisons for ASCII must retain #1/#2/#5 mutations in the committed
+baseline and compare #3's original positives with its new mutations. The historical
+positive-only pilot gains across all four units are not the new gain over that base.
 
     docker run --name stream-sanitizers --network none --user 10001:10001 --mount type=bind,source="$(pwd)/v4Tests",target=/variant,readonly -v "$(pwd)/coverage-results/streams-dev-gcov:/evidence:ro" --entrypoint python3 asn1scc-coverage:invalid-streams-base /variant/coverage/testInvalidStreamPilot.py --pilot-root /evidence --outdir /results/checks
     docker cp stream-sanitizers:/results/checks coverage-results/streams-sanitizers
 
-ASan/UBSan runs use exact two-byte buffers for every registered unit/mode.
+ASan/UBSan runs use the layout's exact two- or four-byte buffers for all eight
+registered unit/mode configurations.
 Deliberate defects check acceptance, errors, decoded values, writes, consumption,
 view counts, field offsets, padding, truncated views, skipped cases and removal
-of either target statement. This is a bounded
+of either target statement. Padding faults apply only to #1/#2/#5; all other
+faults apply to ASCII as well. Missing-case injection omits the final expected
+case for each layout and must be rejected by transcript verification.
+This is a bounded
 Phase-3 pilot, not generic mutation synthesis or a claim about all decoder errors.
 
 ### Statement report scope
