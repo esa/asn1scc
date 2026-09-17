@@ -57,6 +57,26 @@ LAYOUTS = {
     unsigned int raw = (unsigned int)(code < 0 ? code + 1024 : code);
     buffer[0] = (byte)(raw >> 2);
     buffer[1] = (byte)((buffer[1] & 0x3Fu) | ((raw & 3u) << 6));"""},
+    "04-ENUMERATED/002.asn1#2": {
+        "format": "signed-ascii", "bits": 32, "maximum": 999,
+        "code_type": "int", "codes": (-1, -200), "invalid_codes": (-2, 0, -999, 999),
+        "canonical_bytes": ((0x2D, 0x30, 0x30, 0x31), (0x2D, 0x32, 0x30, 0x30)),
+        "invalid_bytes": ((0x2D, 0x30, 0x30, 0x32), (0x2B, 0x30, 0x30, 0x30),
+                          (0x2D, 0x39, 0x39, 0x39), (0x2B, 0x39, 0x39, 0x39)),
+        "read": """int magnitude = 0;
+    if (buffer[0] != 0x2D && buffer[0] != 0x2B) return 1000;
+    for (int digit = 1; digit < 4; ++digit) {
+        if (buffer[digit] < 0x30 || buffer[digit] > 0x39) return 1000;
+        magnitude = magnitude * 10 + buffer[digit] - 0x30;
+    }
+    return buffer[0] == 0x2D ? -magnitude : magnitude;""",
+        "write": """/* Layout values are bounded by +/-999; negation is representable. */
+    int magnitude = code < 0 ? -code : code;
+    buffer[0] = code < 0 ? 0x2D : 0x2B;
+    for (int digit = 3; digit >= 1; --digit) {
+        buffer[digit] = (byte)(0x30 + magnitude % 10);
+        magnitude /= 10;
+    }"""},
 }
 SUPPORTED_UNITS = tuple(LAYOUTS)
 
@@ -114,7 +134,7 @@ static int coverage_invalid_stream_checks(void)
             puts("Invalid stream seed: unexpected encoding/layout");
             return 1;
         }
-        const @CODE_TYPE@ replacements[] = {@REPLACEMENTS@};
+        const @CODE_TYPE@ replacements[] = {@REPLACEMENTS@};@WIRE_EXPECTATIONS@
         for (int test = 0; test < @CASE_COUNT@; ++test) {
             byte mutated[@BYTES@];
             byte saved[@BYTES@];
@@ -125,7 +145,7 @@ static int coverage_invalid_stream_checks(void)
                 coverage_write_code(mutated, replacements[test]);
             }
             @PAD_MUTATION@
-            if (coverage_wire_code(mutated) != replacements[test]@PAD_CHECK@) {
+            if (coverage_wire_code(mutated) != replacements[test]@WIRE_CHECK@@PAD_CHECK@) {
                 puts("Invalid stream mutation: unexpected field/padding change");
                 return 1;
             }
@@ -165,7 +185,18 @@ def driver_for(unit):
     replacements = ["codes[seed]", *map(str, layout["invalid_codes"]), "codes[1 - seed]"]
     if padding:
         replacements.append("codes[seed]")
+    wire_expectations = wire_check = ""
+    if "invalid_bytes" in layout:
+        rows = layout["invalid_bytes"]
+        assert len(rows) == len(layout["invalid_codes"]) and not padding
+        data = ", ".join("{" + ", ".join(hex(b) for b in row) + "}" for row in rows)
+        pointers = ["canonical[seed]", *[f"invalid_canonical[{i}]" for i in range(len(rows))],
+                    "canonical[1 - seed]"]
+        wire_expectations = (f"\n        static const byte invalid_canonical[{len(rows)}][{size}] = {{{data}}};"
+                             f"\n        const byte *expected_wire[] = {{{', '.join(pointers)}}};")
+        wire_check = "\n                || memcmp(mutated, expected_wire[test], sizeof mutated) != 0"
     substitutions = {"READ": layout["read"], "WRITE": layout["write"],
+                     "WIRE_EXPECTATIONS": wire_expectations, "WIRE_CHECK": wire_check,
                      "CODE_TYPE": layout.get("code_type", "unsigned int"),
                      "OTHER_VALID": str(other_valid),
                      "CODES": ", ".join(map(str, layout["codes"])),

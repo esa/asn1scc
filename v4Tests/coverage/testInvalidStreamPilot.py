@@ -38,6 +38,14 @@ def mutations_for(unit):
         mutations["unsigned-interpretation"] = (
             "return raw >= 512u ? (int)raw - 1024 : (int)raw;", "return (int)raw;")
         mutations["lost-sign-bit"] = (patch, patch + "\n                mutated[0] &= 0x7Fu;")
+    if LAYOUTS[unit]["format"] == "signed-ascii":
+        mutations["unsigned-interpretation"] = (
+            "return buffer[0] == 0x2D ? -magnitude : magnitude;", "return magnitude;")
+        mutations["wrong-sign"] = (patch, patch + "\n                mutated[0] = 0x2B;")
+        # Numerically equal to zero, but not the required canonical +000 wire.
+        zero_case = cases.index("code-0")
+        mutations["negative-zero"] = (
+            patch, patch + f"\n                if (test == {zero_case}) mutated[0] = 0x2D;")
     return mutations
 
 

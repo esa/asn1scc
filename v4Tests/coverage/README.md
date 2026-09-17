@@ -273,6 +273,7 @@ legacy ACN and ACN-v2. Each layout records its alpha/beta wire mapping:
 | `04-ENUMERATED/001.asn1#3` | 32-bit ASCII (four decimal bytes) | 50 / 60 | 51, 0, 9999 | 0 |
 | `04-ENUMERATED/001.asn1#5` | 10-bit positive integer | 1 / 200 | 51, 0, 1023 | 6 |
 | `04-ENUMERATED/002.asn1#1` | 10-bit two's complement | -1 / -200 | -2, 0, -512, 511 | 6 |
+| `04-ENUMERATED/002.asn1#2` | 32-bit signed ASCII (sign + three digits) | -1 / -200 | -2, 0, -999, 999 | 0 |
 
 Both valid values are encoded with constraint checking before mutating their
 bytes. BCD 050/060 encode alpha/beta; 051 is a valid BCD number rejected by the
@@ -290,7 +291,12 @@ signed values separate from unsigned wire bits: it subtracts 1024 from a
 representable positive integer when reading the sign bit, and adds 1024 to
 negative values before converting to unsigned bits for writing. No negative
 integer is shifted and no out-of-range unsigned value is cast to signed.
-Signed ASCII `002#2` is not registered for mutations.
+Signed ASCII `002#2` uses exactly `2D 30 30 31` / `2D 32 30 30`
+(`-001` / `-200`), with no terminator or padding. Its invalid wires are
+`-002`, `+000`, `-999`, `+999`. The reader checks the sign and three digits;
+the writer uses a representable magnitude bounded by 999. Before each decode,
+the driver checks both the signed numeric value and all four canonical bytes,
+including the positive sign on zero.
 
 Use images containing the current tooling with the common/C statement recipes
 above and fresh development tags; do not overwrite existing measurement images.
@@ -320,6 +326,7 @@ Each unsigned seed gets five decoder checks: original, the three invalid codes a
 rejected with FALSE and exactly `ERR_ACN_DECODE_MYPDU`), and the other valid code.
 Units `001#1/#2/#5` also get a sixth, padding-only check. Signed `002#1` gets
 seven checks: original, four invalid codes, other-valid and padding-only.
+Signed ASCII `002#2` gets six: original, four invalid codes and other-valid.
 Their field mutations preserve
 all unused padding bits; the separate padding control flips one unused bit and
 must still decode to the original value. ASCII has no padding check. Every view
@@ -333,6 +340,7 @@ All original automatic-test suites remain intact. The pilot adds two checked
 encodes per configuration. Units #1/#2/#5 have twelve decodes (six negative,
 six positive controls); ASCII #3 has ten (six negative, four positive controls).
 Signed `002#1` has fourteen decodes (eight negative, six positive controls).
+Signed ASCII `002#2` has twelve (eight negative, four positive controls).
 All stages have a 30-second timeout. Reports retain source hashes,
 obligation/branch identities, no-loss comparisons and the exact two decoder
 default-rejection statements that must become covered. Existing NOCOVERAGE
@@ -343,20 +351,26 @@ relative directory for the sanitizer runner. Pilot baselines use only
 original positives: gains for already-supported units are historical and must
 not be counted as new progress against a base that includes their mutations.
 Campaign comparisons must retain all mutations supported by the committed base.
-The signed campaign uses six units (`001#1/#2/#3/#5`, `002#1/#2`) in both modes;
-unsupported signed ASCII remains positives-only. Its comparable starting totals
-are 400/432 statements and 208/336 branch arms, retaining 36 original positive
-ATCs per snapshot. Historical positive-only pilot gains are not new campaign gains.
+The signed campaign uses six units (`001#1/#2/#3/#5`, `002#1/#2`) in both modes,
+all now registered. Its initial totals were 400/432 statements and 208/336 branch
+arms. The accepted signed-binary task reached 404/432 and 212/336; that committed
+base retains all five existing units' negatives for the signed ASCII comparison.
+The ASCII task targets four additional decoder statements and a positive branch
+gain, preserving 36 original positive ATCs per snapshot. Historical positive-only
+pilot gains are not new campaign gains. This six-unit scope does not establish
+whole-project coverage completion.
 
     docker run --name stream-sanitizers --network none --user 10001:10001 --mount type=bind,source="$(pwd)/v4Tests",target=/variant,readonly -v "$(pwd)/coverage-results/streams-dev-gcov:/evidence:ro" --entrypoint python3 asn1scc-coverage:invalid-streams-base /variant/coverage/testInvalidStreamPilot.py --pilot-root /evidence --outdir /results/checks
     docker cp stream-sanitizers:/results/checks coverage-results/streams-sanitizers
 
-ASan/UBSan runs use the layout's exact two- or four-byte buffers for all ten
+ASan/UBSan runs use the layout's exact two- or four-byte buffers for all twelve
 registered unit/mode configurations.
 Deliberate defects check acceptance, errors, decoded values, writes, consumption,
 view counts, field offsets, padding, truncated views, skipped cases and removal
 of either target statement. Padding faults apply to every layout with unused
 bits; signed binary also checks unsigned interpretation and loss of the sign bit.
+Signed ASCII checks ignored signs, a negative-to-positive sign mutation, and
+noncanonical negative zero (which a numeric-only comparison would miss).
 The other faults apply to ASCII as well. Missing-case injection omits the final expected
 case for each layout and must be rejected by transcript verification.
 This is a bounded
