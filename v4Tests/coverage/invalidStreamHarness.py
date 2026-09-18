@@ -211,6 +211,36 @@ STREAM_PROFILES = {
         ),
         "value_fault": "decoded.u.int1 ^= 1;",
     },
+    "05-BOOLEAN/003.asn1#1": {
+        "type": "ASN1SCC_MyPDU",
+        "target_error": None,  # Pattern rejection adds branches, not statements.
+        "source_faults": {
+            "missing-error-assignment": "*pErrCode = ret ? 0 : ERR_ACN_DECODE_MYPDU;",
+        },
+        "common": {},
+        # An empty field path denotes the scalar itself. Initialize each decode
+        # to the opposite value so FALSE cannot pass through zero initialization.
+        "seeds": (
+            {"bits": 3, "wire": (0x20,), "assign": {"": "TRUE"},
+             "value": {"": "TRUE"}, "initial": {"": "FALSE"}},
+            {"bits": 3, "wire": (0x00,), "assign": {"": "FALSE"},
+             "value": {"": "FALSE"}, "initial": {"": "TRUE"}},
+        ),
+        "case_name": "seed{seed}-{case}",
+        "cases": (
+            {"name": "original", "success": True},
+            {"name": "pattern2", "fields": (((0, 3), 2),),
+             "success": False, "bits": 3, "error": "ERR_ACN_DECODE_MYPDU"},
+            {"name": "pattern7", "fields": (((0, 3), 7),),
+             "success": False, "bits": 3, "error": "ERR_ACN_DECODE_MYPDU"},
+            {"name": "padding", "padding": True, "success": True},
+        ),
+        "value_fault": "decoded = !decoded;",
+        "value_faults": {
+            "wrong-positive-value-true": "if (decoded == TRUE) decoded = FALSE;",
+            "wrong-positive-value-false": "if (decoded == FALSE) decoded = TRUE;",
+        },
+    },
 }
 SUPPORTED_UNITS = (*LAYOUTS, *STREAM_PROFILES)
 
@@ -248,6 +278,7 @@ def stream_cases(profile, seed_index):
         cases.append({"name": name, "fields": fields, "padding": padding,
                       "wire": wire.to_bytes(len(seed["wire"]), "big"), "success": success,
                       "bits": bits,
+                      "initial": mutation.get("initial", seed.get("initial", {})),
                       "value": {**mutation.get("value", seed["value"]), **profile["common"]},
                       "error": mutation.get("error", "0" if success else profile["target_error"])})
     return cases
@@ -299,6 +330,15 @@ static int coverage_profile_value(const @TYPE@ *value, int value_index)
     }
 }
 
+static void coverage_profile_initialize(@TYPE@ *value, int value_index)
+{
+    memset(value, 0, sizeof *value);
+    switch (value_index) {
+@INITIAL_VALUES@
+    default: break;
+    }
+}
+
 static void coverage_profile_field(byte *input, CoverageField field)
 {
     for (unsigned int bit = 0; bit < field.width; ++bit) {
@@ -327,7 +367,7 @@ static int coverage_profile_cases(const byte *encoded, size_t size,
         }
         memcpy(saved, input, size);
         @TYPE@ decoded;
-        memset(&decoded, 0, sizeof decoded);
+        coverage_profile_initialize(&decoded, test->value_index);
         if (test->success && coverage_profile_value(&decoded, test->value_index)) {
             puts("Stream profile: unexpected initial positive value");
             return 1;
@@ -358,25 +398,37 @@ static int coverage_invalid_stream_checks(void)
 '''
 
 
+def value_access(base, field, pointer=False):
+    """Address either a structured member or the scalar at an empty field path."""
+    if not field:
+        return f"(*{base})" if pointer else base
+    return base + ("->" if pointer else ".") + field
+
+
 def stream_driver(work, unit, mode="acn"):
     profile = STREAM_PROFILES[unit]
     typ = profile["type"]
     encode_error = profile.get("encode_errors", {}).get(mode, "0")
-    values, blocks, all_cases = [], [], []
+    values, initial_values, blocks, all_cases = [], [], [], []
     c_bytes = lambda wire: "{" + ", ".join(hex(b) for b in wire) + "}"
     for index, seed in enumerate(profile["seeds"]):
         size = len(seed["wire"])
         if size != (seed["bits"] + 7) // 8:
             raise ValueError("Seed wire size does not match bit length")
-        assignments = "\n".join(f"        value.{field} = {value};"
+        assignments = "\n".join(f"        {value_access('value', field)} = {value};"
                                 for field, value in {**profile["common"], **seed["assign"]}.items())
         cases = stream_cases(profile, index)
         all_cases.extend(cases)
         declarations, rows = [], []
         for number, case in enumerate(cases):
             value_index = len(values)
-            predicate = " && ".join(f"value->{field} == {value}" for field, value in case["value"].items())
+            predicate = " && ".join(f"{value_access('value', field, pointer=True)} == {value}"
+                                    for field, value in case["value"].items())
             values.append(f"    case {value_index}: return {predicate};")
+            if case["initial"]:
+                initial = " ".join(f"{value_access('value', field, pointer=True)} = {value};"
+                                   for field, value in case["initial"].items())
+                initial_values.append(f"    case {value_index}: {initial} break;")
             declarations.append(f"        static const byte wire_{number}[] = {c_bytes(case['wire'])};")
             ops = ", ".join("{%d, %d, %d}" % (*field, value) for field, value in case["fields"])
             if ops:
@@ -409,6 +461,7 @@ def stream_driver(work, unit, mode="acn"):
     }}''')
     driver = STREAM_DRIVER
     replacements = {"UNIT": unit, "TYPE": typ, "VALUES": "\n".join(values),
+                    "INITIAL_VALUES": "\n".join(initial_values),
                     "SEEDS": "\n".join(blocks), "COUNT": str(len(all_cases)),
                     "ENCODE_ERROR": encode_error,
                     "ERRORS": local_error_definitions(work, [case["error"] for case in all_cases])}

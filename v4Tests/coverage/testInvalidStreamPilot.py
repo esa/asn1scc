@@ -76,6 +76,8 @@ def profile_mutations(unit):
     if profile.get("value_fault"):
         mutations["wrong-positive-value"] = (anchor,
             "        if (test->success) { " + profile["value_fault"] + " }\n" + anchor)
+    for name, fault in profile.get("value_faults", {}).items():
+        mutations[name] = (anchor, "        if (test->success) { " + fault + " }\n" + anchor)
     if any(seed["bits"] % 8 for seed in profile["seeds"]):
         mutations["changed-padding"] = (padding,
             "        if (test->field_count) input[size - 1] ^= 1u;\n" + padding)

@@ -549,6 +549,46 @@ profiles, PUS initializer controls and strict line gates remain active.
 Measure this branch-only increment against the actual committed campaign base
 over all thirty cohort configurations; earlier pilot gains remain separate.
 
+#### Three-bit BOOLEAN patterns
+
+`05-BOOLEAN/003.asn1#1` extends the shared registry to twelve units in both
+legacy ACN and ACN-v2. Checked encoding of TRUE and FALSE produces `20` and
+`00` respectively (hexadecimal, three bits, TRUE/error zero). Every input
+buffer and view is exactly one byte; every decode consumes three bits.
+
+For each seed, the shared operations run in this order with `seed0-` or
+`seed1-` prefixed to the case name:
+
+| Case suffix | TRUE seed input | FALSE seed input | Result / error |
+| --- | --- | --- | --- |
+| original | `20` | `00` | TRUE / 0 |
+| pattern2 | `40` | `40` | FALSE / `ERR_ACN_DECODE_MYPDU` |
+| pattern7 | `E0` | `E0` | FALSE / `ERR_ACN_DECODE_MYPDU` |
+| padding | `21` | `01` | TRUE / 0 |
+
+Invalid cases replace only bits 0–2; padding controls flip only bit 7, within
+the five actual trailing padding bits. Successful decodes must reproduce the
+seed's logical value. Shared value descriptors use an empty field path for a
+scalar and optional `initial` assignments on seeds/cases to reset decode output.
+BOOLEAN starts from the opposite logical value for every case, including FALSE
+positives. The existing check that positive output initially differs remains
+active; structured profiles retain zero initialization.
+
+Metadata records two checked encodes, eight ordered case IDs, four rejections,
+four successes and `target_lines=[]`. Exact result/error/value/consumption/view
+and unchanged-input checks apply to every call. Shared source-fault mapping
+detects removal of `*pErrCode = ret ? 0 : ERR_ACN_DECODE_MYPDU;`. The sanitizer
+suite retains all shared faults, including real case omission and padding
+faults, and separately corrupts TRUE and FALSE positive values.
+
+Both public metrics include all twenty-four registered configurations;
+`--unit '05-BOOLEAN/003.asn1#1'` selects this unit exactly. The incremental
+coverage contract is two additional branch arms per mode and zero new codec
+statements, measured against the committed base across all thirty cohort
+configurations. Prior profiles, original positives, PUS initializer controls,
+strict line gates and source-identity checks remain required. Positive-only
+public pilot deltas do not measure this increment.
+
 #### Parameterized PUS CHOICE
 
 `15-PUS-ParameterPassing/001.asn1#1` uses the same profile driver in legacy ACN
