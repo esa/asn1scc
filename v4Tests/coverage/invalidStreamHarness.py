@@ -184,6 +184,33 @@ STREAM_PROFILES = {
         "value_fault": "decoded.a2.arr[0] ^= 1u;",
         "length_field": (0, 5),
     },
+    "09-CHOICE/001.asn1#1": {
+        "type": "ASN1SCC_MyPDU",
+        "target_error": None,  # The constrained index read fails before the switch.
+        "source_faults": {
+            "missing-error-assignment": "*pErrCode = ret ? 0 : ERR_ACN_DECODE_MYPDU;",
+        },
+        "common": {"kind": "MyPDU_int1_PRESENT"},
+        "seeds": (
+            {"bits": 7, "wire": (0x14,), "assign": {"u.int1": "10"},
+             "value": {"u.int1": "10"}},
+            {"bits": 7, "wire": (0x16,), "assign": {"u.int1": "11"},
+             "value": {"u.int1": "11"}},
+        ),
+        "case_name": "seed{seed}-{case}",
+        # Replace just the three-bit selector; bit 7 is genuine padding.
+        "cases": (
+            {"name": "original", "success": True},
+            {"name": "index5", "fields": (((0, 3), 5),),
+             "success": False, "bits": 3, "error": "ERR_ACN_DECODE_MYPDU"},
+            {"name": "index6", "fields": (((0, 3), 6),),
+             "success": False, "bits": 3, "error": "ERR_ACN_DECODE_MYPDU"},
+            {"name": "index7", "fields": (((0, 3), 7),),
+             "success": False, "bits": 3, "error": "ERR_ACN_DECODE_MYPDU"},
+            {"name": "padding", "padding": True, "success": True},
+        ),
+        "value_fault": "decoded.u.int1 ^= 1;",
+    },
 }
 SUPPORTED_UNITS = (*LAYOUTS, *STREAM_PROFILES)
 
@@ -217,7 +244,8 @@ def stream_cases(profile, seed_index):
         bits = mutation.get("bits", seed["bits"] if success else profile.get("rejection_bits"))
         if bits is None or not 0 <= bits <= total_bits:
             raise ValueError("Case consumption exceeds input view")
-        cases.append({"name": mutation["name"], "fields": fields, "padding": padding,
+        name = profile.get("case_name", "{case}").format(seed=seed_index, case=mutation["name"])
+        cases.append({"name": name, "fields": fields, "padding": padding,
                       "wire": wire.to_bytes(len(seed["wire"]), "big"), "success": success,
                       "bits": bits,
                       "value": {**mutation.get("value", seed["value"]), **profile["common"]},

@@ -508,6 +508,47 @@ three previously uncovered codec branch arms per mode, zero new statements
 and no coverage losses against the actual committed base; the earlier
 eight-bit profile's gains are already part of that base.
 
+#### Three-bit CHOICE index
+
+`09-CHOICE/001.asn1#1` brings the shared registry to eleven units in legacy
+ACN and ACN-v2. Both checked seeds select `MyPDU_int1_PRESENT`, with integer
+values 10 and 11, encoding as `14` and `16` respectively (hexadecimal, seven
+bits, TRUE/error zero). Bits 0–2 contain the selector, bits 3–6 the integer,
+and bit 7 is trailing padding. Every decode has an exact one-byte buffer/view.
+
+The shared case-name format adds `seed0-` or `seed1-` to these operations,
+in this order for each seed:
+
+| Case suffix | Seed 0 input | Seed 1 input | Result / error | Consumed bits |
+| --- | --- | --- | --- | --- |
+| original | `14` | `16` | TRUE / 0 | 7 |
+| index5 | `B4` | `B6` | FALSE / `ERR_ACN_DECODE_MYPDU` | 3 |
+| index6 | `D4` | `D6` | FALSE / `ERR_ACN_DECODE_MYPDU` | 3 |
+| index7 | `F4` | `F6` | FALSE / `ERR_ACN_DECODE_MYPDU` | 3 |
+| padding | `15` | `17` | TRUE / 0 | 7 |
+
+Bounded field replacement preserves the payload and padding; the padding
+operation flips only bit 7. Successful decodes must preserve both the selected
+alternative and the seed's integer value. Metadata records two checked encodes,
+ten decodes, six rejections, four successes, and the ten ordered case IDs.
+Each case resets output/error/stream and checks exact result, error, consumption,
+input bytes and view count. Transcript verification rejects missing or duplicate
+cases, including genuinely omitted execution in the public fault suite.
+
+Invalid indexes fail the constrained read before entering the CHOICE switch.
+Thus `target_lines=[]`; the incremental goal is three branch arms per mode
+and zero new codec statements. Shared source-fault mapping detects removal of
+`*pErrCode = ret ? 0 : ERR_ACN_DECODE_MYPDU;`. The existing private-error helper
+resolves the generated definition for the optional driver. ASan/UBSan and all
+applicable shared outcome, value, encoding-error, input, consumption, view,
+field-offset, short-view and padding faults run for both modes.
+
+Both public pilot metrics include all twenty-two registered configurations;
+`--unit '09-CHOICE/001.asn1#1'` selects this unit exactly. All ten preceding
+profiles, PUS initializer controls and strict line gates remain active.
+Measure this branch-only increment against the actual committed campaign base
+over all thirty cohort configurations; earlier pilot gains remain separate.
+
 #### Parameterized PUS CHOICE
 
 `15-PUS-ParameterPassing/001.asn1#1` uses the same profile driver in legacy ACN
