@@ -7,7 +7,7 @@ import subprocess
 
 from encodePilot import c
 from invalidStreamHarness import (LAYOUTS, STREAM_PROFILES, POSITIVE_INITIALIZERS, cases_for, padding_bits,
-                                  source_fault_lines, verify_output)
+                                  source_fault_lines, source_fault_replacement, verify_output)
 from invalidStreamPilot import configurations
 
 
@@ -142,8 +142,18 @@ def main():
                     path = work / "sample1.c"
                     lines = path.read_text().splitlines()
                     line = source_fault_lines(work, record["unit"])[name]
-                    lines[line - 1] = "        ; /* deliberately removed target */"
+                    lines[line - 1] = source_fault_replacement(record["unit"], name)
                     path.write_text("\n".join(lines) + "\n")
+                    # A codec defect may also break an original round-trip.
+                    # Probe the stream oracle first in this disposable copy so
+                    # its detection is not hidden by the positive suite's exit.
+                    path = work / "mainprogram.c"
+                    text = path.read_text()
+                    anchor = "    int positives = asn1scc_run_generated_testsuite(&output);"
+                    if text.count(anchor) != 1:
+                        raise ValueError("Missing source-fault stream probe point")
+                    path.write_text(text.replace(anchor,
+                        "    if (coverage_invalid_stream_checks()) return 1;\n" + anchor))
             logs = work / "logs"
             logs.mkdir()
             steps = []

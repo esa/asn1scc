@@ -285,6 +285,40 @@ STREAM_PROFILES = {
              "success": False, "bits": 16, "error": "ERR_ACN_DECODE_MYPDU"},
         ),
     },
+    "08-BIT-STRING/001.asn1#1": {
+        "type": "ASN1SCC_MyPDU",
+        "target_error": None,  # Invalid constrained codes bypass payload/error assignment.
+        "source_faults": {
+            "missing-length-read": {
+                "token": "ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 1, 20);",
+                "replacement": "nCount = 1; ret = TRUE;",
+            },
+        },
+        "common": {},
+        "seeds": (
+            {"bits": 21, "wire": (0x7D, 0x5E, 0x68),
+             "assign": {"nCount": "16", "arr[0]": "0xAB", "arr[1]": "0xCD"},
+             "value": {"nCount": "16", "arr[0]": "0xAB", "arr[1]": "0xCD"}},
+        ),
+        # The five-bit field encodes nCount - 1, not the logical bit count.
+        # Every case keeps the exact three-byte seed view, including valid-shorter.
+        "cases": (
+            {"name": "original", "success": True},
+            {"name": "length-code20", "fields": (((0, 5), 20),),
+             "success": False, "bits": 5, "error": "0"},
+            {"name": "length-code31", "fields": (((0, 5), 31),),
+             "success": False, "bits": 5, "error": "0"},
+            {"name": "valid-shorter", "fields": (((0, 5), 0),),
+             "success": True, "bits": 6,
+             "value": {"nCount": "1", "arr[0]": {"mask": "0x80", "equals": "0x80"}}},
+            {"name": "padding", "padding": True, "success": True},
+        ),
+        "value_fault": "decoded.arr[0] ^= 0x80u;",
+        "value_faults": {
+            "wrong-positive-value-shorter": "if (decoded.nCount == 1) decoded.arr[0] &= 0x7Fu;",
+        },
+        "length_field": (0, 5),
+    },
 }
 SUPPORTED_UNITS = (*LAYOUTS, *STREAM_PROFILES)
 
@@ -453,6 +487,16 @@ def value_access(base, field, pointer=False):
     return base + ("->" if pointer else ".") + field
 
 
+def value_predicate(field, expected):
+    """Compare exact fields by default, or only explicitly meaningful bits."""
+    access = value_access("value", field, pointer=True)
+    if isinstance(expected, dict):
+        if set(expected) != {"mask", "equals"}:
+            raise ValueError("Masked value checks require mask and equals")
+        return f"({access} & {expected['mask']}) == {expected['equals']}"
+    return f"{access} == {expected}"
+
+
 def stream_driver(work, unit, mode="acn"):
     profile = STREAM_PROFILES[unit]
     typ = profile["type"]
@@ -474,7 +518,7 @@ def stream_driver(work, unit, mode="acn"):
                 if not case["value"]:
                     raise ValueError("Value checks require fields; use None when inapplicable")
                 value_index = len(values)
-                predicate = " && ".join(f"{value_access('value', field, pointer=True)} == {value}"
+                predicate = " && ".join(value_predicate(field, value)
                                         for field, value in case["value"].items())
                 values.append(f"    case {value_index}: return {predicate};")
             if case["initial"]:
@@ -766,6 +810,8 @@ def source_fault_lines(work, unit):
     lines = (work / "sample1.c").read_text().splitlines()
     result = {}
     for name, token in STREAM_PROFILES.get(unit, {}).get("source_faults", {}).items():
+        if isinstance(token, dict):
+            token = token["token"]
         matches = [i + 1 for i, line in enumerate(lines) if line.strip() == token]
         if len(matches) != 1:
             raise ValueError("Missing or ambiguous source fault assignment: " + name)
@@ -781,6 +827,14 @@ def source_fault_lines(work, unit):
     if unit in POSITIVE_INITIALIZERS:
         result["missing-initializer-assignment"] = initializer_target_lines(work, unit)[-1]
     return result
+
+
+def source_fault_replacement(unit, name):
+    """Preserve removal faults; explicit replacements keep local state defined."""
+    fault = STREAM_PROFILES.get(unit, {}).get("source_faults", {}).get(name)
+    if isinstance(fault, dict):
+        return fault["replacement"]
+    return "        ; /* deliberately removed target */"
 
 
 def prepare(work, unit, args):

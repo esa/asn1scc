@@ -670,6 +670,53 @@ cohort. The pattern read-failure arm remains unresolved. Existing positive
 controls, PUS initializers, strict line gates and source-identity checks remain
 required; positive-only pilot gains are separate historical measurements.
 
+#### Constrained BIT STRING length
+
+`08-BIT-STRING/001.asn1#1` adds the fifteenth shared profile in legacy ACN
+and ACN-v2. Its checked seed has `nCount=16`, bytes `AB CD`, and encodes as
+`7D 5E 68` (21 bits) in an exact three-byte buffer, with TRUE/error zero.
+The first five wire bits encode `nCount - 1`; codes 20 and 31 exceed the
+constrained range and fail before payload decoding or its error assignment.
+
+| Case | Input bytes | Result/error | Consumed bits | Positive value |
+|---|---|---|---|---|
+| original | `7D 5E 68` | TRUE / 0 | 21 | 16 bits, `AB CD` |
+| length-code20 | `A5 5E 68` | FALSE / 0 | 5 | inapplicable |
+| length-code31 | `FD 5E 68` | FALSE / 0 | 5 | inapplicable |
+| valid-shorter | `05 5E 68` | TRUE / 0 | 6 | one bit, `(arr[0] & 80) == 80` |
+| padding | `7D 5E 69` | TRUE / 0 | 21 | 16 bits, `AB CD` |
+
+Shared bounded operations replace the field at offset zero, width five,
+with codes 20, 31 or zero. Padding flips only the final least significant
+bit, one of three real trailing padding bits. Every case retains exactly
+three backing/view bytes; the shorter message legitimately consumes six
+bits. A field predicate can specify `{"mask": "0x80", "equals": "0x80"}`
+to check meaningful bits only. Existing exact comparisons and NULL's `None`
+descriptor retain their semantics; unused output bits and bytes are unchecked.
+
+Metadata records one checked encode, five ordered decodes, two rejections,
+three successes and `target_lines=[]`. Each case resets state and checks
+exact result, error, consumption, view count, unchanged input and applicable
+positive values. Transcript verification requires every named case once.
+
+The public ASan/UBSan and fault suite includes all shared stream, length,
+padding and value faults. A separate shorter-value fault clears its meaningful
+high bit. Source-fault descriptors support explicit replacements as well as
+the existing removal behavior: `missing-length-read` replaces exactly
+`ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 1, 20);`
+with `nCount = 1; ret = TRUE;` in disposable test copies. This keeps the local
+length initialized while testing detection of the bypassed read.
+Disposable source-fault drivers probe the stream oracle before the original
+positive suite, so an early round-trip failure cannot hide that oracle's
+detection. Normal measurements retain the original positive-first execution.
+
+Both public metrics include all thirty registered configurations;
+`--unit '08-BIT-STRING/001.asn1#1'` selects this unit exactly. The incremental
+contract is two new codec branch arms per mode and zero new statements against
+the committed fourteen-unit baseline. All previous positive controls, faults,
+PUS initializers and strict line gates remain required. Other uncovered
+obligations remain unresolved; historical pilot gains are not new progress.
+
 #### Parameterized PUS CHOICE
 
 `15-PUS-ParameterPassing/001.asn1#1` uses the same profile driver in legacy ACN
