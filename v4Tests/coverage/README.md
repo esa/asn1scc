@@ -589,6 +589,49 @@ configurations. Prior profiles, original positives, PUS initializer controls,
 strict line gates and source-identity checks remain required. Positive-only
 public pilot deltas do not measure this increment.
 
+#### Three-bit NULL pattern
+
+`18-NULL/001.asn1#2` extends the shared registry to thirteen units in legacy
+ACN and ACN-v2. Checked encoding of the valid NULL representation `value=0`
+produces `20` (hexadecimal), returning TRUE/error zero and consuming three
+bits. Every encode buffer, decode buffer and input view is exactly one byte.
+
+The four cases execute in this exact order; every decode consumes three bits:
+
+| Case | Input | Result / error |
+| --- | --- | --- |
+| original | `20` | TRUE / 0 |
+| pattern0 | `00` | FALSE / `ERR_ACN_DECODE_MYPDU` |
+| pattern1 | `E0` | FALSE / `ERR_ACN_DECODE_MYPDU` |
+| padding | `21` | TRUE / 0 |
+
+The named `pattern1` case replaces bits 0–2 with numeric value 7. Both invalid
+patterns use the shared bounded field operation; padding flips only the least
+significant bit among the five genuine trailing padding bits. Output, error
+and stream are reset for every case. Exact result, error, consumption, input
+bytes and view count are checked, with complete and unique case transcripts.
+
+A profile value descriptor of `None` explicitly marks logical-value checks as
+inapplicable. NULL has no positive-value assertion, initially-different value
+or value-corruption fault. Non-NULL predicates and initialization safeguards,
+including BOOLEAN TRUE/FALSE checks, remain active. The shared driver uses a
+negative value index to skip only these logical-value assertions.
+
+Metadata records one checked encode, four ordered case IDs, two rejections,
+two successes and `target_lines=[]`. Source-fault mapping detects removal of
+`ret = ret && bDecodingPatternMatches;` and the corresponding error assignment.
+Both modes run ASan/UBSan and the shared acceptance, error, encoder-error,
+input-write, consumption, view-count, field-offset, short-view, padding and
+genuine missing-case faults.
+
+Both public metrics include all twenty-six registered configurations;
+`--unit '18-NULL/001.asn1#2'` selects this unit exactly. The incremental contract
+is two added codec branch arms per mode, zero new codec statements and no
+coverage losses across the fixed thirty-configuration cohort. The read-failure
+arm remains unresolved. Existing positives, PUS initializer controls, strict
+line gates and source-identity checks remain required. Measure this increment
+against the committed campaign base, separately from positive-only pilot gains.
+
 #### Parameterized PUS CHOICE
 
 `15-PUS-ParameterPassing/001.asn1#1` uses the same profile driver in legacy ACN

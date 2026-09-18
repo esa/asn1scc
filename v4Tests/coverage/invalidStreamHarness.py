@@ -241,6 +241,27 @@ STREAM_PROFILES = {
             "wrong-positive-value-false": "if (decoded == FALSE) decoded = TRUE;",
         },
     },
+    "18-NULL/001.asn1#2": {
+        "type": "ASN1SCC_MyPDU",
+        "target_error": None,  # Pattern rejection adds branches, not statements.
+        "source_faults": {
+            "missing-rejection-assignment": "ret = ret && bDecodingPatternMatches;",
+            "missing-error-assignment": "*pErrCode = ret ? 0 : ERR_ACN_DECODE_MYPDU;",
+        },
+        "common": {},
+        # None explicitly means there is no distinguishable logical output.
+        "seeds": (
+            {"bits": 3, "wire": (0x20,), "assign": {"": "0"}, "value": None},
+        ),
+        "cases": (
+            {"name": "original", "success": True},
+            {"name": "pattern0", "fields": (((0, 3), 0),),
+             "success": False, "bits": 3, "error": "ERR_ACN_DECODE_MYPDU"},
+            {"name": "pattern1", "fields": (((0, 3), 7),),
+             "success": False, "bits": 3, "error": "ERR_ACN_DECODE_MYPDU"},
+            {"name": "padding", "padding": True, "success": True},
+        ),
+    },
 }
 SUPPORTED_UNITS = (*LAYOUTS, *STREAM_PROFILES)
 
@@ -275,11 +296,12 @@ def stream_cases(profile, seed_index):
         if bits is None or not 0 <= bits <= total_bits:
             raise ValueError("Case consumption exceeds input view")
         name = profile.get("case_name", "{case}").format(seed=seed_index, case=mutation["name"])
+        value = mutation.get("value", seed["value"])
         cases.append({"name": name, "fields": fields, "padding": padding,
                       "wire": wire.to_bytes(len(seed["wire"]), "big"), "success": success,
                       "bits": bits,
                       "initial": mutation.get("initial", seed.get("initial", {})),
-                      "value": {**mutation.get("value", seed["value"]), **profile["common"]},
+                      "value": None if value is None else {**value, **profile["common"]},
                       "error": mutation.get("error", "0" if success else profile["target_error"])})
     return cases
 
@@ -324,6 +346,7 @@ static int coverage_profile_encode(const @TYPE@ *value, BitStream *stream, int *
 
 static int coverage_profile_value(const @TYPE@ *value, int value_index)
 {
+    (void)value; /* Profiles without logical values have no predicate cases. */
     switch (value_index) {
 @VALUES@
     default: return 0;
@@ -368,7 +391,8 @@ static int coverage_profile_cases(const byte *encoded, size_t size,
         memcpy(saved, input, size);
         @TYPE@ decoded;
         coverage_profile_initialize(&decoded, test->value_index);
-        if (test->success && coverage_profile_value(&decoded, test->value_index)) {
+        if (test->success && test->value_index >= 0
+            && coverage_profile_value(&decoded, test->value_index)) {
             puts("Stream profile: unexpected initial positive value");
             return 1;
         }
@@ -379,7 +403,8 @@ static int coverage_profile_cases(const byte *encoded, size_t size,
         if (accepted != test->success || error != test->error
             || stream.currentByte * 8 + stream.currentBit != test->bits
             || stream.count != (long)size || memcmp(input, saved, size) != 0
-            || (accepted && !coverage_profile_value(&decoded, test->value_index))) {
+            || (accepted && test->value_index >= 0
+                && !coverage_profile_value(&decoded, test->value_index))) {
             printf("Stream profile @UNIT@/%s: unexpected result/error/value/stream\n", test->name);
             return 1;
         }
@@ -421,11 +446,17 @@ def stream_driver(work, unit, mode="acn"):
         all_cases.extend(cases)
         declarations, rows = [], []
         for number, case in enumerate(cases):
-            value_index = len(values)
-            predicate = " && ".join(f"{value_access('value', field, pointer=True)} == {value}"
-                                    for field, value in case["value"].items())
-            values.append(f"    case {value_index}: return {predicate};")
+            value_index = -1  # No logical-value assertions (e.g. NULL).
+            if case["value"] is not None:
+                if not case["value"]:
+                    raise ValueError("Value checks require fields; use None when inapplicable")
+                value_index = len(values)
+                predicate = " && ".join(f"{value_access('value', field, pointer=True)} == {value}"
+                                        for field, value in case["value"].items())
+                values.append(f"    case {value_index}: return {predicate};")
             if case["initial"]:
+                if value_index < 0:
+                    raise ValueError("Initial logical values require an applicable value check")
                 initial = " ".join(f"{value_access('value', field, pointer=True)} = {value};"
                                    for field, value in case["initial"].items())
                 initial_values.append(f"    case {value_index}: {initial} break;")
