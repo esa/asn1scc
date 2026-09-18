@@ -152,6 +152,38 @@ STREAM_PROFILES = {
         "value_fault": "decoded.a2.arr[0] ^= 1u;",
         "length_field": (0, 8),
     },
+    "06-OCTET-STRING/004.asn1#1": {
+        "type": "ASN1SCC_MyPDU",
+        "target_error": None,  # Branch-only; no new statement obligations.
+        "source_faults": {
+            "missing-error-assignment": "*pErrCode = ret ? 0 : ERR_ACN_DECODE_MYPDU_A2;",
+        },
+        "common": {},
+        "seeds": (
+            {"bits": 37, "wire": (0x25, 0x7D, 0xE2, 0x2C, 0x18),
+             "assign": {"a2.nCount": "4", "a2.arr[0]": "0xAF", "a2.arr[1]": "0xBC",
+                        "a2.arr[2]": "0x45", "a2.arr[3]": "0x83"},
+             "value": {"a2.nCount": "4", "a2.arr[0]": "0xAF", "a2.arr[1]": "0xBC",
+                       "a2.arr[2]": "0x45", "a2.arr[3]": "0x83"}},
+        ),
+        # Five determinant bits, unaligned payload, and three real padding bits.
+        # Shorter values retain the five-byte view and consume only their payload.
+        "cases": (
+            {"name": "original", "success": True, "bits": 37, "error": "0"},
+            {"name": "length0", "fields": (((0, 5), 0),),
+             "success": False, "bits": 5, "error": "0"},
+            {"name": "length21", "fields": (((0, 5), 21),),
+             "success": False, "bits": 5, "error": "ERR_ACN_DECODE_MYPDU_A2"},
+            {"name": "length31", "fields": (((0, 5), 31),),
+             "success": False, "bits": 5, "error": "ERR_ACN_DECODE_MYPDU_A2"},
+            {"name": "valid-shorter", "fields": (((0, 5), 1),),
+             "success": True, "bits": 13, "error": "0",
+             "value": {"a2.nCount": "1", "a2.arr[0]": "0xAF"}},
+            {"name": "padding", "padding": True, "success": True, "bits": 37, "error": "0"},
+        ),
+        "value_fault": "decoded.a2.arr[0] ^= 1u;",
+        "length_field": (0, 5),
+    },
 }
 SUPPORTED_UNITS = (*LAYOUTS, *STREAM_PROFILES)
 

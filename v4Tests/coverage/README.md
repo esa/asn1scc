@@ -473,6 +473,41 @@ with the unchanged pinned images, no network and read-only source mounts.
 Measure incremental gains against the actual committed campaign base across
 all 30 cohort configurations; historic positive-only pilot gains are separate.
 
+#### External five-bit OCTET STRING length and padding
+
+`06-OCTET-STRING/004.asn1#1` brings the registry to ten units in both legacy
+ACN and ACN-v2. It uses the same checked logical seed as the eight-bit profile,
+but its five-bit determinant precedes an unaligned payload. Encoding returns
+TRUE/error zero with exactly `25 7D E2 2C 18` and 37 bits; the five-byte view
+includes three trailing padding bits. One checked encode feeds six decodes:
+
+| Case | Exact input bytes | Result / error | Consumed bits | Successful value |
+| --- | --- | --- | --- | --- |
+| original | `25 7D E2 2C 18` | TRUE / 0 | 37 | Count 4, `AF BC 45 83` |
+| length0 | `05 7D E2 2C 18` | FALSE / 0 | 5 | — |
+| length21 | `AD 7D E2 2C 18` | FALSE / `ERR_ACN_DECODE_MYPDU_A2` | 5 | — |
+| length31 | `FD 7D E2 2C 18` | FALSE / `ERR_ACN_DECODE_MYPDU_A2` | 5 | — |
+| valid-shorter | `0D 7D E2 2C 18` | TRUE / 0 | 13 | Count 1, `AF` |
+| padding | `25 7D E2 2C 19` | TRUE / 0 | 37 | Count 4, `AF BC 45 83` |
+
+Shared bounded field mutations replace only bits 0–4; the padding operation
+flips only the final bit. Every case retains exactly five input bytes, with
+no extra payload for oversized determinants. The lower-bound FALSE/error-zero
+contract and shorter value's 13-bit consumption are checked explicitly.
+Metadata records the ordered case IDs above, one encode, six decodes, three
+rejections, three successes and `target_lines=[]`.
+
+The public sanitizer/fault suite automatically includes this profile's real
+padding controls (`changed-padding`, `missing-padding-flip`), length, value,
+consumption, view, field-offset, encoding-error and omitted-case checks. Its
+shared source-fault mapping detects removal of the A2 error assignment.
+Both public pilot metrics run all twenty registered configurations; exact
+selection is `--unit '06-OCTET-STRING/004.asn1#1'`. All nine preceding profiles
+and the PUS initializer controls remain active. The incremental target is
+three previously uncovered codec branch arms per mode, zero new statements
+and no coverage losses against the actual committed base; the earlier
+eight-bit profile's gains are already part of that base.
+
 #### Parameterized PUS CHOICE
 
 `15-PUS-ParameterPassing/001.asn1#1` uses the same profile driver in legacy ACN
