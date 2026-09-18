@@ -103,6 +103,25 @@ STREAM_PROFILES = {
         ),
         "value_fault": "decoded.crc ^= 1u;",
     },
+    "15-PUS-ParameterPassing/001.asn1#1": {
+        "type": "ASN1SCC_MySeq",
+        "target_error": "ERR_ACN_DECODE_MYSEQ_COLORDATA",
+        "fields": ((0, 8), (8, 8)),
+        "invalid_fields": ((31, 10), (30, 11), (50, 10), (255, 255)),
+        "rejection_bits": 16,
+        # Successful deferred determinant patching leaves this exact RTL error.
+        "encode_errors": {"acn": "0", "acn-v2": "ERR_ACN_DET_CONSISTENCY_MISMATCH"},
+        "common": {},
+        "seeds": (
+            {"name": "green", "bits": 20, "wire": (0x1E, 0x0A, 0x20),
+             "assign": {"colorData.kind": "COLOR_DATA_green_PRESENT", "colorData.u.green": "3"},
+             "value": {"colorData.kind": "COLOR_DATA_green_PRESENT", "colorData.u.green": "3"}},
+            {"name": "red", "bits": 26, "wire": (0x1E, 0x14, 0x0A, 0x40),
+             "assign": {"colorData.kind": "COLOR_DATA_red_PRESENT", "colorData.u.red": "42"},
+             "value": {"colorData.kind": "COLOR_DATA_red_PRESENT", "colorData.u.red": "42"}},
+        ),
+        "value_fault": "decoded.colorData.kind = COLOR_DATA_NONE;",
+    },
 }
 SUPPORTED_UNITS = (*LAYOUTS, *STREAM_PROFILES)
 
@@ -164,6 +183,13 @@ typedef struct {
     size_t field_count;
     int padding, success, error, bits;
 } CoverageStreamCase;
+
+static int coverage_profile_encode(const @TYPE@ *value, BitStream *stream, int *error)
+{
+    const int expected_error = @ENCODE_ERROR@;
+    flag accepted = @TYPE@_ACN_Encode(value, stream, error, TRUE);
+    return accepted && *error == expected_error;
+}
 
 static int coverage_profile_value(const @TYPE@ *value, int seed_index)
 {
@@ -232,9 +258,10 @@ static int coverage_invalid_stream_checks(void)
 '''
 
 
-def stream_driver(work, unit):
+def stream_driver(work, unit, mode="acn"):
     profile = STREAM_PROFILES[unit]
     typ = profile["type"]
+    encode_error = profile.get("encode_errors", {}).get(mode, "0")
     values, blocks, all_cases = [], [], []
     c_bytes = lambda wire: "{" + ", ".join(hex(b) for b in wire) + "}"
     for index, seed in enumerate(profile["seeds"]):
@@ -266,7 +293,7 @@ def stream_driver(work, unit):
         BitStream stream;
         int error = 0;
         BitStream_Init(&stream, encoded, sizeof encoded);
-        if (!{typ}_ACN_Encode(&value, &stream, &error, TRUE) || error != 0
+        if (!coverage_profile_encode(&value, &stream, &error)
             || stream.currentByte * 8 + stream.currentBit != {seed['bits']}
             || stream.count != {size} || BitStream_GetLength(&stream) != {size}
             || memcmp(encoded, canonical, sizeof encoded) != 0) {{
@@ -283,6 +310,7 @@ def stream_driver(work, unit):
     driver = STREAM_DRIVER
     replacements = {"UNIT": unit, "TYPE": typ, "VALUES": "\n".join(values),
                     "SEEDS": "\n".join(blocks), "COUNT": str(len(all_cases)),
+                    "ENCODE_ERROR": encode_error,
                     "ERRORS": local_error_definitions(work, [case["error"] for case in all_cases])}
     for key, value in replacements.items():
         driver = driver.replace("@" + key + "@", value)
@@ -291,6 +319,77 @@ def stream_driver(work, unit):
                     "encode_calls": len(profile["seeds"]), "decode_calls": len(all_cases),
                     "negative_decodes": sum(not case["success"] for case in all_cases),
                     "positive_decodes": sum(case["success"] for case in all_cases)}
+
+
+
+# Positive API obligations are measured before and alongside stream mutations.
+# Parameterized types can have an initializer but no standalone codec/ATC.
+POSITIVE_INITIALIZERS = {
+    "15-PUS-ParameterPassing/001.asn1#1": "ASN1SCC_COLOR_DATA",
+}
+
+
+def initializer_target_lines(work, unit):
+    typ = POSITIVE_INITIALIZERS.get(unit)
+    if typ is None:
+        return []
+    lines = (work / "sample1.c").read_text().splitlines()
+    starts = [i for i, line in enumerate(lines) if line.startswith(f"void {typ}_Initialize(")]
+    if len(starts) != 1:
+        raise ValueError("Missing or ambiguous positive initializer")
+    start = starts[0]
+    end = next(i for i in range(start + 1, len(lines)) if lines[i] == "}")
+    targets = [i + 1 for i in range(start, end)
+               if lines[i].strip() == "(void)pVal;"
+               or lines[i].strip() == f"(*(pVal)) = ({typ}){typ}_constant;"]
+    if len(targets) != 2:
+        raise ValueError("Unexpected initializer body")
+    return targets
+
+
+def positive_initializer_driver(unit):
+    if unit not in POSITIVE_INITIALIZERS:
+        return ""
+    return r'''#include <stdio.h>
+#include <string.h>
+#include "sample1.h"
+
+static int coverage_positive_initializer_checks(void)
+{
+    ASN1SCC_COLOR_DATA initialized;
+    memset(&initialized, 0, sizeof initialized);
+    initialized.kind = COLOR_DATA_red_PRESENT;
+    initialized.u.red = 42;
+    ASN1SCC_COLOR_DATA_Initialize(&initialized);
+    int initializer_error = 0;
+    if (initialized.kind != COLOR_DATA_green_PRESENT || initialized.u.green != 1
+        || !ASN1SCC_COLOR_DATA_IsConstraintValid(&initialized, &initializer_error)
+        || initializer_error != 0) {
+        puts("Positive initializer: unexpected value/validation result");
+        return 1;
+    }
+    puts("Positive initializer ASN1SCC_COLOR_DATA: OK");
+    return 0;
+}
+'''
+
+
+def prepare_positive_controls(work, unit, args):
+    if unit not in POSITIVE_INITIALIZERS or args.language != "c" or args.encodings != "acn":
+        raise ValueError("No explicit positive initializer control for this unit")
+    path = work / "mainprogram.c"
+    text = path.read_text()
+    old = "return asn1scc_run_generated_testsuite(&output);"
+    if text.count(old) != 1:
+        raise ValueError("Unexpected generated test runner")
+    driver = positive_initializer_driver(unit)
+    replacement = ("int positives = asn1scc_run_generated_testsuite(&output);\n"
+                   "    if (positives != 0) return positives;\n"
+                   "    return coverage_positive_initializer_checks();")
+    path.write_text(driver + "\n" + text.replace(old, replacement))
+    return {"positive_only": True, "positive_initializers": [POSITIVE_INITIALIZERS[unit]],
+            "initializer_target_lines": initializer_target_lines(work, unit),
+            "driver_sha256": hashlib.sha256(driver.encode()).hexdigest()}
 
 
 def attached_bytes(unit):
@@ -467,6 +566,8 @@ def source_fault_lines(work, unit):
             result["missing-rejection-assignment"] = line
         else:
             raise ValueError("Unexpected target assignment")
+    if unit in POSITIVE_INITIALIZERS:
+        result["missing-initializer-assignment"] = initializer_target_lines(work, unit)[-1]
     return result
 
 
@@ -481,7 +582,13 @@ def prepare(work, unit, args):
         raise ValueError("Unexpected generated test runner")
     replacement = "int positives = asn1scc_run_generated_testsuite(&output);\n    if (positives != 0) return positives;\n    return coverage_invalid_stream_checks();"
     if unit in STREAM_PROFILES:
-        driver, checks = stream_driver(work, unit)
+        driver, checks = stream_driver(work, unit, "acn-v2" if args.acn_v2 else "acn")
+        if unit in POSITIVE_INITIALIZERS:
+            driver = positive_initializer_driver(unit) + "\n" + driver
+            replacement = replacement.replace("    return coverage_invalid_stream_checks();",
+                "    if (coverage_positive_initializer_checks()) return 1;\n    return coverage_invalid_stream_checks();")
+            checks.update(positive_initializers=[POSITIVE_INITIALIZERS[unit]],
+                          initializer_target_lines=initializer_target_lines(work, unit))
         path.write_text(driver + "\n" + text.replace(old, replacement))
         return {**checks, "target_lines": targets,
                 "driver_sha256": hashlib.sha256(driver.encode()).hexdigest()}
@@ -504,6 +611,13 @@ def verify_output(output, checks):
     positive = re.search(r"All test cases \((\d+)\) run successfully", output)
     if not positive or int(positive[1]) == 0:
         raise ValueError("Missing original positive tests")
+    for typ in checks.get("positive_initializers", []):
+        if output.splitlines().count(f"Positive initializer {typ}: OK") != 1:
+            raise ValueError("Missing or duplicate positive initializer control")
+    if checks.get("positive_only"):
+        if not checks.get("positive_initializers"):
+            raise ValueError("Empty positive initializer control")
+        return
     if "profile_unit" in checks:
         unit = checks["profile_unit"]
         profile = STREAM_PROFILES[unit]

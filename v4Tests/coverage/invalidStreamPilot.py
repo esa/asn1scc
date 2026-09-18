@@ -7,7 +7,8 @@ from encodePilot import c
 from decodePilot import compare_gcov, positives
 from statementPilot import compare as compare_statements
 import statementCollector
-from invalidStreamHarness import SUPPORTED_UNITS, target_lines
+from invalidStreamHarness import (SUPPORTED_UNITS, POSITIVE_INITIALIZERS, target_lines,
+                                  prepare_positive_controls, verify_output)
 
 CONFIGURATIONS = [("acn", []), ("acn-v2", ["--acn-v2"])]
 
@@ -17,15 +18,22 @@ def configurations():
     return [(unit, mode, flags) for unit in SUPPORTED_UNITS for mode, flags in CONFIGURATIONS]
 
 
-def measure_exact(measure, command, unit):
+def measure_exact(measure, command, unit, positive_only=False):
     # Collectors share this module and already support exact cohort membership.
     # Scope the cohort override to one call, including restoration on failure.
     original = c.PILOT
+    original_loader = c.harness_support
+    class PositiveControls:
+        prepare = staticmethod(prepare_positive_controls)
+        verify_output = staticmethod(verify_output)
     try:
         c.PILOT = (unit,)
+        if positive_only:
+            c.harness_support = lambda name: PositiveControls if name == "invalidStreamHarness" else original_loader(name)
         return measure(command)
     finally:
         c.PILOT = original
+        c.harness_support = original_loader
 
 
 def main():
@@ -52,11 +60,12 @@ def main():
                 command = ["--outdir", str(out), "--compiler", str(args.compiler), "--test-root", str(args.test_root),
                            "--language", "c", "--encodings", "acn", "--cohort", "pilot", "--filter", unit,
                            "--timeout", "30", *flags]
-                if enabled:
+                positive_only = not enabled and unit in POSITIVE_INITIALIZERS
+                if enabled or positive_only:
                     command.append("--check-invalid-streams")
                 if args.metric == "gcov":
                     command.append("--enforce-legacy-line-gate")
-                if measure_exact(measure, command, unit):
+                if measure_exact(measure, command, unit, positive_only=positive_only):
                     raise ValueError(f"Measurement failed: {unit} {mode} {stage}")
                 run, = out.iterdir()
                 record, = map(json.loads, (run / "units.jsonl").read_text().splitlines())
@@ -67,6 +76,7 @@ def main():
                 result["runs"].append({"mode": mode, "unit": unit, "stage": stage,
                                        "directory": str((run / record["directory"]).relative_to(root)),
                                        "positive_tests": record["positive_tests"], "run_seconds": seconds,
+                                       "positive_initializer_controls": record.get("invalid_stream_checks", {}).get("positive_initializers", []),
                                        "invalid_stream_checks": record.get("invalid_stream_checks")})
                 pair.append((record, run))
             before, after = pair[0][0], pair[1][0]

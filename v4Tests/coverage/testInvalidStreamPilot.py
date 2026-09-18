@@ -6,7 +6,7 @@ import shutil
 import subprocess
 
 from encodePilot import c
-from invalidStreamHarness import (LAYOUTS, STREAM_PROFILES, cases_for, padding_bits,
+from invalidStreamHarness import (LAYOUTS, STREAM_PROFILES, POSITIVE_INITIALIZERS, cases_for, padding_bits,
                                   source_fault_lines, verify_output)
 from invalidStreamPilot import configurations
 
@@ -58,6 +58,9 @@ def profile_mutations(unit):
     padding = "        if (test->padding) input[size - 1] ^= 1u;"
     profile = STREAM_PROFILES[unit]
     mutations = {
+        "wrong-encode-error": ("    return accepted && *error == expected_error;",
+                               "    *error = expected_error == 0 ? 203 : 0;\n"
+                               "    return accepted && *error == expected_error;"),
         "unexpected-acceptance": (anchor, "        if (!test->success) accepted = TRUE;\n" + anchor),
         "wrong-error": (anchor, "        if (!test->success) error ^= 1;\n" + anchor),
         "decoder-writes": (anchor, "        input[0] ^= 1u;\n" + anchor),
@@ -80,6 +83,13 @@ def profile_mutations(unit):
                                              "if (test->padding) input[size - 1] ^= 0u;")
     if profile.get("target_error"):
         mutations.update({"missing-error-assignment": None, "missing-rejection-assignment": None})
+    if unit in POSITIVE_INITIALIZERS:
+        call = "    if (coverage_positive_initializer_checks()) return 1;"
+        mutations["missing-initializer-check"] = (call, "    if (0 && coverage_positive_initializer_checks()) return 1;")
+        mutations["wrong-initializer-value"] = (
+            "    ASN1SCC_COLOR_DATA_Initialize(&initialized);",
+            "    ASN1SCC_COLOR_DATA_Initialize(&initialized);\n    initialized.kind = COLOR_DATA_NONE;")
+        mutations["missing-initializer-assignment"] = None
     return mutations
 
 
@@ -142,7 +152,7 @@ def main():
             if name == "sanitizer":
                 if run.returncode or run.stderr or rejected_output:
                     raise ValueError(f"{name}: sanitizer/oracle failure: {run.stdout} {run.stderr}")
-            elif name == "missing-case":
+            elif name in ("missing-case", "missing-initializer-check"):
                 if run.returncode or run.stderr or not rejected_output:
                     raise ValueError("Incomplete execution was not rejected by collector")
             elif run.returncode != 1 or run.stderr or "unexpected" not in run.stdout:

@@ -411,7 +411,7 @@ cases. Fault checks cover acceptance, error, positive fields, input writes,
 consumption, view count, selector offset, padding corruption/missing flip,
 short views, genuinely omitted execution and removal of either generated target
 assignment. Fault names map to source statements independently of their order.
-The full sanitizer suite now covers fourteen registered unit/mode configurations.
+The full sanitizer suite covers every registered unit/mode configuration.
 
 `invalidStreamPilot.py --unit '09-CHOICE/013.asn1#1'` selects exactly this unit;
 omitting `--unit` measures all registered units. Positive-test counts come from
@@ -435,6 +435,41 @@ Use `invalid-streams-statement-c` with `--metric stmt` for statement measurement
 Preserve raw reports, generated sources, hashes and sanitizer/fault logs before
 removing a finished container. The campaign's independent verifier additionally
 checks the full committed-base comparison and canonical wire/source-fault oracles.
+
+#### Parameterized PUS CHOICE
+
+`15-PUS-ParameterPassing/001.asn1#1` uses the same profile driver in legacy ACN
+and ACN-v2, bringing the registry to eight units (six enums and two CHOICE
+profiles), sixteen configurations. Its checked `MySeq` seeds are green=3
+(`1E 0A 20`, 20 bits, three bytes) and red=42 (`1E 14 0A 40`, 26 bits,
+four bytes). Each seed executes original, `(31,10)`, `(30,11)`, `(50,10)`,
+`(255,255)` and padding cases, in that order. Rejections replace only the two
+eight-bit determinants at offsets 0 and 8; padding flips only the last byte's
+lowest bit (`21` or `41`). Case IDs use the `seed0-` and `seed1-` prefixes.
+
+Each mode adds two checked encodes, eight rejecting decodes and four successful
+decodes. Rejections consume exactly 16 bits and return FALSE with
+`ERR_ACN_DECODE_MYSEQ_COLORDATA`. Original/padding controls consume 20 or 26
+bits, return TRUE/error zero, and reproduce the CHOICE kind and payload.
+Exact-size buffers, byte preservation, stream counts and fresh output/error
+state are enforced by the shared driver.
+
+The shared encode contract defaults to error zero. This profile explicitly
+requires zero in legacy mode and `ERR_ACN_DET_CONSISTENCY_MISMATCH` (203) in
+v2, even though both checked encodes return TRUE. A `wrong-encode-error` fault
+changes the successful call's error to 203 or zero respectively and must fail;
+the existing compound CHOICE also retains its zero-error contract. The v2
+decoder's exact private `COLORDATA` macro is resolved from its unique definition
+in `sample1.c`, without substituting `COLORDATA_2` or editing codec/header files.
+
+All shared faults apply, including real padding, field offset, short view,
+positive value, omitted execution and removal of each source-mapped target
+assignment. The target lines are 353–354 in legacy and 354–355 in v2. Both
+public pilot metrics include this unit automatically; use
+`--unit '15-PUS-ParameterPassing/001.asn1#1'` for exact selection. Its eight
+original positives per mode remain intact. Incremental campaign measurements
+must include the previously delivered compound CHOICE negatives in the base;
+the public pilot's positive-only comparisons are not incremental campaign gains.
 
 ### Statement report scope
 
@@ -645,3 +680,18 @@ remain later harness operations.
 
 Reference for gcov JSON semantics:
 https://gcc.gnu.org/onlinedocs/gcc/Invoking-Gcov.html
+
+#### Positive initializer controls in stream pilots
+
+The PUS parameterized CHOICE profile also checks `ASN1SCC_COLOR_DATA_Initialize`:
+it starts from a distinct valid red value, requires the initialized green value 1,
+and validates that result. This positive control runs in both the public pilot's
+baseline and mutation stages. Original ATCs are preserved; the extra control is
+reported separately. The legacy line gate remains enabled for both gcov stages.
+
+The paired public pilot delta therefore measures only stream-mutation gains.
+A committed-base campaign comparison additionally reports newly added initializer
+statements when this control is first introduced; those gains are distinct from
+the selected decoder assignments. Fault checks detect an omitted control, wrong
+initialized value and removed initializer assignment. Codecs and original ATCs
+remain byte-identical; only the optional generated main driver is augmented.
