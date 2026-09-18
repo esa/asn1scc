@@ -436,6 +436,43 @@ Preserve raw reports, generated sources, hashes and sanitizer/fault logs before
 removing a finished container. The campaign's independent verifier additionally
 checks the full committed-base comparison and canonical wire/source-fault oracles.
 
+#### External eight-bit OCTET STRING length
+
+`06-OCTET-STRING/004.asn1#2` extends the common registry to nine units, each in
+legacy ACN and ACN-v2. Its checked seed has `a2.nCount=4` and octets
+`AF BC 45 83`: encode must return TRUE/error zero and exactly
+`04 AF BC 45 83` (40 bits). Each mode adds one encode and these five decodes:
+
+| Case | Length byte | Result / error | Consumed bits | Successful value |
+| --- | --- | --- | --- | --- |
+| original | 4 | TRUE / 0 | 40 | Count 4, `AF BC 45 83` |
+| length0 | 0 | FALSE / 0 | 8 | — |
+| length21 | 21 | FALSE / `ERR_ACN_DECODE_MYPDU_A2` | 8 | — |
+| length255 | 255 | FALSE / `ERR_ACN_DECODE_MYPDU_A2` | 8 | — |
+| valid-shorter | 1 | TRUE / 0 | 16 | Count 1, `AF` |
+
+Every case retains the actual five-byte input, with no padding and no extra
+payload for oversized lengths. The lower-bound FALSE/error-zero result is an
+exact fixture oracle. A grammar-valid shorter value succeeds without consuming
+the entire view. Named case descriptors carry independent consumption, error
+and value expectations; the shared driver resets output, stream and error and
+checks unchanged input bytes and view count on every call.
+
+This profile has `target_lines=[]`: the incremental goal is three new codec
+branch arms per mode and zero new statements. Source-fault mapping is separate
+from statement targets and checks removal of the A2 decoder error assignment.
+The public fault suite also checks wrong lengths, full-view consumption imposed
+on a shorter result, field offsets, short views and all common outcome/value/
+input/accounting defects. No padding fault is registered for this unit.
+
+Both public pilot metrics include it automatically; exact selection is
+`--unit '06-OCTET-STRING/004.asn1#2'`. Preserve all eight previous profiles and
+the PUS initializer control in both stages, including the strict line gate.
+For the daytime campaign use `--label asn1scc.campaign=coverage-day-20260918`
+with the unchanged pinned images, no network and read-only source mounts.
+Measure incremental gains against the actual committed campaign base across
+all 30 cohort configurations; historic positive-only pilot gains are separate.
+
 #### Parameterized PUS CHOICE
 
 `15-PUS-ParameterPassing/001.asn1#1` uses the same profile driver in legacy ACN

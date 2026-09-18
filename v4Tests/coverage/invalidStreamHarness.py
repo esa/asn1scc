@@ -122,6 +122,36 @@ STREAM_PROFILES = {
         ),
         "value_fault": "decoded.colorData.kind = COLOR_DATA_NONE;",
     },
+    "06-OCTET-STRING/004.asn1#2": {
+        "type": "ASN1SCC_MyPDU",
+        "target_error": None,  # Branch-only; no new statement obligations.
+        "source_faults": {
+            "missing-error-assignment": "*pErrCode = ret ? 0 : ERR_ACN_DECODE_MYPDU_A2;",
+        },
+        "common": {},
+        "seeds": (
+            {"bits": 40, "wire": (4, 0xAF, 0xBC, 0x45, 0x83),
+             "assign": {"a2.nCount": "4", "a2.arr[0]": "0xAF", "a2.arr[1]": "0xBC",
+                        "a2.arr[2]": "0x45", "a2.arr[3]": "0x83"},
+             "value": {"a2.nCount": "4", "a2.arr[0]": "0xAF", "a2.arr[1]": "0xBC",
+                       "a2.arr[2]": "0x45", "a2.arr[3]": "0x83"}},
+        ),
+        # All mutations retain the seed's five-byte view, including valid-shorter.
+        "cases": (
+            {"name": "original", "success": True, "bits": 40, "error": "0"},
+            {"name": "length0", "fields": (((0, 8), 0),),
+             "success": False, "bits": 8, "error": "0"},
+            {"name": "length21", "fields": (((0, 8), 21),),
+             "success": False, "bits": 8, "error": "ERR_ACN_DECODE_MYPDU_A2"},
+            {"name": "length255", "fields": (((0, 8), 255),),
+             "success": False, "bits": 8, "error": "ERR_ACN_DECODE_MYPDU_A2"},
+            {"name": "valid-shorter", "fields": (((0, 8), 1),),
+             "success": True, "bits": 16, "error": "0",
+             "value": {"a2.nCount": "1", "a2.arr[0]": "0xAF"}},
+        ),
+        "value_fault": "decoded.a2.arr[0] ^= 1u;",
+        "length_field": (0, 8),
+    },
 }
 SUPPORTED_UNITS = (*LAYOUTS, *STREAM_PROFILES)
 
@@ -129,13 +159,17 @@ SUPPORTED_UNITS = (*LAYOUTS, *STREAM_PROFILES)
 def stream_cases(profile, seed_index):
     """Expand named operations without relying on case positions in the driver."""
     seed = profile["seeds"][seed_index]
-    mutations = [("original", (), False)]
-    mutations += [("-".join(map(str, values)), tuple(zip(profile["fields"], values)), False)
-                  for values in profile["invalid_fields"]]
-    if seed["bits"] % 8:
-        mutations.append(("padding", (), True))
+    mutations = profile.get("cases")
+    if mutations is None:
+        mutations = [{"name": f"seed{seed_index}-original", "success": True}]
+        mutations += [{"name": f"seed{seed_index}-" + "-".join(map(str, values)),
+                       "fields": tuple(zip(profile["fields"], values)), "success": False}
+                      for values in profile["invalid_fields"]]
+        if seed["bits"] % 8:
+            mutations.append({"name": f"seed{seed_index}-padding", "padding": True, "success": True})
     cases = []
-    for name, fields, padding in mutations:
+    for mutation in mutations:
+        fields, padding = mutation.get("fields", ()), mutation.get("padding", False)
         wire = int.from_bytes(bytes(seed["wire"]), "big")
         total_bits = len(seed["wire"]) * 8
         for (offset, width), value in fields:
@@ -144,12 +178,18 @@ def stream_cases(profile, seed_index):
             shift = total_bits - offset - width
             wire = (wire & ~(((1 << width) - 1) << shift)) | (value << shift)
         if padding:
+            if seed["bits"] % 8 == 0:
+                raise ValueError("Padding mutation requires actual padding")
             wire ^= 1
-        success = not fields
-        cases.append({"name": f"seed{seed_index}-{name}", "fields": fields, "padding": padding,
+        success = mutation["success"]
+        bits = mutation.get("bits", seed["bits"] if success else profile.get("rejection_bits"))
+        if bits is None or not 0 <= bits <= total_bits:
+            raise ValueError("Case consumption exceeds input view")
+        cases.append({"name": mutation["name"], "fields": fields, "padding": padding,
                       "wire": wire.to_bytes(len(seed["wire"]), "big"), "success": success,
-                      "bits": seed["bits"] if success else profile["rejection_bits"],
-                      "error": "0" if success else profile["target_error"]})
+                      "bits": bits,
+                      "value": {**mutation.get("value", seed["value"]), **profile["common"]},
+                      "error": mutation.get("error", "0" if success else profile["target_error"])})
     return cases
 
 
@@ -181,7 +221,7 @@ typedef struct {
     const byte *wire;
     const CoverageField *fields;
     size_t field_count;
-    int padding, success, error, bits;
+    int padding, success, error, bits, value_index;
 } CoverageStreamCase;
 
 static int coverage_profile_encode(const @TYPE@ *value, BitStream *stream, int *error)
@@ -191,9 +231,9 @@ static int coverage_profile_encode(const @TYPE@ *value, BitStream *stream, int *
     return accepted && *error == expected_error;
 }
 
-static int coverage_profile_value(const @TYPE@ *value, int seed_index)
+static int coverage_profile_value(const @TYPE@ *value, int value_index)
 {
-    switch (seed_index) {
+    switch (value_index) {
 @VALUES@
     default: return 0;
     }
@@ -209,7 +249,7 @@ static void coverage_profile_field(byte *input, CoverageField field)
     }
 }
 
-static int coverage_profile_cases(const byte *encoded, size_t size, int seed_index,
+static int coverage_profile_cases(const byte *encoded, size_t size,
                                   const CoverageStreamCase *cases, size_t case_count)
 {
     for (size_t case_index = 0; case_index < case_count; ++case_index) {
@@ -228,7 +268,7 @@ static int coverage_profile_cases(const byte *encoded, size_t size, int seed_ind
         memcpy(saved, input, size);
         @TYPE@ decoded;
         memset(&decoded, 0, sizeof decoded);
-        if (test->success && coverage_profile_value(&decoded, seed_index)) {
+        if (test->success && coverage_profile_value(&decoded, test->value_index)) {
             puts("Stream profile: unexpected initial positive value");
             return 1;
         }
@@ -239,7 +279,7 @@ static int coverage_profile_cases(const byte *encoded, size_t size, int seed_ind
         if (accepted != test->success || error != test->error
             || stream.currentByte * 8 + stream.currentBit != test->bits
             || stream.count != (long)size || memcmp(input, saved, size) != 0
-            || (accepted && !coverage_profile_value(&decoded, seed_index))) {
+            || (accepted && !coverage_profile_value(&decoded, test->value_index))) {
             printf("Stream profile @UNIT@/%s: unexpected result/error/value/stream\n", test->name);
             return 1;
         }
@@ -265,9 +305,6 @@ def stream_driver(work, unit, mode="acn"):
     values, blocks, all_cases = [], [], []
     c_bytes = lambda wire: "{" + ", ".join(hex(b) for b in wire) + "}"
     for index, seed in enumerate(profile["seeds"]):
-        fields = {**seed["value"], **profile["common"]}
-        predicate = " && ".join(f"value->{field} == {value}" for field, value in fields.items())
-        values.append(f"    case {index}: return {predicate};")
         size = len(seed["wire"])
         if size != (seed["bits"] + 7) // 8:
             raise ValueError("Seed wire size does not match bit length")
@@ -277,13 +314,16 @@ def stream_driver(work, unit, mode="acn"):
         all_cases.extend(cases)
         declarations, rows = [], []
         for number, case in enumerate(cases):
+            value_index = len(values)
+            predicate = " && ".join(f"value->{field} == {value}" for field, value in case["value"].items())
+            values.append(f"    case {value_index}: return {predicate};")
             declarations.append(f"        static const byte wire_{number}[] = {c_bytes(case['wire'])};")
             ops = ", ".join("{%d, %d, %d}" % (*field, value) for field, value in case["fields"])
             if ops:
                 declarations.append(f"        static const CoverageField fields_{number}[] = {{{ops}}};")
             rows.append(f"            {{{json.dumps(case['name'])}, wire_{number}, "
                         + (f"fields_{number}" if ops else "NULL")
-                        + f", {len(case['fields'])}, {int(case['padding'])}, {int(case['success'])}, {case['error']}, {case['bits']}}}")
+                        + f", {len(case['fields'])}, {int(case['padding'])}, {int(case['success'])}, {case['error']}, {case['bits']}, {value_index}}}")
         blocks.append(f'''    {{
         {typ} value;
         memset(&value, 0, sizeof value);
@@ -304,7 +344,7 @@ def stream_driver(work, unit, mode="acn"):
         static const CoverageStreamCase cases[] = {{
 {(',' + chr(10)).join(rows)}
         }};
-        if (coverage_profile_cases(encoded, sizeof encoded, {index}, cases,
+        if (coverage_profile_cases(encoded, sizeof encoded, cases,
                                    sizeof cases / sizeof cases[0])) return 1;
     }}''')
     driver = STREAM_DRIVER
@@ -558,6 +598,11 @@ def source_fault_lines(work, unit):
     """Map semantic fault names even when generated assignment order differs."""
     lines = (work / "sample1.c").read_text().splitlines()
     result = {}
+    for name, token in STREAM_PROFILES.get(unit, {}).get("source_faults", {}).items():
+        matches = [i + 1 for i, line in enumerate(lines) if line.strip() == token]
+        if len(matches) != 1:
+            raise ValueError("Missing or ambiguous source fault assignment: " + name)
+        result[name] = matches[0]
     for line in target_lines(work, unit):
         text = lines[line - 1].strip()
         if text.startswith("*pErrCode = "):

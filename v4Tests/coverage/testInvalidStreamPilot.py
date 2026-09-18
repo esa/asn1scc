@@ -83,6 +83,14 @@ def profile_mutations(unit):
                                              "if (test->padding) input[size - 1] ^= 0u;")
     if profile.get("target_error"):
         mutations.update({"missing-error-assignment": None, "missing-rejection-assignment": None})
+    mutations.update({name: None for name in profile.get("source_faults", {})})
+    if profile.get("length_field"):
+        offset, width = profile["length_field"]
+        field = "            coverage_profile_field(input, test->fields[field_index]);"
+        mutations["wrong-length"] = (field, field +
+            f"\n            coverage_profile_field(input, (CoverageField){{{offset}, {width}, 1}});")
+        mutations["full-view-consumption"] = (anchor,
+            "        if (test->success) { stream.currentByte = (long)size; stream.currentBit = 0; }\n" + anchor)
     if unit in POSITIVE_INITIALIZERS:
         call = "    if (coverage_positive_initializer_checks()) return 1;"
         mutations["missing-initializer-check"] = (call, "    if (0 && coverage_positive_initializer_checks()) return 1;")
