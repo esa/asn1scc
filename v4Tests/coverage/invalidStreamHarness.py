@@ -262,6 +262,29 @@ STREAM_PROFILES = {
             {"name": "padding", "padding": True, "success": True},
         ),
     },
+    "18-NULL/001.asn1#3": {
+        "type": "ASN1SCC_MyPDU",
+        "target_error": None,  # Pattern rejection adds branches, not statements.
+        "source_faults": {
+            "missing-rejection-assignment": "ret = ret && bDecodingPatternMatches;",
+            "missing-error-assignment": "*pErrCode = ret ? 0 : ERR_ACN_DECODE_MYPDU;",
+        },
+        "common": {},
+        "seeds": (
+            {"bits": 16, "wire": (0xAA, 0xFF), "assign": {"": "0"}, "value": None},
+        ),
+        # Change each byte's low bit separately, then replace the whole pattern.
+        # All sixteen bits belong to the pattern; there are no padding bits.
+        "cases": (
+            {"name": "original", "success": True},
+            {"name": "pattern0", "fields": (((7, 1), 1),),
+             "success": False, "bits": 16, "error": "ERR_ACN_DECODE_MYPDU"},
+            {"name": "pattern1", "fields": (((15, 1), 0),),
+             "success": False, "bits": 16, "error": "ERR_ACN_DECODE_MYPDU"},
+            {"name": "pattern2", "fields": (((0, 16), 0),),
+             "success": False, "bits": 16, "error": "ERR_ACN_DECODE_MYPDU"},
+        ),
+    },
 }
 SUPPORTED_UNITS = (*LAYOUTS, *STREAM_PROFILES)
 

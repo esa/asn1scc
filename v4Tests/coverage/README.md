@@ -632,6 +632,44 @@ arm remains unresolved. Existing positives, PUS initializer controls, strict
 line gates and source-identity checks remain required. Measure this increment
 against the committed campaign base, separately from positive-only pilot gains.
 
+#### Sixteen-bit NULL pattern
+
+`18-NULL/001.asn1#3` adds the fourteenth shared profile in legacy ACN and
+ACN-v2. Checked encoding of `value=0` produces `AA FF`, returning TRUE/error
+zero and consuming sixteen bits. All encode buffers, decode buffers and input
+views are exactly two bytes. The cases execute in this order, each consuming
+exactly sixteen bits:
+
+| Case | Input | Result / error |
+| --- | --- | --- |
+| original | `AA FF` | TRUE / 0 |
+| pattern0 | `AB FF` | FALSE / `ERR_ACN_DECODE_MYPDU` |
+| pattern1 | `AA FE` | FALSE / `ERR_ACN_DECODE_MYPDU` |
+| pattern2 | `00 00` | FALSE / `ERR_ACN_DECODE_MYPDU` |
+
+Bounded field operations change only bit 7 for `pattern0`, bit 15 for
+`pattern1`, and the full sixteen-bit pattern for `pattern2`. There is no
+padding. The shared `None` value descriptor preserves NULL's absence of a
+distinguishable logical output. Each case resets output, error and stream,
+and checks exact result, error, consumption, input bytes and view count.
+Transcript verification requires every case exactly once.
+
+Metadata records one checked encode, four decodes, three rejections, one
+success, the ordered case IDs above and `target_lines=[]`. Both modes use
+the existing ASan/UBSan, unexpected-acceptance, wrong-error, decoder-writes,
+wrong-consumption, wrong-view-count, wrong-encode-error, wrong-field-offset,
+short-view and genuine missing-case checks. Source faults remove the pattern
+rejection assignment or its error assignment. Padding and logical-value
+faults are inapplicable to this profile.
+
+Both public metrics include all twenty-eight registered configurations;
+`--unit '18-NULL/001.asn1#3'` selects this unit exactly. The incremental contract
+is two new codec branch arms per mode and zero new codec statements, measured
+against the committed thirteen-unit baseline over the fixed thirty-configuration
+cohort. The pattern read-failure arm remains unresolved. Existing positive
+controls, PUS initializers, strict line gates and source-identity checks remain
+required; positive-only pilot gains are separate historical measurements.
+
 #### Parameterized PUS CHOICE
 
 `15-PUS-ParameterPassing/001.asn1#1` uses the same profile driver in legacy ACN
