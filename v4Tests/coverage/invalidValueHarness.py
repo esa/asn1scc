@@ -133,3 +133,114 @@ def verify_output(output, checks):
             expected = f"Invalid value {value['name']}/{operation}: expected rejection, OK"
             if output.count(expected) != 1:
                 raise ValueError("Missing or unexpected invalid-value outcome: " + expected)
+
+
+# Optional goals compose with the stream driver, independently of CASES and the
+# collector's C/both-only invalid-value option. Registry order is report order.
+EXTRA_PROFILES = {
+    "choice-unset": {
+        "unit": "09-CHOICE/001.asn1#1", "type": "MyPDU",
+        "validator": "MyPDU", "member": "", "kind": "MyPDU_NONE",
+        "target_error": "ERR_MYPDU",
+    },
+}
+EXTRA_GOALS = {goal: profile["unit"] for goal, profile in EXTRA_PROFILES.items()}
+EXTRA_OPERATIONS = ("validate", "validate-parent", "encode")
+
+
+def extra_driver(goal, profile):
+    """Each operation starts with a fresh initialized parent and error state."""
+    parent = "ASN1SCC_" + profile["type"]
+    child = "bad" + ("." + profile["member"] if profile["member"] else "")
+    blocks = []
+    for operation in EXTRA_OPERATIONS:
+        call = (f"ASN1SCC_{profile['validator']}_IsConstraintValid(&{child}, &error)"
+                if operation == "validate" else f"{parent}_IsConstraintValid(&bad, &error)")
+        setup = ""
+        preservation = ""
+        if operation == "encode":
+            setup = f"""
+        byte buffer[{parent}_REQUIRED_BYTES_FOR_ACN_ENCODING + 1];
+        byte saved[sizeof buffer];
+        BitStream stream;
+        memset(buffer, 0xA5, sizeof buffer);
+        memcpy(saved, buffer, sizeof buffer);
+        BitStream_AttachBuffer(&stream, buffer, (long)sizeof buffer);
+"""
+            call = f"{parent}_ACN_Encode(&bad, &stream, &error, TRUE)"
+            preservation = f"""
+        if (stream.currentByte != 0 || stream.currentBit != 0
+            || stream.count != (long)sizeof buffer || memcmp(buffer, saved, sizeof buffer)) {{
+            puts("Value goal {goal}/{operation}: unexpected stream change");
+            return 1;
+        }}
+"""
+        blocks.append(f"""
+    /* begin {goal}/{operation} */
+    {{
+        {parent} bad;
+        memset(&bad, 0, sizeof bad);
+        {parent}_Initialize(&bad);
+        int error = 0;
+        if (!{parent}_IsConstraintValid(&bad, &error) || error != 0) {{
+            puts("Value goal {goal}/{operation}: unexpected initial value");
+            return 1;
+        }}
+        {child}.kind = {profile['kind']};
+        error = 0;
+{setup}
+        flag accepted = {call};
+        /* observe {goal}/{operation} */
+        if (accepted != FALSE) {{
+            puts("Value goal {goal}/{operation}: unexpected result");
+            return 1;
+        }}
+        if (error != {profile['target_error']}) {{
+            puts("Value goal {goal}/{operation}: unexpected error");
+            return 1;
+        }}
+{preservation}
+        puts("Value goal {goal}/{operation}: OK");
+    }}
+    /* end {goal}/{operation} */
+""")
+    return "\n".join(blocks)
+
+
+def prepare_extra(work, unit, args):
+    goals = [goal for goal, selected in EXTRA_GOALS.items() if selected == unit]
+    metadata = {"goal_ids": goals, "operations": {}, "target_lines": {}}
+    if not goals:
+        return metadata
+    if args.language != "c" or args.encodings != "acn":
+        raise ValueError("Extra value goals require C/ACN")
+    path = work / "mainprogram.c"
+    original = path.read_text()
+    signature = "int main(int argc, char* argv[])"
+    if original.count(signature) != 1 or "coverage_extra_value_checks" in original:
+        raise ValueError("Unexpected or already composed test runner")
+    bodies = []
+    for goal in goals:
+        profile = EXTRA_PROFILES[goal]
+        metadata["operations"][goal] = list(EXTRA_OPERATIONS)
+        metadata["target_lines"][goal] = target_lines(work, profile)
+        bodies.append(extra_driver(goal, profile))
+    source = ('#include <stdio.h>\n#include <string.h>\n#include "sample1.h"\n'
+              + "static int coverage_extra_value_checks(void) {\n"
+              + "\n".join(bodies) + "\nreturn 0;\n}\n")
+    path.write_text(source + original.replace(signature, "static int coverage_previous_main(int argc, char* argv[])")
+                    + "\nint main(int argc, char* argv[]) {\n"
+                    + "    int result = coverage_previous_main(argc, argv);\n"
+                    + "    if (result != 0) return result;\n"
+                    + "    return coverage_extra_value_checks();\n}\n")
+    metadata["driver_sha256"] = hashlib.sha256(source.encode()).hexdigest()
+    metadata["api_checks"] = sum(len(ops) for ops in metadata["operations"].values())
+    return metadata
+
+
+def verify_extra_output(output, metadata):
+    expected = [f"Value goal {goal}/{operation}: OK"
+                for goal in metadata["goal_ids"] for operation in EXTRA_OPERATIONS]
+    actual = [line for line in output.splitlines() if line.startswith("Value goal ")]
+    if sorted(actual) != sorted(expected):
+        raise ValueError("Incomplete, duplicate or unexpected extra value outcomes")

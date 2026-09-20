@@ -260,6 +260,55 @@ missing value execution, and removal of each selected validator statement.
 This is a bounded Phase-2b pilot, not general invalid-value synthesis or a
 claim that every defensive encoder branch is reachable by checked calls.
 
+#### Extra CHOICE goals over existing stream checks
+
+`invalidValueHarness.EXTRA_GOALS` currently enables only `choice-unset` for
+`09-CHOICE/001.asn1#1`. The public value pilot appends this unit in legacy ACN
+and ACN-v2 after its four historical uPER+ACN configurations (indices 0–3).
+Both new baseline stages include all existing stream checks; only the candidate
+adds the value goal. These comparisons measure incremental value coverage over
+stream coverage. The historical positive-only deltas are reported separately
+and must not be claimed as new campaign gains.
+
+`prepare_extra(work, unit, args)` wraps the prepared driver's `main`, runs it
+once, then executes extra operations only after it succeeds. For each operation,
+the driver initializes and validates a fresh parent, changes only its CHOICE
+kind to `MyPDU_NONE`, and resets the error. Direct validation, parent validation
+and checked ACN encoding must each reject with exactly `ERR_MYPDU`. The checked
+encoder must preserve every output byte, both cursor fields and the buffer count.
+Direct and parent validation coincide for this top-level CHOICE but run
+independently. No invalid value reaches Equal or an unchecked encoder.
+
+Each operation emits exactly `Value goal choice-unset/OPERATION: OK`, where
+OPERATION is `validate`, `validate-parent` or `encode`. `verify_extra_output`
+rejects missing, duplicate and unexpected goal lines. Metadata retains ordered
+goal IDs, operations, source-mapped validator targets and the driver hash.
+Unregistered units receive no extra checks or transcript lines.
+
+The pilot's scoped loader adapter preserves/restores both the collector loader
+and exact cohort selector, including on failure. Collector CLI restrictions
+remain active: `--check-invalid-values` still requires C/both and cannot combine
+with `--check-invalid-streams`. Use the public pilot to compose the checks:
+
+    python3 /opt/coverage/invalidValuePilot.py --metric gcov --outdir /results/value-pilot
+    python3 /opt/coverage/invalidValuePilot.py --metric stmt --outdir /results/value-statements
+    python3 /opt/coverage/testInvalidValuePilot.py --pilot-root /results/value-pilot --outdir /results/value-checks
+
+Run these commands inside the appropriate coverage images containing the current
+scripts, or mount the three updated value Python files read-only over their
+individual `/opt/coverage` paths, preserving the image's collector dependencies. Optional
+`--unit '09-CHOICE/001.asn1#1'` selects exactly the two new pilot configurations;
+the sanitizer suite consumes a complete gcov pilot. `pilot.json` includes
+`extra_goals`, per-run operation metadata and relative work-directory paths.
+The strict legacy line gate stays active for every gcov stage.
+
+The sanitizer suite retains all historical checks and adds per-goal/per-mode
+ASan/UBSan runs, actual omission of each operation, wrong results and exact-error
+faults for each call, byte writes, changes to each cursor/count field, and removal
+of each target validator assignment. Faults modify disposable copies only;
+coverage measurements retain identical generated codec, RTL and ATC sources.
+`checks.json` records goal, mode, fault name, operation and status.
+
 ### Bounded C invalid-stream pilot
 
 `--invalid-stream-pilot` measures baseline and fixed-layout mutations for
