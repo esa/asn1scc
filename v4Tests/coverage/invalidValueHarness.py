@@ -148,6 +148,11 @@ EXTRA_PROFILES = {
         "validator": "MyPayload", "member": "payload", "kind": "MyPayload_NONE",
         "target_error": "ERR_MYPAYLOAD",
     },
+    "color-unset": {
+        "unit": "15-PUS-ParameterPassing/001.asn1#1", "type": "MySeq",
+        "validator": "COLOR_DATA", "member": "colorData", "kind": "COLOR_DATA_NONE",
+        "target_error": "ERR_COLOR_DATA",
+    },
 }
 EXTRA_GOALS = {goal: profile["unit"] for goal, profile in EXTRA_PROFILES.items()}
 EXTRA_OPERATIONS = ("validate", "validate-parent", "encode")

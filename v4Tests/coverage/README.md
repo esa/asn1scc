@@ -263,12 +263,14 @@ claim that every defensive encoder branch is reachable by checked calls.
 #### Extra CHOICE goals over existing stream checks
 
 `invalidValueHarness.EXTRA_GOALS` enables `choice-unset` for
-`09-CHOICE/001.asn1#1` and `payload-unset` for `09-CHOICE/013.asn1#1`.
+`09-CHOICE/001.asn1#1`, `payload-unset` for `09-CHOICE/013.asn1#1`, and
+`color-unset` for `15-PUS-ParameterPassing/001.asn1#1`.
 The public value pilot appends these units in legacy ACN and ACN-v2 after its
 four historical uPER+ACN configurations (indices 0–3); choice-unset retains
-indices 4–5 and payload-unset uses 6–7. Both stages include all existing stream
-checks; only the candidate adds the value goals. These comparisons measure value coverage over
-stream coverage. The historical positive-only deltas are reported separately
+indices 4–5, payload-unset retains 6–7, and color-unset uses 8–9. Both stages
+include all existing stream checks; only the candidate adds the value goals.
+These comparisons measure value coverage over stream coverage.
+The historical positive-only deltas are reported separately
 and must not be claimed as new campaign gains.
 
 `prepare_extra(work, unit, args)` wraps the prepared driver's `main`, runs it
@@ -278,10 +280,14 @@ kind and resets the error. For `choice-unset`, it sets `MyPDU_NONE` and requires
 exactly `ERR_MYPDU`. For `payload-unset`, it changes only `payload.kind` to
 `MyPayload_NONE`; direct MyPayload validation, parent MyPDU validation and the
 parent's checked ACN encoding must each reject with exactly `ERR_MYPAYLOAD`.
-The parent's initializer assigns its constant directly, leaving the separate
+For `color-unset`, it changes only `colorData.kind` to `COLOR_DATA_NONE`;
+direct COLOR_DATA validation, parent MySeq validation and the parent's checked
+ACN encoding must each reject with exactly `ERR_COLOR_DATA`. The existing
+positive COLOR_DATA initializer control remains active in both stream stages.
+The parent initializers assign their constants directly, leaving the separate
 MyPayload initializer goal disabled. The checked
 encoder must preserve every output byte, both cursor fields and the buffer count.
-Direct and parent validation coincide for this top-level CHOICE but run
+Direct and parent validation coincide for `choice-unset` but run
 independently. No invalid value reaches Equal or an unchecked encoder.
 
 Each operation emits exactly `Value goal GOAL/OPERATION: OK`, where GOAL is the
@@ -305,7 +311,8 @@ scripts, or mount the three updated value Python files read-only over their
 individual `/opt/coverage` paths, preserving the image's collector dependencies. Optional
 `--unit '09-CHOICE/013.asn1#1'` selects exactly the two payload configurations
 (`09-CHOICE/001.asn1#1` selects the choice pair);
-the sanitizer suite consumes a complete gcov pilot. `pilot.json` includes
+`--unit '15-PUS-ParameterPassing/001.asn1#1'` selects the color pair.
+The sanitizer suite consumes a complete gcov pilot. `pilot.json` includes
 `extra_goals`, per-run operation metadata and relative work-directory paths.
 The strict legacy line gate stays active for every gcov stage.
 
