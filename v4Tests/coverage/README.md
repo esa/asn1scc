@@ -263,18 +263,21 @@ claim that every defensive encoder branch is reachable by checked calls.
 #### Extra CHOICE goals over existing stream checks
 
 `invalidValueHarness.EXTRA_GOALS` enables `choice-unset` for
-`09-CHOICE/001.asn1#1`, `payload-unset` for `09-CHOICE/013.asn1#1`, and
+`09-CHOICE/001.asn1#1`, `payload-unset` and `payload-initialize` for
+`09-CHOICE/013.asn1#1`, and
 `color-unset` for `15-PUS-ParameterPassing/001.asn1#1`.
 The public value pilot appends these units in legacy ACN and ACN-v2 after its
 four historical uPER+ACN configurations (indices 0–3); choice-unset retains
-indices 4–5, payload-unset retains 6–7, and color-unset uses 8–9. Both stages
+indices 4–5, both payload goals share 6–7, and color-unset uses 8–9. Both stages
 include all existing stream checks; only the candidate adds the value goals.
-These comparisons measure value coverage over stream coverage.
+These comparisons measure all enabled value goals over stream coverage. The
+payload comparison therefore includes both rejection and initialization gains;
+it does not measure an incremental gain over a baseline with payload-unset enabled.
 The historical positive-only deltas are reported separately
 and must not be claimed as new campaign gains.
 
 `prepare_extra(work, unit, args)` wraps the prepared driver's `main`, runs it
-once, then executes extra operations only after it succeeds. For each operation,
+once, then executes extra operations only after it succeeds. For each rejection operation,
 the driver initializes and validates a fresh parent, changes only its CHOICE
 kind and resets the error. For `choice-unset`, it sets `MyPDU_NONE` and requires
 exactly `ERR_MYPDU`. For `payload-unset`, it changes only `payload.kind` to
@@ -284,17 +287,27 @@ For `color-unset`, it changes only `colorData.kind` to `COLOR_DATA_NONE`;
 direct COLOR_DATA validation, parent MySeq validation and the parent's checked
 ACN encoding must each reject with exactly `ERR_COLOR_DATA`. The existing
 positive COLOR_DATA initializer control remains active in both stream stages.
-The parent initializers assign their constants directly, leaving the separate
-MyPayload initializer goal disabled. The checked
+The checked
 encoder must preserve every output byte, both cursor fields and the buffer count.
 Direct and parent validation coincide for `choice-unset` but run
 independently. No invalid value reaches Equal or an unchecked encoder.
 
+For `payload-initialize`, the driver poisons the entire MyPayload storage with
+0xA5, calls `ASN1SCC_MyPayload_Initialize` directly, and checks
+`MyPayload_alt_17_1_PRESENT` before reading `u.alt_17_1`, which must equal zero.
+It then resets the error and requires validator TRUE with error zero. Parent
+initialization assigns a separate constant and does not exercise this function.
+The two initializer targets are `(void)pVal` and the constant assignment,
+selected by function and statement content rather than fixed line numbers.
+
 Each operation emits exactly `Value goal GOAL/OPERATION: OK`, where GOAL is the
 enabled goal for the selected unit and
-OPERATION is `validate`, `validate-parent` or `encode`. `verify_extra_output`
+OPERATION is `validate`, `validate-parent` or `encode` for rejection goals,
+and only `initialize` for the initializer. `verify_extra_output`
 rejects missing, duplicate and unexpected goal lines. Metadata retains ordered
-goal IDs, operations, source-mapped validator targets and the driver hash.
+goal IDs, operations, source-mapped targets and the driver hash. Global goal
+order is choice-unset, payload-unset, color-unset, payload-initialize; the payload
+unit receives payload-unset followed by payload-initialize.
 Unregistered units receive no extra checks or transcript lines.
 
 The pilot's scoped loader adapter preserves/restores both the collector loader
@@ -320,6 +333,10 @@ The sanitizer suite retains all historical checks and adds per-goal/per-mode
 ASan/UBSan runs, actual omission of each operation, wrong results and exact-error
 faults for each call, byte writes, changes to each cursor/count field, and removal
 of each target validator assignment. Faults modify disposable copies only;
+initializer faults independently exercise wrong kind, content, validator result
+and nonzero error, actual omission, and removal of the constant assignment.
+Removing `(void)pVal` is not a behavioral fault. Duplicate transcript checks use
+an operation belonging to the tested goal. All
 coverage measurements retain identical generated codec, RTL and ATC sources.
 `checks.json` records goal, mode, fault name, operation and status.
 

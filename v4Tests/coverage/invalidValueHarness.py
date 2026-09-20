@@ -88,16 +88,28 @@ static int coverage_invalid_value_checks(void)
 
 
 def target_lines(work, case):
-    """Select both default-rejection statements inside the intended validator."""
+    """Select two source-grounded validator or initializer statements."""
     lines = (work / "sample1.c").read_text().splitlines()
-    signature = "flag ASN1SCC_" + case["validator"] + "_IsConstraintValid("
+    initializer = case.get("initializer", False)
+    signature = ("void ASN1SCC_" + case["type"] + "_Initialize(" if initializer else
+                 "flag ASN1SCC_" + case["validator"] + "_IsConstraintValid(")
     starts = [i for i, line in enumerate(lines) if line.startswith(signature)]
     if len(starts) != 1:
-        raise ValueError("Missing or ambiguous target validator")
+        raise ValueError("Missing or ambiguous target function")
     start = starts[0]
     stop = next((i for i in range(start + 1, len(lines)) if lines[i] == "}"), None)
     if stop is None:
-        raise ValueError("Unterminated target validator")
+        raise ValueError("Unterminated target function")
+    if initializer:
+        typename = "ASN1SCC_" + case["type"]
+        needles = ["(void)pVal;", f"(*(pVal)) = ({typename}){typename}_constant;"]
+        targets = []
+        for needle in needles:
+            matches = [i + 1 for i in range(start, stop) if lines[i].strip() == needle]
+            if len(matches) != 1:
+                raise ValueError("Missing or ambiguous initializer statement: " + needle)
+            targets.extend(matches)
+        return targets
     needle = "*pErrCode = " + case["target_error"] + ";"
     matches = [i for i in range(start, stop) if lines[i].strip().startswith(needle)]
     if len(matches) != 1 or not lines[matches[0] + 1].strip().startswith("ret = FALSE;"):
@@ -153,14 +165,55 @@ EXTRA_PROFILES = {
         "validator": "COLOR_DATA", "member": "colorData", "kind": "COLOR_DATA_NONE",
         "target_error": "ERR_COLOR_DATA",
     },
+    "payload-initialize": {
+        "unit": "09-CHOICE/013.asn1#1", "type": "MyPayload", "initializer": True,
+        "kind": "MyPayload_alt_17_1_PRESENT", "unset_kind": "MyPayload_NONE",
+        "content": "u.alt_17_1",
+        "value": 0,
+    },
 }
 EXTRA_GOALS = {goal: profile["unit"] for goal, profile in EXTRA_PROFILES.items()}
 EXTRA_OPERATIONS = ("validate", "validate-parent", "encode")
 
 
+def extra_operations(profile):
+    return ("initialize",) if profile.get("initializer") else EXTRA_OPERATIONS
+
+
 def extra_driver(goal, profile):
-    """Each operation starts with a fresh initialized parent and error state."""
+    """Initialize poisoned storage, or reject a freshly patched valid parent."""
     parent = "ASN1SCC_" + profile["type"]
+    if profile.get("initializer"):
+        return f"""
+    /* begin {goal}/initialize */
+    {{
+        {parent} bad;
+        memset(&bad, 0xA5, sizeof bad);
+        {parent}_Initialize(&bad);
+        /* observe {goal}/initialize-value */
+        if (bad.kind != {profile['kind']}) {{
+            puts("Value goal {goal}/initialize: unexpected kind");
+            return 1;
+        }}
+        if (bad.{profile['content']} != {profile['value']}) {{
+            puts("Value goal {goal}/initialize: unexpected content");
+            return 1;
+        }}
+        int error = 0;
+        flag accepted = {parent}_IsConstraintValid(&bad, &error);
+        /* observe {goal}/initialize */
+        if (accepted != TRUE) {{
+            puts("Value goal {goal}/initialize: unexpected result");
+            return 1;
+        }}
+        if (error != 0) {{
+            puts("Value goal {goal}/initialize: unexpected error");
+            return 1;
+        }}
+        puts("Value goal {goal}/initialize: OK");
+    }}
+    /* end {goal}/initialize */
+"""
     child = "bad" + ("." + profile["member"] if profile["member"] else "")
     blocks = []
     for operation in EXTRA_OPERATIONS:
@@ -232,7 +285,7 @@ def prepare_extra(work, unit, args):
     bodies = []
     for goal in goals:
         profile = EXTRA_PROFILES[goal]
-        metadata["operations"][goal] = list(EXTRA_OPERATIONS)
+        metadata["operations"][goal] = list(extra_operations(profile))
         metadata["target_lines"][goal] = target_lines(work, profile)
         bodies.append(extra_driver(goal, profile))
     source = ('#include <stdio.h>\n#include <string.h>\n#include "sample1.h"\n'
@@ -250,7 +303,7 @@ def prepare_extra(work, unit, args):
 
 def verify_extra_output(output, metadata):
     expected = [f"Value goal {goal}/{operation}: OK"
-                for goal in metadata["goal_ids"] for operation in EXTRA_OPERATIONS]
+                for goal in metadata["goal_ids"] for operation in metadata["operations"][goal]]
     actual = [line for line in output.splitlines() if line.startswith("Value goal ")]
     if sorted(actual) != sorted(expected):
         raise ValueError("Incomplete, duplicate or unexpected extra value outcomes")

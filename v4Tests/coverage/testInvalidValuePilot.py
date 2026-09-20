@@ -7,13 +7,23 @@ import subprocess
 
 from encodePilot import c
 from invalidValueHarness import (CASES, EXTRA_GOALS, EXTRA_PROFILES, EXTRA_OPERATIONS,
-                                 target_lines, verify_output, verify_extra_output)
+                                 extra_operations, target_lines, verify_output, verify_extra_output)
 from invalidValuePilot import CONFIGURATIONS
 from invalidStreamHarness import verify_output as verify_stream_output
 
 
 def extra_faults(goal):
     yield "sanitizer", "all", None
+    profile = EXTRA_PROFILES[goal]
+    if profile.get("initializer"):
+        yield "missing-case", "initialize", "omit"
+        yield "wrong-result", "initialize", "accepted = FALSE;"
+        yield "wrong-error", "initialize", "error = 1;"
+        yield "wrong-initializer-value", "kind", f"bad.kind = {profile['unset_kind']};"
+        yield "wrong-initializer-value", "content", f"bad.{profile['content']} = {profile['value'] + 1};"
+        # Only the constant assignment has an observable effect.
+        yield "missing-initializer-assignment", "source", 1
+        return
     for operation in EXTRA_OPERATIONS:
         yield "missing-case", operation, "omit"
         yield "wrong-result", operation, "accepted = TRUE;"
@@ -59,6 +69,8 @@ def check_extra(args, report):
                         text = text[:first] + text[last:]
                     else:
                         observed = "encode" if name == "encoder-advances" else operation
+                        if name == "wrong-initializer-value":
+                            observed = "initialize-value"
                         marker = f"        /* observe {goal}/{observed} */"
                         if text.count(marker) != 1:
                             raise ValueError("Missing fault-injection point")
@@ -88,7 +100,9 @@ def check_extra(args, report):
                     if run.returncode or run.stderr or rejected:
                         raise ValueError(f"{goal}/{mode}: sanitizer/oracle failure")
                     # Exact whole-line matching also rejects duplicate/absent goals.
-                    for extra in (f"Value goal {goal}/validate: OK\n",
+                    duplicate_operation = extra_operations(EXTRA_PROFILES[goal])[0]
+                    for extra in (f"Value goal {goal}/{duplicate_operation}: OK\n",
+                                  f"Value goal {goal}/unexpected-operation: OK\n",
                                   "Value goal absent/validate: OK\n"):
                         try:
                             verify_extra_output(run.stdout + extra, metadata)

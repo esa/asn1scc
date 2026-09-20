@@ -113,7 +113,7 @@ def main():
                             if any(int(s["num"]) == line for s in o["spans"])]
                     new, = [o for o in after["files"]["sample1.c"]["obligations"] if o["id"] == old["id"]]
                     if old["status"] != "-" or new["status"] != "+":
-                        raise ValueError("Selected validator obligation was not newly covered")
+                        raise ValueError("Selected value-goal obligation was not newly covered")
                     target_obligations.append(new)
             result["comparisons"].append({"mode": mode, "unit": unit, "positive_tests": before["positive_tests"],
                                            "scope": "historical-positive-only" if historical else "extra-over-streams",
