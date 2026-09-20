@@ -143,6 +143,11 @@ EXTRA_PROFILES = {
         "validator": "MyPDU", "member": "", "kind": "MyPDU_NONE",
         "target_error": "ERR_MYPDU",
     },
+    "payload-unset": {
+        "unit": "09-CHOICE/013.asn1#1", "type": "MyPDU",
+        "validator": "MyPayload", "member": "payload", "kind": "MyPayload_NONE",
+        "target_error": "ERR_MYPAYLOAD",
+    },
 }
 EXTRA_GOALS = {goal: profile["unit"] for goal, profile in EXTRA_PROFILES.items()}
 EXTRA_OPERATIONS = ("validate", "validate-parent", "encode")
