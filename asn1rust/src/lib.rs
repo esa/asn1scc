@@ -1049,21 +1049,23 @@ impl<'a> BitStream<'a> {
             self.current_byte += 1;
             self.push_data_if_required();
 
-            let cur2 = self.current_byte as usize;
-            self.buf[cur2] &= nmask;
-            self.buf[cur2] |= v << ncb;
+            if cb > 0 {
+                let cur2 = self.current_byte as usize;
+                self.buf[cur2] &= nmask;
+                self.buf[cur2] |= v << ncb;
+            }
         }
 
         for i in 1..arr_len.saturating_sub(1) {
             let v = arr[i];
-            let v1 = v >> cb;
-            let v2 = v << ncb;
             let cur = self.current_byte as usize;
-            self.buf[cur] |= v1;
+            self.buf[cur] |= v >> cb;
             self.current_byte += 1;
             self.push_data_if_required();
-            let cur2 = self.current_byte as usize;
-            self.buf[cur2] |= v2;
+            if cb > 0 {
+                let cur2 = self.current_byte as usize;
+                self.buf[cur2] |= v << ncb;
+            }
         }
         if arr_len > 1 {
             let v = arr[arr_len - 1];
@@ -1098,7 +1100,7 @@ impl<'a> BitStream<'a> {
             // Note: in streaming mode the buffer may wrap, but in non-streaming
             // mode we have the whole buffer available.
             arr[i] = self.buf[rb_idx] << cb;
-            if rb_next_idx < self.count as usize {
+            if cb > 0 && rb_next_idx < self.count as usize {
                 arr[i] |= self.buf[rb_next_idx] >> ncb;
             }
         }
@@ -2500,3 +2502,7 @@ macro_rules! asn1scc_assign {
     };
 }
 
+
+#[cfg(test)]
+#[path = "lib_tests.rs"]
+mod lib_tests;

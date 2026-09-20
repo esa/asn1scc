@@ -369,7 +369,7 @@ pub fn acn_enc_int_twos_complement_const_size(
         p_bit_strm.append_n_bit_zero(encoded_size_in_bits - n_bits);
         p_bit_strm.encode_non_negative_integer(int_val as Asn1SccUint);
     } else {
-        let abs_val = (int_val.wrapping_neg() - 1) as Asn1SccUint;
+        let abs_val = (int_val.wrapping_neg()).wrapping_sub(1) as Asn1SccUint;
         let n_bits = get_number_of_bits_for_non_negative_integer(abs_val);
         p_bit_strm.append_n_bit_one(encoded_size_in_bits - n_bits);
         p_bit_strm.encode_non_negative_integer_neg(abs_val, true);
@@ -548,7 +548,7 @@ pub fn acn_dec_int_twos_complement_const_size_little_endian_64(
 /// Mirrors C `To_UInt`.
 fn to_uint(int_val: Asn1SccSint) -> Asn1SccUint {
     if int_val < 0 {
-        let ret = (int_val.wrapping_neg() - 1) as Asn1SccUint;
+        let ret = (int_val.wrapping_neg()).wrapping_sub(1) as Asn1SccUint;
         !ret
     } else {
         int_val as Asn1SccUint
@@ -3498,3 +3498,7 @@ pub fn acn_patch_det_ia5string_fix_size(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "acn_tests.rs"]
+mod acn_tests;
