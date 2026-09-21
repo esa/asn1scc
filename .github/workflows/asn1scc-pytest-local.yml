@@ -32,7 +32,6 @@ jobs:
             source "$HOME/.sdkman/bin/sdkman-init.sh" &&
             dotnet build Antlr &&
             dotnet build parseStg2 &&
-            rm -f StgPython/*.stg.fs &&
             (cd StgPython && dotnet ../parseStg2/bin/Debug/net10.0/parseStg2.dll backends.xml 3) &&
             dotnet build asn1scc &&
             mapfile -t TESTLIB_FILES < <(find Asn1AcnTestLib \( -name "*.asn1" -o -name "*.acn" \) | sort) &&
