@@ -59,3 +59,20 @@ RTL_DIR=/path/to/old/asn1crt ./reproduce_issue.sh --direct-only   # run against 
 The script exits with `0` when every sub-test passes. Against the runtime of commit
 `84ea20f3` every group fails, seven of them with a sanitizer report. Build artifacts are
 kept in the ignored `build/` directory.
+
+## Ada runtime leg (added 2026-09-22, ESACERT #74626)
+
+- `ada_runtime_tests.adb`, `ada_runtime_tests.gpr`, `reproduce_ada.sh`
+  Direct calls to the Ada XER decoders in `ADA_RTL2/src/adaasn1rtl-encoding-xer.adb`.
+  Before the fix an oversized BIT STRING (the researcher's 2047-digit input into a
+  255-bit array), an element text longer than the runtime's 32768-byte scratch buffer,
+  and an OCTET STRING with too many digits raised `Constraint_Error`, and a
+  non-hexadecimal OCTET STRING raised `Program_Error`: unhandled exceptions, i.e. a
+  crash of the generated decoder. The decoders now return `ERR_INCORRECT_STREAM`
+  without writing past the buffer. On failure the `out` length is set to the buffer
+  capacity, which is always within the `Length` subtype of the generated record
+  (0 is not when the minimum size is 1). Positive controls (boundary and ordinary
+  values) still decode.
+
+  Run with `./reproduce_ada.sh` (needs gprbuild; copies the x86 board config into
+  `build/ada/`).

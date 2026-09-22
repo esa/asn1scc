@@ -538,6 +538,12 @@ package body adaasn1rtl.encoding.xer is
       while Strm.CurrentByte <= Strm.Data'Last and
         Strm.Data (Strm.CurrentByte) /= '<'
       loop
+         --  fail closed when the element text does not fit the caller's
+         --  buffer (Result is still Success => False here)
+         if valLength >= value'Length then
+            valLength := 0;
+            return;
+         end if;
          value (value'First + valLength) := Strm.Data (Strm.CurrentByte);
          Strm.CurrentByte                := Strm.CurrentByte + 1;
          valLength                       := valLength + 1;
@@ -819,7 +825,9 @@ package body adaasn1rtl.encoding.xer is
       J    : Integer              := 1;
       idx  : Integer;
    begin
-      len := 0;
+      --  on failure len is set to the buffer capacity, which is always
+      --  within the Length subtype of the generated record
+      len := value'Length;
       Xer_DecodePrimitiveElement (Strm, elementTag, str, len2, Result);
       if not Result.Success then
          return;
@@ -832,6 +840,19 @@ package body adaasn1rtl.encoding.xer is
       end loop;
 
       len2 := J - 1;
+
+      --  fail closed on odd digit count, on more bytes than the buffer
+      --  holds, and on non-hexadecimal characters
+      if len2 mod 2 /= 0 or else len2 / 2 > value'Length then
+         Result := (Success => False, ErrorCode => ERR_INCORRECT_STREAM);
+         return;
+      end if;
+      for I in 1 .. len2 loop
+         if str (I) not in '0' .. '9' | 'A' .. 'F' | 'a' .. 'f' then
+            Result := (Success => False, ErrorCode => ERR_INCORRECT_STREAM);
+            return;
+         end if;
+      end loop;
 
       idx := value'First;
       for I in 1 .. len2 loop
@@ -855,9 +876,11 @@ package body adaasn1rtl.encoding.xer is
       str : XString (1 .. 32768) := (1 .. 32768 => ' ');
       J   : Integer              := 1;
    begin
-      len := 0;
       Xer_DecodePrimitiveElement (Strm, elementTag, str, len, Result);
       if not Result.Success then
+         --  the buffer capacity is always within the Length subtype of
+         --  the generated record (0 might not be)
+         len := value'Length;
          return;
       end if;
 
@@ -870,11 +893,23 @@ package body adaasn1rtl.encoding.xer is
 
       len := J - 1;
 
+      --  fail closed when the input carries more bits than the buffer
+      --  holds (ESACERT #74626) or characters other than '0' and '1'
+      if len > value'Length then
+         len    := value'Length;
+         Result := (Success => False, ErrorCode => ERR_INCORRECT_STREAM);
+         return;
+      end if;
+
       for I in 1 .. len loop
          if str (I) = '0' then
             value (value'First - 1 + I) := 0;
-         else
+         elsif str (I) = '1' then
             value (value'First - 1 + I) := 1;
+         else
+            len    := value'Length;
+            Result := (Success => False, ErrorCode => ERR_INCORRECT_STREAM);
+            return;
          end if;
       end loop;
    end Xer_DecodeBitString;
