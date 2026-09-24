@@ -432,12 +432,6 @@ let findTassesWithExportedDeterminants (r: AstRoot) (deps: AcnInsertedFieldDepen
             | true  -> Some (fst key, (snd key, occ.acnChild))
             | false -> None)
         |> List.distinctBy fst
-    exporting |> List.iter (fun (tas, (relPath, acnChild)) ->
-        let fieldName = relPath |> List.map (fun n -> n.StrValue) |> String.concat "."
-        let msg =
-            sprintf "ACN field '%s' determines a field outside type '%s'; with --acn-v2 its value is determined by the enclosing type, so no standalone ACN encoder/decoder is generated for '%s'."
-                fieldName tas.tasName tas.tasName
-        System.Console.Error.WriteLine(AntlrParse.formatSemanticWarning acnChild.Name.Location msg))
     let exportingSet = exporting |> List.map fst |> Set.ofList
     // A field nobody consumes is an error when a function is generated from
     // this instance: the type assignment's own instance, or a usage of a type
@@ -453,6 +447,12 @@ let findTassesWithExportedDeterminants (r: AstRoot) (deps: AcnInsertedFieldDepen
         match isChecked with
         | true  -> raise(SemanticError(occ.acnChild.Name.Location, unusedAcnInsertedFieldMessage occ.acnChild.Name.Value occ.acnChild.Type))
         | false -> ())
+    exporting |> List.iter (fun (tas, (relPath, acnChild)) ->
+        let fieldName = relPath |> List.map (fun n -> n.StrValue) |> String.concat "."
+        let msg =
+            sprintf "ACN field '%s' determines a field outside type '%s'; with --acn-v2 its value is determined by the enclosing type, so no standalone ACN encoder/decoder is generated for '%s'."
+                fieldName tas.tasName tas.tasName
+        System.Console.Error.WriteLine(AntlrParse.formatSemanticWarning acnChild.Name.Location msg))
     exportingSet
 
 
