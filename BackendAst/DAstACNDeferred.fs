@@ -1026,7 +1026,10 @@ let private buildCallerWrapper
                     // by the RefTypeArgument dependency. The formal parameter
                     // name belongs to the referenced type; it can differ from
                     // the caller's field name and is not the local we reserve.
-                    let argumentBoundary, determinant =
+                    // A producer parameter that no dependency uses has no such
+                    // link (AcnClosureConversion.applyDepRewrites): the local is
+                    // named after the argument, as its consumers expect.
+                    let argumentLink =
                         ctx.deps.acnDependencies
                         |> List.tryPick (fun dep ->
                             if dep.asn1Type = ctx.t.id then
@@ -1035,8 +1038,6 @@ let private buildCallerWrapper
                                     Some (dep.asn1Type, dep.determinant)
                                 | _ -> None
                             else None)
-                        |> Option.defaultWith (fun () ->
-                            failwithf "BUG: missing RefTypeArgument dependency for %s" resolvedParam.id.AsString)
                     let rec resolveActualDeterminant determinant =
                         match determinant with
                         | AcnChildDeterminant _ -> determinant
@@ -1050,20 +1051,23 @@ let private buildCallerWrapper
                             |> Option.map resolveActualDeterminant
                             |> Option.defaultWith (fun () ->
                                 failwithf "BUG: unresolved RefTypeArgument parameter %s" parameter.id.AsString)
-                    let actualDeterminant = resolveActualDeterminant determinant
-                    let (ReferenceToType boundaryPath) = argumentBoundary
-                    let (ReferenceToType determinantPath) = actualDeterminant.id
-                    let determinantIsInsideBoundary =
-                        boundaryPath.Length <= determinantPath.Length
-                        && List.take boundaryPath.Length determinantPath = boundaryPath
-                    // A determinant produced inside the boundary is named after
-                    // the boundary's parameter: that is the name its consumers in
-                    // this scope use (AcnExternalField.getExternalField0).
                     let cName =
-                        match actualDeterminant, determinantIsInsideBoundary with
-                        | AcnChildDeterminant child, false -> ToC child.Name.Value
-                        | AcnChildDeterminant _, true      -> DAstACN.getAcnDeterminantName resolvedParam.id
-                        | AcnParameterDeterminant _, _     -> DAstACN.getAcnDeterminantName actualDeterminant.id
+                        match argumentLink with
+                        | None -> ToC argName
+                        | Some (argumentBoundary, determinant) ->
+                            let actualDeterminant = resolveActualDeterminant determinant
+                            let (ReferenceToType boundaryPath) = argumentBoundary
+                            let (ReferenceToType determinantPath) = actualDeterminant.id
+                            let determinantIsInsideBoundary =
+                                boundaryPath.Length <= determinantPath.Length
+                                && List.take boundaryPath.Length determinantPath = boundaryPath
+                            // A determinant produced inside the boundary is named after
+                            // the boundary's parameter: that is the name its consumers in
+                            // this scope use (AcnExternalField.getExternalField0).
+                            match actualDeterminant, determinantIsInsideBoundary with
+                            | AcnChildDeterminant child, false -> ToC child.Name.Value
+                            | AcnChildDeterminant _, true      -> DAstACN.getAcnDeterminantName resolvedParam.id
+                            | AcnParameterDeterminant _, _     -> DAstACN.getAcnDeterminantName actualDeterminant.id
                     let pStr = ctx.lm.acn.acn_deferred_det_actual_param cName ctx.codec
                     paramsAcc @ [pStr], localsAcc @ [cName]
             ) ([], [])

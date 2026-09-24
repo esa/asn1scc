@@ -257,25 +257,45 @@ let private applyDepRewrites (deps: AcnInsertedFieldDependencies) (rewrites: Dep
     else
         // Step 1: replace internal deps
         // A consumer dependency takes the innermost boundary's parameter (the
-        // rewrites of one type are listed inner first).  A dependency on a
-        // determinant exposed through several nested boundaries takes the
-        // outermost one: that boundary is the child of the dependent's scope.
+        // rewrites of one type are listed inner first).  Otherwise a
+        // dependency on a determinant exposed through several nested producer
+        // boundaries takes the outermost one: that boundary is the child of
+        // the dependent's scope.  Explicit ACN arguments (RefTypeArgument)
+        // are never rewritten to a producer parameter: the caller passes the
+        // determinant it declares for the referenced child.
+        let rewriteOf (dep: AcnDependency) =
+            let matches =
+                rewrites |> List.filter (fun rw ->
+                    let dependentIsInside =
+                        isPathPrefix rw.boundaryPath (dep.asn1Type.ToScopeNodeList)
+                    dep.determinant.id = rw.originalDet.id
+                    && dependentIsInside = rw.rewriteInternal)
+            match matches |> List.tryFind (fun rw -> rw.rewriteInternal), dep.dependencyKind with
+            | Some rw, _                      -> Some rw
+            | None, AcnDepRefTypeArgument _   -> None
+            | None, _                         -> matches |> List.sortBy (fun rw -> rw.boundaryPath.Length) |> List.tryHead
+        let depsWithRewrite = deps.acnDependencies |> List.map (fun dep -> dep, rewriteOf dep)
         let rewrittenDeps =
-            deps.acnDependencies |> List.map (fun dep ->
-                let matches =
-                    rewrites |> List.filter (fun rw ->
-                        let dependentIsInside =
-                            isPathPrefix rw.boundaryPath (dep.asn1Type.ToScopeNodeList)
-                        dep.determinant.id = rw.originalDet.id
-                        && dependentIsInside = rw.rewriteInternal)
-                let matchingRewrite =
-                    match matches |> List.tryFind (fun rw -> rw.rewriteInternal) with
-                    | Some rw -> Some rw
-                    | None    -> matches |> List.sortBy (fun rw -> rw.boundaryPath.Length) |> List.tryHead
+            depsWithRewrite |> List.map (fun (dep, matchingRewrite) ->
                 match matchingRewrite with
                 | Some rw ->
                     { dep with determinant = AcnParameterDeterminant rw.newParam }
                 | None -> dep)
+
+        // A producer parameter is linked to its determinant only when some
+        // dependency uses it, directly or through an enclosing producer
+        // boundary of the same determinant.  The other producer parameters
+        // keep the plain caller-local handling.
+        let usedProducers =
+            depsWithRewrite |> List.choose (fun (_, rw) ->
+                match rw with
+                | Some rw when not rw.rewriteInternal -> Some rw
+                | _ -> None)
+        let rewrites =
+            rewrites |> List.filter (fun rw ->
+                rw.rewriteInternal
+                || usedProducers |> List.exists (fun used ->
+                    used.originalDet.id = rw.originalDet.id && isPathPrefix used.boundaryPath rw.boundaryPath))
 
         // Step 2: add RefTypeArgumentDependency for each rewrite
         let newRefTypeArgDeps =
