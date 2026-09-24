@@ -58,6 +58,16 @@ let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
         | _ -> ()  // AcnChildDeterminant — resolves to the ACN child, which is fine
 
     let baseName = AcnHelpers.getAcnDeterminantName resolvedId
+    let isExposedProducer =
+        r.args.acnDeferred
+        && (match dependency.determinant with
+            | AcnParameterDeterminant prm ->
+                let (ReferenceToType paramNodes) = prm.id
+                let boundaryPath = paramNodes |> List.rev |> List.tail |> List.rev
+                let dependentPath = dependency.asn1Type.ToScopeNodeList
+                not (boundaryPath.Length <= dependentPath.Length
+                     && List.take boundaryPath.Length dependentPath = boundaryPath)
+            | AcnChildDeterminant _ -> false)
     // In deferred mode, when the determinant resolved to a PRM (parameter),
     // the formal parameter is the language-specific deferred ref struct.
     // Use the abstract macros to access the value/str_value fields so the
@@ -65,8 +75,14 @@ let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
     if r.args.acnDeferred then
         let resolvedNodes = match resolvedId with ReferenceToType nodes -> nodes
         let resolvedLastNode = resolvedNodes |> List.rev |> List.head
-        match resolvedLastNode with
-        | PRM _ ->
+        match resolvedLastNode, isExposedProducer with
+        | _, true ->
+            let pointer = lm.lg.getPointer (AccessPath.valueEmptyPath baseName)
+            match dependency.dependencyKind with
+            | Asn1AcnAst.AcnDepPresenceStr _ -> lm.acn.acn_deferred_det_access_str_ptr pointer
+            | Asn1AcnAst.AcnDepPresenceBool  -> lm.acn.acn_deferred_det_access_bool_ptr pointer
+            | _                              -> lm.acn.acn_deferred_det_access_ptr pointer
+        | PRM _, false ->
             // Pick the access form by dependency kind.  String determinants
             // need the Str_Value field; Boolean determinants need a Boolean
             // expression (Ada is strictly typed and rejects Asn1UInt-as-Boolean
@@ -75,7 +91,7 @@ let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
             | Asn1AcnAst.AcnDepPresenceStr _ -> lm.acn.acn_deferred_det_access_str_ptr baseName
             | Asn1AcnAst.AcnDepPresenceBool  -> lm.acn.acn_deferred_det_access_bool_ptr baseName
             | _                              -> lm.acn.acn_deferred_det_access_ptr baseName
-        | _     -> baseName
+        | _, false -> baseName
     else
         baseName
 

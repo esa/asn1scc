@@ -278,9 +278,16 @@ type LangGeneric_c() =
             | FlagLocalVariable (name,Some iv)          -> sprintf "flag %s=%s;" name iv
             | BooleanLocalVariable (name,None)          -> sprintf "flag %s;" name
             | BooleanLocalVariable (name,Some iv)       -> sprintf "flag %s=%s;" name iv
-            | AcnInsertedChild(name, vartype, initVal)  -> sprintf "%s %s;" vartype name
+            | AcnInsertedChild(name, vartype, initVal)  ->
+                if String.IsNullOrWhiteSpace initVal then sprintf "%s %s;" vartype name
+                else sprintf "%s %s = %s;" vartype name initVal
             | GenericLocalVariable lv                   ->
-                sprintf "%s%s %s%s;" (if lv.isStatic then "static " else "") lv.varType lv.name (if lv.arrSize.IsNone then "" else "["+lv.arrSize.Value+"]")
+                sprintf "%s%s %s%s%s;"
+                    (if lv.isStatic then "static " else "")
+                    lv.varType
+                    lv.name
+                    (lv.arrSize |> Option.map (fun size -> "[" + size + "]") |> Option.defaultValue "")
+                    (lv.initExp |> Option.map (fun value -> " = " + value) |> Option.defaultValue "")
 
 
         override this.getLongTypedefName (tdr:TypeDefinitionOrReference) : string =
@@ -846,6 +853,13 @@ type LangGeneric_c() =
             | Asn1AcnAst.AcnInsertedType.AcnBoolean bln ->
                 match bln.acnProperties.encodingPattern with
                 | None -> Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.TrueValueEncoding pattern) when pattern.Value = "1" ->
+                    Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.FalseValueEncoding pattern) when pattern.Value = "0" ->
+                    Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.TrueFalseValueEncoding (truePattern, falsePattern))
+                    when truePattern.Value = "1" && falsePattern.Value = "0" ->
+                    Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
                 | Some _ -> None
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 match enm.enumerated.acnEncodingClass with

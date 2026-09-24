@@ -1391,7 +1391,7 @@ end if;
    skipped. (Ada Bitstream.Size_In_Bytes is an immutable discriminant,
    so the C trick of temporarily reducing `count` does not translate.) */
 
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1401,7 +1401,7 @@ begin
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
-        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
             result.ErrorCode := <sErrCode>;
             return;
@@ -1410,7 +1410,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
 begin
@@ -1461,7 +1461,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1471,7 +1471,7 @@ begin
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
-        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
             result.ErrorCode := <sErrCode>;
             return;
@@ -1480,7 +1480,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
 begin
@@ -1489,7 +1489,7 @@ begin
 end;
 >>
 
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1499,7 +1499,7 @@ begin
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
-        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
             result.ErrorCode := <sErrCode>;
             return;
@@ -1508,7 +1508,7 @@ begin
 end;
 >>
 
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value);
 begin
@@ -1559,7 +1559,7 @@ begin
 end;
 >>
 
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1569,7 +1569,7 @@ begin
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
-        <sPatchFuncName>(acn_nCount, bs, <sDetParamName>, result);
+        <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
             result.ErrorCode := <sErrCode>;
             return;
@@ -1578,7 +1578,7 @@ begin
 end;
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 declare
     acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value);
 begin

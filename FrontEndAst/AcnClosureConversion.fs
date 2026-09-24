@@ -72,6 +72,7 @@ let private findProducerDeterminants (boundaryPath: ScopeNode list) (deps: AcnIn
             let isSiblingPresence =
                 (match dep.dependencyKind with AcnDepPresenceBool -> true | _ -> false)
                 && depTypePath.Length = boundaryPath.Length
+                && detPath.Length = boundaryPath.Length
                 && boundaryPath.Length >= 1
                 && (List.take (boundaryPath.Length - 1) depTypePath) = (List.take (boundaryPath.Length - 1) boundaryPath)
             if isSiblingPresence then None
@@ -119,6 +120,9 @@ type private DepRewrite = {
     /// The boundary path (ScopeNode list) — deps whose asn1Type is inside
     /// this path and whose determinant matches originalDet will be rewritten.
     boundaryPath   : ScopeNode list
+    /// Consumer parameters replace dependencies inside the referenced type.
+    /// Producer parameters only expose an inner determinant to the caller.
+    rewriteInternal : bool
 }
 
 
@@ -215,23 +219,20 @@ let rec private transformType (deps: AcnInsertedFieldDependencies) (t: Asn1Type)
                     hasExtraConstrainsOrChildrenOrAcnArgs = true }
             let t'' = { t' with Kind = Asn1TypeKind.ReferenceType rt' }
 
-            // Collect dep rewrites for consumer determinants only.
-            // For each consumer det that got a new parameter, we need to:
-            //   (a) rewrite internal deps to point to the parameter
-            //   (b) add a RefTypeArgumentDependency from boundary to original det
-            // Producer dets don't need dep rewrites — the determinant is inside
-            // the boundary and will be resolved locally.
+            // Record every new argument. Consumer determinants also rewrite
+            // dependencies inside the referenced type. Producer determinants
+            // keep their inner dependency but need the RefTypeArgument link so
+            // the caller can address and patch the exposed determinant.
             let consumerDetIds = consumerDets |> List.map (fun d -> d.id) |> Set.ofList
-            let newConsumerDets = newDets |> List.filter (fun d -> Set.contains d.id consumerDetIds)
             let newRewrites =
-                List.map2
-                    (fun (det: AcnChild) (prm: AcnParameter) ->
+                List.zip newDets newParams
+                |> List.map
+                    (fun ((det: AcnChild), (prm: AcnParameter)) ->
                         { DepRewrite.boundaryTypeId = t'.id
                           originalDet = det
                           newParam = prm
-                          boundaryPath = boundaryPath })
-                    newConsumerDets
-                    (newParams |> List.take newConsumerDets.Length)
+                          boundaryPath = boundaryPath
+                          rewriteInternal = Set.contains det.id consumerDetIds })
 
             t'', childRewrites @ newRewrites
 
@@ -259,8 +260,10 @@ let private applyDepRewrites (deps: AcnInsertedFieldDependencies) (rewrites: Dep
             deps.acnDependencies |> List.map (fun dep ->
                 let matchingRewrite =
                     rewrites |> List.tryFind (fun rw ->
+                        let dependentIsInside =
+                            isPathPrefix rw.boundaryPath (dep.asn1Type.ToScopeNodeList)
                         dep.determinant.id = rw.originalDet.id
-                        && isPathPrefix rw.boundaryPath (dep.asn1Type.ToScopeNodeList))
+                        && dependentIsInside = rw.rewriteInternal)
                 match matchingRewrite with
                 | Some rw ->
                     { dep with determinant = AcnParameterDeterminant rw.newParam }
