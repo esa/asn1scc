@@ -1412,7 +1412,7 @@ begin
             return; -- COVERAGE_IGNORE
         end if;
     end if;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
 /* Decode the contents of a deferred OCTET STRING CONTAINING region.
@@ -1440,8 +1440,8 @@ begin
                 bs : adaasn1rtl.encoding.Bitstream := acn_region;
             begin
                 <sBody>
-            end;
-        end;
+            end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a Bitstream object)
+        end; -- COVERAGE_IGNORE
         bs.Current_Bit_Pos := (acn_first - 1 + acn_nBytes) * 8;
     end if;
 end;
@@ -1451,7 +1451,7 @@ declare
 begin
     <sBody>
     bs.Current_Bit_Pos := acn_expected_end;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov)
 <endif>
 >>
 
@@ -1522,7 +1522,7 @@ begin
             return; -- COVERAGE_IGNORE
         end if;
     end if;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
 octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
@@ -1545,7 +1545,7 @@ begin
             return; -- COVERAGE_IGNORE
         end if;
     end if;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
 bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
@@ -1554,7 +1554,7 @@ declare
 begin
     <sFuncName>_aux(<p>, bs, result);
     bs.Current_Bit_Pos := acn_expected_end;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov)
 >>
 
 bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
@@ -1615,7 +1615,7 @@ begin
             return; -- COVERAGE_IGNORE
         end if;
     end if;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
 bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
@@ -1624,7 +1624,7 @@ declare
 begin
     <sBody>
     bs.Current_Bit_Pos := acn_expected_end;
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov)
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
