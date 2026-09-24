@@ -113,6 +113,36 @@ def mysystem(cfg: TestConfig, targetDir: str, cmd: str, bCanFail: bool, asn1_lab
     return ret
 
 
+def firstLineMarkers(asn1file: str) -> str:
+    """First line of a test .asn1 file, where the test markers live."""
+    with open(asn1file, 'r') as f:
+        return f.readline()
+
+
+def isTestSelected(cfg: TestConfig, asn1file: str) -> bool:
+    """First-line markers restricting a test file (same rules in regression/Program.fs):
+    ACNV2_ONLY runs the file only with --acn-v2, C_ONLY only for the C backend."""
+    markers = firstLineMarkers(asn1file)
+    if "ACNV2_ONLY" in markers and cfg.acnV2 == "":
+        return False
+    if "C_ONLY" in markers and cfg.language != "c":
+        return False
+    return True
+
+
+def helpersDir(asn1file: str) -> str:
+    """<name>.helpers/ next to <name>.asn1: files copied into the work directory
+    of each test case of that file (e.g. user-provided mapping functions)."""
+    return os.path.splitext(asn1file)[0] + ".helpers"
+
+
+def isWarningOnly(err_msg: str) -> bool:
+    """Compiler stderr that contains nothing but warnings (regression/Program.fs
+    does not look at stderr of passing test cases either)."""
+    lines = [l for l in err_msg.splitlines() if l.strip() != ""]
+    return all(": warning: " in l for l in lines)
+
+
 def CreateACNFile(targetDir: str, content: str):
     str_start = "TEST-CASE DEFINITIONS ::= BEGIN\n"
     str_end = "END\n"
@@ -164,7 +194,7 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
         err_msg = ferr.read()
 
     if behavior == 0 or behavior == 2:
-        if res != 0 or err_msg != "":
+        if res != 0 or not isWarningOnly(err_msg):
             PrintFailed("Asn.1 compiler failed")
             safe_print("Asn.1 compiler error is: " + err_msg)
             results.add_error(f'Failed {asn1} {acn} in {language}')
@@ -360,6 +390,9 @@ def collect_work_items_ACN(cfg: TestConfig, asn1file: str) -> List[WorkItem]:
         results.add_error(f'Failed {asn1file} in {cfg.language}')
         return items
 
+    if not isTestSelected(cfg, fnameASN):
+        return items
+
     asn1_label = os.sep.join(asn1file.split(os.sep)[-2:])
 
     # Per-file base working directory: tmp_<lang>/<curDir>/<baseFileName>
@@ -479,6 +512,9 @@ def prepare_and_run_item(cfg: TestConfig, item: WorkItem):
     shutil.rmtree(targetDir, ignore_errors=True)
     os.makedirs(targetDir, exist_ok=True)
     shutil.copyfile(item.asn1file_path, os.path.join(targetDir, "sample1.asn1"))
+    helpers = helpersDir(item.asn1file_path)
+    if os.path.isdir(helpers):
+        shutil.copytree(helpers, targetDir, dirs_exist_ok=True)
 
     # Write or copy the ACN file
     if not cfg.xerMode:

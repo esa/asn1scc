@@ -107,6 +107,19 @@ let collectTestAsn1Files (test_cases_dir:string) =
     
 
 
+// First-line markers restricting a test file (same rules in v4Tests/scripts/runTests.py):
+// ACNV2_ONLY runs the file only with -acnv2, C_ONLY only for the C backend.
+let isTestSelected (t:Test_Case) (lang:string) (enableAcnV2:bool) =
+    let markers = File.ReadLines t.asn1 |> Seq.tryHead |> Option.defaultValue ""
+    (enableAcnV2 || not (markers.Contains "ACNV2_ONLY")) && (lang = "c" || not (markers.Contains "C_ONLY"))
+
+// <name>.helpers/ next to <name>.asn1: files copied into the work directory of
+// each test case of that file (e.g. user-provided mapping functions).
+let copyHelpers (asn1FileName:string) workDir =
+    let helpersDir = Path.Combine(Path.GetDirectoryName asn1FileName, Path.GetFileNameWithoutExtension asn1FileName + ".helpers")
+    if Directory.Exists helpersDir then
+        Directory.GetFiles helpersDir |> Seq.iter (fun f -> File.Copy(f, Path.Combine(workDir, Path.GetFileName f)))
+
 let emptyFolder (workDir) =
     let di = DirectoryInfo(workDir)
     di.GetFiles() |> Seq.iter (fun f -> f.Delete())
@@ -130,6 +143,7 @@ END
     //printfn "%s" workDir
     emptyFolder workDir
     File.Copy(asn1FileName, Path.Combine(workDir, "sample1.asn1"))
+    copyHelpers asn1FileName workDir
     File.WriteAllText(Path.Combine(workDir, "sample1.acn"), acnContent)
     
 let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) =
@@ -364,8 +378,9 @@ let main0 argv =
         let asn1sccInvoications =
             seq {
                 for tc in all_tests do
-                    for m in asn1sccModes do
-                        yield (tc, m)
+                    for (lang, _, _, _, acnV2) as m in asn1sccModes do
+                        if isTestSelected tc lang acnV2 then
+                            yield (tc, m)
             } |> Seq.toList
 
         //asn1sccInvoications |>
