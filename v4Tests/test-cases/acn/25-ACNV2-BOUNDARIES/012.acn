@@ -1,0 +1,25 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Doc [] {
+    length INTEGER [encoding pos-int, size 8],
+    kind INTEGER [encoding pos-int, size 8],
+    payload <kind, length> [],
+    trailer [encoding pos-int, size 8]
+}
+
+Payload <INTEGER:kind, INTEGER:length> [] {
+    small [present-when kind == 1, size length],
+    big [present-when kind == 2, size length]
+}
+
+Small [] {
+    a [encoding pos-int, size 8]
+}
+
+Big [] {
+    a [encoding pos-int, size 8],
+    b [encoding pos-int, size 16],
+    c []
+}
+
+END

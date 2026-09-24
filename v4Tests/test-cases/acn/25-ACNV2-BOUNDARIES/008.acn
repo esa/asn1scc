@@ -1,0 +1,12 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Base [] {
+    value [encoding pos-int, size 8]
+}
+
+Wrapped [] {
+    length INTEGER [encoding pos-int, size 8],
+    body [size length]
+}
+
+END

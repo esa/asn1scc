@@ -1,0 +1,29 @@
+-- ACNV2_ONLY
+-- A size determinant crosses a parameterized CHOICE whose OCTET STRING
+-- CONTAINING alternatives have different (and variable) encoded lengths,
+-- followed by a trailer that must be read after the selected region.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Doc ::= SEQUENCE {
+    payload Payload,
+    trailer INTEGER (0..255)
+}
+
+Payload ::= CHOICE {
+    small OCTET STRING (CONTAINING Small),
+    big   OCTET STRING (CONTAINING Big)
+}
+
+Small ::= SEQUENCE {
+    a INTEGER (0..255)
+}
+
+Big ::= SEQUENCE {
+    a INTEGER (0..255),
+    b INTEGER (0..65535),
+    c OCTET STRING (SIZE (0..4))
+}
+
+END
+
+--TCFS   012.acn

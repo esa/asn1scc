@@ -1,0 +1,21 @@
+-- ACNV2_ONLY
+-- One determinant produced inside a referenced child controls two siblings.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Byte ::= SEQUENCE {
+    bits INTEGER (0..127)
+}
+
+Last ::= SEQUENCE {
+    bits INTEGER (0..127)
+}
+
+Two ::= SEQUENCE {
+    b Byte,
+    x Last OPTIONAL,
+    y Last OPTIONAL
+}
+
+END
+
+--TCFS   007.acn

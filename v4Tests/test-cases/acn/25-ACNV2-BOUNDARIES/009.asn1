@@ -1,0 +1,28 @@
+-- ACNV2_ONLY
+-- BIT STRING variant of 003/004: a size determinant crosses a parameterized
+-- CHOICE whose alternatives are BIT STRING CONTAINING regions of different
+-- bit lengths, followed by a trailer.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Doc ::= SEQUENCE {
+    payload Payload,
+    trailer INTEGER (0..255)
+}
+
+Payload ::= CHOICE {
+    value BIT STRING (CONTAINING Value),
+    other BIT STRING (CONTAINING Other)
+}
+
+Value ::= SEQUENCE {
+    number INTEGER (0..255)
+}
+
+Other ::= SEQUENCE {
+    flag BOOLEAN,
+    n    INTEGER (0..7)
+}
+
+END
+
+--TCFS   009.acn

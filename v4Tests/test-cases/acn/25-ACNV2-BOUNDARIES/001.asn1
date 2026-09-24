@@ -1,0 +1,23 @@
+-- ACNV2_ONLY
+-- A Boolean determinant produced by a referenced child controls the presence
+-- of its sibling. The determinant must cross the reference boundary and use
+-- the one-bit deferred runtime representation.
+-- Byte exports its field to Chain, so it gets no standalone ACN functions (warning).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Chain ::= SEQUENCE {
+    first   Byte,
+    second  Last OPTIONAL
+}
+
+Byte ::= SEQUENCE {
+    bits INTEGER (0..127)
+}
+
+Last ::= SEQUENCE {
+    bits INTEGER (0..127)
+}
+
+END
+
+--TCFS   001.acn

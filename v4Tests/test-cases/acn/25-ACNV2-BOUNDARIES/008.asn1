@@ -1,0 +1,20 @@
+-- ACNV2_ONLY
+-- BIT STRING variant of 002: a constrained type inside CONTAINING needs a
+-- distinct deferred specialization.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Base ::= SEQUENCE {
+    value INTEGER (0..255)
+}
+
+Profile ::= Base (WITH COMPONENTS {
+    value (0..127)
+})
+
+Wrapped ::= SEQUENCE {
+    body BIT STRING (CONTAINING Profile)
+}
+
+END
+
+--TCFS   008.acn

@@ -1,0 +1,37 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Document [] {
+    boxes [size deduced]
+}
+
+OuterBox [] {
+    length INTEGER [encoding pos-int, size 8],
+    kind INTEGER [encoding pos-int, size 8],
+    payload <kind, length> []
+}
+
+OuterPayload <INTEGER:kind, INTEGER:length> [] {
+    nested [present-when kind == 1, size length],
+    value [present-when kind == 4, size length]
+}
+
+Nested [] {
+    boxes [size deduced]
+}
+
+InnerBox [] {
+    length INTEGER [encoding pos-int, size 8],
+    kind INTEGER [encoding pos-int, size 8],
+    payload <kind, length> []
+}
+
+InnerPayload <INTEGER:kind, INTEGER:length> [] {
+    value [present-when kind == 2, size length],
+    other [present-when kind == 3, size length]
+}
+
+Value [] {
+    number [encoding pos-int, size 8]
+}
+
+END

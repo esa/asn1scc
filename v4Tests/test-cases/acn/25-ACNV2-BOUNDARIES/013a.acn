@@ -1,0 +1,21 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Byte [] {
+    more BOOLEAN [true-value '1'B],
+    bits [encoding pos-int, size 7]
+}
+
+Last [] {
+    bits [encoding pos-int, size 7]
+}
+
+Chain [] {
+    first [],
+    second []
+}
+
+Chain2 [] {
+    first []
+}
+
+END

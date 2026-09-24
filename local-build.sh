@@ -47,6 +47,9 @@ echo "run c tests, with word-size=8, slim-mode=true, acnv2"
 echo "run c tests, with word-size=8, slim-mode=false, acnv2"
 ../regression/bin/Debug/net10.0/regression -l c -ws 8 -s false -p 48 -acnv2 || exit 1
 
+echo "run acn-v2 wire checks (C)"
+./scripts/runWireTests.sh || exit 1
+
 echo "run c tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l c -ws 4 -s false -p 48 || exit 1
 

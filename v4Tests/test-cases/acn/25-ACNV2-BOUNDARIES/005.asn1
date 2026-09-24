@@ -1,0 +1,18 @@
+-- ACNV2_ONLY
+-- INTEGER length determinants produced inside a referenced header size two
+-- siblings of the header (OCTET STRING and SEQUENCE OF).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Hdr ::= SEQUENCE {
+    id INTEGER (0..255)
+}
+
+Msg ::= SEQUENCE {
+    hdr   Hdr,
+    data  OCTET STRING (SIZE (0..10)),
+    items SEQUENCE (SIZE (0..5)) OF INTEGER (0..255)
+}
+
+END
+
+--TCFS   005.acn

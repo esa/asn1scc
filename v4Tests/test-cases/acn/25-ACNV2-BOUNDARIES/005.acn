@@ -1,0 +1,15 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Hdr [] {
+    len INTEGER [encoding pos-int, size 8],
+    n   INTEGER [encoding pos-int, size 8],
+    id  [encoding pos-int, size 8]
+}
+
+Msg [] {
+    hdr   [],
+    data  [size hdr.len],
+    items [size hdr.n]
+}
+
+END
