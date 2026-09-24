@@ -17,7 +17,7 @@ REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
 REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
 <!"""
 <arrsAcnPrms; separator="\n">
 
@@ -41,7 +41,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
 @classmethod
 def <sFuncName>(cls, codec: ACNDecoder, check_constraints: bool = True<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> '<sTypeDefName>':
     <arrsPrecond:{pre|assert <pre>}; separator="\n">

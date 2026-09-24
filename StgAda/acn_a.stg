@@ -29,20 +29,20 @@ procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleNam
 
 >>
 
-EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
-procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>) <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
+EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bDeferredSpecialization) ::= /*nogen*/<<
+procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>) <if(bDeferredSpecialization)>-- COVERAGE_IGNORE<else><if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif><endif>
 is
 begin
     --  Stream subtype is constrained to <sTypeDefName>_ACN_STREAM_SIZE; use that
     --  exact value to satisfy the discriminant.  In closure-converted (--acn-v2)
     --  spec functions the actual content may exceed this size, but the public
     --  wrapper is dead code in that path (callers invoke <sFuncName>_aux directly).
-    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <sTypeDefName>_ACN_STREAM_SIZE, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0)); <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
-    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>); <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
-end <sFuncName>; <if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif>
+    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <sTypeDefName>_ACN_STREAM_SIZE, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0)); <if(bDeferredSpecialization)>-- COVERAGE_IGNORE<else><if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif><endif>
+    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=", "><endif>); <if(bDeferredSpecialization)>-- COVERAGE_IGNORE<else><if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif><endif>
+end <sFuncName>; <if(bDeferredSpecialization)>-- COVERAGE_IGNORE<else><if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif><endif>
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 is
 <if(bBsIsUnreferenced)>
@@ -65,7 +65,7 @@ begin
     <sContent>
     <endif>
 end <sFuncName>_aux;
-<EmitTypeAssignment_primitive_encodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitialExp=sInitialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace)>
+<EmitTypeAssignment_primitive_encodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitialExp=sInitialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace, bDeferredSpecialization=bDeferredSpecialization)>
 >>
 
 
@@ -94,7 +94,7 @@ begin
 end <sFuncName>; -- COVERAGE_IGNORE
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
@@ -1403,8 +1403,8 @@ begin
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
-            result.ErrorCode := <sErrCode>;
-            return;
+            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+            return; -- COVERAGE_IGNORE
         end if;
     end if;
 end;
@@ -1508,8 +1508,8 @@ begin
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
-            result.ErrorCode := <sErrCode>;
-            return;
+            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+            return; -- COVERAGE_IGNORE
         end if;
     end if;
 end;
@@ -1531,8 +1531,8 @@ begin
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
         <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
-            result.ErrorCode := <sErrCode>;
-            return;
+            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+            return; -- COVERAGE_IGNORE
         end if;
     end if;
 end;
@@ -1601,8 +1601,8 @@ begin
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
         <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
         if not result.Success then
-            result.ErrorCode := <sErrCode>;
-            return;
+            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+            return; -- COVERAGE_IGNORE
         end if;
     end if;
 end;

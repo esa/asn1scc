@@ -216,7 +216,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         prms @ extraPrms, prmNames @ extraNames
                     else
                         prms, prmNames
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soInitFuncName funcDefAnnots precondAnnots postcondAnnots false codec)
 
                 let errCodStr =
                     errCodes |>

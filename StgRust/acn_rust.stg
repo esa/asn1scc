@@ -24,7 +24,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
 pub fn <sFuncName>(<sVarName>: &<sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32, bCheckConstraints: bool<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> bool {
     let mut ret: bool = true;
 <if(bVarNameIsUnreferenced)>
@@ -60,7 +60,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
 pub fn <sFuncName>(<sVarName>: &mut <sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> bool {
     let mut ret: bool = true;
 <if(bVarNameIsUnreferenced)>

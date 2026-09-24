@@ -960,6 +960,7 @@ let private emitSpecializedFunctionDecl
             (ctx.t.acnMaxSizeInBits = 0I) finalBody.bBsIsUnReferenced bVarNameIsUnreferenced
             false
             soInitFuncName [] [] []  // funcDefAnnots, precondAnnots, postcondAnnots
+            true  // bDeferredSpecialization: callers use the specialized body directly
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 
