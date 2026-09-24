@@ -647,17 +647,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
 
         | errChild::_      ->
-            let determinantUsage =
-                match errChild.Type with
-                | AcnInteger               _-> "length"
-                | AcnNullType              _-> raise(BugErrorException "existsAcnChildWithNoUpdates")
-                | AcnBoolean               _-> "presence"
-                | AcnReferenceToEnumerated _-> "presence"
-                | AcnReferenceToIA5String  _-> "presence"
-            let errMessage = sprintf "Unused ACN inserted field.
-                All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.
-                The field '%s' must either be removed or used as %s determinant of another ASN.1 type." errChild.Name.Value determinantUsage
-            raise(SemanticError(errChild.Name.Location, errMessage))
+            raise(SemanticError(errChild.Name.Location, AcnClosureConversion.unusedAcnInsertedFieldMessage errChild.Name.Value errChild.Type))
             //let loc = errChild.Name.Location
             //Console.Out.WriteLine (FrontEntMain.formatSemanticWarning loc errMessage)
             //None, ns

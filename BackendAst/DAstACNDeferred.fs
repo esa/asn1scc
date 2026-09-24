@@ -1055,10 +1055,14 @@ let private buildCallerWrapper
                     let determinantIsInsideBoundary =
                         boundaryPath.Length <= determinantPath.Length
                         && List.take boundaryPath.Length determinantPath = boundaryPath
+                    // A determinant produced inside the boundary is named after
+                    // the boundary's parameter: that is the name its consumers in
+                    // this scope use (AcnExternalField.getExternalField0).
                     let cName =
                         match actualDeterminant, determinantIsInsideBoundary with
                         | AcnChildDeterminant child, false -> ToC child.Name.Value
-                        | _ -> DAstACN.getAcnDeterminantName actualDeterminant.id
+                        | AcnChildDeterminant _, true      -> DAstACN.getAcnDeterminantName resolvedParam.id
+                        | AcnParameterDeterminant _, _     -> DAstACN.getAcnDeterminantName actualDeterminant.id
                     let pStr = ctx.lm.acn.acn_deferred_det_actual_param cName ctx.codec
                     paramsAcc @ [pStr], localsAcc @ [cName]
             ) ([], [])

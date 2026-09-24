@@ -922,6 +922,10 @@ type AstRoot = {
     args:CommandLineSettings
     acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with colors the initial ACN input
     allDependencies : (TypeAssignmentInfo*TypeAssignmentInfo) list      //caller, callee
+    /// --acn-v2 only: type assignments with an ACN field whose determined type
+    /// lies outside them (AcnClosureConversion.findTassesWithExportedDeterminants).
+    /// They get no standalone ACN encoder/decoder. Always empty in legacy mode.
+    tassesWithExportedDeterminants : Set<TypeAssignmentInfo>
 }
 
 

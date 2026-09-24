@@ -932,6 +932,8 @@ type SeqChildInfo with
 let hasAcnEncodeFunction (encFunc: AcnFunction option) acnParameters (tasInfo: TypeAssignmentInfo option) =
     match encFunc with
     | None  -> false
+    // funcName = None: no standalone ACN function (--acn-v2 exported determinants)
+    | Some fnc when fnc.funcName.IsNone -> false
     | Some fnc ->
         match acnParameters, tasInfo with
         | [], Some _ ->
