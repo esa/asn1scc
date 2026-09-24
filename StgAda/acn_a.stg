@@ -1399,6 +1399,11 @@ declare
 begin
     <sFuncName>_aux(<p>, bs, result);
     if result.Success then
+        --  pad the contained encoding to the next byte boundary: the region is
+        --  measured in whole octets and the decoder resumes at a byte boundary
+        if bs.Current_Bit_Pos mod 8 /= 0 then
+            bs.Current_Bit_Pos := bs.Current_Bit_Pos + (8 - bs.Current_Bit_Pos mod 8); -- COVERAGE_IGNORE
+        end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
@@ -1504,6 +1509,11 @@ declare
 begin
     <sBody>
     if result.Success then
+        --  pad the contained encoding to the next byte boundary: the region is
+        --  measured in whole octets and the decoder resumes at a byte boundary
+        if bs.Current_Bit_Pos mod 8 /= 0 then
+            bs.Current_Bit_Pos := bs.Current_Bit_Pos + (8 - bs.Current_Bit_Pos mod 8); -- COVERAGE_IGNORE
+        end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         <sPatchFuncName>(<MFen(soMF=soMF, soMFM=soMFM, p="acn_nCount")>, bs, <sDetParamName>, result);
