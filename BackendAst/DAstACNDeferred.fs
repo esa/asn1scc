@@ -741,7 +741,7 @@ let private buildContainingClosureBody
                     | None -> ""
                 match ctx.o.encodingOptions.Value.octOrBitStr with
                 | CommonTypes.ContainedInOctString ->
-                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
+                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) ctx.codec
                 | CommonTypes.ContainedInBitString ->
                     ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
             | None ->
@@ -785,7 +785,7 @@ let private buildContainingStandaloneBody
     let fncBody =
         match ctx.o.encodingOptions.Value.octOrBitStr with
         | CommonTypes.ContainedInOctString ->
-            ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
+            ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName mappingFunction mappingModule errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) ctx.codec
         | CommonTypes.ContainedInBitString ->
             ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
     { emptyBody ctx.lm with
@@ -1257,7 +1257,15 @@ let private createDeferredReferenceFunction
             let bodyResult =
                 match isContainingExternalField, ctx.o.resolvedType.Kind,
                       findContainingSizeParamInfo ctx.deps ctx.o with
-                | false, Asn1AcnAst.Asn1TypeKind.Choice _, Some (sizePrm, containing) ->
+                | false, Asn1AcnAst.Asn1TypeKind.Choice ch, Some (sizePrm, containing) ->
+                    // Some alternative's contents use 'size deduced' (Ada decodes
+                    // the region from a stream limited to it).
+                    let bDeducedContent =
+                        ch.children |> List.exists (fun c ->
+                            match c.Type.Kind with
+                            | Asn1AcnAst.Asn1TypeKind.ReferenceType rf when rf.encodingOptions.IsSome ->
+                                Asn1AcnAstUtilFunctions.isLiveDeduced rf.resolvedType
+                            | _ -> false)
                     let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
                     let mappingFunction, mappingModule, mappingDeclarations =
                         getDeferredMappingFunction ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id
@@ -1269,7 +1277,7 @@ let private createDeferredReferenceFunction
                         match containing.encodingOptions.Value.octOrBitStr with
                         | CommonTypes.ContainedInOctString ->
                             ctx.lm.acn.octet_string_containing_deferred_wrapper
-                                bodyResult.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
+                                bodyResult.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName bDeducedContent ctx.codec
                         | CommonTypes.ContainedInBitString ->
                             ctx.lm.acn.bit_string_containing_deferred_wrapper
                                 bodyResult.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
