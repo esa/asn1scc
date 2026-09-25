@@ -1415,14 +1415,15 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
     <arrsLocalUpdateStatements; separator="\n">
 
     if ret {
-
-        *pErrCode = <sErrCode>;
         <arrsGetFirstIntValue; separator=" "> else {
             ret = false; /*COVERAGE_IGNORE*/
         }
         if ret {
             ret = (<arrsLocalCheckEquality; separator=" && ">);
             <v>_is_initialized = true;
+        }
+        if !ret {
+            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
         }
     }
 }
@@ -1496,8 +1497,10 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
         let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
         let acn_n_count = acn::acn_bit_stream_distance_in_bytes(acn_data_start, acn_data_end);
         ret = <sPatchFuncName>(<if(soMF)><soMF>_encode(acn_n_count)<else>acn_n_count<endif>, pBitStrm, <sDetParamName>, pErrCode);
-        *pErrCode = <sErrCode>;
-        if !ret { return false; }
+        if !ret {
+            *pErrCode = <sErrCode>;
+            return false;
+        }
     }
 }
 >>
@@ -1577,8 +1580,10 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
         let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
         let acn_n_count = acn::acn_bit_stream_distance_in_bytes(acn_data_start, acn_data_end);
         ret = <sPatchFuncName>(<if(soMF)><soMF>_encode(acn_n_count)<else>acn_n_count<endif>, pBitStrm, <sDetParamName>, pErrCode);
-        *pErrCode = <sErrCode>;
-        if !ret { return false; }
+        if !ret {
+            *pErrCode = <sErrCode>;
+            return false;
+        }
     }
 }
 >>
@@ -1604,8 +1609,10 @@ bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFu
         let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
         let acn_n_count = acn::acn_bit_stream_distance_in_bits(acn_data_start, acn_data_end);
         ret = <sPatchFuncName>(<if(soMF)><soMF>_encode(acn_n_count)<else>acn_n_count<endif>, pBitStrm, <sDetParamName>, pErrCode);
-        *pErrCode = <sErrCode>;
-        if !ret { return false; }
+        if !ret {
+            *pErrCode = <sErrCode>;
+            return false;
+        }
     }
 }
 >>
@@ -1676,8 +1683,10 @@ bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncNa
         let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
         let acn_n_count = acn::acn_bit_stream_distance_in_bits(acn_data_start, acn_data_end);
         ret = <sPatchFuncName>(<if(soMF)><soMF>_encode(acn_n_count)<else>acn_n_count<endif>, pBitStrm, <sDetParamName>, pErrCode);
-        *pErrCode = <sErrCode>;
-        if !ret { return false; }
+        if !ret {
+            *pErrCode = <sErrCode>;
+            return false;
+        }
     }
 }
 >>
@@ -1863,16 +1872,20 @@ acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
    "ptr" variant: det is an AcnInsertedFieldRef* formal parameter — pass as-is. */
 acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
 ret = <sPatchFuncName>(<sValue> as u64, pBitStrm, &mut <sDetName>, pErrCode);
-*pErrCode = <sErrCode>;
-if !ret { return false; }
+if !ret {
+    *pErrCode = <sErrCode>;
+    return false;
+}
 >>
 acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
 /* decode: no patch needed */
 >>
 acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
 ret = <sPatchFuncName>(<sValue> as u64, pBitStrm, <sDetName>, pErrCode);
-*pErrCode = <sErrCode>;
-if !ret { return false; }
+if !ret {
+    *pErrCode = <sErrCode>;
+    return false;
+}
 >>
 acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
 /* decode: no patch needed */
@@ -1895,8 +1908,10 @@ acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <
 
 acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 ret = <sPatchFuncName>(<sValue> as u64, pBitStrm, <nBits>, &mut <sDetName>, pErrCode);
-*pErrCode = <sErrCode>;
-if !ret { return false; }
+if !ret {
+    *pErrCode = <sErrCode>;
+    return false;
+}
 >>
 acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 /* decode: no patch needed */
@@ -1904,8 +1919,10 @@ acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDe
 
 acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 ret = <sPatchFuncName>(<sValue> as u64, pBitStrm, <nBits>, <sDetName>, pErrCode);
-*pErrCode = <sErrCode>;
-if !ret { return false; }
+if !ret {
+    *pErrCode = <sErrCode>;
+    return false;
+}
 >>
 acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 /* decode: no patch needed */
@@ -1914,16 +1931,20 @@ acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetN
 /* IA5String PatchDet variants: pass string value directly (no asn1SccUint cast) */
 acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 ret = <sPatchFuncName>(<sValue>, pBitStrm, <nBits>, &mut <sDetName>, pErrCode);
-*pErrCode = <sErrCode>;
-if !ret { return false; }
+if !ret {
+    *pErrCode = <sErrCode>;
+    return false;
+}
 >>
 acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 /* decode: no patch needed */
 >>
 acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 ret = <sPatchFuncName>(<sValue>, pBitStrm, <nBits>, <sDetName>, pErrCode);
-*pErrCode = <sErrCode>;
-if !ret { return false; }
+if !ret {
+    *pErrCode = <sErrCode>;
+    return false;
+}
 >>
 acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
 /* decode: no patch needed */

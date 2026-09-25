@@ -19,7 +19,7 @@ def main():
     mutations = {
         "unchanged": ("", True),
         "encode-failure": ("ret = FALSE;", False),
-        "success-with-error-status": ("uncheckedError = 123;", True),
+        "success-with-error-status": ("uncheckedError = 123;", False),
         "byte-length": ("uncheckedStrm.currentByte++;", False),
         "bit-length": ("uncheckedStrm.currentBit ^= 1;", False),
         "full-byte": ("uncheckedBuff[0] ^= 0x80;", False),

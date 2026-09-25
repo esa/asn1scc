@@ -109,8 +109,6 @@ STREAM_PROFILES = {
         "fields": ((0, 8), (8, 8)),
         "invalid_fields": ((31, 10), (30, 11), (50, 10), (255, 255)),
         "rejection_bits": 16,
-        # Successful deferred determinant patching leaves this exact RTL error.
-        "encode_errors": {"acn": "0", "acn-v2": "ERR_ACN_DET_CONSISTENCY_MISMATCH"},
         "common": {},
         "seeds": (
             {"name": "green", "bits": 20, "wire": (0x1E, 0x0A, 0x20),

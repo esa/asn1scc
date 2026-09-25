@@ -815,10 +815,10 @@ bits, return TRUE/error zero, and reproduce the CHOICE kind and payload.
 Exact-size buffers, byte preservation, stream counts and fresh output/error
 state are enforced by the shared driver.
 
-The shared encode contract defaults to error zero. This profile explicitly
-requires zero in legacy mode and `ERR_ACN_DET_CONSISTENCY_MISMATCH` (203) in
-v2, even though both checked encodes return TRUE. A `wrong-encode-error` fault
-changes the successful call's error to 203 or zero respectively and must fail;
+The shared encode contract requires error zero after a successful encode, in
+both modes (before 4.9.4.0 the v2 encoder left `ERR_ACN_DET_CONSISTENCY_MISMATCH`
+(203) after success). A `wrong-encode-error` fault changes the successful
+call's error to 203 and must fail;
 the existing compound CHOICE also retains its zero-error contract. The v2
 decoder's exact private `COLORDATA` macro is resolved from its unique definition
 in `sample1.c`, without substituting `COLORDATA_2` or editing codec/header files.
@@ -999,10 +999,9 @@ Measure statements independently with the statement image and the all cohort:
 `--check-encode` enables `ASN1SCC_CHECK_ENCODE` when compiling the generated C
 harness. After each successful checked binary encode, the harness encodes the
 same valid value with constraint checking disabled, into a separate buffer of
-the same capacity. It requires a true return value, identical byte/bit
+the same capacity. It requires a true return value, error zero, identical byte/bit
 cursors and identical encoded bits. Unused low bits of the final byte are not
-compared. The shared-presence ACN fixture can leave a nonzero error code on a
-successful encode; the comparison uses the Boolean return value for success.
+compared.
 The original checked stream is retained for the ordinary round trip.
 Error stage 5 identifies an unchecked-encode failure or mismatch. XER keeps its
 ordinary harness. The option is off by default and is rejected for Ada and
