@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generated-code coverage measurement, derived from Phase 0 (f5d4412b).
+"""Generated-code coverage measurement (line/branch/block, gcov).
 
 Python standard library only. The companion Dockerfile supplies the compiler,
 GCC/gcov and GNAT. Source-pattern categories never imply unreachability.

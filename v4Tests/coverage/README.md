@@ -17,8 +17,8 @@ recorded at runtime. Preserve the built image (and its Docker image ID) when
 comparing runs. Rebuilding later may obtain newer Ubuntu package revisions.
 An optional build argument SOURCE_REVISION records a known commit SHA; the
 source-content hash is always recorded, including uncommitted supplied changes.
-The Dockerfile-specific ignore file excludes host build output and local q/tmp
-notes from the context. The precompiled ANTLR dependency DLLs remain inputs.
+The Dockerfile-specific ignore file excludes host build output and local notes
+from the context. The precompiled ANTLR dependency DLLs remain inputs.
 
 Run without network access. A named container retains reports even on failure:
 
@@ -257,7 +257,7 @@ Run sanitizer and deliberate-failure checks on the exported artifacts:
 
 The checks exercise wrong acceptance/errors, buffer writes, cursor movement,
 missing value execution, and removal of each selected validator statement.
-This is a bounded Phase-2b pilot, not general invalid-value synthesis or a
+This is a bounded pilot, not general invalid-value synthesis or a
 claim that every defensive encoder branch is reachable by checked calls.
 
 #### Extra CHOICE goals over existing stream checks
@@ -274,7 +274,7 @@ These comparisons measure all enabled value goals over stream coverage. The
 payload comparison therefore includes both rejection and initialization gains;
 it does not measure an incremental gain over a baseline with payload-unset enabled.
 The historical positive-only deltas are reported separately
-and must not be claimed as new campaign gains.
+and must not be claimed as new gains.
 
 `prepare_extra(work, unit, args)` wraps the prepared driver's `main`, runs it
 once, then executes extra operations only after it succeeds. For each rejection operation,
@@ -430,15 +430,8 @@ baseline/mutation work directories for each comparison, and records each run's
 relative directory for the sanitizer runner. Pilot baselines use only
 original positives: gains for already-supported units are historical and must
 not be counted as new progress against a base that includes their mutations.
-Campaign comparisons must retain all mutations supported by the committed base.
-The signed campaign uses six units (`001#1/#2/#3/#5`, `002#1/#2`) in both modes,
-all now registered. Its initial totals were 400/432 statements and 208/336 branch
-arms. The accepted signed-binary task reached 404/432 and 212/336; that committed
-base retains all five existing units' negatives for the signed ASCII comparison.
-The ASCII task targets four additional decoder statements and a positive branch
-gain, preserving 36 original positive ATCs per snapshot. Historical positive-only
-pilot gains are not new campaign gains. This six-unit scope does not establish
-whole-project coverage completion.
+To measure an incremental gain, compare against a base that already contains
+all mutations supported so far, not against original positives only.
 
     docker run --name stream-sanitizers --network none --user 10001:10001 --mount type=bind,source="$(pwd)/v4Tests",target=/variant,readonly -v "$(pwd)/coverage-results/streams-dev-gcov:/evidence:ro" --entrypoint python3 asn1scc-coverage:invalid-streams-base /variant/coverage/testInvalidStreamPilot.py --pilot-root /evidence --outdir /results/checks
     docker cp stream-sanitizers:/results/checks coverage-results/streams-sanitizers
@@ -454,7 +447,7 @@ noncanonical negative zero (which a numeric-only comparison would miss).
 The other faults apply to ASCII as well. Missing-case injection omits the final expected
 case for each layout and must be rejected by transcript verification.
 This is a bounded
-Phase-3 pilot, not generic mutation synthesis or a claim about all decoder errors.
+pilot, not generic mutation synthesis or a claim about all decoder errors.
 
 #### Compound present-when CHOICE
 
@@ -498,23 +491,20 @@ omitting `--unit` measures all registered units. Positive-test counts come from
 each generated suite. Target-line lists are profile-specific, with the old enum
 mapping preserved. Reports retain the existing schema and work directories.
 
-The public pilot still compares original positives with added mutations. Its
-old enum gains are historical. Incremental campaign evidence must compare the
-actual committed base (including all six enum profiles) with the candidate
-across the fixed fifteen-unit, thirty-configuration cohort. Statement and gcov
-branch results must remain separate; the CHOICE target is two rejection/error
-statements per mode, with positive branch gains and no coverage loss anywhere.
-This does not establish whole-project completeness or unreachable statements.
+The public pilot compares original positives with added mutations. An
+incremental gain must be measured against a base that already contains all
+registered profiles. Statement and gcov branch results must remain separate;
+the CHOICE target is two rejection/error statements per mode, with positive
+branch gains and no coverage loss anywhere. This does not establish
+whole-project completeness or unreachable statements.
 
-For a frozen campaign, use its pinned images and read-only tooling mounts,
-fresh output paths, no network and the campaign container label. For example:
+Example run (pinned image, read-only source mount, no network):
 
-    docker run --name choice-streams-dev-UNIQUE --label asn1scc.campaign=coverage-night-20260917 --network none --user 10001:10001 --mount type=bind,source="$(pwd)/v4Tests",target=/variant,readonly --entrypoint python3 asn1scc-coverage:invalid-streams-base /variant/coverage/invalidStreamPilot.py --metric gcov --outdir /results/pilot
+    docker run --name choice-streams-dev --network none --user 10001:10001 --mount type=bind,source="$(pwd)/v4Tests",target=/variant,readonly --entrypoint python3 asn1scc-coverage:invalid-streams-base /variant/coverage/invalidStreamPilot.py --metric gcov --outdir /results/pilot
 
 Use `invalid-streams-statement-c` with `--metric stmt` for statement measurements.
 Preserve raw reports, generated sources, hashes and sanitizer/fault logs before
-removing a finished container. The campaign's independent verifier additionally
-checks the full committed-base comparison and canonical wire/source-fault oracles.
+removing a finished container.
 
 #### External eight-bit OCTET STRING length
 
@@ -548,10 +538,8 @@ input/accounting defects. No padding fault is registered for this unit.
 Both public pilot metrics include it automatically; exact selection is
 `--unit '06-OCTET-STRING/004.asn1#2'`. Preserve all eight previous profiles and
 the PUS initializer control in both stages, including the strict line gate.
-For the daytime campaign use `--label asn1scc.campaign=coverage-day-20260918`
-with the unchanged pinned images, no network and read-only source mounts.
-Measure incremental gains against the actual committed campaign base across
-all 30 cohort configurations; historic positive-only pilot gains are separate.
+Measure incremental gains against a base with all registered profiles;
+positive-only pilot gains are separate.
 
 #### External five-bit OCTET STRING length and padding
 
@@ -626,8 +614,8 @@ field-offset, short-view and padding faults run for both modes.
 Both public pilot metrics include all twenty-two registered configurations;
 `--unit '09-CHOICE/001.asn1#1'` selects this unit exactly. All ten preceding
 profiles, PUS initializer controls and strict line gates remain active.
-Measure this branch-only increment against the actual committed campaign base
-over all thirty cohort configurations; earlier pilot gains remain separate.
+Measure this branch-only increment against a base with all registered
+profiles; earlier pilot gains remain separate.
 
 #### Three-bit BOOLEAN patterns
 
@@ -710,7 +698,7 @@ is two added codec branch arms per mode, zero new codec statements and no
 coverage losses across the fixed thirty-configuration cohort. The read-failure
 arm remains unresolved. Existing positives, PUS initializer controls, strict
 line gates and source-identity checks remain required. Measure this increment
-against the committed campaign base, separately from positive-only pilot gains.
+against a base with all registered profiles, separately from positive-only pilot gains.
 
 #### Sixteen-bit NULL pattern
 
@@ -828,9 +816,24 @@ positive value, omitted execution and removal of each source-mapped target
 assignment. The target lines are 353–354 in legacy and 354–355 in v2. Both
 public pilot metrics include this unit automatically; use
 `--unit '15-PUS-ParameterPassing/001.asn1#1'` for exact selection. Its eight
-original positives per mode remain intact. Incremental campaign measurements
-must include the previously delivered compound CHOICE negatives in the base;
-the public pilot's positive-only comparisons are not incremental campaign gains.
+original positives per mode remain intact. Incremental measurements must
+include the compound CHOICE negatives in the base; the public pilot's
+positive-only comparisons are not incremental gains.
+
+#### Positive initializer controls in stream pilots
+
+The PUS parameterized CHOICE profile also checks `ASN1SCC_COLOR_DATA_Initialize`:
+it starts from a distinct valid red value, requires the initialized green value 1,
+and validates that result. This positive control runs in both the public pilot's
+baseline and mutation stages. Original ATCs are preserved; the extra control is
+reported separately. The legacy line gate remains enabled for both gcov stages.
+
+The paired public pilot delta therefore measures only stream-mutation gains.
+A comparison against a base without this control additionally reports newly added initializer
+statements when this control is first introduced; those gains are distinct from
+the selected decoder assignments. Fault checks detect an omitted control, wrong
+initialized value and removed initializer assignment. Codecs and original ATCs
+remain byte-identical; only the optional generated main driver is augmented.
 
 ### Statement report scope
 
@@ -873,8 +876,9 @@ Without optional coverage gates, low coverage is a measured result. Add
 --compare-baseline fails on missing/failed units, changed inputs or changed
 counts; it requires the complete historical configuration. A differing compiler
 toolchain may legitimately change counts, but it must not silently pass an
-exact-reproduction check. The checked-in reference is derived from the July
-Phase-0 artifact, reverified on 2026-09-06; it contains no reachability claims.
+exact-reproduction check. The checked-in reference is derived from the July 2026
+baseline, reverified on 2026-09-06 (input hashes are line-ending independent
+since 2026-09-25); it contains no reachability claims.
 
 The Ada build follows the generated coverage recipe but executes build, program
 and gcov as separate checked stages. Formal SPARK proof is outside this lane,
@@ -909,7 +913,7 @@ The root Dockerfile and Dockerfile.local.wsl provide the general regression
 environment, including GNAT Community 2021 and Scala/SPARK tooling.
 Dockerfile.runtime builds the compiler from upstream for its runtime image.
 This lane instead builds the supplied checkout, uses GCC/GNAT/gcov 13 together
-to reproduce Phase 0, and always runs as UID 10001. It does not change those
+to reproduce the historical baseline, and always runs as UID 10001. It does not change those
 existing workflows. The existing asn1scc:latest image was also used for early
 standard-library collector tests with an explicit non-root user.
 
@@ -1026,7 +1030,8 @@ test counts, one additional encode per test, no lost branch arms or line-gate
 regression, and a positive branch gain for each selected unit/configuration.
 These are bounded pilot checks, not a general coverage percentage target.
 Short process wall times include startup and collector polling overhead; they
-are not a precise per-encode benchmark. No statement coverage is measured.
+are not a precise per-encode benchmark. This pilot measures gcov lines and
+branch arms; statement coverage is measured by `statementPilot.py`.
 
 Check the comparison oracle with fault injection in scratch copies of the
 generated integer/ACN pilot's work directory:
@@ -1035,23 +1040,8 @@ generated integer/ACN pilot's work directory:
 
 This checks encode failure, error status, byte/bit lengths, full/partial-byte
 content and permitted padding differences under ASan/UBSan. It does not modify
-the retained coverage run. Truncation, invalid values and unequal-value tests
-remain later harness operations.
+the retained coverage run. Truncation, invalid values and invalid streams are
+covered by the decode, invalid-value and invalid-stream pilots above.
 
 Reference for gcov JSON semantics:
 https://gcc.gnu.org/onlinedocs/gcc/Invoking-Gcov.html
-
-#### Positive initializer controls in stream pilots
-
-The PUS parameterized CHOICE profile also checks `ASN1SCC_COLOR_DATA_Initialize`:
-it starts from a distinct valid red value, requires the initialized green value 1,
-and validates that result. This positive control runs in both the public pilot's
-baseline and mutation stages. Original ATCs are preserved; the extra control is
-reported separately. The legacy line gate remains enabled for both gcov stages.
-
-The paired public pilot delta therefore measures only stream-mutation gains.
-A committed-base campaign comparison additionally reports newly added initializer
-statements when this control is first introduced; those gains are distinct from
-the selected decoder assignments. Fault checks detect an omitted control, wrong
-initialized value and removed initializer assignment. Codecs and original ATCs
-remain byte-identical; only the optional generated main driver is augmented.
