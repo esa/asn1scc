@@ -1505,7 +1505,7 @@ begin
     if result.Success then
         --  OCTET STRING contents occupy whole bytes, including final padding.
         if bs.Current_Bit_Pos mod 8 /= 0 then
-            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False);
+            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False); -- COVERAGE_IGNORE
         end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
@@ -1526,11 +1526,13 @@ begin
            acn_nCount \>= 0 and then acn_nCount \<= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8
         then
             declare --COVERAGE_IGNORE
-                acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8;
-                acn_end_bytes : constant Natural := (acn_expected_end + 7) / 8;
-                acn_view : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, acn_end_bytes));
+                acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8; -- COVERAGE_IGNORE (GNAT 2021 gcov: declare block)
+                acn_end_bytes : constant Natural := (acn_expected_end + 7) / 8; -- COVERAGE_IGNORE (GNAT 2021 gcov: declare block)
+                acn_view : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, acn_end_bytes)); -- COVERAGE_IGNORE (GNAT 2021 gcov: declare block)
             begin
-                --  Preserve absolute positions and streaming context in the bounded view.
+                --  Decode from a copy of the stream up to the region end: size-deduced
+                --  contents must see that end, and absolute positions keep the region's
+                --  bit offset (the embedded length need not end on a byte boundary).
                 acn_view.Buffer(1 .. acn_end_bytes) := bs.Buffer(1 .. acn_end_bytes);
                 acn_view.pushDataPrm := bs.pushDataPrm;
                 acn_view.fetchDataPrm := bs.fetchDataPrm;
