@@ -41,6 +41,7 @@ case "$GROUP" in
     "$REGRESSION" -l c -ws 4 -s false -p 4 -acnv2 || exit 1
     "$REGRESSION" -l c -ws 8 -s true -p 4 -acnv2 || exit 1
     "$REGRESSION" -l c -ws 8 -s false -p 4 -acnv2 || exit 1
+    ./scripts/runWireTests.sh || exit 1
     ;;
 
   ada)

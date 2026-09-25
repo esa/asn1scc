@@ -72,6 +72,7 @@ let private findProducerDeterminants (boundaryPath: ScopeNode list) (deps: AcnIn
             let isSiblingPresence =
                 (match dep.dependencyKind with AcnDepPresenceBool -> true | _ -> false)
                 && depTypePath.Length = boundaryPath.Length
+                && detPath.Length = boundaryPath.Length
                 && boundaryPath.Length >= 1
                 && (List.take (boundaryPath.Length - 1) depTypePath) = (List.take (boundaryPath.Length - 1) boundaryPath)
             if isSiblingPresence then None
@@ -119,6 +120,9 @@ type private DepRewrite = {
     /// The boundary path (ScopeNode list) — deps whose asn1Type is inside
     /// this path and whose determinant matches originalDet will be rewritten.
     boundaryPath   : ScopeNode list
+    /// Consumer parameters replace dependencies inside the referenced type.
+    /// Producer parameters only expose an inner determinant to the caller.
+    rewriteInternal : bool
 }
 
 
@@ -215,23 +219,20 @@ let rec private transformType (deps: AcnInsertedFieldDependencies) (t: Asn1Type)
                     hasExtraConstrainsOrChildrenOrAcnArgs = true }
             let t'' = { t' with Kind = Asn1TypeKind.ReferenceType rt' }
 
-            // Collect dep rewrites for consumer determinants only.
-            // For each consumer det that got a new parameter, we need to:
-            //   (a) rewrite internal deps to point to the parameter
-            //   (b) add a RefTypeArgumentDependency from boundary to original det
-            // Producer dets don't need dep rewrites — the determinant is inside
-            // the boundary and will be resolved locally.
+            // Record every new argument. Consumer determinants also rewrite
+            // dependencies inside the referenced type. Producer determinants
+            // keep their inner dependency but need the RefTypeArgument link so
+            // the caller can address and patch the exposed determinant.
             let consumerDetIds = consumerDets |> List.map (fun d -> d.id) |> Set.ofList
-            let newConsumerDets = newDets |> List.filter (fun d -> Set.contains d.id consumerDetIds)
             let newRewrites =
-                List.map2
-                    (fun (det: AcnChild) (prm: AcnParameter) ->
+                List.zip newDets newParams
+                |> List.map
+                    (fun ((det: AcnChild), (prm: AcnParameter)) ->
                         { DepRewrite.boundaryTypeId = t'.id
                           originalDet = det
                           newParam = prm
-                          boundaryPath = boundaryPath })
-                    newConsumerDets
-                    (newParams |> List.take newConsumerDets.Length)
+                          boundaryPath = boundaryPath
+                          rewriteInternal = Set.contains det.id consumerDetIds })
 
             t'', childRewrites @ newRewrites
 
@@ -255,16 +256,46 @@ let private applyDepRewrites (deps: AcnInsertedFieldDependencies) (rewrites: Dep
     if rewrites.IsEmpty then deps
     else
         // Step 1: replace internal deps
+        // A consumer dependency takes the innermost boundary's parameter (the
+        // rewrites of one type are listed inner first).  Otherwise a
+        // dependency on a determinant exposed through several nested producer
+        // boundaries takes the outermost one: that boundary is the child of
+        // the dependent's scope.  Explicit ACN arguments (RefTypeArgument)
+        // are never rewritten to a producer parameter: the caller passes the
+        // determinant it declares for the referenced child.
+        let rewriteOf (dep: AcnDependency) =
+            let matches =
+                rewrites |> List.filter (fun rw ->
+                    let dependentIsInside =
+                        isPathPrefix rw.boundaryPath (dep.asn1Type.ToScopeNodeList)
+                    dep.determinant.id = rw.originalDet.id
+                    && dependentIsInside = rw.rewriteInternal)
+            match matches |> List.tryFind (fun rw -> rw.rewriteInternal), dep.dependencyKind with
+            | Some rw, _                      -> Some rw
+            | None, AcnDepRefTypeArgument _   -> None
+            | None, _                         -> matches |> List.sortBy (fun rw -> rw.boundaryPath.Length) |> List.tryHead
+        let depsWithRewrite = deps.acnDependencies |> List.map (fun dep -> dep, rewriteOf dep)
         let rewrittenDeps =
-            deps.acnDependencies |> List.map (fun dep ->
-                let matchingRewrite =
-                    rewrites |> List.tryFind (fun rw ->
-                        dep.determinant.id = rw.originalDet.id
-                        && isPathPrefix rw.boundaryPath (dep.asn1Type.ToScopeNodeList))
+            depsWithRewrite |> List.map (fun (dep, matchingRewrite) ->
                 match matchingRewrite with
                 | Some rw ->
                     { dep with determinant = AcnParameterDeterminant rw.newParam }
                 | None -> dep)
+
+        // A producer parameter is linked to its determinant only when some
+        // dependency uses it, directly or through an enclosing producer
+        // boundary of the same determinant.  The other producer parameters
+        // keep the plain caller-local handling.
+        let usedProducers =
+            depsWithRewrite |> List.choose (fun (_, rw) ->
+                match rw with
+                | Some rw when not rw.rewriteInternal -> Some rw
+                | _ -> None)
+        let rewrites =
+            rewrites |> List.filter (fun rw ->
+                rw.rewriteInternal
+                || usedProducers |> List.exists (fun used ->
+                    used.originalDet.id = rw.originalDet.id && isPathPrefix used.boundaryPath rw.boundaryPath))
 
         // Step 2: add RefTypeArgumentDependency for each rewrite
         let newRefTypeArgDeps =
@@ -308,12 +339,150 @@ let private transformModule (deps: AcnInsertedFieldDependencies) (m: Asn1Module)
     rewrites |> List.concat
 
 
+/// Error message for an ACN inserted field that determines nothing (shared with
+/// the legacy check in BackendAst/Acn/AcnSequence.fs).
+let unusedAcnInsertedFieldMessage (fieldName: string) (fieldType: AcnInsertedType) =
+    let determinantUsage =
+        match fieldType with
+        | AcnInteger               _ -> "length"
+        | AcnNullType              _ -> raise(BugErrorException "unusedAcnInsertedFieldMessage")
+        | AcnBoolean               _ -> "presence"
+        | AcnReferenceToEnumerated _ -> "presence"
+        | AcnReferenceToIA5String  _ -> "presence"
+    sprintf "Unused ACN inserted field.
+                All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.
+                The field '%s' must either be removed or used as %s determinant of another ASN.1 type." fieldName determinantUsage
+
+
+/// An ACN inserted field (not NULL) found while walking a type assignment,
+/// with the referenced types enclosing it (innermost first).
+type private AcnChildOccurrence = {
+    acnChild   : AcnChild
+    /// (boundary path, referenced type assignment) of every enclosing ReferenceType
+    boundaries : (ScopeNode list * TypeAssignmentInfo) list
+}
+
+let rec private collectAcnChildren (boundaries: (ScopeNode list * TypeAssignmentInfo) list) (t: Asn1Type) : AcnChildOccurrence list =
+    match t.Kind with
+    | Asn1TypeKind.Sequence sq ->
+        sq.children |> List.collect (fun c ->
+            match c with
+            | SeqChildInfo.Asn1Child ac -> collectAcnChildren boundaries ac.Type
+            | SeqChildInfo.AcnChild ac ->
+                match ac.Type with
+                | AcnNullType _ -> []
+                | AcnInteger _
+                | AcnBoolean _
+                | AcnReferenceToEnumerated _
+                | AcnReferenceToIA5String _ -> [{ acnChild = ac; boundaries = boundaries }])
+    | Asn1TypeKind.Choice ch ->
+        ch.children |> List.collect (fun c -> collectAcnChildren boundaries c.Type)
+    | Asn1TypeKind.SequenceOf sqf ->
+        collectAcnChildren boundaries sqf.child
+    | Asn1TypeKind.ReferenceType rt ->
+        let boundary = t.id.ToScopeNodeList, { TypeAssignmentInfo.modName = rt.modName.Value; tasName = rt.tasName.Value }
+        collectAcnChildren (boundary :: boundaries) rt.resolvedType
+    | Asn1TypeKind.Integer _
+    | Asn1TypeKind.Real _
+    | Asn1TypeKind.IA5String _
+    | Asn1TypeKind.NumericString _
+    | Asn1TypeKind.OctetString _
+    | Asn1TypeKind.NullType _
+    | Asn1TypeKind.TimeType _
+    | Asn1TypeKind.BitString _
+    | Asn1TypeKind.Boolean _
+    | Asn1TypeKind.Enumerated _
+    | Asn1TypeKind.ObjectIdentifier _ -> []
+
+
+/// ACN fields whose determined type lies outside the type assignment that
+/// declares them (acn-v2 only).
+///
+/// Example: `Chain ::= SEQUENCE { first Byte, second Last OPTIONAL }` with
+/// `Byte [] { more BOOLEAN [], ... }` and `second [present-when first.more]`.
+/// Inside Chain, closure conversion passes `more` to the specialized encoder of
+/// `first`, and Chain patches it once `second` is known.  The standalone
+/// Byte encoder has nobody to take the value from, so no standalone ACN
+/// encoder/decoder (and no automatic test case) is generated for Byte; a
+/// warning is emitted instead.  This is the same treatment as for types with
+/// ACN parameters.  The legacy backend rejects such grammars with
+/// "Unused ACN inserted field" (checked per type in AcnSequence.fs).
+///
+/// An ACN field that determines nothing is rejected with the legacy error:
+/// at the type assignment's own instance unless some usage exports it, and at a
+/// usage of a type assignment that has no standalone function.
+///
+/// Returns the type assignments that get no standalone ACN functions.
+let findTassesWithExportedDeterminants (r: AstRoot) (deps: AcnInsertedFieldDependencies) : Set<TypeAssignmentInfo> =
+    let occurrences =
+        r.Files |> List.collect (fun f -> f.Modules) |> List.collect (fun m -> m.TypeAssignments)
+        |> List.collect (fun ta -> collectAcnChildren [] ta.Type)
+    let consumersOf =
+        deps.acnDependencies
+        |> List.choose (fun d ->
+            match d.determinant with
+            | AcnChildDeterminant ac -> Some (ac.id, d.asn1Type.ToScopeNodeList)
+            | AcnParameterDeterminant _ -> None)
+        |> List.groupBy fst
+        |> List.map (fun (id, xs) -> id, xs |> List.map snd)
+        |> Map.ofList
+    // (referenced type assignment, path of the field relative to it) for every
+    // field consumed outside a ReferenceType boundary.
+    let exported =
+        occurrences |> List.collect (fun occ ->
+            let fieldPath = occ.acnChild.id.ToScopeNodeList
+            let consumers = consumersOf.TryFind occ.acnChild.id |> Option.defaultValue []
+            occ.boundaries |> List.choose (fun (boundaryPath, tas) ->
+                match consumers |> List.exists (fun c -> not (isPathPrefix boundaryPath c)) with
+                | true  -> Some (tas, List.skip boundaryPath.Length fieldPath)
+                | false -> None))
+        |> Set.ofList
+    let rootKey (occ: AcnChildOccurrence) =
+        match occ.acnChild.id.ToScopeNodeList with
+        | (MD modName)::(TA tasName)::relPath -> { TypeAssignmentInfo.modName = modName; tasName = tasName }, relPath
+        | _ -> raise(BugErrorException (sprintf "unexpected ACN field path %s" occ.acnChild.id.AsString))
+    let unconsumed =
+        occurrences |> List.filter (fun occ -> not (consumersOf.ContainsKey occ.acnChild.id))
+    // Type assignments whose own instance has a field consumed only by an
+    // enclosing type (at some usage of the type assignment).
+    let exporting =
+        unconsumed |> List.choose (fun occ ->
+            let key = rootKey occ
+            match exported.Contains key with
+            | true  -> Some (fst key, (snd key, occ.acnChild))
+            | false -> None)
+        |> List.distinctBy fst
+    let exportingSet = exporting |> List.map fst |> Set.ofList
+    // A field nobody consumes is an error when a function is generated from
+    // this instance: the type assignment's own instance, or a usage of a type
+    // assignment that has no standalone function.  Under a usage of any other
+    // type assignment the generated code calls that type's own function,
+    // which is checked at its own instance.
+    unconsumed |> List.iter (fun occ ->
+        let isChecked =
+            match exported.Contains (rootKey occ), occ.boundaries with
+            | true,  _                  -> false
+            | false, []                 -> true
+            | false, (_, innerTas) :: _ -> exportingSet.Contains innerTas
+        match isChecked with
+        | true  -> raise(SemanticError(occ.acnChild.Name.Location, unusedAcnInsertedFieldMessage occ.acnChild.Name.Value occ.acnChild.Type))
+        | false -> ())
+    exporting |> List.iter (fun (tas, (relPath, acnChild)) ->
+        let fieldName = relPath |> List.map (fun n -> n.StrValue) |> String.concat "."
+        let msg =
+            sprintf "ACN field '%s' determines a field outside type '%s'; with --acn-v2 its value is determined by the enclosing type, so no standalone ACN encoder/decoder is generated for '%s'."
+                fieldName tas.tasName tas.tasName
+        System.Console.Error.WriteLine(AntlrParse.formatSemanticWarning acnChild.Name.Location msg))
+    exportingSet
+
+
 /// Main entry point: transform the entire AST and rewrite deps.
 /// Cross-scope ACN references become explicit acnParameters/acnArguments.
 /// Dependencies are rewritten so that resolveParam stops at the new parameter
 /// level instead of following the chain to the original ACN child.
 /// Called only when args.acnDeferred = true, after CheckLongReferences.
 let closureConvertAcnReferences (r: AstRoot) (deps: AcnInsertedFieldDependencies) : AstRoot * AcnInsertedFieldDependencies =
+    let tassesWithExportedDeterminants = findTassesWithExportedDeterminants r deps
     let files', allRewrites =
         r.Files
         |> List.map (fun f ->
@@ -343,7 +512,8 @@ let closureConvertAcnReferences (r: AstRoot) (deps: AcnInsertedFieldDependencies
         { r with
             Files = files'
             modulesMap = modulesMap'
-            typeAssignmentsMap = typeAssignmentsMap' }
+            typeAssignmentsMap = typeAssignmentsMap'
+            tassesWithExportedDeterminants = tassesWithExportedDeterminants }
 
     let newDeps = applyDepRewrites deps allRewrites
 

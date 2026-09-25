@@ -1,0 +1,18 @@
+-- ACNV2_ONLY
+-- The contents of an OCTET STRING CONTAINING region are not a multiple of 8
+-- bits: the encoder pads the region to a byte boundary before the trailer.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Odd ::= SEQUENCE {
+    a INTEGER (0..255),
+    c OCTET STRING (SIZE (0..4))
+}
+
+Doc ::= SEQUENCE {
+    payload OCTET STRING (CONTAINING Odd),
+    trailer INTEGER (0..255)
+}
+
+END
+
+--TCFS   014.acn

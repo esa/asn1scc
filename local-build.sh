@@ -47,6 +47,9 @@ echo "run c tests, with word-size=8, slim-mode=true, acnv2"
 echo "run c tests, with word-size=8, slim-mode=false, acnv2"
 ../regression/bin/Debug/net10.0/regression -l c -ws 8 -s false -p 48 -acnv2 || exit 1
 
+echo "run acn-v2 wire checks (C)"
+./scripts/runWireTests.sh || exit 1
+
 echo "run c tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l c -ws 4 -s false -p 48 || exit 1
 
@@ -62,6 +65,12 @@ echo "run c tests, with word-size=8, slim-mode=true"
 echo "run Ada tests, with word-size=8, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l Ada -ws 8 -s false -p 48 || exit 1
 
+echo "run python tests, with word-size=4, slim-mode=false"
+../regression/bin/Debug/net10.0/regression -l python -ws 4 -s false -p 48 || exit 1
+
+echo "run python tests, with word-size=8, slim-mode=false"
+../regression/bin/Debug/net10.0/regression -l python -ws 8 -s false -p 48 || exit 1
+
 # Rust tests (non-slim only; slim mode is C-only in the regression tool)
 echo "run Rust tests, with word-size=4"
 ../regression/bin/Debug/net10.0/regression -l Rust -ws 4 -s false -p 12 || exit 1
@@ -73,3 +82,12 @@ echo "run Rust tests, with word-size=8"
 echo "run scala tests"
 cd ../PUSCInteropTest || exit 1
 dotnet test || exit 1
+
+# Python runtime unit tests
+echo "run python runtime unit tests"
+cd ../asn1python || exit 1
+uvx --python=3.11 pytest tests -v || exit 1
+
+# Python code readability and type-hint checks
+echo "run python readability checks"
+./tools/check_generated_code.sh || exit 1

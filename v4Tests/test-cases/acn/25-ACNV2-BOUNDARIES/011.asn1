@@ -1,0 +1,18 @@
+-- ACNV2_ONLY C_ONLY (Ada: decoding with a mapping-function does not compile yet)
+-- A mapped length determinant sizes a plain (non-CHOICE) CONTAINING field
+-- that is followed by a trailer.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Document ::= SEQUENCE {
+    payload OCTET STRING (CONTAINING Value),
+    trailer INTEGER (0..255)
+}
+
+Value ::= SEQUENCE {
+    number INTEGER (0..255),
+    extra  INTEGER (0..65535)
+}
+
+END
+
+--TCFS   011.acn

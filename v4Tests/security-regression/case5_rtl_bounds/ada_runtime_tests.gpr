@@ -1,0 +1,12 @@
+--  Builds ada_runtime_tests.adb against the Ada runtime in ../../../ADA_RTL2
+--  (run via reproduce_ada.sh, which supplies build/ada/board_config.ads).
+project Ada_Runtime_Tests is
+   for Source_Dirs use ("../../../ADA_RTL2/src", "build/ada", ".");
+   for Object_Dir use "build/ada/obj";
+   for Main use ("ada_runtime_tests.adb");
+   package Compiler is
+      for Default_Switches ("ada") use
+        ("-g", "-O0", "-gnat2012", "-gnata", "-gnatf", "-gnatwa",
+         "-fstack-check");
+   end Compiler;
+end Ada_Runtime_Tests;

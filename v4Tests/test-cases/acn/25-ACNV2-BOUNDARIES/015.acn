@@ -1,0 +1,11 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+List [size deduced]
+
+Doc [] {
+    len INTEGER [encoding pos-int, size 8],
+    payload [size len],
+    trailer [encoding pos-int, size 8]
+}
+
+END

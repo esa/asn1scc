@@ -1,0 +1,20 @@
+-- ACNV2_ONLY
+-- A constrained type inside CONTAINING needs a distinct deferred
+-- specialization even when its generated base name matches another wrapper.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Base ::= SEQUENCE {
+    value INTEGER (0..255)
+}
+
+Profile ::= Base (WITH COMPONENTS {
+    value (0..127)
+})
+
+Wrapped ::= SEQUENCE {
+    body OCTET STRING (CONTAINING Profile)
+}
+
+END
+
+--TCFS   002.acn

@@ -1,0 +1,14 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Odd [] {
+    a [encoding pos-int, size 8],
+    c []
+}
+
+Doc [] {
+    len INTEGER [encoding pos-int, size 8],
+    payload [size len],
+    trailer [encoding pos-int, size 8]
+}
+
+END

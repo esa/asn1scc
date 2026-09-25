@@ -1,0 +1,15 @@
+-- ACNV2_ONLY
+-- 'size deduced' contents of an OCTET STRING CONTAINING region that is
+-- followed by a trailer: the decoder must stop at the end of the region.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+List ::= SEQUENCE (SIZE (1..4)) OF INTEGER (0..255)
+
+Doc ::= SEQUENCE {
+    payload OCTET STRING (CONTAINING List),
+    trailer INTEGER (0..255)
+}
+
+END
+
+--TCFS   015.acn

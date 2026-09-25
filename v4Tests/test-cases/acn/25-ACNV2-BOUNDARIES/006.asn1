@@ -1,0 +1,24 @@
+-- ACNV2_ONLY
+-- A presence determinant crosses two reference levels (Top.o -> Outer.b -> Byte).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Byte ::= SEQUENCE {
+    bits INTEGER (0..127)
+}
+
+Last ::= SEQUENCE {
+    bits INTEGER (0..127)
+}
+
+Outer ::= SEQUENCE {
+    b Byte
+}
+
+Top ::= SEQUENCE {
+    o Outer,
+    x Last OPTIONAL
+}
+
+END
+
+--TCFS   006.acn

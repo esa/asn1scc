@@ -1,0 +1,14 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Document [] {
+    length INTEGER [encoding pos-int, size 8, mapping-function plus],
+    payload [size length],
+    trailer [encoding pos-int, size 8]
+}
+
+Value [] {
+    number [encoding pos-int, size 8],
+    extra [encoding pos-int, size 16]
+}
+
+END

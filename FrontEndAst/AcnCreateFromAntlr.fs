@@ -1892,4 +1892,4 @@ let mergeAsn1WithAcnAst (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Langua
                     for tas in m.TypeAssignments do
                         yield (m.Name.Value, tas.Name.Value), tas
         } |> Map.ofSeq
-    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; modulesMap = modulesMap; typeAssignmentsMap = typeAssignmentsMap; allDependencies= finalState.allDependencies}, acn
+    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; modulesMap = modulesMap; typeAssignmentsMap = typeAssignmentsMap; allDependencies= finalState.allDependencies; tassesWithExportedDeterminants = Set.empty}, acn

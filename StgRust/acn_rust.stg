@@ -24,7 +24,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
 pub fn <sFuncName>(<sVarName>: &<sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32, bCheckConstraints: bool<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> bool {
     let mut ret: bool = true;
 <if(bVarNameIsUnreferenced)>
@@ -60,7 +60,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
 pub fn <sFuncName>(<sVarName>: &mut <sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>) -> bool {
     let mut ret: bool = true;
 <if(bVarNameIsUnreferenced)>
@@ -1483,7 +1483,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 >>
 
 /* CONTAINING with deferred patching: encode directly, PatchDet with measured distance */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 {
     let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
     ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);
@@ -1495,7 +1495,7 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
         }
         let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
         let acn_n_count = acn::acn_bit_stream_distance_in_bytes(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>(acn_n_count, pBitStrm, <sDetParamName>, pErrCode);
+        ret = <sPatchFuncName>(<if(soMF)><soMF>_encode(acn_n_count)<else>acn_n_count<endif>, pBitStrm, <sDetParamName>, pErrCode);
         *pErrCode = <sErrCode>;
         if !ret { return false; }
     }
@@ -1503,7 +1503,7 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
 >>
 
 /* CONTAINING with deferred patching: limit stream view, decode directly */
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 {
     let acn_saved_count = pBitStrm.count;
     let acn_expected_end = pBitStrm.current_byte + <sDetParamName>.value as i64;
@@ -1564,7 +1564,7 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 
 /* CONTAINING ExternalField wrapper: wraps an inline body with save-pos/measure/PatchDet
    Used when the contained type has ACN parameters (no standalone ACN function). */
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 {
     let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
     <sBody>
@@ -1576,14 +1576,14 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
         }
         let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
         let acn_n_count = acn::acn_bit_stream_distance_in_bytes(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>(acn_n_count, pBitStrm, <sDetParamName>, pErrCode);
+        ret = <sPatchFuncName>(<if(soMF)><soMF>_encode(acn_n_count)<else>acn_n_count<endif>, pBitStrm, <sDetParamName>, pErrCode);
         *pErrCode = <sErrCode>;
         if !ret { return false; }
     }
 }
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 {
     let acn_saved_count = pBitStrm.count;
     let acn_expected_end = pBitStrm.current_byte + <sDetParamName>.value as i64;
@@ -1596,14 +1596,14 @@ octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFunc
 >>
 
 /* BIT STRING CONTAINING with deferred patching: encode directly, PatchDet with measured bit distance */
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 {
     let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, false);
     if ret {
         let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
         let acn_n_count = acn::acn_bit_stream_distance_in_bits(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>(acn_n_count, pBitStrm, <sDetParamName>, pErrCode);
+        ret = <sPatchFuncName>(<if(soMF)><soMF>_encode(acn_n_count)<else>acn_n_count<endif>, pBitStrm, <sDetParamName>, pErrCode);
         *pErrCode = <sErrCode>;
         if !ret { return false; }
     }
@@ -1611,7 +1611,7 @@ bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFu
 >>
 
 /* BIT STRING CONTAINING with deferred patching: limit stream view (bit-granular), decode directly */
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 {
     let acn_start_bits = pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64;
     let acn_end_bits = acn_start_bits + <sDetParamName>.value as i64;
@@ -1668,21 +1668,21 @@ bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMax
 >>
 
 /* BIT STRING CONTAINING ExternalField wrapper: wraps inline body with bit-granular measurement/limiting */
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 {
     let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
     <sBody>
     if ret {
         let acn_data_end = acn::acn_bit_stream_get_pos(pBitStrm);
         let acn_n_count = acn::acn_bit_stream_distance_in_bits(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>(acn_n_count, pBitStrm, <sDetParamName>, pErrCode);
+        ret = <sPatchFuncName>(<if(soMF)><soMF>_encode(acn_n_count)<else>acn_n_count<endif>, pBitStrm, <sDetParamName>, pErrCode);
         *pErrCode = <sErrCode>;
         if !ret { return false; }
     }
 }
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 {
     let acn_start_bits = pBitStrm.current_byte * 8 + pBitStrm.current_bit as i64;
     let acn_end_bits = acn_start_bits + <sDetParamName>.value as i64;

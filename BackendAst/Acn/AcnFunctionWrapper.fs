@@ -67,7 +67,14 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                               (funcDefAnnots: string list)
                               (us: State) =
     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
-    let funcNameAndtasInfo   = lm.lg.getACNFuncName r codec t td
+    // --acn-v2: a type assignment whose ACN field determines a field of an
+    // enclosing type has no standalone ACN function, like a type with ACN
+    // parameters (AcnClosureConversion.findTassesWithExportedDeterminants).
+    let funcNameAndtasInfo   =
+        match t.id.tasInfo with
+        | Some tasInfo when r.tassesWithExportedDeterminants.Contains tasInfo -> None
+        | Some _
+        | None -> lm.lg.getACNFuncName r codec t td
     let errCodeName         = ToC ("ERR_ACN" + (lm.lg.codecSuffix codec).ToUpper() + "_" + (t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm"))
     let errFieldPath = match t.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
     let errCode, ns = getNextValidErrorCode us errCodeName None errFieldPath
@@ -253,7 +260,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         prms @ extraPrms, prmNames @ extraNames
                     else
                         prms, prmNames
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soInitFuncName funcDefAnnots precondAnnots postcondAnnots false codec)
 
                 let errCodStr =
                     errCodes |>

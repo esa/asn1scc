@@ -218,6 +218,35 @@ The payload encoder writes field data directly to the real bitstream in a single
 
 When the same determinant is consumed by multiple fields, `Acn_PatchDet_*` performs a consistency check: if `is_set` is already true, it verifies that the new value matches the previously written one. A mismatch returns `ERR_ACN_DET_CONSISTENCY_MISMATCH`.
 
+### Determinants exported to the enclosing type
+
+A determinant may be declared inside a referenced type and control a field of
+the enclosing type:
+
+```
+Chain ::= SEQUENCE { first Byte, second Last OPTIONAL }
+
+Byte [] { more BOOLEAN [true-value '1'B], bits [encoding pos-int, size 7] }
+Chain [] { first [], second [present-when first.more] }
+```
+
+The legacy backend rejects this ("Unused ACN inserted field", since `more`
+determines nothing inside `Byte`). With `--acn-v2`, `Chain` passes an
+`AcnInsertedFieldRef` to the encoder of `first`, which reserves the bit, and
+patches it once `second` has been encoded. The same works through several
+reference levels (`present-when o.b.more`).
+
+`Byte` on its own has no value for `more`, so no standalone ACN
+encoder/decoder (and no automatic test case) is generated for it, as for a
+type with ACN parameters, and the compiler prints a warning:
+
+```
+myfile.acn:3:10: warning: ACN field 'more' determines a field outside type 'Byte'; with --acn-v2 its value is determined by the enclosing type, so no standalone ACN encoder/decoder is generated for 'Byte'.
+```
+
+An ACN field that determines nothing is still an error, as in legacy mode.
+This includes a usage of `Byte` whose enclosing type does not consume `more`.
+
 
 ## How to Use It
 
@@ -230,7 +259,8 @@ asn1scc -c -ACN --acn-v2 -atc -o out/ myfile.asn1 myfile.acn
 The alternate flag name `-acnDeferred` is also accepted.
 
 **Limitations:**
-- C backend only (experimental)
+- C and Ada backends (experimental)
+- The Ada backend cannot decode fields with a `mapping-function` (in any mode)
 - When `--acn-v2` is omitted, the compiler produces identical output to before -- there is no regression
 
 ## Benefits
@@ -255,3 +285,6 @@ The following cross-boundary ACN patterns are handled by deferred patching:
 | CHOICE determinant | Enumerated field selects CHOICE alternative |
 | Cross-boundary references | Determinant in one type, data in another (passed via `AcnInsertedFieldRef*`) |
 | Shared determinants | Same determinant consumed by multiple fields (consistency-checked) |
+| Exported determinants | Determinant declared in a referenced type, consumed by the enclosing type |
+| `CONTAINING` through a parameterized CHOICE | The size parameter bounds the region of the selected alternative |
+| Mapped size determinant | The `mapping-function` is applied to the measured size before patching |

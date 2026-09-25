@@ -27,7 +27,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 @inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
 @opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN, bCheckConstraints: Boolean): Either[ErrorCode, Int] =  // acn:21
 {
@@ -52,7 +52,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
 @opaque @inlineOnce <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN): EitherMut[ErrorCode, <sTypeDefName>] =
 {
@@ -1136,11 +1136,11 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 >>
 
 /* CONTAINING with deferred patching — TODO Scala implementation */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 // TODO: Scala deferred CONTAINING encode
 >>
 
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 // TODO: Scala deferred CONTAINING decode
 >>
 
@@ -1160,19 +1160,19 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 // TODO: Scala deferred CONTAINING embedded decode
 >>
 
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 // TODO: Scala deferred CONTAINING wrapper encode
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 // TODO: Scala deferred CONTAINING wrapper decode
 >>
 
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 // TODO: Scala bit_string_containing_deferred_func
 >>
 
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 // TODO: Scala bit_string_containing_deferred_func
 >>
 
@@ -1192,11 +1192,11 @@ bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMax
 // TODO: Scala bit_string_containing_deferred_embedded_func
 >>
 
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 // TODO: Scala bit_string_containing_deferred_wrapper
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
 // TODO: Scala bit_string_containing_deferred_wrapper
 >>
 

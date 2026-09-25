@@ -1,0 +1,27 @@
+-- ACNV2_ONLY
+-- Error cases: 013a has an ACN field that determines nothing (rejected as in
+-- legacy mode); in 013b the field is exported by Chain but not by Chain2,
+-- whose encoder would need the missing standalone Byte encoder.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Byte ::= SEQUENCE {
+    bits INTEGER (0..127)
+}
+
+Last ::= SEQUENCE {
+    bits INTEGER (0..127)
+}
+
+Chain ::= SEQUENCE {
+    first  Byte,
+    second Last OPTIONAL
+}
+
+Chain2 ::= SEQUENCE {
+    first Byte
+}
+
+END
+
+--TCFFC  013a.acn  $$$ sample1.acn:4:4: error: Unused ACN inserted field.                All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.                The field 'more' must either be removed or used as presence determinant of another ASN.1 type.
+--TCFFC  013b.acn  $$$ sample1.acn:4:4: error: Unused ACN inserted field.                All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.                The field 'more' must either be removed or used as presence determinant of another ASN.1 type.

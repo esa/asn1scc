@@ -1,0 +1,21 @@
+-- ACNV2_ONLY C_ONLY (Ada: decoding with a mapping-function does not compile yet)
+-- BIT STRING variant of 004: a mapped length determinant sizes a
+-- parameterized CHOICE of BIT STRING CONTAINING alternatives.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Document ::= SEQUENCE {
+    payload Payload
+}
+
+Payload ::= CHOICE {
+    value BIT STRING (CONTAINING Value),
+    other BIT STRING (CONTAINING Value)
+}
+
+Value ::= SEQUENCE {
+    number INTEGER (0..255)
+}
+
+END
+
+--TCFS   010.acn

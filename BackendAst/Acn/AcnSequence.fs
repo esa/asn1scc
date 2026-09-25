@@ -394,7 +394,7 @@ let private printPresenceBit
 // patch determinants whose consumer never executed.  Threaded as plain
 // text instead of via a synthetic AcnChild — see DAstACNDeferred for
 // the rationale.
-let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (_:DastAcnParameter list) (fallbackEpilogue:string option) (us:State)  =
+let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (_:DastAcnParameter list) (fallbackEpilogue:(CodegenScope -> string) option) (us:State)  =
     (*
         1. all Acn inserted children are declared as local variables in the encoded and decode functions (declaration step)
         2. all Acn inserted children must be initialized appropriately in the encoding phase
@@ -621,7 +621,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         let aux = lm.lg.generateSequenceAuxiliaries r ACN t o nestingScope p.accessPath codec
         let fallbackStmts =
             match codec, fallbackEpilogue with
-            | Encode, Some code -> [code]
+            | Encode, Some makeCode -> [makeCode p]
             | _ -> []
         let seqContent =  (saveInitialBitStrmStatements@childrenStatements@fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
 
@@ -647,17 +647,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
 
         | errChild::_      ->
-            let determinantUsage =
-                match errChild.Type with
-                | AcnInteger               _-> "length"
-                | AcnNullType              _-> raise(BugErrorException "existsAcnChildWithNoUpdates")
-                | AcnBoolean               _-> "presence"
-                | AcnReferenceToEnumerated _-> "presence"
-                | AcnReferenceToIA5String  _-> "presence"
-            let errMessage = sprintf "Unused ACN inserted field.
-                All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.
-                The field '%s' must either be removed or used as %s determinant of another ASN.1 type." errChild.Name.Value determinantUsage
-            raise(SemanticError(errChild.Name.Location, errMessage))
+            raise(SemanticError(errChild.Name.Location, AcnClosureConversion.unusedAcnInsertedFieldMessage errChild.Name.Value errChild.Type))
             //let loc = errChild.Name.Location
             //Console.Out.WriteLine (FrontEntMain.formatSemanticWarning loc errMessage)
             //None, ns

@@ -416,6 +416,13 @@ type LangGeneric_a() =
             | Asn1AcnAst.AcnInsertedType.AcnBoolean bln ->
                 match bln.acnProperties.encodingPattern with
                 | None -> Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.TrueValueEncoding pattern) when pattern.Value = "1" ->
+                    Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.FalseValueEncoding pattern) when pattern.Value = "0" ->
+                    Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
+                | Some (AcnGenericTypes.TrueFalseValueEncoding (truePattern, falsePattern))
+                    when truePattern.Value = "1" && falsePattern.Value = "0" ->
+                    Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
                 | Some _ -> None
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 match enm.enumerated.acnEncodingClass with

@@ -1,0 +1,38 @@
+-- ACNV2_ONLY
+-- Length determinants cross nested SEQUENCE, CHOICE, and referenced-type
+-- boundaries in both producer and consumer directions.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Document ::= SEQUENCE {
+    boxes SEQUENCE (SIZE (1..4)) OF OuterBox
+}
+
+OuterBox ::= SEQUENCE {
+    payload OuterPayload
+}
+
+OuterPayload ::= CHOICE {
+    nested OCTET STRING (CONTAINING Nested),
+    value OCTET STRING (CONTAINING Value)
+}
+
+Nested ::= SEQUENCE {
+    boxes SEQUENCE (SIZE (1..4)) OF InnerBox
+}
+
+InnerBox ::= SEQUENCE {
+    payload InnerPayload
+}
+
+InnerPayload ::= CHOICE {
+    value OCTET STRING (CONTAINING Value),
+    other OCTET STRING (CONTAINING Value)
+}
+
+Value ::= SEQUENCE {
+    number INTEGER (0..255)
+}
+
+END
+
+--TCFS   003.acn
