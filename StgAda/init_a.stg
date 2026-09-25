@@ -178,7 +178,9 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
 initTestCaseSizeSequenceOf(p, sAcc, sArrayHolderName, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i, sResVar) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
-    pragma Loop_Invariant (<i> in 1 .. <nSize>);
+    --  commented because it casues this warning
+    --  warning: condition can only be False if invalid values present
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
     <arrsInnerItems; separator="\n">
     <if(bMultiCases)>
     end if;
