@@ -73,6 +73,7 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
 // Encode value
 ret = <sFuncName>(<sVal>, &bitStrm, pErrCode, TRUE);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 1;
+ret = *pErrCode == 0; /* a function that succeeds must not report an error */
 >>
 
 Codec_Encode_XER(sModName, sFuncName, sVal, sTasName) ::= <<
@@ -84,6 +85,7 @@ BitStream_AttachBuffer(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>EN
 // Decode value
 ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 2;
+ret = *pErrCode == 0; /* a function that succeeds must not report an error */
 >>
 
 /* 'size deduced' PDU: the decoder derives element counts from the end of the
@@ -96,6 +98,7 @@ Codec_Decode_exact_length(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 // Decode value
 ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 2;
+ret = *pErrCode == 0; /* a function that succeeds must not report an error */
 >>
 
 Codec_Decode_XER(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
@@ -103,12 +106,14 @@ ByteStream_AttachBuffer(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>E
 // Decode value
 ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 2;
+ret = *pErrCode == 0; /* a function that succeeds must not report an error */
 >>
 
 Codec_validate_output(sModName, sFuncName, sAmber) ::= <<
 // validate decoded data
 ret = <sFuncName>(<sAmber>decodedPDU, pErrCode);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 3;
+ret = *pErrCode == 0; /* a function that succeeds must not report an error */
 >>
 
 Codec_compare_input_with_output(sModName, sFuncName, sVal, sAmber) ::= <<
