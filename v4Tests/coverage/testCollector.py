@@ -79,6 +79,44 @@ class CollectorTests(unittest.TestCase):
         self.assertTrue(all(u["nocoverage"] for u in chosen))
         self.assertEqual(units[0]["selection"], "NO_AUTOMATIC_TEST_CASES")
 
+    def test_first_line_markers_follow_the_regression_runner(self):
+        (self.root / "v2.asn1").write_text("-- ACNV2_ONLY\n--TCLS A[]\n")
+        (self.root / "c.asn1").write_text("-- ACNV2_ONLY C_ONLY\n--TCLS B[]\n")
+        reasons = {}
+        for flags in ([], ["--acn-v2"], ["--acn-v2", "--language", "Ada"]):
+            units = c.enumerate_units(self.root)
+            c.select_units(units, c.arguments(["--test-root", str(self.root), *flags]), None)
+            reasons[" ".join(flags)] = [u["selection"] for u in units]
+        self.assertEqual(reasons[""], ["ACNV2_ONLY", "ACNV2_ONLY"])
+        self.assertEqual(reasons["--acn-v2"], ["selected", "selected"])
+        self.assertEqual(reasons["--acn-v2 --language Ada"], ["C_ONLY", "selected"])
+
+    def test_input_hash_ignores_line_endings_but_covers_helpers(self):
+        (self.root / "a.asn1").write_bytes(b"--TCLS A[]\n")
+        lf = c.enumerate_units(self.root)[0]["input_sha256"]
+        (self.root / "a.asn1").write_bytes(b"--TCLS A[]\r\n")
+        self.assertEqual(c.enumerate_units(self.root)[0]["input_sha256"], lf)
+        helpers = self.root / "a.helpers"
+        helpers.mkdir()
+        (helpers / "map.c").write_text("int f(void) { return 0; }\n")
+        unit = c.enumerate_units(self.root)[0]
+        self.assertNotEqual(unit["input_sha256"], lf)
+        work = self.root / "work"
+        work.mkdir()
+        c.prepare_work(unit, self.root, work)
+        self.assertEqual(sorted(p.name for p in work.iterdir()), ["map.c", "sample1.acn", "sample1.asn1"])
+
+    def test_compile_accepts_only_warning_diagnostics(self):
+        logs = self.root / "logs"
+        logs.mkdir()
+        warn = "import sys; print('a.asn1:1:1: warning: unused', file=sys.stderr)"
+        c.run_step([sys.executable, "-c", warn], self.root, logs, "compile", 10, [], strict_stderr="warnings")
+        with self.assertRaises(c.StageError):
+            c.run_step([sys.executable, "-c", warn], self.root, logs, "compile2", 10, [], strict_stderr=True)
+        with self.assertRaises(c.StageError):
+            c.run_step([sys.executable, "-c", "import sys; print('error: x', file=sys.stderr)"],
+                       self.root, logs, "compile3", 10, [], strict_stderr="warnings")
+
     def test_missing_acn_recorded_and_outside_corpus_rejected(self):
         (self.root / "a.asn1").write_text("--TCFS missing.acn\n--TCFS ../outside.acn\n")
         units = c.enumerate_units(self.root)

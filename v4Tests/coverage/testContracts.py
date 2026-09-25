@@ -56,6 +56,29 @@ class CoverageContracts(unittest.TestCase):
                     runner.RunTestCase(cfg, item)
                 self.assertEqual(len(results.get_errors()), 1)
 
+    def test_marker_helper_and_warning_rules_match_regression_runner(self):
+        samples = ["-- ACNV2_ONLY\n", "-- ACNV2_ONLY C_ONLY (Ada: ...)\n", "-- NOCOVERAGE\n"]
+        with tempfile.TemporaryDirectory() as temp:
+            for index, first in enumerate(samples):
+                path = Path(temp) / f"{index:03d}.asn1"
+                path.write_text(first + "--TCLS A[]\n")
+                unit = next(u for u in c.enumerate_units(Path(temp)) if u["asn1"] == path.name)
+                for language, v2 in (("c", ""), ("c", "--acn-v2"), ("Ada", "--acn-v2")):
+                    with self.subTest(first=first, language=language, v2=v2):
+                        cfg = runner.TestConfig(language=language, rootDir=temp,
+                                                path_to_asn1scc="compiler", acnV2=v2)
+                        args = c.arguments(["--test-root", temp, "--language", language,
+                                            *([v2] if v2 else [])])
+                        c.select_units([unit], args, None)
+                        self.assertEqual(runner.isTestSelected(cfg, str(path)),
+                                         unit["selection"] == "selected")
+                self.assertEqual(Path(runner.helpersDir(str(path))),
+                                 (Path(temp) / unit["asn1"]).with_suffix(".helpers"))
+        for text in ("", "x.asn1:1:1: warning: w\n\n", "x.asn1:1:1: error: e\n",
+                     "x: warning: w\nplain text\n"):
+            with self.subTest(stderr=text):
+                self.assertEqual(c.is_warning_only(text), runner.isWarningOnly(text))
+
     def test_default_compiler_flags_match_regression_runner(self):
         for language in ("c", "Ada"):
             with self.subTest(language=language), tempfile.TemporaryDirectory() as temp:

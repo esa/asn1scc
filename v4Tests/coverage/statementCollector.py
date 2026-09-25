@@ -136,12 +136,10 @@ def measure(unit, args, root):
     try:
         if "input_error" in unit:
             raise c.StageError("setup", unit["input_error"])
-        asn1, acn = c.input_bytes(unit, args.test_root)
-        (work / "sample1.asn1").write_bytes(asn1)
-        (work / "sample1.acn").write_bytes(acn)
+        c.prepare_work(unit, args.test_root, work)
         c.run_step([str(args.compiler), *c.compiler_flags(args), "-o", str(work),
                     "sample1.asn1", "sample1.acn"], work, logs, "compile", args.timeout,
-                   record["steps"], strict_stderr=True)
+                   record["steps"], strict_stderr="warnings")
         if args.language == "c":
             record["decode_checks"] = {"stage": "baseline", "prefix_checks": 0}
             if args.decode_stage != "baseline":

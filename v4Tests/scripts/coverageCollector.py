@@ -53,9 +53,20 @@ def file_hash(path):
     return h.hexdigest()
 
 
+def normalized_text(data):
+    """Text bytes independent of the checkout's line endings (a Windows-side
+    checkout has CRLF working files; GitHub Actions and Linux clones have LF)."""
+    return data.replace(b"\r\n", b"\n")
+
+
+def content_hash(path):
+    data = path.read_bytes()
+    return digest(data if b"\0" in data else normalized_text(data))
+
+
 def tree_manifest(root):
     excluded = {".git", "bin", "obj", "__pycache__", "target"}
-    entries = {p.relative_to(root).as_posix(): file_hash(p)
+    entries = {p.relative_to(root).as_posix(): content_hash(p)
                for p in sorted(root.rglob("*"))
                if p.is_file() and not p.is_symlink()
                and not excluded.intersection(p.relative_to(root).parts)}
@@ -77,9 +88,38 @@ def input_bytes(unit, root):
     return asn1, acn
 
 
+def helper_files(unit, root):
+    """Files of <name>.helpers/ next to <name>.asn1, copied into every work
+    directory of that file (same rule as runTests.helpersDir)."""
+    directory = (root / unit["asn1"]).with_suffix(".helpers")
+    if not directory.is_dir():
+        return []
+    return sorted((p.relative_to(directory).as_posix(), p)
+                  for p in directory.rglob("*") if p.is_file())
+
+
 def input_hash(unit, root):
     asn1, acn = input_bytes(unit, root)
-    return digest(asn1 + b"\0ACN\0" + acn)
+    data = normalized_text(asn1) + b"\0ACN\0" + normalized_text(acn)
+    for name, path in helper_files(unit, root):
+        data += b"\0HELPER\0" + name.encode() + b"\0" + normalized_text(path.read_bytes())
+    return digest(data)
+
+
+def prepare_work(unit, root, work):
+    """Write sample1.asn1/sample1.acn and copy the unit's helper files."""
+    asn1, acn = input_bytes(unit, root)
+    (work / "sample1.asn1").write_bytes(asn1)
+    (work / "sample1.acn").write_bytes(acn)
+    for name, path in helper_files(unit, root):
+        target = work / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
+
+
+def first_line_markers(first):
+    """First-line markers of a test file (same rules as runTests.isTestSelected)."""
+    return {"acnv2_only": "ACNV2_ONLY" in first, "c_only": "C_ONLY" in first}
 
 
 def enumerate_units(root):
@@ -97,7 +137,8 @@ def enumerate_units(root):
                             "directive_line": number, "acn_kind": kind,
                             "acn_payload": line[len(marker):].strip(),
                             "nocoverage": "NOCOVERAGE" in first,
-                            "no_atc": "NO_AUTOMATIC_TEST_CASES" in first}
+                            "no_atc": "NO_AUTOMATIC_TEST_CASES" in first,
+                            **first_line_markers(first)}
                     try:
                         unit["input_sha256"] = input_hash(unit, root)
                     except (OSError, ValueError) as error:
@@ -118,6 +159,10 @@ def select_units(units, args, reference):
     for unit in units:
         if unit["no_atc"]:
             reason = "NO_AUTOMATIC_TEST_CASES"
+        elif unit.get("acnv2_only") and not args.acn_v2:
+            reason = "ACNV2_ONLY"
+        elif unit.get("c_only") and args.language != "c":
+            reason = "C_ONLY"
         elif unit["unit"] not in cohort:
             reason = "outside_cohort"
         elif args.filter and args.filter not in unit["unit"]:
@@ -302,11 +347,18 @@ def run_step(command, cwd, logs, stage, timeout, steps, strict_stderr=False):
         raise StageError(stage, str(error)) from error
     finally:
         step["seconds"] = round(time.monotonic() - start, 3)
-    if step["returncode"] or (strict_stderr and stderr_path.stat().st_size):
+    rejected_stderr = strict_stderr and stderr_path.stat().st_size and not (
+        strict_stderr == "warnings" and is_warning_only(stderr_path.read_text(errors="replace")))
+    if step["returncode"] or rejected_stderr:
         detail = (stderr_path.read_text(errors="replace")
                   or stdout_path.read_text(errors="replace"))[-2000:]
         raise StageError(stage, detail or f"Exit status {step['returncode']}")
     return stdout_path.read_text(errors="replace")
+
+
+def is_warning_only(text):
+    """Compiler stderr with nothing but warnings (same rule as runTests.isWarningOnly)."""
+    return all(": warning: " in line for line in text.splitlines() if line.strip())
 
 
 def compiler_flags(args):
@@ -363,12 +415,10 @@ def measure_unit(unit, args, run_dir):
     try:
         if "input_error" in unit:
             raise StageError("setup", unit["input_error"])
-        asn1, acn = input_bytes(unit, args.test_root)
-        (work / "sample1.asn1").write_bytes(asn1)
-        (work / "sample1.acn").write_bytes(acn)
+        prepare_work(unit, args.test_root, work)
         run_step([str(args.compiler), *compiler_flags(args), "-o", str(work),
                   "sample1.asn1", "sample1.acn"], work, logs, "compile", args.timeout,
-                 rec["steps"], strict_stderr=True)
+                 rec["steps"], strict_stderr="warnings")
         if args.language == "c":
             rec["decode_checks"] = {"stage": "baseline", "prefix_checks": 0}
             if args.decode_stage != "baseline":
