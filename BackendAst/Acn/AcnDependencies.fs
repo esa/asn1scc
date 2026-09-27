@@ -453,17 +453,19 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
             let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) arrsLocalUpdateStatements arrsGetFirstIntValue firstAlwaysInit.IsSome arrsLocalCheckEquality (initExpr r lm m child.Type)
             updateStatement
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
+            // A dependency that yields no value for this test value belongs to a part of
+            // the value that is absent (e.g. another alternative of a CHOICE that receives
+            // the determinant as an ACN argument). The encoder skips such dependencies at
+            // run time (<name>_is_initialized), so the test value is valid when at least one
+            // dependency yields a value and all yielded values agree.
             let updateValues =
                 localUpdateFuns |> List.map(fun z -> match z with None -> None | Some res -> res.testCaseFnc atc)
-            match updateValues |> Seq.exists(fun z -> z.IsNone) with
-            | true  -> None //at least one update is not present
-            | false ->
-                match updateValues |> List.choose id with
-                | []        -> None
-                | u1::us    ->
-                    match us |> Seq.exists(fun z -> z <> u1) with
-                    | true  -> None
-                    | false -> Some u1
+            match updateValues |> List.choose id with
+            | []        -> None
+            | u1::us    ->
+                match us |> Seq.exists(fun z -> z <> u1) with
+                | true  -> None
+                | false -> Some u1
 
         let ret = Some(({AcnChildUpdateResult.updateAcnChildFnc = multiUpdateFunc; icdComments=icdComments; errCodes=errCode::restErrCodes ; testCaseFnc = testCaseFnc; localVariables = restLocalVariables}))
         ret, ns
