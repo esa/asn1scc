@@ -234,9 +234,10 @@ let rec excludedValueNodes (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : 
         // enclosing type arrive as withcons.
         let permitted = en.baseInfo.items |> List.filter (Asn1Fold.isValidValueGeneric (en.baseInfo.cons @ en.baseInfo.withcons) (fun a b -> a = b.Name.Value))
         let valid = permitted |> List.map (fun it -> it.Name.Value) |> Set.ofList
-        match en.baseInfo.items |> List.tryFind (fun it -> not (valid.Contains it.Name.Value)) with
-        | Some it -> [(t.id, sprintf "%s = %s; /* %s: excluded by a constraint */" (path.joined lm.lg) (it.definitionValue.ToString()) it.Name.Value, ExcludedEnumItem)]
-        | None    -> []
+        // one test per excluded item: each item has its own encoder and decoder arm
+        en.baseInfo.items |>
+        List.filter (fun it -> not (valid.Contains it.Name.Value)) |>
+        List.map (fun it -> (t.id, sprintf "%s = %s; /* %s: excluded by a constraint */" (path.joined lm.lg) (it.definitionValue.ToString()) it.Name.Value, ExcludedEnumItem))
     | ReferenceType rf -> excludedValueNodes lm path rf.resolvedType
     | Choice ch ->
         ch.children |>
