@@ -177,6 +177,79 @@ let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacro
                 Some (emitTestCaseAsFunc_dummy_init_function lm sTypeName initProc.funcName dummyVarName)
         | Some _ -> None)
 
+/// Nodes of a type's own tree that can hold an invalid in-memory value, as
+/// (node type id, statement that sets the invalid value, node is a CHOICE):
+/// a CHOICE selector is set to <X>_NONE (always the first enumerator, i.e. 0),
+/// an ENUMERATED field to the smallest non-negative integer that is not an item
+/// value. Referenced types are covered by their own type assignment's tests;
+/// SEQUENCE OF elements are skipped because an automatic test value does not
+/// tell which element holds a nested node.
+let rec invalidValueNodes (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : (ReferenceToType * string * bool) list =
+    match t.Kind with
+    | Choice ch ->
+        let setNone = sprintf "%s%skind = 0; /* <X>_NONE */" (path.joined lm.lg) (lm.lg.getAccess path)
+        let children =
+            ch.children |>
+            List.collect (fun c ->
+                match c.Optionality with
+                | Some Asn1AcnAst.ChoiceAlwaysAbsent -> []
+                | Some Asn1AcnAst.ChoiceAlwaysPresent
+                | None -> invalidValueNodes lm (lm.lg.getChChild path (lm.lg.getAsn1ChChildBackendName c) c.chType.isIA5String) c.chType)
+        (t.id, setNone, true) :: children
+    | Enumerated en ->
+        let values = en.baseInfo.items |> List.map (fun it -> it.definitionValue) |> Set.ofList
+        let invalid = Seq.initInfinite BigInteger |> Seq.find (fun v -> not (values.Contains v))
+        [(t.id, sprintf "%s = %s; /* not an item value */" (path.joined lm.lg) (invalid.ToString()), false)]
+    | Sequence sq ->
+        sq.children |>
+        List.collect (fun c ->
+            match c with
+            | AcnChild _ -> []
+            | Asn1Child ch ->
+                match ch.Optionality with
+                | Some Asn1AcnAst.AlwaysAbsent -> []
+                | Some Asn1AcnAst.AlwaysPresent
+                | Some (Asn1AcnAst.Optional _)
+                | None ->
+                    let chPath = lm.lg.getSeqChild path (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
+                    invalidValueNodes lm chPath ch.Type)
+    | SequenceOf _ | ReferenceType _ | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _
+    | BitString _ | Boolean _ | ObjectIdentifier _ | TimeType _ -> []
+
+/// One automatic test per invalid-value node of a type assignment, for the
+/// UPER and ACN encodings of languages that can represent such values. Each
+/// starts from the first used automatic test value that contains the node.
+let invalidValueTestCases (lm:LanguageMacros) (e:Asn1Encoding) (t:Asn1Type) (atcs:AutomaticTestCase list) =
+    let encFuncName =
+        match e with
+        | Asn1Encoding.UPER -> t.uperEncFunction.funcName
+        | Asn1Encoding.ACN  -> t.acnEncFunction |> Option.bind (fun f -> f.funcName)
+        | Asn1Encoding.XER
+        | Asn1Encoding.BER  -> None
+    let isValidFuncName = t.isValidFunction |> Option.bind (fun f -> f.funcName)
+    match lm.lg.atcEmitsInvalidValueTests, encFuncName, isValidFuncName with
+    | true, Some sEncFunc, Some sIsValidFunc ->
+        let p = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
+        invalidValueNodes lm p.accessPath t |>
+        List.choose (fun (nodeId, sSetInvalid, isChoice) ->
+            atcs |>
+            List.tryFind (fun atc -> nodeId = t.id || atc.testCaseTypeIDsMap.ContainsKey nodeId) |>
+            Option.map (fun atc ->
+                fun idx ->
+                    let sFuncName = sprintf "test_case_invalid_%A_%06d" e idx
+                    let initStatement = atc.initTestCaseFunc p
+                    let arrsVars = initStatement.localVariables |> List.map(fun lv -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct |> Seq.toList
+                    let encAmper, _ = gAmber lm t
+                    let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
+                    let sTasName = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
+                    let soEqualFunc =
+                        match isChoice with
+                        | true  -> t.equalFunction.isEqualFuncName
+                        | false -> None
+                    let func_body = lm.atc.emitInvalidValueTestCase sFuncName arrsVars sTasName encAmper (GetEncodingString lm e) initStatement.funcBody bStatic sSetInvalid sIsValidFunc sEncFunc soEqualFunc
+                    (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)))
+    | _ -> []
+
 let asn1EncodingMapping = function
     | UPER  -> UperEncDecFunctionType
     | ACN   -> AcnEncDecFunctionType 
@@ -184,7 +257,9 @@ let asn1EncodingMapping = function
     | XER   -> XerEncDecFunctionType 
 
 let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outDir =
-    let tcFunctors =
+    // Invalid-value tests follow all other tests, so the names of the existing ones do not change.
+    let invalidValueFunctors = ResizeArray<int -> string*string*string>()
+    let validFunctors =
         seq {
             for m in r.Files |> List.collect(fun f -> f.Modules) do
                 for e in r.args.encodings do
@@ -215,6 +290,8 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                                             allAtcs |> List.filter (fun atc -> sizeOf atc = minSize)
                                     else
                                         allAtcs
+                                let usedAtcs = atcsToUse |> List.filter (fun atc -> e <> Asn1Encoding.ACN || (isTestCaseValid atc))
+                                invalidValueFunctors.AddRange (invalidValueTestCases lm e t.Type usedAtcs)
                                 for atc in atcsToUse do
                                     let testCaseIsValid = e <> Asn1Encoding.ACN || (isTestCaseValid atc)
                                     if testCaseIsValid then
@@ -241,6 +318,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                             yield generateTcFun
                         | None         -> ()
         } |> Seq.toList
+    let tcFunctors = validFunctors @ List.ofSeq invalidValueFunctors
     let maxTestCasesPerFile = 100.0
     let nMaxTestCasesPerFile = int maxTestCasesPerFile
 

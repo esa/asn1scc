@@ -740,6 +740,13 @@ type ILangGeneric () =
     abstract member atcRunnerImportsAutoTcsUnits : bool
     default _.atcRunnerImportsAutoTcsUnits = false
 
+    /// True when the automatic tests also cover invalid in-memory values: a valid
+    /// test value with one CHOICE selector set to <X>_NONE or one ENUMERATED field set
+    /// outside its items, which validation and encoding must reject (C). Ada, Scala
+    /// and Rust cannot represent such values; Python is not covered yet.
+    abstract member atcEmitsInvalidValueTests : bool
+    default _.atcEmitsInvalidValueTests = false
+
     /// True when an OPTIONAL child whose encoder produces no statements must still be
     /// emitted through sequence_optional_child (Rust: the presence flag is assigned there).
     abstract member emitOptionalChildWithEmptyBody : bool

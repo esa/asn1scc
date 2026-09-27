@@ -59,6 +59,8 @@ type ITestCases_rust() =
             test_cases_rust.emitTestCaseAsFunc_dummy_init_function  sTypeName sFuncName sDummyVarname 
         override this.emitTestCaseAsFunc  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sEnc:string) (bValueAssignment:bool) (sInitializeTcData:string) (bStatic:bool) (sGenerateDatFile:string) (arrsDummyInitStatementsNeededForStatementCoverage:seq<string>) (sInitAmber:string) =
             test_cases_rust.emitTestCaseAsFunc  sFuncName arrsVars sModName sTasName sAmber sEnc bValueAssignment sInitializeTcData bStatic sGenerateDatFile arrsDummyInitStatementsNeededForStatementCoverage sInitAmber 
+        override this.emitInvalidValueTestCase  (sFuncName:string) (arrsVars:seq<string>) (sTasName:string) (sAmber:string) (sEnc:string) (sInitializeTcData:string) (bStatic:bool) (sSetInvalidValue:string) (sIsValidFunc:string) (sEncFunc:string) (soEqualFunc:string option) =
+            test_cases_rust.emitInvalidValueTestCase  sFuncName arrsVars sTasName sAmber sEnc sInitializeTcData bStatic sSetInvalidValue sIsValidFunc sEncFunc soEqualFunc 
         override this.printTestCaseFileDef  (sThisFile:string) (arrsIncludedModules:seq<string>) (arrsTestFunctionDefs:seq<string>) =
             test_cases_rust.printTestCaseFileDef  sThisFile arrsIncludedModules arrsTestFunctionDefs 
         override this.printTestCaseFileBody  (sThisFile:string) (arrsIncludedModules:seq<string>) (arrsTestFunctionBodies:seq<string>) (arrsProgramUnitNames:seq<string>) =

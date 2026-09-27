@@ -887,6 +887,7 @@ type LangGeneric_c() =
             | _ -> "0"
 
         override _.acnDeferredTempVarName baseName = "_" + baseName
+        override _.atcEmitsInvalidValueTests = true
 
         override this.getDirInfo (target:Targets option) rootDir =
             {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}

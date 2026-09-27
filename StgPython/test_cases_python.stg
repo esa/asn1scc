@@ -202,6 +202,10 @@ def <sFuncName>() -> None:
 >>
 
 
+/* Automatic tests with invalid in-memory values: C only (ILangGeneric.atcEmitsInvalidValueTests). */
+emitInvalidValueTestCase(sFuncName, arrsVars, sTasName, sAmber, sEnc, sInitializeTcData, bStatic, sSetInvalidValue, sIsValidFunc, sEncFunc, soEqualFunc) ::= <<
+>>
+
 printTestCaseFileDef(sThisFile, arrsIncludedModules, arrsTestFunctionDefs) ::= <<>>
 
 

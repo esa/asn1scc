@@ -469,6 +469,58 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
 >>
 
 
+/* Automatic test with an invalid in-memory value: a valid automatic test value
+   (checked first) with one CHOICE selector set to <X>_NONE or one ENUMERATED
+   field set to a value outside its items. Validation, checked encoding and
+   unchecked encoding must fail with an error code; Equal must fail for a CHOICE. */
+emitInvalidValueTestCase(sFuncName, arrsVars, sTasName, sAmber, sEnc, sInitializeTcData, bStatic, sSetInvalidValue, sIsValidFunc, sEncFunc, soEqualFunc) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    flag result;
+    int errCode = 0;
+    static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    BitStream bitStrm;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>static <endif><sTasName> tc_data;
+    <sInitializeTcData>
+    /* the automatic test value is valid before the change */
+    result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
+    if (result) {
+        <sSetInvalidValue>
+        errCode = 0;
+        result = !<sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode != 0;
+    }
+    if (result) {
+        errCode = 0;
+        BitStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+        result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, TRUE) && errCode != 0;
+    }
+    if (result) {
+        errCode = 0;
+        BitStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+        result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, FALSE) && errCode != 0;
+    }
+    <if(soEqualFunc)>
+    if (result) {
+        result = !<soEqualFunc>(<sAmber>tc_data, <sAmber>tc_data);
+    }
+    <endif>
+    if (result) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed. The invalid value was accepted, or the starting value was not valid.");
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    output->report_case_end();
+}
+>>
+
 printTestCaseFileDef(sThisFile, arrsIncludedModules, arrsTestFunctionDefs) ::= <<
 
 #ifndef GENERATED_ASN1SCC_<sThisFile>_H
