@@ -384,6 +384,10 @@ def <sFuncName>(output: TestOutput): Int =
 emitInvalidValueTestCase(sFuncName, arrsVars, sTasName, sAmber, sEnc, sInitializeTcData, bStatic, sSetInvalidValue, sIsValidFunc, sEncFunc, soEqualFunc) ::= <<
 >>
 
+/* Automatic tests with values excluded by a constraint: C only (ILangGeneric.atcEmitsInvalidValueTests). */
+emitExcludedValueTestCase(sFuncName, arrsVars, sTasName, sAmber, sEnc, sInitializeTcData, bStatic, sSetExcludedValue, sIsValidFunc, sEncFunc, sDecFunc) ::= <<
+>>
+
 printTestCaseFileDef(sThisFile, arrsIncludedModules, arrsTestFunctionDefs) ::= <<
 // test_cases_scala.stg:370
 /*

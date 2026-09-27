@@ -177,14 +177,20 @@ let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacro
                 Some (emitTestCaseAsFunc_dummy_init_function lm sTypeName initProc.funcName dummyVarName)
         | Some _ -> None)
 
+/// The kinds of automatic tests with an invalid value (C).
+type InvalidValueKind =
+    | InvalidChoiceSelector   // CHOICE selector set to <X>_NONE
+    | InvalidEnumValue        // ENUMERATED field set to a value that is not an item
+    | ExcludedEnumItem        // ENUMERATED field set to a declared item that its constraints exclude
+
 /// Nodes of a type's own tree that can hold an invalid in-memory value, as
-/// (node type id, statement that sets the invalid value, node is a CHOICE):
+/// (node type id, statement that sets the invalid value, kind):
 /// a CHOICE selector is set to <X>_NONE (always the first enumerator, i.e. 0),
 /// an ENUMERATED field to the smallest non-negative integer that is not an item
 /// value. Referenced types are covered by their own type assignment's tests;
 /// SEQUENCE OF elements are skipped because an automatic test value does not
 /// tell which element holds a nested node.
-let rec invalidValueNodes (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : (ReferenceToType * string * bool) list =
+let rec invalidValueNodes (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : (ReferenceToType * string * InvalidValueKind) list =
     match t.Kind with
     | Choice ch ->
         let setNone = sprintf "%s%skind = 0; /* <X>_NONE */" (path.joined lm.lg) (lm.lg.getAccess path)
@@ -195,11 +201,11 @@ let rec invalidValueNodes (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : (
                 | Some Asn1AcnAst.ChoiceAlwaysAbsent -> []
                 | Some Asn1AcnAst.ChoiceAlwaysPresent
                 | None -> invalidValueNodes lm (lm.lg.getChChild path (lm.lg.getAsn1ChChildBackendName c) c.chType.isIA5String) c.chType)
-        (t.id, setNone, true) :: children
+        (t.id, setNone, InvalidChoiceSelector) :: children
     | Enumerated en ->
         let values = en.baseInfo.items |> List.map (fun it -> it.definitionValue) |> Set.ofList
         let invalid = Seq.initInfinite BigInteger |> Seq.find (fun v -> not (values.Contains v))
-        [(t.id, sprintf "%s = %s; /* not an item value */" (path.joined lm.lg) (invalid.ToString()), false)]
+        [(t.id, sprintf "%s = %s; /* not an item value */" (path.joined lm.lg) (invalid.ToString()), InvalidEnumValue)]
     | Sequence sq ->
         sq.children |>
         List.collect (fun c ->
@@ -216,6 +222,45 @@ let rec invalidValueNodes (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : (
     | SequenceOf _ | ReferenceType _ | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _
     | BitString _ | Boolean _ | ObjectIdentifier _ | TimeType _ -> []
 
+/// ENUMERATED nodes whose constraints permit only some of the declared items, e.g. a PUS
+/// header field fixed by WITH COMPONENTS. The encoders and decoders keep an arm for every
+/// declared item, which valid values never reach. Unlike invalidValueNodes this follows
+/// references: such constraints are usually applied at the reference site, and the
+/// constrained reference is encoded inline in the parent.
+let rec excludedValueNodes (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : (ReferenceToType * string * InvalidValueKind) list =
+    match t.Kind with
+    | Enumerated en ->
+        // validItems applies only the type's own constraints; WITH COMPONENTS of an
+        // enclosing type arrive as withcons.
+        let permitted = en.baseInfo.items |> List.filter (Asn1Fold.isValidValueGeneric (en.baseInfo.cons @ en.baseInfo.withcons) (fun a b -> a = b.Name.Value))
+        let valid = permitted |> List.map (fun it -> it.Name.Value) |> Set.ofList
+        match en.baseInfo.items |> List.tryFind (fun it -> not (valid.Contains it.Name.Value)) with
+        | Some it -> [(t.id, sprintf "%s = %s; /* %s: excluded by a constraint */" (path.joined lm.lg) (it.definitionValue.ToString()) it.Name.Value, ExcludedEnumItem)]
+        | None    -> []
+    | ReferenceType rf -> excludedValueNodes lm path rf.resolvedType
+    | Choice ch ->
+        ch.children |>
+        List.collect (fun c ->
+            match c.Optionality with
+            | Some Asn1AcnAst.ChoiceAlwaysAbsent -> []
+            | Some Asn1AcnAst.ChoiceAlwaysPresent
+            | None -> excludedValueNodes lm (lm.lg.getChChild path (lm.lg.getAsn1ChChildBackendName c) c.chType.isIA5String) c.chType)
+    | Sequence sq ->
+        sq.children |>
+        List.collect (fun c ->
+            match c with
+            | AcnChild _ -> []
+            | Asn1Child ch ->
+                match ch.Optionality with
+                | Some Asn1AcnAst.AlwaysAbsent -> []
+                | Some Asn1AcnAst.AlwaysPresent
+                | Some (Asn1AcnAst.Optional _)
+                | None ->
+                    let chPath = lm.lg.getSeqChild path (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
+                    excludedValueNodes lm chPath ch.Type)
+    | SequenceOf _ | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _
+    | BitString _ | Boolean _ | ObjectIdentifier _ | TimeType _ -> []
+
 /// One automatic test per invalid-value node of a type assignment, for the
 /// UPER and ACN encodings of languages that can represent such values. Each
 /// starts from the first used automatic test value that contains the node.
@@ -226,27 +271,38 @@ let invalidValueTestCases (lm:LanguageMacros) (e:Asn1Encoding) (t:Asn1Type) (atc
         | Asn1Encoding.ACN  -> t.acnEncFunction |> Option.bind (fun f -> f.funcName)
         | Asn1Encoding.XER
         | Asn1Encoding.BER  -> None
+    let decFuncName =
+        match e with
+        | Asn1Encoding.UPER -> t.uperDecFunction.funcName
+        | Asn1Encoding.ACN  -> t.acnDecFunction |> Option.bind (fun f -> f.funcName)
+        | Asn1Encoding.XER
+        | Asn1Encoding.BER  -> None
     let isValidFuncName = t.isValidFunction |> Option.bind (fun f -> f.funcName)
-    match lm.lg.atcEmitsInvalidValueTests, encFuncName, isValidFuncName with
-    | true, Some sEncFunc, Some sIsValidFunc ->
+    match lm.lg.atcEmitsInvalidValueTests, encFuncName, decFuncName, isValidFuncName with
+    | true, Some sEncFunc, Some sDecFunc, Some sIsValidFunc ->
         let p = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
-        invalidValueNodes lm p.accessPath t |>
-        List.choose (fun (nodeId, sSetInvalid, isChoice) ->
+        (invalidValueNodes lm p.accessPath t) @ (excludedValueNodes lm p.accessPath t) |>
+        List.choose (fun (nodeId, sSetInvalid, kind) ->
             atcs |>
             List.tryFind (fun atc -> nodeId = t.id || atc.testCaseTypeIDsMap.ContainsKey nodeId) |>
             Option.map (fun atc ->
                 fun idx ->
-                    let sFuncName = sprintf "test_case_invalid_%A_%06d" e idx
+                    let sFuncName =
+                        match kind with
+                        | InvalidChoiceSelector
+                        | InvalidEnumValue -> sprintf "test_case_invalid_%A_%06d" e idx
+                        | ExcludedEnumItem -> sprintf "test_case_excluded_%A_%06d" e idx
                     let initStatement = atc.initTestCaseFunc p
                     let arrsVars = initStatement.localVariables |> List.map(fun lv -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct |> Seq.toList
                     let encAmper, _ = gAmber lm t
                     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
                     let sTasName = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
-                    let soEqualFunc =
-                        match isChoice with
-                        | true  -> t.equalFunction.isEqualFuncName
-                        | false -> None
-                    let func_body = lm.atc.emitInvalidValueTestCase sFuncName arrsVars sTasName encAmper (GetEncodingString lm e) initStatement.funcBody bStatic sSetInvalid sIsValidFunc sEncFunc soEqualFunc
+                    let sEnc = GetEncodingString lm e
+                    let func_body =
+                        match kind with
+                        | InvalidChoiceSelector -> lm.atc.emitInvalidValueTestCase sFuncName arrsVars sTasName encAmper sEnc initStatement.funcBody bStatic sSetInvalid sIsValidFunc sEncFunc t.equalFunction.isEqualFuncName
+                        | InvalidEnumValue      -> lm.atc.emitInvalidValueTestCase sFuncName arrsVars sTasName encAmper sEnc initStatement.funcBody bStatic sSetInvalid sIsValidFunc sEncFunc None
+                        | ExcludedEnumItem      -> lm.atc.emitExcludedValueTestCase sFuncName arrsVars sTasName encAmper sEnc initStatement.funcBody bStatic sSetInvalid sIsValidFunc sEncFunc sDecFunc
                     (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)))
     | _ -> []
 

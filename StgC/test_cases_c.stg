@@ -521,6 +521,60 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
 }
 >>
 
+/* Automatic test with a value excluded by a constraint: a valid automatic test
+   value (checked first) with one ENUMERATED field set to a declared item that the
+   field's constraints exclude. Validation and checked encoding must fail. When the
+   unchecked encoding accepts the item, decoding that stream must fail too (the
+   decoder's final validation). */
+emitExcludedValueTestCase(sFuncName, arrsVars, sTasName, sAmber, sEnc, sInitializeTcData, bStatic, sSetExcludedValue, sIsValidFunc, sEncFunc, sDecFunc) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    flag result;
+    int errCode = 0;
+    static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    static <sTasName> decodedPDU;
+    BitStream bitStrm;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>static <endif><sTasName> tc_data;
+    <sInitializeTcData>
+    /* the automatic test value is valid before the change */
+    result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
+    if (result) {
+        <sSetExcludedValue>
+        errCode = 0;
+        result = !<sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode != 0;
+    }
+    if (result) {
+        errCode = 0;
+        BitStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+        result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, TRUE) && errCode != 0;
+    }
+    if (result) {
+        errCode = 0;
+        BitStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+        if (<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, FALSE)) {
+            long encLenBytes = BitStream_GetLength(&bitStrm);
+            BitStream_AttachBuffer(&bitStrm, encBuff, (int)encLenBytes);
+            errCode = 0;
+            result = !<sDecFunc>(<sAmber>decodedPDU, &bitStrm, &errCode) && errCode != 0;
+        }
+    }
+    if (result) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed. The excluded value was accepted, or the starting value was not valid.");
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    output->report_case_end();
+}
+>>
+
 printTestCaseFileDef(sThisFile, arrsIncludedModules, arrsTestFunctionDefs) ::= <<
 
 #ifndef GENERATED_ASN1SCC_<sThisFile>_H
