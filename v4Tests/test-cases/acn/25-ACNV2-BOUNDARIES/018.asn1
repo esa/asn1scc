@@ -1,0 +1,29 @@
+-- ACNV2_ONLY C_ONLY NO_AUTOMATIC_TEST_CASES
+-- 016 and 017 together, in the shape of a JPEG 2000 Reader Requirements
+-- box (ITU-T T.801 M.11.1): ML, the mask length, sizes two direct masks and
+-- the mask of every element of two lists, each with its own count. With
+-- both lists empty, only the direct masks give ML. Values whose sizes
+-- differ cannot be encoded, so the automatic test cases are not run;
+-- scripts/runWireTests.sh checks the encoding (018_wire_test.c).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Requirements ::= SEQUENCE {
+    fuam        OCTET STRING (SIZE (1..8)),
+    dcm         OCTET STRING (SIZE (1..8)),
+    standard    SEQUENCE (SIZE (0..8)) OF StandardFlag,
+    vendor      SEQUENCE (SIZE (0..4)) OF VendorFeature
+}
+
+StandardFlag ::= SEQUENCE {
+    sf          INTEGER (0..65535),
+    sm          OCTET STRING (SIZE (1..8))
+}
+
+VendorFeature ::= SEQUENCE {
+    vf          OCTET STRING (SIZE (16)),
+    vm          OCTET STRING (SIZE (1..8))
+}
+
+END
+
+--TCFS   018.acn

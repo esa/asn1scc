@@ -1,0 +1,19 @@
+-- ACNV2_ONLY C_ONLY
+-- A fixed-size OCTET STRING has no nCount member in generated C. A deferred
+-- determinant shared by the direct child and the reference child must use
+-- the declared size for both patches. scripts/runWireTests.sh checks the
+-- exact encoding and decoding (019_wire_test.c).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Item ::= SEQUENCE {
+    data OCTET STRING (SIZE (2))
+}
+
+Msg ::= SEQUENCE {
+    head OCTET STRING (SIZE (2)),
+    payload Item
+}
+
+END
+
+--TCFS   019.acn

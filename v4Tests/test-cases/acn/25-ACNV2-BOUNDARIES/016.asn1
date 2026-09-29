@@ -1,0 +1,21 @@
+-- ACNV2_ONLY C_ONLY NO_AUTOMATIC_TEST_CASES
+-- A determinant of the SEQUENCE sizes a field of each element of a
+-- SEQUENCE OF child, through an ACN parameter of the element type. It is a
+-- deferred determinant, patched by every element: the encoder must not
+-- compute it from an element outside the loop. Elements whose sizes differ
+-- cannot be encoded (ERR_ACN_DET_CONSISTENCY_MISMATCH), so the automatic
+-- test cases, which generate such values, are not run;
+-- scripts/runWireTests.sh checks the encoding (016_wire_test.c).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Item ::= SEQUENCE {
+    data OCTET STRING (SIZE (1..4))
+}
+
+Msg ::= SEQUENCE {
+    items SEQUENCE (SIZE (0..4)) OF Item
+}
+
+END
+
+--TCFS   016.acn

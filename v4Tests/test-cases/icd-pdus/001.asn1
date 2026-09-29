@@ -1,0 +1,11 @@
+-- -icdPdus Rec: Rec_Initialize initializes its child m with Mask_Initialize,
+-- so Mask_Initialize must be generated, though only Rec is a PDU.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Mask ::= OCTET STRING (SIZE (1..4))
+
+Rec ::= SEQUENCE {
+    m Mask
+}
+
+END

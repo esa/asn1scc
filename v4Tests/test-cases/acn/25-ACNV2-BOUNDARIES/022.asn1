@@ -1,0 +1,17 @@
+-- ACNV2_ONLY C_ONLY NO_AUTOMATIC_TEST_CASES
+-- An external determinant must not extend a CONTAINING region past the input.
+Min DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+OuterOct ::= SEQUENCE {
+    body OCTET STRING (CONTAINING Inner)
+}
+
+OuterBits ::= SEQUENCE {
+    body BIT STRING (CONTAINING Inner)
+}
+
+Inner ::= SEQUENCE {
+    data OCTET STRING (SIZE (0..31))
+}
+
+END

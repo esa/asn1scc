@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Item <INTEGER:len> [] {
+    data [size len]
+}
+
+Msg [] {
+    len INTEGER [encoding pos-int, size 8],
+    count INTEGER [encoding pos-int, size 8],
+    items [size count] { <len> [] }
+}
+
+END

@@ -1,0 +1,20 @@
+Min DEFINITIONS ::= BEGIN
+
+Chain [] {
+    b0  [],
+    b1  [present-when b0.more],
+    b2  [present-when b1.more],
+    b3  [present-when b2.more]
+}
+
+Link [] {
+    more    BOOLEAN [true-value '1'B],
+    bits    [encoding pos-int, size 7]
+}
+
+Last [] {
+    end     NULL [pattern '0'B],
+    bits    [encoding pos-int, size 7]
+}
+
+END

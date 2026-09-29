@@ -81,8 +81,8 @@ type IUper_rust() =
             uper_rust.seqOf_FixedSize  p sTasName i sInternalItem nFixedSize nIntItemMinSize nIntItemMaxSize nAlignSize sChildInitExpr soCallAux codec
         override this.seqOf_VarSize  (p:string) (sAcc:string) (sTasName:string) (i:string) (sInternalItem:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (nIntItemMinSize:BigInteger) (nIntItemMaxSize:BigInteger) (nAlignSize:BigInteger) (sChildInitExpr:string) (sErrCode:string) (nAbsOffset:BigInteger) (nRemainingMinBits:BigInteger) (nLevel:BigInteger) (nIx:BigInteger) (nOffset:BigInteger) (bIntroSnap:bool) (soCallAux:string option) (codec:Codec) =
             uper_rust.seqOf_VarSize  p sAcc sTasName i sInternalItem nSizeMin nSizeMax nSizeInBits nIntItemMinSize nIntItemMaxSize nAlignSize sChildInitExpr sErrCode nAbsOffset nRemainingMinBits nLevel nIx nOffset bIntroSnap soCallAux codec
-        override this.octet_FixedSize  (sTypeDefName:string) (p:string) (sAcc:string) (nFixedSize:BigInteger) (codec:Codec) =
-            uper_rust.octet_FixedSize  sTypeDefName p sAcc nFixedSize codec
+        override this.octet_FixedSize  (sTypeDefName:string) (p:string) (sAcc:string) (nFixedSize:BigInteger) (sErrCode:string) (codec:Codec) =
+            uper_rust.octet_FixedSize  sTypeDefName p sAcc nFixedSize sErrCode codec
         override this.octet_VarSize  (sTypeDefName:string) (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (sErrCode:string) (codec:Codec) =
             uper_rust.octet_VarSize  sTypeDefName p sAcc nSizeMin nSizeMax nSizeInBits sErrCode codec
         override this.bitString_FixSize  (sTypeDefName:string) (p:string) (sAcc:string) (nFixedSize:BigInteger) (sErrCode:string) (codec:Codec) =

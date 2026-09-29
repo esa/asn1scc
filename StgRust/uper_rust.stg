@@ -557,12 +557,13 @@ seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nS
 
 
 
-octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 ret = pBitStrm.octet_string_encode_no_length(&<p><sAcc>arr, <nFixedSize> as usize);
 >>
 
-octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 ret = pBitStrm.octet_string_decode_no_length(&mut <p><sAcc>arr, <nFixedSize> as usize);
+*pErrCode = if ret { 0 } else { <sErrCode> };
 >>
 
 octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
@@ -576,8 +577,11 @@ octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sEr
     let n_count = val;
     ret = ok;
     *pErrCode = if ret { 0 } else { <sErrCode> };
-    <p><sAcc>n_count = n_count as i32;
-    ret = pBitStrm.octet_string_decode_no_length(&mut <p><sAcc>arr, <p><sAcc>n_count as usize);
+    if ret {
+        <p><sAcc>n_count = n_count as i32;
+        ret = pBitStrm.octet_string_decode_no_length(&mut <p><sAcc>arr, <p><sAcc>n_count as usize);
+        *pErrCode = if ret { 0 } else { <sErrCode> };
+    }
 }
 >>
 
@@ -601,6 +605,7 @@ bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nS
     let (val, ok) = pBitStrm.decode_constraint_whole_number(<nSizeMin>, <nSizeMax>);
     let n_count = val;
     ret = ok;
+    *pErrCode = if ret { 0 } else { <sErrCode> };
     if ret {
         <p><sAcc>n_count = n_count as i32;
         <bitString_FixSize_decode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "n_count"], sErrCode=sErrCode)>

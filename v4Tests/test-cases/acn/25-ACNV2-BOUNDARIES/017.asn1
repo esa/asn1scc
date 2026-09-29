@@ -1,0 +1,21 @@
+-- ACNV2_ONLY C_ONLY NO_AUTOMATIC_TEST_CASES
+-- A determinant of the SEQUENCE sizes both a direct child and, through an
+-- ACN parameter, a field of a reference child. It is deferred; the decoder
+-- of the direct child must still find its value, and the encoder must patch
+-- it from the direct child too, or reject a size that disagrees. Values
+-- whose sizes differ cannot be encoded, so the automatic test cases are not
+-- run; scripts/runWireTests.sh checks the encoding (017_wire_test.c).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Item ::= SEQUENCE {
+    data OCTET STRING (SIZE (1..4))
+}
+
+Msg ::= SEQUENCE {
+    head OCTET STRING (SIZE (1..4)),
+    payload Item
+}
+
+END
+
+--TCFS   017.acn

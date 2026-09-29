@@ -1,0 +1,5 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    Bounded [] { len INTEGER [encoding pos-int, size 8], data [size len] }
+    ZeroMin [] { len INTEGER [encoding pos-int, size 8], data [size len] }
+    Fixed [] { len INTEGER [encoding pos-int, size 8], data [size len] }
+END

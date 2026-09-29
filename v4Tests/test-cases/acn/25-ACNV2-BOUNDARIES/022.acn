@@ -1,0 +1,17 @@
+Min DEFINITIONS ::= BEGIN
+
+OuterOct [] {
+    len INTEGER [encoding pos-int, size 8],
+    body [size len]
+}
+
+OuterBits [] {
+    len INTEGER [encoding pos-int, size 8],
+    body [size len]
+}
+
+Inner [] {
+    data [size deduced]
+}
+
+END

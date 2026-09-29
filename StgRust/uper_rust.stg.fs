@@ -295,13 +295,13 @@ let seqOf_VarSize (p:string) (sAcc:string) (sTasName:string) (i:string) (sIntern
     | Decode    ->
         ST.call "uper_rust" "seqOf_VarSize_decode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("i",i :>Object);("sInternalItem",(if sInternalItem = null then null else ST.StrHelper sInternalItem:>Object) );("nSizeMin",nSizeMin :>Object);("nSizeMax",nSizeMax :>Object);("nSizeInBits",nSizeInBits :>Object);("nIntItemMinSize",nIntItemMinSize :>Object);("nIntItemMaxSize",nIntItemMaxSize :>Object);("nAlignSize",nAlignSize :>Object);("sChildInitExpr",(if sChildInitExpr = null then null else ST.StrHelper sChildInitExpr:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("nAbsOffset",nAbsOffset :>Object);("nRemainingMinBits",nRemainingMinBits :>Object);("nLevel",nLevel :>Object);("nIx",nIx :>Object);("nOffset",nOffset :>Object);("bIntroSnap",bIntroSnap :>Object);("soCallAux",(if soCallAux.IsNone then null else ST.StrHelper soCallAux.Value:>Object) )]
 
-let octet_FixedSize (sTypeDefName:string) (p:string) (sAcc:string) (nFixedSize:BigInteger) codec =
+let octet_FixedSize (sTypeDefName:string) (p:string) (sAcc:string) (nFixedSize:BigInteger) (sErrCode:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "uper_rust" "octet_FixedSize_encode" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nFixedSize",nFixedSize :>Object)]
+        ST.call "uper_rust" "octet_FixedSize_encode" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nFixedSize",nFixedSize :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
     | Decode    ->
-        ST.call "uper_rust" "octet_FixedSize_decode" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nFixedSize",nFixedSize :>Object)]
+        ST.call "uper_rust" "octet_FixedSize_decode" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nFixedSize",nFixedSize :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
 
 let octet_VarSize (sTypeDefName:string) (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (sErrCode:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

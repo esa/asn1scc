@@ -578,13 +578,16 @@ if not result.Success then
 end if;
 >>
 
-octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<nFixedSize>));
 >>
 
-octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
+if not result.Success then
+    result.errorcode := <sErrCode>; -- COVERAGE_IGNORE
+end if;
 >>
 
 octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<

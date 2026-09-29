@@ -1,0 +1,23 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Requirements [] {
+    ml          INTEGER [encoding pos-int, size 8],
+    fuam        [size ml],
+    dcm         [size ml],
+    nsf         INTEGER [encoding pos-int, size 16, endianness big],
+    standard    [size nsf] { <ml> [] },
+    nvf         INTEGER [encoding pos-int, size 16, endianness big],
+    vendor      [size nvf] { <ml> [] }
+}
+
+StandardFlag <INTEGER:ml> [] {
+    sf          [encoding pos-int, size 16, endianness big],
+    sm          [size ml]
+}
+
+VendorFeature <INTEGER:ml> [] {
+    vf          [],
+    vm          [size ml]
+}
+
+END

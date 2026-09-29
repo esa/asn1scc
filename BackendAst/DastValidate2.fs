@@ -1043,8 +1043,22 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             | false -> Some typeDefinitionName
         | _         -> None
 
-    let baseTypeDefinitionName: string = getBaseTypeDefName l typeDefinitionName0 moduleName t o 
-    let baseFncName = l.lg.constructReferenceFuncName baseTypeDefinitionName "" (l.isvalid.methodNameSuffix())
+    let baseTypeDefinitionName: string = getBaseTypeDefName l typeDefinitionName0 moduleName t o
+    let rec containsSubtypeConstraints (resolved:Asn1AcnAst.Asn1Type) =
+        match resolved.Kind with
+        | Asn1AcnAst.ReferenceType refType ->
+            refType.refCons.Length > 0 || containsSubtypeConstraints refType.resolvedType
+        | _ -> false
+    let checkedTypeDefinitionName =
+        // CONTAINING has the base type's C layout, but a referenced subtype
+        // must still use its own validator after the contained value is read.
+        if o.encodingOptions.IsSome && containsSubtypeConstraints o.resolvedType then
+            let targetName = ToC2(r.args.TypePrefix + o.tasName.Value)
+            if l.lg.hasModules && ToC t.id.ModName <> ToC o.modName.Value then
+                ToC o.modName.Value + "." + targetName
+            else targetName
+        else baseTypeDefinitionName
+    let baseFncName = l.lg.constructReferenceFuncName checkedTypeDefinitionName "" (l.isvalid.methodNameSuffix())
 
     let ns =
         match resolvedType.isValidFunction with

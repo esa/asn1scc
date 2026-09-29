@@ -1,0 +1,8 @@
+-- ACNV2_ONLY C_ONLY NO_AUTOMATIC_TEST_CASES
+-- A variable-size string whose length does not decode must fail to decode.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Mask ::= OCTET STRING (SIZE (0..8))
+Bits ::= BIT STRING (SIZE (0..8))
+
+END

@@ -685,6 +685,23 @@ impl<'a> BitStream<'a> {
         self.fetch_data_prm = std::ptr::null_mut();
     }
 
+    /// Check a CONTAINING region against the enclosing stream before narrowing it.
+    pub fn has_n_bytes(&self, n_bytes: u64) -> bool {
+        self.current_byte >= 0 && self.current_byte <= self.count &&
+            n_bytes <= (self.count - self.current_byte) as u64
+    }
+
+    pub fn has_n_bits(&self, n_bits: u64) -> bool {
+        if self.current_byte < 0 || self.current_byte > self.count ||
+            !(0..=7).contains(&self.current_bit) {
+            return false;
+        }
+        let remaining_bytes = (self.count - self.current_byte) as u64;
+        let whole_bytes = n_bits / 8;
+        let trailing_bytes = (self.current_bit as u64 + n_bits % 8 + 7) / 8;
+        whole_bytes <= remaining_bytes && trailing_bytes <= remaining_bytes - whole_bytes
+    }
+
     /// Number of bytes consumed/produced so far (rounds up to the next byte).
     pub fn get_length(&self) -> Asn1SccSint {
         let mut ret = self.current_byte;

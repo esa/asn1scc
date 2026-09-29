@@ -2,7 +2,8 @@
 # acn-v2 checks that the -atc round trip cannot make (C only):
 #  - byte-exact wire checks: a wrong but self-consistent encoding (e.g. an
 #    unmapped length) survives encode+decode, so <n>_wire_test.c asserts the
-#    encoded bytes;
+#    encoded bytes; for 016 to 018, whose automatic test cases cannot run
+#    (NO_AUTOMATIC_TEST_CASES), also the round trip and the rejected values;
 #  - the warning printed for types that export a determinant to their parent.
 # Test inputs: v4Tests/test-cases/acn/25-ACNV2-BOUNDARIES.
 # ASN1SCC overrides the compiler (executable or .dll), as for runTests.py.
@@ -22,15 +23,33 @@ run_compiler() {
     esac
 }
 
-for n in 004 010 011; do
+for n in 004 010 011 016 017 018 019 020 021 022 023 024 025; do
     out=$work/$n
     mkdir "$out"
     run_compiler -c -ACN --acn-v2 -fp AUTO -equal -o "$out" "$cases/$n.asn1" "$cases/$n.acn"
-    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -I "$out" \
-        "$out"/*.c "$cases/$n.helpers"/*.c "$cases/${n}_wire_test.c" -o "$out/wire_test"
+    helpers=
+    if [ -d "$cases/$n.helpers" ]; then
+        helpers=$(ls "$cases/$n.helpers"/*.c)
+    fi
+    sanitize=
+    [ "$n" = 022 ] && sanitize=-fsanitize=address
+    [ "$n" = 023 ] && sanitize="-fsanitize=undefined -fno-sanitize-recover=undefined"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror $sanitize -I "$out" \
+        "$out"/*.c $helpers "$cases/${n}_wire_test.c" -o "$out/wire_test"
     "$out/wire_test"
     echo "wire $n OK"
 done
+
+# Decoding truncated input must not read a deferred determinant's temporary
+# that the failed read never wrote. UBSan's bool check reports that read.
+out=$work/truncated001
+mkdir "$out"
+run_compiler -c -ACN --acn-v2 -fp AUTO -o "$out" "$cases/001.asn1" "$cases/001.acn" 2>/dev/null
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror \
+    -fsanitize=bool -fno-sanitize-recover=bool -I "$out" \
+    "$out"/*.c "$cases/001_truncated_test.c" -o "$out/truncated_test"
+"$out/truncated_test"
+echo "truncated 001 OK"
 
 expect_warning() {
     n=$1

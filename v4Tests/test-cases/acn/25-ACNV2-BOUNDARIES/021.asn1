@@ -1,0 +1,20 @@
+Min DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+-- A continuation chain, like the JPEG 2000 PLT entry (Iplt): each byte's
+-- top bit says whether the next byte is present.
+Chain ::= SEQUENCE {
+    b0  Link,
+    b1  Link OPTIONAL,       -- present iff b0.more
+    b2  Link OPTIONAL,       -- present iff b1.more
+    b3  Last OPTIONAL        -- present iff b2.more
+}
+
+Link ::= SEQUENCE {
+    bits    INTEGER (0..127)
+}
+
+Last ::= SEQUENCE {
+    bits    INTEGER (0..127)
+}
+
+END

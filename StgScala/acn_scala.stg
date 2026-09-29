@@ -1152,11 +1152,11 @@ octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 // TODO: Scala deferred CONTAINING fixed decode
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 // TODO: Scala deferred CONTAINING embedded encode
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 // TODO: Scala deferred CONTAINING embedded decode
 >>
 
@@ -1184,11 +1184,11 @@ bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 // TODO: Scala bit_string_containing_deferred_fixed_func
 >>
 
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 // TODO: Scala bit_string_containing_deferred_embedded_func
 >>
 
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 // TODO: Scala bit_string_containing_deferred_embedded_func
 >>
 
@@ -1461,6 +1461,8 @@ acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "// TODO"
 /* Group E: Miscellaneous */
 acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "// TODO"
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= "// TODO"
+acn_deferred_det_optional_producer_check(sParent, sAcc, sProducer, sConsumer, sErrCode) ::= "// TODO"
+acn_deferred_det_optional_producer_wrap(sParent, sAcc, sProducer, sBody) ::= "// TODO"
 acn_deferred_det_type_name() ::= "// TODO"
 acn_deferred_det_init_expr() ::= "// TODO"
 

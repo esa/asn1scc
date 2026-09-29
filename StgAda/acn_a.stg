@@ -1492,7 +1492,7 @@ octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 <sFuncName>_aux(<p>, bs, result);
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 declare
     acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1516,7 +1516,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 declare
     acn_nCount : Integer;
 begin
@@ -1614,7 +1614,7 @@ bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 <sFuncName>_aux(<p>, bs, result);
 >>
 
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 declare
     acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1634,7 +1634,7 @@ begin
 end;
 >>
 
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits) ::= <<
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
 declare
     acn_nCount : Integer;
     acn_expected_end : Natural;
@@ -2149,10 +2149,23 @@ acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
    The preBlock is emitted in the declarative part; the patchCall in the body. */
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<
 declare
-    <sPreBlock>
+<sPreBlock>
 begin
-    <sPatchCall>
+<sPatchCall>
 end;
+>>
+
+acn_deferred_det_optional_producer_check(sParent, sAcc, sProducer, sConsumer, sErrCode) ::= <<
+if <sParent>.Exist.<sProducer> = 0<if(sConsumer)> and then <sParent>.Exist.<sConsumer> = 1<endif> then
+    result := (Success => False, ErrorCode => <sErrCode>);
+    return;
+end if;
+>>
+
+acn_deferred_det_optional_producer_wrap(sParent, sAcc, sProducer, sBody) ::= <<
+if <sParent>.Exist.<sProducer> = 1 then
+    <sBody>
+end if;
 >>
 
 /* AcnInsertedFieldRef type name (used by GenericLocalVariable). */

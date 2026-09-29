@@ -1,0 +1,4 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    UuidId [size 16]
+    Envelope [] { id [size 16] }
+END

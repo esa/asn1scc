@@ -502,11 +502,11 @@ val <p>_nCount = locally {
 <soCallAux>
 >>
 
-octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 codec.base.encodeOctetString_no_length_vec(<p><sAcc>arr, <nFixedSize>.toInt)
 >>
 
-octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 val <p> = <sTypeDefName>(codec.base.decodeOctetString_no_length_vec(<nFixedSize>))
 >>
 

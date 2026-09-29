@@ -831,13 +831,13 @@ let octet_string_containing_deferred_fixed_func (p:string) (sFuncName:string) co
     | Decode    ->
         ST.call "acn_rust" "octet_string_containing_deferred_fixed_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
 
-let octet_string_containing_deferred_embedded_func (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) codec =
+let octet_string_containing_deferred_embedded_func (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "octet_string_containing_deferred_embedded_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object)]
+        ST.call "acn_rust" "octet_string_containing_deferred_embedded_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
     | Decode    ->
-        ST.call "acn_rust" "octet_string_containing_deferred_embedded_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object)]
+        ST.call "acn_rust" "octet_string_containing_deferred_embedded_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
 
 let octet_string_containing_deferred_wrapper (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (bDeducedContent:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -863,13 +863,13 @@ let bit_string_containing_deferred_fixed_func (p:string) (sFuncName:string) code
     | Decode    ->
         ST.call "acn_rust" "bit_string_containing_deferred_fixed_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
 
-let bit_string_containing_deferred_embedded_func (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) codec =
+let bit_string_containing_deferred_embedded_func (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "bit_string_containing_deferred_embedded_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object)]
+        ST.call "acn_rust" "bit_string_containing_deferred_embedded_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
     | Decode    ->
-        ST.call "acn_rust" "bit_string_containing_deferred_embedded_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object)]
+        ST.call "acn_rust" "bit_string_containing_deferred_embedded_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
 
 let bit_string_containing_deferred_wrapper (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -1142,6 +1142,14 @@ let acn_deferred_det_uper_offset_sub (sValue:string) (sOffset:string) =
 let acn_deferred_det_preblock_wrap (sPreBlock:string) (sPatchCall:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "acn_deferred_det_preblock_wrap" [("sPreBlock",(if sPreBlock = null then null else ST.StrHelper sPreBlock:>Object) );("sPatchCall",(if sPatchCall = null then null else ST.StrHelper sPatchCall:>Object) )]
+
+let acn_deferred_det_optional_producer_check (sParent:string) (sAcc:string) (sProducer:string) (sConsumer:string) (sErrCode:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_deferred_det_optional_producer_check" [("sParent",(if sParent = null then null else ST.StrHelper sParent:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sProducer",(if sProducer = null then null else ST.StrHelper sProducer:>Object) );("sConsumer",(if sConsumer = null then null else ST.StrHelper sConsumer:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+
+let acn_deferred_det_optional_producer_wrap (sParent:string) (sAcc:string) (sProducer:string) (sBody:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_deferred_det_optional_producer_wrap" [("sParent",(if sParent = null then null else ST.StrHelper sParent:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sProducer",(if sProducer = null then null else ST.StrHelper sProducer:>Object) );("sBody",(if sBody = null then null else ST.StrHelper sBody:>Object) )]
 
 let acn_deferred_det_type_name () =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

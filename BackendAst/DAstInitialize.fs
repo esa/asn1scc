@@ -1355,17 +1355,22 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
     | false ->
         createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpressionFnc bs.initExpressionGlobalFnc  bs.nonEmbeddedChildrenFuncs [] [], us
     | true  ->
+        // The referenced type's init function is called whether or not the
+        // type is complex: a SEQUENCE child of a non-RTL typedef (e.g. an
+        // OCTET STRING type assignment) is initialized with it
+        // (handleChild, ReferenceToExistingDefinition). Record the call in
+        // both cases, or -icdPdus drops the function.
+        let ns =
+            match t.id.topLevelTas with
+            | None ->
+                //printfn "No type assignment info for %A" t.id
+                us
+            | Some tasInfo ->
+                let caller = {Caller.typeId = tasInfo; funcType=InitFunctionType}
+                let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=InitFunctionType}
+                addFunctionCallToState us caller callee
         match t.isComplexType with
         | true ->
-            let ns =
-                match t.id.topLevelTas with
-                | None -> 
-                    //printfn "No type assignment info for %A" t.id
-                    us
-                | Some tasInfo ->
-                    let caller = {Caller.typeId = tasInfo; funcType=InitFunctionType}
-                    let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=InitFunctionType}
-                    addFunctionCallToState us caller callee
             let baseFncName, baseGlobalName =
                 let funcName = typeDefinitionName + (lm.init.methodNameSuffix())
                 let globalName = typeDefinitionName + "_constant"
@@ -1387,5 +1392,5 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables = []}
             createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value initTasFunction bs.automaticTestCases constantInitExpression constantInitExpressionGlobal nonEmbeddedChildrenFuncs [] [], ns
         | false ->
-            createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpressionFnc bs.initExpressionGlobalFnc bs.nonEmbeddedChildrenFuncs [] [], us
+            createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpressionFnc bs.initExpressionGlobalFnc bs.nonEmbeddedChildrenFuncs [] [], ns
 

@@ -1,0 +1,11 @@
+-- ACNV2_ONLY C_ONLY NO_AUTOMATIC_TEST_CASES
+-- A CONTAINING reference to a constrained subtype must validate the subtype.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+X ::= SEQUENCE { field INTEGER (0..1) }
+X-P ::= X (WITH COMPONENTS { field (0..0) })
+W ::= SEQUENCE { body OCTET STRING (CONTAINING X-P) }
+
+END
+
+--TCFS   020.acn

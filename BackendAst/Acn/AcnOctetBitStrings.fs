@@ -33,7 +33,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
         let funcBodyContent =
             match o.acnEncodingClass with
             | SZ_EC_FIXED_SIZE ->
-                let fncBody = fixedSize sType pp access o.minSize.acn codec
+                let fncBody = fixedSize sType pp access o.minSize.acn errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED lenSize ->

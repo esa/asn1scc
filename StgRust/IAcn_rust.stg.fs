@@ -243,16 +243,16 @@ type IAcn_rust() =
             acn_rust.octet_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName soMF soMFM sErrCode bDeducedContent codec
         override this.octet_string_containing_deferred_fixed_func  (p:string) (sFuncName:string) (codec:Codec) =
             acn_rust.octet_string_containing_deferred_fixed_func  p sFuncName codec
-        override this.octet_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (codec:Codec) =
-            acn_rust.octet_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits codec
+        override this.octet_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) (codec:Codec) =
+            acn_rust.octet_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits sErrCode codec
         override this.octet_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (bDeducedContent:bool) (codec:Codec) =
             acn_rust.octet_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName soMF soMFM sErrCode bDeducedContent codec
         override this.bit_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (codec:Codec) =
             acn_rust.bit_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName soMF soMFM sErrCode codec
         override this.bit_string_containing_deferred_fixed_func  (p:string) (sFuncName:string) (codec:Codec) =
             acn_rust.bit_string_containing_deferred_fixed_func  p sFuncName codec
-        override this.bit_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (codec:Codec) =
-            acn_rust.bit_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits codec
+        override this.bit_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) (codec:Codec) =
+            acn_rust.bit_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits sErrCode codec
         override this.bit_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (codec:Codec) =
             acn_rust.bit_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName soMF soMFM sErrCode codec
         override this.bit_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sReqBitsForUperEncoding:string) (sExtField:string) (sErrCode:string) (codec:Codec) =
@@ -262,7 +262,7 @@ type IAcn_rust() =
         override this.sparkAnnotations  (sTypeDefName:string) (codec:Codec) =
             acn_rust.sparkAnnotations  sTypeDefName codec
         override this.sparkAnnotations_deducedFixed  (sTypeDefName:string) =
-            acn_rust.sparkAnnotations_deducedFixed  sTypeDefName
+            acn_rust.sparkAnnotations_deducedFixed  sTypeDefName 
         override this.octet_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (codec:Codec) =
             acn_rust.octet_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding nBits nMinSize nMaxSize bFixedSize codec
         override this.bit_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (sReqBitsForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (codec:Codec) =
@@ -337,6 +337,10 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_uper_offset_sub  sValue sOffset 
         override this.acn_deferred_det_preblock_wrap  (sPreBlock:string) (sPatchCall:string) =
             acn_rust.acn_deferred_det_preblock_wrap  sPreBlock sPatchCall 
+        override this.acn_deferred_det_optional_producer_check  (sParent:string) (sAcc:string) (sProducer:string) (sConsumer:string) (sErrCode:string) =
+            acn_rust.acn_deferred_det_optional_producer_check  sParent sAcc sProducer sConsumer sErrCode 
+        override this.acn_deferred_det_optional_producer_wrap  (sParent:string) (sAcc:string) (sProducer:string) (sBody:string) =
+            acn_rust.acn_deferred_det_optional_producer_wrap  sParent sAcc sProducer sBody 
         override this.acn_deferred_det_type_name  () =
             acn_rust.acn_deferred_det_type_name  () 
         override this.acn_deferred_det_init_expr  () =

@@ -551,7 +551,7 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
             | false, Decode -> [lm.lg.uper.count_var]
 
         match minSize with
-        | _ when maxSize < 65536I && isFixedSize -> fixedSize td pp access minSize codec, (if false then lv::nStringLength else nStringLength)
+        | _ when maxSize < 65536I && isFixedSize -> fixedSize td pp access minSize errCode.errCodeName codec, (if false then lv::nStringLength else nStringLength)
         | _ when maxSize < 65536I && (not isFixedSize) -> varSize td pp access minSize maxSize nSizeInBits  errCode.errCodeName codec, (if false  then lv::nStringLength else nStringLength)
         | _ ->
             let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem nIntItemMaxSize false false

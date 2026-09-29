@@ -323,6 +323,23 @@ typedef struct {
     char            str_value[256]; /* for IA5String determinants (consistency checking) */
 } AcnInsertedFieldRef;
 
+/* Check a CONTAINING region against the enclosing stream before narrowing it. */
+static inline flag Acn_BitStream_HasNBytes(const BitStream* bs, asn1SccUint nBytes) {
+    return bs->currentByte >= 0 && bs->currentByte <= bs->count &&
+           (uint64_t)nBytes <= (uint64_t)(bs->count - bs->currentByte);
+}
+
+static inline flag Acn_BitStream_HasNBits(const BitStream* bs, asn1SccUint nBits) {
+    uint64_t remainingBytes;
+    uint64_t wholeBytes = (uint64_t)nBits / 8;
+    uint64_t trailingBytes = ((uint64_t)bs->currentBit + (uint64_t)nBits % 8 + 7) / 8;
+    if (bs->currentByte < 0 || bs->currentByte > bs->count ||
+        bs->currentBit < 0 || bs->currentBit > 7)
+        return FALSE;
+    remainingBytes = (uint64_t)(bs->count - bs->currentByte);
+    return wholeBytes <= remainingBytes && trailingBytes <= remainingBytes - wholeBytes;
+}
+
 static inline AcnBitStreamPos Acn_BitStream_GetPos(const BitStream* bs) {
     AcnBitStreamPos p;
     p.currentByte = bs->currentByte;

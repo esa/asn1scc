@@ -535,13 +535,13 @@ decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 <p> = <sTasName>(<p>_n_count, <p>_arr)
 >>
 
-octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 res = codec.encode_octet_string_no_length_vec(<p><sAcc>arr, int(<nFixedSize>))
 if not res:
     raise Asn1Exception(f"Encoding Exception: {res.error_message}")
 >>
 
-octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize) ::= <<
+octet_FixedSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 decoded_<sTypeDefName> = codec.decode_octet_string_no_length_vec(<nFixedSize>)
 if not decoded_<sTypeDefName> or decoded_<sTypeDefName>.decoded_value is None:
     if decoded_<sTypeDefName>.error_code == ErrorCode.INSUFFICIENT_DATA:

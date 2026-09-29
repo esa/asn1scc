@@ -1,0 +1,7 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+X [] { field [encoding pos-int, size 8] }
+X-P [] { field [encoding pos-int, size 8] }
+W [] { length INTEGER [encoding pos-int, size 8], body [size length] }
+
+END
