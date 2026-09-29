@@ -1277,6 +1277,7 @@ if <v> \< <nMin> or <v> \> <nMax>:
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<
 <v> = <nFixedSize>
+<v>_is_initialized = True
 >>
 
 ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
