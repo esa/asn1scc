@@ -1276,7 +1276,7 @@ let private createDeferredReferenceFunction
                 Some (makeContainingFuncBody (fun pp fncName errCode ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
                     let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInBitString ->
                 Some (makeContainingFuncBody (fun pp fncName _ ->
                     let fncBody = lm.acn.bit_string_containing_deferred_fixed_func pp fncName codec
@@ -1285,7 +1285,7 @@ let private createDeferredReferenceFunction
                 Some (makeContainingFuncBody (fun pp fncName errCode ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
                     let fncBody = lm.acn.bit_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
             | _ when not isContainingExternalField ->
                 Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
             | _ -> None  // ExternalField with params → specialized function below
