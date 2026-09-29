@@ -84,4 +84,18 @@ expect_warning() {
 expect_warning 001 "001.acn:9:4: warning: ACN field 'more' determines a field outside type 'Byte'; with --acn-v2 its value is determined by the enclosing type, so no standalone ACN encoder/decoder is generated for 'Byte'."
 expect_warning 006 "006.acn:4:4: warning: ACN field 'b.more' determines a field outside type 'Outer'"
 
+# Without --acn-v2, an ACN field passed to SEQUENCE OF elements is rejected.
+out=$work/legacy016
+mkdir "$out"
+if run_compiler -c -ACN -o "$out" "$cases/016.asn1" "$cases/016.acn" 2>"$out/stderr.txt"; then
+    echo "legacy 016 FAILED: accepted without --acn-v2"
+    exit 1
+fi
+if ! grep -qF "016.acn:8:4: error: ACN field 'len' is passed as an argument to the elements of SEQUENCE OF 'items'. This is supported only with --acn-v2." "$out/stderr.txt"; then
+    echo "legacy 016 FAILED, got:"
+    cat "$out/stderr.txt"
+    exit 1
+fi
+echo "legacy 016 rejection OK"
+
 echo "acn-v2 wire checks passed"

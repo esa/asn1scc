@@ -576,3 +576,40 @@ module private DeducedSizePlacement =
         | (loc,msg)::_  -> raise(SemanticError(loc, msg))
 
 let checkDeducedSizePlacement (r:AstRoot) = DeducedSizePlacement.check r
+
+/// Legacy ACN only (without --acn-v2): an ACN field passed as an argument to
+/// the elements of a SEQUENCE OF would have to be computed by the encoder from
+/// every element, which the legacy code generator cannot do (it read the
+/// value of an uninitialized element index). --acn-v2 supports it (each
+/// element patches the determinant).
+let checkLegacySequenceOfArguments (deps:AcnInsertedFieldDependencies) =
+    let sequenceOfBelow (ReferenceToType parentPath) (ReferenceToType argPath) =
+        match List.length argPath > List.length parentPath with
+        | false -> None
+        | true ->
+            argPath
+            |> List.skip (List.length parentPath)
+            |> List.pairwise
+            |> List.tryPick (fun (prev, cur) ->
+                match prev, cur with
+                | SEQ_CHILD (name, _), SQF -> Some name
+                | _ -> None)
+    deps.acnDependencies |> List.iter (fun d ->
+        match d.determinant with
+        | AcnParameterDeterminant _ -> ()
+        | AcnChildDeterminant acnChild ->
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument _ ->
+                match sequenceOfBelow acnChild.id.dropLast d.asn1Type with
+                | None -> ()
+                | Some seqOfName ->
+                    let errMsg =
+                        sprintf "ACN field '%s' is passed as an argument to the elements of SEQUENCE OF '%s'. This is supported only with --acn-v2." acnChild.Name.Value seqOfName
+                    raise(SemanticError(acnChild.Name.Location, errMsg))
+            | AcnDepIA5StringSizeDeterminant _
+            | AcnDepSizeDeterminant _
+            | AcnDepSizeDeterminant_bit_oct_str_contain _
+            | AcnDepPresenceBool
+            | AcnDepPresence _
+            | AcnDepPresenceStr _
+            | AcnDepChoiceDeterminant _ -> ())
