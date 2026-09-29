@@ -1,6 +1,6 @@
 -- ACNV2_ONLY
 --TCFS   021.acn
-Min DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
 -- A continuation chain, like the JPEG 2000 PLT entry (Iplt): each byte's
 -- top bit says whether the next byte is present.

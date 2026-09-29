@@ -1,4 +1,4 @@
-Min DEFINITIONS ::= BEGIN
+TEST-CASE DEFINITIONS ::= BEGIN
 
 OuterOct [] {
     len INTEGER [encoding pos-int, size 8],
