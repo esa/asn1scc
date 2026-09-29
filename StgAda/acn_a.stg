@@ -2111,19 +2111,33 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
 
 /* Group C: Decode redirect — copy decoded temp to det.Value. */
 acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> := adaasn1rtl.Asn1UInt(<sTmpName>);"
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= <<
+if result.Success then
+    pragma Warnings (Off, "*redundant conversion*");
+    <sDetAccess> := adaasn1rtl.Asn1UInt(<sTmpName>);
+    pragma Warnings (On, "*redundant conversion*");
+end if;
+>>
 
 /* Boolean tmp variant — Ada disallows direct Boolean→Asn1UInt cast, so use a
    conditional expression. */
 acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> := (if <sTmpName> then 1 else 0);"
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= <<
+if result.Success then
+    <sDetAccess> := (if <sTmpName> then 1 else 0);
+end if;
+>>
 
 /* Enum tmp variant — Ada disallows direct enum→Asn1UInt cast.  Use the
    'Enum_Rep attribute on the enum type to obtain the integer value defined
    by the enum's representation clause (which the backend sets to match
    the ACN-encoded value). */
 acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
-acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "<sDetAccess> := adaasn1rtl.Asn1UInt(<sEnumTypeName>'Enum_Rep(<sTmpName>));"
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= <<
+if result.Success then
+    <sDetAccess> := adaasn1rtl.Asn1UInt(<sEnumTypeName>'Enum_Rep(<sTmpName>));
+end if;
+>>
 
 /* Group D: Access paths (codec-independent) */
 
