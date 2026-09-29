@@ -1608,11 +1608,13 @@ bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncodi
 	/*decode to a temporary bitstream*/
 	static byte arr[<sReqBytesForUperEncoding>];
 	BitStream bitStrm;
-	BitStream_Init(&bitStrm, arr, sizeof(arr));
+	/*limit the temporary stream view to the actual region size ('size deduced' support)*/
+	BitStream_Init(&bitStrm, arr, ((int)<sExtField> + 7) / 8);
 	ret = (int)<sExtField> \<= <sReqBitsForUperEncoding>;
 	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
 		ret = BitStream_ReadBits(pBitStrm, arr, (int)<sExtField>);
+		<A(sErrCode)>
 		if (ret) {
 			ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 		}

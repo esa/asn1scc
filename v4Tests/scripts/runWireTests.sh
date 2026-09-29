@@ -1,5 +1,6 @@
 #!/bin/sh
-# acn-v2 checks that the -atc round trip cannot make (C only):
+# acn-v2 checks that the -atc round trip cannot make (C only; the cases that
+# are not specific to acn-v2 also run without --acn-v2):
 #  - byte-exact wire checks: a wrong but self-consistent encoding (e.g. an
 #    unmapped length) survives encode+decode, so <n>_wire_test.c asserts the
 #    encoded bytes; for 016 to 018, whose automatic test cases cannot run
@@ -23,10 +24,16 @@ run_compiler() {
     esac
 }
 
-for n in 004 010 011 016 017 018 019 020 021 022 023 024 025; do
-    out=$work/$n
+run_wire_test() {
+    n=$1
+    mode=$2
+    out=$work/$n$mode
     mkdir "$out"
-    run_compiler -c -ACN --acn-v2 -fp AUTO -equal -o "$out" "$cases/$n.asn1" "$cases/$n.acn"
+    if [ "$mode" = -legacy ]; then
+        run_compiler -c -ACN -fp AUTO -equal -o "$out" "$cases/$n.asn1" "$cases/$n.acn"
+    else
+        run_compiler -c -ACN --acn-v2 -fp AUTO -equal -o "$out" "$cases/$n.asn1" "$cases/$n.acn"
+    fi
     helpers=
     if [ -d "$cases/$n.helpers" ]; then
         helpers=$(ls "$cases/$n.helpers"/*.c)
@@ -37,7 +44,16 @@ for n in 004 010 011 016 017 018 019 020 021 022 023 024 025; do
     cc -std=c11 -pedantic-errors -Wall -Wextra -Werror $sanitize -I "$out" \
         "$out"/*.c $helpers "$cases/${n}_wire_test.c" -o "$out/wire_test"
     "$out/wire_test"
-    echo "wire $n OK"
+    echo "wire $n$mode OK"
+}
+
+for n in 004 010 011 016 017 018 019 020 021 022 023 024 025; do
+    run_wire_test $n ""
+done
+
+# The fixes checked by these cases are not specific to --acn-v2.
+for n in 019 020 022 023 024 025; do
+    run_wire_test $n -legacy
 done
 
 # Decoding truncated input must not read a deferred determinant's temporary
