@@ -50,6 +50,9 @@ echo "run c tests, with word-size=8, slim-mode=false, acnv2"
 echo "run acn-v2 wire checks (C)"
 ./scripts/runWireTests.sh || exit 1
 
+echo "run -icdPdus checks (C)"
+./scripts/runIcdPdusTests.sh || exit 1
+
 echo "run c tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l c -ws 4 -s false -p 48 || exit 1
 
