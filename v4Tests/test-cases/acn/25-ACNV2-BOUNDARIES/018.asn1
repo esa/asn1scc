@@ -1,4 +1,4 @@
--- ACNV2_ONLY C_ONLY NO_AUTOMATIC_TEST_CASES
+-- ACNV2_ONLY NO_AUTOMATIC_TEST_CASES
 -- 016 and 017 together, in the shape of a JPEG 2000 Reader Requirements
 -- box (ITU-T T.801 M.11.1): ML, the mask length, sizes two direct masks and
 -- the mask of every element of two lists, each with its own count. With

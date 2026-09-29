@@ -1,4 +1,4 @@
--- ACNV2_ONLY C_ONLY NO_AUTOMATIC_TEST_CASES
+-- ACNV2_ONLY NO_AUTOMATIC_TEST_CASES
 -- A determinant of the SEQUENCE sizes a field of each element of a
 -- SEQUENCE OF child, through an ACN parameter of the element type. It is a
 -- deferred determinant, patched by every element: the encoder must not

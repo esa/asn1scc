@@ -1,4 +1,3 @@
--- ACNV2_ONLY C_ONLY
 -- A fixed-size OCTET STRING has no nCount member in generated C. A deferred
 -- determinant shared by the direct child and the reference child must use
 -- the declared size for both patches. scripts/runWireTests.sh checks the

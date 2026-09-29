@@ -2171,8 +2171,8 @@ end;
 
 acn_deferred_det_optional_producer_check(sParent, sAcc, sProducer, sConsumer, sErrCode) ::= <<
 if <sParent>.Exist.<sProducer> = 0<if(sConsumer)> and then <sParent>.Exist.<sConsumer> = 1<endif> then
-    result := (Success => False, ErrorCode => <sErrCode>);
-    return;
+    result := (Success => False, ErrorCode => <sErrCode>); -- COVERAGE_IGNORE
+    return; -- COVERAGE_IGNORE
 end if;
 >>
 

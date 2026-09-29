@@ -1,4 +1,3 @@
--- ACNV2_ONLY C_ONLY NO_AUTOMATIC_TEST_CASES
 -- A determinant of the SEQUENCE sizes both a direct child and, through an
 -- ACN parameter, a field of a reference child. It is deferred; the decoder
 -- of the direct child must still find its value, and the encoder must patch
