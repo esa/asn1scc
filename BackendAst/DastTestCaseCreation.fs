@@ -307,6 +307,24 @@ let invalidValueTestCases (lm:LanguageMacros) (e:Asn1Encoding) (t:Asn1Type) (atc
                     (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)))
     | _ -> []
 
+/// One automatic test per ENUMERATED type assignment whose ACN item values leave a
+/// gap: the ACN decoder must reject a stream that holds the smallest unused code
+/// (AcnEnum.createInvalidCodeStream), which executes its default arm.
+let invalidStreamTestCases (lm:LanguageMacros) (e:Asn1Encoding) (t:Asn1Type) =
+    let decFuncName = t.acnDecFunction |> Option.bind (fun f -> f.funcName)
+    match lm.lg.atcEmitsInvalidStreamTests, e, t.Kind, decFuncName with
+    | true, Asn1Encoding.ACN, Enumerated en, Some sDecFunc ->
+        match en.acnInvalidCodeStream with
+        | None    -> []
+        | Some st ->
+            [fun idx ->
+                let sFuncName = sprintf "test_case_invalid_stream_%A_%06d" e idx
+                let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
+                let arrsVars = st.localVariables |> List.map(fun lv -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct |> Seq.toList
+                let func_body = lm.atc.emitInvalidStreamTestCase sFuncName arrsVars td.programUnit td.typeName (GetEncodingString lm e) st.codeVarName st.codeVarType st.code st.encodeStatement sDecFunc
+                (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)]
+    | _ -> []
+
 let asn1EncodingMapping = function
     | UPER  -> UperEncDecFunctionType
     | ACN   -> AcnEncDecFunctionType 
@@ -316,6 +334,8 @@ let asn1EncodingMapping = function
 let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outDir =
     // Invalid-value tests follow all other tests, so the names of the existing ones do not change.
     let invalidValueFunctors = ResizeArray<int -> string*string*string>()
+    // Invalid-stream tests come last, after the invalid-value tests.
+    let invalidStreamFunctors = ResizeArray<int -> string*string*string>()
     let validFunctors =
         seq {
             for m in r.Files |> List.collect(fun f -> f.Modules) do
@@ -349,6 +369,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                                         allAtcs
                                 let usedAtcs = atcsToUse |> List.filter (fun atc -> e <> Asn1Encoding.ACN || (isTestCaseValid atc))
                                 invalidValueFunctors.AddRange (invalidValueTestCases lm e t.Type usedAtcs)
+                                invalidStreamFunctors.AddRange (invalidStreamTestCases lm e t.Type)
                                 for atc in atcsToUse do
                                     let testCaseIsValid = e <> Asn1Encoding.ACN || (isTestCaseValid atc)
                                     if testCaseIsValid then
@@ -375,7 +396,8 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                             yield generateTcFun
                         | None         -> ()
         } |> Seq.toList
-    let tcFunctors = validFunctors @ List.ofSeq invalidValueFunctors
+    let tcFunctors = validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors
+    let invalidStreamFunctorCount = invalidStreamFunctors.Count
     let maxTestCasesPerFile = 100.0
     let nMaxTestCasesPerFile = int maxTestCasesPerFile
 
@@ -403,7 +425,12 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
 
         let testCaseFileName = sprintf "test_case_%03d" fileIndex
 
-        let contentC = printTestCaseFileBody testCaseFileName (includedPackages r lm) arrsTestFunctionBodies (r.programUnits |> List.map (fun pu -> lm.lg.sanitizeModuleName pu.name))
+        // Invalid-stream tests write the stream with the ACN runtime.
+        let rtlUnits =
+            match invalidStreamFunctorCount > 0 with
+            | true  -> lm.lg.atcInvalidStreamPackages
+            | false -> []
+        let contentC = printTestCaseFileBody testCaseFileName (includedPackages r lm) arrsTestFunctionBodies (r.programUnits |> List.map (fun pu -> lm.lg.sanitizeModuleName pu.name)) rtlUnits
         let outCFileName = Path.Combine(outDir, testCaseFileName + "." + lm.lg.BodyExtension)
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 

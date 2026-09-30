@@ -479,5 +479,8 @@ type LangGeneric_a() =
             + "\npragma Warnings (On, \"*not assigned a value*\");"
             + "\npragma Warnings (On, \"*is not referenced*\");"
 
+        override _.atcEmitsInvalidStreamTests = true
+        override _.atcInvalidStreamPackages = ["adaasn1rtl.encoding.uper"; "adaasn1rtl.encoding.acn"]
+
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name

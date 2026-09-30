@@ -618,6 +618,16 @@ type Integer = {
 
 }
 
+/// An ACN stream that holds only an ENUMERATED code which no item uses, for the
+/// automatic tests of the ACN decoder's default arm (see AcnEnum.createInvalidCodeStream).
+type AcnInvalidCodeStream = {
+    code            : BigInteger
+    codeVarName     : string        // constant that holds the code
+    codeVarType     : string        // its target-language integer type
+    encodeStatement : string        // writes codeVarName with the type's ACN integer encoding
+    localVariables  : LocalVariable list
+}
+
 type Enumerated = {
     baseInfo             : Asn1AcnAst.Enumerated
 
@@ -635,6 +645,7 @@ type Enumerated = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    acnInvalidCodeStream : AcnInvalidCodeStream option
     xerEncFunction      : XerFunction
     xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option

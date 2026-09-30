@@ -747,6 +747,17 @@ type ILangGeneric () =
     abstract member atcEmitsInvalidValueTests : bool
     default _.atcEmitsInvalidValueTests = false
 
+    /// True when the automatic tests also decode an ACN stream that holds an
+    /// ENUMERATED code no item uses (a gap between the item values); the decoder must
+    /// fail (C, Ada). See AcnEnum.createInvalidCodeStream.
+    abstract member atcEmitsInvalidStreamTests : bool
+    default _.atcEmitsInvalidStreamTests = false
+
+    /// Units that the automatic test files must import when they contain such tests,
+    /// because the stream is written with the ACN runtime (C header, Ada child units).
+    abstract member atcInvalidStreamPackages : string list
+    default _.atcInvalidStreamPackages = []
+
     /// True when an OPTIONAL child whose encoder produces no statements must still be
     /// emitted through sequence_optional_child (Rust: the presence flag is assigned there).
     abstract member emitOptionalChildWithEmptyBody : bool

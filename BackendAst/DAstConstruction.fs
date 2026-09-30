@@ -449,6 +449,10 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (dep
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps lm m t p ns) us
     let acnEncFunction, s4              = TL "EN_07" (fun () -> DAstACN.createEnumeratedFunction r deps icdStgFileName lm Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction s3)
     let acnDecFunction, s5              = TL "EN_08" (fun () -> DAstACN.createEnumeratedFunction r deps icdStgFileName lm Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction s4)
+    let acnInvalidCodeStream =
+        match r.args.encodings |> List.contains Asn1Encoding.ACN with
+        | true  -> AcnEnum.createInvalidCodeStream r lm t o
+        | false -> None
     let uperEncDecTestFunc,s6           = TL "EN_09" (fun () -> EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5)
     let acnEncDecTestFunc ,s7           = TL "EN_10" (fun () -> EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6)
 //    let automaticTestCasesValues        TL "EN_11" (fun () -> = EncodeDecodeTestCase.EnumeratedAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (EnumValue x)))
@@ -470,6 +474,7 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (dep
             uperDecFunction     = uperDecFunction
             acnEncFunction      = acnEncFunction
             acnDecFunction      = acnDecFunction
+            acnInvalidCodeStream = acnInvalidCodeStream
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             xerEncFunction      = xerEncFunction
