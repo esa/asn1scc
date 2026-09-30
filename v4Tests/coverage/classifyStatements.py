@@ -152,8 +152,13 @@ def cov002(lines, first, src):
     return decoded_range(lines, first, "charIndex") == (0, int(match[1]))
 
 
-ADA_RTL_DECODE = (r"\b(?:UPER_Dec_Constraint(?:Pos)?WholeNumber|Dec_Constraint(?:Pos)?WholeNumber)"
-                  r"\s*\(\s*bs\s*,\s*{var}\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*\d+\s*,\s*result\.Success\s*\)")
+# RTL decoders whose postcondition bounds the value on success: the uPER
+# constrained whole numbers (Result and IntVal in MinVal .. MaxVal) and the ACN
+# fixed-size integers (Result.Success and IntVal in minVal .. maxVal).
+ADA_RTL_DECODE = (r"\b(?:UPER_Dec_Constraint(?:Pos)?WholeNumber|Dec_Constraint(?:Pos)?WholeNumber"
+                  r"|Acn_Dec_(?:Int|UInt)_\w*ConstSize\w*)"
+                  r"\s*\(\s*bs\s*,\s*{var}\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*(?:,\s*\d+\s*)?,"
+                  r"\s*result(?:\.Success)?\s*\)")
 
 
 def ada_code(text):

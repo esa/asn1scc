@@ -66,14 +66,15 @@ switches on `v`. The switch has one `case` for every value `min..max`, plus a
 | `uper_c.stg` | `choice_decode` | uPER index of a CHOICE alternative |
 | `acn_c.stg` | `Choice_decode` | ACN CHOICE index (no determinant) |
 | `acn_c.stg` | `EnumeratedEncValues_decode` | ACN ENUMERATED value, **only** when the value is decoded with one of the two functions above and the item values fill `min..max` |
-| `StgAda/acn_a.stg` | `EnumeratedEncValues_decode` (`when others` arm) | the same ACN ENUMERATED case in Ada, decoded with `UPER_Dec_ConstraintPosWholeNumber` |
+| `StgAda/acn_a.stg` | `EnumeratedEncValues_decode` (`when others` arm) | ACN ENUMERATED value in Ada whose item values fill `min..max`, decoded with `UPER_Dec_ConstraintPosWholeNumber` or with a fixed-size `Acn_Dec_*_ConstSize*` procedure |
 
 For `EnumeratedEncValues_decode` the proof depends on the instance: an ACN
-ENUMERATED whose values leave gaps (e.g. `{a(0), b(5)}` in 3 bits), or whose
-integer is decoded with a fixed-size function such as
-`Acn_Dec_Int_PositiveInteger_ConstSize_8`, can deliver a value without a
-`case`. That `default:` arm is reachable with an invalid message and needs a
-test, not an exemption.
+ENUMERATED whose values leave gaps (e.g. `{a(0), b(5)}` in 3 bits) can deliver
+a value without a `case`. So can, in C only, one whose integer is decoded with a
+fixed-size function such as `Acn_Dec_Int_PositiveInteger_ConstSize_8`: the C
+fixed-size decoders return every value of the bit width. Those `default:` arms
+are reachable with an invalid message and are covered by automatic tests
+(`test_case_invalid_stream_*`), not by an exemption.
 
 **Example** (uPER, `Color ::= ENUMERATED { red, green, blue }`):
 
@@ -180,9 +181,25 @@ else
 The postcondition of `UPER_Dec_ConstraintPosWholeNumber` is `(Result and IntVal
 in MinVal .. MaxVal) or (not Result and IntVal = MinVal)`, so inside
 `if result.Success` the value is in `min..max`, and every value has a `when`.
-The same conditions apply as for C (the choices must be exactly `min..max`;
-sparse values or a fixed-size decode such as `Acn_Dec_Int_PositiveInteger_ConstSize`
-are reachable). `classifyStatements.py` checks the Ada shape in the same way.
+Unlike C, the Ada fixed-size ACN decoders take the bounds too and have the same
+kind of postcondition (all `Acn_Dec_*_ConstSize*` procedures of
+`ADA_RTL2/src/adaasn1rtl-encoding-acn.ads`), for example:
+
+```ada
+procedure Acn_Dec_Int_PositiveInteger_ConstSize
+  (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+   maxVal : Asn1UInt; nSizeInBits : Integer; Result : out ASN1_RESULT) with
+   ...
+   Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits and
+   ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+    (not Result.Success and IntVal = minVal));
+```
+
+The template passes the smallest and the largest item value as `minVal` and
+`maxVal`, so with item values that fill that range the `when others` arm cannot
+execute either. The choices must be exactly `min..max` (sparse values are
+reachable and tested). `classifyStatements.py` checks the Ada shape in the same
+way as the C one.
 
 ---
 

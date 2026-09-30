@@ -753,6 +753,12 @@ type ILangGeneric () =
     abstract member atcEmitsInvalidStreamTests : bool
     default _.atcEmitsInvalidStreamTests = false
 
+    /// True when such a test may use a code outside the items' min..max, because the
+    /// ACN integer decoders do not check it (C). The Ada decoders reject it before
+    /// the switch (postcondition Result.Success and IntVal in minVal .. maxVal).
+    abstract member atcInvalidStreamCodeOutsideItemRange : bool
+    default _.atcInvalidStreamCodeOutsideItemRange = false
+
     /// Units that the automatic test files must import when they contain such tests,
     /// because the stream is written with the ACN runtime (C header, Ada child units).
     abstract member atcInvalidStreamPackages : string list

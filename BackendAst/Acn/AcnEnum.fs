@@ -51,21 +51,55 @@ let private enumIntFuncBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]})
     AcnPrimitives.createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass uperInt sAsn1Constraints acnAlignment acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure typeDefinitionName (None, None) ""
 
+/// The values that a fixed-size ACN integer encoding can carry; None for the
+/// uPER-like encoding (range-checked by the decoder) and the variable-size ones.
+let private encodableRange (enc:IntEncodingClass) : (BigInteger*BigInteger) option =
+    let unsigned (bits:int) = Some (0I, BigInteger.Pow(2I, bits) - 1I)
+    let signed (bits:int) = Some (-BigInteger.Pow(2I, bits - 1), BigInteger.Pow(2I, bits - 1) - 1I)
+    let digits (n:int) = BigInteger.Pow(10I, n) - 1I
+    match enc with
+    | PositiveInteger_ConstSize_8 -> unsigned 8
+    | PositiveInteger_ConstSize_big_endian_16 | PositiveInteger_ConstSize_little_endian_16 -> unsigned 16
+    | PositiveInteger_ConstSize_big_endian_32 | PositiveInteger_ConstSize_little_endian_32 -> unsigned 32
+    | PositiveInteger_ConstSize_big_endian_64 | PositiveInteger_ConstSize_little_endian_64 -> unsigned 64
+    | PositiveInteger_ConstSize bits -> unsigned (int bits)
+    | TwosComplement_ConstSize_8 -> signed 8
+    | TwosComplement_ConstSize_big_endian_16 | TwosComplement_ConstSize_little_endian_16 -> signed 16
+    | TwosComplement_ConstSize_big_endian_32 | TwosComplement_ConstSize_little_endian_32 -> signed 32
+    | TwosComplement_ConstSize_big_endian_64 | TwosComplement_ConstSize_little_endian_64 -> signed 64
+    | TwosComplement_ConstSize bits -> signed (int bits)
+    | ASCII_ConstSize bits -> let d = digits (int bits / 8 - 1) in Some (-d, d)        // sign + digits
+    | ASCII_UINT_ConstSize bits -> Some (0I, digits (int bits / 8))
+    | BCD_ConstSize bits -> Some (0I, digits (int bits / 4))
+    | Integer_uPER
+    | ASCII_VarSize_NullTerminated _
+    | ASCII_UINT_VarSize_NullTerminated _
+    | BCD_VarSize_NullTerminated _ -> None
+
 /// An ACN stream that holds only a code of the ENUMERATED type that no item
 /// uses, encoded like the type's own encoder encodes an item value, for the
 /// automatic test of the ACN decoder's default arm. The code is the smallest one
-/// between the smallest and the largest item value: a code outside that range
-/// can be rejected by the integer decoder before the switch (the Ada ConstSize
-/// decoders check min..max). None when the item values leave no gap in that
-/// range, or when the efficient (switch-free) enumeration encoding is used.
+/// between the smallest and the largest item value. When the items leave no gap,
+/// and the language's ACN integer decoders do not check min..max
+/// (atcInvalidStreamCodeOutsideItemRange, C), a fixed-size encoding still carries
+/// max + 1 or min - 1 (not negative). None otherwise, and for the efficient
+/// (switch-free) enumeration encoding.
 let createInvalidCodeStream (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) : AcnInvalidCodeStream option =
     let values = o.items |> List.map(fun x -> x.acnEncodeValue) |> Set.ofList
     let min, max = Set.minElement values, Set.maxElement values
+    let gapCode =
+        Seq.unfold (fun v -> if v > max then None else Some (v, v + 1I)) min |>
+        Seq.tryFind (fun v -> not (values.Contains v))
+    let outsideCode () =
+        match lm.lg.atcInvalidStreamCodeOutsideItemRange, encodableRange o.acnEncodingClass with
+        | true, Some (encMin, encMax) ->
+            [max + 1I; min - 1I] |> List.tryFind (fun v -> v >= encMin && v <= encMax && v >= 0I)
+        | true, None
+        | false, _ -> None
     match r.args.isEnumEfficientEnabled o.items.Length with
     | true  -> None
     | false ->
-        Seq.unfold (fun v -> if v > max then None else Some (v, v + 1I)) min |>
-        Seq.tryFind (fun v -> not (values.Contains v)) |>
+        (match gapCode with Some _ -> gapCode | None -> outsideCode ()) |>
         Option.bind (fun code ->
             let intTypeClass = getIntEncodingClassByUperRange r.args (Concrete (min,max))
             let codeVarName = "tc_invalidCode"

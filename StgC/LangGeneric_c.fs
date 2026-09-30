@@ -889,6 +889,7 @@ type LangGeneric_c() =
         override _.acnDeferredTempVarName baseName = "_" + baseName
         override _.atcEmitsInvalidValueTests = true
         override _.atcEmitsInvalidStreamTests = true
+        override _.atcInvalidStreamCodeOutsideItemRange = true
         override _.atcInvalidStreamPackages = ["asn1crt_encoding_acn"]
 
         override this.getDirInfo (target:Targets option) rootDir =

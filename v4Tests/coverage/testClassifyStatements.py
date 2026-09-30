@@ -183,10 +183,25 @@ class Cov001Ada(unittest.TestCase):
         source = ADA_ACN_ENUM.replace("when 1 =>", "when 5 =>").replace("0, 1, 1,", "0, 5, 3,")
         self.assertEqual(check(source, self.ARM, language="Ada"), "")
 
-    def test_fixed_size_decode_is_not_proven(self):
+    def test_fixed_size_decode_with_dense_values_is_proven(self):
+        # The ACN fixed-size decoders check minVal .. maxVal (postcondition).
         source = ADA_ACN_ENUM.replace(
             "adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber(bs, intVal_val, 0, 1, 1, result.Success)",
-            "adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize(bs, intVal_val, 0, 1023, 10, result.Success)")
+            "adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize(bs, intVal_val, 0, 1, 10, result)")
+        self.assertEqual(check(source, self.ARM, language="Ada"), "ASN1SCC-COV-001")
+        source = source.replace("ConstSize(bs, intVal_val, 0, 1, 10, result)", "ConstSize_8(bs, intVal_val, 0, 1, result)")
+        self.assertEqual(check(source, self.ARM, language="Ada"), "ASN1SCC-COV-001")
+
+    def test_fixed_size_decode_with_wider_bounds_is_not_proven(self):
+        source = ADA_ACN_ENUM.replace(
+            "adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber(bs, intVal_val, 0, 1, 1, result.Success)",
+            "adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize(bs, intVal_val, 0, 1023, 10, result)")
+        self.assertEqual(check(source, self.ARM, language="Ada"), "")
+
+    def test_unbounded_decoder_is_not_proven(self):
+        source = ADA_ACN_ENUM.replace(
+            "adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber(bs, intVal_val, 0, 1, 1, result.Success)",
+            "adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(bs, intVal_val, 0, 1, result)")
         self.assertEqual(check(source, self.ARM, language="Ada"), "")
 
     def test_case_outside_success_branch_is_not_proven(self):
