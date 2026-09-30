@@ -32,7 +32,7 @@ covered nor proven.
 - **In the generated code** (planned): the templates will emit GNATcoverage
   exemption regions that cite the identifier, so that a user who measures the
   generated code with GNATcoverage gets the exemption and its justification in
-  the tool's own report:
+  the tool's own report (C shown; Ada uses `pragma Annotate`, see below):
 
   ```c
   /* GNATCOV_EXEMPT_ON "ASN1SCC-COV-001: index range enforced by the RTL, see Docs/statement-coverage-exemptions.md" */
@@ -41,8 +41,7 @@ covered nor proven.
   ```
 
   In Ada the equivalent is `pragma Annotate (Xcov, Exempt_On, "...")` /
-  `pragma Annotate (Xcov, Exempt_Off)`. No Ada entry exists so far (see the
-  notes of each entry).
+  `pragma Annotate (Xcov, Exempt_Off)`.
 
 An exemption region records a claim; GNATcoverage does not check it. It reports
 the region as "exempted, with violations" while the code stays unexecuted and
@@ -51,7 +50,7 @@ proof no longer holds.
 
 ---
 
-## ASN1SCC-COV-001: default arm after a range-checked index decode (C)
+## ASN1SCC-COV-001: default arm after a range-checked index decode (C, Ada)
 
 **Code.** A decoder reads an index or a value with
 `BitStream_DecodeConstraintWholeNumber(pBitStrm, &v, min, max)` or
@@ -67,6 +66,7 @@ switches on `v`. The switch has one `case` for every value `min..max`, plus a
 | `uper_c.stg` | `choice_decode` | uPER index of a CHOICE alternative |
 | `acn_c.stg` | `Choice_decode` | ACN CHOICE index (no determinant) |
 | `acn_c.stg` | `EnumeratedEncValues_decode` | ACN ENUMERATED value, **only** when the value is decoded with one of the two functions above and the item values fill `min..max` |
+| `StgAda/acn_a.stg` | `EnumeratedEncValues_decode` (`when others` arm) | the same ACN ENUMERATED case in Ada, decoded with `UPER_Dec_ConstraintPosWholeNumber` |
 
 For `EnumeratedEncValues_decode` the proof depends on the instance: an ACN
 ENUMERATED whose values leave gaps (e.g. `{a(0), b(5)}` in 3 bits), or whose
@@ -152,12 +152,37 @@ index variable is corrupted in memory (e.g. by a single-event upset) between
 the decode and the switch. MISRA C:2012 Rule 16.4 also requires a `default`
 label in every switch.
 
-**Ada.** The Ada templates have no such arm: the decoded integer is converted
-to the index subtype (`case <index_range>(intVal) is`), the `case` must cover
-the whole subtype, and the postcondition of
-`UPER_Dec_ConstraintWholeNumber` (`Result and IntVal in MinVal .. MaxVal`,
-`ADA_RTL2/src/adaasn1rtl-encoding-uper.ads`) lets GNATprove show that the
-conversion cannot fail.
+**Ada.** The uPER ENUMERATED / CHOICE and the ACN CHOICE templates have no
+such arm: the decoded integer is converted to the index subtype
+(`case <index_range>(intVal) is`), the `case` must cover the whole subtype, and
+the postcondition of `UPER_Dec_ConstraintWholeNumber` (`Result and IntVal in
+MinVal .. MaxVal`, `ADA_RTL2/src/adaasn1rtl-encoding-uper.ads`) lets GNATprove
+show that the conversion cannot fail.
+
+The ACN ENUMERATED template does have one: it switches on the decoded
+`Asn1UInt` value, and Ada requires `when others` for a `case` on a type wider
+than its choices:
+
+```ada
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber(bs, intVal_val, 0, 1, 1, result.Success);
+if result.Success then
+    case intVal_val is
+        when 0 => val := MyPDU_alpha;
+        when 1 => val := MyPDU_beta;
+    when others =>                    -- COVERAGE_IGNORE    <- exempted
+        val := MyPDU_alpha;           -- COVERAGE_IGNORE
+        result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_MYPDU);   -- COVERAGE_IGNORE
+    end case;
+else
+    ...
+```
+
+The postcondition of `UPER_Dec_ConstraintPosWholeNumber` is `(Result and IntVal
+in MinVal .. MaxVal) or (not Result and IntVal = MinVal)`, so inside
+`if result.Success` the value is in `min..max`, and every value has a `when`.
+The same conditions apply as for C (the choices must be exactly `min..max`;
+sparse values or a fixed-size decode such as `Acn_Dec_Int_PositiveInteger_ConstSize`
+are reachable). `classifyStatements.py` checks the Ada shape in the same way.
 
 ---
 

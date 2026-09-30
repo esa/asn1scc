@@ -86,6 +86,21 @@ if (ret) {
     }
 } /*COVERAGE_IGNORE*/"""
 
+ADA_ACN_ENUM = """\
+    result.ErrorCode := ERR_ACN_DECODE_MYPDU;
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber(bs, intVal_val, 0, 1, 1, result.Success);
+    if result.Success then
+        case intVal_val is
+            when 0 => val := MyPDU_alpha;
+            when 1 => val := MyPDU_beta;
+        when others =>                                  -- COVERAGE_IGNORE
+            val := MyPDU_alpha;                         -- COVERAGE_IGNORE
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_MYPDU);    -- COVERAGE_IGNORE
+        end case;
+    else
+        val := MyPDU_alpha;                             -- COVERAGE_IGNORE
+    end if;"""
+
 CHAR_GUARD = """\
 asn1SccSint charIndex = 0;
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charIndex, 0, 2);
@@ -150,8 +165,33 @@ class Cov001(unittest.TestCase):
         source = ACN_ENUM.replace("case 1:", "case 5:").replace("0, 1);", "0, 5);")
         self.assertEqual(check(source, "ret = FALSE;"), "")
 
-    def test_ada_is_never_classified(self):
+    def test_c_shape_is_not_classified_as_ada(self):
         self.assertEqual(check(UPER_ENUM, "ret = FALSE;", language="Ada"), "")
+
+
+class Cov001Ada(unittest.TestCase):
+    ARM = "val := MyPDU_alpha;                         -- COVERAGE_IGNORE"
+
+    def test_dense_acn_enum_others_is_proven(self):
+        self.assertEqual(check(ADA_ACN_ENUM, self.ARM, language="Ada"), "ASN1SCC-COV-001")
+        self.assertEqual(check(ADA_ACN_ENUM, "result := adaasn1rtl", language="Ada"), "ASN1SCC-COV-001")
+
+    def test_failure_branch_is_not_exempted(self):
+        self.assertEqual(check(ADA_ACN_ENUM, "val := MyPDU_alpha;", 3, language="Ada"), "")
+
+    def test_sparse_values_are_not_proven(self):
+        source = ADA_ACN_ENUM.replace("when 1 =>", "when 5 =>").replace("0, 1, 1,", "0, 5, 3,")
+        self.assertEqual(check(source, self.ARM, language="Ada"), "")
+
+    def test_fixed_size_decode_is_not_proven(self):
+        source = ADA_ACN_ENUM.replace(
+            "adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber(bs, intVal_val, 0, 1, 1, result.Success)",
+            "adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize(bs, intVal_val, 0, 1023, 10, result.Success)")
+        self.assertEqual(check(source, self.ARM, language="Ada"), "")
+
+    def test_case_outside_success_branch_is_not_proven(self):
+        source = ADA_ACN_ENUM.replace("    if result.Success then\n", "    if True then\n")
+        self.assertEqual(check(source, self.ARM, language="Ada"), "")
 
 
 class Cov002(unittest.TestCase):

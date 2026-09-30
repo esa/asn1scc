@@ -152,10 +152,82 @@ def cov002(lines, first, src):
     return decoded_range(lines, first, "charIndex") == (0, int(match[1]))
 
 
+ADA_RTL_DECODE = (r"\b(?:UPER_Dec_Constraint(?:Pos)?WholeNumber|Dec_Constraint(?:Pos)?WholeNumber)"
+                  r"\s*\(\s*bs\s*,\s*{var}\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*\d+\s*,\s*result\.Success\s*\)")
+
+
+def ada_code(text):
+    """An Ada line without its comment."""
+    return re.sub(r"--.*$", "", text)
+
+
+def cov001_ada(lines, first):
+    """ASN1SCC-COV-001 in Ada: the statement is in the `when others` arm of a
+    `case X is` whose selector was just decoded by an RTL procedure with the
+    postcondition `Result and X in min .. max`, and whose own choices are
+    exactly min..max."""
+    others = None
+    for number in range(first, max(first - 4, 0), -1):
+        text = ada_code(lines[number - 1])
+        if re.match(r"^\s*when\s+others\s*=>", text, re.I):
+            others = number
+            break
+        if re.match(r"^\s*(when\b|end\s+case\b)", text, re.I) and number != first:
+            return False
+    if others is None:
+        return False
+    head, depth = others - 1, 0
+    while head > 0:
+        text = ada_code(lines[head - 1])
+        if re.match(r"^\s*end\s+case\s*;", text, re.I):
+            depth += 1
+        elif re.match(r"^\s*case\b.*\bis\s*$", text, re.I):
+            if depth == 0:
+                break
+            depth -= 1
+        head -= 1
+    match = re.match(r"^\s*case\s+(\w+)\s+is\s*$", ada_code(lines[head - 1]), re.I) if head else None
+    if not match:
+        return False
+    var = match[1]
+    decode = re.compile(ADA_RTL_DECODE.format(var=re.escape(var)), re.I)
+    assigned = re.compile(r"(?<![\w.])" + re.escape(var) + r"\s*:=", re.I)
+    bounds = None
+    for number in range(head - 1, max(head - 5, 0), -1):
+        text = ada_code(lines[number - 1])
+        found = decode.search(text)
+        if found:
+            bounds = int(found[1]), int(found[2])
+            break
+        if assigned.search(text):
+            return False
+    if bounds is None:
+        return False
+    # The case must sit in the success branch of that decode.
+    if not any(re.match(r"^\s*if\s+result\.Success\s+then\s*$", ada_code(lines[n - 1]), re.I)
+               for n in range(number + 1, head)):
+        return False
+    depth, labels = 0, []
+    for number in range(head + 1, others):
+        text = ada_code(lines[number - 1])
+        if depth == 0:
+            choice = re.match(r"^\s*when\s+(.*?)\s*=>", text, re.I)
+            if choice:
+                values = [v.strip() for v in choice[1].split("|")]
+                if not all(re.fullmatch(r"-?\d+", v) for v in values):
+                    return False  # a non-numeric choice: not the decoded-value shape
+                labels += [int(v) for v in values]
+        if re.match(r"^\s*case\b.*\bis\s*$", text, re.I):
+            depth += 1
+        elif re.match(r"^\s*end\s+case\s*;", text, re.I):
+            depth -= 1
+    return depth == 0 and sorted(labels) == list(range(bounds[0], bounds[1] + 1))
+
+
 def proven_unreachable(language, lines, first, src):
     """ID of the documented exemption that proves the statement unreachable, or ''."""
     if language != "c":
-        return ""
+        return "ASN1SCC-COV-001" if cov001_ada(lines, first) else ""
     if cov001(lines, first):
         return "ASN1SCC-COV-001"
     if cov002(lines, first, src):
