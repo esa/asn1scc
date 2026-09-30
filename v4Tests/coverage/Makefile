@@ -19,3 +19,4 @@ historical:
 test:
 	$(PYTHON) /opt/coverage/testCollector.py
 	$(PYTHON) /opt/coverage/testContracts.py
+	$(PYTHON) /opt/coverage/testClassifyStatements.py

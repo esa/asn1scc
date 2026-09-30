@@ -6,6 +6,12 @@ units/<id>/work/ holding the generated sources), finds the generated function
 that encloses every codec statement obligation and groups the obligations by
 function kind and statement kind. The labels are source patterns only: they
 say where a missed statement is, not whether a test can reach it.
+
+The one exception is the `proven` column: a missed statement gets the ID of a
+documented statement-coverage exemption (Docs/statement-coverage-exemptions.md)
+when the source around it satisfies that exemption's precondition, checked
+here statement by statement. The report then gives raw coverage, the proven
+unreachable statements and the remaining unproven misses.
 """
 import argparse
 from collections import Counter, defaultdict
@@ -33,9 +39,9 @@ def function_kind(name):
     direction = "encode" if "_enc" in fn else ("decode" if "_dec" in fn else None)
     if direction and "_acn" in fn:
         return "acn-" + direction
-    if direction and "xer" in fn:
+    if direction and ("_xer_" in fn or fn.endswith("_xer")):
         return "xer-" + direction
-    if direction and "ber" in fn:
+    if direction and ("_ber_" in fn or fn.endswith("_ber")):
         return "ber-" + direction
     if direction:
         return "uper-" + direction
@@ -67,6 +73,94 @@ def statement_kind(src, lines, first, last):
     kind = "default" if in_default_arm(lines, first) else (
         "error" if ERROR_TEXT.search(src) else "other")
     return kind + ("-ignored" if "COVERAGE_IGNORE" in full else "")
+
+
+RTL_DECODE = (r"BitStream_DecodeConstraint(?:Pos)?WholeNumber\(pBitStrm,\s*\(?&\(?{var}\)?\)?,"
+              r"\s*(-?\d+),\s*(-?\d+)\)")
+CHAR_GUARD = re.compile(r"\bif\s*\(ret\s*&&\s*\(charIndex\s*<\s*0\s*\|\|\s*charIndex\s*>\s*(\d+)\)\)\s*\{")
+
+
+def code_only(text):
+    """A C line without comments and string/char literals, for brace counting."""
+    text = re.sub(r"/\*.*?\*/|//.*$", "", text)
+    return re.sub(r'"(\\.|[^"\\])*"|' + r"'(\\.|[^'\\])*'", '""', text)
+
+
+def decoded_range(lines, before, var, window=4):
+    """(min, max) when one of the `window` lines before line `before` (1-based)
+    calls BitStream_DecodeConstraint[Pos]WholeNumber(pBitStrm, &var, min, max)."""
+    pattern = re.compile(RTL_DECODE.format(var=re.escape(var)))
+    assigned = re.compile(r"(?<![\w.>])" + re.escape(var) + r"\s*(=(?!=)|\+\+|--|[-+*/%&|^]=)")
+    for number in range(before - 1, max(before - 1 - window, 0), -1):
+        match = pattern.search(lines[number - 1])
+        if match:
+            return int(match[1]), int(match[2])
+        if assigned.search(code_only(lines[number - 1])):
+            return None  # the selector changes between the decode and its use
+    return None
+
+
+def cov001(lines, first):
+    """ASN1SCC-COV-001: the statement is in the `default:` arm of a switch whose
+    selector was just decoded by BitStream_DecodeConstraint[Pos]WholeNumber(.., min, max)
+    and whose own case labels are exactly min..max."""
+    default = None
+    for number in range(first, max(first - 4, 0), -1):
+        if re.match(r"^\s*default\s*:", lines[number - 1]):
+            default = number
+            break
+        if re.match(r"^\s*(case\b|\}|break;)", lines[number - 1]) and number != first:
+            return False
+    if default is None:
+        return False
+    # The switch that owns the arm: walk up to the unmatched '{' of the block
+    # holding the `default:` line; the head is that line or the one before it.
+    head, depth = default - 1, 0
+    while head > 0:
+        text = code_only(lines[head - 1])
+        depth += text.count("}") - text.count("{")
+        if depth < 0:
+            break
+        head -= 1
+    if head > 1 and code_only(lines[head - 1]).strip() == "{":
+        head -= 1
+    match = re.match(r"^\s*switch\s*\(\s*(\w+)\s*\)\s*\{?\s*$", lines[head - 1]) if head else None
+    if not match:
+        return False
+    bounds = decoded_range(lines, head, match[1])
+    if bounds is None:
+        return False
+    depth, labels = 0, []
+    for number in range(head, default):
+        text = code_only(lines[number - 1])
+        if depth == 1:
+            if re.search(r"\bcase\b(?!\s+-?\d+\s*:)", text):
+                return False  # a non-numeric label: not the decoded-index shape
+            labels += [int(v) for v in re.findall(r"\bcase\s+(-?\d+)\s*:", text)]
+        depth += text.count("{") - text.count("}")
+        if depth <= 0 and number > head:
+            return False  # the switch closed before the default arm
+    return depth == 1 and sorted(labels) == list(range(bounds[0], bounds[1] + 1))
+
+
+def cov002(lines, first, src):
+    """ASN1SCC-COV-002: the body of the charIndex guard, right after
+    BitStream_DecodeConstraintWholeNumber(.., &charIndex, 0, N) with the same N."""
+    match = CHAR_GUARD.search(lines[first - 1])
+    if not match or src.lstrip().startswith("if"):
+        return False
+    return decoded_range(lines, first, "charIndex") == (0, int(match[1]))
+
+
+def proven_unreachable(language, lines, first, src):
+    """ID of the documented exemption that proves the statement unreachable, or ''."""
+    if language != "c":
+        return ""
+    if cov001(lines, first):
+        return "ASN1SCC-COV-001"
+    if cov002(lines, first, src):
+        return "ASN1SCC-COV-002"
+    return ""
 
 
 def function_starts(lines, language):
@@ -135,7 +229,8 @@ def classify(run):
                 rows.append({"config": name, "unit": record["unit"], "exempt": exempt, "file": file_name,
                              "line": first, "function": function,
                              "function_kind": function_kind(function),
-                             "statement_kind": statement_kind(src, lines, first, last), "src": src[:200]})
+                             "statement_kind": statement_kind(src, lines, first, last),
+                             "proven": proven_unreachable(language, lines, first, src), "src": src[:200]})
         units.append(entry)
     return name, rows, units
 
@@ -176,10 +271,14 @@ def main(argv=None):
     fkinds = sorted({r["function_kind"] for r in rows})
     skinds = [k + i for i in ("", "-ignored") for k in ("error", "default", "other")]
     report = ["# Uncovered generated-code statements by kind", "",
-              "Source-pattern labels only; no reachability claim.", "",
-              "`exempt` = units with a NOCOVERAGE directive (exempt from the legacy line gate).", "",
-              "| configuration | units | units ok / measured | statements covered / total | uncovered |",
-              "|---|---|---:|---:|---:|"]
+              "Source-pattern labels only; no reachability claim, except the `proven`",
+              "column: statements that satisfy the precondition of a documented exemption",
+              "(Docs/statement-coverage-exemptions.md), checked per statement.", "",
+              "`exempt` = units with a NOCOVERAGE directive (exempt from the legacy line gate).",
+              "`covered or proven` = (covered + proven unreachable) / total.", "",
+              "| configuration | units | units ok / measured | statements covered / total | uncovered "
+              "| proven unreachable | unproven | covered or proven |",
+              "|---|---|---:|---:|---:|---:|---:|---:|"]
     summary = {}
     for name in configs:
         for scope, keep in (("all", lambda u: True), ("non-exempt", lambda u: not u["exempt"]),
@@ -187,10 +286,21 @@ def main(argv=None):
             mine = [u for u in units if u["config"] == name and keep(u)]
             ok = [u for u in mine if u["status"] == "ok"]
             total, covered = sum(u["total"] for u in ok), sum(u["covered"] for u in ok)
+            ok_units = {u["unit"] for u in ok}
+            proven = sum(1 for r in rows if r["config"] == name and r["proven"]
+                         and r["unit"] in ok_units and keep(r))
             summary[f"{name}|{scope}"] = {"units": len(mine), "units_ok": len(ok),
-                                          "total": total, "covered": covered}
+                                          "total": total, "covered": covered, "proven": proven}
+            percent = lambda n: f"{100 * n / total if total else 0:.1f}%"
             report.append(f"| {name} | {scope} | {len(ok)} / {len(mine)} | {covered} / {total} "
-                          f"({100 * covered / total if total else 0:.1f}%) | {total - covered} |")
+                          f"({percent(covered)}) | {total - covered} | {proven} "
+                          f"| {total - covered - proven} | {percent(covered + proven)} |")
+    ids = sorted({r["proven"] for r in rows if r["proven"]})
+    if ids:
+        by_id = Counter((r["proven"], r["config"], r["function_kind"]) for r in rows if r["proven"])
+        report += ["", "## Proven unreachable statements by exemption", "",
+                   "| exemption | configuration | function kind | statements |", "|---|---|---|---:|"]
+        report += [f"| {i} | {c} | {f} | {n} |" for (i, c, f), n in sorted(by_id.items())]
     for name in configs:
         for scope, keep in (("non-exempt units", False), ("exempt units", True)):
             mine = [r for r in rows if r["config"] == name and r["exempt"] == keep]
