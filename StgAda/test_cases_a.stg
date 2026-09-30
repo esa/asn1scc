@@ -475,9 +475,10 @@ with Ada.Text_IO;
 with adaasn1rtl;
 use adaasn1rtl;
 <if(arrsRtlUnits)>
-pragma Warnings (Off, "unit * is not referenced");
-<arrsRtlUnits:{inc|with <inc>;
-}>pragma Warnings (On, "unit * is not referenced");
+<arrsRtlUnits:{inc|pragma Warnings (Off, "unit * is not referenced");
+with <inc>;
+pragma Warnings (On, "unit * is not referenced");
+}>
 <endif>
 pragma Warnings (Off, "no entities of ""interfaces"" are referenced");
 pragma Warnings (Off, "use clause for package ""Interfaces"" has no effect");
