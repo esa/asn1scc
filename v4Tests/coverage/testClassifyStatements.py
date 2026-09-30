@@ -169,6 +169,41 @@ class Cov001(unittest.TestCase):
         self.assertEqual(check(UPER_ENUM, "ret = FALSE;", language="Ada"), "")
 
 
+C_FIXED_SIZE_ENUM = """\
+ret = Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, (&(intVal_pVal)), 1);
+*pErrCode = ret ? 0 : ERR_ACN_DECODE_DELIVERYCODE;
+if (ret) {
+    switch (intVal_pVal) {
+        case 0:
+            (*(pVal)) = data_complete;
+            break;
+        case 1:
+            (*(pVal)) = data_incomplete;
+            break;
+    default:                                    /*COVERAGE_IGNORE*/
+        ret = FALSE;                            /*COVERAGE_IGNORE*/
+        *pErrCode = ERR_ACN_DECODE_DELIVERYCODE;                 /*COVERAGE_IGNORE*/
+    }
+} /*COVERAGE_IGNORE*/"""
+
+
+class Cov003(unittest.TestCase):
+    def test_every_value_of_the_width_has_a_case(self):
+        self.assertEqual(check(C_FIXED_SIZE_ENUM, "ret = FALSE;"), "ASN1SCC-COV-003")
+
+    def test_wider_encoding_is_not_proven(self):
+        source = C_FIXED_SIZE_ENUM.replace("(&(intVal_pVal)), 1);", "(&(intVal_pVal)), 2);")
+        self.assertEqual(check(source, "ret = FALSE;"), "")
+
+    def test_eight_bit_variant_needs_256_cases(self):
+        source = C_FIXED_SIZE_ENUM.replace("ConstSize(pBitStrm, (&(intVal_pVal)), 1)", "ConstSize_8(pBitStrm, (&(intVal_pVal)))")
+        self.assertEqual(check(source, "ret = FALSE;"), "")
+
+    def test_signed_decoder_is_not_proven(self):
+        source = C_FIXED_SIZE_ENUM.replace("Acn_Dec_Int_PositiveInteger_ConstSize", "Acn_Dec_Int_TwosComplement_ConstSize")
+        self.assertEqual(check(source, "ret = FALSE;"), "")
+
+
 class Cov001Ada(unittest.TestCase):
     ARM = "val := MyPDU_alpha;                         -- COVERAGE_IGNORE"
 

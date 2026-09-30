@@ -244,3 +244,63 @@ has the postcondition `(Result and IntVal in MinVal .. MaxVal) or (not Result
 and IntVal = MinVal)`, so `charIndex` is in `0..N` even when the decode fails,
 and GNATprove proves the alphabet access `alpha_set(charIndex + 1)` without a
 run-time check.
+
+---
+
+## ASN1SCC-COV-003: default arm after a fixed-size unsigned decode that fills its width (C)
+
+**Code.** An ACN ENUMERATED encoded as an unsigned integer of `N` bits
+(`encoding pos-int, size N`) whose item values are exactly `0 .. 2^N - 1`, for
+example two items in one bit or four items in two bits. The C decoder reads
+the value with `Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, &v, N)` (or
+the `_8`, `_big_endian_16/32/64`, `_little_endian_16/32/64` variants) and
+switches on it; every value that `N` bits can hold has a `case`, so the
+`default:` arm cannot execute.
+
+**Template**: `StgC/acn_c.stg`, macro `EnumeratedEncValues_decode`, for those
+instances only. With item values that leave a value of the width unused the
+arm is reachable and covered by an automatic test (`test_case_invalid_stream_*`,
+see ASN1SCC-COV-001).
+
+**Example** (`DeliveryCode ::= ENUMERATED {data-complete (0), data-incomplete (1)}`,
+`DeliveryCode [encoding pos-int, size 1]`):
+
+```c
+ret = Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, (&(intVal_pVal)), 1);
+*pErrCode = ret ? 0 : ERR_ACN_DECODE_DELIVERYCODE;
+if (ret) {
+    switch (intVal_pVal) {
+        case 0:
+            (*(pVal)) = data_complete;
+            break;
+        case 1:
+            (*(pVal)) = data_incomplete;
+            break;
+    default:                                    /*COVERAGE_IGNORE*/    /* <- exempted */
+        ret = FALSE;                            /*COVERAGE_IGNORE*/
+        *pErrCode = ERR_ACN_DECODE_DELIVERYCODE;                 /*COVERAGE_IGNORE*/
+    }
+} /*COVERAGE_IGNORE*/
+```
+
+**Proof.** `Acn_Dec_Int_PositiveInteger_ConstSize` (`asn1crt/asn1crt_encoding_acn.c`)
+stores the result of `BitStream_DecodeNonNegativeInteger(pBitStrm, &tmp, N)`
+(`asn1crt/asn1crt_encoding.c`). That function builds the value from `N` bits
+only: whole bytes are shifted in eight bits at a time, and the last `N mod 8`
+bits come from `BitStream_ReadPartialByte`, which masks its result with
+`masksb[nbits]` on both of its paths. The `_8`, `_big_endian_16/32/64` and
+`_little_endian_16/32/64` variants assemble the value from 1, 2, 4 or 8 bytes
+read with `BitStream_ReadByte`. The value is therefore below `2^N`, and every
+value below `2^N` has a `case`.
+
+**Conditions.** The decoder reads exactly `N` bits into an unsigned value; the
+selector is the variable just decoded, with no assignment in between; the
+`case` labels of that switch are exactly `0 .. 2^N - 1` (all checked by
+`classifyStatements.py`, the first from the decoder's name and `N`).
+
+**Why the code stays.** Defense in depth, as for ASN1SCC-COV-001, and MISRA
+C:2012 Rule 16.4.
+
+**Ada.** Covered by ASN1SCC-COV-001: the Ada fixed-size decoders check the item
+range themselves (postcondition), which is stronger than the width argument.
+

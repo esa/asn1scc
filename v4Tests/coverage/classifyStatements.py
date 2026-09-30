@@ -100,19 +100,44 @@ def decoded_range(lines, before, var, window=4):
     return None
 
 
-def cov001(lines, first):
-    """ASN1SCC-COV-001: the statement is in the `default:` arm of a switch whose
-    selector was just decoded by BitStream_DecodeConstraint[Pos]WholeNumber(.., min, max)
-    and whose own case labels are exactly min..max."""
+FIXED_SIZE_DECODE = (r"Acn_Dec_Int_PositiveInteger_ConstSize(?:_(8)|_(?:big|little)_endian_(16|32|64))?"
+                     r"\(pBitStrm,\s*\(?&\(?{var}\)?\)?(?:,\s*(\d+))?\)")
+
+
+def fixed_size_range(lines, before, var, window=4):
+    """(0, 2**N - 1) when one of the `window` lines before line `before` decodes
+    `var` with an N-bit unsigned fixed-size ACN decoder."""
+    pattern = re.compile(FIXED_SIZE_DECODE.format(var=re.escape(var)))
+    assigned = re.compile(r"(?<![\w.>])" + re.escape(var) + r"\s*(=(?!=)|\+\+|--|[-+*/%&|^]=)")
+    for number in range(before - 1, max(before - 1 - window, 0), -1):
+        match = pattern.search(lines[number - 1])
+        if match:
+            bits = match[1] or match[2] or match[3]
+            return (0, 2 ** int(bits) - 1) if bits else None
+        if assigned.search(code_only(lines[number - 1])):
+            return None  # the selector changes between the decode and its use
+    return None
+
+
+def covers(labels, bounds):
+    """True when the sorted labels are exactly bounds[0] .. bounds[1] (compared by
+    count first: a 64-bit range must not be expanded)."""
+    return len(labels) == bounds[1] - bounds[0] + 1 and labels == list(range(bounds[0], bounds[1] + 1))
+
+
+def default_arm_switch(lines, first):
+    """(selector, switch head line, case labels) of the switch whose `default:`
+    arm holds the statement, or None. The labels are those of that switch
+    only; None when one of them is not an integer literal."""
     default = None
     for number in range(first, max(first - 4, 0), -1):
         if re.match(r"^\s*default\s*:", lines[number - 1]):
             default = number
             break
         if re.match(r"^\s*(case\b|\}|break;)", lines[number - 1]) and number != first:
-            return False
+            return None
     if default is None:
-        return False
+        return None
     # The switch that owns the arm: walk up to the unmatched '{' of the block
     # holding the `default:` line; the head is that line or the one before it.
     head, depth = default - 1, 0
@@ -126,21 +151,42 @@ def cov001(lines, first):
         head -= 1
     match = re.match(r"^\s*switch\s*\(\s*(\w+)\s*\)\s*\{?\s*$", lines[head - 1]) if head else None
     if not match:
-        return False
-    bounds = decoded_range(lines, head, match[1])
-    if bounds is None:
-        return False
+        return None
     depth, labels = 0, []
     for number in range(head, default):
         text = code_only(lines[number - 1])
         if depth == 1:
             if re.search(r"\bcase\b(?!\s+-?\d+\s*:)", text):
-                return False  # a non-numeric label: not the decoded-index shape
+                return None  # a non-numeric label: not the decoded-value shape
             labels += [int(v) for v in re.findall(r"\bcase\s+(-?\d+)\s*:", text)]
         depth += text.count("{") - text.count("}")
         if depth <= 0 and number > head:
-            return False  # the switch closed before the default arm
-    return depth == 1 and sorted(labels) == list(range(bounds[0], bounds[1] + 1))
+            return None  # the switch closed before the default arm
+    return (match[1], head, sorted(labels)) if depth == 1 else None
+
+
+def cov001(lines, first):
+    """ASN1SCC-COV-001: the statement is in the `default:` arm of a switch whose
+    selector was just decoded by BitStream_DecodeConstraint[Pos]WholeNumber(.., min, max)
+    and whose own case labels are exactly min..max."""
+    arm = default_arm_switch(lines, first)
+    if arm is None:
+        return False
+    var, head, labels = arm
+    bounds = decoded_range(lines, head, var)
+    return bounds is not None and covers(labels, bounds)
+
+
+def cov003(lines, first):
+    """ASN1SCC-COV-003: the statement is in the `default:` arm of a switch whose
+    selector was just decoded by an N-bit unsigned fixed-size ACN decoder and
+    whose own case labels are exactly 0 .. 2**N - 1."""
+    arm = default_arm_switch(lines, first)
+    if arm is None:
+        return False
+    var, head, labels = arm
+    bounds = fixed_size_range(lines, head, var)
+    return bounds is not None and covers(labels, bounds)
 
 
 def cov002(lines, first, src):
@@ -226,7 +272,7 @@ def cov001_ada(lines, first):
             depth += 1
         elif re.match(r"^\s*end\s+case\s*;", text, re.I):
             depth -= 1
-    return depth == 0 and sorted(labels) == list(range(bounds[0], bounds[1] + 1))
+    return depth == 0 and covers(sorted(labels), bounds)
 
 
 def proven_unreachable(language, lines, first, src):
@@ -237,6 +283,8 @@ def proven_unreachable(language, lines, first, src):
         return "ASN1SCC-COV-001"
     if cov002(lines, first, src):
         return "ASN1SCC-COV-002"
+    if cov003(lines, first):
+        return "ASN1SCC-COV-003"
     return ""
 
 
