@@ -1132,3 +1132,26 @@ let char2SingleStringValue (c:char) =
     elif c = CharHT  then SpecialCharacter HorizontalTab
     elif c = CharNul then SpecialCharacter NullCharacter
     else CStringValue (c.ToString())
+
+
+// Per-BIT-STRING field information for the C-aligned Ada representation.
+// StringTemplate cannot enumerate a numeric range, so the Ada backend computes
+// these just before rendering a BIT STRING type definition and body, and they
+// are injected into the template call by ST.call. Each entry
+// of bitStringFields is a field name ("Bit0", "Bit1", ...); each entry of
+// bitStringFieldClauses is the matching component clause text.
+let mutable bitStringFields : string[] = [||]
+let mutable bitStringFieldClauses : string[] = [||]
+let mutable nBitStringFields : int = 0
+// Recompute the per-BIT-STRING field name/clause lists for a type with the
+// given number of bits. Called just before rendering a BIT STRING's body so the
+// templates see the right fields (the body is rendered in a separate pass from
+// the type definition).
+let setBitStringFields (nMaxBits:int) =
+    nBitStringFields <- nMaxBits
+    bitStringFields <- Array.init nMaxBits (fun i -> sprintf "Bit%d" i)
+    bitStringFieldClauses <- Array.init nMaxBits (fun i -> sprintf "Bit%d at %d range %d .. %d" i (i/8) (i%8) (i%8))
+// When true, the Ada backend represents BIT STRING values with one named bit
+// field per bit (Bit0 .. Bit(N-1), C-compatible MSB-first byte layout) instead
+// of a packed adaasn1rtl.BitArray. Exposed to the templates as <bitStringAlignment>.
+let mutable bitStringAlignment : bool = false

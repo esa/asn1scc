@@ -269,6 +269,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "BIT-STRING")
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_BitString o.maxSize.uper
+        CommonTypes.setBitStringFields (int o.maxSize.uper)
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
         let bodyStm = BitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}

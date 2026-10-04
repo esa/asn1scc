@@ -142,6 +142,10 @@ end loop;
 >>
 
 initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize, bIsOptionalField, sResVar) ::= <<
+<if(bitStringAlignment)>
+    <p><sAcc>Data := (others => 0);
+<if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nMinSize><else><nSize><endif>;<endif>
+<else>
 <i> := 1;
 while <i>\<= <nSize> loop
     --  commented because it casues this warning
@@ -151,6 +155,7 @@ while <i>\<= <nSize> loop
     <i> := <i> + 1;
 end loop;
 <if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nMinSize><else><nSize><endif>;<endif>
+<endif>
 >>
 
 
@@ -250,7 +255,7 @@ initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBas
 procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>) --  COVERAGE_IGNORE
 is
 begin
-    <sVarName>.Data(<sVarName>.Data'First + <nZeroBasedBitIndex>) := 1; --  COVERAGE_IGNORE
+    <sVarName>.Data<if(bitStringAlignment)>.Bit<nZeroBasedBitIndex><else>(<sVarName>.Data'First + <nZeroBasedBitIndex>)<endif> := 1; --  COVERAGE_IGNORE
 end <sFuncName>_set_<sNamedBit>;   --  COVERAGE_IGNORE
 >>
 

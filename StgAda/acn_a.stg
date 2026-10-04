@@ -1738,7 +1738,17 @@ end if;
 
 
 bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
+<if(bitStringAlignment)>
+declare
+   tmpBitBytes : adaasn1rtl.OctetBuffer (0 .. (Integer(<sExtFld>) + 7) / 8 - 1);
+   for tmpBitBytes'Address use <p><sAcc>Data'Address;
+   pragma Import (Ada, tmpBitBytes);
+begin
+   adaasn1rtl.encoding.BitStream_AppendBits(bs, tmpBitBytes, Integer(<sExtFld>));
+end;
+<else>
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>));
+<endif>
 >>
 
 bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
@@ -1746,40 +1756,90 @@ bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noS
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <noSizeMin>\<=<sExtFld><if(noSizeMax)> AND <sExtFld>\<=<noSizeMax><endif>, ErrorCode => <sErrCode>);
 if result.Success then
    <p>.Length := Integer(<sExtFld>);
+<if(bitStringAlignment)>
+    <aligned>
+<else>
     adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
+<endif>
 end if;
 <else>
 <if(noSizeMax)>
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <sExtFld>\<=<noSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
    <p>.Length := Integer(<sExtFld>);
+<if(bitStringAlignment)>
+    <aligned>
+<else>
     adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
+<endif>
 end if;
 <else>
 <p>.Length := Integer(<sExtFld>);
+<if(bitStringAlignment)>
+<aligned>
+<else>
 adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
+<endif>
 <endif>
 <endif>
 >>
 
 bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+<if(bitStringAlignment)>
+declare
+   tmpBitBytes : adaasn1rtl.OctetBuffer (0 .. (Integer(<nSizeMax>) + 7) / 8 - 1);
+   for tmpBitBytes'Address use <p><sAcc>Data'Address;
+   pragma Import (Ada, tmpBitBytes);
+begin
+   adaasn1rtl.encoding.BitStream_AppendBits(bs, tmpBitBytes, Integer(<nSizeMax>));
+end;
+<else>
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<nSizeMax>));
+<endif>
 >>
 
 bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
+<if(bitStringAlignment)>
+declare
+   tmpBitBytes : adaasn1rtl.OctetBuffer (0 .. (Integer(<nSizeMax>) + 7) / 8 - 1);
+   for tmpBitBytes'Address use <p><sAcc>Data'Address;
+   pragma Import (Ada, tmpBitBytes);
+begin
+   adaasn1rtl.encoding.BitStream_ReadBits(bs, tmpBitBytes, Integer(<nSizeMax>), result.success);
+end;
+<else>
     adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);
+<endif>
 end if;
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
+<if(bitStringAlignment)>
+declare
+   tmpBits : adaasn1rtl.BitArray(1 .. nBitStringFields) := (others => 0);
+begin
+<arrsBitFields:{f|   tmpBits(<i>) := <p><sAcc>Data.<f>;}; separator="\n">
+   adaasn1rtl.encoding.BitStream_AppendBitArray(bs, tmpBits, <p><sAcc>Length);
+end;
+<else>
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, <p><sAcc>Length);
+<endif>
 <rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 >>
 
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize)  ::= <<
+<if(bitStringAlignment)>
+declare
+   tmpBits : adaasn1rtl.BitArray(1 .. nBitStringFields) := (others => 0);
+begin
+   <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, tmpBits, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
+<arrsBitFields:{f|   <p><sAcc>Data.<f> := tmpBits(<i>);}; separator="\n">
+end;
+<else>
 <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
+<endif>
 if not result.Success then
     result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
 end if;

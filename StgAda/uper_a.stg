@@ -965,12 +965,34 @@ end;
 
 /* BIT STRING*/
 bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
+<if(bitStringAlignment)>
+declare
+   --  C-aligned representation: the bits are named fields whose bytes are in the
+   --  same (MSB-first) order as the C BIT STRING, so they can be written straight
+   --  from the record's storage.
+   tmpBitBytes : adaasn1rtl.OctetBuffer (0 .. (Integer(<nFixedSize>) + 7) / 8 - 1);
+   for tmpBitBytes'Address use <p><sAcc>Data'Address;
+   pragma Import (Ada, tmpBitBytes);
+begin
+   adaasn1rtl.encoding.BitStream_AppendBits(bs, tmpBitBytes, Integer(<nFixedSize>));
+end;
+<else>
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>));
+<endif>
 >>
 
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
-adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
-if not result.Success then
+<if(bitStringAlignment)>
+<p><sAcc>Data := (others => 0);
+declare
+   tmpBitBytes : adaasn1rtl.OctetBuffer (0 .. (Integer(<nFixedSize>) + 7) / 8 - 1);
+   for tmpBitBytes'Address use <p><sAcc>Data'Address;
+   pragma Import (Ada, tmpBitBytes);
+begin
+   adaasn1rtl.encoding.BitStream_ReadBits(bs, tmpBitBytes, Integer(<nFixedSize>), result.success);
+end;
+<else>
+adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);<\n><endif>if not result.Success then
     result.errorcode := <sErrCode>; -- COVERAGE_IGNORE
 end if;
 >>

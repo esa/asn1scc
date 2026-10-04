@@ -224,7 +224,16 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 
 
 BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+<if(bitStringAlignment)>
+declare
+   tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>);
+begin
+<arrsBitFields:{f|   tmpBits(<i>) := <p><sAcc>Data.<f>;}; separator="\n">
+   adaasn1rtl.encoding.xer.Xer_EncodeBitString(bs, <sTag>, tmpBits, <if(!bIsFixedSize)><p><sAcc>Length<else><nSizeMax><endif>, ret, <nLevel>);
+end;
+<else>
 adaasn1rtl.encoding.xer.Xer_EncodeBitString(bs, <sTag>, <p><sAcc>Data, <if(!bIsFixedSize)><p><sAcc>Length<else><nSizeMax><endif>, ret, <nLevel>);
+<endif>
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
@@ -232,14 +241,31 @@ BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErr
 <if(bIsFixedSize)>
 declare
 	fixed_length : Integer;
+<if(bitStringAlignment)>
+	tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>) := (others => 0);
+<endif>
 begin
+<if(bitStringAlignment)>
+	adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, tmpBits, fixed_length, ret);
+<arrsBitFields:{f|   <p><sAcc>Data.<f> := tmpBits(<i>);}; separator="\n">
+<else>
 	adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, <p><sAcc>Data, fixed_length, ret);
+<endif>
 	<if(soCheckExp)><soCheckExp><endif>
 	ret.ErrorCode := (if ret.Success and then fixed_length = <nSizeMax> then 0 else <sErrCode>);
 end;
 
 <else>
+<if(bitStringAlignment)>
+declare
+	tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>) := (others => 0);
+begin
+	adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, tmpBits, <p><sAcc>Length, ret);
+<arrsBitFields:{f|   <p><sAcc>Data.<f> := tmpBits(<i>);}; separator="\n">
+end;
+<else>
 adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, <p><sAcc>Data, <p><sAcc>Length, ret);
+<endif>
 <if(soCheckExp)><soCheckExp><endif>
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 

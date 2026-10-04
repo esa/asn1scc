@@ -253,18 +253,37 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 <arrsNamedBits:{it|<it>}; separator="\n">
 
 subtype <td.index> is Integer range 1..<nMax>;
+<if(bitStringAlignment)>
+<if(!bFixedSize)>subtype <td.length_index> is Integer range <nMin>..<nMax>;<endif>
+type <td.typeName>_data is record
+    <arrsBitFields; separator=", "> : <rtlModuleName()>.BIT;
+end record;
+for <td.typeName>_data'Bit_Order use System.High_Order_First;
+for <td.typeName>_data use record
+    <arrsBitFieldClauses:{c|    <c>;}; separator="\n">
+end record;
+for <td.typeName>_data'Size use <nMaxOctets> * 8;
+for <td.typeName>_data'Alignment use 1;
+type <td.typeName> is  record
+<if(!bFixedSize)>    Length : <td.length_index>;<endif>
+    Data  : <td.typeName>_data;
+end record;
+<else>
 subtype <td.array> is <rtlModuleName()>.BitArray(<td.index>);
 <if(!bFixedSize)>subtype <td.length_index> is Integer range <nMin>..<nMax>;<endif>
 type <td.typeName> is  record
 <if(!bFixedSize)>    Length : <td.length_index>;<endif>
     Data  : <td.array>;
 end record;
+<endif>
 >>
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, nMin, nMax, bFixedSize, arr_Asn1Encoding) ::= <<
 <define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
 <define_subtype(thisType=td.index, parentType=prTd.index, soParentTypePackage=soParentTypePackage)>
+<if(!bitStringAlignment)>
 <define_subtype(thisType=td.array, parentType=prTd.array, soParentTypePackage=soParentTypePackage)>
+<endif>
 <if(!bFixedSize)>
 <define_subtype(thisType=td.length_index, parentType=prTd.length_index, soParentTypePackage=soParentTypePackage)>
 

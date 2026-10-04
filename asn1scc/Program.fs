@@ -55,6 +55,7 @@ type CliArguments =
     | [<AltCommandLine("-if")>] Include_Func of string
     | [<Unique; AltCommandLine("-invertibility")>] StainlessInvertibility
     | [<Unique; AltCommandLine("-acnDeferred")>] Acn_V2
+    | [<Unique; AltCommandLine("-adaBitStringAlignment")>] Ada_BitString_Alignment
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -127,6 +128,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | Log_Execution_Time           -> "Enables detailed logging of execution time."
             | StainlessInvertibility -> "(Scala backend only) Generate invertibility conditions and lemmas"
             | Acn_V2 -> "(C and Ada) Enable ACN deferred patching: separate functions for reference types with ACN parameters, reserve+patch determinants instead of temporary buffers."
+            | Ada_BitString_Alignment -> """(Ada only) Represent BIT STRING values with one named bit field per bit (Bit0 .. Bit(N-1)) using a C-compatible, MSB-first byte layout, instead of a packed adaasn1rtl.BitArray. Field access changes from X.Data (i) to X.Data.Bit(i-1); the generated setters X_set_bitN keep their names. WARNING: this changes the generated Ada data type, so it is not source-compatible with existing Ada applications and the C byte layout is required to match another language's BIT STRING."""
 
 
 let printVersion () =
@@ -355,6 +357,10 @@ let checkArgument (cliArgs : CliArguments list) arg =
                 raise (UserException (sprintf "Function '%s' does not exist in the C RTL.\nThe available functions to choose are:\n\n%s" fnName availableFunctions))
         | false -> raise (UserException ("The -if option is supported only for C."))
     | StainlessInvertibility -> ()
+    | Ada_BitString_Alignment ->
+        match cliArgs |> List.exists (fun a -> a = Ada_Lang) with
+        | true  -> ()
+        | false -> raise (UserException ("The -adaBitStringAlignment option is supported only for Ada."))
     | Acn_V2 ->
         match cliArgs |> List.exists (fun a -> a = Scala_Lang || a = Python_Lang) with
         | true  -> raise (UserException ("The --acn-deferred option is supported only for C and Ada."))
@@ -495,6 +501,7 @@ let main0 argv =
 
         // Enable line number printing if requested
         ST.printTemplateInfo <- parserResults.Contains <@ PrintTemplateInfo @>
+        CommonTypes.bitStringAlignment <- parserResults.Contains <@ Ada_BitString_Alignment @>
 
         let debugFunc (r:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst) =
             match parserResults.Contains <@ Debug_Asn1 @> with
