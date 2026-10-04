@@ -255,7 +255,7 @@ initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBas
 procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>) --  COVERAGE_IGNORE
 is
 begin
-    <sVarName>.Data<if(bitStringAlignment)>.Bit<nZeroBasedBitIndex><else>(<sVarName>.Data'First + <nZeroBasedBitIndex>)<endif> := 1; --  COVERAGE_IGNORE
+    <sVarName>.Data<if(bitStringAlignment)>(<nZeroBasedByteIndex> + 1) := <sVarName>.Data(<nZeroBasedByteIndex> + 1) or 16#<sHexByteMax>#<else>(<sVarName>.Data'First + <nZeroBasedBitIndex>) := 1<endif>; --  COVERAGE_IGNORE
 end <sFuncName>_set_<sNamedBit>;   --  COVERAGE_IGNORE
 >>
 

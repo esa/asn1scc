@@ -342,9 +342,6 @@ let createBitString_u (lm:LanguageMacros)   (id:ReferenceToType) (typeDef : Map<
                     define_named_bit td (ToC (nb.Name.Value.ToUpper())) hexValue sComment nb.resolvedValue nByteIndex (byteMask.ToString("X2"))
                 )
             let invariants = lm.lg.generateBitStringInvariants minSize maxSize
-            // C-aligned Ada BIT STRING: supply one named field per bit. StringTemplate
-            // cannot enumerate a numeric range, so build the name/clause lists here.
-            CommonTypes.setBitStringFields (int maxSize.uper)
             let completeDefinition = define_new_bit_string td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (BigInteger (getBitStringMaxOctets maxSize)) nblist invariants lm.encodings
             Some completeDefinition
         | NonPrimitiveNewSubTypeDefinition parentDef     ->

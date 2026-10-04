@@ -2,22 +2,22 @@
 
 ## 1. Motivation
 
-The C and Ada backends used to store a `BIT STRING` value differently.
+The C and Ada backends store a `BIT STRING` value differently.
 
-* **C** packs the bits *MSB-first*: ASN.1 bit `k` lives in byte `k/8`, at bit
-  position `7 - (k mod 8)` — i.e. bit 0 is `0x80`.
+* **C** stores it as an array of whole bytes, packed *MSB-first*:
+  ASN.1 bit `k` is bit `7 - (k mod 8)` of byte `k / 8` (counting from the
+  most-significant bit). Bit 0 is `0x80`.
 * **Ada** used `adaasn1rtl.BitArray`, a packed array with
   `Component_Size = 1`. Such an array always packs *LSB-first*: ASN.1 bit `k`
-  lives at bit position `k mod 8` — i.e. bit 0 is `0x01`.
+  is bit `k mod 8` of byte `k / 8`. Bit 0 is `0x01`.
 
-Both encodings put the same bits on the wire (uPER/ACN/XER are identical), so
+Both put the same bits on the wire (uPER/ACN/XER are identical), so
 interoperability over the codecs is fine. But a `BIT STRING` buffer produced by
 C and read by Ada (or vice versa) without going through the codec was
-**per-byte bit-reversed**. In C, bit 0 means `0x80`; in Ada, bit 0 meant `0x01`.
+**per-byte bit-reversed**: C's bit 0 is `0x80`, Ada's bit 0 was `0x01`.
 
-`--ada-bitstring-alignment` makes the Ada representation byte-for-byte
-compatible with the C representation, while keeping an array-of-bits style API
-for the application (through named fields).
+`--ada-bitstring-alignment` makes the Ada representation *the same type as C* —
+an array of bytes — so that both the memory layout and the API line up.
 
 ## 2. Enabling it
 
@@ -26,9 +26,8 @@ asn1scc -Ada -uPER -ACN --ada-bitstring-alignment -o out grammar.asn
 ```
 
 It is **off by default**; the default Ada output is byte-for-byte unchanged.
-
-The option is Ada-only: passing it together with `-c`, `-Rust`, `-Scala` or
-`-python` is rejected.
+It is Ada-only: passing it with `-c`, `-Rust`, `-Scala` or `-python` is
+rejected.
 
 ## 3. What the generated type looks like
 
@@ -50,88 +49,102 @@ end record;
 **After (`--ada-bitstring-alignment`):**
 
 ```ada
-type BS_data is record
-    Bit0, Bit1, Bit2, Bit3, Bit4, Bit5, Bit6, Bit7 : adaasn1rtl.BIT;
-end record;
-for BS_data'Bit_Order use System.High_Order_First;
-for BS_data use record
-       Bit0 at 0 range 0 .. 0;
-       Bit1 at 0 range 1 .. 1;
-       ...
-       Bit7 at 0 range 7 .. 7;
-end record;
-for BS_data'Size use 1 * 8;
-for BS_data'Alignment use 1;
-
 type BS is record
-    Data  : BS_data;
+    Data  : adaasn1rtl.OctetBuffer (1 .. 1);   --  ceil(8 / 8) bytes
 end record;
 ```
 
-There is now **one named field per bit**, `Bit0 .. Bit(N-1)` for an `N`-bit
-type, placed with `High_Order_First` and explicit component clauses so that
-ASN.1 bit `k` is the same memory bit as in C. The record has the same size and
-alignment as the C `struct { byte arr[ceil(N/8)]; }`, so a C buffer and an Ada
-value are the same bytes (modulo the variable-size length field, see §6).
+This is exactly C's `struct { byte arr[1]; }` — the same bytes, the same
+shape. `OctetBuffer` is `array (Natural range <>) of Unsigned_8`, i.e. `byte[]`.
 
-## 4. Application code migration (this is the API break)
+Variable size keeps the length *in bits* next to the byte array:
 
-The generated **named-bit setters keep their names and meaning**:
+```
+BSVar ::= BIT STRING (SIZE (1..20))
+-->
+type BSVar is record
+    Length : BSVar_length_index;               --  1 .. 20  (bits)
+    Data   : adaasn1rtl.OctetBuffer (1 .. 3);  --  ceil(20 / 8) bytes
+end record;
+```
+
+This mirrors C's `struct { int nCount; byte arr[3]; }`.
+
+### Addressing a bit
+
+ASN.1 bit `k` (0-based) lives in:
+
+| | expression |
+|---|---|
+| byte index (1-based, like C `arr[k/8]`) | `k / 8 + 1` |
+| mask (like C `0x80 >> (k%8)`) | `16#80# / 2**(k mod 8)` = `Shift_Right (16#80#, k mod 8)` |
 
 ```ada
-BS_set_bit0 (X);   --  unchanged
-BS_set_bit7 (X);   --  unchanged
+--  set bit k
+X.Data (k / 8 + 1) := X.Data (k / 8 + 1) or  Shift_Right (16#80#, k mod 8);
+
+--  test bit k
+if (X.Data (k / 8 + 1) and Shift_Right (16#80#, k mod 8)) /= 0 then ...
 ```
 
-What changes is how the application reaches an individual bit. The bit array
-`Data (i)` becomes a record of fields `Data.Bit<i-1>`:
+`Shift_Right` / the bit operators are visible once the unit has
+`with Interfaces; use Interfaces;` (the generated packages already make the
+`adaasn1rtl` byte operators directly visible).
 
-| default (BitArray)            | with `--ada-bitstring-alignment` | ASN.1 bit |
-|-------------------------------|----------------------------------|-----------|
-| `X.Data (1) := 1;`            | `X.Data.Bit0 := 1;`              | bit 0     |
-| `X.Data (2) := 1;`            | `X.Data.Bit1 := 1;`              | bit 1     |
-| `B := X.Data (1);`            | `B := X.Data.Bit0;`              | bit 0     |
-| `X.Data'First`, `X.Data'Length` | replace with explicit bit indices / the type size | — |
-| `(Data => (others => 0))`     | `(Data => (others => 0))` (still works) | — |
+## 4. What the application must change (this is the API break)
 
-So `X.Data (k)` becomes `X.Data.Bit(k-1)`. This is a source-level change and
-every existing Ada application that indexes `Data` **must** be updated;
-recompilation alone is not enough. This is why the option is opt-in.
+The generated **named-bit setters keep their names and meanings**:
 
-### Why it must be a field, not an index
+```ada
+BS_set_bit0 (X);   --  sets Data(1) bit 7, i.e. 0x80  (was already bit 0 in C)
+BS_set_bit7 (X);   --  sets Data(1) bit 0, i.e. 0x01
+```
 
-`pragma Constant_Indexing` / `Variable_Indexing` (which would allow
-`X.Data (k)`) can only be applied to a **tagged** type. A tagged record carries
-a tag that overlaps the bits, so it can no longer be 1 byte/`ceil(N/8)` bytes
-and stops matching C. Named fields are a plain record: `X.Data.Bit0 := 1` is a
-normal assignment, the whole-record `=` works, `(others => 0)` works, and the
-record is `Unchecked_Conversion`-compatible with the C byte buffer.
+Every other access changes. The old `Data : BitArray` (indexed by *bit*,
+`X.Data (1)` = bit 0) becomes `Data : OctetBuffer` (indexed by *byte*):
+
+| default (BitArray, per bit)      | with `--ada-bitstring-alignment` (per byte) |
+|----------------------------------|---------------------------------------------|
+| `X.Data (1) := 1;` (bit 0)       | `X.Data (1) := 16#80#;`                     |
+| `X.Data (2) := 1;` (bit 1)       | `X.Data (1) := 16#40#;`                     |
+| `X.Data (9) := 1;` (bit 8)       | `X.Data (2) := 16#80#;`                     |
+| `B := X.Data (1);`               | `B := (X.Data (1) and 16#80#) /= 0;`        |
+| `X.Data'Length` (N bits)         | `X.Data'Length` (ceil(N/8) bytes)           |
+| `X.Length` (variable size)       | `X.Length` — unchanged, still in bits       |
+
+This is a source-level change: every existing Ada application that indexes
+`Data` **must** be updated. That is why the option is opt-in.
 
 ## 5. What does *not* change
 
 * The wire format. uPER, ACN and XER produce exactly the same bytes/bits as
-  before; they are written from the record's storage using a byte overlay.
-* `X_Init`, `X_set_bitN`, `X_IsConstraintValid`, `X_Equal`, the encode/decode
-  subprogram names and signatures.
+  before (C and Ada are byte-identical on the wire).
+* `X_Init`, `X_set_bitN`, `X_IsConstraintValid`, `X_Equal`, and the
+  encode/decode subprogram names and signatures.
 * C, Rust, Scala and Python output — the option is Ada-only.
 * The default Ada output (option off) is byte-for-byte identical.
 
-## 6. Notes and limitations
+## 6. Implementation notes
 
-* **Variable size.** For `BIT STRING (SIZE (m..n))` the Ada record keeps its
-  `Length : ..._length_index` field and the `Data` record has `n` fields; the
-  low `floor(Length/8)` whole bytes have the same layout as C, and the top
-  partial byte has the same *set of bits* but the unused high bits are zero
-  (C leaves them unspecified). When exchanging raw buffers with C for
-  non-byte-multiple sizes, mask the top byte if C sets that padding.
-* **Size.** One named field per bit. For very wide bit strings (hundreds of
-  bits) the generated record is correspondingly wide. This is intended for the
-  usual telecommand/telemetry bit strings, not for multi-kilobit strings.
-* This option changes the generated **Ada data type**, so it is not
-  source-compatible with existing Ada applications (see §4), and it is not
-  layout-compatible with Ada code generated **without** the option. Use it
-  consistently for every component that shares a raw `BIT STRING` buffer.
-* The C backend has an unrelated bug in the generated named-bit setters
-  (`X_set_bitN` emits the mask as bare hex, e.g. `80` which C parses as decimal
-  `0x50`). That is independent of this option and unaffected by it: it concerns
-  the C setter code, not the Ada representation.
+* `spec_a.stg` emits `Data : OctetBuffer (1 .. ceil(Nmax/8))`; the
+  (unused) `_array` subtype is still emitted, as before.
+* uPER/ACN encode and decode call the byte-oriented
+  `BitStream_AppendBits` / `BitStream_ReadBits` directly (the C codec path),
+  with no conversion. Decode clears `Data` first so a short variable-size
+  string compares equal.
+* XER (and ACN null-terminated) still go through the bit-oriented RTL, so the
+  RTL gained two helpers, `BitString_BitArray_To_Bytes` /
+  `BitString_Bytes_To_BitArray`, mirroring the C byte handling. The generated
+  code keeps an array-of-bits API there, using a temporary `BitArray`.
+* `--ada-bitstring-alignment` is a normal, off-by-default code-generation flag
+  (see `CommonTypes.bitStringAlignment`), injected into the Ada templates by
+  `ST.call`.
+
+## 7. Limitations
+
+* The type is `ceil(N/8)` bytes, so a non-byte-multiple size carries up to 7
+  unused bits in the top byte. They are zeroed on decode; C leaves them
+  unspecified, so mask the top byte if C sets that padding.
+* `Data'Length` is a byte count, not a bit count. For a fixed-size type the bit
+  count is the compile-time constant `N`; for a variable-size type it is
+  `X.Length`.

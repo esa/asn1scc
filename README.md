@@ -520,7 +520,7 @@ supported only by C.
 | `--handle-empty-sequences` | `-es` | Add a dummy integer member to empty SEQUENCE structures (needed for C compliance) | All |
 | `--log-execution-time` | `-let` | Enable detailed logging of execution time | All |
 | `--acn-deferred` | `-acnDeferred` | ACN deferred patching: separate functions for reference types with ACN parameters | C, Ada only |
-| `--ada-bitstring-alignment` | `-adaBitStringAlignment` | Represent Ada BIT STRING values with one named bit field per bit (`Bit0 .. Bit(N-1)`, C-compatible MSB-first byte layout) instead of a packed `adaasn1rtl.BitArray`. Changes the generated Ada type: `X.Data (i)` becomes `X.Data.Bit(i-1)`. See [Docs/Ada-BitString-C-Alignment.md](Docs/Ada-BitString-C-Alignment.md) | Ada only |
+| `--ada-bitstring-alignment` | `-adaBitStringAlignment` | Represent Ada BIT STRING values as an array of whole bytes (`adaasn1rtl.OctetBuffer`), byte-for-byte compatible with the C backend, instead of a packed `adaasn1rtl.BitArray`. Changes the generated Ada type: `X.Data (i)` now indexes bytes, not bits. See [Docs/Ada-BitString-C-Alignment.md](Docs/Ada-BitString-C-Alignment.md) | Ada only |
 
 ### ICD (Interface Control Document) options
 

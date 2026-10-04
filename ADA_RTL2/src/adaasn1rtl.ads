@@ -122,6 +122,15 @@ is
       and then arr1'First + (len1 - 1) <= arr1'Last
       and then arr2'First + (len2 - 1) <= arr2'Last;
 
+   --  Conversion between the packed (LSB-first) in-memory BitArray and the
+   --  wire-order (MSB-first) array of whole bytes used by the C backend.
+   --  ASN.1 bit k is bit (7 - k mod 8) of byte (k / 8), counting from the MSB.
+   procedure BitString_BitArray_To_Bytes
+     (arr : BitArray; len : Integer; bytes : out OctetBuffer);
+
+   procedure BitString_Bytes_To_BitArray
+     (bytes : OctetBuffer; len : Integer; arr : out BitArray);
+
    procedure ObjectIdentifier_Init (val : out Asn1ObjectIdentifier);
    function ObjectIdentifier_isValid
      (val : Asn1ObjectIdentifier) return Boolean;

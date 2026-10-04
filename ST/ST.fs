@@ -248,9 +248,6 @@ let call fileName macroName (attrs:seq<string*#Object>)=
     let template = group.GetInstanceOf(macroName);
     attrs |> Seq.iter(fun (attrName, obj) -> template.SetAttribute(attrName,obj))
     setGlobalAttr template "bitStringAlignment" (box CommonTypes.bitStringAlignment)
-    setGlobalAttr template "arrsBitFields" (box CommonTypes.bitStringFields)
-    setGlobalAttr template "arrsBitFieldClauses" (box CommonTypes.bitStringFieldClauses)
-    setGlobalAttr template "nBitStringFields" (box CommonTypes.nBitStringFields)
     printTemplate template
 
 let call_generic fileName macroName (attrs:seq<string*#Object>)=
@@ -285,9 +282,6 @@ let call_generic fileName macroName (attrs:seq<string*#Object>)=
         | false -> ()
         )
     setGlobalAttr template "bitStringAlignment" (box CommonTypes.bitStringAlignment)
-    setGlobalAttr template "arrsBitFields" (box CommonTypes.bitStringFields)
-    setGlobalAttr template "arrsBitFieldClauses" (box CommonTypes.bitStringFieldClauses)
-    setGlobalAttr template "nBitStringFields" (box CommonTypes.nBitStringFields)
     let ret = template.ToString 80
     //printfn "%s\n" ret
     ret

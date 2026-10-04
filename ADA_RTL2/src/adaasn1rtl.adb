@@ -89,4 +89,33 @@ is
           Right (Right'First .. Right'First + (len1 - 1));
    end String_Equal;
 
+   procedure BitString_BitArray_To_Bytes
+     (arr : BitArray; len : Integer; bytes : out OctetBuffer)
+   is
+   begin
+      bytes := (others => 0);
+      for k in 0 .. len - 1 loop
+         if arr (arr'First + k) = 1 then
+            bytes (bytes'First + k / 8) :=
+              bytes (bytes'First + k / 8) or
+              Shift_Left (Asn1Byte (1), Natural (7 - (k mod 8)));
+         end if;
+      end loop;
+   end BitString_BitArray_To_Bytes;
+
+   procedure BitString_Bytes_To_BitArray
+     (bytes : OctetBuffer; len : Integer; arr : out BitArray)
+   is
+   begin
+      for k in 0 .. len - 1 loop
+         if (bytes (bytes'First + k / 8) and
+             Shift_Left (Asn1Byte (1), Natural (7 - (k mod 8)))) /= 0
+         then
+            arr (arr'First + k) := 1;
+         else
+            arr (arr'First + k) := 0;
+         end if;
+      end loop;
+   end BitString_Bytes_To_BitArray;
+
 end adaasn1rtl;
