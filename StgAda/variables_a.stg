@@ -65,7 +65,11 @@ PrintBitArrayAsCompoundLiteral(arruBits) ::= <<
 >>
 
 PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount, arruBytes, nBytesCount) ::= <<
+<if(bitStringAlignment)>
+<td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arruBytes)><arruBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">,<endif> others=> 0))
+<else>
 <td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arrsBits)><arrsBits:{b|<i>=><b>}; wrap, anchor, separator=", ">,<endif> others=> 0))
+<endif>
 >>
 
 

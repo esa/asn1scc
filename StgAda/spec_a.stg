@@ -257,11 +257,11 @@ subtype <td.index> is Integer range 1..<nMax>;
 --  C-compatible representation: the value is an array of whole bytes, exactly
 --  like the C backend's "struct { byte arr[ceil(N/8)]; }". ASN.1 bit k is bit
 --  (7 - k mod 8) of byte (k / 8 + 1), counting the mask from the MSB.
-subtype <td.array> is <rtlModuleName()>.BitArray(<td.index>);
+subtype <td.array> is <rtlModuleName()>.OctetBuffer (1 .. <nMaxOctets>);
 <if(!bFixedSize)>subtype <td.length_index> is Integer range <nMin>..<nMax>;<endif>
 type <td.typeName> is  record
 <if(!bFixedSize)>    Length : <td.length_index>;<endif>
-    Data  : <rtlModuleName()>.OctetBuffer (1 .. <nMaxOctets>);
+    Data  : <td.array>;
 end record;
 <else>
 subtype <td.array> is <rtlModuleName()>.BitArray(<td.index>);
