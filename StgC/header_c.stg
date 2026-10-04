@@ -193,8 +193,8 @@ typedef <prTd.typeName> <td.typeName>;
 
 /***********************************       BIT STRING    ************************************************************/
 
-Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment) ::= <<
-#define <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /*<sComment>*/
+Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment, nZeroBasedBitIndex, nZeroBasedByteIndex, sHexByteMask) ::= <<
+#define <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /* <sComment>: named bit <nZeroBasedBitIndex> as a flag, NOT a mask of arr[]; the bit is stored in arr[<nZeroBasedByteIndex>] & 0x<sHexByteMask> */
 >>
 
 Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits, arrsInvariants, arr_Asn1Encoding) ::= <<

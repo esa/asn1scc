@@ -178,7 +178,7 @@ class <td.typeName>(<prTd.typeName>):
 
 /***********************************       BIT STRING    ************************************************************/
 
-Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment) ::= <<
+Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment, nZeroBasedBitIndex, nZeroBasedByteIndex, sHexByteMask) ::= <<
 <sTargetLangBitName> = 0x<sHexValue>
 >>
 

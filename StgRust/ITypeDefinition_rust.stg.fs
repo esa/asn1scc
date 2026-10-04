@@ -109,8 +109,8 @@ type ITypeDefinition_rust() =
             header_rust.Define_new_octet_string  td nMin nMax bFixedSize arrsInvariants arr_Asn1Encoding 
         override this.Define_subType_octet_string  (td:FE_SizeableTypeDefinition) (prTd:FE_SizeableTypeDefinition) (soParentTypePackage:string option) (bFixedSize:bool) (arr_Asn1Encoding:seq<Asn1Encoding>) =
             header_rust.Define_subType_octet_string  td prTd soParentTypePackage bFixedSize arr_Asn1Encoding 
-        override this.Define_new_bit_string_named_bit  (td:FE_SizeableTypeDefinition) (sTargetLangBitName:string) (sHexValue:string) (sComment:string) =
-            header_rust.Define_new_bit_string_named_bit  td sTargetLangBitName sHexValue sComment 
+        override this.Define_new_bit_string_named_bit  (td:FE_SizeableTypeDefinition) (sTargetLangBitName:string) (sHexValue:string) (sComment:string) (nZeroBasedBitIndex:BigInteger) (nZeroBasedByteIndex:BigInteger) (sHexByteMask:string) =
+            header_rust.Define_new_bit_string_named_bit  td sTargetLangBitName sHexValue sComment nZeroBasedBitIndex nZeroBasedByteIndex sHexByteMask 
         override this.Define_new_bit_string  (td:FE_SizeableTypeDefinition) (nMin:BigInteger) (nMax:BigInteger) (bFixedSize:bool) (nMaxOctets:BigInteger) (arrsNamedBits:seq<string>) (arrsInvariants:seq<string>) (arr_Asn1Encoding:seq<Asn1Encoding>) =
             header_rust.Define_new_bit_string  td nMin nMax bFixedSize nMaxOctets arrsNamedBits arrsInvariants arr_Asn1Encoding 
         override this.Define_subType_bit_string  (td:FE_SizeableTypeDefinition) (prTd:FE_SizeableTypeDefinition) (soParentTypePackage:string option) (nMin:BigInteger) (nMax:BigInteger) (bFixedSize:bool) (arr_Asn1Encoding:seq<Asn1Encoding>) =
