@@ -211,9 +211,9 @@ let Define_subType_octet_string (td:FE_SizeableTypeDefinition) (prTd:FE_Sizeable
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "header_rust" "Define_subType_octet_string" [("td",td :>Object);("prTd",prTd :>Object);("soParentTypePackage",(if soParentTypePackage.IsNone then null else ST.StrHelper soParentTypePackage.Value:>Object) );("bFixedSize",bFixedSize :>Object);("arr_Asn1Encoding",arr_Asn1Encoding|>Seq.toArray :>Object)]
 
-let Define_new_bit_string_named_bit (td:FE_SizeableTypeDefinition) (sTargetLangBitName:string) (sHexValue:string) (sComment:string) =
+let Define_new_bit_string_named_bit (td:FE_SizeableTypeDefinition) (sTargetLangBitName:string) (sHexValue:string) (sComment:string) (nZeroBasedBitIndex:BigInteger) (nZeroBasedByteIndex:BigInteger) (sHexByteMask:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "header_rust" "Define_new_bit_string_named_bit" [("td",td :>Object);("sTargetLangBitName",(if sTargetLangBitName = null then null else ST.StrHelper sTargetLangBitName:>Object) );("sHexValue",(if sHexValue = null then null else ST.StrHelper sHexValue:>Object) );("sComment",(if sComment = null then null else ST.StrHelper sComment:>Object) )]
+    ST.call "header_rust" "Define_new_bit_string_named_bit" [("td",td :>Object);("sTargetLangBitName",(if sTargetLangBitName = null then null else ST.StrHelper sTargetLangBitName:>Object) );("sHexValue",(if sHexValue = null then null else ST.StrHelper sHexValue:>Object) );("sComment",(if sComment = null then null else ST.StrHelper sComment:>Object) );("nZeroBasedBitIndex",nZeroBasedBitIndex :>Object);("nZeroBasedByteIndex",nZeroBasedByteIndex :>Object);("sHexByteMask",(if sHexByteMask = null then null else ST.StrHelper sHexByteMask:>Object) )]
 
 let Define_new_bit_string (td:FE_SizeableTypeDefinition) (nMin:BigInteger) (nMax:BigInteger) (bFixedSize:bool) (nMaxOctets:BigInteger) (arrsNamedBits:seq<string>) (arrsInvariants:seq<string>) (arr_Asn1Encoding:seq<Asn1Encoding>) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

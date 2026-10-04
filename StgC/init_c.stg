@@ -234,12 +234,24 @@ initChildWithInitFunc(p, sChildInitFuncName) ::= <<
 initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<
 void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>) /*COVERAGE_IGNORE*/
 {
-    <sVarName>->arr[<nZeroBasedByteIndex>] |= <sHexByteMax>; /*COVERAGE_IGNORE*/
+    <sVarName>->arr[<nZeroBasedByteIndex>] |= 0x<sHexByteMax>; /*COVERAGE_IGNORE*/
+}
+
+flag <sFuncName>_has_<sNamedBit>(const <sTypeDefName><sStar> <sVarName>) /*COVERAGE_IGNORE*/
+{
+    return (<sVarName>->arr[<nZeroBasedByteIndex>] & 0x<sHexByteMax>) != 0; /*COVERAGE_IGNORE*/
+}
+
+void <sFuncName>_clear_<sNamedBit>(<sTypeDefName><sStar> <sVarName>) /*COVERAGE_IGNORE*/
+{
+    <sVarName>->arr[<nZeroBasedByteIndex>] &= (byte)~0x<sHexByteMax>; /*COVERAGE_IGNORE*/
 }
 >>
 
 initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
 void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
+flag <sFuncName>_has_<sNamedBit>(const <sTypeDefName><sStar> <sVarName>);
+void <sFuncName>_clear_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
 >>
 
 initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<

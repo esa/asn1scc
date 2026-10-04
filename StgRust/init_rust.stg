@@ -240,7 +240,17 @@ initChildWithInitFunc(p, sChildInitFuncName) ::= <<
 initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<
 pub fn <sFuncName>_set_<sNamedBit>(<sVarName>: &mut <sTypeDefName>) /*COVERAGE_IGNORE*/
 {
-    <sVarName>.arr[<nZeroBasedByteIndex>] |= <sHexByteMax>; /*COVERAGE_IGNORE*/
+    <sVarName>.arr[<nZeroBasedByteIndex>] |= 0x<sHexByteMax>; /*COVERAGE_IGNORE*/
+}
+
+pub fn <sFuncName>_has_<sNamedBit>(<sVarName>: &<sTypeDefName>) -> bool /*COVERAGE_IGNORE*/
+{
+    (<sVarName>.arr[<nZeroBasedByteIndex>] & 0x<sHexByteMax>) != 0 /*COVERAGE_IGNORE*/
+}
+
+pub fn <sFuncName>_clear_<sNamedBit>(<sVarName>: &mut <sTypeDefName>) /*COVERAGE_IGNORE*/
+{
+    <sVarName>.arr[<nZeroBasedByteIndex>] &= !0x<sHexByteMax>; /*COVERAGE_IGNORE*/
 }
 >>
 

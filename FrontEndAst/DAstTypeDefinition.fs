@@ -336,7 +336,10 @@ let createBitString_u (lm:LanguageMacros)   (id:ReferenceToType) (typeDef : Map<
                         let hexVal = ((uint64 1) <<< aa)
                         hexVal.ToString("X")
                     let sComment = sprintf "(1 << %A)" nb.resolvedValue
-                    define_named_bit td (ToC (nb.Name.Value.ToUpper())) hexValue sComment
+                    // position of the bit in the arr[] storage: MSB-first, as in X.690
+                    let nByteIndex = nb.resolvedValue / 8I
+                    let byteMask = 1 <<< (7 - ((int nb.resolvedValue) % 8))
+                    define_named_bit td (ToC (nb.Name.Value.ToUpper())) hexValue sComment nb.resolvedValue nByteIndex (byteMask.ToString("X2"))
                 )
             let invariants = lm.lg.generateBitStringInvariants minSize maxSize
             let completeDefinition = define_new_bit_string td minSize.uper maxSize.uper (minSize.uper = maxSize.uper) (BigInteger (getBitStringMaxOctets maxSize)) nblist invariants lm.encodings

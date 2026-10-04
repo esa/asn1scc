@@ -1,0 +1,11 @@
+-- C_ONLY named-bit helpers <T>_set_/_has_/_clear_<bit> are checked by 008.helpers/named_bits_check.c
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	NamedBits ::= BIT STRING { bit0(0), bit1(1), bit2(2), bit3(3), bit4(4), bit5(5), bit6(6), bit7(7), bit9(9), bit70(70) } (SIZE (1..80))
+
+	FixedBits ::= BIT STRING { first(0), last(15) } (SIZE (16))
+
+END
+
+--TCLS     NamedBits[]
+--TCLS     FixedBits[]

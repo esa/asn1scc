@@ -245,7 +245,7 @@ Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_Sizeable
 
 
 /***********************************       BIT STRING    ************************************************************/
-Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment) ::= <<
+Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment, nZeroBasedBitIndex, nZeroBasedByteIndex, sHexByteMask) ::= <<
 <td.typeName>_<sTargetLangBitName> : constant <rtlModuleName()>.Asn1UInt:= 16#<sHexValue>#;  --<sComment>
 >>
 
