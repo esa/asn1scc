@@ -52,14 +52,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | Some (AcnInsertedType.AcnInteger int) -> int.isUnsigned
                     | Some (AcnInsertedType.AcnNullType _) -> true
                     | _ -> false
-                let detMaxOpt =
-                    match tp with
-                    | Some (AcnInsertedType.AcnInteger int) ->
-                        match int.uperRange with
-                        | Concrete (_, detMax) -> Some detMax
-                        | NegInf detMax        -> Some detMax
-                        | _                    -> None
-                    | _ -> None
+                let detMaxOpt = getSizeDeterminantWireMax deps t.id
                 let noSizeMin = if o.minSize.acn = 0I then None else Some o.minSize.acn
                 let noSizeMax =
                     match detMaxOpt with
@@ -113,15 +106,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match o.acnEncodingClass with
             | SZ_EC_ExternalField   _    ->
                 let extField = getExternalField lm r deps t.id
-                let tp = getExternalFieldType r deps t.id
-                let detMaxOpt =
-                    match tp with
-                    | Some (AcnInsertedType.AcnInteger int) ->
-                        match int.uperRange with
-                        | Concrete (_, detMax) -> Some detMax
-                        | NegInf detMax        -> Some detMax
-                        | _                    -> None
-                    | _ -> None
+                let detMaxOpt = getSizeDeterminantWireMax deps t.id
                 let noSizeMin = if o.minSize.acn = 0I then None else Some o.minSize.acn
                 let noSizeMax =
                     match detMaxOpt with

@@ -1,0 +1,17 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Small-Len   ::= INTEGER (0..10)
+Signed-Len  ::= INTEGER (-5..10)
+Payload     ::= OCTET STRING (SIZE (0..10))
+Bits        ::= BIT STRING (SIZE (0..10))
+Big-Payload ::= OCTET STRING (SIZE (0..255))
+P-Payload   ::= OCTET STRING (SIZE (0..10))
+
+Oct4    ::= SEQUENCE { data Payload }
+Oct32   ::= SEQUENCE { data Payload }
+Bit4    ::= SEQUENCE { data Bits }
+Twos8   ::= SEQUENCE { data Payload }
+Param4  ::= SEQUENCE { data P-Payload }
+Full8   ::= SEQUENCE { data Big-Payload }
+
+END

@@ -1,0 +1,12 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Oct4   [] { len Small-Len [encoding pos-int, size 4],                      data [size len] }
+Oct32  [] { len Small-Len [encoding pos-int, size 32, endianness big],    data [size len] }
+Bit4   [] { len Small-Len [encoding pos-int, size 4],                      data [size len] }
+Twos8  [] { len Signed-Len [encoding twos-complement, size 8],           data [size len] }
+Param4 [] { len Small-Len [encoding pos-int, size 4],                      data <len> [] }
+Full8  [] { len INTEGER [encoding pos-int, size 8],                        data [size len] }
+
+P-Payload <INTEGER:n> [size n]
+
+END

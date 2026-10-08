@@ -1,0 +1,26 @@
+-- ESACERT #74995: the ACN encoding of a size determinant can hold values above
+-- the ASN.1 constraint of the determinant (and above the SIZE bound). The decoder
+-- must keep the size check then; it is omitted only when the encoding width
+-- itself bounds the value (issue #360, see 012).
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    SmallLen  ::= INTEGER (0..10)
+    Payload   ::= OCTET STRING (SIZE (0..10))
+    FixPayload ::= OCTET STRING (SIZE (10))
+
+    MyPDU ::= SEQUENCE {
+        data Payload
+    }
+
+    MyPDU2 ::= SEQUENCE {
+        data FixPayload
+    }
+
+END
+
+--TCLS     MyPDU[] {length SmallLen [size 4, encoding pos-int], data [size length]}
+--TCLS     MyPDU[] {length SmallLen [size 32, encoding pos-int, endianness big], data [size length]}
+--TCLS     MyPDU[] {length INTEGER [size 4, encoding pos-int], data [size length]}
+--TCLS     MyPDU[] {length SmallLen [size 4, encoding pos-int], data <length> []}  Payload<INTEGER:n>[size n]
+--TCLS     MyPDU2[] {length SmallLen [size 4, encoding pos-int], data [size length]}
