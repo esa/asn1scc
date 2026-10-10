@@ -28,11 +28,17 @@ class Constructs(unittest.TestCase):
             "*pErrCode = ret ? 0 :  ERR_MYPDU_INT1;": "errcode select",
             "ret.ErrorCode := (if ret.Success then 0 else ERR_PACKETDATALENGTH);": "errcode select",
             "if (ret && *pErrCode == 0) {": "ret and no error code",
+            "if result.success and  result.ErrorCode = 0 then": "ret and no error code",
+            "if (bs.Current_Bit_Pos mod 8) /= 0 then": "alignment",
+            "if not result.Success then": "ret check",
             "return ret  && ASN1SCC_MyPDU_IsConstraintValid(pVal, pErrCode);": "validity call",
             "if ret and then val1.Exist.packetErrorControl = 1 then": "presence / CHOICE selection",
             "if (ret && (charIndex < 0 || charIndex > 94)) {": "charIndex guard",
+            "pVal[i1] = ret ? allowedCharSet[charIndex] : '\\0' ;": "ret select",
             "ret = ((1UL <= (*(pVal))) && ((*(pVal)) <= 255UL));": "range check",
             "for(i1=0; i1 < (int)pVal->nCount; i1++)": "size / length",
+            "for(i1 = 0; ret && i1 < pVal1->nCount; i1++)": "loop with ret",
+            "while ret.Success and i <= p.Length loop": "loop with ret",
         }
         for src, label in cases.items():
             self.assertEqual(construct(src), label, src)

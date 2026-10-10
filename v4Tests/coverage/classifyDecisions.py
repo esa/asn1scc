@@ -29,11 +29,15 @@ from classifyStatements import (CHAR_GUARD, configuration, decoded_range, enclos
 
 CONSTRUCTS = [
     # (label, pattern on the decision's source line); the first match wins.
-    ("charIndex guard", re.compile(r"charIndex")),
+    ("charIndex guard", re.compile(r"\(\s*charIndex\s*<\s*0")),
     ("errcode select", re.compile(r"\?\s*0\s*:|\(if\s+\w+(\.Success)?\s+then\s+0\s+else\b", re.I)),
-    ("ret and no error code", re.compile(r"\bret\s*&&\s*\*pErrCode\s*==\s*0")),
+    ("ret select", re.compile(r"\bret\s*\?")),
+    ("ret and no error code", re.compile(r"\bret\s*&&\s*\*pErrCode\s*==\s*0"
+                                        r"|\bresult\.success\s+and\s+(then\s+)?result\.ErrorCode\s*=\s*0", re.I)),
+    ("alignment", re.compile(r"\bmod\s+8\b|%\s*8\b")),
     ("validity call", re.compile(r"IsConstraintValid|bCheckConstraints|_IsValid\b|Is_Valid\b", re.I)),
     ("ret check", re.compile(r"^\s*(\}\s*)?(else\s+)?(if|while)\s*\(?\s*(not\s+)?\(?\s*(ret|result)(\.Success)?\s*\)?\s*(\)|then|loop)", re.I)),
+    ("loop with ret", re.compile(r"^\s*(for|while)\b.*\b(ret|result\.Success)\b", re.I)),
     ("presence / CHOICE selection", re.compile(r"\bexist\b|\.Exist\.|present|\.kind\b|_selection\b|PRESENT", re.I)),
     ("size / length", re.compile(r"nCount|\.Length\b|\bnSize|Length\s*\(|GetLength|nLength|_length\b|Last\b", re.I)),
     ("loop", re.compile(r"^\s*(for|while)\b", re.I)),
@@ -75,15 +79,25 @@ def track(kind, label, missing):
         return "T4"
     if kind == "equal":
         return "T1 (unequal pairs)"
-    if label in {"errcode select", "ret check", "ret and no error code"} and missing == "FALSE":
+    if kind == "validate":
+        return "T2 (invalid values)"
+    if label in {"errcode select", "ret select", "ret check", "ret and no error code", "loop with ret"} \
+            and missing == "FALSE":
         return "T1/T3 (failing decode)" if kind.endswith("decode") else "T4/T5 (encode cannot fail)"
     if label == "validity call":
         return "T2 (invalid values)"
     return "?"
 
 
-def classify(run):
+def config_name(run):
+    """classifyStatements.configuration, with '/pusc' for the PUS-C cohort."""
     name, language = configuration(run)
+    config = json.loads((run / "manifest.json").read_text())["configuration"]
+    return (name.replace("/acn", "") + "/pusc" if config.get("pusc_units") else name), language
+
+
+def classify(run):
+    name, language = config_name(run)
     decision_rows, mcdc_rows, units = [], [], []
     for record in map(json.loads, (run / "units.jsonl").read_text().splitlines()):
         work = run / record["directory"] / "work"
