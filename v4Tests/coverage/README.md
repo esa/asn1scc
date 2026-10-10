@@ -155,10 +155,14 @@ exports results even on failure. It neither pulls images nor deletes containers:
     v4Tests/coverage/runCoverage.sh --metric gcov --language c --outdir coverage-results/gcov-c -- --enforce-legacy-line-gate
 
 Decision (branch) and MC/DC coverage use the same statement images. Pass
-`--level stmt+decision` or `--level stmt+mcdc` to the collector: one build is
-instrumented at that level, and GNATcoverage writes one report per level from
-the same trace (`report/`, `report-stmt+decision/`, `report-stmt+mcdc/`). Each
-level is accounted strictly against GNATcoverage's own summary. A decision
+`--level stmt+decision`, `stmt+mcdc` or `stmt+uc_mcdc` to the collector: one
+build is instrumented at that level, and GNATcoverage writes one report per level
+from the same trace (`report/`, `report-stmt+decision/`, `report-stmt+mcdc/`,
+`report-stmt+uc_mcdc/`; a unique-cause trace also gives the masking MC/DC
+report). Each level is accounted strictly against GNATcoverage's own summary.
+Unique-cause MC/DC counts only the conditions it could assess (a condition of a
+decision with a missing outcome is left out), masking MC/DC counts them as not
+covered. A decision
 report counts control-flow decisions; the MC/DC report also counts Boolean
 expressions outside control flow, and every condition is one obligation. C
 `switch` and Ada `case` are not decisions. Ada `and` / `or` (not `and then` /

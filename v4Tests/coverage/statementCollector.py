@@ -1,8 +1,9 @@
 """Measure generated-code statement obligations with GNATcoverage source traces.
 
-With --level stmt+decision or stmt+mcdc, one instrumented build also yields the
-decision (branch) and MC/DC obligations: GNATcoverage writes one report per level
-from the same source trace, and every level is accounted strictly.
+With --level stmt+decision, stmt+mcdc or stmt+uc_mcdc, one instrumented build
+also yields the decision (branch) and MC/DC obligations: GNATcoverage writes one
+report per level from the same source trace (a stmt+uc_mcdc trace also gives the
+masking stmt+mcdc report), and every level is accounted strictly.
 """
 import argparse
 from collections import Counter
@@ -38,7 +39,7 @@ def statement_metrics(element):
             "statements_uncovered": missed}
 
 
-LEVELS = ("stmt", "stmt+decision", "stmt+mcdc")
+LEVELS = ("stmt", "stmt+decision", "stmt+mcdc", "stmt+uc_mcdc")
 
 
 def report_levels(level):
@@ -71,15 +72,19 @@ def spans_of(node):
 
 
 def read_decisions(report_dir, work, level, names):
-    """Decision obligations (stmt+decision) or MC/DC condition obligations (stmt+mcdc).
+    """Decision obligations (stmt+decision) or MC/DC condition obligations (stmt+mcdc,
+    stmt+uc_mcdc).
 
     Decision report: a decision with status +, ! (one outcome missing) or - (never
     evaluated) is an obligation; '.' marks a Boolean expression that is a decision
     only at the MC/DC level. MC/DC report: every condition of a decision is one
-    obligation, covered only with status '+'. Counts are cross-checked per file and
+    obligation, covered only with status '+'. Unique-cause MC/DC (stmt+uc_mcdc) counts
+    only the conditions it could assess: a '.' condition (its decision lacks an
+    outcome) is left out there, while masking MC/DC counts it as not covered.
+    Counts are cross-checked per file and
     globally against GNATcoverage's own summary.
     """
-    kind = {"stmt+decision": "Decision", "stmt+mcdc": "MCDC"}[level]
+    kind = {"stmt+decision": "Decision", "stmt+mcdc": "MCDC", "stmt+uc_mcdc": "UC_MCDC"}[level]
     index = ET.parse(report_dir / "xml/index.xml").getroot().find("coverage_report")
     if index is None or index.get("coverage_level") != level:
         raise ValueError(f"Expected a GNATcoverage {level} report")
@@ -124,7 +129,8 @@ def read_decisions(report_dir, work, level, names):
                       "partial": sum(d["status"] == "!" for d in relevant),
                       "uncovered": sum(d["status"] == "-" for d in relevant)}
         else:
-            conditions = [x for d in relevant for x in d["conditions"]]
+            conditions = [x for d in relevant for x in d["conditions"]
+                          if kind == "MCDC" or x["status"] != "."]
             covered = sum(x["status"] == "+" for x in conditions)
             counts = {"total": len(conditions), "covered": covered, "partial": 0,
                       "uncovered": len(conditions) - covered}
@@ -311,7 +317,7 @@ def measure(unit, args, root):
             c.harness_support("invalidStreamHarness").verify_output((logs / "run.stdout").read_text(), record["invalid_stream_checks"])
         record["files"] = read_report(work / "report", work)
         for level in report_levels(args.level)[1:]:
-            key = {"stmt+decision": "decision", "stmt+mcdc": "mcdc"}[level]
+            key = {"stmt+decision": "decision", "stmt+mcdc": "mcdc", "stmt+uc_mcdc": "uc_mcdc"}[level]
             for name, data in read_decisions(work / report_dir_name(level), work, level,
                                              record["files"].keys()).items():
                 record["files"][name][key] = data
@@ -320,7 +326,7 @@ def measure(unit, args, root):
             for obligation in file["obligations"] + file["non_obligation_nodes"]:
                 obligation["id"] = c.digest(json.dumps([namespace, obligation["id"]]).encode())
         for name, file in record["files"].items():
-            for key in ("decision", "mcdc"):
+            for key in ("decision", "mcdc", "uc_mcdc"):
                 occurrences = Counter()
                 for decision in file.get(key, {}).get("decisions", []):
                     coordinate = json.dumps([name, file["source_sha256"], decision["spans"], decision["text"]],
@@ -455,7 +461,7 @@ def main(argv=None):
                "statement_coverage_measured": any(r["status"] == "ok" for r in records),
                "inventory_counts": dict(Counter(u.get("selection", "not_selected") for u in inventory)),
                "codec": totals}
-    for key in ("decision", "mcdc")[:len(report_levels(args.level)) - 1]:
+    for key in ("decision", "mcdc", "uc_mcdc")[:len(report_levels(args.level)) - 1]:
         summary["codec_" + key] = {k: sum(f[key]["counts"][k] for r in records if r["status"] == "ok"
                                           for f in r["files"].values() if f["component"] == "codec")
                                    for k in ("total", "covered", "partial", "uncovered")}
@@ -467,7 +473,7 @@ def main(argv=None):
         + ''.join(f'\nGNATcoverage `--level={level}`: **{summary["codec_" + key]["covered"]}/'
                   f'{summary["codec_" + key]["total"]}** {key} obligations covered '
                   f'({summary["codec_" + key]["partial"]} partially).\n'
-                  for level, key in zip(report_levels(args.level)[1:], ("decision", "mcdc"))))
+                  for level, key in zip(report_levels(args.level)[1:], ("decision", "mcdc", "uc_mcdc"))))
     (root / "report.md").write_text(
         '# Generated-code statement coverage\n\nStatus: ' + summary["status"] + '\n\n'
         + body + '\nCounts accumulate generated instances in the selected configurations.\n\n'

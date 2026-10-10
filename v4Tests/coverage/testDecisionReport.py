@@ -64,6 +64,12 @@ class DecisionReport(unittest.TestCase):
         files = read_decisions(self.root, WORK, "stmt+mcdc", {"sample1.c"})
         self.assertEqual(files["sample1.c"]["counts"], {"total": 3, "covered": 1, "partial": 0, "uncovered": 2})
 
+    def test_unique_cause_leaves_out_unassessed_conditions(self):
+        mappings = [decision(1, "+", [(2, "+")], 10), decision(3, "-", [(4, "."), (5, "-")], 11)]
+        write_report(self.root, "stmt+uc_mcdc", mappings, stats("UC_MCDC", 2, 1, 0, 1))
+        files = read_decisions(self.root, WORK, "stmt+uc_mcdc", {"sample1.c"})
+        self.assertEqual(files["sample1.c"]["counts"], {"total": 2, "covered": 1, "partial": 0, "uncovered": 1})
+
     def test_summary_mismatch_is_rejected(self):
         write_report(self.root, "stmt+decision", self.MAPPINGS, stats("Decision", 2, 2, 0, 0))
         with self.assertRaisesRegex(ValueError, "accounting differs"):
@@ -92,6 +98,7 @@ class DecisionReport(unittest.TestCase):
     def test_levels(self):
         self.assertEqual(report_levels("stmt"), ("stmt",))
         self.assertEqual(report_levels("stmt+mcdc"), ("stmt", "stmt+decision", "stmt+mcdc"))
+        self.assertEqual(report_levels("stmt+uc_mcdc")[-2:], ("stmt+mcdc", "stmt+uc_mcdc"))
         self.assertEqual(report_dir_name("stmt"), "report")
 
 
