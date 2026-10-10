@@ -93,7 +93,9 @@ def config_name(run):
     """classifyStatements.configuration, with '/pusc' for the PUS-C cohort."""
     name, language = configuration(run)
     config = json.loads((run / "manifest.json").read_text())["configuration"]
-    return (name.replace("/acn", "") + "/pusc" if config.get("pusc_units") else name), language
+    if config.get("pusc_units"):
+        name = re.sub(r"/acn$", "", name) + "/pusc"
+    return name, language
 
 
 def classify(run):
