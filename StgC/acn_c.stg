@@ -828,16 +828,16 @@ ret = (<noSizeMin>\<=<sExtFld><if(noSizeMax)> && <sExtFld>\<=<noSizeMax><endif>)
 if (ret) {
     <p><sAcc>nCount = (int)<sExtFld>;
     ret = BitStream_ReadBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
-    *pErrCode = ret ? 0 : <sErrCode>;
 }
+<A(sErrCode)>
 <else>
 <if(noSizeMax)>
 ret = (<sExtFld>\<=<noSizeMax>);
 if (ret) {
     <p><sAcc>nCount = (int)<sExtFld>;
     ret = BitStream_ReadBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
-    *pErrCode = ret ? 0 : <sErrCode>;
 }
+<A(sErrCode)>
 <else>
 <p><sAcc>nCount = (int)<sExtFld>;
 ret = BitStream_ReadBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
@@ -854,8 +854,8 @@ bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noS
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     ret = BitStream_ReadBits(pBitStrm, <p><sAcc>arr, <nSizeMax>);
-    *pErrCode = ret ? 0 : <sErrCode>;
 }
+<A(sErrCode)>
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<

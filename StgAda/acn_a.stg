@@ -1740,9 +1740,9 @@ end if;
 bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, noSizeMax, sExtFld) ::= <<
 <if(bitStringAlignment)>
 --  C-compatible byte array: append the whole bytes directly (MSB-first, as in C).
-adaasn1rtl.encoding.BitStream_AppendBits(bs, <p><sAcc>Data, Integer(<sExtFld>));
+adaasn1rtl.encoding.BitStream_AppendBits(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
 <else>
-adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>));
+adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
 <endif>
 >>
 
