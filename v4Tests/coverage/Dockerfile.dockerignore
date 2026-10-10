@@ -21,6 +21,7 @@
 !v4Tests/scripts/runTests.py
 !v4Tests/coverage/**
 !v4Tests/test-cases/acn/**
+!PUSCInteropTest/asn1-pusc-lib-asn1CompilerTestInput/**
 !Directory.Build.*
 !Directory.Packages.props
 !global.json

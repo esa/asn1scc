@@ -36,8 +36,10 @@ COPY v4Tests/scripts/coverageCollector.py /opt/coverage/coverageCollector.py
 COPY v4Tests/coverage/ /opt/coverage/
 COPY StgAda/aux_a.stg v4Tests/scripts/runTests.py /opt/coverage/contracts/
 COPY v4Tests/test-cases/acn/ /opt/test-cases/acn/
+COPY PUSCInteropTest/asn1-pusc-lib-asn1CompilerTestInput/ /opt/test-cases/pusc/
 ENV ASN1SCC_COMPILER=/opt/asn1scc/asn1scc \
     ASN1SCC_TESTROOT=/opt/test-cases/acn \
+    ASN1SCC_PUSC_ROOT=/opt/test-cases/pusc \
     ASN1SCC_COVERAGE_REFERENCE=/opt/coverage/phase0-reference.json \
     ASN1SCC_BUILD_MANIFEST=/opt/coverage/build.json
 USER 10001:10001

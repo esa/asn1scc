@@ -154,6 +154,25 @@ exports results even on failure. It neither pulls images nor deletes containers:
     v4Tests/coverage/runCoverage.sh --metric stmt --language Ada --outdir coverage-results/stmt-ada -- --filter 01-INTEGER/001.asn1#1
     v4Tests/coverage/runCoverage.sh --metric gcov --language c --outdir coverage-results/gcov-c -- --enforce-legacy-line-gate
 
+Decision (branch) and MC/DC coverage use the same statement images. Pass
+`--level stmt+decision` or `--level stmt+mcdc` to the collector: one build is
+instrumented at that level, and GNATcoverage writes one report per level from
+the same trace (`report/`, `report-stmt+decision/`, `report-stmt+mcdc/`). Each
+level is accounted strictly against GNATcoverage's own summary. A decision
+report counts control-flow decisions; the MC/DC report also counts Boolean
+expressions outside control flow, and every condition is one obligation. C
+`switch` and Ada `case` are not decisions. Ada `and` / `or` (not `and then` /
+`or else`) do not separate conditions. Exempted (`*`) and undetermined
+obligations are rejected.
+
+The PUS-C cohort measures the N7 Space `asn1-pusc-lib` model used by
+`PUSCInteropTest`: one unit per service group of `pusc-units.json`, which
+`testPuscUnits.py` keeps equal to `PUSCInteropTest/Support/ServiceFiles.cs`.
+It needs `--encodings acn`:
+
+    v4Tests/coverage/runCoverage.sh --metric stmt --language c --outdir coverage-results/mcdc-c -- --cohort all --level stmt+mcdc
+    v4Tests/coverage/runCoverage.sh --metric stmt --language Ada --outdir coverage-results/pusc-ada -- --pusc-units /opt/coverage/pusc-units.json --encodings acn --level stmt+mcdc
+
 `--image` overrides the selected image; `--name` gives the retained container
 an explicit name. The default cohort is the bounded pilot. Supply collector
 options after `--`; set language and output directory before it. Every host
