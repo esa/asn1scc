@@ -286,7 +286,9 @@ type LangGeneric_a() =
         override this.toHex n = sprintf "16#%x#" n
 
         override this.bitStringValueToByteArray (v : BitStringValue) =
-            v.ToCharArray() |> Array.map(fun c -> if c = '0' then 0uy else 1uy)
+            match CommonTypes.bitStringAlignment with
+            | true  -> FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)   // whole bytes, MSB-first, as C
+            | false -> v.ToCharArray() |> Array.map(fun c -> if c = '0' then 0uy else 1uy)
 
         override this.uper =
             {

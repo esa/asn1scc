@@ -121,13 +121,24 @@ def firstLineMarkers(asn1file: str) -> str:
 
 def isTestSelected(cfg: TestConfig, asn1file: str) -> bool:
     """First-line markers restricting a test file (same rules in regression/Program.fs):
-    ACNV2_ONLY runs the file only with --acn-v2, C_ONLY only for the C backend."""
+    ACNV2_ONLY runs the file only with --acn-v2, C_ONLY only for the C backend,
+    ADA_BITSTRING_ALIGNMENT only for Ada (with -adaBitStringAlignment, see extraFlags)."""
     markers = firstLineMarkers(asn1file)
     if "ACNV2_ONLY" in markers and cfg.acnV2 == "":
         return False
     if "C_ONLY" in markers and cfg.language != "c":
         return False
+    if "ADA_BITSTRING_ALIGNMENT" in markers and cfg.language != "Ada":
+        return False
     return True
+
+
+def extraFlags(cfg: TestConfig, asn1file: str) -> str:
+    """Compiler options requested by first-line markers (same rules in regression/Program.fs):
+    ADA_BITSTRING_ALIGNMENT adds -adaBitStringAlignment to the Ada runs."""
+    if "ADA_BITSTRING_ALIGNMENT" in firstLineMarkers(asn1file) and cfg.language == "Ada":
+        return "-adaBitStringAlignment "
+    return ""
 
 
 def helpersDir(asn1file: str) -> str:
@@ -185,7 +196,7 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
     res = mysystem(
         cfg, targetDir,
         path_to_asn1scc +
-        " -" + language + " -x ast.xml" + encodingFlags + "-ig -typePrefix ASN1SCC_ " + cfg.acnV2 + cfg.slim + cfg.icdPdus +
+        " -" + language + " -x ast.xml" + encodingFlags + "-ig -typePrefix ASN1SCC_ " + cfg.acnV2 + cfg.slim + cfg.icdPdus + extraFlags(cfg, resolvedir(asn1File)) +
         "-renamePolicy 3 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
         "' " + inputFiles +
         " 2>'" + tmp_err_file + "'", True, asn1, acn)

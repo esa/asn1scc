@@ -143,7 +143,13 @@ end loop;
 
 initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize, bIsOptionalField, sResVar) ::= <<
 <if(bitStringAlignment)>
-    <p><sAcc>Data := (others => 0);
+<p><sAcc>Data := (others => 0);
+<i> := 1;
+while <i>\<= <nSizeCeiled> / 8 loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeCeiled> / 8);
+    <p><sAcc>Data(<i>) := <if(bZero)>16#00#<else>16#55#<endif>;  --  0101 0101, as the BitArray pattern
+    <i> := <i> + 1;
+end loop;
 <if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nMinSize><else><nSize><endif>;<endif>
 <else>
 <i> := 1;

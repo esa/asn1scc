@@ -131,6 +131,25 @@ is
    procedure BitString_Bytes_To_BitArray
      (bytes : OctetBuffer; len : Integer; arr : out BitArray);
 
+   --  Bit k (0-based) of a BIT STRING stored as whole bytes, MSB-first
+   --  (--ada-bitstring-alignment): bit (7 - k mod 8) of byte k / 8.
+   function BitString_Get_Bit (arr : OctetBuffer; k : Natural) return BIT with
+      Pre => arr'Length > 0 and then k / 8 <= arr'Length - 1;
+
+   procedure BitString_Set_Bit
+     (arr : in out OctetBuffer; k : Natural; v : BIT) with
+      Pre => arr'Length > 0 and then k / 8 <= arr'Length - 1;
+
+   --  Equality of the first len1 / len2 bits of two BIT STRINGs stored as
+   --  whole bytes; the unused bits of the last byte are ignored, as in C.
+   function BitString_Bytes_Equal
+     (len1 : Integer; len2 : Integer; arr1 : OctetBuffer; arr2 : OctetBuffer)
+      return Boolean with
+      Pre => len1 >= 0 and then len2 >= 0
+      and then len1 <= Integer'Last - 7
+      and then (len1 + 7) / 8 <= arr1'Length
+      and then (len1 + 7) / 8 <= arr2'Length;
+
    procedure ObjectIdentifier_Init (val : out Asn1ObjectIdentifier);
    function ObjectIdentifier_isValid
      (val : Asn1ObjectIdentifier) return Boolean;

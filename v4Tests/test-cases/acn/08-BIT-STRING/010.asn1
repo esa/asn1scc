@@ -1,0 +1,32 @@
+-- ADA_BITSTRING_ALIGNMENT: Ada only, with -adaBitStringAlignment (BIT STRING stored as whole bytes, as in C)
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    VarBits  ::= BIT STRING (SIZE(1..20))
+    FixBits  ::= BIT STRING (SIZE(13))
+    Fruits   ::= BIT STRING { apple(0), mango(7), lemon(9) } (SIZE (1..64))
+    OneValue ::= BIT STRING ('1010'B)
+    BigBits  ::= BIT STRING (SIZE(1..70000))
+    SmallLen ::= INTEGER (0..20)
+
+    MyPDU ::= SEQUENCE {
+        a  INTEGER(1..20),
+        v  VarBits,
+        f  FixBits,
+        s  Fruits,
+        c  OneValue
+    }
+
+    MyPDU2 ::= SEQUENCE {
+        f  FixBits
+    }
+
+    pdu1 MyPDU ::= {a 16, v 'ABCD'H, f '1100110011001'B, s {apple, lemon}, c '1010'B}
+
+END
+
+--TCLS     MyPDU[]
+--TCLS     MyPDU[] {a[], len SmallLen [size 5, encoding pos-int], v[size len], f[], s[], c[]}
+--TCLS     MyPDU2[] {len SmallLen [size 5, encoding pos-int], f[size len]}
+--TCLS     VarBits[size null-terminated, termination-pattern '0F0F'H]
+--TCLS     BigBits[]

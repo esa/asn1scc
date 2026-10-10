@@ -108,10 +108,19 @@ let collectTestAsn1Files (test_cases_dir:string) =
 
 
 // First-line markers restricting a test file (same rules in v4Tests/scripts/runTests.py):
-// ACNV2_ONLY runs the file only with -acnv2, C_ONLY only for the C backend.
+// ACNV2_ONLY runs the file only with -acnv2, C_ONLY only for the C backend,
+// ADA_BITSTRING_ALIGNMENT only for Ada (with -adaBitStringAlignment, see extraFlags).
 let isTestSelected (t:Test_Case) (lang:string) (enableAcnV2:bool) =
     let markers = File.ReadLines t.asn1 |> Seq.tryHead |> Option.defaultValue ""
-    (enableAcnV2 || not (markers.Contains "ACNV2_ONLY")) && (lang = "c" || not (markers.Contains "C_ONLY"))
+    (enableAcnV2 || not (markers.Contains "ACNV2_ONLY")) && (lang = "c" || not (markers.Contains "C_ONLY")) && (lang = "Ada" || not (markers.Contains "ADA_BITSTRING_ALIGNMENT"))
+
+// Compiler options requested by first-line markers (same rules in runTests.py):
+// ADA_BITSTRING_ALIGNMENT adds -adaBitStringAlignment to the Ada runs.
+let extraFlags (t:Test_Case) (lang:string) =
+    let markers = File.ReadLines t.asn1 |> Seq.tryHead |> Option.defaultValue ""
+    match lang = "Ada" && markers.Contains "ADA_BITSTRING_ALIGNMENT" with
+    | true  -> "-adaBitStringAlignment"
+    | false -> ""
 
 // <name>.helpers/ next to <name>.asn1: files copied into the work directory of
 // each test case of that file (e.g. user-provided mapping functions).
@@ -151,13 +160,14 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
     let slima = if slim then "-slim" else ""
     let ig = if enableIG then "-ig" else ""
     let acnV2 = if enableAcnV2 then "--acn-v2" else ""
+    let extra = extraFlags t lang
     let target = 
         if lang = "Ada" && ws = 4 then 
             " -t msp430 "
         else
             ""
     
-    let cmd = $"%s{asn1sccdll} -%s{lang} -x ast.xml -uPER -ACN %s{ig} %s{acnV2} -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s{slima} %s{wsa} %s{target} sample1.asn1 sample1.acn"
+    let cmd = $"%s{asn1sccdll} -%s{lang} -x ast.xml -uPER -ACN %s{ig} %s{acnV2} %s{extra} -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s{slima} %s{wsa} %s{target} sample1.asn1 sample1.acn"
     //let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa target
     prepareFolderAndFiles workDir t
     //ShellProcess.printInfo "\nwordDir is:%s\n%s\n\n" workDir cmd

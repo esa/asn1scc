@@ -557,12 +557,22 @@ end loop;
 /* OCTET AND BIT STRING*/
 
 InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
+<if(bitStringAlignment)>
+<rtlModuleName()>.encoding.BitStream_AppendBit(bs, <rtlModuleName()>.BitString_Get_Bit(<p>.Data, <i> - 1));
+<else>
 <rtlModuleName()>.encoding.BitStream_AppendBit(bs, <p>.Data(<i>));
+<endif>
 >>
 
 InternalItem_bit_str_decode(p, i, sErrCode) ::=<<
-<rtlModuleName()>.encoding.BitStream_ReadBit(bs, <p>.Data(<i>), result.Success);
-if not result.Success then
+<if(bitStringAlignment)>
+declare
+    bitVal : <rtlModuleName()>.BIT;
+begin
+    <rtlModuleName()>.encoding.BitStream_ReadBit(bs, bitVal, result.Success);
+    <rtlModuleName()>.BitString_Set_Bit(<p>.Data, <i> - 1, bitVal);
+end;<\n><else>
+<rtlModuleName()>.encoding.BitStream_ReadBit(bs, <p>.Data(<i>), result.Success);<\n><endif>if not result.Success then
     result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
 end if;
 >>

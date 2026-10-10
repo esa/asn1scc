@@ -364,7 +364,7 @@ octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=
 
 bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
 <if(bitStringAlignment)>
-<p><sAccess>Length = <nVarLength>
+<rtlModuleName()>.BitString_Bytes_Equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
 <else>
 <rtlModuleName()>.BitString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
 <endif>
@@ -372,7 +372,7 @@ bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral 
 
 bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral  )::=<<
 <if(bitStringAlignment)>
-True
+<rtlModuleName()>.BitString_Bytes_Equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
 <else>
 <rtlModuleName()>.BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
 <endif>

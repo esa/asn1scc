@@ -49,8 +49,9 @@ end record;
 **After (`--ada-bitstring-alignment`):**
 
 ```ada
+subtype BS_array is adaasn1rtl.OctetBuffer (1 .. 1);   --  ceil(8 / 8) bytes
 type BS is record
-    Data  : adaasn1rtl.OctetBuffer (1 .. 1);   --  ceil(8 / 8) bytes
+    Data  : BS_array;
 end record;
 ```
 
@@ -91,6 +92,14 @@ if (X.Data (k / 8 + 1) and Shift_Right (16#80#, k mod 8)) /= 0 then ...
 `with Interfaces; use Interfaces;` (the generated packages already make the
 `adaasn1rtl` byte operators directly visible).
 
+The runtime library has the same operations ready to use, with a 0-based bit
+index:
+
+```ada
+adaasn1rtl.BitString_Set_Bit (X.Data, k, 1);          --  set bit k
+B := adaasn1rtl.BitString_Get_Bit (X.Data, k);        --  read bit k (0 or 1)
+```
+
 ## 4. What the application must change (this is the API break)
 
 The generated **named-bit setters keep their names and meanings**:
@@ -120,14 +129,17 @@ This is a source-level change: every existing Ada application that indexes
 * The wire format. uPER, ACN and XER produce exactly the same bytes/bits as
   before (C and Ada are byte-identical on the wire).
 * `X_Init`, `X_set_bitN`, `X_IsConstraintValid`, `X_Equal`, and the
-  encode/decode subprogram names and signatures.
+  encode/decode subprogram names and signatures. `X_Equal` and the
+  single-value constraints of `X_IsConstraintValid` compare the first
+  `Length` (or `N`) bits and ignore the unused bits of the last byte, as in C
+  (`adaasn1rtl.BitString_Bytes_Equal`).
 * C, Rust, Scala and Python output — the option is Ada-only.
 * The default Ada output (option off) is byte-for-byte identical.
 
 ## 6. Implementation notes
 
-* `spec_a.stg` emits `Data : OctetBuffer (1 .. ceil(Nmax/8))`; the
-  (unused) `_array` subtype is still emitted, as before.
+* `spec_a.stg` emits `subtype X_array is OctetBuffer (1 .. ceil(Nmax/8))`
+  and `Data : X_array`.
 * uPER/ACN encode and decode call the byte-oriented
   `BitStream_AppendBits` / `BitStream_ReadBits` directly (the C codec path),
   with no conversion. Decode clears `Data` first so a short variable-size
@@ -136,15 +148,21 @@ This is a source-level change: every existing Ada application that indexes
   RTL gained two helpers, `BitString_BitArray_To_Bytes` /
   `BitString_Bytes_To_BitArray`, mirroring the C byte handling. The generated
   code keeps an array-of-bits API there, using a temporary `BitArray`.
+* uPER fragmentation (more than 64K bits) keeps its bit-by-bit loop, reading
+  and writing the bits with `BitString_Get_Bit` / `BitString_Set_Bit`.
 * `--ada-bitstring-alignment` is a normal, off-by-default code-generation flag
   (see `CommonTypes.bitStringAlignment`), injected into the Ada templates by
   `ST.call`.
+* Tests: a corpus file whose first line contains `ADA_BITSTRING_ALIGNMENT`
+  runs only for Ada, with the flag (`v4Tests/scripts/runTests.py` and
+  `regression/Program.fs`), e.g. `v4Tests/test-cases/acn/08-BIT-STRING/010.asn1`.
 
 ## 7. Limitations
 
 * The type is `ceil(N/8)` bytes, so a non-byte-multiple size carries up to 7
-  unused bits in the top byte. They are zeroed on decode; C leaves them
-  unspecified, so mask the top byte if C sets that padding.
+  unused bits in the last byte. They are zeroed on decode and ignored by
+  `X_Equal`; C leaves them unspecified, so mask the last byte if you compare
+  raw buffers coming from C.
 * `Data'Length` is a byte count, not a bit count. For a fixed-size type the bit
   count is the compile-time constant `N`; for a variable-size type it is
   `X.Length`.

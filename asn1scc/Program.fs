@@ -128,7 +128,7 @@ E.g., -eee 50 will enable this mode for enumerated types with 50 or more enumera
             | Log_Execution_Time           -> "Enables detailed logging of execution time."
             | StainlessInvertibility -> "(Scala backend only) Generate invertibility conditions and lemmas"
             | Acn_V2 -> "(C and Ada) Enable ACN deferred patching: separate functions for reference types with ACN parameters, reserve+patch determinants instead of temporary buffers."
-            | Ada_BitString_Alignment -> """(Ada only) Represent BIT STRING values with one named bit field per bit (Bit0 .. Bit(N-1)) using a C-compatible, MSB-first byte layout, instead of a packed adaasn1rtl.BitArray. Field access changes from X.Data (i) to X.Data.Bit(i-1); the generated setters X_set_bitN keep their names. WARNING: this changes the generated Ada data type, so it is not source-compatible with existing Ada applications and the C byte layout is required to match another language's BIT STRING."""
+            | Ada_BitString_Alignment -> "(Ada only) Represent BIT STRING values as an array of whole bytes (adaasn1rtl.OctetBuffer), MSB-first as in C, instead of a packed adaasn1rtl.BitArray. X.Data (i) then indexes bytes, not bits; use adaasn1rtl.BitString_Get_Bit/BitString_Set_Bit or the generated X_set_<bit> procedures for single bits. WARNING: this changes the generated Ada type, so it is not source-compatible with existing Ada applications."
 
 
 let printVersion () =

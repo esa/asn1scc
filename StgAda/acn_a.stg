@@ -1753,11 +1753,8 @@ if result.Success then
    <p>.Length := Integer(<sExtFld>);
 <if(bitStringAlignment)>
     <p><sAcc>Data := (others => 0);
-    adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
-<else>
-    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
-<endif>
-end if;
+    adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);<\n><else>
+    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);<\n><endif>end if;
 <else>
 <if(noSizeMax)>
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <sExtFld>\<=<noSizeMax>, ErrorCode => <sErrCode>);
@@ -1765,11 +1762,8 @@ if result.Success then
    <p>.Length := Integer(<sExtFld>);
 <if(bitStringAlignment)>
     <p><sAcc>Data := (others => 0);
-    adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
-<else>
-    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);
-<endif>
-end if;
+    adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);<\n><else>
+    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>), result.success);<\n><endif>end if;
 <else>
 <p>.Length := Integer(<sExtFld>);
 <if(bitStringAlignment)>
@@ -1795,11 +1789,8 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<
 if result.Success then
 <if(bitStringAlignment)>
     <p><sAcc>Data := (others => 0);
-    adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);
-<else>
-    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);
-<endif>
-end if;
+    adaasn1rtl.encoding.BitStream_ReadBits(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);<\n><else>
+    adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);<\n><endif>end if;
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
@@ -1809,11 +1800,8 @@ declare
 begin
    adaasn1rtl.BitString_Bytes_To_BitArray(<p><sAcc>Data, <p><sAcc>Length, tmpBits);
    adaasn1rtl.encoding.BitStream_AppendBitArray(bs, tmpBits, <p><sAcc>Length);
-end;
-<else>
-adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, <p><sAcc>Length);
-<endif>
-<rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
+end;<\n><else>
+adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, <p><sAcc>Length);<\n><endif><rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 >>
 
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize)  ::= <<
@@ -1823,11 +1811,8 @@ declare
 begin
    <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, tmpBits, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
    adaasn1rtl.BitString_BitArray_To_Bytes(tmpBits, <nSizeMax>, <p><sAcc>Data);
-end;
-<else>
-<rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
-<endif>
-if not result.Success then
+end;<\n><else>
+<rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);<\n><endif>if not result.Success then
     result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
 end if;
 >>
