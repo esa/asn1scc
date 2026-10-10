@@ -273,10 +273,14 @@ def measure(unit, args, root):
             if args.check_invalid_streams:
                 record["invalid_stream_checks"] = c.harness_support("invalidStreamHarness").prepare(work, unit["unit"], args)
         suffix = ".c" if args.language == "c" else ".adb"
-        bodies = sorted(p.name for p in work.glob("*" + suffix) if c.file_component(p.name) == "codec")
+        # Files of <name>.helpers/ are hand-written (mapping functions, checks), not generated code.
+        helpers = set() if "pusc_files" in unit else {name for name, _ in c.helper_files(unit, args.test_root)}
+        bodies = sorted(p.name for p in work.glob("*" + suffix)
+                        if c.file_component(p.name) == "codec" and p.name not in helpers)
         # Instrument C encode/decode helpers too, to verify that the optional
         # second encode actually executes. Their metrics remain separate.
         harness = sorted(p.name for p in work.glob("*_auto_tcs.c")) if args.language == "c" else []
+        harness += sorted(h for h in helpers if h.endswith(".c")) if args.language == "c" else []
         units = bodies + harness if args.language == "c" else [Path(p).stem for p in bodies]
         if not units:
             raise ValueError("No generated codec units")
@@ -305,7 +309,13 @@ def measure(unit, args, root):
             ' package Compiler is\n'
             + (' for Driver ("C") use "gcc-13";\n' if args.language == "c" else '')
             + ' for Default_Switches ("' + language + '") use (' + quoted(flags) + ');\n'
-            ' end Compiler;\n package Linker is\n for Default_Switches ("' + language + '") use ("-lm");\n'
+            ' end Compiler;\n package Linker is\n for Default_Switches ("' + language + '") use ('
+            # gprbuild links non-main objects through an archive, so a helper that
+            # nothing references (a check run by a constructor before main) is left
+            # out; link it explicitly. Referenced helpers come from the archive.
+            + quoted(["-lm", *[str(work / "stmt-obj" / (Path(h).stem + ".o")) for h in sorted(helpers)
+                               if h.endswith(".c") and "__attribute__((constructor))" in (work / h).read_text()]])
+            + ');\n'
             ' end Linker;\nend Statement;\n')
         record["positive_tests"], record["artifacts_sha256"] = instrument_and_run(
             work, "statement.gpr", units, args, logs, record["steps"])
@@ -316,6 +326,8 @@ def measure(unit, args, root):
         if args.check_invalid_streams:
             c.harness_support("invalidStreamHarness").verify_output((logs / "run.stdout").read_text(), record["invalid_stream_checks"])
         record["files"] = read_report(work / "report", work)
+        for name in helpers & record["files"].keys():
+            record["files"][name]["component"] = "harness"
         for level in report_levels(args.level)[1:]:
             key = {"stmt+decision": "decision", "stmt+mcdc": "mcdc", "stmt+uc_mcdc": "uc_mcdc"}[level]
             for name, data in read_decisions(work / report_dir_name(level), work, level,
