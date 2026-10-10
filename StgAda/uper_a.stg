@@ -571,7 +571,7 @@ declare
 begin
     <rtlModuleName()>.encoding.BitStream_ReadBit(bs, bitVal, result.Success);
     <rtlModuleName()>.BitString_Set_Bit(<p>.Data, <i> - 1, bitVal);
-end;<\n><else>
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)<\n><else>
 <rtlModuleName()>.encoding.BitStream_ReadBit(bs, <p>.Data(<i>), result.Success);<\n><endif>if not result.Success then
     result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
 end if;

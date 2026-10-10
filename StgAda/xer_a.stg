@@ -230,8 +230,7 @@ declare
 begin
    adaasn1rtl.BitString_Bytes_To_BitArray(<p><sAcc>Data, Integer(<if(!bIsFixedSize)><p><sAcc>Length<else><nSizeMax><endif>), tmpBits);
    adaasn1rtl.encoding.xer.Xer_EncodeBitString(bs, <sTag>, tmpBits, <if(!bIsFixedSize)><p><sAcc>Length<else><nSizeMax><endif>, ret, <nLevel>);
-end;
-<else>
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)<\n><else>
 adaasn1rtl.encoding.xer.Xer_EncodeBitString(bs, <sTag>, <p><sAcc>Data, <if(!bIsFixedSize)><p><sAcc>Length<else><nSizeMax><endif>, ret, <nLevel>);<\n><endif>ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
@@ -260,7 +259,7 @@ declare
 begin
 	adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, tmpBits, <p><sAcc>Length, ret);
 	adaasn1rtl.BitString_BitArray_To_Bytes(tmpBits, <nSizeMax>, <p><sAcc>Data);
-end;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)
 <else>
 adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, <p><sAcc>Data, <p><sAcc>Length, ret);
 <endif>

@@ -1800,7 +1800,7 @@ declare
 begin
    adaasn1rtl.BitString_Bytes_To_BitArray(<p><sAcc>Data, <p><sAcc>Length, tmpBits);
    adaasn1rtl.encoding.BitStream_AppendBitArray(bs, tmpBits, <p><sAcc>Length);
-end;<\n><else>
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)<\n><else>
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, <p><sAcc>Length);<\n><endif><rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 >>
 
@@ -1811,7 +1811,7 @@ declare
 begin
    <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, tmpBits, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
    adaasn1rtl.BitString_BitArray_To_Bytes(tmpBits, <nSizeMax>, <p><sAcc>Data);
-end;<\n><else>
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)<\n><else>
 <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);<\n><endif>if not result.Success then
     result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
 end if;
