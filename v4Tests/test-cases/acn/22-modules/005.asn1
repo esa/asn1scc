@@ -1,0 +1,35 @@
+-- Ada: a component (or the automatic-test object "dummy") with the name of a
+-- package hides the package (Ada is case insensitive), e.g.
+-- "timeWindow : TimeWindow.T" (q/issues.md Issue 37, PUS-C asn1-pusc-lib).
+-- With -fp AUTO the component is renamed; the test harness qualifies the
+-- type of its "dummy" object with Standard.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS TimeWindow, TimeWindowKind FROM TimeWindow
+           DummyType FROM Dummy;
+
+   MyPDU ::= SEQUENCE {
+      timeWindow   TimeWindow,
+      kind         TimeWindowKind,
+      dummy        DummyType,
+      alternative  MyChoice
+   }
+
+   MyChoice ::= CHOICE {
+      timeWindow   TimeWindow,
+      dummy        DummyType
+   }
+END
+
+TimeWindow DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   TimeWindowKind ::= ENUMERATED { absolute, relative }
+   TimeWindow ::= SEQUENCE {
+      startTime  INTEGER (0..1000),
+      stopTime   INTEGER (0..1000)
+   }
+END
+
+Dummy DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   DummyType ::= INTEGER (15)
+END
+
+--TCLS     MyPDU[]

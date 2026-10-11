@@ -323,7 +323,7 @@ procedure <sFuncName> ( totalErrors : in out Integer);
 
 emitTestCaseAsFunc_dummy_init(sTypeName, sFuncName, sDummyVarname) ::= <<
 declare
-   dummy : <sTypeName>;
+   dummy : Standard.<sTypeName>;
 begin 
     <sFuncName>(dummy); 
 end;
@@ -331,7 +331,7 @@ end;
 
 emitTestCaseAsFunc_dummy_init_function(sTypeName, sFuncName, sDummyVarname) ::= <<
 declare
-   dummy : <sTypeName>;
+   dummy : Standard.<sTypeName>;
 begin 
     dummy := <sFuncName>; 
 end;

@@ -116,9 +116,11 @@ let rec private handleSequencesAndChoices (r:AstRoot) ((lang, lm): ProgrammingLa
                                         | true     -> None
                                         | false   ->
                                             m.TypeAssignments |> Seq.tryFind(fun tas -> cmp (ToC (lm.lg.getChildInfoName x)) (ToC r.args.TypePrefix + tas.Name.Value) )
-                                    //if the target language supports modules and is case sensitive, then a field name may conflict with a module name.
+                                    //if the target language supports modules, then a field name may conflict with a module name
+                                    //(e.g. Ada, which is case insensitive: "timeWindow : TimeWindow.T" hides package TimeWindow).
+                                    //cmp is case sensitive in case sensitive languages, so there a field name (small letter) never matches a module name (capital letter).
                                     let confilectingModuleName =
-                                        match lm.lg.hasModules && lm.lg.isCaseSensitive with
+                                        match lm.lg.hasModules with
                                         | false     -> None
                                         | true   ->
                                             r.Modules |> Seq.tryFind(fun m -> cmp (ToC (lm.lg.getChildInfoName x)) (ToC m.Name.Value) )
