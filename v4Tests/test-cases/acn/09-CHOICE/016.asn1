@@ -1,0 +1,34 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+-- An ENUMERATED ACN field of the SEQUENCE selects the alternative of an inline
+-- CHOICE ([determinant kind]); q/issues.md 38, PUS-C step 09.
+-- * C: the automatic invalid-value test sets the CHOICE selector to none; the
+--   encoder without constraint checks returned FALSE with error code 0.
+-- * --acn-v2: the decoder switched on the enum local with integer case labels
+--   (meant for a determinant received as a deferred ACN parameter): Ada did not
+--   compile, C compared the item values with the encoded values.
+
+-- Item values differ from the encoded values (index encoding on the type).
+SelKind ::= ENUMERATED {alpha (1), beta (5), gamma (9)}
+
+MyPDU ::= SEQUENCE {
+    body CHOICE {
+        alpha INTEGER (0..15),
+        beta BOOLEAN,
+        gamma NULL
+    },
+    tail INTEGER (0..255)
+}
+
+-- encode-values on the field: the encoded values are the item values.
+MyPDU2 ::= SEQUENCE {
+    body CHOICE {
+        alpha INTEGER (0..15),
+        beta BOOLEAN,
+        gamma NULL
+    }
+}
+
+END
+
+--TCFS     016.acn

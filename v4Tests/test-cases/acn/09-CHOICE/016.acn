@@ -1,0 +1,16 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+SelKind [size 4, encoding pos-int]
+
+MyPDU [] {
+    kind SelKind [],
+    body [determinant kind],
+    tail []
+}
+
+MyPDU2 [] {
+    kind SelKind [encode-values],
+    body [determinant kind]
+}
+
+END

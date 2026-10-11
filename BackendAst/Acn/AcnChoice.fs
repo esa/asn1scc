@@ -51,6 +51,15 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             | true           -> CEC_presWhen
             | false          -> CEC_uper
 
+    // In deferred mode a CHOICE receives its ENUMERATED determinant as an ACN parameter,
+    // i.e. a deferred ref whose value is the encoded integer (Asn1UInt). A determinant field
+    // of the same SEQUENCE (inline CHOICE) is still decoded into a local of the enum type.
+    let isDeferredDeterminant (determinant: Determinant) =
+        match r.args.acnDeferred, determinant with
+        | true, AcnParameterDeterminant _   -> true
+        | true, AcnChildDeterminant _       -> false
+        | false, _                          -> false
+
     let localVariables =
         match ec, codec with
         | _, CommonTypes.Encode             -> []
@@ -192,7 +201,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         // The value is the one the determinant field writes (its own acnEncodeValue),
                         // which can differ from the CHOICE parameter type's (encode-values on the field).
                         let enmCaseName =
-                            if r.args.acnDeferred && codec = Decode then
+                            if isDeferredDeterminant determinant && codec = Decode then
                                 let fieldItem = determinantEnumItems deps determinant enm.enm |> List.find (fun itm -> itm.Name.Value = child.Name.Value)
                                 fieldItem.acnEncodeValue.ToString()
                             else lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem
@@ -261,7 +270,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 // range. In legacy mode the discriminant is the enum type and
                 // when-others would be redundant — Ada flags it as a warning,
                 // which becomes an error under -gnatwe.
-                let bIsDeferred = r.args.acnDeferred
+                let bIsDeferred = isDeferredDeterminant (snd enm)
                 choice_Enum pp access childrenStatements extField td errCode.errCodeName bIsDeferred codec, resultExpr
             | CEC_presWhen    -> choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
