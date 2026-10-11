@@ -76,7 +76,13 @@ init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1Time
 <init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv, tz=tz)>
 >>
 
-assignAny(p, sValue, sTypeDecl) ::= "<p> = (<sTypeDecl>)<sValue>;"
+/* A static constant, not a compound literal: (T){...} is an object on the stack, as large as the type
+   (PUS-C TM[4,2]: 8 MB), and for a top-level array type (IA5String) the assignment only changed the
+   decayed pointer pVal. sPtr is the address of the value. */
+assignAny(p, sPtr, sValue, sTypeDecl) ::= <<
+static const <sTypeDecl> initValue = <sValue>;
+memcpy(<sPtr>, &initValue, sizeof(initValue));
+>>
 assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 

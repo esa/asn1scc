@@ -67,9 +67,9 @@ let init_Asn1Date_LocalTimeWithTimeZone (p:string) (sAcc:string) (dt:Asn1DateVal
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "init_rust" "init_Asn1Date_LocalTimeWithTimeZone" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("dt",dt :>Object);("tv",tv :>Object);("tz",tz :>Object)]
 
-let assignAny (p:string) (sValue:string) (sTypeDecl:string) =
+let assignAny (p:string) (sPtr:string) (sValue:string) (sTypeDecl:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "init_rust" "assignAny" [("p",p :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sTypeDecl",(if sTypeDecl = null then null else ST.StrHelper sTypeDecl:>Object) )]
+    ST.call "init_rust" "assignAny" [("p",p :>Object);("sPtr",(if sPtr = null then null else ST.StrHelper sPtr:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sTypeDecl",(if sTypeDecl = null then null else ST.StrHelper sTypeDecl:>Object) )]
 
 let assignString (p:string) (sValue:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

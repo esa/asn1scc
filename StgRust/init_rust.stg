@@ -73,7 +73,7 @@ init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1Time
 <init_Asn1LocalTimeWithTimeZone(p=p, sAcc=sAcc, tv=tv, tz=tz)>
 >>
 
-assignAny(p, sValue, sTypeDecl) ::= "asn1rust::asn1scc_assign!( <sValue> => <p> );"
+assignAny(p, sPtr, sValue, sTypeDecl) ::= "asn1rust::asn1scc_assign!( <sValue> => <p> );"
 assignString(p, sValue) ::= "<p> = <sValue>;"
 
 

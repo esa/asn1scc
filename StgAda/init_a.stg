@@ -19,7 +19,7 @@ end <sFuncName>;
 >>
 
 
-assignAny(p, sValue, sTypeDecl) ::= "<p> := <sValue>;"
+assignAny(p, sPtr, sValue, sTypeDecl) ::= "<p> := <sValue>;"
 assignString(p, sValue) ::= "<p> := <sValue>;"
 
 

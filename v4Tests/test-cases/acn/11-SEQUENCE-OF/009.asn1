@@ -1,0 +1,20 @@
+-- C_ONLY a type larger than the default 8 MB stack: the Ada _Init functions and test harness need a stack as large as the type
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+-- A type of about 16 MB (65535 elements of 256 bytes, the shape of PUS-C TM[4,2]).
+-- With -ig (init globals; runTests.py always passes it) the C <T>_Initialize built
+-- the initial value as a compound literal, an object on the stack as large as the
+-- type, and the test program crashed (q/issues.md 38, PUS-C S4 step 09).
+
+Item ::= SEQUENCE {
+    id INTEGER (0..255),
+    data OCTET STRING (SIZE(248))
+}
+
+MyPDU ::= SEQUENCE {
+    items SEQUENCE (SIZE(1..65535)) OF Item
+}
+
+END
+
+--TCFS     009.acn

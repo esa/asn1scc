@@ -195,7 +195,7 @@ let createInitFunctionCommon (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (o: As
                 let initProc = 
                     match r.args.generateConstInitGlobals && globalName.IsSome with
                     | true ->
-                        let funcBody = lm.init.assignAny (lm.lg.getValue p.accessPath) globalName.Value tdName
+                        let funcBody = lm.init.assignAny (lm.lg.getValue p.accessPath) (lm.lg.getPointer p.accessPath) globalName.Value tdName
                         let func = initTypeAssignment varName sPtrPrefix sPtrSuffix funcName  tdName funcBody [] initExpression funcDefAnnots
                         let funcDef = initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition)
                         Some {InitProcedure0.funcName = funcName; def = funcDef; body=func}

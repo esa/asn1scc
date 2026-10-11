@@ -1,0 +1,8 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+MyPDU [] {
+    n INTEGER [size 16, encoding pos-int, endianness big],
+    items [size n]
+}
+
+END

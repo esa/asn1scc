@@ -37,8 +37,8 @@ type IInit_rust() =
             init_rust.init_Asn1Date_UtcTime  p sAcc dt tv 
         override this.init_Asn1Date_LocalTimeWithTimeZone  (p:string) (sAcc:string) (dt:Asn1DateValue) (tv:Asn1TimeValue) (tz:Asn1TimeZoneValue) =
             init_rust.init_Asn1Date_LocalTimeWithTimeZone  p sAcc dt tv tz 
-        override this.assignAny  (p:string) (sValue:string) (sTypeDecl:string) =
-            init_rust.assignAny  p sValue sTypeDecl 
+        override this.assignAny  (p:string) (sPtr:string) (sValue:string) (sTypeDecl:string) =
+            init_rust.assignAny  p sPtr sValue sTypeDecl 
         override this.assignString  (p:string) (sValue:string) =
             init_rust.assignString  p sValue 
         override this.initIA5String  (sPtr:string) (sValue:string) (bIsOptional:bool) (sResVar:string) =
