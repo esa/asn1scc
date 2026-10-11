@@ -1,0 +1,38 @@
+-- Fields renamed by -fp AUTO (C / Ada keywords) that are the targets of ACN
+-- determinants: the access path of the determinant update must use the
+-- renamed field (e.g. Ada "MyPDU_type", C "MyPDU_switch"), not the ASN.1 name.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Selector ::= ENUMERATED { type, do }
+
+   MyChoice ::= CHOICE {
+      type   INTEGER (0..255),
+      do     BOOLEAN
+   }
+
+   MyChoice2 ::= CHOICE {
+      type   INTEGER (0..255),
+      do     BOOLEAN
+   }
+
+   Inner ::= SEQUENCE {
+      type   OCTET STRING (SIZE(1..8))
+   }
+
+   MyPDU ::= SEQUENCE {
+      type    OCTET STRING (SIZE(1..10)),
+      switch  IA5String (SIZE(1..10)),
+      record  INTEGER (0..15) OPTIONAL,
+      case    MyChoice,
+      loop    Inner
+   }
+
+   -- separate PDU: the Python backend loses the child classes of a SEQUENCE
+   -- that holds both a present-when CHOICE and a size-determined OCTET STRING
+   MyPDU2 ::= SEQUENCE {
+      do   MyChoice2
+   }
+
+END
+
+--TCFS     004.acn

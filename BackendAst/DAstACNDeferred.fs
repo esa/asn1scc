@@ -62,13 +62,16 @@ let buildRelativeAccess (lm: LanguageMacros) (relParts: ScopeNode list) (specP: 
 /// underscore — Ada rejects leading-underscore identifiers and the same
 /// names are emitted into both C and Ada output.
 let computePatchDetValueExpr
+    (r: Asn1AcnAst.AstRoot)
     (lm: LanguageMacros)
     (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
     (dep: Asn1AcnAst.AcnDependency)
     (boundaryPath: ScopeNode list)
     (specP: CodegenScope)
     : (string option * string) =
-    let fieldPath = dep.asn1Type.ToScopeNodeList
+    // backend names of the children (fields renamed by -fp AUTO)
+    let backendType = withBackendChildNames r lm dep.asn1Type
+    let fieldPath = backendType.ToScopeNodeList
     let relParts = fieldPath |> List.skip boundaryPath.Length
     match dep.dependencyKind with
     | Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _) ->
@@ -86,7 +89,7 @@ let computePatchDetValueExpr
         // dep.asn1Type points to the OPTIONAL child; parent is one level up
         let parentRelParts = relParts |> List.rev |> List.tail |> List.rev
         let (parentExpr, pAcc) = buildRelativeAccess lm parentRelParts specP
-        let childName = ToC (dep.asn1Type.lastItem)
+        let childName = ToC (backendType.lastItem)
         (None, lm.acn.acn_deferred_det_value_presence_bool parentExpr pAcc childName)
 
     | Asn1AcnAst.AcnDepPresence (relPath, chc) ->
@@ -597,7 +600,7 @@ let private createDeferredSequenceFunction
                                 match lm.lg.getDeferredDetFunctions determinant.Type with
                                 | None -> None
                                 | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                    let preBlock, rawValueExpr = computePatchDetValueExpr lm deps dep parentPath root
+                                    let preBlock, rawValueExpr = computePatchDetValueExpr r lm deps dep parentPath root
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
@@ -664,7 +667,7 @@ let private createDeferredSequenceFunction
                             | None -> []
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 siblingConsumers ac.id |> List.map (fun dep root ->
-                                    let preBlock, rawValueExpr = computePatchDetValueExpr lm deps dep parentPath root
+                                    let preBlock, rawValueExpr = computePatchDetValueExpr r lm deps dep parentPath root
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
@@ -993,7 +996,7 @@ let private appendPatchDetCalls
                         match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
                         | None -> None
                         | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.lm ctx.deps dep boundaryPath specP
+                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
                             // but ConstSize encodes value directly, so subtract the offset.
                             let valueExpr =

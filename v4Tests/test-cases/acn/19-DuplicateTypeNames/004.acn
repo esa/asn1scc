@@ -1,0 +1,31 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+   Selector [encoding pos-int, size 8]
+
+   MyChoice <Selector:sel> [determinant sel]
+
+   MyChoice2 <INTEGER:id> [] {
+      type   [present-when id==1],
+      do     [present-when id==2]
+   }
+
+   MyPDU [] {
+      len1    INTEGER [size 8, encoding pos-int],
+      len2    INTEGER [size 8, encoding pos-int],
+      hasRec  BOOLEAN [true-value '1'B],
+      sel     Selector [],
+      len3    INTEGER [size 8, encoding pos-int],
+      type    [size len1],
+      switch  [size len2],
+      record  [present-when hasRec],
+      case    <sel> [],
+      loop    [] {
+         type [size len3]
+      }
+   }
+
+   MyPDU2 [] {
+      id   INTEGER [size 8, encoding pos-int],
+      do   <id> []
+   }
+END

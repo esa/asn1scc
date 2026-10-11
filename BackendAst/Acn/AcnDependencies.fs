@@ -32,8 +32,13 @@ let initExpr (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module
 // Intra-sequence deps resolve to the current SEQUENCE (shortest fold).
 // Sibling/outer deps resolve to an ancestor whose scope matches the dep's
 // outer TA, giving the correct base pVal for the fold.
-let resolveDepScope (nestingScope: NestingScope) (pSrcRoot: CodegenScope) (depPath: ReferenceToType) : CodegenScope * ReferenceToType =
+//
+// The returned path carries the backend names of the SEQUENCE / CHOICE
+// children (withBackendChildNames), so that the access path built from it
+// matches the generated type definitions.
+let rec resolveDepScope (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (nestingScope: NestingScope) (pSrcRoot: CodegenScope) (depPath: ReferenceToType) : CodegenScope * ReferenceToType =
     let (ReferenceToType depNodes) = depPath
+    let (ReferenceToType backendNodes) = withBackendChildNames r lm depPath
     let candidates = nestingScope.parents |> List.map (fun (p, t) -> (p, t.id))
     let matching =
         candidates |> List.tryFind (fun (_, ReferenceToType scopeNodes) ->
@@ -42,10 +47,35 @@ let resolveDepScope (nestingScope: NestingScope) (pSrcRoot: CodegenScope) (depPa
     match matching with
     | Some (scope, ReferenceToType scopeNodes) ->
         let n = List.length scopeNodes
-        let remaining = ReferenceToType (List.take 2 scopeNodes @ List.skip n depNodes)
+        let remaining = ReferenceToType (List.take 2 scopeNodes @ List.skip n backendNodes)
         scope, remaining
     | None ->
-        pSrcRoot, depPath
+        pSrcRoot, ReferenceToType backendNodes
+
+// The scope nodes of a type path with the backend names of the SEQUENCE and
+// CHOICE children instead of their ASN.1 names. The two differ when -fp AUTO
+// renames a field (EnsureUniqueEnumNames: a keyword, a type name or a module
+// name), e.g. Ada "type" -> "MyPDU_type", C "switch" -> "MyPDU_switch".
+// A node whose child cannot be found keeps its ASN.1 name.
+and withBackendChildNames (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (path: ReferenceToType) : ReferenceToType =
+    let rec walk (t: Asn1AcnAst.Asn1Type option) (nodes: ScopeNode list) : ScopeNode list =
+        match nodes, t |> Option.map (fun t -> t.ActualType.Kind) with
+        | [], _ -> []
+        | (SEQ_CHILD (name, isOpt)) :: rest, Some (Asn1AcnAst.Sequence s) ->
+            match s.children |> List.tryPick (fun c -> match c with Asn1AcnAst.Asn1Child c when c.Name.Value = name -> Some c | _ -> None) with
+            | Some c -> SEQ_CHILD (lm.lg.getAsn1ChildBackendName0 c, isOpt) :: walk (Some c.Type) rest
+            | None   -> SEQ_CHILD (name, isOpt) :: walk None rest
+        | (CH_CHILD (name, preName, chParent)) :: rest, Some (Asn1AcnAst.Choice ch) ->
+            match ch.children |> List.tryFind (fun (c: Asn1AcnAst.ChChildInfo) -> c.Name.Value = name) with
+            | Some c -> CH_CHILD (lm.lg.getAsn1ChChildBackendName0 c, preName, chParent) :: walk (Some c.Type) rest
+            | None   -> CH_CHILD (name, preName, chParent) :: walk None rest
+        | SQF :: rest, Some (Asn1AcnAst.SequenceOf sqf) -> SQF :: walk (Some sqf.child) rest
+        | n :: rest, _ -> n :: walk None rest
+    match path with
+    | ReferenceToType ((MD md) :: (TA tas) :: xs) ->
+        let tasType = r.typeAssignmentsMap.TryFind (md, tas) |> Option.map (fun ts -> ts.Type)
+        ReferenceToType ((MD md) :: (TA tas) :: walk tasType xs)
+    | _ -> path
 
 /// Find which acnParameter is the CONTAINING size determinant by checking
 /// the dependency list for AcnDepSizeDeterminant_bit_oct_str_contain.
@@ -115,7 +145,7 @@ and private handleSizeDeterminant (ctx: DepContext) (minSize: SIZE) (maxSize: SI
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
     let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
         let v = lm.lg.getValue vTarget.accessPath
-        let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+        let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath false lm pBase
         let unsigned =
             match child.Type with
@@ -171,7 +201,7 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
             if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
             else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
-        let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+        let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath false lm pBase
         let sInner =
             match asn1TypeD.acnEncFunction with
@@ -196,7 +226,7 @@ and private handleIA5StringSizeDeterminant (ctx: DepContext) (minSize: SIZE) (ma
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
     let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
         let v = lm.lg.getValue vTarget.accessPath
-        let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+        let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath true lm pBase
         let updateStatement = lm.acn.SizeDependency v (lm.acn.getStringSize (pSizeable.accessPath.joined lm.lg)) minSize.uper maxSize.uper true child.typeDefinitionBodyWithinSeq
         match checkPath with
@@ -230,9 +260,9 @@ and private handlePresenceBool (ctx: DepContext) (us: State) =
             if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
             else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
-            let pBase, relPath = resolveDepScope nestingScope pSrcRoot parDecTypeSeq
+            let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot parDecTypeSeq
             let pDecParSeq, checkPath = getAccessFromScopeNodeList relPath false lm pBase
-            let updateStatement = lm.acn.PresenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC d.asn1Type.lastItem)
+            let updateStatement = lm.acn.PresenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC (withBackendChildNames r lm d.asn1Type).lastItem)
             match checkPath with
             | []    -> updateStatement
             | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
@@ -263,7 +293,7 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
             if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
             else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
-        let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type
+        let pBase, relPath1 = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
         let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
         let arrsChildUpdates =
@@ -301,7 +331,7 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
     let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
         let v = lm.lg.getValue vTarget.accessPath
-        let pBase, relPath1 = resolveDepScope nestingScope pSrcRoot d.asn1Type
+        let pBase, relPath1 = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
         let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
         let sInsertedFieldTypeName =
@@ -353,7 +383,7 @@ and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.Reference
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
     let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
         let v = lm.lg.getValue vTarget.accessPath
-        let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+        let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath false lm pBase
         let arrsChildUpdates =
             chc.children |>
@@ -439,7 +469,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                 List.mapi (fun i d ->
                     let cmp = getDeterminantTypeUpdateMacro lm d.determinant
                     let vi = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
-                    let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+                    let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
                     let choicePath, _ = getAccessFromScopeNodeList relPath d.dependencyKind.isString lm pBase
                     cmp v vi (choicePath.accessPath.joined lm.lg) (i=0) (ds2.Length = 1))
             let arrsLocalCheckEquality =
@@ -447,7 +477,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                 List.mapi (fun i d ->
                     let cmp = getDeterminantTypeCheckEqual lm d.determinant
                     let vi = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
-                    let pBase, relPath = resolveDepScope nestingScope pSrcRoot d.asn1Type
+                    let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
                     let choicePath, _ = getAccessFromScopeNodeList relPath d.dependencyKind.isString lm pBase
                     cmp v vi (choicePath.accessPath.joined lm.lg) (isAlwaysInit d))
             let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) arrsLocalUpdateStatements arrsGetFirstIntValue firstAlwaysInit.IsSome arrsLocalCheckEquality (initExpr r lm m child.Type)
