@@ -67,7 +67,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r deps icdStgFileName lm Codec.Decode ch.id a (defOrRef r m a) ns1
         | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps lm Codec.Decode ch.id a ns1
 
-    let funcUpdateStatement, ns3 =
+    let funcUpdateStatement, deferredTestCaseFnc, ns3 =
         // In deferred mode (--acn-v2), ACN children that will use InitDet/PatchDet
         // (Περίπτωση Β) don't need funcUpdateStatement — their value is patched
         // later by PatchDet inside child functions.  Same-level determinants
@@ -76,10 +76,13 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
             match parentData with
             | DAst.SequenceParentData deferredNames -> Set.contains ch.Name.Value deferredNames
             | _ -> false
+        // A deferred child still needs the value it takes for an automatic test value (CHOICEs
+        // sharing it must select the same alternative, AcnSequence.isTestCaseValidForAcnChildren).
         if isDeferred then
-            None, ns2
+            None, Some (DAstACN.deferredDeterminantTestCaseFnc deps ch.id), ns2
         else
-            DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
+            let updateResult, ns = DAstACN.getUpdateFunctionUsedInEncoding r deps lm m ch.id ns2
+            updateResult, None, ns
     let c_name         = ch.c_name //DAstACN.getAcnDeterminantName ch.id
 
     let newFuncBody (codec:Codec) (prms:((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)) (nestingScope: NestingScope) (p:CodegenScope) (lvName:string): AcnFuncBodyResult option=
@@ -121,6 +124,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
             typeDefinitionBodyWithinSeq = tdBodyWithinSeq
             funcBody                    = DAstACN.handleAlignmentForAcnTypes r lm acnAlignment newFuncBody
             funcUpdateStatement         = funcUpdateStatement
+            deferredTestCaseFnc         = deferredTestCaseFnc
             Comments                    = ch.Comments
             deps                        = { acnDependencies = dealiasedDeps }
             initExpression              = initExpression

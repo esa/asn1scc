@@ -768,7 +768,11 @@ let private createDeferredSequenceFunction
                | [] -> None
                | blocks -> Some (fun p -> blocks |> List.map (fun block -> block p) |> String.concat "\n")
 
-        DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc modifiedChildren acnPrms epilogue us
+        // The deferred determinants of modifiedChildren carry no update statement (their value
+        // is patched by the consumers), so check the automatic test values against the original
+        // children: CHOICEs sharing a determinant must select the same alternative.
+        let acnFunction, ns = DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc modifiedChildren acnPrms epilogue us
+        {acnFunction with isTestVaseValid = DAstACN.isTestCaseValidForAcnChildren children}, ns
 
 
 // ---------------------------------------------------------------------------

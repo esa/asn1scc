@@ -89,9 +89,11 @@ let initExpr = AcnDependencies.initExpr
 let resolveDepScope = AcnDependencies.resolveDepScope
 let handleSingleUpdateDependency = AcnDependencies.handleSingleUpdateDependency
 let getUpdateFunctionUsedInEncoding = AcnDependencies.getUpdateFunctionUsedInEncoding
+let deferredDeterminantTestCaseFnc = AcnDependencies.deferredDeterminantTestCaseFnc
 
 // SEQUENCE encoder — moved to BackendAst/Acn/AcnSequence.fs.
 let createSequenceFunction_inline = AcnSequence.createSequenceFunction_inline
+let isTestCaseValidForAcnChildren = AcnSequence.isTestCaseValidForAcnChildren
 
 // CHOICE encoder — moved to BackendAst/Acn/AcnChoice.fs.
 let createChoiceFunction = AcnChoice.createChoiceFunction

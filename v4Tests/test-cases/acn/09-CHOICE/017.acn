@@ -1,0 +1,28 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+SelKind [size 2, encoding pos-int, encode-values]
+StatusA [size 2, encoding pos-int, encode-values]
+StatusB [size 2, encoding pos-int, encode-values]
+
+Mask <SelKind: k> [determinant k]
+Status <SelKind: k> [determinant k]
+
+Notif [] {
+    kind SelKind [],
+    mask <kind> [],
+    prev <kind> [],
+    cur <kind> []
+}
+
+NotifList [] {
+    n INTEGER [size 8, encoding pos-int],
+    items [size n]
+}
+
+Direct [] {
+    kind SelKind [],
+    mask [determinant kind],
+    status [determinant kind]
+}
+
+END

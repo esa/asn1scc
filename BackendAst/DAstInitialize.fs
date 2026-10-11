@@ -223,6 +223,23 @@ let createInitFunctionCommon (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (o: As
         nonEmbeddedChildrenFuncs = nonEmbeddedChildrenFuncs
     }
 
+/// The automatic test values of a child type that a parent combines into its own ones. With ACN,
+/// only the values the child's own ACN encoder accepts (isTestVaseValid: all its ACN-inserted
+/// fields can be computed from the value, e.g. CHOICEs that share a determinant select the same
+/// alternative). The top-level filter (DastTestCaseCreation) sees only the ACN fields of the type
+/// under test, so an invalid value of a nested SEQUENCE (SEQUENCE OF element, child) reached the
+/// test and failed in encoding (PUS-C S12 TransitionNotification). When no value is valid, all
+/// are kept, as before.
+let acnValidChildTestCases (r:Asn1AcnAst.AstRoot) (child:Asn1Type) : AutomaticTestCase list =
+    let atcs = child.initFunction.automaticTestCases
+    match r.args.hasAcn, child.ActualType.acnEncFunction with
+    | false, _              -> atcs
+    | true, None            -> atcs
+    | true, Some acnEnc     ->
+        match atcs |> List.filter acnEnc.isTestVaseValid with
+        | []    -> atcs
+        | valid -> valid
+
 let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference)  =
     let initInteger = lm.init.initInteger
     let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
@@ -847,8 +864,8 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
             let seqOfCase_aux (nSize:BigInteger) =
                 match nSize > 0I with
                 | true ->
-                    let totalChildAtcs = childType.initFunction.automaticTestCases.Length
-                    let childTestCases = childType.initFunction.automaticTestCases
+                    let childTestCases = acnValidChildTestCases r childType
+                    let totalChildAtcs = childTestCases.Length
                     let test_case_bundles = int (totalChildAtcs.AsBigInt / nSize)
                     let last_test_case_bundle_size = int (totalChildAtcs.AsBigInt % nSize)
                     seq {
@@ -971,7 +988,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
 
         let handleChild (ch:Asn1Child) =
             let childTypeDef = ch.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
-            ch.Type.initFunction.automaticTestCases |>
+            acnValidChildTestCases r ch.Type |>
             List.collect(fun atc ->
                 let presentFunc  =
                     let initTestCaseFunc (p:CodegenScope) =
@@ -1236,7 +1253,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             let sChildTempVarName = (ToC ch.chType.id.AsString) + "_tmp"
             // Get the child type's type definition for module-aware naming
             let childTk = lm.lg.getTypeDefinition ch.chType.FT_TypeDefinition
-            ch.chType.initFunction.automaticTestCases |> Seq.toList |>
+            acnValidChildTestCases r ch.chType |>
             List.map(fun atc ->
                 let fnc = atc.initTestCaseFunc
                 let presentFunc (p:CodegenScope) =

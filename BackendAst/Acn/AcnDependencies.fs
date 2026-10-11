@@ -119,6 +119,104 @@ let icdCommentsForDependency (d: AcnDependency) : string list =
     | AcnDepPresenceStr _                             -> []
     | AcnDepChoiceDeterminant (_, chc, _)             -> [sprintf "Used as a presence determinant for %s " (chc.typeDef[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)]
 
+/// The value of a determinant computed from an automatic test value, per dependency; None when it
+/// cannot be computed (the test value is then not valid for ACN). The update handlers below use it,
+/// and so does an --acn-v2 deferred determinant, which has no update statement (DAstConstruction);
+/// it needs no state and generates no code.
+let private dependencyTestCaseFnc (d:AcnDependency) (atc:AutomaticTestCase) : TestCaseValue option =
+    let selectedChildren (chc:Asn1AcnAst.Choice) =
+        chc.children |> List.filter(fun ch -> atc.testCaseTypeIDsMap.ContainsKey ch.Type.id)
+    let presentWhen (relPath:AcnGenericTypes.RelativePath) (ch:Asn1AcnAst.ChChildInfo) =
+        ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
+    match d.dependencyKind with
+    | AcnDepRefTypeArgument _ ->
+        raise (BugErrorException "dependencyTestCaseFnc: a reference argument takes the value of the parameter's dependencies")
+    | AcnDepSizeDeterminant _
+    | AcnDepSizeDeterminant_bit_oct_str_contain _
+    | AcnDepIA5StringSizeDeterminant _ ->
+        atc.testCaseTypeIDsMap.TryFind d.asn1Type
+    | AcnDepPresenceBool ->
+        match atc.testCaseTypeIDsMap.TryFind(d.asn1Type) with
+        | Some _    -> Some TcvComponentPresent
+        | None      -> Some TcvComponentAbsent
+    | AcnDepPresence (relPath, chc) ->
+        let updateValues =
+            selectedChildren chc |>
+            List.choose(fun ch ->
+                match presentWhen relPath ch with
+                | PresenceInt   (_, intVal) -> Some (TcvChoiceAlternativePresentWhenInt intVal.Value)
+                | PresenceStr   (_, strVal) -> None)
+        match updateValues with
+        | v1::[]    -> Some v1
+        | _         -> None
+    | AcnDepPresenceStr (relPath, chc, _) ->
+        let updateValues =
+            selectedChildren chc |>
+            List.choose(fun ch ->
+                match presentWhen relPath ch with
+                | PresenceInt   (_, intVal) -> None
+                | PresenceStr   (_, strVal) -> Some (TcvChoiceAlternativePresentWhenStr strVal.Value))
+        match updateValues with
+        | v1::[]    -> Some v1
+        | _         -> None
+    | AcnDepChoiceDeterminant (enm, chc, _) ->
+        // The enum item of the selected alternative. Several CHOICEs can share one determinant
+        // (directly or through ACN parameters); MultiAcnUpdate accepts the test value only when
+        // they all yield the same value, so the alternative must be part of it (TcvAnyValue made
+        // any combination look valid, PUS-C TransitionNotification). When the map does not tell
+        // one alternative (type ids merged from two values of the same CHOICE type) keep the old value.
+        match selectedChildren chc with
+        | [ch]  ->
+            match enm.enm.items |> List.tryFind (fun itm -> itm.Name.Value = ch.Name.Value) with
+            | Some itm  -> Some (TcvEnumeratedValue itm.Name.Value)
+            | None      -> atc.testCaseTypeIDsMap.TryFind d.asn1Type
+        | _     -> atc.testCaseTypeIDsMap.TryFind d.asn1Type
+
+/// Several dependencies of one determinant. A dependency that yields no value for this test value
+/// belongs to a part of the value that is absent (e.g. another alternative of a CHOICE that receives
+/// the determinant as an ACN argument). The encoder skips such dependencies at run time
+/// (<name>_is_initialized), so the test value is valid when at least one dependency yields a value
+/// and all yielded values agree.
+let private agreedTestCaseValue (fncs:(AutomaticTestCase -> TestCaseValue option) option list) (atc:AutomaticTestCase) : TestCaseValue option =
+    let updateValues = fncs |> List.map(fun z -> match z with None -> None | Some f -> f atc)
+    match updateValues |> List.choose id with
+    | []        -> None
+    | u1::us    ->
+        match us |> Seq.exists(fun z -> z <> u1) with
+        | true  -> None
+        | false -> Some u1
+
+type private DeferredTestValue =
+    | NoConsumerValue                   // no consumer of the determinant is in the value
+    | AgreedValue of TestCaseValue
+    | Conflict                          // two consumers need different values
+
+/// The value of an --acn-v2 deferred determinant for an automatic test value, computed without
+/// generating code (such a determinant has no update statement, DAstConstruction). Unlike the
+/// legacy update statement, a value without any consumer is valid: the encoder then patches the
+/// fallback value. Only consumers that need different values (CHOICEs sharing the determinant
+/// that select different alternatives) make the test value invalid.
+let deferredDeterminantTestCaseFnc (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (determinantId:ReferenceToType) (atc:AutomaticTestCase) : TestCaseValue option =
+    let rec valueOf (detId:ReferenceToType) =
+        let single (d:AcnDependency) =
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument acnPrm -> valueOf acnPrm.id
+            | _ ->
+                match dependencyTestCaseFnc d atc with
+                | Some v    -> AgreedValue v
+                | None      -> NoConsumerValue
+        let results = deps.acnDependencies |> List.filter(fun d -> d.determinant.id = detId) |> List.map single
+        match results |> List.contains Conflict with
+        | true  -> Conflict
+        | false ->
+            match results |> List.choose (fun r -> match r with AgreedValue v -> Some v | _ -> None) with
+            | []        -> NoConsumerValue
+            | v1::vs    -> if vs |> List.exists ((<>) v1) then Conflict else AgreedValue v1
+    match valueOf determinantId with
+    | AgreedValue v     -> Some v
+    | NoConsumerValue   -> Some TcvAnyValue
+    | Conflict          -> None
+
 let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (d:AcnDependency)  (us:State) =
     let ctx = { r=r; deps=deps; lm=lm; m=m; d=d }
     match d.dependencyKind with
@@ -159,8 +257,7 @@ and private handleSizeDeterminant (ctx: DepContext) (minSize: SIZE) (maxSize: SI
         match checkPath with
         | []    -> updateStatement
         | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
-    let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-        atc.testCaseTypeIDsMap.TryFind d.asn1Type
+    let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
@@ -216,8 +313,7 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
         match checkPath with
         | []    -> updateStatement
         | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
-    let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-        atc.testCaseTypeIDsMap.TryFind d.asn1Type
+    let testCaseFnc = dependencyTestCaseFnc d
     let localVars = lm.lg.acn.getAcnDepSizeDeterminantLocVars sReqBytesForUperEncoding
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=errCodes0; testCaseFnc=testCaseFnc; localVariables= localVariables0@localVars}), ns
@@ -236,8 +332,7 @@ and private handleIA5StringSizeDeterminant (ctx: DepContext) (minSize: SIZE) (ma
         match checkPath with
         | []    -> updateStatement
         | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
-    let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-        atc.testCaseTypeIDsMap.TryFind d.asn1Type
+    let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
@@ -270,10 +365,7 @@ and private handlePresenceBool (ctx: DepContext) (us: State) =
             match checkPath with
             | []    -> updateStatement
             | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
-    let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-        match atc.testCaseTypeIDsMap.TryFind(d.asn1Type) with
-        | Some _    -> Some TcvComponentPresent
-        | None      -> Some TcvComponentAbsent
+    let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
@@ -317,18 +409,7 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
         match checkPath with
         | []    -> updateStatement
         | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
-    let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-        let updateValues =
-            chc.children |>
-            List.filter(fun ch -> atc.testCaseTypeIDsMap.ContainsKey ch.Type.id) |>
-            List.choose(fun ch ->
-                let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                match pres with
-                | PresenceInt   (_, intVal) -> Some (TcvChoiceAlternativePresentWhenInt intVal.Value)
-                | PresenceStr   (_, strVal) -> None)
-        match updateValues with
-        | v1::[]    -> Some v1
-        | _         -> None
+    let testCaseFnc = dependencyTestCaseFnc d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
 and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.RelativePath) (chc: Asn1AcnAst.Choice) (str: Asn1AcnAst.StringType) (us: State) =
@@ -368,18 +449,7 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
         match checkPath with
         | []    -> updateStatement
         | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
-    let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-        let updateValues =
-            chc.children |>
-            List.filter(fun ch -> atc.testCaseTypeIDsMap.ContainsKey ch.Type.id) |>
-            List.choose(fun ch ->
-                let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                match pres with
-                | PresenceInt   (_, intVal) -> None
-                | PresenceStr   (_, strVal) -> Some (TcvChoiceAlternativePresentWhenStr strVal.Value))
-        match updateValues with
-        | v1::[]    -> Some v1
-        | _         -> None
+    let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = []
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc = testCaseFnc; localVariables=[]}), us
 
@@ -402,8 +472,7 @@ and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.Reference
         match checkPath with
         | []    -> updateStatement2
         | _     -> lm.acn.checkAccessPath checkPath updateStatement2 v (initExpr r lm m child.Type)
-    let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-        atc.testCaseTypeIDsMap.TryFind d.asn1Type
+    let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
@@ -486,20 +555,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                     cmp v vi (choicePath.accessPath.joined lm.lg) (isAlwaysInit d))
             let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) arrsLocalUpdateStatements arrsGetFirstIntValue firstAlwaysInit.IsSome arrsLocalCheckEquality (initExpr r lm m child.Type)
             updateStatement
-        let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-            // A dependency that yields no value for this test value belongs to a part of
-            // the value that is absent (e.g. another alternative of a CHOICE that receives
-            // the determinant as an ACN argument). The encoder skips such dependencies at
-            // run time (<name>_is_initialized), so the test value is valid when at least one
-            // dependency yields a value and all yielded values agree.
-            let updateValues =
-                localUpdateFuns |> List.map(fun z -> match z with None -> None | Some res -> res.testCaseFnc atc)
-            match updateValues |> List.choose id with
-            | []        -> None
-            | u1::us    ->
-                match us |> Seq.exists(fun z -> z <> u1) with
-                | true  -> None
-                | false -> Some u1
+        let testCaseFnc = agreedTestCaseValue (localUpdateFuns |> List.map (Option.map (fun res -> res.testCaseFnc)))
 
         let ret = Some(({AcnChildUpdateResult.updateAcnChildFnc = multiUpdateFunc; icdComments=icdComments; errCodes=errCode::restErrCodes ; testCaseFnc = testCaseFnc; localVariables = restLocalVariables}))
         ret, ns

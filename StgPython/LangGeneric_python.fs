@@ -990,6 +990,7 @@ type LangGeneric_python() =
                             typeDefinitionBodyWithinSeq = getDeterminantTypeFunc crossDep.dependency.determinant
                             funcBody = (fun _ _ _ _ _ -> None) // Dummy function body - not used for update (5 parameters)
                             funcUpdateStatement = Some updateFunc
+                            deferredTestCaseFnc = None
                             Comments = [||] // Empty array
                             deps = { Asn1AcnAst.AcnInsertedFieldDependencies.acnDependencies = [crossDep.dependency] }
                             initExpression = initExpr currentModule (match crossDep.dependency.determinant with AcnChildDeterminant ch -> ch.Type | _ -> failwith "Expected AcnChildDeterminant")

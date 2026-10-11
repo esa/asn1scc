@@ -401,6 +401,18 @@ let private printPresenceBit
 // patch determinants whose consumer never executed.  Threaded as plain
 // text instead of via a synthetic AcnChild — see DAstACNDeferred for
 // the rationale.
+/// An automatic test value is valid for the ACN encoding of a SEQUENCE when every ACN child
+/// can be updated from the value during the encoding.
+let isTestCaseValidForAcnChildren (children:SeqChildInfo list) (atc:AutomaticTestCase) =
+    children |>
+    List.choose(fun x -> match x with AcnChild z -> Some z | Asn1Child _ -> None) |>
+    List.filter (fun acnChild -> match acnChild.Type with AcnNullType _ -> false | _ -> true) |>
+    Seq.forall(fun acnChild ->
+        match acnChild.funcUpdateStatement, acnChild.deferredTestCaseFnc with
+        | Some funcUpdateStatement, _   -> (funcUpdateStatement.testCaseFnc atc).IsSome
+        | None, Some testCaseFnc        -> (testCaseFnc atc).IsSome
+        | None, None                    -> false)
+
 let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (_:DastAcnParameter list) (fallbackEpilogue:(CodegenScope -> string) option) (us:State)  =
     (*
         1. all Acn inserted children are declared as local variables in the encoded and decode functions (declaration step)
@@ -659,15 +671,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             //Console.Out.WriteLine (FrontEntMain.formatSemanticWarning loc errMessage)
             //None, ns
 
-    let isTestVaseValid (atc:AutomaticTestCase) =
-        //an automatic test case value is valid
-        //if all ach children can be update during the encoding from the value
-        acnChildren |>
-        List.filter (fun acnChild -> match acnChild.Type with AcnNullType _ -> false | _ -> true) |>
-        Seq.forall(fun acnChild ->
-            match acnChild.funcUpdateStatement with
-            | Some funcUpdateStatement -> (funcUpdateStatement.testCaseFnc atc).IsSome
-            | None                     -> false)
+    let isTestVaseValid (atc:AutomaticTestCase) = isTestCaseValidForAcnChildren children atc
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
 
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody isTestVaseValid soSparkAnnotations  [] us

@@ -896,6 +896,9 @@ and AcnChild = {
     typeDefinitionBodyWithinSeq : string
     funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> string-> (AcnFuncBodyResult option)            // returns a list of validations statements
     funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement
+    // --acn-v2 deferred determinant (no funcUpdateStatement): the value it takes for an
+    // automatic test value, used only to filter the automatic tests
+    deferredTestCaseFnc         : (AutomaticTestCase -> TestCaseValue option) option
     Comments                    : string array
     deps                        : Asn1AcnAst.AcnInsertedFieldDependencies
     initExpression              : string

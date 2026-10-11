@@ -1,0 +1,49 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+-- One ENUMERATED ACN field selects the alternative of several CHOICEs, so a valid
+-- value selects the same alternative in all of them (PUS-C TransitionNotification,
+-- q/issues.md 38, step 09). The automatic test values combined the alternatives of
+-- the CHOICEs independently: the encoder rejected most of them, also inside a
+-- SEQUENCE OF, whose elements were not filtered by the element's ACN fields.
+
+SelKind ::= ENUMERATED {alpha (0), beta (1)}
+
+Mask ::= CHOICE {
+    alpha INTEGER (0..3),
+    beta NULL
+}
+
+Status ::= CHOICE {
+    alpha StatusA,
+    beta StatusB
+}
+StatusA ::= ENUMERATED {ax (0), ay (1), az (2)}
+StatusB ::= ENUMERATED {bu (0), bv (1), bw (2), bt (3)}
+
+-- PUS-C shape: the CHOICEs receive the field as an ACN parameter.
+Notif ::= SEQUENCE {
+    mask Mask,
+    prev Status,
+    cur Status
+}
+
+-- The same inside a SEQUENCE OF with a size determinant (TM[12,11]).
+NotifList ::= SEQUENCE {
+    items SEQUENCE (SIZE(1..20)) OF Notif
+}
+
+-- Inline CHOICEs with the field as determinant.
+Direct ::= SEQUENCE {
+    mask CHOICE {
+        alpha INTEGER (0..3),
+        beta NULL
+    },
+    status CHOICE {
+        alpha StatusA,
+        beta StatusB
+    }
+}
+
+END
+
+--TCFS     017.acn
