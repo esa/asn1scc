@@ -2082,6 +2082,15 @@ acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> = 
 acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
 acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "<sDetAccess> = <sTmpName> as u64;"
 
+/* Enum tmp variant whose field writes other values than the enum discriminants. */
+acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "    <sItemName> => <sValue>,"
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= <<
+<sDetAccess> = match <sTmpName> {
+<arrsCases; separator="\n">
+};
+>>
+
 /* Group D: Access paths (codec-independent) */
 
 /* Local det value access: det.value */

@@ -2171,6 +2171,17 @@ if result.Success then
 end if;
 >>
 
+/* Enum tmp variant whose field writes other values than the enum representation
+   (item indexes): det.Value must hold what the field writes, so map each item. */
+acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "when <sItemName> => adaasn1rtl.Asn1UInt(<sValue>)"
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= <<
+if result.Success then
+    <sDetAccess> := (case <sTmpName> is
+        <arrsCases; separator=",\n">);
+end if;
+>>
+
 /* Group D: Access paths (codec-independent) */
 
 /* Local det value access. Since Ada records are passed by reference,

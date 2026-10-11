@@ -63,6 +63,7 @@ let buildRelativeAccess (lm: LanguageMacros) (relParts: ScopeNode list) (specP: 
 /// names are emitted into both C and Ada output.
 let computePatchDetValueExpr
     (lm: LanguageMacros)
+    (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
     (dep: Asn1AcnAst.AcnDependency)
     (boundaryPath: ScopeNode list)
     (specP: CodegenScope)
@@ -122,8 +123,11 @@ let computePatchDetValueExpr
         let (choiceExpr, acc) = buildRelativeAccess lm relParts specP
         let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
         let varName = lm.lg.acnDeferredTempVarName "patchDetVal"
+        // The value the determinant field itself writes (its own acnEncodeValue): the
+        // CHOICE parameter type may be encoded differently (e.g. encode-values on the field).
+        let fieldItems = determinantEnumItems deps dep.determinant enm.enm
         let switchItems = chc.children |> List.map (fun ch ->
-            let enmItem = enm.enm.items |> List.find (fun itm -> itm.Name.Value = ch.Name.Value)
+            let enmItem = fieldItems |> List.find (fun itm -> itm.Name.Value = ch.Name.Value)
             let presentWhenName = ch.presentWhenName
             // Emit the ACN-encoded integer value (not the enum literal name) so
             // the assignment target — det.Value of type Asn1UInt — accepts it
@@ -265,6 +269,7 @@ let private createDeferredSequenceFunction
         (acnPrms:DastAcnParameter list)
         (us:State) =
 
+    let typePrefix = r.args.TypePrefix
     // Deferred determinant names come from two sources:
     //   (a) child ReferenceTypes' acnArguments — the parent SEQUENCE declares
     //       AcnInsertedFieldRef variables and passes them to children
@@ -497,13 +502,23 @@ let private createDeferredSequenceFunction
                                                 match ac.Type with
                                                 | Asn1AcnAst.AcnInsertedType.AcnBoolean _ ->
                                                     lm.acn.acn_deferred_det_copy_bool_tmp detAccess tmpName CommonTypes.Codec.Decode
-                                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated _ ->
+                                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm
+                                                        when enm.enumerated.items |> List.forall (fun itm -> itm.acnEncodeValue = itm.definitionValue) ->
                                                     // For enum tmp, Ada needs <EnumType>'Enum_Rep(tmp).
                                                     // The local var declaration above uses
                                                     // ac.typeDefinitionBodyWithinSeq as the enum type
                                                     // name; reuse it here.
                                                     let enumTypeName = ac.typeDefinitionBodyWithinSeq
                                                     lm.acn.acn_deferred_det_copy_enum_tmp detAccess tmpName enumTypeName CommonTypes.Codec.Decode
+                                                | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
+                                                    // det.value holds what the field writes (its acnEncodeValue, e.g.
+                                                    // the item index), which here differs from the enum value: map it.
+                                                    let defOrRef =
+                                                        let programUnit = if p.modName = ToC enm.modName.Value then None else Some (ToC enm.modName.Value)
+                                                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = programUnit; typedefName = ToC (typePrefix + enm.tasName.Value); definedInRtl = false}
+                                                    let cases = enm.enumerated.items |> List.map (fun itm ->
+                                                        lm.acn.acn_deferred_det_enum_wire_case (lm.lg.getNamedItemBackendName (Some defOrRef) itm) detAccess (itm.acnEncodeValue.ToString()))
+                                                    lm.acn.acn_deferred_det_copy_enum_wire_tmp detAccess tmpName cases CommonTypes.Codec.Decode
                                                 | _ ->
                                                     lm.acn.acn_deferred_det_copy_tmp detAccess tmpName CommonTypes.Codec.Decode
                                             let extraLvars =
@@ -582,7 +597,7 @@ let private createDeferredSequenceFunction
                                 match lm.lg.getDeferredDetFunctions determinant.Type with
                                 | None -> None
                                 | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                    let preBlock, rawValueExpr = computePatchDetValueExpr lm dep parentPath root
+                                    let preBlock, rawValueExpr = computePatchDetValueExpr lm deps dep parentPath root
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
@@ -649,7 +664,7 @@ let private createDeferredSequenceFunction
                             | None -> []
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 siblingConsumers ac.id |> List.map (fun dep root ->
-                                    let preBlock, rawValueExpr = computePatchDetValueExpr lm dep parentPath root
+                                    let preBlock, rawValueExpr = computePatchDetValueExpr lm deps dep parentPath root
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
@@ -978,7 +993,7 @@ let private appendPatchDetCalls
                         match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
                         | None -> None
                         | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.lm dep boundaryPath specP
+                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.lm ctx.deps dep boundaryPath specP
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
                             // but ConstSize encodes value directly, so subtract the offset.
                             let valueExpr =

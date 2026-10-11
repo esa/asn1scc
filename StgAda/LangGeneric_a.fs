@@ -429,12 +429,12 @@ type LangGeneric_a() =
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 match enm.enumerated.acnEncodingClass with
                 | Asn1AcnAst.Integer_uPER ->
-                    let nItems = enm.enumerated.items.Length
-                    if nItems <= 1 then
-                        Some (q "Acn_InitDet_ConstSize", q "Acn_PatchDet_ConstSize", Some 0I, 0I)
-                    else
-                        let nBits = bigint (int (System.Math.Ceiling(System.Math.Log(float nItems, 2.0))))
-                        Some (q "Acn_InitDet_ConstSize", q "Acn_PatchDet_ConstSize", Some nBits, 0I)
+                    // uPER constrained whole number over the encoded values: the item
+                    // indexes, or the item values with encode-values (offset = min).
+                    let values = enm.enumerated.items |> List.map (fun itm -> itm.acnEncodeValue)
+                    let minVal, maxVal = (if values.IsEmpty then 0I else List.min values), (if values.IsEmpty then 0I else List.max values)
+                    let nBits = GetNumberOfBitsForNonNegativeInteger (maxVal - minVal)
+                    Some (q "Acn_InitDet_ConstSize", q "Acn_PatchDet_ConstSize", Some nBits, minVal)
                 | _ -> mapIntEncoding enm.enumerated.acnEncodingClass
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String ref ->
                 let nChars = ref.str.maxSize.acn
@@ -450,8 +450,9 @@ type LangGeneric_a() =
                 // Ada is strictly typed: Asn1UInt(<enum_literal>) is illegal.
                 // Use the enum's ACN-encoded integer value so the cast in the
                 // fallback PatchDet macro becomes Asn1UInt(<n>) — valid Ada.
+                // The wire value: PatchDet writes its argument as is.
                 match enm.enumerated.items with
-                | firstItem :: _ -> firstItem.acnEncodeValue.ToString()
+                | firstItem :: _ -> (firstItem.acnEncodeValue - uperMinOffset).ToString()
                 | [] -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "\"\""
             | _ -> "0"

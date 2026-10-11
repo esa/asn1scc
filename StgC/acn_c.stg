@@ -1954,6 +1954,19 @@ if (ret) {
 }
 >>
 
+/* Enum tmp variant whose field writes other values than the C enum values (item
+   indexes, e.g. {a(1), b(5)} with the default encoding): det.value must hold what the
+   field writes, so map each item. One case per item, from acn_deferred_det_enum_wire_case. */
+acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "        case <sItemName>: <sDetAccess> = <sValue>; break;"
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= <<
+if (ret) {
+    switch (<sTmpName>) {
+<arrsCases; separator="\n">
+    }
+}
+>>
+
 /* Group D: Access paths (codec-independent) */
 
 /* Local det value access: det.value */

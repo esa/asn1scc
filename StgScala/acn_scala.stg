@@ -1450,6 +1450,10 @@ acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
 acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
 acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "// TODO"
 
+acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "// TODO"
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= "// TODO"
+
 /* Group D: Access paths */
 acn_deferred_det_access_value(sDetName) ::= "// TODO"
 acn_deferred_det_access_ptr(sDetName) ::= "// TODO"

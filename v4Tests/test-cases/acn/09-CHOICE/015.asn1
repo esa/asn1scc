@@ -1,0 +1,36 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+-- An ENUMERATED field selects the alternative of a CHOICE passed to it as an ACN
+-- parameter ([determinant code]), with item values that differ from the item indexes.
+-- --acn-v2 mixed the value the field writes (index, or value with encode-values) with
+-- the ASN.1 value of the item (PUS-C verification failure notices, q/issues.md 38).
+
+-- PUS-C shape (asn1-pusc-lib ErrorCodes): one item with value 1, encoded in 0 bits.
+FailureCode ::= ENUMERATED {error1 (1)}
+FailureData ::= CHOICE {
+    error1 BIT STRING (SIZE(1))
+}
+FailureNotice ::= SEQUENCE {
+    data FailureData
+}
+
+-- Three items, values 1/5/9, 8-bit index encoding on the type.
+Code ::= ENUMERATED {a (1), b (5), c (9)}
+Data ::= CHOICE {
+    a INTEGER (0..15),
+    b BOOLEAN,
+    c OCTET STRING (SIZE(2))
+}
+Notice ::= SEQUENCE {
+    data Data,
+    tail INTEGER (0..255)
+}
+
+-- The same type with encode-values given on the field, not on the CHOICE parameter type.
+NoticeValues ::= SEQUENCE {
+    data Data
+}
+
+END
+
+--TCFS     015.acn

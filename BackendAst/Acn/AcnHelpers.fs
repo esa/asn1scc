@@ -17,6 +17,26 @@ let callSuperclassFunc (lm:LanguageMacros) = lm.uper.call_superclass_func
 
 let sparkAnnotations (lm:LanguageMacros)  = lm.acn.sparkAnnotations
 
+/// The ACN-inserted field that finally provides a determinant: the field itself, or, for
+/// an ACN parameter (e.g. inside a closure-converted --acn-v2 function), the field reached
+/// by following the RefTypeArgument dependencies upward.
+let rec originalDeterminantField (deps: AcnInsertedFieldDependencies) (determinant: Determinant) : Asn1AcnAst.AcnChild option =
+    match determinant with
+    | AcnChildDeterminant ac -> Some ac
+    | AcnParameterDeterminant prm ->
+        deps.acnDependencies |> List.tryPick (fun d ->
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument p when p.id = prm.id -> originalDeterminantField deps d.determinant
+            | _ -> None)
+
+/// Items of the ENUMERATED determinant as encoded by the determinant field itself, so that
+/// acnEncodeValue reflects the field's own ACN properties (e.g. encode-values given on the
+/// field and not on the CHOICE parameter type). Falls back to the given type.
+let determinantEnumItems (deps: AcnInsertedFieldDependencies) (determinant: Determinant) (enm: Asn1AcnAst.Enumerated) : Asn1AcnAst.NamedItem list =
+    match originalDeterminantField deps determinant with
+    | Some { Asn1AcnAst.AcnChild.Type = AcnReferenceToEnumerated fieldEnm } -> fieldEnm.enumerated.items
+    | _ -> enm.items
+
 let THREE_DOTS = {IcdRow.fieldName = ""; comments = []; sPresent="";sType= IcdPlainType ""; sConstraint=None; minLengthInBits = 0I; maxLengthInBits=0I;sUnits=None; rowType = IcdRowType.ThreeDOTs; idxOffset = None}
 
 /// Assign the "No" (index) column of a parent SEQUENCE/CHOICE's flattened rows.

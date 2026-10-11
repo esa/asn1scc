@@ -1111,6 +1111,18 @@ let acn_deferred_det_copy_enum_tmp (sDetAccess:string) (sTmpName:string) (sEnumT
     | Decode    ->
         ST.call "acn_rust" "acn_deferred_det_copy_enum_tmp_decode" [("sDetAccess",(if sDetAccess = null then null else ST.StrHelper sDetAccess:>Object) );("sTmpName",(if sTmpName = null then null else ST.StrHelper sTmpName:>Object) );("sEnumTypeName",(if sEnumTypeName = null then null else ST.StrHelper sEnumTypeName:>Object) )]
 
+let acn_deferred_det_enum_wire_case (sItemName:string) (sDetAccess:string) (sValue:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_deferred_det_enum_wire_case" [("sItemName",(if sItemName = null then null else ST.StrHelper sItemName:>Object) );("sDetAccess",(if sDetAccess = null then null else ST.StrHelper sDetAccess:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) )]
+
+let acn_deferred_det_copy_enum_wire_tmp (sDetAccess:string) (sTmpName:string) (arrsCases:seq<string>) codec =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    match codec with
+    | Encode    ->
+        ST.call "acn_rust" "acn_deferred_det_copy_enum_wire_tmp_encode" [("sDetAccess",(if sDetAccess = null then null else ST.StrHelper sDetAccess:>Object) );("sTmpName",(if sTmpName = null then null else ST.StrHelper sTmpName:>Object) );("arrsCases",(arrsCases|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+    | Decode    ->
+        ST.call "acn_rust" "acn_deferred_det_copy_enum_wire_tmp_decode" [("sDetAccess",(if sDetAccess = null then null else ST.StrHelper sDetAccess:>Object) );("sTmpName",(if sTmpName = null then null else ST.StrHelper sTmpName:>Object) );("arrsCases",(arrsCases|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+
 let acn_deferred_det_access_value (sDetName:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "acn_deferred_det_access_value" [("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) )]

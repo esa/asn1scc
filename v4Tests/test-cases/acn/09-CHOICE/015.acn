@@ -1,0 +1,23 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+FailureCode []
+FailureData <TEST-CASE.FailureCode : code> [determinant code]
+FailureNotice [] {
+    code TEST-CASE.FailureCode [],
+    data <code> []
+}
+
+Code [size 8, encoding pos-int]
+Data <TEST-CASE.Code : code> [determinant code]
+Notice [] {
+    code TEST-CASE.Code [],
+    data <code> [],
+    tail []
+}
+
+NoticeValues [] {
+    code TEST-CASE.Code [encode-values],
+    data <code> []
+}
+
+END

@@ -177,7 +177,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     match ec with
                     | CEC_uper  ->
                         Some (choiceChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
-                    | CEC_enum (enm,_) ->
+                    | CEC_enum (enm, determinant) ->
                         let getDefOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
                             match p.modName = ToC a.modName with
                             | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + a.tasName); definedInRtl = false}
@@ -189,8 +189,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         // .Value field (Asn1UInt) rather than the enum-typed determinant,
                         // so case branches must use the ACN-encoded integer literal.
                         // In legacy mode keep the enum literal name (preserves byte-identity).
+                        // The value is the one the determinant field writes (its own acnEncodeValue),
+                        // which can differ from the CHOICE parameter type's (encode-values on the field).
                         let enmCaseName =
-                            if r.args.acnDeferred && codec = Decode then enmItem.acnEncodeValue.ToString()
+                            if r.args.acnDeferred && codec = Decode then
+                                let fieldItem = determinantEnumItems deps determinant enm.enm |> List.find (fun itm -> itm.Name.Value = child.Name.Value)
+                                fieldItem.acnEncodeValue.ToString()
                             else lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem
                         Some (choiceChild_Enum (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) enmCaseName (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
                     | CEC_presWhen  ->
