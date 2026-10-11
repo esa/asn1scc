@@ -1297,11 +1297,15 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 
 
 
-SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName) ::= <<
 <v>_is_initialized := True;
 <v> := <sTypedefName>(<sCount>);
 <if(bCheckRange)>
+<if(bCheckMin)>
 result.success := <v> \>= <nMin> and <v> \<= <nMax>;
+<else>
+result.success := <v> \<= <nMax>;
+<endif>
 
 <endif>
 >>

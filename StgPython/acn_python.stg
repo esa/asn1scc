@@ -1268,7 +1268,7 @@ else:
 >>
 
 /* Updates */
-SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName) ::= <<
 <v> = <sCount>
 if <v> \< <nMin> or <v> \> <nMax>:
     raise Asn1ValueOutOfRangeException(f"Size dependency value {<v>} out of range [{<nMin>}, {<nMax>}]")

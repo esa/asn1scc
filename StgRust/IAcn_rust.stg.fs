@@ -203,8 +203,8 @@ type IAcn_rust() =
             acn_rust.ChoiceChild_Enum  p sAcc sEnmName sChildID sChildBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec
         override this.Choice_Enum  (p:string) (sAcc:string) (arrsChildren:seq<string>) (sEnmExtFld:string) (td:FE_ChoiceTypeDefinition) (sErrCode:string) (bIsDeferred:bool) (codec:Codec) =
             acn_rust.Choice_Enum  p sAcc arrsChildren sEnmExtFld td sErrCode bIsDeferred codec
-        override this.SizeDependency  (v:string) (sCount:string) (nMin:BigInteger) (nMax:BigInteger) (bCheckRange:bool) (sTypedefName:string) =
-            acn_rust.SizeDependency  v sCount nMin nMax bCheckRange sTypedefName 
+        override this.SizeDependency  (v:string) (sCount:string) (nMin:BigInteger) (nMax:BigInteger) (bCheckRange:bool) (bCheckMin:bool) (sTypedefName:string) =
+            acn_rust.SizeDependency  v sCount nMin nMax bCheckRange bCheckMin sTypedefName 
         override this.SizeDependencyFixedSize  (v:string) (nFixedSize:BigInteger) =
             acn_rust.SizeDependencyFixedSize  v nFixedSize 
         override this.ChoiceDependencyEnum_Item  (v:string) (sChildCID:string) (sChildCIDHolder:string) (sEnumCName:string) (nChoiceIdx:BigInteger) (bIsOptional:bool) =

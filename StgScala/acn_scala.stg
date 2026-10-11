@@ -993,7 +993,7 @@ val <p> = <sEnmExtFld> match
 >>
 
 /* Updates */
-SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName) ::= <<
 val <v> = <sCount>
 if <v> \< ULong.fromRaw(<nMin>) || <v> \> ULong.fromRaw(<nMax>) then
     return Left(860)

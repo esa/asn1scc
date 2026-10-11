@@ -1328,7 +1328,7 @@ match <sEnmExtFld> {
 
 
 
-SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName) ::= <<
 <v>_is_initialized = true;
 <v> = <sCount>;
 >>

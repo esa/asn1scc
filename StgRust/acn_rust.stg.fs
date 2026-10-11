@@ -739,9 +739,9 @@ let Choice_Enum (p:string) (sAcc:string) (arrsChildren:seq<string>) (sEnmExtFld:
     | Decode    ->
         ST.call "acn_rust" "Choice_Enum_decode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sEnmExtFld",(if sEnmExtFld = null then null else ST.StrHelper sEnmExtFld:>Object) );("td",td :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bIsDeferred",bIsDeferred :>Object)]
 
-let SizeDependency (v:string) (sCount:string) (nMin:BigInteger) (nMax:BigInteger) (bCheckRange:bool) (sTypedefName:string) =
+let SizeDependency (v:string) (sCount:string) (nMin:BigInteger) (nMax:BigInteger) (bCheckRange:bool) (bCheckMin:bool) (sTypedefName:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "acn_rust" "SizeDependency" [("v",v :>Object);("sCount",(if sCount = null then null else ST.StrHelper sCount:>Object) );("nMin",nMin :>Object);("nMax",nMax :>Object);("bCheckRange",bCheckRange :>Object);("sTypedefName",(if sTypedefName = null then null else ST.StrHelper sTypedefName:>Object) )]
+    ST.call "acn_rust" "SizeDependency" [("v",v :>Object);("sCount",(if sCount = null then null else ST.StrHelper sCount:>Object) );("nMin",nMin :>Object);("nMax",nMax :>Object);("bCheckRange",bCheckRange :>Object);("bCheckMin",bCheckMin :>Object);("sTypedefName",(if sTypedefName = null then null else ST.StrHelper sTypedefName:>Object) )]
 
 let SizeDependencyFixedSize (v:string) (nFixedSize:BigInteger) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

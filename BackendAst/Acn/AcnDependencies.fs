@@ -155,7 +155,7 @@ and private handleSizeDeterminant (ctx: DepContext) (minSize: SIZE) (maxSize: SI
         let updateStatement =
             match minSize.acn = maxSize.acn with
             | true  -> lm.acn.SizeDependencyFixedSize v minSize.acn
-            | false -> lm.acn.SizeDependency v (lm.acn.getSizeableSize (pSizeable.accessPath.joined lm.lg) (lm.lg.getAccess pSizeable.accessPath) unsigned) minSize.uper maxSize.uper false child.typeDefinitionBodyWithinSeq
+            | false -> lm.acn.SizeDependency v (lm.acn.getSizeableSize (pSizeable.accessPath.joined lm.lg) (lm.lg.getAccess pSizeable.accessPath) unsigned) minSize.uper maxSize.uper false false child.typeDefinitionBodyWithinSeq
         match checkPath with
         | []    -> updateStatement
         | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
@@ -228,10 +228,11 @@ and private handleIA5StringSizeDeterminant (ctx: DepContext) (minSize: SIZE) (ma
         let v = lm.lg.getValue vTarget.accessPath
         let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath true lm pBase
-        // No range check (bCheckRange = false): the encoder has already validated the string
-        // size (IsConstraintValid at its entry), and with SIZE(0..n) and an unsigned
-        // determinant the Ada check "len >= 0" is always True (GNAT -gnatwc, an error with -gnatwe).
-        let updateStatement = lm.acn.SizeDependency v (lm.acn.getStringSize (pSizeable.accessPath.joined lm.lg)) minSize.uper maxSize.uper false child.typeDefinitionBodyWithinSeq
+        // Range check (Ada only): SPARK needs it to prove the precondition of the
+        // determinant encoder. A lower bound of 0 is left out: "len >= 0" is always True
+        // for an unsigned determinant (GNAT -gnatwc, an error with -gnatwe), and SPARK
+        // knows it from getStringSize returning Natural.
+        let updateStatement = lm.acn.SizeDependency v (lm.acn.getStringSize (pSizeable.accessPath.joined lm.lg)) minSize.uper maxSize.uper true (minSize.uper > 0I) child.typeDefinitionBodyWithinSeq
         match checkPath with
         | []    -> updateStatement
         | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
