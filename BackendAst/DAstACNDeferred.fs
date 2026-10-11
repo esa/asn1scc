@@ -63,8 +63,7 @@ let deferredDetLocalName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (name: str
     let hidesModuleOrType =
         not lm.lg.isCaseSensitive
         && (r.modulesMap |> Map.exists (fun modName _ -> same cName (ToC modName))
-            || r.typeAssignmentsMap |> Map.exists (fun (_, tasName) _ ->
-                    same cName (ToC tasName) || same cName (ToC (r.args.TypePrefix + tasName))))
+            || r.typeAssignmentsMap |> Map.exists (fun (_, tasName) _ -> same cName (ToC (r.args.TypePrefix + tasName))))
     if isKeyword || hidesModuleOrType then cName + "_ref" else cName
 
 
