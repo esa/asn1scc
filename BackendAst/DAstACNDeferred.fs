@@ -48,6 +48,26 @@ let buildRelativeAccess (lm: LanguageMacros) (relParts: ScopeNode list) (specP: 
         (fieldAccess, ".")
 
 
+/// Name of the AcnInsertedFieldRef local variable that holds the ACN field (or
+/// argument) `name` in the caller: ToC name, with the suffix "_ref" when that
+/// would clash with a keyword of the target language or, in a case-insensitive
+/// language (Ada), with a module (package) or type name, which the local would
+/// hide (e.g. "type", or "parameterReportStructureType" hiding package
+/// ParameterReportStructureType). Every place that declares, patches or passes
+/// such a local must use this function.
+let deferredDetLocalName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (name: string) : string =
+    let cName = ToC name
+    let same (a: string) (b: string) =
+        if lm.lg.isCaseSensitive then a = b else a.ToUpperInvariant() = b.ToUpperInvariant()
+    let isKeyword = lm.lg.Keywords |> Seq.exists (same cName)
+    let hidesModuleOrType =
+        not lm.lg.isCaseSensitive
+        && (r.modulesMap |> Map.exists (fun modName _ -> same cName (ToC modName))
+            || r.typeAssignmentsMap |> Map.exists (fun (_, tasName) _ ->
+                    same cName (ToC tasName) || same cName (ToC (r.args.TypePrefix + tasName))))
+    if isKeyword || hidesModuleOrType then cName + "_ref" else cName
+
+
 /// Compute the value expression for a PatchDet call, based on the
 /// dependency kind.  Returns (preBlock option, valueExpr) where preBlock
 /// is an optional block of code to prepend (e.g., a switch/case that
@@ -323,11 +343,11 @@ let private createDeferredSequenceFunction
                         let isOwnParam = Set.contains ac.Name.Value deferredDetNamesFromOwnParams
                         // For own parameters (formal AcnInsertedFieldRef*), use full
                         // path name (matches getExternalField0 resolution).
-                        // For local variables, use bare name (matches callerFuncBody's
-                        // ToC(argName) actual param naming).
+                        // For local variables, use the field name (matches callerFuncBody's
+                        // actual param naming, deferredDetLocalName).
                         let detVarName =
                             if isOwnParam then DAstACN.getAcnDeterminantName ac.id
-                            else ToC ac.Name.Value
+                            else deferredDetLocalName r lm ac.Name.Value
                         let originalFuncBody = ac.funcBody
                         // Determinant ICD comment(s) ("size determinant for ...",
                         // "reference determinant for ...") normally reach the row via
@@ -671,7 +691,7 @@ let private createDeferredSequenceFunction
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
-                                    let detName = ToC ac.Name.Value
+                                    let detName = deferredDetLocalName r lm ac.Name.Value
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                                     let patchCall =
                                         if patchFn.Contains("IA5String") then
@@ -711,7 +731,7 @@ let private createDeferredSequenceFunction
                                              && not (Set.contains ac.Name.Value deferredDetNamesFromOwnParams) ->
                             match lm.lg.getDeferredDetFunctions ac.Type with
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                let detVarName = ToC ac.Name.Value
+                                let detVarName = deferredDetLocalName r lm ac.Name.Value
                                 let defaultVal = lm.lg.computeDeferredFallbackValue ac.Type uperMinOffset
                                 Some (detVarName, patchFn, nBitsOpt, defaultVal, ac.Type)
                             | None -> None
@@ -779,12 +799,13 @@ let private findContainingSizeParam deps o =
 /// injected by inner callerFuncBodies become orphans.  Strip them — they
 /// are now provided by this function's formal params.
 let private stripOwnParamLocals
+        (r: Asn1AcnAst.AstRoot)
         (lm: LanguageMacros)
         (acnParameters: AcnGenericTypes.AcnParameter list)
         (locals: LocalVariable list) : LocalVariable list =
     let ownParamNames =
         acnParameters
-        |> List.map (fun prm -> ToC prm.name)
+        |> List.map (fun prm -> deferredDetLocalName r lm prm.name)
         |> Set.ofList
     let detTypeName = lm.acn.acn_deferred_det_type_name()
     locals |> List.filter (fun lv ->
@@ -1175,7 +1196,7 @@ let private buildCallerWrapper
                                 failwithf "BUG: unresolved RefTypeArgument parameter %s" parameter.id.AsString)
                     let cName =
                         match argumentLink with
-                        | None -> ToC argName
+                        | None -> deferredDetLocalName ctx.r ctx.lm argName
                         | Some (argumentBoundary, determinant) ->
                             let actualDeterminant = resolveActualDeterminant determinant
                             let (ReferenceToType boundaryPath) = argumentBoundary
@@ -1187,7 +1208,7 @@ let private buildCallerWrapper
                             // the boundary's parameter: that is the name its consumers in
                             // this scope use (AcnExternalField.getExternalField0).
                             match actualDeterminant, determinantIsInsideBoundary with
-                            | AcnChildDeterminant child, false -> ToC child.Name.Value
+                            | AcnChildDeterminant child, false -> deferredDetLocalName ctx.r ctx.lm child.Name.Value
                             | AcnChildDeterminant _, true      -> DAstACN.getAcnDeterminantName resolvedParam.id
                             | AcnParameterDeterminant _, _     -> DAstACN.getAcnDeterminantName actualDeterminant.id
                     let pStr = ctx.lm.acn.acn_deferred_det_actual_param cName ctx.codec
@@ -1354,7 +1375,7 @@ let private createDeferredReferenceFunction
             let errCode, ns1 = getNextValidErrorCode us errCodeName None errFieldPath
 
             let specP : CodegenScope = lm.lg.getParamType t codec
-            let stripLocals = stripOwnParamLocals lm o.resolvedType.acnParameters
+            let stripLocals = stripOwnParamLocals r lm o.resolvedType.acnParameters
 
             let ctx : DeferredRefCtx = {
                 r              = r

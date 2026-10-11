@@ -1,0 +1,20 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+   Window <SelectorKind.SelectorKind: type> [determinant type]
+   Other <SelectorKind.SelectorKind: switch> [determinant switch]
+   Payload <SelectorKind.SelectorKind: sel> [determinant sel]
+   Wrapper <SelectorKind.SelectorKind: sel> [] {
+      payload <sel> []
+   }
+   MyPDU [] {
+      type          SelectorKind.SelectorKind [],
+      switch        SelectorKind.SelectorKind [],
+      selectorKind  SelectorKind.SelectorKind [],
+      window   <type> [],
+      other    <switch> [],
+      wrapper  <selectorKind> []
+   }
+END
+
+SelectorKind DEFINITIONS ::= BEGIN
+   SelectorKind [encoding pos-int, size 8]
+END

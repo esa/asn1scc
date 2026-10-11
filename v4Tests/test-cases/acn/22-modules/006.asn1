@@ -1,0 +1,27 @@
+-- --acn-v2: an ACN field whose value is patched later becomes a local
+-- AcnInsertedFieldRef named after the field. The name must not be a keyword
+-- (Ada "type", C "switch") and, in Ada, must not hide a package or a type
+-- ("selectorKind" vs package / type SelectorKind), q/issues.md Issue 38 B2.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS SelectorKind FROM SelectorKind;
+
+   Window ::= CHOICE { a INTEGER (0..255), b BOOLEAN }
+   Other  ::= CHOICE { a INTEGER (0..15),  b BOOLEAN }
+   Payload ::= CHOICE { a INTEGER (0..7), b BOOLEAN }
+
+   Wrapper ::= SEQUENCE {
+      payload  Payload
+   }
+
+   MyPDU ::= SEQUENCE {
+      window   Window,
+      other    Other,
+      wrapper  Wrapper
+   }
+END
+
+SelectorKind DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   SelectorKind ::= ENUMERATED { a, b }
+END
+
+--TCFS     006.acn
