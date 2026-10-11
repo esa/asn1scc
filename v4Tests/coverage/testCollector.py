@@ -128,6 +128,21 @@ class CollectorTests(unittest.TestCase):
         failed = {"status": "run_error", "nocoverage": False, "files": {"sample1.c": stat}}
         self.assertEqual(c.aggregate([failed])["components"], {})
 
+    def test_large_stack_runs_with_the_hard_limit(self):
+        logs = self.root / "logs"
+        logs.mkdir()
+        probe = "import resource; print(resource.getrlimit(resource.RLIMIT_STACK)[0])"
+        _, hard = c.resource.getrlimit(c.resource.RLIMIT_STACK)
+        steps = []
+        out = c.run_step([sys.executable, "-c", probe], self.root, logs, "run", 10, steps, large_stack=True)
+        self.assertEqual(int(out), hard)
+        self.assertEqual(steps[0]["stack_limit"], c.stack_limit_text())
+        steps = []
+        soft, _ = c.resource.getrlimit(c.resource.RLIMIT_STACK)
+        out = c.run_step([sys.executable, "-c", probe], self.root, logs, "run2", 10, steps)
+        self.assertEqual(int(out), soft)
+        self.assertNotIn("stack_limit", steps[0])
+
     def test_process_failure_keeps_code_and_logs(self):
         logs = self.root / "logs"
         logs.mkdir()

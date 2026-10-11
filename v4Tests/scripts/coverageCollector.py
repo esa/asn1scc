@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import resource
 import shutil
 import signal
 import subprocess
@@ -322,15 +323,34 @@ def validate_profile(payload, has_data, diagnostics):
     return empty
 
 
-def run_step(command, cwd, logs, stage, timeout, steps, strict_stderr=False):
+def raise_stack_limit():
+    """Raise the soft stack limit of a child process to its hard limit (before exec).
+
+    The test programs of large models need more than the default 8 MB: the Ada
+    harness keeps the values on the stack and the Ada <T>_Init functions need a
+    stack as large as the type (PUS-C TM[4,2] 8 MB, FMON definitions 64 MB).
+    """
+    _, hard = resource.getrlimit(resource.RLIMIT_STACK)
+    resource.setrlimit(resource.RLIMIT_STACK, (hard, hard))
+
+
+def stack_limit_text():
+    _, hard = resource.getrlimit(resource.RLIMIT_STACK)
+    return "unlimited" if hard == resource.RLIM_INFINITY else str(hard)
+
+
+def run_step(command, cwd, logs, stage, timeout, steps, strict_stderr=False, large_stack=False):
     start = time.monotonic()
     stdout_path, stderr_path = logs / (stage + ".stdout"), logs / (stage + ".stderr")
     step = {"stage": stage, "command": [str(x) for x in command], "cwd": str(cwd)}
+    if large_stack:
+        step["stack_limit"] = stack_limit_text()
     steps.append(step)
     try:
         with stdout_path.open("wb") as out, stderr_path.open("wb") as err:
             process = subprocess.Popen(command, cwd=cwd, stdout=out, stderr=err,
-                                       start_new_session=True)
+                                       start_new_session=True,
+                                       preexec_fn=raise_stack_limit if large_stack else None)
             try:
                 step["returncode"] = process.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -442,7 +462,7 @@ def measure_unit(unit, args, run_dir):
             executable = work / "obj_x86" / "coverage" / "mainprogram"
             expected = {p.name for p in work.glob("*.adb") if file_component(p.name) == "codec"}
         output = run_step([str(executable)], executable.parent, logs, "run", runtime_timeout(args),
-                 rec["steps"], strict_stderr=True)
+                 rec["steps"], strict_stderr=True, large_stack=True)
         if args.decode_stage != "baseline":
             decode_support().verify_output(output, rec["decode_checks"])
         if args.check_invalid_values:

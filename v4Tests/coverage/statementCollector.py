@@ -229,7 +229,7 @@ def instrument_and_run(work, project, units, args, logs, steps):
         build.extend(["-cargs:Ada", "-gnatec=" + str(work / "instrument-spark.adc")])
     c.run_step(build, work, logs, "build", args.timeout, steps)
     output = c.run_step([str(work / "mainprogram")], work, logs, "run", c.runtime_timeout(args),
-                        steps, strict_stderr=True)
+                        steps, strict_stderr=True, large_stack=True)
     match = re.search(r"All test cases \((\d+)\) run successfully", output)
     if not match or int(match[1]) == 0:
         raise c.StageError("run", "No positive automatic tests executed")
