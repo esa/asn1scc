@@ -228,7 +228,10 @@ and private handleIA5StringSizeDeterminant (ctx: DepContext) (minSize: SIZE) (ma
         let v = lm.lg.getValue vTarget.accessPath
         let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath true lm pBase
-        let updateStatement = lm.acn.SizeDependency v (lm.acn.getStringSize (pSizeable.accessPath.joined lm.lg)) minSize.uper maxSize.uper true child.typeDefinitionBodyWithinSeq
+        // No range check (bCheckRange = false): the encoder has already validated the string
+        // size (IsConstraintValid at its entry), and with SIZE(0..n) and an unsigned
+        // determinant the Ada check "len >= 0" is always True (GNAT -gnatwc, an error with -gnatwe).
+        let updateStatement = lm.acn.SizeDependency v (lm.acn.getStringSize (pSizeable.accessPath.joined lm.lg)) minSize.uper maxSize.uper false child.typeDefinitionBodyWithinSeq
         match checkPath with
         | []    -> updateStatement
         | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)

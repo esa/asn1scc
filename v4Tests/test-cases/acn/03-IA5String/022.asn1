@@ -1,0 +1,13 @@
+-- IA5String SIZE(0..N) with an external, unsigned size determinant: Ada
+-- emitted "len >= 0 and len <= N", which GNAT rejects with -gnatwe
+-- ("condition is always True"); PUS-C FilePath, q/issues.md Issue 38 B3.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+       name IA5String (SIZE(0..20)) (FROM("A".."Z"|"a".."z"|" ")),
+       path IA5String (SIZE(0..4095))
+    }
+
+END
+
+--TCLS     MyPDU[] { len1 INTEGER [size 8, encoding pos-int], name [size len1], len2 INTEGER [size 12, encoding pos-int], path [size len2]}
