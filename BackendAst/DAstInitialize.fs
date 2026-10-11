@@ -1023,20 +1023,19 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                     let testCaseFunc (p: CodegenScope): InitFunctionResult =
                         let resVar = (p.accessPath.asIdentifier lm.lg)
                         let atcedChildren = children_ith_testCase |> List.map (fun atc -> atc.initTestCaseFunc p)
-                        // Without child test values, mark the children that the constraints make
-                        // absent explicitly (they are not in 'children' for in-place decoding
-                        // backends); this also gives Ada an assignment to the test variable.
+                        // Mark the children that the constraints make absent explicitly (they are
+                        // not in 'children' for in-place decoding backends): otherwise their presence
+                        // flag keeps whatever the test variable held (Ada: uninitialised, the value
+                        // then fails its WITH COMPONENTS check). Without child test values this also
+                        // gives Ada an assignment to the test variable.
                         let absentChildBodies =
-                            match childrenATCs with
-                            | [] ->
-                                allAsn1Children |>
-                                List.filter (fun ch -> match ch.Optionality with Some Asn1AcnAst.AlwaysAbsent -> true | _ -> false) |>
-                                List.filter (fun ch -> not (children |> List.exists (fun c -> c.Name.Value = ch.Name.Value))) |>
-                                List.map (fun ch ->
-                                    let childTypeDef = ch.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
-                                    let newArg = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
-                                    initTestCase_sequence_child_opt (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName ch) childTypeDef (newArg.asIdentifier lm.lg))
-                            | _ -> []
+                            allAsn1Children |>
+                            List.filter (fun ch -> match ch.Optionality with Some Asn1AcnAst.AlwaysAbsent -> true | _ -> false) |>
+                            List.filter (fun ch -> not (children |> List.exists (fun c -> c.Name.Value = ch.Name.Value))) |>
+                            List.map (fun ch ->
+                                let childTypeDef = ch.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
+                                let newArg = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
+                                initTestCase_sequence_child_opt (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName ch) childTypeDef (newArg.asIdentifier lm.lg))
                         let joinedBodies = (atcedChildren |> List.map (fun c -> c.funcBody)) @ absentChildBodies |> Seq.StrJoin "\n"
                         let bodyRes =
                             if lm.lg.decodingKind = Copy then

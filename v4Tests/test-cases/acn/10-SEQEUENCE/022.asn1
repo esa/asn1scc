@@ -1,0 +1,21 @@
+-- An OPTIONAL child without ACN content (NULL) that WITH COMPONENTS makes
+-- ABSENT, next to a child with test values (PUS-C S14, q/issues.md Issue 38 B4):
+-- the decoder must clear its presence flag and the test value must set it
+-- absent; otherwise Ada keeps an uninitialised flag and the value fails its
+-- WITH COMPONENTS check.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Generic {RateType} ::= SEQUENCE {
+      id    INTEGER (0..4294967295),
+      rate  RateType OPTIONAL
+   }
+
+   NoRate ::= Generic {NULL} (WITH COMPONENTS { rate ABSENT })
+
+   MyPDU ::= SEQUENCE {
+      items   SEQUENCE (SIZE(0..31)) OF NoRate
+   }
+
+END
+
+--TCLS     NoRate[] { id [], rate [] } MyPDU[] { n1 INTEGER [size 8, encoding pos-int], items [size n1]}

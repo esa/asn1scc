@@ -232,6 +232,13 @@ let private handleAsn1Child
                 let childBody (p: CodegenScope) (_: string option): string =
                     lm.acn.sequence_always_present_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName None childResultExpr childTypeDef soSaveBitStrmPosStatement true acnParamsForTemplate false None bInlineRequired codec
                 Some childBody, [], [], [], childResultExpr, [], ns2
+            | Some AlwaysAbsent when codec = Decode && lm.lg.decodingKind = InPlace ->
+                // A child without ACN content (e.g. NULL) that the constraints make absent:
+                // the decoder must still clear its presence flag, else the decoded value keeps
+                // whatever the flag held and fails its WITH COMPONENTS check.
+                let childBody (p: CodegenScope) (_: string option): string =
+                    lm.acn.sequence_always_absent_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) childName "" childTypeDef soSaveBitStrmPosStatement true codec
+                Some childBody, [], [], [], childResultExpr, [], ns2
             | _ -> None, [], [], [], childResultExpr, [], ns2
         | Some childContent ->
             let isPrimitiveType =
