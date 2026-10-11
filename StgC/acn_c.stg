@@ -1209,6 +1209,7 @@ switch (<sChPath><sAcc>kind) {
     <arrsChoiceEnumItems; separator="\n">
     default:
         ret = FALSE;                            /*COVERAGE_IGNORE*/
+        *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/
 }
 >>
 
