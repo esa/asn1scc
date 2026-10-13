@@ -722,10 +722,9 @@ if (ret && (checkBitPatternPresentResult == 0)) {
 	ret = FALSE;			/*COVERAGE_IGNORE*/
 	*pErrCode = <sErrCode>;	/*COVERAGE_IGNORE*/
 } else if (ret && (checkBitPatternPresentResult == 2)) {
-	<if(bFixedSize)>ret = (<i> == <nSizeMax>);	/* fixed size: exactly <nSizeMax> items before the pattern */
-	*pErrCode = ret ? 0 : <sErrCode>;<else><p><sAcc>nCount = <i>;
-	ret = true;
-	*pErrCode = 0;<endif>
+	<if(!bFixedSize)><p><sAcc>nCount = <i>;<endif>
+	ret = <if(bFixedSize)>(<i> == <nSizeMax>)<else>true<endif>;
+	*pErrCode = <if(bFixedSize)>ret ? 0 : <sErrCode><else>0<endif>;
 }
 
 >>

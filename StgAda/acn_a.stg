@@ -936,10 +936,9 @@ if result.Success and <i> = <nSizeMax>+1  then
 	end if;
 	result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success, ErrorCode => <sErrCode>);
 elsif result.Success and <i> \< <nSizeMax>+1 then<if(bFixedSize)> --COVERAGE_IGNORE<endif>
-	<if(bFixedSize)>-- fixed size: the pattern came before <nSizeMax> items
-	result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>); --COVERAGE_IGNORE<else><p>.Length := <i>-1;
-	<rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);
-	result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);<endif>
+	<if(!bFixedSize)><p>.Length := <i>-1;<endif>
+	<if(!bFixedSize)><rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);<endif>
+	result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(bFixedSize)>false<else>true<endif>, ErrorCode => <if(bFixedSize)><sErrCode><else>0<endif>);<if(bFixedSize)> --COVERAGE_IGNORE (fixed size: the pattern came before <nSizeMax> items)<endif>
 else
 	result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>); --COVERAGE_IGNORE
 end if;
