@@ -1,0 +1,32 @@
+-- Ada: two modules define types with the same name. The automatic-test files USE
+-- every package, so the unqualified calls of the init functions (dummy :=
+-- ShortString_Init, Rec_id_Init) and of <T>_ACN_enc_dec were ambiguous when the
+-- types are equal (both String(1..65)) (PUS-C advanced test model: ShortString in
+-- imports-base-types and subtyping-value-constraints, q/issues.md 38).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS Rec FROM Other;
+
+   ShortString ::= IA5String (SIZE(1..64))
+
+   MyPDU ::= SEQUENCE {
+      name   ShortString,
+      other  Rec
+   }
+END
+
+Other DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   ShortString ::= IA5String (SIZE(1..64))
+
+   Rec ::= SEQUENCE {
+      id     INTEGER (0..1000),
+      label  ShortString
+   }
+END
+
+Third DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   Rec ::= SEQUENCE {
+      id     INTEGER (0..1000)
+   }
+END
+
+--TCLS     MyPDU[]

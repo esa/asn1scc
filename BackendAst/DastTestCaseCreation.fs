@@ -159,22 +159,23 @@ let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacro
             | true  ->  lm.lg.getValue p.accessPath
             | false ->  lm.lg.getPointer p.accessPath
         let sTypeName = lm.lg.getLongTypedefName t.typeDefinitionOrReference
+        let sProgramUnit = (lm.lg.getTypeDefinition t.FT_TypeDefinition).programUnit
         let sTypeName =
             match lm.lg.hasModules with
             | false -> sTypeName
             | true ->
                 match sTypeName.Contains "." with
                 | true  -> sTypeName
-                | false ->
-                    (lm.lg.getTypeDefinition t.FT_TypeDefinition).programUnit + "." + sTypeName
+                | false -> sProgramUnit + "." + sTypeName
         match initProc with
         | None  -> None
         | Some initProc when actualInitFuncNames.Contains initProc.funcName ->
+            let sInitFuncName = lm.lg.atcQualifiedFuncName sProgramUnit initProc.funcName
             match lm.lg.initMethod with
             | InitMethod.Procedure ->
-                Some (emitTestCaseAsFunc_dummy_init lm sTypeName initProc.funcName dummyVarName)
+                Some (emitTestCaseAsFunc_dummy_init lm sTypeName sInitFuncName dummyVarName)
             | InitMethod.Function ->
-                Some (emitTestCaseAsFunc_dummy_init_function lm sTypeName initProc.funcName dummyVarName)
+                Some (emitTestCaseAsFunc_dummy_init_function lm sTypeName sInitFuncName dummyVarName)
         | Some _ -> None)
 
 /// The kinds of automatic tests with an invalid value (C).

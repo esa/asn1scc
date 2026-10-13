@@ -385,7 +385,7 @@ begin
 	pragma Warnings (Off, "condition is always True");
 	pragma Warnings (Off, "condition is always False");
     s1 := Ada.Calendar.Clock;
-    result := <sTasName>_<sEnc>enc_dec(tc_data,"<sFuncName>");
+    result := <sModName>_auto_tcs.<sTasName>_<sEnc>enc_dec(tc_data,"<sFuncName>");
     s2 := Ada.Calendar.Clock;
 	pragma Warnings (On, "condition is always True");
 	pragma Warnings (On, "condition is always False");

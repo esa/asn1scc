@@ -486,6 +486,11 @@ type ILangGeneric () =
     abstract member getObjectIdentifierAccessPair: p:CodegenScope -> string * string
     default this.getObjectIdentifierAccessPair p = (this.joinSelection p.accessPath, this.getAccess p.accessPath)
     abstract member qualifyNameWithModule: targetMod:string -> curMod:string -> name:string -> string
+    /// Name of a function of the generated code (e.g. an init function) as an automatic-test
+    /// file calls it. Ada test files USE every package, so a name that two packages define
+    /// (a type in two modules) is ambiguous unless qualified with its package.
+    abstract member atcQualifiedFuncName: programUnit:string -> funcName:string -> string
+    default _.atcQualifiedFuncName _programUnit funcName = funcName
     default _.qualifyNameWithModule _targetMod _curMod name = name
     abstract member wrapIA5StringValue: typeRef:TypeDefinitionOrReference -> modName:string -> literal:string -> string
     default _.wrapIA5StringValue _typeRef _modName literal = literal

@@ -102,6 +102,7 @@ type LangGeneric_a() =
         override this.TrueLiteral = "True"
         override this.FalseLiteral = "False"
         override this.hasModules = true
+        override this.atcQualifiedFuncName programUnit funcName = programUnit + "." + funcName
         override this.allowsSrcFilesWithNoFunctions = false
         override this.requiresValueAssignmentsInSrcFile = false
         override this.supportsStaticVerification = true
