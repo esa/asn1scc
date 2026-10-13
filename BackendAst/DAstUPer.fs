@@ -749,7 +749,26 @@ type private SequenceChildResult = {
     resultExpr: string option
     props: SequenceChildProps
     auxiliaries: string list
+    bsReferenced: bool      // the child's code uses the bitstream (e.g. a call of a NULL type's codec)
 }
+
+/// Decoding a SEQUENCE whose children have no encoded content. A truly empty SEQUENCE gets
+/// decodeEmptySeq (Ada: the null-record aggregate), but a SEQUENCE whose mandatory children are
+/// all NULL is a record with these components (Ada: "record aggregate cannot be null", PUS-C
+/// advanced test model), so each of them is set (decode_nullType).
+let decodeSequenceWithoutContent (lm:LanguageMacros) (p:CodegenScope) (children:Asn1Child list) : string option =
+    let isNullType (ch:Asn1Child) =
+        match ch.Type.ActualType.Kind with
+        | NullType _    -> true
+        | _             -> false
+    let nullChildren = children |> List.filter (fun ch -> ch.Optionality.IsNone && isNullType ch)
+    let nullChildDecodes =
+        nullChildren |> List.map (fun ch ->
+            lm.lg.decode_nullType ((lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false).joined lm.lg))
+    match nullChildDecodes with
+    | []                                            -> lm.lg.decodeEmptySeq (p.accessPath.joined lm.lg)
+    | stmts when stmts |> List.forall Option.isSome -> stmts |> List.choose id |> nestChildItems lm Decode
+    | _                                             -> lm.lg.decodeEmptySeq (p.accessPath.joined lm.lg)
 
 let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (us:State)  =
     // stg macros
@@ -833,7 +852,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                     match codec, lm.lg.decodingKind with
                     | Decode, Copy -> Some (child.Type.initFunction.initExpressionFnc ())
                     | _ -> None)
-                {stmt=None; resultExpr=childResultExpr; props=props; auxiliaries = []}, newAcc
+                {stmt=None; resultExpr=childResultExpr; props=props; auxiliaries = []; bsReferenced = false}, newAcc
             | Some childContent ->
                 let isPrimitiveType =
                     match lm.lg.getTypeDefinition child.Type.FT_TypeDefinition with
@@ -879,6 +898,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                     resultExpr = adjustedResultExpr
                     props = props
                     auxiliaries = childContent.auxiliaries
+                    bsReferenced = not childContent.bBsIsUnReferenced
                 }, newAcc)
 
         let presenceBits = TL "SQ_UPER_presenceBits" (fun () -> nonAcnChildren |> List.map printPresenceBit)
@@ -914,11 +934,11 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
         TL "SQ_UPER_8" (fun () ->
             match seqContent, codec with
             | None, CommonTypes.Decode ->
-                match lm.lg.decodeEmptySeq pp with
+                match decodeSequenceWithoutContent lm p nonAcnChildren with
                 | None -> None
                 | Some decodeEmptySeq -> Some ({UPERFuncBodyResult.funcBody = decodeEmptySeq; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=true; resultExpr=resultExpr; auxiliaries=[]})
             | None, _ -> None
-            | Some ret, _ -> Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalVars; bValIsUnReferenced=false; bBsIsUnReferenced=(o.uperMaxSizeInBits = 0I); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux}))
+            | Some ret, _ -> Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalVars; bValIsUnReferenced=false; bBsIsUnReferenced=(o.uperMaxSizeInBits = 0I) && not (childrenStatements00 |> List.exists (fun s -> s.bsReferenced)); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux}))
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  [] us

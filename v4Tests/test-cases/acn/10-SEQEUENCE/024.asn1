@@ -1,0 +1,36 @@
+-- SEQUENCEs whose children are only NULL (no encoded content), Ada:
+-- (a) a child of a NULL type assignment is decoded/encoded by calling the type's
+--     codec with the bitstream, but the SEQUENCE marked the bitstream unreferenced
+--     (pragma Unreferenced(bs), an error with -gnatwe; PUS-C primitives null-basic);
+-- (b) a SEQUENCE { dummy NULL } was decoded with the null-record aggregate, but the
+--     record has a component ("record aggregate cannot be null"; PUS-C advanced
+--     nested-acn-parametrization);
+-- (c) its automatic test value assigned nothing ("tc_data is read but never assigned").
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+   NullType ::= NULL
+
+   Markers ::= SEQUENCE {
+      marker1 NULL,
+      marker2 NULL,
+      marker3 NullType
+   }
+
+   Info ::= SEQUENCE {
+      dummy NULL
+   }
+
+   MyPDU ::= SEQUENCE {
+      metadata SEQUENCE {
+         info SEQUENCE {
+            dummy NULL
+         },
+         flags INTEGER (0..15)
+      },
+      markers Markers,
+      other   Info
+   }
+
+END
+
+--TCFS     024.acn

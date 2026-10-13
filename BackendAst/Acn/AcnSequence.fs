@@ -37,6 +37,7 @@ type private SequenceChildResult = {
     props: SequenceChildProps
     auxiliaries: string list
     icdResult : ((IcdRow list) * (IcdTypeAss list))
+    bsReferenced: bool      // the child's code uses the bitstream (e.g. a call of a NULL type's codec)
 } with
     member this.joinedBodies (lm:LanguageMacros) (codec:CommonTypes.Codec): string option =
         this.stmts |> List.choose (fun s -> s.body) |> nestChildItems lm codec
@@ -285,7 +286,11 @@ let private handleAsn1Child
     let stmts = {body = theCombinedBody; lvs = presentWhenLvs @ childLvs;  userDefinedFunctions=childUserDefFuncs; errCodes = presentWhenErrs @ childErrs; icdComments = []}
     let props = {info=childInfo.toAsn1AcnAst; sel=childSel; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
     let icdResult = ctx.icdAsn1Child child stmts.icdComments
-    let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult}
+    let bsReferenced =
+        match childContentResult with
+        | Some childContent -> not childContent.bBsIsUnReferenced
+        | None              -> false
+    let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult; bsReferenced=bsReferenced}
     let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
     res, newAcc
 
@@ -355,7 +360,7 @@ let private handleAcnChild
     // Note: uperMaxSizeBits and uperAccBits here do not make sense since we are in ACN
     let props = {info=childInfo.toAsn1AcnAst; sel=childP.accessPath; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
     let icdResult = ctx.icdAcnChild acnChild icdComments
-    let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult}
+    let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult; bsReferenced=childEncDecStatement.IsSome}
     let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
     res, newAcc
 
@@ -658,12 +663,13 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 match codec with
                 | Encode -> None, ns
                 | Decode ->
-                    match lm.lg.decodeEmptySeq (p.accessPath.joined lm.lg) with
+                    let asn1Children = children |> List.choose (fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
+                    match DAstUPer.decodeSequenceWithoutContent lm p asn1Children with
                     | None -> None, ns
                     | Some decodeEmptySeq ->
                         Some ({AcnFuncBodyResult.funcBody = decodeEmptySeq; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=true; resultExpr=Some decodeEmptySeq; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
             | Some ret ->
-                Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
+                Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I) && not (childrenStatements00 |> List.exists (fun s -> s.bsReferenced)); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
 
         | errChild::_      ->
             raise(SemanticError(errChild.Name.Location, AcnClosureConversion.unusedAcnInsertedFieldMessage errChild.Name.Value errChild.Type))

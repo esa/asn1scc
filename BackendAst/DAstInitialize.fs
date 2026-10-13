@@ -1035,7 +1035,21 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                                 let childTypeDef = ch.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
                                 let newArg = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
                                 initTestCase_sequence_child_opt (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName ch) childTypeDef (newArg.asIdentifier lm.lg))
-                        let joinedBodies = (atcedChildren |> List.map (fun c -> c.funcBody)) @ absentChildBodies |> Seq.StrJoin "\n"
+                        // A SEQUENCE whose mandatory children are all NULL (left out of 'children' for
+                        // in-place decoding backends) would get no assignment at all: Ada rejects the
+                        // test ("tc_data is read but never assigned", -gnatwe). Set these children then.
+                        let nullChildBodies =
+                            match childrenATCs, absentChildBodies, lm.lg.decodingKind with
+                            | [], [], InPlace ->
+                                allAsn1Children |>
+                                List.filter (fun ch -> ch.Optionality.IsNone && (match ch.Type.Kind with NullType _ -> true | _ -> false)) |>
+                                List.choose (fun ch ->
+                                    ch.Type.initFunction.automaticTestCases |> List.tryHead |> Option.map (fun atc ->
+                                        let chP = {p with accessPath = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false}
+                                        let chContent = atc.initTestCaseFunc chP
+                                        initTestCase_sequence_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName ch) chContent.funcBody false (ch.Type.initFunction.initExpressionFnc ())))
+                            | _ -> []
+                        let joinedBodies = (atcedChildren |> List.map (fun c -> c.funcBody)) @ absentChildBodies @ nullChildBodies |> Seq.StrJoin "\n"
                         let bodyRes =
                             if lm.lg.decodingKind = Copy then
                                 let tdName = lm.lg.getLongTypedefNameBasedOnModule tk p.modName

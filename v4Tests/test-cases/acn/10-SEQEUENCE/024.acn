@@ -1,0 +1,14 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+MyPDU [] {
+    metadata [] {
+        info [] {
+            dummy []
+        },
+        flags [size 4, encoding pos-int]
+    },
+    markers [],
+    other []
+}
+
+END
