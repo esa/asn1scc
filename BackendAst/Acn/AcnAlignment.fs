@@ -123,7 +123,7 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
                 match content with
                 | Some bodyResult   ->
                     let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
-                    Some {bodyResult with funcBody  = funcBodyStr; icdResult = prependAlignmentPaddingRow (Some al) bodyResult.icdResult}
+                    Some {bodyResult with funcBody  = funcBodyStr; bBsIsUnReferenced = false; icdResult = prependAlignmentPaddingRow (Some al) bodyResult.icdResult}
                 | None              ->
                     let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
                     // Aligned zero-bit type (pattern-less NULL / empty SEQUENCE):
@@ -153,7 +153,7 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
                 match content with
                 | Some bodyResult   ->
                     let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
-                    Some {bodyResult with funcBody  = funcBodyStr; icdResult = prependAlignmentPaddingRow (Some al) bodyResult.icdResult}
+                    Some {bodyResult with funcBody  = funcBodyStr; bBsIsUnReferenced = false; icdResult = prependAlignmentPaddingRow (Some al) bodyResult.icdResult}
                 | None              ->
                     let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
                     // The wrapped ACN child encodes 0 bits (pattern-less ACN NULL)

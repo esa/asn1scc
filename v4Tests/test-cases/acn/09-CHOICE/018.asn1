@@ -1,0 +1,31 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+-- A CHOICE whose alternatives are all NULL, selected by an ENUMERATED field passed to it
+-- as an ACN parameter ([determinant code]). Its decoder reads nothing from the bitstream:
+-- the --acn-v2 C decode function left pBitStrm unused (-Werror=unused-parameter,
+-- PUS-C service 2 AuxiliaryData, q/issues.md 38).
+
+-- PUS-C shape (asn1-pusc-lib service-02 Transaction): one item, one NULL alternative.
+ReturnCode ::= ENUMERATED {ret1 (0)}
+AuxiliaryData ::= CHOICE {
+    ret1 NULL
+}
+Status ::= SEQUENCE {
+    id INTEGER (0..255),
+    auxiliaryData AuxiliaryData
+}
+
+-- Two NULL alternatives.
+Kind ::= ENUMERATED {on (0), off (1)}
+Flag ::= CHOICE {
+    on NULL,
+    off NULL
+}
+Switch ::= SEQUENCE {
+    flag Flag,
+    tail INTEGER (0..15)
+}
+
+END
+
+--TCFS     018.acn

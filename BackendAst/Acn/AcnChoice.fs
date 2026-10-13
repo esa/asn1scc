@@ -247,7 +247,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                             childContentResult.IsNone ||
                             (match child.chType.ActualType.Kind with NullType _ -> true | _ -> false)
                         Some (choiceChild_preWhen pp (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName sChildInitExpr bIsPrimitive [] codec)
-            [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries|}], ns1
+            [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries; hasContent=childContentResult.IsSome|}], ns1
 
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us
         let childrenStatements0 = childrenStatements00 |> List.collect id
@@ -256,6 +256,16 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let childrenUserDefFuncs = childrenStatements0 |> List.collect(fun s -> s.userDefFuncs)
         let childrenErrCodes = childrenStatements0 |> List.collect(fun (s) -> s.errCodes)
         let childrenAuxiliaries = childrenStatements0 |> List.collect(fun (a) -> a.auxiliaries)
+        // A decoder that selects the alternative from a determinant (not from a decoded index)
+        // and whose alternatives have no ACN content (NULL) never reads the bitstream
+        // (acn-v2: CHOICE with a determinant parameter, PUS-C S2 AuxiliaryData).
+        let bBsIsUnReferenced =
+            let noChildContent = childrenStatements0 |> List.forall (fun s -> not s.hasContent)
+            match ec, codec with
+            | CEC_uper, _               -> false
+            | _, Encode                 -> false
+            | CEC_enum _, Decode
+            | CEC_presWhen, Decode      -> noChildContent
 
         let choiceContent, resultExpr =
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
@@ -275,7 +285,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             | CEC_presWhen    -> choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
         let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.accessPath codec
-        Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; userDefinedFunctions=childrenUserDefFuncs; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd}), ns
+        Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; userDefinedFunctions=childrenUserDefFuncs; bValIsUnReferenced=false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd}), ns
 
 
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)

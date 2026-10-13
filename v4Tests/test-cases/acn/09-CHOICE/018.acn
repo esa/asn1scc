@@ -1,0 +1,19 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+ReturnCode []
+AuxiliaryData <TEST-CASE.ReturnCode : code> [determinant code]
+Status [] {
+    id [],
+    returnCode TEST-CASE.ReturnCode [],
+    auxiliaryData <returnCode> []
+}
+
+Kind [size 8, encoding pos-int]
+Flag <TEST-CASE.Kind : kind> [determinant kind]
+Switch [] {
+    kind TEST-CASE.Kind [],
+    flag <kind> [],
+    tail []
+}
+
+END
