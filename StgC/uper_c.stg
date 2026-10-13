@@ -536,6 +536,10 @@ if (ret) {
 
 
 /* BIT STRING*/
+/* Decoding a string subtype whose typedef (of its base type) is a longer array: the decoder
+   fills only the subtype's positions, the rest of the array is set to NUL. */
+str_pad_to_typedef_size(p, nFrom, nTo) ::= ""
+
 /* Decoding a fixed-size subtype of a variable-size type (shared typedef with a length field):
    the fixed-size decoder fills only the data. */
 sizeable_fixed_count_set(p, sAcc, nFixedSize) ::= "<p><sAcc>nCount = <nFixedSize>;"

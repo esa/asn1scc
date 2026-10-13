@@ -59,6 +59,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         | None -> None, ns
         | Some (funcBodyContent,errCodes, localVars, auxiliaries) ->
             let icd = AcnPrimitiveFactory.buildStringIcdAux t.acnAlignment o (getASN1Name t) (getASN1Name t) (constraintsToIcdStr (DAstAsn1.createStringFunction r t o)) t.unitsOfMeasure
+            let funcBodyContent = DAstUPer.withStringTypedefPadding r lm codec t o p funcBodyContent
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVars; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd} ), ns
     AcnPrimitiveFactory.createAsn1PrimitiveStateful r deps lm codec t typeDefinition isValidFunc [] us
         (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p us)

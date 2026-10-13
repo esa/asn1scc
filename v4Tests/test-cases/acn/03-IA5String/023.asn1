@@ -1,0 +1,22 @@
+-- String subtypes: VeryShortString ::= ShortString (SIZE(1..16)) shares the typedef
+-- of ShortString, a String(1..65) in Ada. The init aggregate had the subtype's 17
+-- elements ("too few elements"), and the decoders set only the positions up to 17,
+-- so the rest of the array was undefined and the decoded value differed from the
+-- encoded one (Ada compares whole arrays). PUS-C advanced test model,
+-- subtyping-value-constraints (q/issues.md 38).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+   ShortString ::= IA5String (SIZE(1..64))
+   VeryShortString ::= ShortString (SIZE(1..16))
+   Fixed8 ::= ShortString (SIZE(8))
+
+   MyPDU ::= SEQUENCE {
+      name   VeryShortString,
+      code   Fixed8,
+      tag    ShortString (SIZE(2..4)),
+      full   ShortString
+   }
+
+END
+
+--TCFS     023.acn

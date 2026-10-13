@@ -456,6 +456,18 @@ let handleFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.
         let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode && minSize <> maxSize) (createLv sLengthTmp)
         fragmentation (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) internalItem_funcBody  nIntItemMaxSize ( minSize) ( maxSize) uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString codec, fragmentationVars
 
+/// Decoding a string subtype whose typedef is the longer array of its base type (VeryShortString ::=
+/// ShortString (SIZE(1..16)), a String(1..65) in Ada): the decoder sets only the positions up to the
+/// subtype's maximum + 1, so the rest of the array is set to NUL too (Ada compares whole arrays).
+let withStringTypedefPadding (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (p:CodegenScope) (funcBody:string) =
+    let typedefMax = typedefMaxSize r t
+    match codec, typedefMax > o.maxSize.uper with
+    | Decode, true  ->
+        let pp, _ = joinedOrAsIdentifier lm codec p
+        funcBody + "\n" + lm.uper.str_pad_to_typedef_size pp (o.maxSize.uper + 2I) (typedefMax + 1I)
+    | Decode, false
+    | Encode, _     -> funcBody
+
 let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefinitionOrReference)   (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let charIndex =
         match lm.lg.uper.requires_charIndex with
@@ -521,7 +533,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
                 let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || o.maxSize.uper<>o.minSize.uper) lv
                 funcBodyContent, charIndex@localVariables
 
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = auxiliaries}
+        {UPERFuncBodyResult.funcBody = withStringTypedefPadding r lm codec t o p funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = auxiliaries}
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations  [] us
