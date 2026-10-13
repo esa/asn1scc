@@ -247,6 +247,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                             childContentResult.IsNone ||
                             (match child.chType.ActualType.Kind with NullType _ -> true | _ -> false)
                         Some (choiceChild_preWhen pp (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName sChildInitExpr bIsPrimitive [] codec)
+            // An ALWAYS ABSENT alternative only rejects its selection: the locals of its
+            // (not emitted) codec are unused (Ada -gnatwe; e.g. an IA5String alternative
+            // excluded by WITH COMPONENTS, PUS-C advanced subtyping-with-components).
+            let childContent_localVariables =
+                match child.Optionality with
+                | Some ChoiceAlwaysAbsent           -> []
+                | Some ChoiceAlwaysPresent | None   -> childContent_localVariables
             [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries; hasContent=childContentResult.IsSome|}], ns1
 
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us
