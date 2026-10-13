@@ -1050,13 +1050,19 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             refType.refCons.Length > 0 || containsSubtypeConstraints refType.resolvedType
         | _ -> false
     let checkedTypeDefinitionName =
-        // CONTAINING has the base type's C layout, but a referenced subtype
-        // must still use its own validator after the contained value is read.
-        if o.encodingOptions.IsSome && containsSubtypeConstraints o.resolvedType then
-            let targetName = ToC2(r.args.TypePrefix + o.tasName.Value)
-            if l.lg.hasModules && ToC t.id.ModName <> ToC o.modName.Value then
-                ToC o.modName.Value + "." + targetName
-            else targetName
+        // A referenced subtype with constraints of its own (e.g. ActiveDataRecord ::=
+        // DataRecord (WITH COMPONENTS {...})) can share the base type's typedef, so the
+        // typedef name would call the base type's validator and skip those constraints.
+        // Call the validator of the referenced type assignment instead (also for CONTAINING,
+        // which has the base type's layout).
+        // The name comes from the type assignment's own type definition (C renames types
+        // that exist in several modules, e.g. T_MOD_C_Sub).
+        if containsSubtypeConstraints o.resolvedType then
+            let tas = (r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r
+            let tasTypeDef = l.lg.getTypeDefinition tas.Type.FT_TypeDefinition
+            if l.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit then
+                tasTypeDef.programUnit + "." + tasTypeDef.typeName
+            else tasTypeDef.typeName
         else baseTypeDefinitionName
     let baseFncName = l.lg.constructReferenceFuncName checkedTypeDefinitionName "" (l.isvalid.methodNameSuffix())
 

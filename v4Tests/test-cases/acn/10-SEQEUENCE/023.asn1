@@ -1,0 +1,30 @@
+-- NOCOVERAGE (Ada has no tests for the excluded ENUMERATED items idle / error yet)
+-- A child whose type is a subtype with constraints of its own, e.g.
+-- ActiveRecord ::= Record (WITH COMPONENTS {...}): the subtype shares the base
+-- type's typedef, and the parent validated the child with the base type's
+-- IsConstraintValid, so the subtype's constraints were not checked inside the
+-- parent (encoder and decoder accepted invalid values). The C tests of the
+-- excluded ENUMERATED items (status idle / error) failed (PUS-C advanced test
+-- model subtyping-nested, q/issues.md 38).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Record ::= SEQUENCE {
+      id     INTEGER (0..2000),
+      status ENUMERATED { idle(0), active(1), error(2) }
+   }
+
+   ActiveRecord ::= Record (WITH COMPONENTS {
+      id (1..1000),
+      status (active)
+   })
+
+   SmallId ::= INTEGER (0..100)
+
+   MyPDU ::= SEQUENCE {
+      rec   ActiveRecord,
+      small SmallId
+   }
+
+END
+
+--TCFS     023.acn
