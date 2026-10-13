@@ -102,7 +102,8 @@ type LangGeneric_a() =
         override this.TrueLiteral = "True"
         override this.FalseLiteral = "False"
         override this.hasModules = true
-        override this.atcQualifiedFuncName programUnit funcName = programUnit + "." + funcName
+        // Standard.: the test object "dummy" hides a package named Dummy (22-modules/005)
+        override this.atcQualifiedFuncName programUnit funcName = "Standard." + programUnit + "." + funcName
         override this.allowsSrcFilesWithNoFunctions = false
         override this.requiresValueAssignmentsInSrcFile = false
         override this.supportsStaticVerification = true
