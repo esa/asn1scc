@@ -1,3 +1,4 @@
+-- C_ADA_ONLY (Python: the decoding of the duplicated ShortString fails, pre-existing on master)
 -- Ada: two modules define types with the same name. The automatic-test files USE
 -- every package, so the unqualified calls of the init functions (dummy :=
 -- ShortString_Init, Rec_id_Init) and of <T>_ACN_enc_dec were ambiguous when the

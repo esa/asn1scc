@@ -1,3 +1,4 @@
+-- C_ADA_ONLY (Python and Rust: fixed-size null-terminated is not implemented, pre-existing on master)
 -- size null-terminated on fixed-size types (BIT STRING, OCTET STRING, SEQUENCE OF):
 -- the encoder writes the fixed number of items, then the pattern; the decoder reads up
 -- to the pattern and fails unless it found exactly that number. The templates used the

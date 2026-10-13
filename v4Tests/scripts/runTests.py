@@ -122,11 +122,14 @@ def firstLineMarkers(asn1file: str) -> str:
 def isTestSelected(cfg: TestConfig, asn1file: str) -> bool:
     """First-line markers restricting a test file (same rules in regression/Program.fs):
     ACNV2_ONLY runs the file only with --acn-v2, C_ONLY only for the C backend,
+    C_ADA_ONLY only for C and Ada (not the experimental backends),
     ADA_BITSTRING_ALIGNMENT only for Ada (with -adaBitStringAlignment, see extraFlags)."""
     markers = firstLineMarkers(asn1file)
     if "ACNV2_ONLY" in markers and cfg.acnV2 == "":
         return False
     if "C_ONLY" in markers and cfg.language != "c":
+        return False
+    if "C_ADA_ONLY" in markers and cfg.language not in ("c", "Ada"):
         return False
     if "ADA_BITSTRING_ALIGNMENT" in markers and cfg.language != "Ada":
         return False

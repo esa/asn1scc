@@ -109,10 +109,11 @@ let collectTestAsn1Files (test_cases_dir:string) =
 
 // First-line markers restricting a test file (same rules in v4Tests/scripts/runTests.py):
 // ACNV2_ONLY runs the file only with -acnv2, C_ONLY only for the C backend,
+// C_ADA_ONLY only for C and Ada (not the experimental backends),
 // ADA_BITSTRING_ALIGNMENT only for Ada (with -adaBitStringAlignment, see extraFlags).
 let isTestSelected (t:Test_Case) (lang:string) (enableAcnV2:bool) =
     let markers = File.ReadLines t.asn1 |> Seq.tryHead |> Option.defaultValue ""
-    (enableAcnV2 || not (markers.Contains "ACNV2_ONLY")) && (lang = "c" || not (markers.Contains "C_ONLY")) && (lang = "Ada" || not (markers.Contains "ADA_BITSTRING_ALIGNMENT"))
+    (enableAcnV2 || not (markers.Contains "ACNV2_ONLY")) && (lang = "c" || not (markers.Contains "C_ONLY")) && (lang = "c" || lang = "Ada" || not (markers.Contains "C_ADA_ONLY")) && (lang = "Ada" || not (markers.Contains "ADA_BITSTRING_ALIGNMENT"))
 
 // Compiler options requested by first-line markers (same rules in runTests.py):
 // ADA_BITSTRING_ALIGNMENT adds -adaBitStringAlignment to the Ada runs.

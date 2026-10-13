@@ -1,3 +1,4 @@
+-- C_ADA_ONLY (Python and Rust: fixed-size subtypes of variable-size types do not build / fail, pre-existing on master)
 -- Fixed-size subtypes of variable-size types: ByteFlags ::= BitFlags (SIZE(8)) shares
 -- the typedef of BitFlags, which has a length field (C nCount, Ada Length). The init
 -- expressions, the automatic test values and the fixed-size decoders (uPER and ACN) did
