@@ -1,0 +1,9 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+MessagePayload []
+Message [] {
+    id [],
+    payload []
+}
+
+END

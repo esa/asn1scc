@@ -1325,12 +1325,20 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
         | x::_  -> handleChild x
         | _     -> {InitFunctionResult.funcBody = ""; resultVar = (p.accessPath.asIdentifier lm.lg); localVariables = []}
 
+    // As for SEQUENCE / SEQUENCE OF: with -ig only the procedure-based languages (C) drop the
+    // children's init functions; Ada's init expression of the CHOICE calls them (<T>_<alt>_Init).
     let nonEmbeddedChildrenFuncs =
         children |> List.choose(fun ch ->
-            match ch.chType.initFunction.initProcedure with
-            | None -> None
-            | Some _ when r.args.generateConstInitGlobals -> None
-            | Some _ -> Some ch.chType.initFunction)
+            match lm.lg.initMethod with
+            | Procedure when r.args.generateConstInitGlobals -> None
+            | Procedure ->
+                match ch.chType.initFunction.initProcedure with
+                | None -> None
+                | Some _ -> Some ch.chType.initFunction
+            | Function ->
+                match ch.chType.initFunction.initFunction with
+                | None -> None
+                | Some _ -> Some ch.chType.initFunction)
 
     let constantInitExpression getChildExp () =
         children |>

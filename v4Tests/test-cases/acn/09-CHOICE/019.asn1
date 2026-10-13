@@ -1,0 +1,27 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+-- A CHOICE whose first alternative is an inline SEQUENCE. Its Ada init function is
+-- ((kind => command_PRESENT, command => <T>_command_Init)), but with -ig (init globals)
+-- the init functions of the alternatives were not emitted: "<T>_command_Init" is undefined
+-- (PUS-C acn-attributes present-when-choice, structured choice-determinant, q/issues.md 38).
+
+MessagePayload ::= CHOICE {
+    command SEQUENCE {
+        commandId INTEGER (0..1000),
+        parameters OCTET STRING (SIZE(4))
+    },
+    telemetry SEQUENCE {
+        sensorId INTEGER (0..255),
+        value BOOLEAN
+    },
+    event INTEGER (0..3)
+}
+
+Message ::= SEQUENCE {
+    id INTEGER (0..255),
+    payload MessagePayload OPTIONAL
+}
+
+END
+
+--TCFS     019.acn
