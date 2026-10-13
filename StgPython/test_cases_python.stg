@@ -189,7 +189,7 @@ emitTestCaseAsFunc_dummy_init_function(sTypeName, sFuncName, sDummyVarname) ::= 
 <sDummyVarname>: <sTypeName> = <sFuncName>()
 >>
 
-emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber) ::= <<
+emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber, soEncDecPrefix) ::= <<
 def <sFuncName>() -> None:
     from .<sModName>_auto_tcs import <sTasName>_<sEnc>enc_dec, <sTasName>_<sEnc>enc_dec_generic
 

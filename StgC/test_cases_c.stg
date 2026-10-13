@@ -404,7 +404,7 @@ emitTestCaseAsFunc_dummy_init_function(sTypeName, sFuncName, sDummyVarname) ::= 
 //<sDummyVarname> = <sFuncName>();
 >>
 
-emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber) ::= <<
+emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber, soEncDecPrefix) ::= <<
 void <sFuncName>(const TestOutput* output, int *totalErrors)
 {
     flag result;

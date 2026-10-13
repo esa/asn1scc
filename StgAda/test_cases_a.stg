@@ -337,9 +337,11 @@ begin
 end;
 >>
 
-emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber) ::= <<
+emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber, soEncDecPrefix) ::= <<
 procedure <sFuncName> ( totalErrors : in out Integer)
 is
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
+    procedure Put (Item : String) renames Ada.Text_IO.Put;
     result      : adaasn1rtl.test_case_result;
 
     s1 : Ada.Calendar.Time;
@@ -384,28 +386,28 @@ begin
 	pragma Warnings (Off, "condition is always True");
 	pragma Warnings (Off, "condition is always False");
     s1 := Ada.Calendar.Clock;
-    result := <sModName>_auto_tcs.<sTasName>_<sEnc>enc_dec(tc_data,"<sFuncName>");
+    result := <if(soEncDecPrefix)><soEncDecPrefix><endif><sTasName>_<sEnc>enc_dec(tc_data,"<sFuncName>");
     s2 := Ada.Calendar.Clock;
 	pragma Warnings (On, "condition is always True");
 	pragma Warnings (On, "condition is always False");
 	pragma Warnings (On, "object ""tc_data"" is always");
     if result.Success then
-        Ada.Text_IO.Put ("Test case '<sFuncName>' succeeded, duration was :");
-        Ada.Text_IO.Put_Line (Duration'Image ((s2 - s1)));
+        Put("Test case '<sFuncName>' succeeded, duration was :");
+        Put_Line (Duration'Image ((s2 - s1)));
     else
         case result.Step is
             when <rtlModuleName()>.TC_VALIDATE =>
-                Ada.Text_IO.Put_Line ("Test case '<sFuncName>' failed in validation"); 
+                Put_Line ("Test case '<sFuncName>' failed in validation"); 
             when <rtlModuleName()>.TC_ENCODE =>
-                Ada.Text_IO.Put_Line ("Test case '<sFuncName>' failed in encoding");
+                Put_Line ("Test case '<sFuncName>' failed in encoding");
             when <rtlModuleName()>.TC_DECODE =>
-                Ada.Text_IO.Put_Line ("Test case '<sFuncName>' failed in decoding");
+                Put_Line ("Test case '<sFuncName>' failed in decoding");
             when <rtlModuleName()>.TC_VALIDATE_DECODED =>
-                Ada.Text_IO.Put_Line ("Test case '<sFuncName>' failed in the validation of the decoded message");
+                Put_Line ("Test case '<sFuncName>' failed in the validation of the decoded message");
             when <rtlModuleName()>.TC_EQUAL =>
-                Ada.Text_IO.Put_Line ("Test case '<sFuncName>' failed. Encoded and decoded messages are different");
+                Put_Line ("Test case '<sFuncName>' failed. Encoded and decoded messages are different");
         end case;
-        Ada.Text_IO.Put_Line ("========================================");
+        Put_Line ("========================================");
         totalErrors := totalErrors + 1;
     end if;
     <sGenerateDatFile>
@@ -428,6 +430,7 @@ emitExcludedValueTestCase(sFuncName, arrsVars, sTasName, sAmber, sEnc, sInitiali
 emitInvalidStreamTestCase(sFuncName, arrsVars, sModName, sTasName, sEnc, sCodeVar, sCodeType, nCode, sEncodeStatement, sDecFunc) ::= <<
 procedure <sFuncName> ( totalErrors : in out Integer)
 is
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
     <sCodeVar> : constant <sCodeType> := <nCode>;
     bs         : <sModName>.<sTasName>_<sEnc>Stream := <sModName>.<sTasName>_<sEnc>Stream'(Size_In_Bytes => <sModName>.<sTasName>_<sEnc>STREAM_SIZE, Current_Bit_Pos => 0, pushDataPrm => 0, fetchDataPrm => 0, Buffer => (others => 0));
     result     : adaasn1rtl.ASN1_RESULT := (Success => True, ErrorCode => 0);
@@ -443,15 +446,15 @@ begin
         --  the decoder resets the stream position
         <sModName>.<sDecFunc>(decodedPDU, bs, result);
         if result.Success or result.ErrorCode = 0 then
-            Ada.Text_IO.Put_Line ("Test case '<sFuncName>' failed. A stream with the code <nCode>, which no item uses, was decoded.");
-            Ada.Text_IO.Put_Line ("========================================");
+            Put_Line ("Test case '<sFuncName>' failed. A stream with the code <nCode>, which no item uses, was decoded.");
+            Put_Line ("========================================");
             totalErrors := totalErrors + 1;
         else
-            Ada.Text_IO.Put_Line ("Test case '<sFuncName>' succeeded");
+            Put_Line ("Test case '<sFuncName>' succeeded");
         end if;
     else
-        Ada.Text_IO.Put_Line ("Test case '<sFuncName>' failed: the stream could not be written.");
-        Ada.Text_IO.Put_Line ("========================================");
+        Put_Line ("Test case '<sFuncName>' failed: the stream could not be written.");
+        Put_Line ("========================================");
         totalErrors := totalErrors + 1;
     end if;
 end <sFuncName>;

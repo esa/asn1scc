@@ -47,6 +47,21 @@ let emitTestCaseAsFunc_dummy_init           (lm:LanguageMacros) = lm.atc.emitTes
 let emitTestCaseAsFunc_dummy_init_function  (lm:LanguageMacros) = lm.atc.emitTestCaseAsFunc_dummy_init_function
 
 
+/// Type assignments whose name (with the type prefix, case insensitive) is defined in more than one
+/// module. Ada automatic-test files USE every package, so the functions of these types (init,
+/// enc_dec) have the same name in several packages and are called qualified
+/// (ILangGeneric.atcQualifiedFuncName). Only these: qualifying every call made GNAT 2021 (Docker
+/// image) hang on 10-SEQEUENCE/empty_seq.
+let atcAmbiguousTypeNames (r:DAst.AstRoot) : string list =
+    r.Files |> List.collect (fun f -> f.Modules) |>
+    List.collect (fun m -> m.TypeAssignments |> List.map (fun tas -> (ToC2 (r.args.TypePrefix + tas.Name.Value)).ToLower(), m.Name.Value)) |>
+    List.distinct |> List.countBy fst |> List.filter (fun (_, n) -> n > 1) |> List.map fst
+
+/// The function belongs to one of these types: <T>_Init, <T>_<child>_Init, <T>_<ENC>_enc_dec ...
+let private isAmbiguousTypeFunc (ambiguous:string list) (funcName:string) =
+    let f = funcName.ToLower()
+    ambiguous |> List.exists (fun t -> f.StartsWith (t + "_"))
+
 let GetDatFile (r:DAst.AstRoot) lm (v:ValueAssignment) modName sTasName encAmper (enc:Asn1Encoding) =
     let generate_dat_file  = lm.atc.PrintSuite_call_codec_generate_dat_file
     let bGenerateDatFile = (r.args.CheckWithOss && v.Name.Value = "testPDU")
@@ -74,7 +89,8 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
     let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = GetDatFile r lm v modName sTasName encAmper
     let func_def = emitTestCaseAsFunc_h lm sFuncName
-    let func_body = emitTestCaseAsFunc lm sFuncName [] modName sTasName encAmper (GetEncodingString lm e) true initStatement bStatic "" dummyInitStatementsNeededForStatementCoverage initAmper
+    let soEncDecPrefix = if isAmbiguousTypeFunc (atcAmbiguousTypeNames r) (sTasName + "_enc_dec") then Some (lm.lg.atcQualifiedFuncName (modName + "_auto_tcs") "") else None
+    let func_body = emitTestCaseAsFunc lm sFuncName [] modName sTasName encAmper (GetEncodingString lm e) true initStatement bStatic "" dummyInitStatementsNeededForStatementCoverage initAmper soEncDecPrefix
     let func_invocation = invokeTestCaseAsFunc lm sFuncName
     (func_def, func_body, func_invocation)
 
@@ -101,7 +117,8 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
     let GetDatFile = ""
     let sTestCaseIndex = idx.ToString()
     let func_def = emitTestCaseAsFunc_h lm sFuncName
-    let func_body = emitTestCaseAsFunc lm sFuncName arrsVars modName sTasName encAmper (GetEncodingString lm e) false initStatement bStatic "" initFuncName initAmper
+    let soEncDecPrefix = if isAmbiguousTypeFunc (atcAmbiguousTypeNames r) (sTasName + "_enc_dec") then Some (lm.lg.atcQualifiedFuncName (modName + "_auto_tcs") "") else None
+    let func_body = emitTestCaseAsFunc lm sFuncName arrsVars modName sTasName encAmper (GetEncodingString lm e) false initStatement bStatic "" initFuncName initAmper soEncDecPrefix
     let func_invocation = invokeTestCaseAsFunc lm sFuncName
     (func_def, func_body, func_invocation)
 
@@ -130,7 +147,7 @@ let getTypeDecl (r:DAst.AstRoot) (vasPU_name:string) (lm:LanguageMacros) (vas:Va
 
 let TestSuiteFileName = "testsuite"
 
-let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacros) (t:Asn1Type) =
+let emitDummyInitStatementsNeededForStatementCoverage (ambiguous:string list) (lm:Language.LanguageMacros) (t:Asn1Type) =
     let pdummy = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tmp0" }
     let rec getInitializationFunctions (n:InitFunction) =
         seq {
@@ -170,7 +187,10 @@ let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacro
         match initProc with
         | None  -> None
         | Some initProc when actualInitFuncNames.Contains initProc.funcName ->
-            let sInitFuncName = lm.lg.atcQualifiedFuncName sProgramUnit initProc.funcName
+            let sInitFuncName =
+                match isAmbiguousTypeFunc ambiguous initProc.funcName with
+                | true  -> lm.lg.atcQualifiedFuncName sProgramUnit initProc.funcName
+                | false -> initProc.funcName
             match lm.lg.initMethod with
             | InitMethod.Procedure ->
                 Some (emitTestCaseAsFunc_dummy_init lm sTypeName sInitFuncName dummyVarName)
@@ -333,6 +353,7 @@ let asn1EncodingMapping = function
     | XER   -> XerEncDecFunctionType 
 
 let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outDir =
+    let ambiguousTypeNames = atcAmbiguousTypeNames r
     // Invalid-value tests follow all other tests, so the names of the existing ones do not change.
     let invalidValueFunctors = ResizeArray<int -> string*string*string>()
     // Invalid-stream tests come last, after the invalid-value tests.
@@ -377,7 +398,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                                         let generateTcFun idx =
                                             let p = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
                                             let initStatement = atc.initTestCaseFunc p
-                                            let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage lm t.Type)//t.Type.initFunction.initFuncName
+                                            let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage ambiguousTypeNames lm t.Type)//t.Type.initFunction.initFuncName
 
                                             PrintAutomaticTestCase r lm e initStatement.funcBody initStatement.localVariables  m t.Type ((lm.lg.getTypeDefinition t.Type.FT_TypeDefinition).programUnit) ((lm.lg.getTypeDefinition t.Type.FT_TypeDefinition).typeName) idx dummyInitStatementsNeededForStatementCoverage
                                         yield generateTcFun
@@ -392,7 +413,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                         match encDecTestFunc with
                         | Some _    ->
                             let generateTcFun idx =
-                                let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage lm v.Type)
+                                let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage ambiguousTypeNames lm v.Type)
                                 PrintValueAssignmentAsTestCase r lm e v m typeModName tasName (*(getTypeDecl r (ToC m.Name.Value) l v )*)  idx dummyInitStatementsNeededForStatementCoverage
                             yield generateTcFun
                         | None         -> ()
