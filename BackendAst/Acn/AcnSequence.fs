@@ -286,10 +286,12 @@ let private handleAsn1Child
     let stmts = {body = theCombinedBody; lvs = presentWhenLvs @ childLvs;  userDefinedFunctions=childUserDefFuncs; errCodes = presentWhenErrs @ childErrs; icdComments = []}
     let props = {info=childInfo.toAsn1AcnAst; sel=childSel; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
     let icdResult = ctx.icdAsn1Child child stmts.icdComments
+    // An ALWAYS ABSENT child only clears its presence flag: its codec is not emitted.
     let bsReferenced =
-        match childContentResult with
-        | Some childContent -> not childContent.bBsIsUnReferenced
-        | None              -> false
+        match child.Optionality, childContentResult with
+        | Some AlwaysAbsent, _              -> false
+        | _, Some childContent              -> not childContent.bBsIsUnReferenced
+        | _, None                           -> false
     let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult; bsReferenced=bsReferenced}
     let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
     res, newAcc

@@ -910,7 +910,11 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                     resultExpr = adjustedResultExpr
                     props = props
                     auxiliaries = childContent.auxiliaries
-                    bsReferenced = not childContent.bBsIsUnReferenced
+                    // an ALWAYS ABSENT child only clears its presence flag: its codec is not emitted
+                    bsReferenced =
+                        match child.Optionality with
+                        | Some Asn1AcnAst.AlwaysAbsent  -> false
+                        | _                             -> not childContent.bBsIsUnReferenced
                 }, newAcc)
 
         let presenceBits = TL "SQ_UPER_presenceBits" (fun () -> nonAcnChildren |> List.map printPresenceBit)
