@@ -85,6 +85,8 @@ type IUper_rust() =
             uper_rust.octet_FixedSize  sTypeDefName p sAcc nFixedSize sErrCode codec
         override this.octet_VarSize  (sTypeDefName:string) (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (sErrCode:string) (codec:Codec) =
             uper_rust.octet_VarSize  sTypeDefName p sAcc nSizeMin nSizeMax nSizeInBits sErrCode codec
+        override this.sizeable_fixed_count_set  (p:string) (sAcc:string) (nFixedSize:BigInteger) =
+            uper_rust.sizeable_fixed_count_set  p sAcc nFixedSize 
         override this.bitString_FixSize  (sTypeDefName:string) (p:string) (sAcc:string) (nFixedSize:BigInteger) (sErrCode:string) (codec:Codec) =
             uper_rust.bitString_FixSize  sTypeDefName p sAcc nFixedSize sErrCode codec
         override this.bitString_VarSize  (sTypeDefName:string) (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (sErrCode:string) (nSizeInBits:BigInteger) (codec:Codec) =

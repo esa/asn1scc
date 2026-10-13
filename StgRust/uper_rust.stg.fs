@@ -311,6 +311,10 @@ let octet_VarSize (sTypeDefName:string) (p:string) (sAcc:string) (nSizeMin:BigIn
     | Decode    ->
         ST.call "uper_rust" "octet_VarSize_decode" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nSizeMin",nSizeMin :>Object);("nSizeMax",nSizeMax :>Object);("nSizeInBits",nSizeInBits :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
 
+let sizeable_fixed_count_set (p:string) (sAcc:string) (nFixedSize:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "sizeable_fixed_count_set" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nFixedSize",nFixedSize :>Object)]
+
 let bitString_FixSize (sTypeDefName:string) (p:string) (sAcc:string) (nFixedSize:BigInteger) (sErrCode:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with

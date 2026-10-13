@@ -527,6 +527,17 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations  [] us
 
 
+/// Decoding a fixed-size subtype of a variable-size type (ByteFlags ::= BitFlags (SIZE(8))): the
+/// fixed-size decoder fills only the data of the shared typedef, so its length field is set too
+/// (Ada: Length stayed uninitialised and the decoded value failed; C: nCount stayed 0).
+let withFixedSizeCount (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (isFixedSize:bool) (nFixedSize:BigInteger) (p:CodegenScope) (funcBody:string) =
+    match codec, isFixedSize && not (typedefIsFixedSize r t) with
+    | Decode, true  ->
+        let pp, _ = joinedOrAsIdentifier lm codec p
+        funcBody + "\n" + lm.uper.sizeable_fixed_count_set pp (lm.lg.getAccess p.accessPath) nFixedSize
+    | Decode, false
+    | Encode, _     -> funcBody
+
 let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefinitionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (o:Asn1AcnAst.OctetString) (errCode:ErrorCode) (p:CodegenScope) =
     let ii = p.accessPath.SequenceOfLevel + 1;
     let i = sprintf "i%d" ii
@@ -567,7 +578,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let aux = lm.lg.generateOctetStringAuxiliaries r UPER t o nestingScope p.accessPath codec
         let funcBodyResult = createOctetStringFunction_funcBody r lm codec t.id  typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper o (errCode:ErrorCode) (p:CodegenScope)
-        {funcBodyResult with auxiliaries = aux}
+        {funcBodyResult with funcBody = withFixedSizeCount r lm codec t o.isFixedSize o.minSize.uper p funcBodyResult.funcBody; auxiliaries = aux}
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations  [] us
@@ -614,7 +625,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
     let funcBody  (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let aux = lm.lg.generateBitStringAuxiliaries r UPER t o nestingScope p.accessPath codec
         let funcBodyResult = createBitStringFunction_funcBody r lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper o (errCode:ErrorCode) (p:CodegenScope)
-        {funcBodyResult with auxiliaries = aux}
+        {funcBodyResult with funcBody = withFixedSizeCount r lm codec t o.isFixedSize o.minSize.uper p funcBodyResult.funcBody; auxiliaries = aux}
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b))  soSparkAnnotations  [] us
@@ -713,6 +724,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper -> fixedSize pp td i internalItemBody o.minSize.uper child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux codec, nStringLength
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper -> varSize pp access  td i internalItemBody o.minSize.uper o.maxSize.uper nSizeInBits child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux codec, nStringLength
                     | _ -> handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItemBody nIntItemMaxSize false false
+                let ret = withFixedSizeCount r lm codec t o.isFixedSize o.minSize.uper p ret
                 Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(localVariables@internalItem.localVariables); bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=internalItem.auxiliaries@auxiliaries})
         | Some baseFuncName ->
             let pp, resultExpr = adaptArgumentPtr lm codec p

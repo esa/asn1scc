@@ -572,6 +572,10 @@ if not decoded_<sTypeDefName> or decoded_<sTypeDefName>.decoded_value is None:
 >>
 
 /* BIT STRING*/
+/* Decoding a fixed-size subtype of a variable-size type (shared typedef with a length field):
+   the fixed-size decoder fills only the data. */
+sizeable_fixed_count_set(p, sAcc, nFixedSize) ::= ""
+
 bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 codec.append_bits(bytearray(<p><sAcc>arr), <nFixedSize>)
 >>

@@ -1,0 +1,11 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+MyPDU [] {
+    flags   [],
+    octs    [],
+    nums    [],
+    word    [],
+    len     []
+}
+
+END

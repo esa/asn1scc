@@ -1,0 +1,28 @@
+-- Fixed-size subtypes of variable-size types: ByteFlags ::= BitFlags (SIZE(8)) shares
+-- the typedef of BitFlags, which has a length field (C nCount, Ada Length). The init
+-- expressions, the automatic test values and the fixed-size decoders (uPER and ACN) did
+-- not set it: Ada did not build ("no value supplied for component Length"), and once
+-- built the decoded values had no length; C -ig constants left nCount at 0 (PUS-C
+-- advanced test model subtyping-value-constraints, q/issues.md 38).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+   BitFlags ::= BIT STRING (SIZE(0..32))
+   ByteFlags ::= BitFlags (SIZE(8))
+
+   Octs ::= OCTET STRING (SIZE(0..10))
+   Octs4 ::= Octs (SIZE(4))
+
+   Nums ::= SEQUENCE (SIZE(0..5)) OF INTEGER (0..9)
+   Nums2 ::= Nums (SIZE(2))
+
+   MyPDU ::= SEQUENCE {
+      flags   ByteFlags,
+      octs    Octs4,
+      nums    Nums2,
+      word    BitFlags (SIZE(16)),
+      len     INTEGER (0..32)
+   }
+
+END
+
+--TCFS     011.acn

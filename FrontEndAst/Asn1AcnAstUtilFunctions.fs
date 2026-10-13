@@ -687,6 +687,35 @@ type Asn1Type with
             | None  -> Some tas.Type
             | Some _ -> tas.Type.getBaseType r
 
+/// Whether the in-memory layout of a sizeable type (OCTET / BIT STRING, SEQUENCE OF) is the
+/// fixed-size one (no length field). A subtype shares the typedef of the type at the end of its
+/// chain of base types, so a fixed-size subtype of a variable-size type (ByteFlags ::= BitFlags
+/// (SIZE(8))) keeps the length field, which its init expressions and fixed-size decoders must set.
+let typedefIsFixedSize (r:AstRoot) (t:Asn1Type) =
+    let isFixedSize (k:Asn1TypeKind) =
+        match k with
+        | OctetString o -> o.isFixedSize
+        | BitString o   -> o.isFixedSize
+        | SequenceOf o  -> o.isFixedSize
+        | _             -> raise(BugErrorException "typedefIsFixedSize: not a sizeable type")
+    match t.getBaseType r with
+    | None      -> isFixedSize t.Kind
+    | Some bs   -> isFixedSize bs.Kind
+
+/// The maximum size of the in-memory array of a string type (IA5String, NumericString): a subtype
+/// shares the typedef of the type at the end of its chain of base types, so VeryShortString ::=
+/// ShortString (SIZE(1..16)) is an array of ShortString's size (Ada: an init aggregate of 17
+/// elements for a String(1..65), "too few elements").
+let typedefMaxSize (r:AstRoot) (t:Asn1Type) =
+    let maxSize (k:Asn1TypeKind) =
+        match k with
+        | IA5String o
+        | NumericString o   -> o.maxSize.uper
+        | _                 -> raise(BugErrorException "typedefMaxSize: not a string type")
+    match t.getBaseType r with
+    | None      -> maxSize t.Kind
+    | Some bs   -> maxSize bs.Kind
+
 // ///////////////////////////////////////////////////////////////////////////
 // 'size deduced' helpers (Docs/deduced-size-spec.md)
 // ///////////////////////////////////////////////////////////////////////////

@@ -355,7 +355,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
             | StringValue iv   ->
                 iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        let tlLit = DAstVariables.convertStringValue2TargetLangStringLiteral lm (int o.maxSize.uper) vl
+        let tlLit = DAstVariables.convertStringValue2TargetLangStringLiteral lm (int (typedefMaxSize r t)) vl
         let tlLit = lm.lg.wrapIA5StringValue (lm.lg.definitionOrRef t.typeDefinitionOrReference) (ToC t.id.ModName) tlLit
         initIA5String (lm.lg.getValue p.accessPath) tlLit p.accessPath.isOptional resVar
 
@@ -377,7 +377,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
                 let i = sprintf "i%d" ii
                 let resVar = (p.accessPath.asIdentifier lm.lg)
                 let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
-                let funcBody = initTestCaseIA5String (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) (nSize) ((o.maxSize.uper+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false resVar sFirstNonNullChar
+                let funcBody = initTestCaseIA5String (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) (nSize) ((typedefMaxSize r t)+1I) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false resVar sFirstNonNullChar
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
         seq {
@@ -396,12 +396,12 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
         let i = sprintf "i%d" ii
         let resVar = (p.accessPath.asIdentifier lm.lg)
         let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
-        let funcBody = initTestCaseIA5String (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (o.maxSize.uper) (o.maxSize.uper+1I) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true resVar sFirstNonNullChar
+        let funcBody = initTestCaseIA5String (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (o.maxSize.uper) ((typedefMaxSize r t)+1I) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true resVar sFirstNonNullChar
         let lvars = lm.lg.init.zeroIA5String_localVars ii
         let resVar = (p.accessPath.asIdentifier lm.lg)
         {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=lvars}
     let constantInitExpression () = 
-        let initStr = lm.lg.initializeString firstPrintableAsciiCode (int o.maxSize.uper)
+        let initStr = lm.lg.initializeString firstPrintableAsciiCode (int (typedefMaxSize r t))
         let tdName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
         lm.lg.wrapIA5StringConstantInit tdName initStr
     createInitFunctionCommon r lm t typeDefinition funcBody zero testCaseFuncs constantInitExpression constantInitExpression [] [] []
@@ -419,13 +419,13 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
             | BitStringValue iv   -> bitStringValueToByteArray (StringLoc.ByValue iv) |> Seq.toList
             | _                 -> raise(BugErrorException "UnexpectedValue")
         let arrsBytes = bytes |> List.mapi(fun i b -> initFixSizeBitOrOctString_bytei (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) ((i + lm.lg.ArrayStartIndex).ToString()) (sprintf "%x" b))
-        match o.isFixedSize with
+        match typedefIsFixedSize r t with
         | true  -> initFixSizeBitOrOctString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) arrsBytes
         | false -> initFixVarSizeBitOrOctString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (BigInteger arrsBytes.Length) arrsBytes
     let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let tdName = lm.lg.getLongTypedefName typeDefinition
     let constantInitExpression () =
-        match o.isFixedSize with
+        match typedefIsFixedSize r t with
         | true   -> lm.init.initFixSizeOctetString tdName o.maxSize.uper (o.maxSize.uper = 0I)
         | false  -> lm.init.initVarSizeOctetString tdName o.minSize.uper o.maxSize.uper
 
@@ -446,7 +446,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                     let i = sprintf "i%d" ii
                     let resVar = (p.accessPath.asIdentifier lm.lg)
                     let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
-                    let funcBody = initTestCaseOctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper (nSize = 0I) resVar
+                    let funcBody = initTestCaseOctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize i (typedefIsFixedSize r t) false o.minSize.uper (nSize = 0I) resVar
                     {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
             let testCaseFuncs =
@@ -463,13 +463,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                 } |> Seq.toList
             let zero (p:CodegenScope) =
                 let resVar = (p.accessPath.asIdentifier lm.lg)
-                let isFixedSize =
-                    match t.getBaseType r with
-                    | None      -> o.isFixedSize
-                    | Some bs  ->
-                        match bs.Kind with
-                        | Asn1AcnAst.OctetString bo -> bo.isFixedSize
-                        | _                        -> raise(BugErrorException "UnexpectedType")
+                let isFixedSize = typedefIsFixedSize r t
                 let ii = p.accessPath.SequenceOfLevel + 1
                 let i = sprintf "i%d" ii
                 let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
@@ -552,7 +546,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                     let resVar = (p.accessPath.asIdentifier lm.lg)
                     let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I))
                     let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
-                    let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper p.accessPath.isOptional resVar
+                    let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize (nSizeCeiled) i (typedefIsFixedSize r t) false o.minSize.uper p.accessPath.isOptional resVar
                     {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
 
@@ -574,13 +568,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                 let resVar = (p.accessPath.asIdentifier lm.lg)
                 let nSize = o.maxSize.uper
                 let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I))
-                let isFixedSize =
-                    match t.getBaseType r with
-                    | None      -> o.isFixedSize
-                    | Some bs  ->
-                        match bs.Kind with
-                        | Asn1AcnAst.BitString bo -> bo.isFixedSize
-                        | _                        -> raise(BugErrorException "UnexpectedType")
+                let isFixedSize = typedefIsFixedSize r t
 
                 let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize (nSizeCeiled) i (isFixedSize) true o.minSize.uper p.accessPath.isOptional resVar
@@ -618,7 +606,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
         )
 
     let constantInitExpression () =
-        match o.isFixedSize with
+        match typedefIsFixedSize r t with
             | true   -> lm.init.initFixSizeBitString tdName o.maxSize.uper (BigInteger o.MaxOctets)
             | false  -> lm.init.initVarSizeBitString tdName o.minSize.uper o.maxSize.uper (BigInteger o.MaxOctets)
     createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] user_aux_functions []
@@ -803,7 +791,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         ret + pragma
                     )
             | _               -> raise(BugErrorException "UnexpectedValue")
-        match o.isFixedSize with
+        match typedefIsFixedSize r t with
         | true  -> initFixedSequenceOf vl
         | false -> initVarSizeSequenceOf (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (BigInteger vl.Length) vl
     //let ii = t.id.SequenceOfLevel + 1
@@ -830,7 +818,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                                 {p with accessPath = lm.lg.getArrayItem p.accessPath i childType.isIA5String}
                         let childCase = atc.initTestCaseFunc chp
                         let childBody = lm.atc.decodingCaseKind childCase.funcBody (chp.accessPath.asIdentifier lm.lg)
-                        let funcBody = initTestCaseSizeSequenceOf (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) tdName None nSize (o.minSize.uper = o.maxSize.uper) [childBody] false i resVar
+                        let funcBody = initTestCaseSizeSequenceOf (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) tdName None nSize (typedefIsFixedSize r t) [childBody] false i resVar
                         {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables= (SequenceOfIndex (ii, None))::childCase.localVariables }
                     let combinedTestCase = atc.testCaseTypeIDsMap.Add(t.id, TcvSizeableTypeValue nSize)
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase }
@@ -853,7 +841,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                                 let funcBody = initTestCaseSizeSequenceOf_innerItem (idx=0) (idx = childTestCases.Length-1) idx.AsBigInt sChildItem.funcBody i (BigInteger childTestCases.Length) (chp.accessPath.asIdentifier lm.lg)
                                 (funcBody, (SequenceOfIndex (ii, None))::sChildItem.localVariables)) |>
                             List.unzip
-                        let funcBody = initTestCaseSizeSequenceOf (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) tdName None nSize (o.minSize.uper = o.maxSize.uper) arrsInnerItems true i resVar
+                        let funcBody = initTestCaseSizeSequenceOf (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) tdName None nSize (typedefIsFixedSize r t) arrsInnerItems true i resVar
                         {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables= (SequenceOfIndex (ii, None))::(childLocalVars |> List.collect id)}
                     let combinedTestCase =
                         let thisCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)]
@@ -908,13 +896,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                     childInitRes.funcBody, childInitRes.localVariables
                 | Some initProc  ->
                     initChildWithInitFunc (lm.lg.getPointer chp.accessPath) initProc.funcName, []
-            let isFixedSize =
-                match t.getBaseType r with
-                | None      -> o.isFixedSize
-                | Some bs  ->
-                    match bs.Kind with
-                    | Asn1AcnAst.SequenceOf bo -> bo.isFixedSize
-                    | _                        -> raise(BugErrorException "UnexpectedType")
+            let isFixedSize = typedefIsFixedSize r t
 
             let funcBody = initTestCaseSizeSequenceOf (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdName initCountValue o.maxSize.uper (isFixedSize) [childInitRes_funcBody] false i resVar
             {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables= (SequenceOfIndex (ii, None))::childInitRes_localVariables }
@@ -936,7 +918,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let childInitGlobal = getChildExpressionGlobal lm childType
     let constantInitExpression childExpr =
         let sTypeDef = lm.lg.getLongTypedefName typeDefinition
-        match o.isFixedSize with
+        match typedefIsFixedSize r t with
         | true  -> lm.init.initFixSizeSequenceOfExpr sTypeDef o.maxSize.uper childExpr
         | false -> lm.init.initVarSizeSequenceOfExpr sTypeDef o.minSize.uper o.maxSize.uper childExpr
     let initExpr () = constantInitExpression childInitExpr

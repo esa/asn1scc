@@ -252,6 +252,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | true  -> lm.acn.sqf_deduced_fix_elem td pp access (i level) (wrapWithAppend internalItem) noSizeMin o.maxSize.acn trailingBits o.child.acnMinSizeInBits errCode.errCodeName codec
                             | false -> lm.acn.sqf_deduced_var_elem td pp access (i level) (wrapWithAppend internalItem) noSizeMin o.maxSize.acn trailingBits o.child.acnMinSizeInBits errCode.errCodeName codec
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = (lv level)@localVariables; userDefinedFunctions=internalItem.userDefinedFunctions; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=internalItem.auxiliaries; icdResult = Some icd})
+            let ret = ret |> Option.map (fun res -> {res with funcBody = DAstUPer.withFixedSizeCount r lm codec t o.isFixedSize o.minSize.acn p res.funcBody})
             ret,ns
     let soSparkAnnotations = Some(sparkAnnotations lm td codec)
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations [] us

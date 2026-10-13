@@ -589,6 +589,10 @@ octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sEr
 
 
 /* BIT STRING*/
+/* Decoding a fixed-size subtype of a variable-size type (shared typedef with a length field):
+   the fixed-size decoder fills only the data. */
+sizeable_fixed_count_set(p, sAcc, nFixedSize) ::= ""
+
 bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= "pBitStrm.append_bits(&<p><sAcc>arr, <nFixedSize>);"
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
 ret = pBitStrm.read_bits(&mut <p><sAcc>arr, <nFixedSize>);
