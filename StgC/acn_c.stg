@@ -699,12 +699,12 @@ if (ret) {
 }
 >>
 
-oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
-<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
+<if(bFixedSize)><loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nSizeMax)><else><loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])><endif>
 BitStream_AppendBits(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>);
 >>
 
-oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
 <i>=0;
 ret = TRUE;
 while(ret && <i> \< <nSizeMax> && ( (checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)) == 1))
@@ -722,9 +722,10 @@ if (ret && (checkBitPatternPresentResult == 0)) {
 	ret = FALSE;			/*COVERAGE_IGNORE*/
 	*pErrCode = <sErrCode>;	/*COVERAGE_IGNORE*/
 } else if (ret && (checkBitPatternPresentResult == 2)) {
-	<p><sAcc>nCount = <i>;
+	<if(bFixedSize)>ret = (<i> == <nSizeMax>);	/* fixed size: exactly <nSizeMax> items before the pattern */
+	*pErrCode = ret ? 0 : <sErrCode>;<else><p><sAcc>nCount = <i>;
 	ret = true;
-	*pErrCode = 0;
+	*pErrCode = 0;<endif>
 }
 
 >>
@@ -859,12 +860,16 @@ if (ret) {
 >>
 
 bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
-BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
+BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <if(bFixedSize)><nSizeMax><else><p><sAcc>nCount<endif>);
 BitStream_AppendBits(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>);
 >>
 
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize) ::= <<
-ret = BitStream_ReadBits_nullterminated(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>, <p><sAcc>arr, <nSizeMax>, &<p><sAcc>nCount);
+<if(bFixedSize)>{
+    /* fixed size: exactly <nSizeMax> bits before the pattern */
+    int nBitsRead = 0;
+    ret = BitStream_ReadBits_nullterminated(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>, <p><sAcc>arr, <nSizeMax>, &nBitsRead) && (nBitsRead == <nSizeMax>);
+}<else>ret = BitStream_ReadBits_nullterminated(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>, <p><sAcc>arr, <nSizeMax>, &<p><sAcc>nCount);<endif>
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 

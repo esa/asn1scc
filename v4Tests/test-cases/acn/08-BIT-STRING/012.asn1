@@ -1,0 +1,25 @@
+-- size null-terminated on fixed-size types (BIT STRING, OCTET STRING, SEQUENCE OF):
+-- the encoder writes the fixed number of items, then the pattern; the decoder reads up
+-- to the pattern and fails unless it found exactly that number. The templates used the
+-- length field (C nCount, Ada Length) that a fixed-size type does not have (PUS-C
+-- additional-test-cases NULLTERMINATED, q/issues.md 38). A fixed-size subtype of a
+-- variable-size type keeps the length field.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+   Bits20 ::= BIT STRING (SIZE (20))
+   Octs4 ::= OCTET STRING (SIZE (4))
+   Nums3 ::= SEQUENCE (SIZE (3)) OF INTEGER (0..10)
+   VarBits ::= BIT STRING (SIZE (1..20))
+   Bits8 ::= VarBits (SIZE(8))
+
+   MyPDU ::= SEQUENCE {
+      bits   Bits20,
+      octs   Octs4,
+      nums   Nums3,
+      bits8  Bits8,
+      tail   INTEGER (0..7)
+   }
+
+END
+
+--TCFS     012.acn

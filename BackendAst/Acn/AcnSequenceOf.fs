@@ -230,7 +230,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let childErrCodes   = internalItem.errCodes
                         let noSizeMin = if o.minSize.acn=0I then None else Some o.minSize.acn
                         let internalItemBody = wrapWithAppend internalItem
-                        let funcBodyContent = oct_sqf_null_terminated pp access (i level) internalItemBody noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits sType codec
+                        let funcBodyContent = oct_sqf_null_terminated pp access (i level) internalItemBody noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits sType (typedefIsFixedSize r t) codec
 
                         let lv2 =
                             match codec, lm.lg.acn.checkBitPatternPresentResult with

@@ -1,0 +1,16 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Bits20 [size null-terminated, termination-pattern '0F0F'H]
+Octs4 [size null-terminated, termination-pattern 'FF'H]
+Nums3 [size null-terminated, termination-pattern 'FF'H]
+VarBits [size null-terminated, termination-pattern '0F0F'H]
+Bits8 [size null-terminated, termination-pattern '0F0F'H]
+MyPDU [] {
+    bits   [],
+    octs   [],
+    nums   [],
+    bits8  [],
+    tail   []
+}
+
+END

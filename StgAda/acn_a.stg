@@ -911,12 +911,12 @@ end if;
 >>
 
 
-oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
-<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize="", nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
+<if(bFixedSize)><loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=nSizeMax, nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize="", nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)><else><loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize="", nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)><endif>
 <rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 >>
 
-oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType) ::= <<
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
 <i> := 1;
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 while result.Success and then <i>\<= <nSizeMax> and then not <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>)  loop
@@ -932,13 +932,14 @@ if result.Success and <i> = <nSizeMax>+1  then
 	result.Success := <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 	if result.Success then
 		<rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);
-		<p>.Length := <i>-1;
+		<if(!bFixedSize)><p>.Length := <i>-1;<endif>
 	end if;
 	result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success, ErrorCode => <sErrCode>);
-elsif result.Success and <i> \< <nSizeMax>+1 then
-	<p>.Length := <i>-1;
+elsif result.Success and <i> \< <nSizeMax>+1 then<if(bFixedSize)> --COVERAGE_IGNORE<endif>
+	<if(bFixedSize)>-- fixed size: the pattern came before <nSizeMax> items
+	result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>); --COVERAGE_IGNORE<else><p>.Length := <i>-1;
 	<rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);
-	result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+	result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);<endif>
 else
 	result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>); --COVERAGE_IGNORE
 end if;
@@ -1802,13 +1803,16 @@ bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin,
 declare
    tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>) := (others => 0);
 begin
-   adaasn1rtl.BitString_Bytes_To_BitArray(<p><sAcc>Data, <p><sAcc>Length, tmpBits);
-   adaasn1rtl.encoding.BitStream_AppendBitArray(bs, tmpBits, <p><sAcc>Length);
+   adaasn1rtl.BitString_Bytes_To_BitArray(<p><sAcc>Data, <if(bFixedSize)><nSizeMax><else><p><sAcc>Length<endif>, tmpBits);
+   adaasn1rtl.encoding.BitStream_AppendBitArray(bs, tmpBits, <if(bFixedSize)><nSizeMax><else><p><sAcc>Length<endif>);
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)<\n><else>
-adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, <p><sAcc>Length);<\n><endif><rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
+adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, <if(bFixedSize)><nSizeMax><else><p><sAcc>Length<endif>);<\n><endif><rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 >>
 
 bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, bFixedSize)  ::= <<
+<if(bFixedSize)>
+<bit_string_null_terminated_fixed_decode(p=p, sErrCode=sErrCode, sAcc=sAcc, i=i, nSizeMax=nSizeMax, arruNullBytes=arruNullBytes, nBitPatternLength=nBitPatternLength)>
+<else>
 <if(bitStringAlignment)>
 declare
    tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>) := (others => 0);
@@ -1817,6 +1821,27 @@ begin
    adaasn1rtl.BitString_BitArray_To_Bytes(tmpBits, <nSizeMax>, <p><sAcc>Data);
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)<\n><else>
 <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);<\n><endif>if not result.Success then
+    result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
+end if;
+<endif>
+>>
+
+/* Fixed size (the typedef has no Length): exactly <nSizeMax> bits before the pattern. */
+bit_string_null_terminated_fixed_decode(p, sErrCode, sAcc, i, nSizeMax, arruNullBytes, nBitPatternLength) /*nogen*/ ::= <<
+declare
+   nBitsRead : Natural;
+<if(bitStringAlignment)>
+   tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>) := (others => 0);
+begin
+   <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, tmpBits, nBitsRead, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
+   adaasn1rtl.BitString_BitArray_To_Bytes(tmpBits, <nSizeMax>, <p><sAcc>Data);
+<else>
+begin
+   <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data, nBitsRead, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
+<endif>
+   result.Success := result.Success and then nBitsRead = <nSizeMax>;
+end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)
+if not result.Success then
     result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
 end if;
 >>

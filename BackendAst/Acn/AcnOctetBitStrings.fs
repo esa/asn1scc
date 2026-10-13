@@ -70,7 +70,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                 let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                 let internalItem = InternalItem_oct_str pp access i  errCode.errCodeName codec
                 let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
-                let fncBody = oct_sqf_null_terminated pp access i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  8I 8I sType codec
+                let fncBody = oct_sqf_null_terminated pp access i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  8I 8I sType (typedefIsFixedSize r t) codec
                 let lv2 =
                     match codec, lm.lg.acn.checkBitPatternPresentResult with
                     | Decode, true    -> [IntegerLocalVariable ("checkBitPatternPresentResult", Some (lm.lg.intValueToString 0I (ASN1SCC_Int8 (-128I, 127I))))]
@@ -125,7 +125,8 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                 let i = sprintf "i%d" (p.accessPath.SequenceOfLevel + 1)
                 let lv = SequenceOfIndex (p.accessPath.SequenceOfLevel + 1, None)
-                let bFixedSize = o.minSize.acn = o.maxSize.acn
+                // fixed-size layout (no length field): exactly maxSize bits before the pattern
+                let bFixedSize = typedefIsFixedSize r t
                 let fncBody = lm.acn.bit_string_null_terminated sType pp errCode.errCodeName access i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt bFixedSize codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_FIXED_SIZE       ->
