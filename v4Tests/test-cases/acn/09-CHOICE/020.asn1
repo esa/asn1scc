@@ -1,0 +1,28 @@
+-- NOCOVERAGE (Ada: the case arms of the ALWAYS ABSENT alternatives are not reached)
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+-- CHOICE subtypes (WITH COMPONENTS) used as components. They share the typedef and the
+-- selection enum of the CHOICE at the end of the chain (Value), but with -renamePolicy 3
+-- the codec of the parent used the subtype's name: NumericValue_intValue_PRESENT is
+-- undeclared (PUS-C advanced test model subtyping-with-components, q/issues.md 38).
+
+Value ::= CHOICE {
+    intValue  INTEGER (0..255),
+    boolValue BOOLEAN,
+    text      IA5String (SIZE(1..4))
+}
+
+NumericValue ::= Value (WITH COMPONENTS { intValue PRESENT } | WITH COMPONENTS { boolValue PRESENT })
+
+-- A subtype of a subtype.
+IntValue ::= NumericValue (WITH COMPONENTS { intValue PRESENT })
+
+MyPDU ::= SEQUENCE {
+    num   NumericValue,
+    int   IntValue,
+    any   Value
+}
+
+END
+
+--TCFS     020.acn

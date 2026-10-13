@@ -1431,7 +1431,34 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
 
             let cons =  myVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t children)
             let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t children)
-            let typeDef, us1 = getChoiceTypeDefinition tfdArg us
+            let typeDef, us1a = getChoiceTypeDefinition tfdArg us
+            // -renamePolicy 3: the present-when names carry the name of the type whose typedef
+            // defines the selection enum, i.e. the CHOICE at the end of the chain of referenced
+            // subtypes (NumericValue ::= DataValue (...) uses DataValue_..._PRESENT), also when the
+            // CHOICE is used through a reference (typedef kind Reference2OtherType, whose typeName
+            // is the subtype's). An inline CHOICE (path below a type assignment) has its own enum.
+            let presentWhenTypeName, us1 =
+                match asn1.args.renamePolicy with
+                | AlwaysPrefixTypeName ->
+                    let activeLang =
+                        match asn1.args.targetLanguages  with
+                        | x1::_ -> x1
+                        | []    -> C
+                    let rec definingTas (md:StringLoc) (ts:StringLoc) =
+                        let tas = asn1.GetModuleByName(md).GetTypeAssignmentByName ts asn1
+                        match tas.Type.Kind with
+                        | Asn1Ast.ReferenceType rf  -> definingTas rf.modName rf.tasName
+                        | _                         -> md, ts
+                    let typeName0, ns =
+                        match typeDefPath with
+                        | [MD md; TA ts] ->
+                            let dm, dt = definingTas (StringLoc.ByValue md) (StringLoc.ByValue ts)
+                            let ib = asn1.args.blm |> List.find (fun (l1,_) -> l1 = activeLang) |> snd
+                            let def, ns = registerChoiceTypeDefinition us1a (activeLang, ib) (ReferenceToType [MD dm.Value; TA dt.Value]) FEI_NewTypeDefinition
+                            def.typeName, ns
+                        | _ -> typeDef.[activeLang].typeName, us1a
+                    Some (removeTypePrefix asn1.args.TypePrefix typeName0), ns
+                | _ -> None, us1a
 
             // Determine, from the subtype's WITH COMPONENTS constraints, which choice alternatives are
             // allowed to be present. Returns None when the constraints place no restriction on the
@@ -1509,23 +1536,9 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                                 | _ -> None)
 
                 let present_when_name =
-                    match asn1.args.renamePolicy with
-                    | AlwaysPrefixTypeName ->
-                        let activeLang =
-                            match asn1.args.targetLanguages  with
-                            | x1::_ -> x1
-                            | []    -> C
-                        let typeName0 =
-                            let aaa = typeDef.[activeLang]
-                            match aaa.kind with
-                            | NonPrimitiveNewTypeDefinition         -> typeDef.[activeLang].typeName
-                            | NonPrimitiveNewSubTypeDefinition sub  -> sub.typeName
-                            | NonPrimitiveReference2OtherType       -> typeDef.[activeLang].typeName
-
-
-                        let tpName = removeTypePrefix  asn1.args.TypePrefix typeName0
-                        tpName + "_" + c.present_when_name
-                    | _ ->  c.present_when_name
+                    match presentWhenTypeName with
+                    | Some tpName   -> tpName + "_" + c.present_when_name
+                    | None          -> c.present_when_name
 
                 match cc with
                 | None      ->
