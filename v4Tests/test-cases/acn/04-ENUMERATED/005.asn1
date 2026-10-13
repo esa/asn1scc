@@ -1,0 +1,22 @@
+-- Ada: with -renamePolicy 3 the enum literals carry the type name (Status_error).
+-- The test procedures had "use Ada.Text_IO;" and the test files "use Ada.Calendar;",
+-- so literals equal to their names (Status_Error, Mode_Error, Time_Error) were hidden:
+-- "Status_error" is not visible, multiple use clauses cause hiding (PUS-C primitives
+-- test model, enumerated-basic, q/issues.md 38).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+   Status ::= ENUMERATED { idle(0), active(1), error(4) }
+   Mode ::= ENUMERATED { normal, error }
+   Time ::= ENUMERATED { ok, error }
+
+   MyPDU ::= SEQUENCE {
+      status  Status,
+      mode    Mode,
+      time    Time
+   }
+
+   status1 Status ::= error
+
+END
+
+--TCLS     MyPDU[]
