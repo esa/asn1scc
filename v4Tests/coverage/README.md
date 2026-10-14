@@ -28,7 +28,8 @@ Run without network access. A named container retains reports even on failure:
 Do not add --rm if you intend to copy results afterwards. Use a new container
 name per run. Every invocation creates a new report subdirectory and never
 overwrites another run. After copying results you can remove that specific
-finished container with docker rm.
+finished container with docker rm (do it: each full run keeps GBs of builds;
+runCoverage.sh does it for you).
 
 Reproduce all original 259 units and compare individual counts and input hashes
 (opt-in, using a compatible historical compiler and toolchain):
@@ -177,8 +178,12 @@ It needs `--encodings acn`:
     v4Tests/coverage/runCoverage.sh --metric stmt --language c --outdir coverage-results/mcdc-c -- --cohort all --level stmt+mcdc
     v4Tests/coverage/runCoverage.sh --metric stmt --language Ada --outdir coverage-results/pusc-ada -- --pusc-units /opt/coverage/pusc-units.json --encodings acn --level stmt+mcdc
 
-`--image` overrides the selected image; `--name` gives the retained container
-an explicit name. The default cohort is the bounded pilot. Supply collector
+`--image` overrides the selected image; `--name` gives the container an explicit
+name. After the results are copied to the output directory the container is
+removed: it holds every generated and instrumented build (1.5–3.5 GB per full
+run), and 431 retained containers filled the host disk in October 2026.
+`--keep-container` keeps it (for inspection); it is also kept when the copy
+fails. The default cohort is the bounded pilot. Supply collector
 options after `--`; set language and output directory before it. Every host
 output directory must be new. `container.json` records the actual image ID,
 user, network mode, mounts and final exit status.

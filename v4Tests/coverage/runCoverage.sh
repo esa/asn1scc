@@ -11,13 +11,14 @@ encode_pilot=false
 decode_pilot=false
 invalid_value_pilot=false
 invalid_stream_pilot=false
+keep_container=false
 
 usage() {
     cat <<'EOF'
 Usage: runCoverage.sh [--metric gcov|stmt] [--language c|Ada]
                       [--image IMAGE] [--outdir DIRECTORY] [--name CONTAINER]
                       [--encode-pilot|--decode-pilot|--invalid-value-pilot|--invalid-stream-pilot]
-                      [-- COLLECTOR_ARGUMENTS...]
+                      [--keep-container] [-- COLLECTOR_ARGUMENTS...]
 
 Defaults to the bounded pilot cohort. Pass -- --cohort all for a full run.
 --encode-pilot runs the paired three-fixture C experiment instead.
@@ -25,7 +26,9 @@ Defaults to the bounded pilot cohort. Pass -- --cohort all for a full run.
 --invalid-value-pilot compares positives with explicit invalid C value checks.
 --invalid-stream-pilot compares positives with fixed-layout ACN stream mutations.
 Images must already be built; measurement runs have no network or host mounts.
-Containers and exported results are retained even when a measurement fails.
+Results are exported to the output directory even when a measurement fails. The
+container is then removed (it holds every generated and instrumented build, GBs
+per run); it is kept only with --keep-container or when the export fails.
 EOF
 }
 
@@ -45,6 +48,7 @@ while (($#)); do
         --decode-pilot) decode_pilot=true; shift ;;
         --invalid-value-pilot) invalid_value_pilot=true; shift ;;
         --invalid-stream-pilot) invalid_stream_pilot=true; shift ;;
+        --keep-container) keep_container=true; shift ;;
         --help|-h) usage; exit 0 ;;
         --) shift; break ;;
         *) usage >&2; exit 2 ;;
@@ -128,6 +132,13 @@ if read -r state code < "$outdir/container.status"; then
 else
     status=1
 fi
-docker cp "$container:/results/." "$outdir/results" || status=1
+if docker cp "$container:/results/." "$outdir/results"; then
+    if [[ "$keep_container" == false ]]; then
+        docker rm "$container" > /dev/null || printf 'Could not remove container %s\n' "$container" >&2
+    fi
+else
+    status=1
+    printf 'Export failed; container %s kept\n' "$container" >&2
+fi
 printf 'Results: %s\nExit status: %s\n' "$outdir" "$status"
 exit "$status"
