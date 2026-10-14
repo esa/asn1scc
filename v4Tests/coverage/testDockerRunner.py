@@ -1,4 +1,4 @@
-"""Check image routing, isolation arguments and failure-artifact preservation."""
+"""Check image routing, isolation arguments, failure-artifact export and container removal."""
 import json
 import os
 from pathlib import Path
@@ -22,6 +22,8 @@ elif args[0] == 'inspect':
     else:
         print('exited', code)
 elif args[0] == 'cp':
+    if os.environ.get('CP_FAIL'):
+        sys.exit(1)
     target = Path(args[-1])
     target.mkdir(parents=True)
     (target / 'evidence.json').write_text('{}')
@@ -29,13 +31,15 @@ elif args[0] == 'cp':
 
 
 class DockerRunnerTests(unittest.TestCase):
-    def invoke(self, root, options, exit_code=0):
+    def invoke(self, root, options, exit_code=0, cp_fail=False):
         binary = root / 'docker'
         binary.write_text(FAKE_DOCKER)
         binary.chmod(0o755)
         log = root / 'calls.jsonl'
         env = {**os.environ, 'PATH': str(root) + os.pathsep + os.environ['PATH'],
                'DOCKER_CALLS': str(log), 'CONTAINER_EXIT': str(exit_code)}
+        if cp_fail:
+            env['CP_FAIL'] = '1'
         result = subprocess.run(['bash', str(RUNNER), '--outdir', str(root / 'output'), *options],
                                 env=env, text=True, capture_output=True, timeout=30)
         calls = [json.loads(x) for x in log.read_text().splitlines()] if log.exists() else []
@@ -65,7 +69,14 @@ class DockerRunnerTests(unittest.TestCase):
             result, calls = self.invoke(root, ['--metric', 'stmt'], exit_code=7)
             self.assertEqual(result.returncode, 7)
             self.assertTrue((root / 'output/results/evidence.json').exists())
-            self.assertFalse(any(c[0] == 'rm' for c in calls))
+            self.assertTrue(any(c[0] == 'rm' for c in calls))
+
+    def test_container_is_kept_on_request_or_failed_export(self):
+        for options, cp_fail in [(['--keep-container'], False), ([], True)]:
+            with self.subTest(options=options, cp_fail=cp_fail), tempfile.TemporaryDirectory() as temp:
+                result, calls = self.invoke(Path(temp), ['--metric', 'stmt', *options], cp_fail=cp_fail)
+                self.assertEqual(result.returncode, 1 if cp_fail else 0, result.stderr)
+                self.assertFalse(any(c[0] == 'rm' for c in calls))
 
     def test_paired_pilot_routes_to_its_own_entrypoint(self):
         for metric, script in [('gcov', 'encodePilot.py'), ('stmt', 'statementPilot.py')]:
