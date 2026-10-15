@@ -76,6 +76,53 @@ let private encodableRange (enc:IntEncodingClass) : (BigInteger*BigInteger) opti
     | ASCII_UINT_VarSize_NullTerminated _
     | BCD_VarSize_NullTerminated _ -> None
 
+/// Justification of a GNATcoverage exemption region in the generated code; the IDs and
+/// their proofs are in Docs/statement-coverage-exemptions.md (the C uPER / ACN CHOICE
+/// and string templates carry the same COV-001 / COV-002 texts).
+let private covExemptJustification (id:string) =
+    match id with
+    | "ASN1SCC-COV-001" -> "ASN1SCC-COV-001: value range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md"
+    | "ASN1SCC-COV-003" -> "ASN1SCC-COV-003: every value of the decoded bit width has an item, see Docs/statement-coverage-exemptions.md"
+    | _ -> raise (BugErrorException ("unknown coverage exemption " + id))
+
+/// The exemption that proves the `default:` / `when others` arm of the ACN ENUMERATED
+/// decoder unreachable, or None when an invalid stream can reach it (the complement of
+/// createInvalidCodeStream). The item values must fill min..max, and the integer decoder
+/// must return only values of min..max: the uPER-like encoding (range-checked RTL decode,
+/// ASN1SCC-COV-001); a fixed-size encoding when the language's decoders check min..max
+/// (Ada, ASN1SCC-COV-001); in C an unsigned fixed-size encoding whose width holds exactly
+/// min..max (ASN1SCC-COV-003).
+let decodeDefaultArmExemption (lm:LanguageMacros) (o:Asn1AcnAst.Enumerated) : string option =
+    let values = o.items |> List.map(fun x -> x.acnEncodeValue) |> Set.ofList
+    let min, max = Set.minElement values, Set.maxElement values
+    let dense = BigInteger values.Count = max - min + 1I
+    let id =
+        match dense with
+        | false -> None
+        | true ->
+            match o.acnEncodingClass with
+            | Integer_uPER -> Some "ASN1SCC-COV-001"
+            | PositiveInteger_ConstSize_8
+            | PositiveInteger_ConstSize_big_endian_16 | PositiveInteger_ConstSize_little_endian_16
+            | PositiveInteger_ConstSize_big_endian_32 | PositiveInteger_ConstSize_little_endian_32
+            | PositiveInteger_ConstSize_big_endian_64 | PositiveInteger_ConstSize_little_endian_64
+            | PositiveInteger_ConstSize _ ->
+                match lm.lg.atcInvalidStreamCodeOutsideItemRange with
+                | false -> Some "ASN1SCC-COV-001"
+                | true when encodableRange o.acnEncodingClass = Some (min, max) -> Some "ASN1SCC-COV-003"
+                | true -> None
+            | TwosComplement_ConstSize_8
+            | TwosComplement_ConstSize_big_endian_16 | TwosComplement_ConstSize_little_endian_16
+            | TwosComplement_ConstSize_big_endian_32 | TwosComplement_ConstSize_little_endian_32
+            | TwosComplement_ConstSize_big_endian_64 | TwosComplement_ConstSize_little_endian_64
+            | TwosComplement_ConstSize _
+            | ASCII_ConstSize _ | ASCII_UINT_ConstSize _ | BCD_ConstSize _ ->
+                match lm.lg.atcInvalidStreamCodeOutsideItemRange with
+                | false -> Some "ASN1SCC-COV-001"
+                | true -> None
+            | ASCII_VarSize_NullTerminated _ | ASCII_UINT_VarSize_NullTerminated _ | BCD_VarSize_NullTerminated _ -> None
+    id |> Option.map covExemptJustification
+
 /// An ACN stream that holds only a code of the ENUMERATED type that no item
 /// uses, encoded like the type's own encoder encodes an item value, for the
 /// automatic test of the ACN decoder's default arm. The code is the smallest one
@@ -151,7 +198,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                             List.map(fun it ->
                                 let enumClassName = lm.lg.extractEnumClassName "" it.scala_name it.Name.Value
                                 Enumerated_item (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
-                        EnumeratedEncValues (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal codec, localVar@intAcnFuncBdResult.localVariables
+                        EnumeratedEncValues (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal (decodeDefaultArmExemption lm o) codec, localVar@intAcnFuncBdResult.localVariables
                     | true ->
                         let sEnumIndex = "nEnumIndex"
                         let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))

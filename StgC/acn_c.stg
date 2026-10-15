@@ -493,7 +493,7 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 >>
 
 
-EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
 switch(<p>) {
     <arrsItem; separator="\n">
     default:                                    /*COVERAGE_IGNORE*/
@@ -505,14 +505,14 @@ if (ret) {
 }
 >>
 
-EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
 <sActualCodecFunc>
 if (ret) {
     switch (<sIntVal>) {
         <arrsItem; separator="\n">
-    default:                                    /*COVERAGE_IGNORE*/
+    default:                                    /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
         ret = FALSE;                            /*COVERAGE_IGNORE*/
-        *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
+        *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif>
     }
 } /*COVERAGE_IGNORE*/
 >>
@@ -1096,9 +1096,9 @@ if (ret) {
     switch(<sChoiceIndexName>)
     {
     <arrsChildren: {ch|<ch>}; separator="\n">
-    default: /*COVERAGE_IGNORE*/
+    default: /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "ASN1SCC-COV-001: value range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md" */
         *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
-        ret = FALSE;                /*COVERAGE_IGNORE*/
+        ret = FALSE;                /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */
     }
 } /*COVERAGE_IGNORE*/
 >>

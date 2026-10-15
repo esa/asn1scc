@@ -746,18 +746,18 @@ end if;
 >>
 
 
-EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
 <EnumeratedEncIdx_encode(p=p, td=td, arrsItem=arrsItem, sActualCodecFunc=sActualCodecFunc)>
 >>
 
-EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
+EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
 <sActualCodecFunc>
 if result.Success then
     case <sIntVal> is
         <arrsItem; separator="\n">
-    when others =>																				-- COVERAGE_IGNORE
+    when others =><if(soCovExempt)> pragma Annotate (Xcov, Exempt_On, "<soCovExempt>");<endif>																				-- COVERAGE_IGNORE
         <p> := <sFirstItemName>;																-- COVERAGE_IGNORE
-        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);	-- COVERAGE_IGNORE
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);<if(soCovExempt)> pragma Annotate (Xcov, Exempt_Off);<endif>	-- COVERAGE_IGNORE
     end case;
 else
     <p> := <sFirstItemName>;																	-- COVERAGE_IGNORE
