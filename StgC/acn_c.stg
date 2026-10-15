@@ -1328,11 +1328,12 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 	static byte arr[<sReqBytesForUperEncoding>];
     BitStream* pBitStrm_save = pBitStrm;
 	BitStream bitStrm;
-	/*limit the temporary stream view to the actual region size ('size deduced' support)*/
-	BitStream_Init(&bitStrm, arr, (int)<sExtField>);
-	ret = (int)<sExtField> \<= <sReqBytesForUperEncoding>;
+	/*check the length read from the stream before it sizes the temporary stream view (a negative value fails too)*/
+	ret = (asn1SccUint)<sExtField> \<= <sReqBytesForUperEncoding>;
 	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
+		/*limit the temporary stream view to the actual region size ('size deduced' support)*/
+		BitStream_Init(&bitStrm, arr, (long)<sExtField>);
 		/*decode to the temporary bitstream buffer */
 		ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, (int)<sExtField>);
 		<A(sErrCode)>
@@ -1613,11 +1614,12 @@ bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncodi
 	/*decode to a temporary bitstream*/
 	static byte arr[<sReqBytesForUperEncoding>];
 	BitStream bitStrm;
-	/*limit the temporary stream view to the actual region size ('size deduced' support)*/
-	BitStream_Init(&bitStrm, arr, ((int)<sExtField> + 7) / 8);
-	ret = (int)<sExtField> \<= <sReqBitsForUperEncoding>;
+	/*check the length read from the stream before it sizes the temporary stream view (a negative value fails too)*/
+	ret = (asn1SccUint)<sExtField> \<= <sReqBitsForUperEncoding>;
 	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
+		/*limit the temporary stream view to the actual region size ('size deduced' support)*/
+		BitStream_Init(&bitStrm, arr, ((long)<sExtField> + 7) / 8);
 		ret = BitStream_ReadBits(pBitStrm, arr, (int)<sExtField>);
 		<A(sErrCode)>
 		if (ret) {

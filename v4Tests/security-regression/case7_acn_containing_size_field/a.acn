@@ -1,0 +1,12 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Item [encoding pos-int, size 12]
+Items [size deduced]
+
+OctLen16   [] { len INTEGER [encoding pos-int, size 16],                         payload [size len] }
+OctLen32   [] { len INTEGER [encoding pos-int, size 32, endianness big],        payload [size len] }
+OctTwos8   [] { len Signed-Len [encoding twos-complement, size 8],              payload [size len] }
+OctDeduced [] { len INTEGER [encoding pos-int, size 16],                         payload [size len], tail [encoding pos-int, size 8] }
+BitLen16   [] { len INTEGER [encoding pos-int, size 16],                         payload [size len] }
+
+END

@@ -1,0 +1,14 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Item       ::= INTEGER (0..4000)
+Items      ::= SEQUENCE (SIZE (0..10)) OF Item
+Fixed      ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..255) }
+Signed-Len ::= INTEGER (-5..20)
+
+OctLen16   ::= SEQUENCE { payload OCTET STRING (CONTAINING Fixed) }
+OctLen32   ::= SEQUENCE { payload OCTET STRING (CONTAINING Fixed) }
+OctTwos8   ::= SEQUENCE { payload OCTET STRING (CONTAINING Fixed) }
+OctDeduced ::= SEQUENCE { payload OCTET STRING (CONTAINING Items), tail INTEGER (0..255) }
+BitLen16   ::= SEQUENCE { payload BIT STRING (CONTAINING Fixed) }
+
+END
