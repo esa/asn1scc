@@ -29,24 +29,38 @@ covered nor proven.
   missed statement and reports it under the entry's identifier. The checks are
   tested in `testClassifyStatements.py`, including near misses that must *not*
   be exempted.
-- **In the generated code** (planned): the templates will emit GNATcoverage
-  exemption regions that cite the identifier, so that a user who measures the
-  generated code with GNATcoverage gets the exemption and its justification in
-  the tool's own report (C shown; Ada uses `pragma Annotate`, see below):
+- **In the generated code** (since asn1scc 4.9.18.0): the code of every entry
+  is emitted inside a GNATcoverage exemption region that cites the identifier,
+  so that a user who measures the generated code with GNATcoverage gets the
+  exemption and its justification in the tool's own report, without any
+  asn1scc tool. In C the region is a pair of comments on the existing lines:
 
   ```c
-  /* GNATCOV_EXEMPT_ON "ASN1SCC-COV-001: index range enforced by the RTL, see Docs/statement-coverage-exemptions.md" */
-  ...
-  /* GNATCOV_EXEMPT_OFF */
+  default:  /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "ASN1SCC-COV-001: value range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md" */
+      *pErrCode = ERR_UPER_DECODE_COLOR;     /*COVERAGE_IGNORE*/
+      ret = FALSE;                /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */
   ```
 
-  In Ada the equivalent is `pragma Annotate (Xcov, Exempt_On, "...")` /
-  `pragma Annotate (Xcov, Exempt_Off)`.
+  In Ada it is a pair of pragmas, which the compiler and GNATprove ignore:
+
+  ```ada
+  when others => pragma Annotate (Xcov, Exempt_On, "ASN1SCC-COV-001: value range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md");   -- COVERAGE_IGNORE
+      val := MyPDU_alpha;   -- COVERAGE_IGNORE
+      result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_MYPDU); pragma Annotate (Xcov, Exempt_Off);   -- COVERAGE_IGNORE
+  ```
+
+  For the templates whose proof depends on the instance (ACN ENUMERATED, see
+  ASN1SCC-COV-001 and -003) the compiler emits the region only when the
+  conditions of the entry hold; otherwise the arm is reachable and is covered
+  by an automatic test. The asn1scc test suite checks that every region it
+  measures is exactly the set of statements whose precondition
+  `classifyStatements.py` confirms, and that no region is ever executed.
 
 An exemption region records a claim; GNATcoverage does not check it. It reports
 the region as "exempted, with violations" while the code stays unexecuted and
 as "exempted, no violation" if a test ever executes it, which would mean the
-proof no longer holds.
+proof no longer holds. Decision and MC/DC obligations inside a region are
+exempted the same way (ASN1SCC-COV-002 covers the guard decision itself).
 
 ---
 
@@ -54,7 +68,10 @@ proof no longer holds.
 
 **Code.** A decoder reads an index or a value with
 `BitStream_DecodeConstraintWholeNumber(pBitStrm, &v, min, max)` or
-`BitStream_DecodeConstraintPosWholeNumber(pBitStrm, &v, min, max)`, then
+`BitStream_DecodeConstraintPosWholeNumber(pBitStrm, &v, min, max)` (or one of
+their `Int8` / `Int16` / `Int32` / `UInt8` / `UInt16` / `UInt32` variants, used
+for smaller integer types, which call the base function and only cast its
+result), then
 switches on `v`. The switch has one `case` for every value `min..max`, plus a
 `default:` arm that reports an error. The `default:` arm cannot execute.
 
