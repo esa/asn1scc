@@ -132,6 +132,7 @@ def classify(run):
                 first, row = base(decision)
                 row["missing"] = missing_outcome(decision)
                 row["proven"] = decision_proven(language, lines, first, row["missing"])
+                row["exempted"] = decision.get("exempted")
                 row["track"] = track(row["function_kind"], row["construct"], row["missing"])
                 decision_rows.append(row)
             for decision in data.get("mcdc", {}).get("decisions", []):
@@ -146,9 +147,16 @@ def classify(run):
                                       "decision outcome" if decision["status"] in {"-", "!"} or
                                       decision["messages"] else "not evaluated")
                     row["proven"] = decision_proven(language, lines, first, "TRUE")
+                    row["exempted"] = decision.get("exempted")
                     mcdc_rows.append(row)
         units.append(entry)
     return name, decision_rows, mcdc_rows, units
+
+
+def exemption_mismatches(rows):
+    """Rows where the exemption region (GNATcoverage) and the classifier's check of the
+    documented precondition disagree; runs without the `exempted` field are not checked."""
+    return [r for r in rows if r["exempted"] is not None and bool(r["exempted"]) != bool(r["proven"])]
 
 
 def write_csv(path, rows):
@@ -238,7 +246,12 @@ def main(argv=None):
     (args.outdir / "summary.json").write_text(json.dumps({"configurations": summary}, indent=2,
                                                          sort_keys=True) + "\n")
     print(args.outdir / "report.md")
-    return 0
+    mismatches = exemption_mismatches(decisions + conditions)
+    if mismatches:
+        write_csv(args.outdir / "exemption-mismatches.csv", mismatches)
+        print(f"{len(mismatches)} decisions / conditions where exemption region and classifier disagree: "
+              f"{args.outdir / 'exemption-mismatches.csv'}", file=sys.stderr)
+    return 1 if mismatches else 0
 
 
 if __name__ == "__main__":

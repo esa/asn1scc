@@ -20,6 +20,14 @@ import xml.etree.ElementTree as ET
 from encodePilot import c
 
 
+# Exempted obligations (GNATCOV_EXEMPT_ON / pragma Annotate (Xcov, Exempt_On) regions of
+# the templates, Docs/statement-coverage-exemptions.md): GNATcoverage reports an executed
+# one as `exempted_no_violation` and a missed one as `exempted`, and marks the lines of the
+# region `*` (the region has a violation) or `#` (none). Our counts keep `covered` = executed
+# (exempted or not), `uncovered` = missed outside a region, `exempted` = missed inside one.
+EXEMPTED_LINE = {"*", "#"}
+
+
 def statement_metrics(element):
     stats = [] if element is None else element.findall("obligation_stats[@kind='Stmt']")
     if len(stats) != 1:
@@ -29,14 +37,32 @@ def statement_metrics(element):
     if len(counts) != len(metrics):
         raise ValueError("Duplicate statement metric")
     total = counts["total_obligations_of_relevance"]
-    covered, missed = counts["fully_covered"], counts["not_covered"]
-    if any(v < 0 for v in counts.values()) or total != covered + missed:
-        raise ValueError("Undetermined, partial, exempted or disabled statement obligations")
+    covered = counts["fully_covered"] + counts.get("exempted_no_violation", 0)
+    missed, exempted = counts["not_covered"], counts.get("exempted", 0)
+    if any(v < 0 for v in counts.values()) or total != covered + missed + exempted:
+        raise ValueError("Undetermined, partial or disabled statement obligations")
     if any(v for k, v in counts.items()
-           if k not in {"total_obligations_of_relevance", "fully_covered", "not_covered"}):
+           if k not in {"total_obligations_of_relevance", "fully_covered", "not_covered",
+                        "exempted", "exempted_no_violation"}):
         raise ValueError("Unsupported statement obligation status")
     return {"statements_total": total, "statements_covered": covered,
-            "statements_uncovered": missed}
+            "statements_uncovered": missed, "statements_exempted": exempted}
+
+
+def exempted_ids(source, name):
+    """SCO ids of the obligations on the lines of exemption regions. A region whose lines
+    are `#` had no violation: every obligation in it was executed, so the proof that
+    exempted it does not hold."""
+    ids = set()
+    for mapping in source.findall("src_mapping"):
+        if mapping.get("coverage") == "#":
+            line = mapping.find("src/line")
+            raise ValueError(f"Exempted region without violation in {name}:"
+                             f"{line.get('num') if line is not None else '?'} (exemption proof broken)")
+        if mapping.get("coverage") in EXEMPTED_LINE:
+            ids.update(node.attrib["id"] for node in mapping.iter()
+                       if node.tag in {"statement", "decision", "condition"})
+    return ids
 
 
 LEVELS = ("stmt", "stmt+decision", "stmt+mcdc", "stmt+uc_mcdc")
@@ -57,12 +83,15 @@ def obligation_counts(element, kind):
     if len(stats) != 1:
         raise ValueError(f"Missing {kind} obligation statistics")
     counts = {m.attrib["kind"]: int(m.attrib["count"]) for m in stats[0].findall("metric")}
-    known = {"total_obligations_of_relevance", "fully_covered", "partially_covered", "not_covered"}
+    known = {"total_obligations_of_relevance", "fully_covered", "partially_covered", "not_covered",
+             "exempted", "exempted_no_violation"}
     if any(v for k, v in counts.items() if k not in known) or any(v < 0 for v in counts.values()):
-        raise ValueError(f"Undetermined, exempted or disabled {kind} obligations")
-    result = {"total": counts["total_obligations_of_relevance"], "covered": counts["fully_covered"],
-              "partial": counts["partially_covered"], "uncovered": counts["not_covered"]}
-    if result["total"] != result["covered"] + result["partial"] + result["uncovered"]:
+        raise ValueError(f"Undetermined or disabled {kind} obligations")
+    result = {"total": counts["total_obligations_of_relevance"],
+              "covered": counts["fully_covered"] + counts.get("exempted_no_violation", 0),
+              "partial": counts["partially_covered"], "uncovered": counts["not_covered"],
+              "exempted": counts.get("exempted", 0)}
+    if result["total"] != result["covered"] + result["partial"] + result["uncovered"] + result["exempted"]:
         raise ValueError(f"Inconsistent {kind} obligation statistics")
     return result
 
@@ -105,6 +134,7 @@ def read_decisions(report_dir, work, level, names):
             sco = re.match(r"SCO #(\d+)", message.get("SCO", ""))
             if sco and message.get("kind") == "violation":
                 messages.setdefault(sco[1], []).append(message.attrib["message"])
+        exempted = exempted_ids(source, name)
         decisions, ids = [], set()
         for node in source.iter("decision"):
             sco, status = node.attrib["id"], node.attrib["coverage"]
@@ -122,18 +152,20 @@ def read_decisions(report_dir, work, level, names):
                                    "messages": messages.get(condition.attrib["id"], [])})
             decisions.append({"sco_id": sco, "status": status, "text": node.get("text", ""),
                               "spans": spans_of(node), "conditions": conditions,
-                              "messages": messages.get(sco, [])})
+                              "messages": messages.get(sco, []), "exempted": sco in exempted})
         relevant = [d for d in decisions if d["status"] != "."]
         if kind == "Decision":
             counts = {"total": len(relevant), "covered": sum(d["status"] == "+" for d in relevant),
-                      "partial": sum(d["status"] == "!" for d in relevant),
-                      "uncovered": sum(d["status"] == "-" for d in relevant)}
+                      "partial": sum(d["status"] == "!" and not d["exempted"] for d in relevant),
+                      "uncovered": sum(d["status"] == "-" and not d["exempted"] for d in relevant),
+                      "exempted": sum(d["status"] != "+" and d["exempted"] for d in relevant)}
         else:
-            conditions = [x for d in relevant for x in d["conditions"]
+            conditions = [(x, d["exempted"]) for d in relevant for x in d["conditions"]
                           if kind == "MCDC" or x["status"] != "."]
-            covered = sum(x["status"] == "+" for x in conditions)
+            covered = sum(x["status"] == "+" for x, _ in conditions)
+            exempt = sum(x["status"] != "+" and e for x, e in conditions)
             counts = {"total": len(conditions), "covered": covered, "partial": 0,
-                      "uncovered": len(conditions) - covered}
+                      "uncovered": len(conditions) - covered - exempt, "exempted": exempt}
         files[name] = {"counts": counts, "decisions": decisions}
     indexed = {}
     for element in summary.findall("file"):
@@ -145,7 +177,7 @@ def read_decisions(report_dir, work, level, names):
         if counts != files[name]["counts"]:
             raise ValueError(f"{kind} accounting differs for {name}")
     if obligation_counts(summary, kind) != {k: sum(f["counts"][k] for f in files.values())
-                                            for k in ("total", "covered", "partial", "uncovered")}:
+                                            for k in ("total", "covered", "partial", "uncovered", "exempted")}:
         raise ValueError(f"{kind} accounting differs from global report")
     return files
 
@@ -173,6 +205,7 @@ def read_report(report_dir, work):
             raise ValueError(f"Duplicate source report: {name}")
         sha = c.file_hash(original)
         obligations, non_obligations, ids = [], [], set()
+        exempted = exempted_ids(source, name)
         occurrences = Counter()
         for node in source.findall(".//statement"):
             sco = node.attrib["id"]
@@ -182,7 +215,7 @@ def read_report(report_dir, work):
             status = node.attrib["coverage"]
             spans = [dict(line.attrib) for line in node.findall("src/line")]
             entry = {"sco_id": sco, "status": status, "spans": spans,
-                     "text": node.attrib.get("text", "")}
+                     "text": node.attrib.get("text", ""), "exempted": sco in exempted}
             coordinate = json.dumps([name, sha, spans, entry["text"]], sort_keys=True)
             entry["id"] = c.digest(json.dumps([coordinate, occurrences[coordinate]]).encode())
             occurrences[coordinate] += 1
@@ -194,7 +227,8 @@ def read_report(report_dir, work):
                 raise ValueError(f"Unresolved instrumentation status {status} in {name}")
         counts = {"statements_total": len(obligations),
                   "statements_covered": sum(o["status"] == "+" for o in obligations),
-                  "statements_uncovered": sum(o["status"] == "-" for o in obligations)}
+                  "statements_uncovered": sum(o["status"] == "-" and not o["exempted"] for o in obligations),
+                  "statements_exempted": sum(o["status"] == "-" and o["exempted"] for o in obligations)}
         files[name] = {"source_sha256": sha, "component": c.file_component(original.name),
                        **counts, "obligations": obligations,
                        "non_obligation_nodes": non_obligations}
@@ -467,7 +501,8 @@ def main(argv=None):
         errors.append(str(error))
     errors.extend(r["unit"] + ": " + r["detail"] for r in records if r["status"] != "ok")
     totals = {k: sum(f[k] for r in records if r["status"] == "ok" for f in r["files"].values()
-                     if f["component"] == "codec") for k in ("statements_total", "statements_covered", "statements_uncovered")}
+                     if f["component"] == "codec") for k in ("statements_total", "statements_covered", "statements_uncovered",
+                                                              "statements_exempted")}
     summary = {"status": "failed" if errors else ("inventory_only" if args.inventory_only else "ok"),
                "metric": "statement", "errors": errors, "unit_statuses": dict(Counter(r["status"] for r in records)),
                "statement_coverage_measured": any(r["status"] == "ok" for r in records),
@@ -476,7 +511,7 @@ def main(argv=None):
     for key in ("decision", "mcdc", "uc_mcdc")[:len(report_levels(args.level)) - 1]:
         summary["codec_" + key] = {k: sum(f[key]["counts"][k] for r in records if r["status"] == "ok"
                                           for f in r["files"].values() if f["component"] == "codec")
-                                   for k in ("total", "covered", "partial", "uncovered")}
+                                   for k in ("total", "covered", "partial", "uncovered", "exempted")}
     for name, data in [("manifest", manifest), ("inventory", inventory), ("summary", summary)]:
         c.write_json(root / (name + ".json"), data)
     body = ('Inventory only; no execution or coverage measurement.\n' if args.inventory_only else

@@ -75,7 +75,9 @@ def statement_kind(src, lines, first, last):
     return kind + ("-ignored" if "COVERAGE_IGNORE" in full else "")
 
 
-RTL_DECODE = (r"BitStream_DecodeConstraint(?:Pos)?WholeNumber\(pBitStrm,\s*\(?&\(?{var}\)?\)?,"
+# The Int8 / UInt16 / ... variants (slim integer types) only cast the result of the two
+# base functions (asn1crt/asn1crt_encoding.c), so the same proof holds.
+RTL_DECODE = (r"BitStream_DecodeConstraint(?:Pos)?WholeNumber(?:U?Int(?:8|16|32))?\(pBitStrm,\s*\(?&\(?{var}\)?\)?,"
               r"\s*(-?\d+),\s*(-?\d+)\)")
 CHAR_GUARD = re.compile(r"\bif\s*\(ret\s*&&\s*\(charIndex\s*<\s*0\s*\|\|\s*charIndex\s*>\s*(\d+)\)\)\s*\{")
 
@@ -201,7 +203,7 @@ def cov002(lines, first, src):
 # RTL decoders whose postcondition bounds the value on success: the uPER
 # constrained whole numbers (Result and IntVal in MinVal .. MaxVal) and the ACN
 # fixed-size integers (Result.Success and IntVal in minVal .. maxVal).
-ADA_RTL_DECODE = (r"\b(?:UPER_Dec_Constraint(?:Pos)?WholeNumber|Dec_Constraint(?:Pos)?WholeNumber"
+ADA_RTL_DECODE = (r"\b(?:UPER_Dec_Constraint(?:Pos)?WholeNumber(?:U?Int(?:8|16|32))?|Dec_Constraint(?:Pos)?WholeNumber"
                   r"|Acn_Dec_(?:Int|UInt)_\w*ConstSize\w*)"
                   r"\s*\(\s*bs\s*,\s*{var}\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*(?:,\s*\d+\s*)?,"
                   r"\s*result(?:\.Success)?\s*\)")
@@ -355,9 +357,29 @@ def classify(run):
                              "line": first, "function": function,
                              "function_kind": function_kind(function),
                              "statement_kind": statement_kind(src, lines, first, last),
-                             "proven": proven_unreachable(language, lines, first, src), "src": src[:200]})
+                             "proven": proven_unreachable(language, lines, first, src),
+                             "exempted": obligation.get("exempted"), "src": src[:200]})
         units.append(entry)
     return name, rows, units
+
+
+def exemption_mismatches(rows):
+    """Rows where the exemption region of the generated code (GNATcoverage) and the
+    classifier's own check of the documented precondition disagree. Runs measured before
+    the templates carried exemption regions have no `exempted` field and are not checked."""
+    return [r for r in rows if r["exempted"] is not None and bool(r["exempted"]) != bool(r["proven"])]
+
+
+def report_mismatches(outdir, rows):
+    mismatches = exemption_mismatches(rows)
+    if mismatches:
+        with (outdir / "exemption-mismatches.csv").open("w", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=list(mismatches[0]))
+            writer.writeheader()
+            writer.writerows(mismatches)
+        print(f"{len(mismatches)} obligations where exemption region and classifier disagree: "
+              f"{outdir / 'exemption-mismatches.csv'}", file=sys.stderr)
+    return mismatches
 
 
 def table(counter, keys_a, keys_b, title_a, title_b):
@@ -459,7 +481,7 @@ def main(argv=None):
                              for r in rows).items()}},
         indent=2, sort_keys=True) + "\n")
     print(args.outdir / "report.md")
-    return 0
+    return 1 if report_mismatches(args.outdir, rows) else 0
 
 
 if __name__ == "__main__":

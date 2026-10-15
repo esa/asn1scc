@@ -9,7 +9,7 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from classifyStatements import function_kind, proven_unreachable  # noqa: E402
+from classifyStatements import exemption_mismatches, function_kind, proven_unreachable  # noqa: E402
 
 UPER_ENUM = """\
 {
@@ -126,10 +126,31 @@ def check(source, text, occurrence=1, src=None, language="c"):
     return proven_unreachable(language, lines, first, src if src is not None else text)
 
 
+class Mismatch(unittest.TestCase):
+    def test_region_and_classifier_must_agree(self):
+        rows = [{"exempted": True, "proven": "ASN1SCC-COV-001"}, {"exempted": False, "proven": ""},
+                {"exempted": None, "proven": "ASN1SCC-COV-001"},  # run measured before step 07
+                {"exempted": True, "proven": ""}, {"exempted": False, "proven": "ASN1SCC-COV-003"}]
+        self.assertEqual(exemption_mismatches(rows), rows[3:])
+
+
 class Cov001(unittest.TestCase):
     def test_uper_enum_default_is_proven(self):
         self.assertEqual(check(UPER_ENUM, "*pErrCode = ERR_UPER_DECODE_COLOR;"), "ASN1SCC-COV-001")
         self.assertEqual(check(UPER_ENUM, "ret = FALSE;"), "ASN1SCC-COV-001")
+
+    def test_marked_shape_with_slim_decoder_is_proven(self):
+        # Exemption markers on the arm lines (step 07) and the UInt8 / Int16 ... wrappers.
+        source = (UPER_ENUM.replace("BitStream_DecodeConstraintWholeNumber(", "BitStream_DecodeConstraintWholeNumberInt8(")
+                  .replace("default:                        /*COVERAGE_IGNORE*/",
+                           'default: /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "ASN1SCC-COV-001: x" */')
+                  .replace("ret = FALSE;                /*COVERAGE_IGNORE*/",
+                           "ret = FALSE; /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */"))
+        self.assertEqual(check(source, "ret = FALSE;"), "ASN1SCC-COV-001")
+
+    def test_other_suffix_is_not_proven(self):
+        source = UPER_ENUM.replace("BitStream_DecodeConstraintWholeNumber(", "BitStream_DecodeConstraintWholeNumberInt64(")
+        self.assertEqual(check(source, "ret = FALSE;"), "")
 
     def test_missing_case_is_not_proven(self):
         source = UPER_ENUM.replace("            case 2:\n", "")
@@ -210,6 +231,14 @@ class Cov001Ada(unittest.TestCase):
     def test_dense_acn_enum_others_is_proven(self):
         self.assertEqual(check(ADA_ACN_ENUM, self.ARM, language="Ada"), "ASN1SCC-COV-001")
         self.assertEqual(check(ADA_ACN_ENUM, "result := adaasn1rtl", language="Ada"), "ASN1SCC-COV-001")
+
+    def test_marked_shape_with_slim_decoder_is_proven(self):
+        source = (ADA_ACN_ENUM.replace("UPER_Dec_ConstraintPosWholeNumber(", "UPER_Dec_ConstraintPosWholeNumberUInt8(")
+                  .replace("when others =>  ", 'when others => pragma Annotate (Xcov, Exempt_On, "ASN1SCC-COV-001: x");')
+                  .replace("ErrorCode => ERR_ACN_DECODE_MYPDU);", "ErrorCode => ERR_ACN_DECODE_MYPDU); pragma Annotate (Xcov, Exempt_Off);"))
+        self.assertIn("Exempt_On", source)
+        self.assertEqual(check(source, self.ARM, language="Ada"), "ASN1SCC-COV-001")
+        self.assertEqual(check(source, "result := adaasn1rtl", language="Ada"), "ASN1SCC-COV-001")
 
     def test_failure_branch_is_not_exempted(self):
         self.assertEqual(check(ADA_ACN_ENUM, "val := MyPDU_alpha;", 3, language="Ada"), "")

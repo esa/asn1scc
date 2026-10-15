@@ -869,8 +869,8 @@ remain byte-identical; only the optional generated main driver is augmented.
 SID files, XML/xcov reports, individual statement obligations and summaries.
 It cross-checks individual XML statements against GNATcoverage's per-file and
 global **statement** statistics, rather than using line percentages. Missing
-traces/SIDs, unmeasured codec bodies, zero executed tests, unknown/exempted
-coverage statuses and report inconsistencies fail the run. Uncovered statements
+traces/SIDs, unmeasured codec bodies, zero executed tests, unknown coverage
+statuses and report inconsistencies fail the run. Uncovered statements
 are reported without an automatic percentage gate. Gcov gates and historical
 gcov reference export/comparison are rejected by this separate lane.
 
@@ -882,6 +882,23 @@ hash, statement spans and an occurrence ordinal; raw tool-local SCO IDs are
 retained separately. They are not semantic goal IDs across source rewrites.
 Nodes GNATcoverage marks as having no obligation remain explicitly listed.
 `COVERAGE_IGNORE` and `NOCOVERAGE` do not exclude statement obligations.
+
+**Exemption regions.** The templates put the code that
+`Docs/statement-coverage-exemptions.md` proves unreachable in GNATcoverage
+exemption regions citing the entry (`/* GNATCOV_EXEMPT_ON "ASN1SCC-COV-NNN: …" */`
+… `/* GNATCOV_EXEMPT_OFF */` in C, `pragma Annotate (Xcov, Exempt_On, "…")` …
+`(Xcov, Exempt_Off)` in Ada). Every obligation records `exempted`; counts keep
+`covered` = executed, `uncovered` = missed outside a region and add `exempted`
+= missed inside one, cross-checked with GNATcoverage's `exempted` /
+`exempted_no_violation` statistics. A region without violation (lines `#`:
+everything in it ran) fails the unit: its proof no longer holds.
+`classifyStatements.py` / `classifyDecisions.py` check each documented
+precondition on the source independently and exit 1 (with
+`exemption-mismatches.csv`) when a region and the check disagree.
+`checkExemptionMarkers.py` checks that the IDs of the templates and the
+document match and that the regions of generated code are balanced
+(`--generated DIR...`); host tests `testExemptionMarkers.py`,
+`testDecisionReport.py`, `testClassifyStatements.py`, `testClassifyDecisions.py`.
 
 Ada instrumented builds use GNATcoverage's documented configuration that ignores
 SPARK proof-only pragmas, because inserted counters are not SPARK constructs.
