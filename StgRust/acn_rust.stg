@@ -1805,6 +1805,7 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAc
 
     <if(bFixedSize)>
     ret = pBitStrm.octet_string_decode_no_length(&mut arr, <nMinSize> as usize);
+    *pErrCode = if ret { 0 } else { <sErrCode> };
     if ret {
         let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..<nMinSize> as usize]);
         ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
@@ -1817,17 +1818,18 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAc
     ret = ok;
     if ret {
         ret = pBitStrm.octet_string_decode_no_length(&mut arr, n_count as usize);
-        if ret {
-            let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..n_count as usize]);
-            ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
-        }
+    }
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    if ret {
+        let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..n_count as usize]);
+        ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
     }
 
     <endif>
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
@@ -1851,7 +1853,7 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnE
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/
@@ -1859,6 +1861,7 @@ bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnE
 
     <if(bFixedSize)>
     ret = pBitStrm.read_bits(&mut arr, <nMinSize>);
+    *pErrCode = if ret { 0 } else { <sErrCode> };
     if ret {
         let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..<sReqBytesForAcnEncoding> as usize]);
         ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
@@ -1871,10 +1874,12 @@ bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnE
     ret = ok;
     if ret {
         ret = pBitStrm.read_bits(&mut arr, n_count as i32);
-        if ret {
-            let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..<sReqBytesForAcnEncoding> as usize]);
-            ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
-        }
+    }
+    *pErrCode = if ret { 0 } else { <sErrCode> };
+    if ret {
+        /*the contents are decoded from the octets of the n_count bits of this region only*/
+        let mut bit_strm = BitStream::attach_buffer_no_zero(&mut arr[..(n_count as usize + 7) / 8]);
+        ret = <sFuncName>(&mut <p>, &mut bit_strm, pErrCode);
     }
 
     <endif>

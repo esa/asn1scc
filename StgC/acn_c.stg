@@ -1687,13 +1687,14 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAc
 	}
 
 	<endif>
+	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -1718,7 +1719,7 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnE
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/
@@ -1728,7 +1729,10 @@ bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnE
 
 	<if(bFixedSize)>
 	ret = BitStream_ReadBits(pBitStrm, arr, <nMinSize>);
+	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
+		/*the contents are decoded from the octets of this region only*/
+		bitStrm.count = (<nMinSize> + 7) / 8;
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}
 
@@ -1737,9 +1741,12 @@ bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnE
 	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>);
 	if (ret) {
 		ret = BitStream_ReadBits(pBitStrm, arr, nCount);
-		if (ret) {
-			ret = <sFuncName>(<p>, &bitStrm, pErrCode);
-		}
+	}
+	*pErrCode = ret ? 0 : <sErrCode>;
+	if (ret) {
+		/*the contents are decoded from the octets of the nCount bits of this region only*/
+		bitStrm.count = (nCount + 7) / 8;
+		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}
 
 	<endif>

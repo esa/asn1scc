@@ -265,8 +265,8 @@ type IAcn_rust() =
             acn_rust.sparkAnnotations_deducedFixed  sTypeDefName 
         override this.octet_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (sErrCode:string) (bDeducedContent:bool) (codec:Codec) =
             acn_rust.octet_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding nBits nMinSize nMaxSize bFixedSize sErrCode bDeducedContent codec
-        override this.bit_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (sReqBitsForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (codec:Codec) =
-            acn_rust.bit_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding sReqBitsForUperEncoding nBits nMinSize nMaxSize bFixedSize codec
+        override this.bit_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (sReqBitsForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (sErrCode:string) (codec:Codec) =
+            acn_rust.bit_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding sReqBitsForUperEncoding nBits nMinSize nMaxSize bFixedSize sErrCode codec
         override this.acn_deferred_det_declare  (sDetName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_declare  sDetName codec
         override this.acn_deferred_det_init_value  (sInitFuncName:string) (sDetName:string) (codec:Codec) =

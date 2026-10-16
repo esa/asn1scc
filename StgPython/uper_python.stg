@@ -478,7 +478,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 >>
 
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 nStringLength = len(<p>.arr)
 # ret = nStringLength >= <nSizeMin> and nStringLength \<= <nSizeMax>
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
@@ -487,7 +487,7 @@ if not res:
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 if not decoded_length.success or decoded_length.decoded_value is None:
     if decoded_length.error_code == ErrorCode.INSUFFICIENT_DATA:
@@ -913,7 +913,7 @@ if <sLengthTmp> \< <nSizeMin> or <sLengthTmp> \> <nSizeMax>:
 <endif>
 >>
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 # Encode the contained value into a temporary buffer (unbound call on <p> so it
 # works whether <p> is the containing instance or a field of a parent).
 _inner_enc = UPEREncoder.of_size(<nMaxSize>)
@@ -926,7 +926,7 @@ if not _res:
     raise Asn1Exception(f"CONTAINING encoding failed: {_res.error_message}")
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 # Decode contained type from octet string
 _n_count_len_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
 if not _n_count_len_res or _n_count_len_res.decoded_value is None:
@@ -939,7 +939,7 @@ _inner_dec = UPERDecoder.from_buffer(_inner_bytes_res.decoded_value)
 <p> = <sFuncName>(_inner_dec, False)
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 # Encode the contained value into a temporary buffer (unbound call on <p>).
 _inner_enc = UPEREncoder.of_size((<nMaxSize> + 7) // 8)
 <sContainedType>.<sFuncName>(<p>, _inner_enc, False)
@@ -951,7 +951,7 @@ if not _res:
     raise Asn1Exception(f"CONTAINING encoding failed: {_res.error_message}")
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 # Decode contained type from bit string
 _nBits_len_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
 if not _nBits_len_res or _nBits_len_res.decoded_value is None:

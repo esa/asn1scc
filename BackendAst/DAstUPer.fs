@@ -527,7 +527,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper ->
                 str_FixedSize pp typeDefinitionName i internalItem o.minSize.uper nBits nBits 0I initExpr introSnap callAux codec, lv::charIndex@nStringLength
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper ->
-                str_VarSize pp (p.accessPath.joined lm.lg) typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr callAux typeDefinitionName codec, lv::charIndex@nStringLength
+                str_VarSize pp (p.accessPath.joined lm.lg) typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr callAux typeDefinitionName errCode.errCodeName codec, lv::charIndex@nStringLength
             | _ ->
                 let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true
                 let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || o.maxSize.uper<>o.minSize.uper) lv
@@ -1119,8 +1119,8 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                     let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ENCODING" baseTypeDefinitionName
                     let funcBodyContent =
                         match opts.octOrBitStr with
-                        | ContainedInOctString  -> octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding nBits opts.minSize.uper opts.maxSize.uper codec
-                        | ContainedInBitString  -> bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits opts.minSize.uper opts.maxSize.uper codec
+                        | ContainedInOctString  -> octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding nBits opts.minSize.uper opts.maxSize.uper errCode.errCodeName codec
+                        | ContainedInBitString  -> bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits opts.minSize.uper opts.maxSize.uper errCode.errCodeName codec
                     Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []}
                 | None -> None
             createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  [] us)

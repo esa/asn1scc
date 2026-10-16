@@ -436,7 +436,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 >>
 
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 nStringLength = <p>.indexOfOrLength(0x00.toRawUByte)
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
 codec.base.encodeConstrainedWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
@@ -444,7 +444,7 @@ val <sPIden>_nCount = nStringLength
 <soCallAux>
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 nStringLength = codec.base.decodeConstrainedWholeNumberInt(<nSizeMin>, <nSizeMax>)
 val <p>_nCount = nStringLength
 <soCallAux>
@@ -846,7 +846,7 @@ else
 <endif>
 >>
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
@@ -862,7 +862,7 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUp
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/
@@ -877,7 +877,7 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUp
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
@@ -893,7 +893,7 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUper
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/

@@ -1979,6 +1979,8 @@ begin
     adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length (bs, tmpBs.Buffer, <nMinSize>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+	else
+		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
 end;
 
@@ -2003,6 +2005,8 @@ begin
                 if result.Success and then tmpBs.Current_Bit_Pos > tmpBs.Size_In_Bytes * 8 then
                     result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
                 end if;
+            else
+                result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
             end if;
         end;
         <else>
@@ -2017,16 +2021,20 @@ begin
                 if result.Success and then tmpBs.Current_Bit_Pos > data_length * 8 then
                     result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
                 end if;
+            else
+                result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
             end if;
         end;
         <endif>
+    else
+        result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
     end if;
 end;
 <endif>
 >>
 
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -2048,7 +2056,7 @@ begin
 end;
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -2062,6 +2070,8 @@ begin
     adaasn1rtl.encoding.BitStream_ReadBits (bs, tmpBs.Buffer, <nMinSize>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+	else
+		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
 
 	<else>
@@ -2070,7 +2080,11 @@ begin
         adaasn1rtl.encoding.BitStream_ReadBits (bs, tmpBs.Buffer, data_length, result.success);
 	    if result.success then
 		    <sFuncName>_aux(<p>, tmpBs, result);
+	    else
+		    result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	    end if;
+    else
+        result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
     end if;
 
     <endif>

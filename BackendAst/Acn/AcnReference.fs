@@ -257,10 +257,10 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                     let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName bDeducedContent codec
                     fncBody, [errCode],[], [], us
                 | SZ_EC_FIXED_SIZE                        , ContainedInBitString  ->
-                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true codec
+                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName codec
                     fncBody, [errCode],[], [], us
                 | SZ_EC_LENGTH_EMBEDDED nBits                 , ContainedInBitString  ->
-                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false codec
+                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName codec
                     fncBody, [errCode],[], [], us
                 | SZ_EC_TerminationPattern nullVal  ,  _                    ->  raise(SemanticError (loc, "Invalid type for parameter4"))
                 | SZ_EC_Deduced                     ,  _                    ->  raise(SemanticError (loc, "'size deduced': backend code generation is not implemented yet"))

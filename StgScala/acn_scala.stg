@@ -1281,7 +1281,7 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAc
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 /* open new scope to declare some variables */
 {
     /* encode to a temporary bitstream */
@@ -1303,7 +1303,7 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnE
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /* decode to a temporary bitstream */

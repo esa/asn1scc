@@ -531,7 +531,7 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 <p>(<nFixedSize> + 1) := adaasn1rtl.NUL;
 >>
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 nStringLength := <rtlModuleName()>.getStringSize(<p>);
 result.Success := nStringLength >= <nSizeMin> AND nStringLength \<= <nSizeMax>;
 <i> := 1;
@@ -541,7 +541,7 @@ if result.Success then
 end if;
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 --val := <sTasName>_Init;
 result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
@@ -917,7 +917,7 @@ end if;
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
@@ -932,7 +932,7 @@ begin
 end;
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
@@ -942,12 +942,14 @@ begin
 	adaasn1rtl.encoding.uper.BitStream_DecodeOctetString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+	else
+		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
 end;
 >>
 
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
@@ -962,7 +964,7 @@ begin
 end;
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
@@ -972,6 +974,8 @@ begin
 	adaasn1rtl.encoding.uper.BitStream_DecodeBitString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+	else
+		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
 end;
 >>
