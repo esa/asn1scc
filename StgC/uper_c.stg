@@ -703,7 +703,7 @@ for(<sBlockIndex> = 0; ret && <sBlockIndex> \< <nBlocks64K>; <sBlockIndex>++) {
         *pErrCode = ret ? 0 : <sErrCodeName>;
 
 	    <else>
-	    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
+	    for(<sBLI>=(int)<sCurOffset>; ret && <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
 		    <sInternalItem>
 	    }
 
@@ -726,7 +726,7 @@ if (ret) {
     *pErrCode = ret ? 0 : <sErrCodeName>;
 
     <else>
-    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
+    for(<sBLI>=(int)<sCurOffset>; ret && <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
 	    <sInternalItem>
     }
 
@@ -746,13 +746,14 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 
 ret = ret && ((0x8000 & <sRemainingItemsVar>) > 0) && ( (0x7FFF & <sRemainingItemsVar>) == <nRemainingItemsVar>);
 
 <endif>
+*pErrCode = ret ? 0 : <sErrCodeName>;
 if (ret) {
     <if(bIsBitStringType)>
     ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<nRemainingItemsVar>);
     *pErrCode = ret ? 0 : <sErrCodeName>;
 
     <else>
-    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
+    for(<sBLI>=(int)<sCurOffset>; ret && <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
     {
 	    <sInternalItem>
     }

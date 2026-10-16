@@ -270,11 +270,17 @@ adaasn1rtl.encoding.uper.UPER_Dec_Real<sSuffix>(bs, <p>, result);
 ObjectIdentifier_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.ObjectIdentifier_uper_encode(bs, <p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.ObjectIdentifier_uper_decode(bs, <p>, result);
+if not result.Success then
+    result.ErrorCode := <sErrCode>; --COVERAGE_IGNORE (corrupted input only)
+end if;
 >>
 
 RelativeOID_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.RelativeOID_uper_encode(bs, <p>);"
 RelativeOID_decode(p, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.RelativeOID_uper_decode(bs, <p>, result);
+if not result.Success then
+    result.ErrorCode := <sErrCode>; --COVERAGE_IGNORE (corrupted input only)
+end if;
 >>
 
 
