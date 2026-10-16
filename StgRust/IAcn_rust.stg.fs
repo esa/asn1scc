@@ -317,6 +317,8 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_fallback_value_str  sPatchFuncName sDefaultVal nBits sDetName codec
         override this.acn_deferred_det_copy_tmp  (sDetAccess:string) (sTmpName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_copy_tmp  sDetAccess sTmpName codec
+        override this.acn_deferred_det_copy_signed_tmp  (sDetAccess:string) (sTmpName:string) (codec:Codec) =
+            acn_rust.acn_deferred_det_copy_signed_tmp  sDetAccess sTmpName codec
         override this.acn_deferred_det_copy_bool_tmp  (sDetAccess:string) (sTmpName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_copy_bool_tmp  sDetAccess sTmpName codec
         override this.acn_deferred_det_copy_enum_tmp  (sDetAccess:string) (sTmpName:string) (sEnumTypeName:string) (codec:Codec) =

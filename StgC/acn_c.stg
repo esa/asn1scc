@@ -1948,6 +1948,15 @@ if (ret) {
 }
 >>
 
+/* Signed integer tmp variant: det.value holds the two's complement bits, so a negative
+   size reaches the size checks as a large unsigned value and fails them. */
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= <<
+if (ret) {
+    <sDetAccess> = (asn1SccUint)<sTmpName>;
+}
+>>
+
 /* Boolean tmp variant — C cast works as for int.  Kept as a distinct macro so
    strongly-typed backends (Ada) can emit a different conversion. */
 acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""

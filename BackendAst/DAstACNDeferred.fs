@@ -463,12 +463,15 @@ let private createDeferredSequenceFunction
                                             let intClass = Asn1AcnAstUtilFunctions.getAcnIntegerClass r.args ai
                                             match intClass with
                                             | Asn1AcnAst.ASN1SCC_UInt _
-                                            | Asn1AcnAst.ASN1SCC_UInt64 _
-                                            | Asn1AcnAst.ASN1SCC_Int _
-                                            | Asn1AcnAst.ASN1SCC_Int64 _ -> "direct_value"
+                                            | Asn1AcnAst.ASN1SCC_UInt64 _ -> "direct_value"
+                                            // signed: the value field is unsigned (det.value is asn1SccUint /
+                                            // Asn1UInt), so decode to a signed temp and copy its bits
                                             | _ -> "temp_copy"
                                         | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> "direct_str_value"
                                         | _ -> "temp_copy"
+                                    // the AST root's arguments, for the integer class of the determinant
+                                    // below (r is shadowed by the function body result there)
+                                    let astArgs = r.args
                                     match redirectKind with
                                     | "direct_value" ->
                                         let valueTarget =
@@ -541,6 +544,22 @@ let private createDeferredSequenceFunction
                                                     let cases = enm.enumerated.items |> List.map (fun itm ->
                                                         lm.acn.acn_deferred_det_enum_wire_case (lm.lg.getNamedItemBackendName (Some defOrRef) itm) detAccess (itm.acnEncodeValue.ToString()))
                                                     lm.acn.acn_deferred_det_copy_enum_wire_tmp detAccess tmpName cases CommonTypes.Codec.Decode
+                                                | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                                                    // det.value is unsigned: a signed determinant is copied with
+                                                    // its two's complement bits
+                                                    match Asn1AcnAstUtilFunctions.getAcnIntegerClass astArgs ai with
+                                                    | Asn1AcnAst.ASN1SCC_Int8 _
+                                                    | Asn1AcnAst.ASN1SCC_Int16 _
+                                                    | Asn1AcnAst.ASN1SCC_Int32 _
+                                                    | Asn1AcnAst.ASN1SCC_Int64 _
+                                                    | Asn1AcnAst.ASN1SCC_Int _ ->
+                                                        lm.acn.acn_deferred_det_copy_signed_tmp detAccess tmpName CommonTypes.Codec.Decode
+                                                    | Asn1AcnAst.ASN1SCC_UInt8 _
+                                                    | Asn1AcnAst.ASN1SCC_UInt16 _
+                                                    | Asn1AcnAst.ASN1SCC_UInt32 _
+                                                    | Asn1AcnAst.ASN1SCC_UInt64 _
+                                                    | Asn1AcnAst.ASN1SCC_UInt _ ->
+                                                        lm.acn.acn_deferred_det_copy_tmp detAccess tmpName CommonTypes.Codec.Decode
                                                 | _ ->
                                                     lm.acn.acn_deferred_det_copy_tmp detAccess tmpName CommonTypes.Codec.Decode
                                             let extraLvars =

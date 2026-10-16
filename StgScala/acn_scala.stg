@@ -1445,6 +1445,8 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
 /* Group C: Decode redirect */
 acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
 acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
 acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
 acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
 acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""

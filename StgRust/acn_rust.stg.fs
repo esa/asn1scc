@@ -1095,6 +1095,14 @@ let acn_deferred_det_copy_tmp (sDetAccess:string) (sTmpName:string) codec =
     | Decode    ->
         ST.call "acn_rust" "acn_deferred_det_copy_tmp_decode" [("sDetAccess",(if sDetAccess = null then null else ST.StrHelper sDetAccess:>Object) );("sTmpName",(if sTmpName = null then null else ST.StrHelper sTmpName:>Object) )]
 
+let acn_deferred_det_copy_signed_tmp (sDetAccess:string) (sTmpName:string) codec =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    match codec with
+    | Encode    ->
+        ST.call "acn_rust" "acn_deferred_det_copy_signed_tmp_encode" [("sDetAccess",(if sDetAccess = null then null else ST.StrHelper sDetAccess:>Object) );("sTmpName",(if sTmpName = null then null else ST.StrHelper sTmpName:>Object) )]
+    | Decode    ->
+        ST.call "acn_rust" "acn_deferred_det_copy_signed_tmp_decode" [("sDetAccess",(if sDetAccess = null then null else ST.StrHelper sDetAccess:>Object) );("sTmpName",(if sTmpName = null then null else ST.StrHelper sTmpName:>Object) )]
+
 let acn_deferred_det_copy_bool_tmp (sDetAccess:string) (sTmpName:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with

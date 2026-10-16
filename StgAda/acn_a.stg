@@ -2267,6 +2267,18 @@ if result.Success then
 end if;
 >>
 
+/* Signed integer tmp variant: Value holds the two's complement bits (a conversion to
+   Asn1UInt would raise Constraint_Error for a negative value), so a negative size
+   reaches the size checks as a large unsigned value and fails them. */
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= <<
+if result.Success then
+    pragma Warnings (Off, "*redundant conversion*");
+    <sDetAccess> := adaasn1rtl.encoding.To_UInt(adaasn1rtl.Asn1Int(<sTmpName>));
+    pragma Warnings (On, "*redundant conversion*");
+end if;
+>>
+
 /* Boolean tmp variant — Ada disallows direct Boolean→Asn1UInt cast, so use a
    conditional expression. */
 acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
