@@ -140,8 +140,11 @@ Acn_AlignTo<sAlignmentValue>(pBitStrm, TRUE);
 
 
 alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
-Acn_AlignTo<sAlignmentValue>(pBitStrm, FALSE);
-<sMainBody>
+ret = Acn_AlignTo<sAlignmentValue>(pBitStrm, FALSE);
+*pErrCode = ret ? 0 : ERR_INSUFFICIENT_DATA;
+if (ret) {
+    <sMainBody>
+}
 >>
 
 

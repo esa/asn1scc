@@ -10,55 +10,67 @@ static flag RequiresReverse(void)
 	return b[0] == 1;
 }
 
-void Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode)
+/* The alignment functions return FALSE when the aligned position is past the end of the
+   stream. Encoding streams are as large as the largest encoding, so this is checked with an
+   assertion there; a decoder gets a stream from outside (possibly truncated) and fails. */
+flag Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode)
 {
-	CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_BYTE -
-		pBitStrm->currentBit) & (NO_OF_BITS_IN_BYTE - 1));
+	if (bEncode)
+		CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_BYTE -
+			pBitStrm->currentBit) & (NO_OF_BITS_IN_BYTE - 1));
 
 	if (pBitStrm->currentBit != 0)
 	{
 		pBitStrm->currentBit = 0;
 		pBitStrm->currentByte++;
-		if (bEncode)
+		if (bEncode) {
 			bitstream_push_data_if_required(pBitStrm);
+			CHECK_BIT_STREAM(pBitStrm);
+		}
 		else
 			bitstream_fetch_data_if_required(pBitStrm);
-		CHECK_BIT_STREAM(pBitStrm);
 	}
+	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
 }
 
-void Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode)
+flag Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode)
 {
-	CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_INT16 -
-		(NO_OF_BITS_IN_BYTE * (pBitStrm->currentByte & (NO_OF_BYTES_IN_INT16 - 1)) + pBitStrm->currentBit))
-		& (NO_OF_BITS_IN_INT16 - 1));
+	if (bEncode)
+		CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_INT16 -
+			(NO_OF_BITS_IN_BYTE * (pBitStrm->currentByte & (NO_OF_BYTES_IN_INT16 - 1)) + pBitStrm->currentBit))
+			& (NO_OF_BITS_IN_INT16 - 1));
 
-	Acn_AlignToNextByte(pBitStrm, bEncode);
+	(void)Acn_AlignToNextByte(pBitStrm, bEncode);
 	pBitStrm->currentByte = ((pBitStrm->currentByte + (NO_OF_BYTES_IN_INT16 - 1)) / NO_OF_BYTES_IN_INT16) * NO_OF_BYTES_IN_INT16;
 
-	if (bEncode)
+	if (bEncode) {
 		bitstream_push_data_if_required(pBitStrm);
+		CHECK_BIT_STREAM(pBitStrm);
+	}
 	else
 		bitstream_fetch_data_if_required(pBitStrm);
 
-	CHECK_BIT_STREAM(pBitStrm);
+	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
 }
 
-void Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode)
+flag Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode)
 {
-	CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_INT32 -
-		(NO_OF_BITS_IN_BYTE * (pBitStrm->currentByte & (NO_OF_BYTES_IN_INT32 - 1)) + pBitStrm->currentBit))
-		& (NO_OF_BITS_IN_INT32 - 1));
+	if (bEncode)
+		CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_INT32 -
+			(NO_OF_BITS_IN_BYTE * (pBitStrm->currentByte & (NO_OF_BYTES_IN_INT32 - 1)) + pBitStrm->currentBit))
+			& (NO_OF_BITS_IN_INT32 - 1));
 
-	Acn_AlignToNextByte(pBitStrm, bEncode);
+	(void)Acn_AlignToNextByte(pBitStrm, bEncode);
 	pBitStrm->currentByte = ((pBitStrm->currentByte + (NO_OF_BYTES_IN_INT32 - 1)) / NO_OF_BYTES_IN_INT32) * NO_OF_BYTES_IN_INT32;
 
-	if (bEncode)
+	if (bEncode) {
 		bitstream_push_data_if_required(pBitStrm);
+		CHECK_BIT_STREAM(pBitStrm);
+	}
 	else
 		bitstream_fetch_data_if_required(pBitStrm);
 
-	CHECK_BIT_STREAM(pBitStrm);
+	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
 }
 
 /*ACN Integer functions*/
