@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Inner    [] { n INTEGER [encoding pos-int, size 8], data [size n] }
+Elem     [encoding pos-int, size 12]
+ElemList [size deduced]
+DedInner [] { hdr [encoding pos-int, size 16], elems [] }
+
+OctExt    [] { len INTEGER [encoding pos-int, size 16], payload [size len] }
+OctEmb    [] { payload [] }
+OctDed    [] { len INTEGER [encoding pos-int, size 16], payload [size len] }
+OctDedEmb [] { pad [encoding pos-int, size 3], payload [] }
+
+END

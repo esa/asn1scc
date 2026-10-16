@@ -1,0 +1,21 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+-- contents with a byte-aligned length-prefixed OCTET STRING: a short region makes the
+-- inner decoder copy bytes from beyond the region
+Inner ::= SEQUENCE {
+    data OCTET STRING (SIZE(0..200))
+}
+
+Elem  ::= INTEGER (0..4095)
+ElemList ::= SEQUENCE (SIZE(0..20)) OF Elem
+DedInner ::= SEQUENCE {
+    hdr   INTEGER (0..65535),
+    elems ElemList
+}
+
+OctExt   ::= SEQUENCE { payload OCTET STRING (CONTAINING Inner) }
+OctEmb   ::= SEQUENCE { payload OCTET STRING (CONTAINING Inner) }
+OctDed   ::= SEQUENCE { payload OCTET STRING (CONTAINING DedInner) }
+OctDedEmb ::= SEQUENCE { pad INTEGER (0..7), payload OCTET STRING (CONTAINING DedInner) }
+
+END

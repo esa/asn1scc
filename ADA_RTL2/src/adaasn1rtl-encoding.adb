@@ -174,6 +174,13 @@ is
 
    end BitStream_AppendBit;
 
+   --  Byte I of the stream buffer, 0 outside it. Under the preconditions
+   --  of the read primitives I is always inside the buffer; the test keeps
+   --  a decoder that is called outside its contract (checks suppressed
+   --  with -gnatp) from reading memory past the stream.
+   function Buffer_Byte (bs : Bitstream; I : Integer) return Asn1Byte is
+     (if I in bs.Buffer'Range then bs.Buffer (I) else 0);
+
    procedure BitStream_ReadBit
      (bs : in out Bitstream; Bit_Value : out BIT; result : out Boolean)
    is
@@ -185,7 +192,7 @@ is
         bs.Current_Bit_Pos < Natural'Last and
         bs.Current_Bit_Pos < bs.Size_In_Bytes * 8;
 
-      if (bs.Buffer (Current_Byte) and MASKS (Current_Bit)) > 0 then
+      if (Buffer_Byte (bs, Current_Byte) and MASKS (Current_Bit)) > 0 then
          Bit_Value := 1;
       else
          Bit_Value := 0;
@@ -254,11 +261,11 @@ is
    begin
       if Current_Bit > 0 then
          ncb      := 8 - Current_Bit;
-         ret_byte := Shift_Left (bs.Buffer (Current_Byte), Current_Bit);
+         ret_byte := Shift_Left (Buffer_Byte (bs, Current_Byte), Current_Bit);
          ret_byte :=
-           ret_byte or Shift_Right (bs.Buffer (Current_Byte + 1), ncb);
+           ret_byte or Shift_Right (Buffer_Byte (bs, Current_Byte + 1), ncb);
       else
-         ret_byte := bs.Buffer (Current_Byte);
+         ret_byte := Buffer_Byte (bs, Current_Byte);
       end if;
 
       return ret_byte;
@@ -279,16 +286,18 @@ is
 
       if Current_Bit < 4 then
          Byte_Value :=
-           Shift_Right (bs.Buffer (Current_Byte), 4 - Current_Bit) and 16#0F#;
+           Shift_Right (Buffer_Byte (bs, Current_Byte), 4 - Current_Bit)
+           and 16#0F#;
       else
          totalBitsForNextByte := Current_Bit - 4;
          Byte_Value           :=
-           Shift_Left (bs.Buffer (Current_Byte), totalBitsForNextByte);
+           Shift_Left (Buffer_Byte (bs, Current_Byte), totalBitsForNextByte);
          if totalBitsForNextByte > 0 then
             Byte_Value :=
               Byte_Value or
               (Shift_Right
-                 (bs.Buffer (Current_Byte + 1), 8 - totalBitsForNextByte));
+                 (Buffer_Byte (bs, Current_Byte + 1),
+                  8 - totalBitsForNextByte));
          end if;
 
          Byte_Value := Byte_Value and 16#0F#;
@@ -479,17 +488,18 @@ is
       if cb < 8 - nBits then
          totalBits  := cb + nBits;
          Byte_Value :=
-           Shift_Right (bs.Buffer (Current_Byte), 8 - totalBits) and
+           Shift_Right (Buffer_Byte (bs, Current_Byte), 8 - totalBits) and
            MASKSB (nBits);
       else
          totalBitsForNextByte := cb + nBits - 8;
          Byte_Value           :=
-           Shift_Left (bs.Buffer (Current_Byte), totalBitsForNextByte);
+           Shift_Left (Buffer_Byte (bs, Current_Byte), totalBitsForNextByte);
          if totalBitsForNextByte > 0 then
             Current_Byte := Current_Byte + 1;
             Byte_Value   :=
               Byte_Value or
-              Shift_Right (bs.Buffer (Current_Byte), 8 - totalBitsForNextByte);
+              Shift_Right
+                (Buffer_Byte (bs, Current_Byte), 8 - totalBitsForNextByte);
          end if;
          Byte_Value := Byte_Value and MASKSB (nBits);
       end if;
@@ -619,7 +629,7 @@ is
         and then bs.Size_In_Bytes < Positive'Last / 8
         and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8;
       if total_bytes > 0 then
-         if (bs.Buffer (Current_Byte) and MASKS (Current_Bit)) = 0 then
+         if (Buffer_Byte (bs, Current_Byte) and MASKS (Current_Bit)) = 0 then
             Ret := 0;
          else
             Ret := Asn1UInt'Last;

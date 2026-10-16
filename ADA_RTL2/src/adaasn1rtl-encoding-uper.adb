@@ -742,8 +742,14 @@ is
             exit when not success;
          end loop;
       else
-         data (data'First .. (data'First + data_length - 1)) :=
-           bs.Buffer (Current_Byte .. Current_Byte + data_length - 1);
+         --  The precondition keeps the slice inside the buffer; the test
+         --  keeps a decoder that is called outside its contract (checks
+         --  suppressed with -gnatp) from copying memory past the stream.
+         success := Current_Byte + data_length - 1 <= bs.Buffer'Last;
+         if success then
+            data (data'First .. (data'First + data_length - 1)) :=
+              bs.Buffer (Current_Byte .. Current_Byte + data_length - 1);
+         end if;
          bs.Current_Bit_Pos := bs.Current_Bit_Pos + 8 * data_length;
       end if;
    end BitStream_DecodeOctetString_no_length;
