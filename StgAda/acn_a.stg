@@ -1376,18 +1376,19 @@ end if;
 >>
 
 
-octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, tmpBs.Buffer, Integer(<sExtField>));
 >>
 
-octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => Integer(<sExtField>) \<= <sReqBytesForUperEncoding>, ErrorCode => <sErrCode>);
 if result.success then
     --decode to the temporary bitstream buffer
 	adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, tmpBs.Buffer, Integer(<sExtField>), result.success);
 	if result.success then
-        --open new scope: the contained decoder must see a stream view limited
-        --to the actual region size ('size deduced' support)
+        <if(bDeducedContent)>
+        --open new scope: 'size deduced' contents must see a stream view limited
+        --to the actual region size
         declare --COVERAGE_IGNORE
             bs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, Integer(<sExtField>)));
         begin
@@ -1396,8 +1397,24 @@ if result.success then
             end if;
             bs.Buffer(1 .. Integer(<sExtField>)) := tmpBs.Buffer(1 .. Integer(<sExtField>));
             <soInner>
-			--<sFuncName>_aux(<p>, tmpBs, result);
+            if result.Success and then bs.Current_Bit_Pos > bs.Size_In_Bytes * 8 then
+                result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+            end if;
         end;
+        <else>
+        --the contained decoder reads from a stream as large as its largest encoding
+        --(zero after the region) and must not have read past the region
+        tmpBs.Buffer(Integer(<sExtField>) + 1 .. tmpBs.Buffer'Last) := (others => 0);
+        declare --COVERAGE_IGNORE
+            bs : adaasn1rtl.encoding.Bitstream := tmpBs;
+        begin
+            bs.Current_Bit_Pos := 0;
+            <soInner>
+            if result.Success and then bs.Current_Bit_Pos > Integer(<sExtField>) * 8 then
+                result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+            end if;
+        end;
+        <endif>
 	end if;
 end if;
 >>
@@ -1463,6 +1480,10 @@ begin
                 bs : adaasn1rtl.encoding.Bitstream := acn_region;
             begin
                 <sBody>
+                --  the contents must not have read past their region
+                if result.Success and then bs.Current_Bit_Pos > bs.Size_In_Bytes * 8 then
+                    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+                end if;
             end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a Bitstream object)
         end; -- COVERAGE_IGNORE
         bs.Current_Bit_Pos := (acn_first - 1 + acn_nBytes) * 8;
@@ -1476,6 +1497,10 @@ then
         acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value) * 8;
     begin
         <sBody>
+        --  the contents must not have read past their region
+        if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+        end if;
         bs.Current_Bit_Pos := acn_expected_end;
     end; -- COVERAGE_IGNORE (GNAT 2021 gcov)
 else
@@ -1496,7 +1521,7 @@ octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 <sFuncName>_aux(<p>, bs, result);
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
 declare
     acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1520,7 +1545,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
 declare
     acn_nCount : Integer;
 begin
@@ -1529,6 +1554,7 @@ begin
         if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
            acn_nCount \>= 0 and then acn_nCount \<= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8
         then
+            <if(bDeducedContent)>
             declare --COVERAGE_IGNORE
                 acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8; -- COVERAGE_IGNORE (GNAT 2021 gcov: declare block)
                 acn_end_bytes : constant Natural := (acn_expected_end + 7) / 8; -- COVERAGE_IGNORE (GNAT 2021 gcov: declare block)
@@ -1542,10 +1568,27 @@ begin
                 acn_view.fetchDataPrm := bs.fetchDataPrm;
                 acn_view.Current_Bit_Pos := (if acn_end_bytes = 0 then 8 else bs.Current_Bit_Pos);
                 <sFuncName>_aux(<p>, acn_view, result);
+                --  the contents must not have read past their region
+                if result.Success and then acn_view.Current_Bit_Pos > acn_expected_end then
+                    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+                end if;
                 bs.pushDataPrm := acn_view.pushDataPrm;
                 bs.fetchDataPrm := acn_view.fetchDataPrm;
                 bs.Current_Bit_Pos := acn_expected_end;
             end;
+            <else>
+            declare --COVERAGE_IGNORE
+                acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8; -- COVERAGE_IGNORE (GNAT 2021 gcov: declare block)
+            begin
+                --  Decode in place: the stream is as large as the enclosing encoding, so the
+                --  contents can be decoded from it; they must not have read past their region.
+                <sFuncName>_aux(<p>, bs, result);
+                if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
+                    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+                end if;
+                bs.Current_Bit_Pos := acn_expected_end;
+            end;
+            <endif>
         else
             result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => adaasn1rtl.ERR_INSUFFICIENT_DATA); --COVERAGE_IGNORE
         end if;
@@ -1877,7 +1920,7 @@ end if;
 >>
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
 --open new scope to declare some variables
 declare --COVERAGE_IGNORE
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -1899,7 +1942,7 @@ begin
 end;
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
 --open new scope to declare some variables
 <if(bFixedSize)>
 declare --COVERAGE_IGNORE
@@ -1919,8 +1962,9 @@ declare
 begin
     adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, data_length, <nMinSize>, <nMaxSize>, <nBits>, result.success);
     if result.success then
+        <if(bDeducedContent)>
         --decode to a temporary bitstream whose view is limited to the actual
-        --region size ('size deduced' support)
+        --region size ('size deduced' contents)
         declare --COVERAGE_IGNORE
             tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, data_length));
         begin
@@ -1930,8 +1974,26 @@ begin
             adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length (bs, tmpBs.Buffer, data_length, result.success);
             if result.success then
                 <sFuncName>_aux(<p>, tmpBs, result);
+                if result.Success and then tmpBs.Current_Bit_Pos > tmpBs.Size_In_Bytes * 8 then
+                    result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+                end if;
             end if;
         end;
+        <else>
+        --decode to a temporary bitstream as large as the largest contents encoding
+        --(zero after the region); the contents must not have read past the region
+        declare --COVERAGE_IGNORE
+            tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
+        begin
+            adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length (bs, tmpBs.Buffer, data_length, result.success);
+            if result.success then
+                <sFuncName>_aux(<p>, tmpBs, result);
+                if result.Success and then tmpBs.Current_Bit_Pos > data_length * 8 then
+                    result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+                end if;
+            end if;
+        end;
+        <endif>
     end if;
 end;
 <endif>

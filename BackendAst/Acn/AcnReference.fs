@@ -200,6 +200,9 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
         let loc = o.tasName.Location
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
         let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ACN_ENCODING" baseTypeDefinitionName
+        //'size deduced' contents must be decoded from a stream that ends with their region;
+        //other contents are decoded from a stream as large as their largest encoding
+        let bDeducedContent = isLiveDeduced o.resolvedType
 
         let octet_string_containing_func            = lm.acn.octet_string_containing_func
         let bit_string_containing_func              = lm.acn.bit_string_containing_func
@@ -236,7 +239,7 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                             | None  -> None, [], [], [], ns
                             | Some r -> Some r.funcBody, r.errCodes, r.localVariables, r.userDefinedFunctions, ns
 
-                    let fncBody = octet_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding extField errCode.errCodeName soInner codec
+                    let fncBody = octet_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding extField errCode.errCodeName soInner bDeducedContent codec
 
                     let lvs =
                         let localVars2 = lm.lg.acn.getAcnContainingByLocVars sReqBytesForUperEncoding
@@ -248,10 +251,10 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                     let fncBody = bit_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding extField errCode.errCodeName codec
                     fncBody, [errCode],[], [], us
                 | SZ_EC_FIXED_SIZE        , ContainedInOctString  ->
-                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true codec
+                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName bDeducedContent codec
                     fncBody, [errCode],[], [], us
                 | SZ_EC_LENGTH_EMBEDDED nBits , ContainedInOctString  ->
-                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false codec
+                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName bDeducedContent codec
                     fncBody, [errCode],[], [], us
                 | SZ_EC_FIXED_SIZE                        , ContainedInBitString  ->
                     let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true codec

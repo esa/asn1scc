@@ -807,13 +807,13 @@ let SizeDependency_oct_str_containing (p:string) (sFuncName:string) (sReqBytesFo
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "SizeDependency_oct_str_containing" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sReqBytesForUperEncoding",(if sReqBytesForUperEncoding = null then null else ST.StrHelper sReqBytesForUperEncoding:>Object) );("v",v :>Object);("bIsOctet",bIsOctet :>Object);("sInner",(if sInner = null then null else ST.StrHelper sInner:>Object) );("sLocalVarType",(if sLocalVarType = null then null else ST.StrHelper sLocalVarType:>Object) )]
 
-let octet_string_containing_ext_field_func (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sExtField:string) (sErrCode:string) (soInner:string option) codec =
+let octet_string_containing_ext_field_func (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sExtField:string) (sErrCode:string) (soInner:string option) (bDeducedContent:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "octet_string_containing_ext_field_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sReqBytesForUperEncoding",(if sReqBytesForUperEncoding = null then null else ST.StrHelper sReqBytesForUperEncoding:>Object) );("sExtField",(if sExtField = null then null else ST.StrHelper sExtField:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("soInner",(if soInner.IsNone then null else ST.StrHelper soInner.Value:>Object) )]
+        ST.call "acn_rust" "octet_string_containing_ext_field_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sReqBytesForUperEncoding",(if sReqBytesForUperEncoding = null then null else ST.StrHelper sReqBytesForUperEncoding:>Object) );("sExtField",(if sExtField = null then null else ST.StrHelper sExtField:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("soInner",(if soInner.IsNone then null else ST.StrHelper soInner.Value:>Object) );("bDeducedContent",bDeducedContent :>Object)]
     | Decode    ->
-        ST.call "acn_rust" "octet_string_containing_ext_field_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sReqBytesForUperEncoding",(if sReqBytesForUperEncoding = null then null else ST.StrHelper sReqBytesForUperEncoding:>Object) );("sExtField",(if sExtField = null then null else ST.StrHelper sExtField:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("soInner",(if soInner.IsNone then null else ST.StrHelper soInner.Value:>Object) )]
+        ST.call "acn_rust" "octet_string_containing_ext_field_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sReqBytesForUperEncoding",(if sReqBytesForUperEncoding = null then null else ST.StrHelper sReqBytesForUperEncoding:>Object) );("sExtField",(if sExtField = null then null else ST.StrHelper sExtField:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("soInner",(if soInner.IsNone then null else ST.StrHelper soInner.Value:>Object) );("bDeducedContent",bDeducedContent :>Object)]
 
 let octet_string_containing_deferred_func (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (bDeducedContent:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -831,13 +831,13 @@ let octet_string_containing_deferred_fixed_func (p:string) (sFuncName:string) co
     | Decode    ->
         ST.call "acn_rust" "octet_string_containing_deferred_fixed_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
 
-let octet_string_containing_deferred_embedded_func (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) codec =
+let octet_string_containing_deferred_embedded_func (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) (bDeducedContent:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "octet_string_containing_deferred_embedded_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "octet_string_containing_deferred_embedded_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bDeducedContent",bDeducedContent :>Object)]
     | Decode    ->
-        ST.call "acn_rust" "octet_string_containing_deferred_embedded_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "octet_string_containing_deferred_embedded_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("nBits",nBits :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bDeducedContent",bDeducedContent :>Object)]
 
 let octet_string_containing_deferred_wrapper (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (bDeducedContent:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -903,13 +903,13 @@ let sparkAnnotations_deducedFixed (sTypeDefName:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "sparkAnnotations_deducedFixed" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) )]
 
-let octet_string_containing_func (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) codec =
+let octet_string_containing_func (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (sErrCode:string) (bDeducedContent:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "octet_string_containing_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sContainedType",(if sContainedType = null then null else ST.StrHelper sContainedType:>Object) );("sReqBytesForAcnEncoding",(if sReqBytesForAcnEncoding = null then null else ST.StrHelper sReqBytesForAcnEncoding:>Object) );("nBits",nBits :>Object);("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("bFixedSize",bFixedSize :>Object)]
+        ST.call "acn_rust" "octet_string_containing_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sContainedType",(if sContainedType = null then null else ST.StrHelper sContainedType:>Object) );("sReqBytesForAcnEncoding",(if sReqBytesForAcnEncoding = null then null else ST.StrHelper sReqBytesForAcnEncoding:>Object) );("nBits",nBits :>Object);("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("bFixedSize",bFixedSize :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bDeducedContent",bDeducedContent :>Object)]
     | Decode    ->
-        ST.call "acn_rust" "octet_string_containing_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sContainedType",(if sContainedType = null then null else ST.StrHelper sContainedType:>Object) );("sReqBytesForAcnEncoding",(if sReqBytesForAcnEncoding = null then null else ST.StrHelper sReqBytesForAcnEncoding:>Object) );("nBits",nBits :>Object);("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("bFixedSize",bFixedSize :>Object)]
+        ST.call "acn_rust" "octet_string_containing_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sContainedType",(if sContainedType = null then null else ST.StrHelper sContainedType:>Object) );("sReqBytesForAcnEncoding",(if sReqBytesForAcnEncoding = null then null else ST.StrHelper sReqBytesForAcnEncoding:>Object) );("nBits",nBits :>Object);("nMinSize",nMinSize :>Object);("nMaxSize",nMaxSize :>Object);("bFixedSize",bFixedSize :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bDeducedContent",bDeducedContent :>Object)]
 
 let bit_string_containing_func (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (sReqBitsForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

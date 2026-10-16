@@ -1389,11 +1389,11 @@ arr = bytearray(codec.get_bitstream_buffer())
 codec = _codec_save
 >>
 
-octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 codec.encode_octet_string_no_length_vec(arr, int(<sExtField>))
 >>
 
-octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 _decoded_bytes_result = codec.decode_octet_string_no_length_vec(<sExtField>)
 if not _decoded_bytes_result.success or _decoded_bytes_result.decoded_value is None:
     return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
@@ -1416,7 +1416,7 @@ sparkAnnotations_encode(sTypeDefName) ::= ""
 sparkAnnotations_decode(sTypeDefName) ::= ""
 sparkAnnotations_deducedFixed(sTypeDefName) ::= ""
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
 # Encode the contained value into a temporary ACN buffer. The contained type's
 # instance method is invoked unbound on <p> so this works both when <p> is the
 # containing instance itself (named type) and when it is a field of a parent
@@ -1434,7 +1434,7 @@ if not _res:
     raise Asn1Exception(f"CONTAINING ACN encoding failed")
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
 <if(bFixedSize)>
 _n_count = <nMinSize>
 
@@ -1513,10 +1513,10 @@ octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
 octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<

@@ -17,7 +17,8 @@ The defect was introduced in 4.8.0.0 with 'size deduced' support (the stream
 view of the contents was limited to the region length); before, the temporary
 stream was initialised with the buffer size. `--acn-v2` decodes the contents in
 place after checking that the stream holds the region and was not affected.
-Ada decodes into a fixed-size temporary stream and was not affected.
+The Ada decoders do not write past the temporary stream, but the same change
+let them read past it (see case 8).
 
 ## Contents
 
