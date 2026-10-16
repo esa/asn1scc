@@ -346,7 +346,7 @@ ret = Acn_Dec_Real_IEEE754_64_big_endian(pBitStrm, <p>);
 
 Real_32_little_endian_encode(p, sSuffix, sErrCode, sType) ::= "Acn_Enc_Real_IEEE754_32_little_endian(pBitStrm, <p>);"
 Real_32_little_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
-Acn_Dec_Real_IEEE754_32_little_endian<sSuffix>(pBitStrm, <p>);
+ret = Acn_Dec_Real_IEEE754_32_little_endian<sSuffix>(pBitStrm, <p>);
 <A(sErrCode)>
 >>
 
