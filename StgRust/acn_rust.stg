@@ -798,6 +798,7 @@ sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nS
 
 sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin> \<= <sExtFld>) && <endif>(<sExtFld> \<= <nSizeMax>));
+*pErrCode = if ret { 0 } else { <sErrCode> };
 if ret {
     <p><sAcc>n_count = <sExtFld> as i32;
     <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p,sAcc, "n_count"])>
@@ -811,6 +812,7 @@ sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSi
 
 sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin> \<= <sExtFld>) && <endif>(<sExtFld> \<= <nSizeMax>));
+*pErrCode = if ret { 0 } else { <sErrCode> };
 if ret {
     <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
 }
@@ -1468,7 +1470,8 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 {
     let mut arr: [u8; <sReqBytesForUperEncoding> as usize] = [0; <sReqBytesForUperEncoding> as usize];
     /*limit the temporary stream view to the actual region size ('size deduced' support)*/
-    ret = (<sExtField> as i64 \<= <sReqBytesForUperEncoding> as i64);
+    /*a negative length (signed size field) fails as well*/
+    ret = (<sExtField> as i64 \>= 0) && (<sExtField> as i64 \<= <sReqBytesForUperEncoding> as i64);
     *pErrCode = if ret { 0 } else { <sErrCode> };
     if ret {
         /*decode to the temporary bitstream buffer */
@@ -1749,7 +1752,8 @@ bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncodi
 {
     /*decode to a temporary bitstream*/
     let mut arr: [u8; <sReqBytesForUperEncoding> as usize] = [0; <sReqBytesForUperEncoding> as usize];
-    ret = (<sExtField> as i64 \<= <sReqBitsForUperEncoding> as i64);
+    /*a negative length (signed size field) fails as well*/
+    ret = (<sExtField> as i64 \>= 0) && (<sExtField> as i64 \<= <sReqBitsForUperEncoding> as i64);
     *pErrCode = if ret { 0 } else { <sErrCode> };
     if ret {
         ret = pBitStrm.read_bits(&mut arr, <sExtField> as i32);
