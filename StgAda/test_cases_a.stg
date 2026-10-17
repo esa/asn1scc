@@ -144,6 +144,32 @@ Codec_compare_input_with_output(sModName, sFuncName, sVal, sAmber) ::= <<
 ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_EQUAL, Success => <sModName>.<sFuncName>(<sVal>, decodedPDU), ErrorCode => result.ErrorCode);
 >>
 
+/* Decode fault sweep of the automatic tests (coverage step 10): the helper lives in the Ada RTL
+   (adaasn1rtl.encoding.test_cases_aux.Decode_Corruption_Sweep); no truncation, see LangGeneric_a.atcDecodeSweep. */
+Codec_DecodeSweep_helper(nBudget) ::= <<
+>>
+
+Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
+>>
+
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, sTasName, sEnc, sAmber, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+--  Decode corrupted copies of the encoded value
+if ret.Success then
+    declare
+        procedure Sweep_Decode (bs : in out adaasn1rtl.encoding.Bitstream; Res : out <rtlModuleName()>.ASN1_RESULT; Valid : out Boolean) is
+        begin
+            <sModName>.<sDecFuncName>(decodedPDU, bs, Res);
+            Valid := <if(soIsValidFunc)>not Res.Success or else <sModName>.<soIsValidFunc>(decodedPDU).Success<else>True<endif>;
+        end Sweep_Decode;
+    begin
+        adaasn1rtl.encoding.test_cases_aux.Decode_Corruption_Sweep(stream, "<sFuncName>", <nBudget>, Sweep_Decode'Access, result);
+        --  reported as a decoding failure (ErrorCode 7) after the line printed by the sweep: a new step,
+        --  i.e. a sixth arm in the case of every test procedure, made GNAT Community 2021 hang
+        ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE, Success => result.Success, ErrorCode => result.ErrorCode);
+    end;
+end if;
+>>
+
 Codec_write_bitstreamToFile() ::= <<
 adaasn1rtl.encoding.test_cases_aux.Write_BitStream_To_File(stream, Filename & ".dat");
 >>

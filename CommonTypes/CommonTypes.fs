@@ -1028,6 +1028,8 @@ type CommandLineSettings = {
     GenerateEqualFunctions : bool
     generateConstInitGlobals : bool
     generateAutomaticTestCases : bool
+    //decode fault sweep of the automatic tests: bytes decoded per sweep and test value (-atcSweepBudget)
+    atcSweepBudget : BigInteger
     TypePrefix:string
     CheckWithOss:bool
     AstXmlAbsFileName:string

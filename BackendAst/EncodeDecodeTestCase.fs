@@ -28,6 +28,7 @@ type StatementKind =
     |Decode_output
     |Validate_output
     |Compare_input_output
+    |Decode_sweep
     |Write_bitstream_to_file
 
 
@@ -69,6 +70,44 @@ let private addTestFunctionCalls (t:Asn1AcnAst.Asn1Type) funcType
             addFunctionCallToState st {Caller.typeId=tasInfo; funcType=funcType}
                 {Callee.typeId=tasInfo; funcType=dependency}) us
 
+// Decode fault sweep (coverage step 10): the sweep statement after Compare_input_output, the adapter emitted
+// before the test function (C) and the helper emitted once per file (C); None when the language has no sweep
+// or the type no decode function.
+type private DecodeSweepParts = {
+    statement   : string
+    adapter     : string
+    helper      : string
+}
+
+let private decodeSweepParts (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (modName:string) (funcName:string) (sTasName:string) (sEnc:string) (sAmber:string) (isValidFunc: IsValidFunction option) (decFunName:string option) (isLiveDeduced:bool) =
+    let soIsValid = isValidFunc |> Option.bind (fun f -> f.funcName)
+    let parts bTruncate decName =
+        {
+            DecodeSweepParts.statement = lm.atc.Codec_DecodeSweep modName funcName decName sTasName sEnc sAmber soIsValid bTruncate isLiveDeduced r.args.atcSweepBudget
+            adapter = lm.atc.Codec_DecodeSweep_adapter modName funcName decName sTasName sAmber soIsValid
+            helper = lm.atc.Codec_DecodeSweep_helper r.args.atcSweepBudget
+        }
+    match decFunName, lm.lg.atcDecodeSweep isLiveDeduced with
+    | None, _                                       -> None
+    | Some _, NoDecodeSweep                         -> None
+    | Some decName, CorruptionSweep                 -> Some (parts false decName)
+    | Some decName, TruncationAndCorruptionSweep    -> Some (parts true decName)
+
+let private withSweepAdapter (sweep:DecodeSweepParts option) (func:string) =
+    match sweep with
+    | Some s when s.adapter.Trim() <> "" -> s.adapter + "\n" + func
+    | _                                  -> func
+
+let private sweepPrelude (sweep:DecodeSweepParts option) =
+    match sweep with
+    | Some s when s.helper.Trim() <> "" -> Some s.helper
+    | _                                 -> None
+
+let private encDecStatements (sweep:DecodeSweepParts option) =
+    match sweep with
+    | None   -> [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
+    | Some _ -> [Encode_input; Decode_output; Validate_output; Compare_input_output; Decode_sweep; Write_bitstream_to_file]
+
 let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : UPerFunction option) (decFunc : UPerFunction option)   (us:State)  =
     let sEnc = lm.lg.atc.uperPrefix
 
@@ -93,6 +132,7 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
     match funcName  with
     | None              -> None, us
     | Some funcName     ->
+        let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode isValidFunc (decFunc |> Option.bind (fun f -> f.funcName)) false
 
         let printStatement stm sNestedContent =
             let content=
@@ -119,6 +159,7 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
                                                 let! fname = eqFunc.isEqualFuncName
                                                 return compareInputWithOutput modName fname varName sAmberIsValid
                                            }
+                |Decode_sweep           -> sweep |> Option.map (fun z -> z.statement)
                 |Write_bitstream_to_file -> option {
                                                 return write_bitstreamToFile ()
                                             }
@@ -134,16 +175,18 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
                         match printStatements xs with
                         | None                 -> Some (printStatement x  None)
                         | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
-                printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
+                printStatements (encDecStatements sweep)
 
             let func =
                 printCodec_body modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName "" (sNestedStatements.orElse "") "UPER" "uPER"
+                |> withSweepAdapter sweep
             let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName
             let ret =
                 {
                     EncodeDecodeTestFunc.funcName   = funcName
                     func                            = func
                     funcDef                         = funcDef
+                    filePrelude                     = sweepPrelude sweep
                 }
             Some ret, addTestFunctionCalls t UperEncDecFunctionType eqFunc isValidFunc us
         | false -> None, us
@@ -186,6 +229,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         match funcName  with
         | None              -> None, us
         | Some funcName     ->
+            let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode isValidFunc (decFunc |> Option.bind (fun f -> f.funcName)) (isLiveDeduced t)
             let printStatement stm sNestedContent =
                 let content=
                     match stm with
@@ -211,6 +255,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                                                     let! fname = eqFunc.isEqualFuncName
                                                     return compareInputWithOutput modName fname varName sAmberIsValid
                                                }
+                    |Decode_sweep           -> sweep |> Option.map (fun z -> z.statement)
                     |Write_bitstream_to_file -> option {
                                                     return write_bitstreamToFile ()
                                                 }
@@ -227,9 +272,11 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                             | None                 -> Some (printStatement x  None)
                             | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
 
-                    printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
+                    printStatements (encDecStatements sweep)
 
-                let func = printCodec_body modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName sEnc (sNestedStatements.orElse "") "ACN" "ACN"
+                let func =
+                    printCodec_body modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName sEnc (sNestedStatements.orElse "") "ACN" "ACN"
+                    |> withSweepAdapter sweep
                 let funcDef = printCodec_body_header funcName modName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sStar varName
 
                 let ret =
@@ -237,6 +284,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         EncodeDecodeTestFunc.funcName   = funcName
                         func                            = func
                         funcDef                         = funcDef
+                        filePrelude                     = sweepPrelude sweep
                     }
                 Some ret, addTestFunctionCalls t AcnEncDecFunctionType eqFunc isValidFunc us
             | false -> None, us
@@ -297,6 +345,7 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                                                 let! fname = eqFunc.isEqualFuncName
                                                 return compareInputWithOutput modName fname varName sAmberIsValid
                                            }
+                |Decode_sweep           -> None   // binary encodings only
                 |Write_bitstream_to_file -> option {
                                                     return write_bitstreamToFile ()
                                                 }
@@ -319,6 +368,7 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                 EncodeDecodeTestFunc.funcName   = funcName
                 func                            = func
                 funcDef                         = funcDef
+                filePrelude                     = None
             }
         Some ret, us
 

@@ -508,12 +508,15 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                                 && r.callersSet |> Set.contains (f AcnEncDecFunctionType)
 
                             if reqUPER then
-                                yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.func))
+                                yield tas.Type.uperEncDecTestFunc
                             if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
-                                yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.func))
+                                yield tas.Type.xerEncDecTestFunc
                             if reqACN  then
-                                yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.func))
+                                yield tas.Type.acnEncDecTestFunc
                         } |> Seq.choose id |> Seq.toList
+                // code shared by the test functions of the file (C: decode sweep helper), once, before them
+                let encDecFuncs =
+                    (encDecFuncs |> List.choose (fun z -> z.filePrelude) |> List.distinct) @ (encDecFuncs |> List.map (fun z -> z.func))
 
                 let testcase_SrcFileName = Path.Combine(outDir, pu.testcase_bodyFileName)
                 let bXer = r.args.encodings |> Seq.exists((=) XER)

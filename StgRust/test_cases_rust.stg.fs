@@ -43,6 +43,18 @@ let Codec_compare_input_with_output (sModName:string) (sFuncName:string) (sVal:s
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "Codec_compare_input_with_output" [("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sVal",(if sVal = null then null else ST.StrHelper sVal:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) )]
 
+let Codec_DecodeSweep_helper (nBudget:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "Codec_DecodeSweep_helper" [("nBudget",nBudget :>Object)]
+
+let Codec_DecodeSweep_adapter (sModName:string) (sFuncName:string) (sDecFuncName:string) (sTasName:string) (sAmber:string) (soIsValidFunc:string option) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "Codec_DecodeSweep_adapter" [("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sDecFuncName",(if sDecFuncName = null then null else ST.StrHelper sDecFuncName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("soIsValidFunc",(if soIsValidFunc.IsNone then null else ST.StrHelper soIsValidFunc.Value:>Object) )]
+
+let Codec_DecodeSweep (sModName:string) (sFuncName:string) (sDecFuncName:string) (sTasName:string) (sEnc:string) (sAmber:string) (soIsValidFunc:string option) (bTruncate:bool) (bDeduced:bool) (nBudget:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "Codec_DecodeSweep" [("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sDecFuncName",(if sDecFuncName = null then null else ST.StrHelper sDecFuncName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("soIsValidFunc",(if soIsValidFunc.IsNone then null else ST.StrHelper soIsValidFunc.Value:>Object) );("bTruncate",bTruncate :>Object);("bDeduced",bDeduced :>Object);("nBudget",nBudget :>Object)]
+
 let Codec_write_CharstreamToFile () =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "Codec_write_CharstreamToFile" []

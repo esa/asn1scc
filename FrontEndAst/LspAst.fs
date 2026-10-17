@@ -114,6 +114,7 @@ let defaultCommandLineSettings  =
         encodings = []
         GenerateEqualFunctions = false
         generateAutomaticTestCases = false
+        atcSweepBudget = 1048576I
         TypePrefix = ""
         CheckWithOss = false
         AstXmlAbsFileName = ""

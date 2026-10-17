@@ -53,6 +53,19 @@ type InitMethod =
     | Procedure
     | Function
 
+/// Decode fault sweep that an automatic test (uPER, ACN) runs after a successful round trip,
+/// over the stream it encoded (coverage step 10, q/details-docs/coverage/step10-plan.md).
+type AtcDecodeSweep =
+    /// no sweep
+    | NoDecodeSweep
+    /// byte i of the encoding set to 0x00, then to 0xFF (restored after each decode): the decoder must not
+    /// crash, must fail with a nonzero error code or succeed with a valid value
+    | CorruptionSweep
+    /// first the byte prefixes of the encoding, each from a buffer of exactly that size (the decoder must
+    /// fail with a nonzero error code; a live 'size deduced' PDU may succeed with a valid value), then
+    /// the corruption sweep
+    | TruncationAndCorruptionSweep
+
 type DecodingKind =
     | InPlace
     | Copy
@@ -768,6 +781,12 @@ type ILangGeneric () =
     /// because the stream is written with the ACN runtime (C header, Ada child units).
     abstract member atcInvalidStreamPackages : string list
     default _.atcInvalidStreamPackages = []
+
+    /// Decode fault sweep of the uPER / ACN automatic tests (see AtcDecodeSweep); isLiveDeduced: the PDU is
+    /// decoded from a stream of exactly the encoded length (Codec_Decode_exact_length). Scala, Python, Rust:
+    /// none yet.
+    abstract member atcDecodeSweep : isLiveDeduced:bool -> AtcDecodeSweep
+    default _.atcDecodeSweep _ = NoDecodeSweep
 
     /// True when an OPTIONAL child whose encoder produces no statements must still be
     /// emitted through sequence_optional_child (Rust: the presence flag is assigned there).

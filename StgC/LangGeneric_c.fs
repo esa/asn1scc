@@ -895,6 +895,8 @@ type LangGeneric_c() =
         override _.atcEmitsInvalidStreamTests = true
         override _.atcInvalidStreamCodeOutsideItemRange = true
         override _.atcInvalidStreamPackages = ["asn1crt_encoding_acn"]
+        // every read primitive of the C RTL checks the view, so a prefix of a valid encoding must be rejected
+        override _.atcDecodeSweep _ = TruncationAndCorruptionSweep
 
         override this.getDirInfo (target:Targets option) rootDir =
             {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}

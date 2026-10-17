@@ -486,6 +486,14 @@ type LangGeneric_a() =
 
         override _.atcEmitsInvalidStreamTests = true
         override _.atcInvalidStreamPackages = ["adaasn1rtl.encoding.uper"; "adaasn1rtl.encoding.acn"]
+        // No truncation: a short stream violates the precondition of every Ada decoder
+        // (Current_Bit_Pos + <T>_REQUIRED_BITS_FOR_..._ENCODING <= Size_In_Bytes * 8), it is not a test.
+        // A live 'size deduced' PDU is decoded from a second, exact-length stream inside
+        // Codec_Decode_exact_length: no sweep (C covers it).
+        override _.atcDecodeSweep isLiveDeduced =
+            match isLiveDeduced with
+            | true  -> NoDecodeSweep
+            | false -> CorruptionSweep
 
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name

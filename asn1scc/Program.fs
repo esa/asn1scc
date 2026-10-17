@@ -19,6 +19,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-XER")>]XER_enc
     | [<Unique; AltCommandLine("-ACN")>]ACN_enc
     | [<Unique; AltCommandLine("-atc")>]Auto_test_cases
+    | [<Unique; AltCommandLine("-atcSweepBudget")>]Atc_Sweep_Budget of bytes:int64
     | [<Unique; AltCommandLine("-o")>]Out of dir:string
     | [<Unique; AltCommandLine("-equal")>]Equal_Func
     | [<Unique; AltCommandLine("-x")>] Xml_Ast of xmlFilename:string
@@ -72,6 +73,7 @@ with
             | XER_enc          -> "generates encoding and decoding functions for XML Encoding Rules (XER)"
             | ACN_enc          -> "generates encoding and decoding functions using the ASSERT ASN.1 encoding Control Notation"
             | Auto_test_cases  -> "create automatic test cases."
+            | Atc_Sweep_Budget _ -> "(with -atc, uPER and ACN) bytes decoded per test value by each decode fault sweep of the automatic tests (truncated and corrupted copies of the encoded value must be rejected; C: truncation and corruption, Ada: corruption). At most 128 positions at each end of the encoding are tried, at least 2. Default 1048576 (1 MB). For C the value can also be set when compiling the tests, with -DASN1SCC_SWEEP_BUDGET=<bytes>."
             | Out (_)          -> "directory where all files are produced."
             | Files (_)        -> "List of ASN.1 and ACN files to process."
             | Type_Prefix _    -> "adds 'prefix' to all generated C or Ada/SPARK data types."
@@ -278,6 +280,14 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | XER_enc          -> ()
     | ACN_enc          -> ()
     | Auto_test_cases  -> ()
+    | Atc_Sweep_Budget bytes ->
+        match cliArgs |> List.exists (fun a -> a = Auto_test_cases) with
+        | false -> raise (UserException ("The -atcSweepBudget option requires -atc."))
+        | true  ->
+            match bytes with
+            | _ when bytes < 0L -> raise (UserException ("invalid value for argument -atcSweepBudget. The value must be a number of bytes, 0 or greater."))
+            | 0L -> Console.Error.WriteLine "warning: -atcSweepBudget 0: the decode fault sweeps of the automatic tests cannot be switched off; using the minimum (2 positions at each end of each encoding)."
+            | _  -> ()
     | Equal_Func       -> ()
     | Generate_Test_Grammar -> ()
     | Init_Globals          -> ()
@@ -394,6 +404,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                     | None -> 0u
         GenerateEqualFunctions = (parserResults.Contains <@ Equal_Func @>) || (parserResults.Contains <@ Auto_test_cases @>)
         generateAutomaticTestCases = parserResults.Contains <@ Auto_test_cases @>
+        atcSweepBudget = BigInteger (parserResults.GetResult(<@ Atc_Sweep_Budget @>, defaultValue = 1048576L))
         TypePrefix = parserResults.GetResult(<@ Type_Prefix@>, defaultValue = "")
         CheckWithOss = false
         AstXmlAbsFileName = parserResults.GetResult(<@Xml_Ast@>, defaultValue = "")

@@ -98,6 +98,17 @@ if !<sFuncName>(<sVal>, decodedPDU) then
     return Left(4)
 >>
 
+/* Decode fault sweep of the automatic tests (coverage step 10): not implemented for this backend
+   (ILangGeneric.atcDecodeSweep = NoDecodeSweep). */
+Codec_DecodeSweep_helper(nBudget) ::= <<
+>>
+
+Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
+>>
+
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, sTasName, sEnc, sAmber, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+>>
+
 Codec_write_CharstreamToFile() ::= <<
 // test_cases_scala.stg:94
 <Codec_write_bitstreamToFile()>

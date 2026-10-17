@@ -580,6 +580,7 @@ type EncodeDecodeTestFunc = {
     funcName            : string               // the name of the function
     func                : string               // the body of the function
     funcDef             : string               // function definition in header file
+    filePrelude         : string option        // code emitted once at the top of the file holding the function (C: decode sweep helper)
 }
 
 type TestCaseFunction = {

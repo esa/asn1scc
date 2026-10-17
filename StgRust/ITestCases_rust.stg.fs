@@ -25,6 +25,12 @@ type ITestCases_rust() =
             test_cases_rust.Codec_validate_output  sModName sFuncName sAmber 
         override this.Codec_compare_input_with_output  (sModName:string) (sFuncName:string) (sVal:string) (sAmber:string) =
             test_cases_rust.Codec_compare_input_with_output  sModName sFuncName sVal sAmber 
+        override this.Codec_DecodeSweep_helper  (nBudget:BigInteger) =
+            test_cases_rust.Codec_DecodeSweep_helper  nBudget 
+        override this.Codec_DecodeSweep_adapter  (sModName:string) (sFuncName:string) (sDecFuncName:string) (sTasName:string) (sAmber:string) (soIsValidFunc:string option) =
+            test_cases_rust.Codec_DecodeSweep_adapter  sModName sFuncName sDecFuncName sTasName sAmber soIsValidFunc 
+        override this.Codec_DecodeSweep  (sModName:string) (sFuncName:string) (sDecFuncName:string) (sTasName:string) (sEnc:string) (sAmber:string) (soIsValidFunc:string option) (bTruncate:bool) (bDeduced:bool) (nBudget:BigInteger) =
+            test_cases_rust.Codec_DecodeSweep  sModName sFuncName sDecFuncName sTasName sEnc sAmber soIsValidFunc bTruncate bDeduced nBudget 
         override this.Codec_write_CharstreamToFile  () =
             test_cases_rust.Codec_write_CharstreamToFile  () 
         override this.Codec_write_bitstreamToFile  () =

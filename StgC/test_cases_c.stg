@@ -152,6 +152,141 @@ ret = <sFuncName>(<sVal>, <sAmber>decodedPDU);
 *pErrCode = ret ? 0 : 4;
 >>
 
+/* Decode fault sweep of the uPER / ACN automatic tests (coverage step 10): after a successful round trip,
+   truncated and corrupted copies of the encoded value are decoded. Emitted once per *_auto_tcs.c file. */
+Codec_DecodeSweep_helper(nBudget) ::= <<
+#include \<stdlib.h\>
+
+/* Decode fault sweep of the automatic tests (asn1scc -atc, uPER and ACN). After a successful round trip,
+   copies of the encoded value are decoded:
+   - truncation: the first k bytes, from a buffer of exactly k bytes (a read past the view is an out-of-bounds
+     read); the decoder must fail with a nonzero error code ('size deduced' PDUs: or succeed with a valid value);
+   - corruption: byte i set to 0x00, then to 0xFF (restored after each decode); the decoder must fail with a
+     nonzero error code or succeed with a valid value.
+   At most ASN1SCC_SWEEP_POSITIONS positions at each end of the encoding, and about ASN1SCC_SWEEP_BUDGET
+   decoded bytes per sweep (asn1scc -atcSweepBudget); at least 2 positions at each end. */
+#ifndef ASN1SCC_SWEEP_POSITIONS
+#define ASN1SCC_SWEEP_POSITIONS 128
+#endif
+#ifndef ASN1SCC_SWEEP_BUDGET
+#define ASN1SCC_SWEEP_BUDGET <nBudget>LL
+#endif
+
+typedef flag (*asn1scc_sweep_decoder)(void* pDecoded, BitStream* pBitStrm, int* pErrCode, flag* pValid);
+
+/* Positions 0 .. nBytes-1 to try: the head first, then the tail. The cost of a position is the number of bytes
+   the decoder reads: the position itself (truncation, bFullCost FALSE) or nBytes (corruption, bFullCost TRUE). */
+static int asn1scc_sweep_positions(long* positions, long nBytes, flag bFullCost)
+{
+    int nPositions = 0;
+    int side;
+    long lastHead = -1;
+    for (side = 0; side \< 2; side++) {
+        long long spent = 0;
+        int count = 0;
+        long k = side == 0 ? 0 : nBytes - 1;
+        while (side == 0 ? k \< nBytes : k \> lastHead) {
+            if (count \>= ASN1SCC_SWEEP_POSITIONS || (count \>= 2 && spent \>= ASN1SCC_SWEEP_BUDGET / 2)) {
+                break;
+            }
+            positions[nPositions++] = k;
+            count++;
+            spent += bFullCost ? nBytes : k;
+            if (side == 0) {
+                lastHead = k;
+                k++;
+            } else {
+                k--;
+            }
+        }
+    }
+    return nPositions;
+}
+
+/* Returns 0, 6 (a truncated copy was accepted, or rejected without an error code) or 7 (a corrupted copy was
+   accepted with an invalid value, or rejected without an error code); stops at the first violation. */
+static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long nBytes, void* pDecoded,
+                                      asn1scc_sweep_decoder decode, flag bTruncate, flag bDeduced)
+{
+    long positions[2 * ASN1SCC_SWEEP_POSITIONS];
+    int nPositions;
+    int j;
+    int pattern;
+    int errCode;
+    flag ok;
+    flag valid;
+    BitStream sweepStrm;
+
+    if (bTruncate) {
+        nPositions = asn1scc_sweep_positions(positions, nBytes, FALSE);
+        for (j = 0; j \< nPositions; j++) {
+            long k = positions[j];
+            byte* prefix = (byte*)malloc((size_t)(k \> 0 ? k : 1));
+            if (prefix == NULL) {
+                return 0;
+            }
+            memcpy(prefix, encBuff, (size_t)k);
+            BitStream_AttachBuffer(&sweepStrm, prefix, k);
+            errCode = 0;
+            valid = TRUE;
+            ok = decode(pDecoded, &sweepStrm, &errCode, &valid);
+            free(prefix);
+            if (ok ? !(bDeduced && errCode == 0 && valid) : errCode == 0) {
+                printf("%s: decoding the first %ld of %ld bytes returned %s with error code %d%s\n", sTestName, k, nBytes,
+                       ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
+                return 6;
+            }
+        }
+    }
+    nPositions = asn1scc_sweep_positions(positions, nBytes, TRUE);
+    for (j = 0; j \< nPositions; j++) {
+        long i = positions[j];
+        for (pattern = 0x00; pattern \<= 0xFF; pattern += 0xFF) {
+            byte saved = encBuff[i];
+            if (saved == (byte)pattern) {
+                continue;
+            }
+            encBuff[i] = (byte)pattern;
+            BitStream_AttachBuffer(&sweepStrm, encBuff, nBytes);
+            errCode = 0;
+            valid = TRUE;
+            ok = decode(pDecoded, &sweepStrm, &errCode, &valid);
+            encBuff[i] = saved;
+            if (ok ? (errCode != 0 || !valid) : errCode == 0) {
+                printf("%s: decoding with byte %ld of %ld set to 0x%02X returned %s with error code %d%s\n", sTestName, i, nBytes,
+                       pattern, ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
+                return 7;
+            }
+        }
+    }
+    return 0;
+}
+
+>>
+
+/* Decoder of one automatic test function for asn1scc_decode_fault_sweep: decodes into the function's
+   decodedPDU and reports whether a decoded value is valid. */
+Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
+static flag <sFuncName>_sweep_decoder(void* pDecoded, BitStream* pBitStrm, int* pErrCode, flag* pValid)
+{
+    int validErrCode = 0;
+    flag ok = <sDecFuncName>(<sAmber>(*(<sTasName>*)pDecoded), pBitStrm, pErrCode);
+    <if(soIsValidFunc)>
+    *pValid = !ok || <soIsValidFunc>(<sAmber>(*(<sTasName>*)pDecoded), &validErrCode);
+    <else>
+    *pValid = TRUE;
+    (void)validErrCode;
+    <endif>
+    return ok;
+}
+>>
+
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, sTasName, sEnc, sAmber, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+// Decode truncated and corrupted copies of the encoded value
+*pErrCode = asn1scc_decode_fault_sweep("<sFuncName>", encBuff, BitStream_GetLength(&bitStrm), &decodedPDU, <sFuncName>_sweep_decoder, <if(bTruncate)>TRUE<else>FALSE<endif>, <if(bDeduced)>TRUE<else>FALSE<endif>);
+ret = *pErrCode == 0;
+>>
+
 Codec_write_CharstreamToFile() ::= <<
 char buf[1024];
 strcpy(buf, filename);
@@ -453,6 +588,12 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
             break;
         case 5:
             output->report_failure_message("Test case '<sFuncName>' failed. Checked and unchecked encodings differ or unchecked encoding failed.");
+            break;
+        case 6:
+            output->report_failure_message("Test case '<sFuncName>' failed. A truncated copy of the encoded value was decoded without an error code.");
+            break;
+        case 7:
+            output->report_failure_message("Test case '<sFuncName>' failed. A corrupted copy of the encoded value was decoded to an invalid value or without an error code.");
             break;
         default:
             output->report_failure_message("Unexpected error code in test case '<sFuncName>'.");
