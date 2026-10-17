@@ -1427,6 +1427,7 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 {
     asn1SccSint acn_nCount;
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
+    *pErrCode = ret ? 0 : <sErrCode>;
     if (ret) {
         if (acn_nCount \< 0 || !Acn_BitStream_HasNBytes(pBitStrm, (asn1SccUint)acn_nCount)) {
             ret = FALSE; /*COVERAGE_IGNORE*/
@@ -1552,6 +1553,7 @@ bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMax
 {
     asn1SccSint acn_nCount;
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
+    *pErrCode = ret ? 0 : <sErrCode>;
     if (ret) {
         if (acn_nCount \< 0 || !Acn_BitStream_HasNBits(pBitStrm, (asn1SccUint)acn_nCount)) {
             ret = FALSE; /*COVERAGE_IGNORE*/

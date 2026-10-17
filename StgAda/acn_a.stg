@@ -1564,6 +1564,7 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 declare
     acn_nCount : Integer;
 begin
+    result.ErrorCode := <sErrCode>;
     adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, <nMinSize>, <nMaxSize>, <nBits>, result.Success);
     if result.Success then
         if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
@@ -1701,6 +1702,7 @@ declare
     acn_nCount : Integer;
     acn_expected_end : Natural;
 begin
+    result.ErrorCode := <sErrCode>;
     adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, <nMinSize>, <nMaxSize>, <nBits>, result.Success);
     if result.Success then
         acn_expected_end := bs.Current_Bit_Pos + acn_nCount;
