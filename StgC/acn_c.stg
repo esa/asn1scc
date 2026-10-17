@@ -900,7 +900,7 @@ ret = <sName>_ACN_Decode(<p>, pBitStrm, pErrCode<if(arrsArgs)>, <arrsLocalPrms; 
 sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
 sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 ret = BitStream_ReadBit(pBitStrm, &<soExistVar>);
-<p><sAcc>exist.<sChName> = <soExistVar> == 0 ? 0 : 1;
+<p><sAcc>exist.<sChName> = (ret && <soExistVar>) ? 1 : 0; /* <soExistVar> is not set when the read fails */
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 

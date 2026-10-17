@@ -392,7 +392,7 @@ if (ret) {
 sequence_presence_bit_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 ret = BitStream_ReadBit(pBitStrm, &presenceBit);
-<p><sAcc>exist.<sChName> = presenceBit == 0 ? 0 : 1;
+<p><sAcc>exist.<sChName> = (ret && presenceBit) ? 1 : 0; /* presenceBit is not set when the read fails */
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
