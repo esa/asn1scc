@@ -53,6 +53,9 @@ echo "run acn-v2 wire checks (C)"
 echo "run -icdPdus checks (C)"
 ./scripts/runIcdPdusTests.sh || exit 1
 
+echo "run ICD tests (-icdAcn)"
+python3 ./scripts/runIcdTests.py || exit 1
+
 echo "run c tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l c -ws 4 -s false -p 48 || exit 1
 
@@ -94,3 +97,7 @@ uvx --python=3.11 pytest tests -v || exit 1
 # Python code readability and type-hint checks
 echo "run python readability checks"
 ./tools/check_generated_code.sh || exit 1
+
+# Python backend on the Asn1AcnTestLib corpus (CI workflow "Python Unit Tests")
+echo "run python testlib tests"
+../v4Tests/scripts/runPythonTestlib.sh || exit 1

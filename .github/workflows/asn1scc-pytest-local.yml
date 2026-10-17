@@ -22,7 +22,7 @@ jobs:
       - name: Build Docker image
         run: docker build -t asn1scc .
 
-      - name: Generate Python Output
+      - name: Build and run the testlib tests (ACN and uPER)
         run: |
           docker run --rm \
           -v ${{ github.workspace }}:/app \
@@ -33,26 +33,8 @@ jobs:
             dotnet build Antlr &&
             dotnet build parseStg2 &&
             dotnet build asn1scc &&
-            mapfile -t TESTLIB_FILES < <(find Asn1AcnTestLib \( -name "*.asn1" -o -name "*.acn" \) | sort) &&
-            ./asn1scc/bin/Debug/net10.0/asn1scc -python -ACN -atc -fp AUTO -typePrefix T -o generated-python-output/testlib "${TESTLIB_FILES[@]}" &&
-            ./asn1scc/bin/Debug/net10.0/asn1scc -python -uPER -atc -fp AUTO -typePrefix T -o generated-python-output/testlib_uper "${TESTLIB_FILES[@]}"
+            ./v4Tests/scripts/runPythonTestlib.sh -o generated-python-output -j .
           '
-
-      - name: Run Testlib Tests
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/app \
-            -w /app \
-            asn1scc \
-            uvx --python=3.11 --with=pytest-xdist pytest -n $(nproc) --junitxml=test-results-testlib.xml -k "not (test_case_ACN_000519 or test_case_ACN_000520 or test_case_ACN_000527 or test_case_ACN_000528 or test_case_ACN_000794 or test_case_ACN_000796 or test_case_ACN_000798 or test_case_ACN_000800 or test_case_ACN_000802 or test_case_ACN_000804 or test_case_ACN_000806 or test_case_ACN_000808 or test_case_ACN_000810 or test_case_ACN_000812 or test_case_ACN_000814 or test_case_ACN_000816)" generated-python-output/testlib
-
-      - name: Run uPER Testlib Tests
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/app \
-            -w /app \
-            asn1scc \
-            uvx --python=3.11 --with=pytest-xdist pytest -n $(nproc) --junitxml=test-results-uper-testlib.xml -k "not (test_case_UPER_000531 or test_case_UPER_000532 or test_case_UPER_000539 or test_case_UPER_000540)" generated-python-output/testlib_uper
 
       - name: Upload test results
         uses: EnricoMi/publish-unit-test-result-action@v2
