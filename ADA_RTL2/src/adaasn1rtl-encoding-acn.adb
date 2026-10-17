@@ -1706,16 +1706,29 @@ is
       pragma Warnings
         (Off, "condition can only be False if invalid values present");
       pragma Warnings
+        (Off, "condition can only be True if invalid values present");
+      pragma Warnings
         (Off, "condition is always True");
+      pragma Warnings
+        (Off, "condition is always False");
 
-      Result.Success := Result.Success and then
-        Asn1Real (Standard.Float'First) <= v and then
-        v <= Asn1Real (Standard.Float'Last);
+      --  a value outside the Float range (or a NaN) is an incorrect stream
+      if Result.Success and then
+        not (Asn1Real (Standard.Float'First) <= v and then
+             v <= Asn1Real (Standard.Float'Last))
+      then
+         Result := ASN1_RESULT'(Success => False,
+                                ErrorCode => ERR_INCORRECT_STREAM);
+      end if;
 
       pragma Warnings
         (On, "condition can only be False if invalid values present");
       pragma Warnings
+        (On, "condition can only be True if invalid values present");
+      pragma Warnings
         (On, "condition is always True");
+      pragma Warnings
+        (On, "condition is always False");
 
       if Result.Success then
          RealVal := Standard.Float (v);
@@ -1834,16 +1847,29 @@ is
       pragma Warnings
         (Off, "condition can only be False if invalid values present");
       pragma Warnings
+        (Off, "condition can only be True if invalid values present");
+      pragma Warnings
         (Off, "condition is always True");
+      pragma Warnings
+        (Off, "condition is always False");
 
-      Result.Success := Result.Success and then
-        Asn1Real (Standard.Float'First) <= v and then
-        v <= Asn1Real (Standard.Float'Last);
+      --  a value outside the Float range (or a NaN) is an incorrect stream
+      if Result.Success and then
+        not (Asn1Real (Standard.Float'First) <= v and then
+             v <= Asn1Real (Standard.Float'Last))
+      then
+         Result := ASN1_RESULT'(Success => False,
+                                ErrorCode => ERR_INCORRECT_STREAM);
+      end if;
 
       pragma Warnings
         (On, "condition can only be False if invalid values present");
       pragma Warnings
+        (On, "condition can only be True if invalid values present");
+      pragma Warnings
         (On, "condition is always True");
+      pragma Warnings
+        (On, "condition is always False");
 
       if Result.Success then
          RealVal := Standard.Float (v);
