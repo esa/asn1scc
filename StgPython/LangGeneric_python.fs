@@ -1444,6 +1444,10 @@ type LangGeneric_python() =
             berPrefix            = "BER_"
         }
 
+    /// Define_subType_bit_string gives a fixed-size BIT STRING subtype the constructor
+    /// __init__(self, arr) (header_python.stg); OCTET STRING / SEQUENCE OF subtypes keep (n_count, arr).
+    override _.bitStringSubtypeHasOwnConstructor = true
+
     override this.extractEnumClassName (prefix: String)(varName: String)(internalName: String): String =
         prefix + varName.Substring(0, max 0 (varName.Length - (internalName.Length + 1)))
         

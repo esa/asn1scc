@@ -774,6 +774,13 @@ type ILangGeneric () =
     abstract member emitOptionalChildWithEmptyBody : bool
     default _.emitOptionalChildWithEmptyBody = false
 
+    /// True when a fixed-size subtype of a variable-size BIT STRING has a constructor of its own
+    /// without the length (Python: class TByteFlags(TBitFlags) with __init__(self, arr) for
+    /// ByteFlags ::= BitFlags (SIZE(8))), so its values use the subtype's own size layout.
+    /// Otherwise they follow the typedef shared with the base type (typedefIsFixedSize).
+    abstract member bitStringSubtypeHasOwnConstructor : bool
+    default _.bitStringSubtypeHasOwnConstructor = false
+
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CodegenScope =
         this.getParamTypeSuffix t "" c
     

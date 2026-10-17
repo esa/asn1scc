@@ -1,4 +1,5 @@
--- C_ADA_ONLY (Python and Rust: fixed-size subtypes of variable-size types do not build / fail, pre-existing on master)
+-- C_ADA_ONLY (Python cannot decode the fixed-size OCTET STRING / SEQUENCE OF subtypes Octs4 and
+-- Nums2: their classes have no constructor without the length. Rust passes since 4.9.28.0.)
 -- Fixed-size subtypes of variable-size types: ByteFlags ::= BitFlags (SIZE(8)) shares
 -- the typedef of BitFlags, which has a length field (C nCount, Ada Length). The init
 -- expressions, the automatic test values and the fixed-size decoders (uPER and ACN) did

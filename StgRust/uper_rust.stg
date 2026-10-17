@@ -596,7 +596,7 @@ str_pad_to_typedef_size(p, nFrom, nTo) ::= ""
 
 /* Decoding a fixed-size subtype of a variable-size type (shared typedef with a length field):
    the fixed-size decoder fills only the data. */
-sizeable_fixed_count_set(p, sAcc, nFixedSize) ::= ""
+sizeable_fixed_count_set(p, sAcc, nFixedSize) ::= "<p><sAcc>n_count = <nFixedSize>;"
 
 bitString_FixSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= "pBitStrm.append_bits(&<p><sAcc>arr, <nFixedSize>);"
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<

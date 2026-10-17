@@ -716,6 +716,20 @@ let typedefMaxSize (r:AstRoot) (t:Asn1Type) =
     | None      -> maxSize t.Kind
     | Some bs   -> maxSize bs.Kind
 
+/// The maximum size of the shared typedef of a sizeable type (OCTET STRING, BIT STRING in bits,
+/// SEQUENCE OF): ByteFlags ::= BitFlags (SIZE(8)) is an array of BitFlags' size (Rust constant
+/// initializers must give the whole array).
+let typedefSizeableMaxSize (r:AstRoot) (t:Asn1Type) =
+    let maxSize (k:Asn1TypeKind) =
+        match k with
+        | OctetString o -> o.maxSize.uper
+        | BitString o   -> o.maxSize.uper
+        | SequenceOf o  -> o.maxSize.uper
+        | _             -> raise(BugErrorException "typedefSizeableMaxSize: not a sizeable type")
+    match t.getBaseType r with
+    | None      -> maxSize t.Kind
+    | Some bs   -> maxSize bs.Kind
+
 // ///////////////////////////////////////////////////////////////////////////
 // 'size deduced' helpers (Docs/deduced-size-spec.md)
 // ///////////////////////////////////////////////////////////////////////////

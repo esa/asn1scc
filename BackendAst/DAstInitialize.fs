@@ -427,7 +427,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
     let constantInitExpression () =
         match typedefIsFixedSize r t with
         | true   -> lm.init.initFixSizeOctetString tdName o.maxSize.uper (o.maxSize.uper = 0I)
-        | false  -> lm.init.initVarSizeOctetString tdName o.minSize.uper o.maxSize.uper
+        | false  -> lm.init.initVarSizeOctetString tdName o.minSize.uper (typedefSizeableMaxSize r t)
 
     let anonyms =
         o.AllCons |>
@@ -514,6 +514,12 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
     let initFixSizeBitOrOctString       = lm.init.initFixSizeBitOrOctString
     let initFixVarSizeBitOrOctString    = lm.init.initFixVarSizeBitOrOctString
     let initTestCaseBitString           = lm.init.initTestCaseBitString
+    //size layout of the values: the typedef shared with the base type, or the subtype's own when it
+    //has a constructor without the length (ILangGeneric.bitStringSubtypeHasOwnConstructor, Python)
+    let isFixedLayout, layoutMaxSize =
+        match lm.lg.bitStringSubtypeHasOwnConstructor with
+        | true  -> o.isFixedSize, o.maxSize.uper
+        | false -> typedefIsFixedSize r t, typedefSizeableMaxSize r t
     let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
         let bytes =
             match v.ActualValue with
@@ -546,7 +552,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                     let resVar = (p.accessPath.asIdentifier lm.lg)
                     let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I))
                     let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
-                    let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize (nSizeCeiled) i (typedefIsFixedSize r t) false o.minSize.uper p.accessPath.isOptional resVar
+                    let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize (nSizeCeiled) i (isFixedLayout) false o.minSize.uper p.accessPath.isOptional resVar
                     {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
 
@@ -568,7 +574,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                 let resVar = (p.accessPath.asIdentifier lm.lg)
                 let nSize = o.maxSize.uper
                 let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I))
-                let isFixedSize = typedefIsFixedSize r t
+                let isFixedSize = isFixedLayout
 
                 let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize (nSizeCeiled) i (isFixedSize) true o.minSize.uper p.accessPath.isOptional resVar
@@ -606,9 +612,9 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
         )
 
     let constantInitExpression () =
-        match typedefIsFixedSize r t with
+        match isFixedLayout with
             | true   -> lm.init.initFixSizeBitString tdName o.maxSize.uper (BigInteger o.MaxOctets)
-            | false  -> lm.init.initVarSizeBitString tdName o.minSize.uper o.maxSize.uper (BigInteger o.MaxOctets)
+            | false  -> lm.init.initVarSizeBitString tdName o.minSize.uper layoutMaxSize ((layoutMaxSize + 7I) / 8I)
     createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] user_aux_functions []
 
 let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Boolean) (typeDefinition:TypeDefinitionOrReference)  =
@@ -920,7 +926,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         let sTypeDef = lm.lg.getLongTypedefName typeDefinition
         match typedefIsFixedSize r t with
         | true  -> lm.init.initFixSizeSequenceOfExpr sTypeDef o.maxSize.uper childExpr
-        | false -> lm.init.initVarSizeSequenceOfExpr sTypeDef o.minSize.uper o.maxSize.uper childExpr
+        | false -> lm.init.initVarSizeSequenceOfExpr sTypeDef o.minSize.uper (typedefSizeableMaxSize r t) childExpr
     let initExpr () = constantInitExpression childInitExpr
     let initExprGlob () = constantInitExpression childInitGlobal
     createInitFunctionCommon r lm t typeDefinition funcBody initTasFunction testCaseFuncs initExpr initExprGlob nonEmbeddedChildrenFuncs [] []
