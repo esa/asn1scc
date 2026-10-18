@@ -28,8 +28,8 @@ position:
     Msg_ACN_enc_dec: decoding the first 3 of 5 bytes returned TRUE with error code 0
     Test case 'test_case_ACN_000002' failed. A truncated copy of the encoded value was decoded without an error code.
 
-In C the test returns error code 6 (truncation) or 7 (corruption); in Ada the test fails in the decoding
-step (`TC_DECODE`) with error code 7, after the line printed by the sweep. A failure means that a decoder accepted input it should have rejected, rejected it
+In C the test returns error code 6 (truncation) or 7 (corruption); in Ada the test fails in the step
+`TC_DECODE_CORRUPTED` (error code 7), after the line printed by the sweep. A failure means that a decoder accepted input it should have rejected, rejected it
 without setting an error code, or crashed. Please report it.
 
 ## Cost and the budget

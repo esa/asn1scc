@@ -163,9 +163,7 @@ if ret.Success then
         end Sweep_Decode;
     begin
         adaasn1rtl.encoding.test_cases_aux.Decode_Corruption_Sweep(stream, "<sFuncName>", <nBudget>, Sweep_Decode'Access, result);
-        --  reported as a decoding failure (ErrorCode 7) after the line printed by the sweep: a new step,
-        --  i.e. a sixth arm in the case of every test procedure, made GNAT Community 2021 hang
-        ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE, Success => result.Success, ErrorCode => result.ErrorCode);
+        ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE_CORRUPTED, Success => result.Success, ErrorCode => result.ErrorCode);
     end;
 end if;
 >>
@@ -432,6 +430,8 @@ begin
                 Put_Line ("Test case '<sFuncName>' failed in the validation of the decoded message");
             when <rtlModuleName()>.TC_EQUAL =>
                 Put_Line ("Test case '<sFuncName>' failed. Encoded and decoded messages are different");
+            when <rtlModuleName()>.TC_DECODE_CORRUPTED =>
+                Put_Line ("Test case '<sFuncName>' failed. A corrupted copy of the encoded value was decoded to an invalid value or without an error code.");
         end case;
         Put_Line ("========================================");
         totalErrors := totalErrors + 1;
