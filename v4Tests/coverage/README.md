@@ -956,7 +956,7 @@ supplied reference, which may differ from the original 259-unit cohort.
 
 The root Dockerfile and Dockerfile.local.wsl provide the general regression
 environment (Ubuntu 24.04 with GCC/GNAT/gcov 13 and gprbuild, Scala tooling, and
-the gnatprove of GNAT Community 2021 for the files marked RUN_SPARK).
+the FSF build of gnatprove 16.1 for the files marked RUN_SPARK).
 Dockerfile.runtime builds the compiler from upstream for its runtime image.
 This lane instead builds the supplied checkout with the same GCC/GNAT/gcov 13
 to reproduce the historical baseline, and always runs as UID 10001. It does not change those
