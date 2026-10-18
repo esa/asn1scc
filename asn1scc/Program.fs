@@ -138,7 +138,7 @@ let printVersion () =
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
 
-    let version = "4.9.32.0"
+    let version = "4.9.33.0"
     printfn "asn1scc version %s\n" version
     ()
 
