@@ -19,23 +19,22 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
         sh -s -- -y --default-toolchain 1.98.1 --profile minimal \
     && rustc --version && cargo --version 
 
-# Install GNAT Community 2021 ONLY for its SPARK prover (gnatprove), outside PATH;
-# see the main Dockerfile.
-
-WORKDIR /gnat_tmp/
-
-ADD https://community.download.adacore.com/v1/f3a99d283f7b3d07293b2e1d07de00e31e332325?filename=gnat-2021-20210519-x86_64-linux-bin  ./gnat-2021-20210519-x86_64-linux-bin
-
-RUN git clone https://github.com/AdaCore/gnat_community_install_script.git \
-	&& chmod +x gnat_community_install_script/install_package.sh \
-	&& chmod +x gnat-2021-20210519-x86_64-linux-bin \
-	&& gnat_community_install_script/install_package.sh ./gnat-2021-20210519-x86_64-linux-bin /opt/GNAT/gnat-x86-2021 \
-	&& printf '#!/bin/sh\nPATH=/opt/GNAT/gnat-x86-2021/bin:$PATH exec /opt/GNAT/gnat-x86-2021/bin/gnatprove "$@"\n' \
-	    > /usr/local/bin/gnatprove \
-	&& chmod +x /usr/local/bin/gnatprove
+# SPARK prover for the test files marked RUN_SPARK (regression/Program.fs):
+# the FSF build of gnatprove from alire-project/GNAT-FSF-builds, pinned by
+# checksum. It is self-contained (its own front end, Ada runtime, gprbuild and
+# provers) and independent of the GNAT 13 compiler above; its bin/ holds only
+# gnatprove.
+ARG GNATPROVE_VERSION=16.1.0-1
+ARG GNATPROVE_SHA256=82528bef29857e239373fcc36732837d743f5a00805d502c70455422ffc97191
+RUN wget -q -O /tmp/gnatprove.tar.gz \
+        https://github.com/alire-project/GNAT-FSF-builds/releases/download/gnatprove-${GNATPROVE_VERSION}/gnatprove-x86_64-linux-${GNATPROVE_VERSION}.tar.gz \
+    && echo "${GNATPROVE_SHA256}  /tmp/gnatprove.tar.gz" | sha256sum -c - \
+    && mkdir -p /opt/gnatprove \
+    && tar -xzf /tmp/gnatprove.tar.gz -C /opt/gnatprove --strip-components=1 \
+    && rm -rf /tmp/gnatprove.tar.gz /opt/gnatprove/share/examples \
+    && /opt/gnatprove/bin/gnatprove --version
+ENV PATH="/opt/gnatprove/bin:${PATH}"
 
 WORKDIR /app/
-
-RUN rm -rf /gnat_tmp/
 
 ENTRYPOINT ["/bin/bash"]

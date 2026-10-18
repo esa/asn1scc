@@ -34,6 +34,15 @@ RUN set -xe \
     && apt-get purge --auto-remove \
     && apt-get clean
 
+# Conditionally create non-root user and set permissions
+# (ubuntu:24.04 already has user "ubuntu" with uid 1000: remove whatever user holds USERID)
+RUN if [ "$NON_ROOT_USER" = "true" ]; then \
+    if getent passwd "$USERID" >/dev/null; then userdel -r "$(getent passwd "$USERID" | cut -d: -f1)"; fi && \
+    adduser --disabled-password --gecos '' --uid $USERID $USERNAME && \
+    mkdir -p /workdir /app && \
+    chown -R $USERNAME:$USERNAME /workdir /app; \
+fi
+
 # Install a pinned Rust toolchain (bump the version deliberately; "stable" would change on every image build) for compiling and running generated Rust code
 # during the test suite (./scripts/runTests.py -l Rust -s)
 ENV RUSTUP_HOME="/usr/local/rustup"
@@ -41,16 +50,8 @@ ENV CARGO_HOME="/usr/local/cargo"
 ENV PATH="/usr/local/cargo/bin:${PATH}"
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
         sh -s -- -y --default-toolchain 1.98.1 --profile minimal \
-    && rustc --version && cargo --version
-
-# Conditionally create non-root user and set permissions
-# (ubuntu:24.04 already has user "ubuntu" with uid 1000: remove whatever user holds USERID)
-RUN if [ "$NON_ROOT_USER" = "true" ]; then \
-    if getent passwd "$USERID" >/dev/null; then userdel -r "$(getent passwd "$USERID" | cut -d: -f1)"; fi && \
-    adduser --disabled-password --gecos '' --uid $USERID $USERNAME && \
-    mkdir -p /workdir /app && \
-    chown -R $USERNAME:$USERNAME /workdir /app /usr/local/cargo /usr/local/rustup; \
-fi
+    && rustc --version && cargo --version \
+    && if [ "$NON_ROOT_USER" = "true" ]; then chown -R $USERNAME:$USERNAME $RUSTUP_HOME $CARGO_HOME; fi
 
 # Switch to the appropriate user
 USER $USERNAME
@@ -60,24 +61,22 @@ RUN curl -s "https://get.sdkman.io" | bash && \
     echo "source $HOME/.sdkman/bin/sdkman-init.sh" >> $HOME/.bashrc && \
     bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && sdk install java 17.0.9-oracle && sdk install scala 3.3.0 && sdk install sbt 1.9.0"
 
-# Install GNAT Community 2021 ONLY for its SPARK prover: the regression runs
-# gnatprove on the test files marked RUN_SPARK (regression/Program.fs).
-# Its compiler is not used (its back end hangs on some generated test files,
-# and its `ld` cannot link against glibc 2.36+), so it stays out of PATH; the
-# gnatprove wrapper puts it first in PATH only for gnatprove itself.
-# (temporarily switch back to root)
+# SPARK prover for the test files marked RUN_SPARK (regression/Program.fs):
+# the FSF build of gnatprove from alire-project/GNAT-FSF-builds, pinned by
+# checksum. It is self-contained (its own front end, Ada runtime, gprbuild and
+# provers) and independent of the GNAT 13 compiler above; its bin/ holds only
+# gnatprove. (temporarily switch back to root)
 USER root
-WORKDIR /gnat_tmp/
-RUN wget -O gnat-2021-x86_64-linux-bin https://community.download.adacore.com/v1/f3a99d283f7b3d07293b2e1d07de00e31e332325?filename=gnat-2021-20210519-x86_64-linux-bin \
-    && git clone https://github.com/AdaCore/gnat_community_install_script.git \
-    && chmod +x gnat_community_install_script/install_package.sh \
-    && chmod +x gnat-2021-x86_64-linux-bin \
-    && gnat_community_install_script/install_package.sh ./gnat-2021-x86_64-linux-bin /opt/GNAT/gnat-x86-2021 \
-    && rm -rf /gnat_tmp/ \
-    && printf '#!/bin/sh\nPATH=/opt/GNAT/gnat-x86-2021/bin:$PATH exec /opt/GNAT/gnat-x86-2021/bin/gnatprove "$@"\n' \
-        > /usr/local/bin/gnatprove \
-    && chmod +x /usr/local/bin/gnatprove \
-    && gnatprove --version
+ARG GNATPROVE_VERSION=16.1.0-1
+ARG GNATPROVE_SHA256=82528bef29857e239373fcc36732837d743f5a00805d502c70455422ffc97191
+RUN wget -q -O /tmp/gnatprove.tar.gz \
+        https://github.com/alire-project/GNAT-FSF-builds/releases/download/gnatprove-${GNATPROVE_VERSION}/gnatprove-x86_64-linux-${GNATPROVE_VERSION}.tar.gz \
+    && echo "${GNATPROVE_SHA256}  /tmp/gnatprove.tar.gz" | sha256sum -c - \
+    && mkdir -p /opt/gnatprove \
+    && tar -xzf /tmp/gnatprove.tar.gz -C /opt/gnatprove --strip-components=1 \
+    && rm -rf /tmp/gnatprove.tar.gz /opt/gnatprove/share/examples \
+    && /opt/gnatprove/bin/gnatprove --version
+ENV PATH="/opt/gnatprove/bin:${PATH}"
 
 # Add UV for efficient python version management
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
