@@ -191,6 +191,7 @@ is
 begin
     while I\<= strLen and ret loop
         pragma Loop_Invariant (I>=1 and I\<=str'Last);
+        pragma Loop_Variant (Increases => I);
         ret := <arrsAlphaConBody; separator=" and ">;
         I := I + 1;
     end loop;
