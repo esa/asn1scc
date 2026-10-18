@@ -1,9 +1,10 @@
-# Use build arguments to control user creation
+FROM ubuntu:24.04
+
+# Build arguments that control user creation. They must be declared after FROM:
+# an ARG declared before FROM is visible only to the FROM line itself.
 ARG NON_ROOT_USER=false
 ARG USERNAME=root
 ARG USERID=0
-
-FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -48,7 +49,7 @@ RUN if [ "$NON_ROOT_USER" = "true" ]; then \
     if getent passwd "$USERID" >/dev/null; then userdel -r "$(getent passwd "$USERID" | cut -d: -f1)"; fi && \
     adduser --disabled-password --gecos '' --uid $USERID $USERNAME && \
     mkdir -p /workdir /app && \
-    chown -R $USERNAME:$USERNAME /workdir /app; \
+    chown -R $USERNAME:$USERNAME /workdir /app /usr/local/cargo /usr/local/rustup; \
 fi
 
 # Switch to the appropriate user
