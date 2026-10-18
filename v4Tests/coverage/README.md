@@ -955,9 +955,10 @@ supplied reference, which may differ from the original 259-unit cohort.
 ## Existing project images
 
 The root Dockerfile and Dockerfile.local.wsl provide the general regression
-environment, including GNAT Community 2021 and Scala/SPARK tooling.
+environment (Ubuntu 24.04 with GCC/GNAT/gcov 13 and gprbuild, Scala tooling, and
+the gnatprove of GNAT Community 2021 for the files marked RUN_SPARK).
 Dockerfile.runtime builds the compiler from upstream for its runtime image.
-This lane instead builds the supplied checkout, uses GCC/GNAT/gcov 13 together
+This lane instead builds the supplied checkout with the same GCC/GNAT/gcov 13
 to reproduce the historical baseline, and always runs as UID 10001. It does not change those
 existing workflows. The existing asn1scc:latest image was also used for early
 standard-library collector tests with an explicit non-root user.

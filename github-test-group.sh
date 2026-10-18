@@ -24,6 +24,8 @@ echo "=== Building .NET solution ==="
 dotnet build Antlr/
 dotnet build parseStg2/
 dotnet build "asn1scc.sln"
+echo "=== Toolchain ==="
+for t in gcc gcov gnatmake gprbuild gnatprove; do printf '%-10s ' "$t"; ("$t" --version 2>&1 || true) | head -1; done
 
 REGRESSION="../regression/bin/Debug/net10.0/regression"
 

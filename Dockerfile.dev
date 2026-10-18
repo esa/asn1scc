@@ -1,9 +1,12 @@
 FROM  mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
+# dotnet/sdk:10.0 is based on Ubuntu 24.04 (noble): no python3-distutils / nuget packages.
+# GCC and GNAT come from Ubuntu (gcc-13 / gnat-13 + gprbuild), as in the main Dockerfile.
 RUN set -xe \
     && DEBIAN_FRONTEND=noninteractive apt-get update -y \
-	&& apt-get install -y libfontconfig libdbus-1-3 libx11-6 libx11-xcb-dev \
-	    python3 python3-distutils gcc g++ make openjdk-11-jre nuget libgit2-dev libssl-dev \
+	&& apt-get install -y libfontconfig1 libdbus-1-3 libx11-6 libx11-xcb-dev \
+	    python3 gcc g++ make openjdk-17-jre libgit2-dev libssl-dev \
+	    gcc-13 gnat gnat-13 gprbuild \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get purge --auto-remove \
     && apt-get clean
@@ -16,7 +19,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
         sh -s -- -y --default-toolchain 1.98.1 --profile minimal \
     && rustc --version && cargo --version 
 
-# Install GNAT AND SPARK from AdaCore
+# Install GNAT Community 2021 ONLY for its SPARK prover (gnatprove), outside PATH;
+# see the main Dockerfile.
 
 WORKDIR /gnat_tmp/
 
@@ -25,11 +29,13 @@ ADD https://community.download.adacore.com/v1/f3a99d283f7b3d07293b2e1d07de00e31e
 RUN git clone https://github.com/AdaCore/gnat_community_install_script.git \
 	&& chmod +x gnat_community_install_script/install_package.sh \
 	&& chmod +x gnat-2021-20210519-x86_64-linux-bin \
-	&& gnat_community_install_script/install_package.sh ./gnat-2021-20210519-x86_64-linux-bin /opt/GNAT/gnat-x86-2021	
+	&& gnat_community_install_script/install_package.sh ./gnat-2021-20210519-x86_64-linux-bin /opt/GNAT/gnat-x86-2021 \
+	&& printf '#!/bin/sh\nPATH=/opt/GNAT/gnat-x86-2021/bin:$PATH exec /opt/GNAT/gnat-x86-2021/bin/gnatprove "$@"\n' \
+	    > /usr/local/bin/gnatprove \
+	&& chmod +x /usr/local/bin/gnatprove
 
 WORKDIR /app/
 
 RUN rm -rf /gnat_tmp/
-	
-ENV PATH="/opt/GNAT/gnat-x86-2021/bin:${PATH}"
+
 ENTRYPOINT ["/bin/bash"]

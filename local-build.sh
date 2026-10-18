@@ -24,6 +24,8 @@ echo "dotnet build"
 dotnet build Antlr/ || exit 1
 dotnet build parseStg2/ || exit 1
 dotnet build "asn1scc.sln" || exit 1
+echo "=== Toolchain ==="
+for t in gcc gcov gnatmake gprbuild gnatprove; do printf '%-10s ' "$t"; ("$t" --version 2>&1 || true) | head -1; done
 cd v4Tests || exit 1
 echo "run local tests"
 
