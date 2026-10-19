@@ -1768,6 +1768,52 @@ is
       end if;
    end Acn_Enc_Real_IEEE754_64_big_endian;
 
+   --  A decoded 64-bit REAL into Asn1Real. Where Asn1Real is Float (msp430
+   --  board), a value outside the Float range or a NaN is an incorrect stream;
+   --  where it is Long_Float, every value is kept.
+   procedure Long_Float_To_Asn1Real
+     (r8      :        Long_Float; RealVal : out Asn1Real;
+      Result  : in out ASN1_RESULT) with
+      Post => (if Asn1Real'Digits >= Long_Float'Digits then
+                 Result = Result'Old);
+
+   procedure Long_Float_To_Asn1Real
+     (r8      :        Long_Float; RealVal : out Asn1Real;
+      Result  : in out ASN1_RESULT)
+   is
+   begin
+      pragma Warnings (Off, "redundant conversion");
+      pragma Warnings
+        (Off, "condition can only be False if invalid values present");
+      pragma Warnings
+        (Off, "condition can only be True if invalid values present");
+      pragma Warnings
+        (Off, "condition is always True");
+      pragma Warnings
+        (Off, "condition is always False");
+
+      if Asn1Real'Digits >= Long_Float'Digits
+        or else (Long_Float (Asn1Real'First) <= r8 and then
+                 r8 <= Long_Float (Asn1Real'Last))
+      then
+         RealVal := Asn1Real (r8);
+      else
+         RealVal := 0.0;
+         Result  := ASN1_RESULT'(Success => False,
+                                 ErrorCode => ERR_INCORRECT_STREAM);
+      end if;
+
+      pragma Warnings
+        (On, "condition can only be False if invalid values present");
+      pragma Warnings
+        (On, "condition can only be True if invalid values present");
+      pragma Warnings
+        (On, "condition is always True");
+      pragma Warnings
+        (On, "condition is always False");
+      pragma Warnings (On, "redundant conversion");
+   end Long_Float_To_Asn1Real;
+
    procedure Acn_Dec_Real_IEEE754_64_big_endian
      (bs : in out Bitstream; RealVal : out Asn1Real; Result : out ASN1_RESULT)
    is
@@ -1791,8 +1837,8 @@ is
          end loop;
       end if;
       pragma Assert (Result.Success);
-      r8      := OctetArray8_to_Long_Float (tmp);
-      RealVal := Asn1Real (r8);
+      r8 := OctetArray8_to_Long_Float (tmp);
+      Long_Float_To_Asn1Real (r8, RealVal, Result);
    end Acn_Dec_Real_IEEE754_64_big_endian;
 
    procedure Acn_Enc_Real_IEEE754_32_little_endian
@@ -1931,7 +1977,8 @@ is
          end loop;
       end if;
       pragma Assert (Result.Success);
-      RealVal := Asn1Real (OctetArray8_to_Long_Float (tmp));
+      Long_Float_To_Asn1Real
+        (OctetArray8_to_Long_Float (tmp), RealVal, Result);
    end Acn_Dec_Real_IEEE754_64_little_endian;
 
    function Acn_Real2ScaledUInt

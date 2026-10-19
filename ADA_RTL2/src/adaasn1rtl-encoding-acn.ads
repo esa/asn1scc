@@ -1146,6 +1146,8 @@ is
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
+   --  Fails (ERR_INCORRECT_STREAM) only where Asn1Real is Float and the value
+   --  does not fit (msp430 board).
    procedure Acn_Dec_Real_IEEE754_64_big_endian
      (bs     : in out Bitstream; RealVal : out Asn1Real;
       Result :    out ASN1_RESULT) with
@@ -1153,7 +1155,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => Result.Success and
+      Post => (if Asn1Real'Digits >= Long_Float'Digits then Result.Success)
+      and
       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
    procedure Acn_Enc_Real_IEEE754_32_little_endian
@@ -1191,6 +1194,8 @@ is
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
+   --  Fails (ERR_INCORRECT_STREAM) only where Asn1Real is Float and the value
+   --  does not fit (msp430 board).
    procedure Acn_Dec_Real_IEEE754_64_little_endian
      (bs     : in out Bitstream; RealVal : out Asn1Real;
       Result :    out ASN1_RESULT) with
@@ -1198,7 +1203,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => Result.Success and
+      Post => (if Asn1Real'Digits >= Long_Float'Digits then Result.Success)
+      and
       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
    --  REAL encoded as scaled integer.
