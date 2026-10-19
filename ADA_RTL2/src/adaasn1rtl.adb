@@ -73,6 +73,7 @@ is
       while ret and i <= val1.Length loop
          pragma Loop_Invariant
            (i >= 1 and i <= val1.Length and val1.Length = val2.Length);
+         pragma Loop_Variant (Increases => i);
          ret := val1.values (i) = val2.values (i);
          i   := i + 1;
       end loop;
@@ -107,6 +108,7 @@ is
      (bytes : OctetBuffer; len : Integer; arr : out BitArray)
    is
    begin
+      arr := (others => 0);
       for k in 0 .. len - 1 loop
          if (bytes (bytes'First + k / 8) and
              Shift_Left (Asn1Byte (1), Natural (7 - (k mod 8)))) /= 0

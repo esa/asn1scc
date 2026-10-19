@@ -127,19 +127,25 @@ is
    --  wire-order (MSB-first) array of whole bytes used by the C backend.
    --  ASN.1 bit k is bit (7 - k mod 8) of byte (k / 8), counting from the MSB.
    procedure BitString_BitArray_To_Bytes
-     (arr : BitArray; len : Integer; bytes : out OctetBuffer);
+     (arr : BitArray; len : Integer; bytes : out OctetBuffer) with
+      Pre => len >= 0
+      and then (len = 0 or else len - 1 <= arr'Last - arr'First)
+      and then (len = 0 or else (len - 1) / 8 <= bytes'Last - bytes'First);
 
    procedure BitString_Bytes_To_BitArray
-     (bytes : OctetBuffer; len : Integer; arr : out BitArray);
+     (bytes : OctetBuffer; len : Integer; arr : out BitArray) with
+      Pre => len >= 0
+      and then (len = 0 or else len - 1 <= arr'Last - arr'First)
+      and then (len = 0 or else (len - 1) / 8 <= bytes'Last - bytes'First);
 
    --  Bit k (0-based) of a BIT STRING stored as whole bytes, MSB-first
    --  (--ada-bitstring-alignment): bit (7 - k mod 8) of byte k / 8.
    function BitString_Get_Bit (arr : OctetBuffer; k : Natural) return BIT with
-      Pre => arr'Length > 0 and then k / 8 <= arr'Length - 1;
+      Pre => arr'Length > 0 and then k / 8 <= arr'Last - arr'First;
 
    procedure BitString_Set_Bit
      (arr : in out OctetBuffer; k : Natural; v : BIT) with
-      Pre => arr'Length > 0 and then k / 8 <= arr'Length - 1;
+      Pre => arr'Length > 0 and then k / 8 <= arr'Last - arr'First;
 
    --  Equality of the first len1 / len2 bits of two BIT STRINGs stored as
    --  whole bytes; the unused bits of the last byte are ignored, as in C.
@@ -148,8 +154,8 @@ is
       return Boolean with
       Pre => len1 >= 0 and then len2 >= 0
       and then len1 <= Integer'Last - 7
-      and then (len1 + 7) / 8 <= arr1'Length
-      and then (len1 + 7) / 8 <= arr2'Length;
+      and then (len1 + 7) / 8 - 1 <= arr1'Last - arr1'First
+      and then (len1 + 7) / 8 - 1 <= arr2'Last - arr2'First;
 
    procedure ObjectIdentifier_Init (val : out Asn1ObjectIdentifier);
    function ObjectIdentifier_isValid

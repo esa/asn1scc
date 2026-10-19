@@ -1622,9 +1622,13 @@ is
       return do_it (x);
    end Float_to_OctetArray4;
 
+   --  Unchecked conversion of wire bytes to a floating-point type: body
+   --  outside SPARK, since any bit pattern (NaN, infinity) can arrive.
    function OctetArray4_to_Float (x : OctetArray4) return Float;
 
-   function OctetArray4_to_Float (x : OctetArray4) return Float is
+   function OctetArray4_to_Float (x : OctetArray4) return Float with
+      SPARK_Mode => Off
+   is
       function do_it is new Ada.Unchecked_Conversion (OctetArray4, Float);
    begin
       return do_it (x);
@@ -1638,9 +1642,13 @@ is
       return do_it (x);
    end Long_Float_to_OctetArray8;
 
+   --  Unchecked conversion of wire bytes to a floating-point type: body
+   --  outside SPARK, since any bit pattern (NaN, infinity) can arrive.
    function OctetArray8_to_Long_Float (x : OctetArray8) return Long_Float;
 
-   function OctetArray8_to_Long_Float (x : OctetArray8) return Long_Float is
+   function OctetArray8_to_Long_Float (x : OctetArray8) return Long_Float with
+      SPARK_Mode => Off
+   is
       function do_it is new Ada.Unchecked_Conversion (OctetArray8, Long_Float);
    begin
       return do_it (x);

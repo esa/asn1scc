@@ -147,6 +147,7 @@ is
       I := str'First;
       while I <= str'Last and not bFound loop
          pragma Loop_Invariant (I >= str'First and I <= str'Last);
+         pragma Loop_Variant (Increases => I);
          bFound := str (I) = ch;
          I      := I + 1;
       end loop;
