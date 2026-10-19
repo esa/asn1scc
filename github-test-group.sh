@@ -50,6 +50,7 @@ case "$GROUP" in
   ada)
     echo "=== Ada regression tests ==="
     cd v4Tests || exit 1
+    ./scripts/proveAdaRtl.sh || exit 1
     "$REGRESSION" -l Ada -ws 4 -s false -p 4 || exit 1
     "$REGRESSION" -l Ada -ws 8 -s false -p 4 || exit 1
     # ACN v2

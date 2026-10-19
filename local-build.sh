@@ -29,6 +29,10 @@ for t in gcc gcov gnatmake gprbuild gnatprove; do printf '%-10s ' "$t"; ("$t" --
 cd v4Tests || exit 1
 echo "run local tests"
 
+# --- Ada RTL proof (gnatprove on the SPARK units of the runtime) ---------
+echo "prove the Ada RTL (gnatprove, boards x86 and msp430)"
+./scripts/proveAdaRtl.sh || exit 1
+
 
 # --- Ada+acnv2 (run first: newest path, fail-fast) -----------------------
 echo "run Ada tests, with word-size=4, slim-mode=false, acnv2"
