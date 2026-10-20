@@ -143,6 +143,7 @@ StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 <i> := <p>.Data'First;
 while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
     pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+    pragma Loop_Variant (Increases => <i>);
     <soInnerStatement>
     <i> := <i>+1;
 end loop;
@@ -257,6 +258,7 @@ ret := <rtlModuleName()>.ASN1_RESULT'(Success => <soIsValidSizeExp>, ErrorCode =
 <i> := <p>.Data'First;
 while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
     pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+    pragma Loop_Variant (Increases => <i>);
     <soInnerStatement>
     <i> := <i>+1;
 end loop;
@@ -268,6 +270,7 @@ sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 <i> := <p>.Data'First;
 while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
     pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+    pragma Loop_Variant (Increases => <i>);
     <sInnerStatement>
     <i> := <i>+1;
 end loop;

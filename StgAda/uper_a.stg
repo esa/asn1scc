@@ -18,7 +18,7 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 <sErrCode>:constant Integer := <nErrValue>;
 >>
 
-EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
 <arrsErrcodes; separator="\n">
 <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING:constant Integer := <nMaxBytesInPER>;
 <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING:constant Integer := <nMaxBitsInPER>;
@@ -31,10 +31,10 @@ procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleNam
 ;
 >>
 
-EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
 <arrsErrcodes; separator="\n">
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
-procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
 ;
 >>
@@ -67,7 +67,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds, bValInOut) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
@@ -102,6 +102,9 @@ procedure <sFuncName>(<sVarName>:out <sTypeDefName>; Stream : IN OUT <sTypeDefNa
 is
 begin
     Stream.Current_Bit_Pos :=0;
+    <if(bValInOut)>
+    <sVarName> := <soInitFuncName>;
+    <endif>
     <sFuncName>_aux(<sVarName>, Stream, result);
     <if(soIValidFuncName)>
     <if(bAlwaysSucceeds)>
@@ -116,12 +119,12 @@ begin
     <endif>
 end <sFuncName>;
 >>
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds, bValInOut) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
 <endif>
-procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
     pragma Unreferenced (bs);
@@ -139,10 +142,6 @@ begin
     -- A codec with no inline decoding body must still define its outputs.
     <sVarName> := <sInitialExp>;
     result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
-    <endif>
-    <if(soInitFuncName)>
-    -- <sVarName> := <soInitFuncName>;
-
     <endif>
     <sContent>
 end <sFuncName>_aux;
@@ -539,7 +538,6 @@ str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 >>
 
 str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, bIntroSnap, soCallAux) ::= <<
---val := <sTasName>_Init;
 result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 <i> := 1;
 <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
@@ -557,7 +555,6 @@ end if;
 >>
 
 str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
---val := <sTasName>_Init;
 result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
 <i> := 1;
@@ -604,9 +601,6 @@ InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 <rtlModuleName()>.encoding.BitStream_DecodeByte(bs, <p>.Data(<i>), result.Success);
-if not result.Success then
-    result.errorcode := <sErrCode>; -- COVERAGE_IGNORE
-end if;
 >>
 
 octet_FixedSize_encode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<

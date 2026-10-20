@@ -1103,6 +1103,11 @@ let private emitSpecializedFunctionDecl
     let typeDefinitionName = ctx.typeDefinition.longTypedefName2 (Some ctx.lm.lg) ctx.lm.lg.hasModules ctx.t.moduleName
     let isValidFuncName = match ctx.isValidFunc with None -> None | Some f -> f.funcName
     let soInitFuncName = ctx.lm.lg.getFuncNameGeneric ctx.typeDefinition (ctx.lm.init.methodNameSuffix())
+    // the specialised function's type is usually a reference: its init function is the referenced type's
+    let soValInitFuncName =
+        match soInitFuncName with
+        | Some _ -> soInitFuncName
+        | None   -> Some (typeDefinitionName + ctx.lm.init.methodNameSuffix())
     let nMaxBytesInACN = BigInteger (ceil ((double ctx.t.acnMaxSizeInBits)/8.0))
     let lvars = finalBody.localVariables |> List.map(fun (lv:LocalVariable) -> ctx.lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
 
@@ -1115,6 +1120,11 @@ let private emitSpecializedFunctionDecl
             sq.children |> List.exists (fun c -> match c with Asn1AcnAst.Asn1Child _ -> true | _ -> false)
         | _ -> true
     let bVarNameIsUnreferenced = finalBody.bValIsUnReferenced || not hasAsn1Children
+    // coverage step 10c: val is `in out` when the decoder may leave it partly written (DecodeOutcome.acnValWrite)
+    let bValInOut =
+        match ctx.codec with
+        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite ctx.r ctx.lm ctx.o.resolvedType) soValInitFuncName && not bVarNameIsUnreferenced
+        | Encode -> false
 
     // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
     let specBodyContent =
@@ -1132,9 +1142,10 @@ let private emitSpecializedFunctionDecl
             deferredFormalParams deferredParamNames
             (ctx.t.acnMaxSizeInBits = 0I) finalBody.bBsIsUnReferenced bVarNameIsUnreferenced
             false
-            soInitFuncName [] [] []  // funcDefAnnots, precondAnnots, postcondAnnots
+            soValInitFuncName [] [] []  // funcDefAnnots, precondAnnots, postcondAnnots
             true  // bDeferredSpecialization: callers use the specialized body directly
             false // bAlwaysSucceeds: a type with deferred determinants is MayFail (DecodeOutcome.acn)
+            bValInOut
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 
@@ -1152,6 +1163,7 @@ let private emitSpecializedFunctionDecl
             (ctx.t.acnMaxSizeInBits = 0I) nMaxBytesInACN ctx.t.acnMaxSizeInBits
             deferredFormalParams
             None  // soSparkAnnotations
+            bValInOut
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 

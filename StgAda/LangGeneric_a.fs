@@ -262,7 +262,11 @@ type LangGeneric_a() =
             | FlagLocalVariable (name,None)             -> sprintf "%s:adaasn1rtl.BIT;" name
             | FlagLocalVariable (name,Some iv)          -> sprintf "%s:adaasn1rtl.BIT:=%s;" name iv
             | BooleanLocalVariable (name,None)          -> sprintf "%s:Boolean;" name
-            | BooleanLocalVariable (name,Some iv)       -> sprintf "%s:Boolean:=%s;" name iv
+            // the <name>_is_initialized flags of ACN determinants (AcnSequence, AcnDependencies): where every path sets
+            // the flag before it is read, gnatprove reports the initial value as having no effect (coverage step 10c,
+            // the SPARK check treats warnings as errors); same local pragma as `ret` in the Equal functions
+            | BooleanLocalVariable (name,Some iv)       ->
+                sprintf "pragma Warnings (Off, \"initialization of \"\"%s\"\" has no effect\");\n%s:Boolean:=%s;\npragma Warnings (On, \"initialization of \"\"%s\"\" has no effect\");" name name iv name
             | AcnInsertedChild(name, vartype, initVal)  -> sprintf "%s:%s;" name vartype
             | GenericLocalVariable lv                   ->
                 match lv.initExp with

@@ -456,3 +456,73 @@ and acnErrorCodeSummary (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : ErrorCode
 let acnNeedsResultInit (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : bool =
     let s = acnErrorCodeSummary r lm t
     s.exitNeedsE || not s.writesE
+
+/// Coverage step 10c (q/details-docs/coverage/step10c-plan.md): whether a decoder writes all of val on every path.
+/// gnatprove flow requires an `out` parameter to be fully written on return; a decoder that can fail, decodes an
+/// array in a loop (flow analysis does not track array elements) or passes val to an RTL `in out` buffer leaves val
+/// partly written. Such a *_Decode_aux takes val as `in out`, and its wrapper T_Decode initialises val once.
+/// FullWrite keeps `out` (the code before 10c); a type that is MayLeavePartial while its decoder writes everything
+/// shows as gnatprove "unused initial value of val" (step10b/flowdiff.sh), a wrong FullWrite as "might not be
+/// initialized". With ReadsCanFail (C, Scala, Python, Rust) everything is FullWrite: code unchanged.
+type ValWrite =
+    | FullWrite
+    | MayLeavePartial
+
+let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (hasStatement: Asn1Type -> bool) (acnChildrenDecoded:bool) (acnDeferred:bool) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
+    match lm.lg.decodeReadFailureModel with
+    | ReadsCanFail      -> FullWrite
+    | ReadsCannotFail   ->
+        match t.Kind with
+        | Integer _ | Real _ | Boolean _ | Enumerated _ | NullType _
+        | ObjectIdentifier _ -> FullWrite                       // one write of val (an RTL `out` parameter or an assignment)
+        | BitString o when o.isFixedSize && CommonTypes.bitStringAlignment -> FullWrite   // val.Data := (others => 0) first
+        | Sequence o ->
+            // the children in decode order: an ASN.1 child is written when it is mandatory, has a statement, is fully
+            // written by its own decoder, and no part before it may fail (a failure skips the rest of the body); an ACN
+            // inserted field writes nothing of val and may fail
+            let full, _ =
+                o.children |> List.fold (fun (full, failedBefore) c ->
+                    match c with
+                    | AcnChild _  -> full, failedBefore || acnChildrenDecoded
+                    | Asn1Child c ->
+                        let written =
+                            c.Optionality.IsNone && hasStatement c.Type && not failedBefore
+                            && valWrite outcome hasStatement acnChildrenDecoded acnDeferred lm c.Type = FullWrite
+                        full && written, failedBefore || outcome c.Type = MayFail) (true, false)
+            // a SEQUENCE whose children are all NULL without a statement: decode_empty_sequence writes them
+            let onlyNullFields =
+                o.children |> List.forall (fun c ->
+                    match c with
+                    | AcnChild _  -> not acnChildrenDecoded
+                    | Asn1Child c -> c.Optionality.IsNone && not (hasStatement c.Type))
+            match full || onlyNullFields with
+            | true  -> FullWrite
+            | false -> MayLeavePartial
+        | ReferenceType o ->
+            match o.encodingOptions with
+            | None     -> valWrite outcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
+            | Some enc ->                                                               // CONTAINING
+                // --acn-v2 decodes a fixed-size CONTAINING by a plain call of the contained type's decoder
+                // (DAstACNDeferred: octet / bit_string_containing_deferred_fixed_func); everything else checks
+                // the region first
+                match acnDeferred, enc.acnEncodingClass with
+                | true, SZ_EC_FIXED_SIZE -> valWrite outcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
+                | true, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced)
+                | false, _ -> MayLeavePartial
+        | IA5String _ | NumericString _ | OctetString _ | BitString _ | TimeType _
+        | SequenceOf _ | Choice _ -> MayLeavePartial
+
+/// uPER *_Decode_aux: does it write all of val on every path?
+let uperValWrite (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
+    valWrite (uper r lm) uperChildHasStatement false false lm t
+
+/// ACN *_ACN_Decode_aux (also the --acn-v2 specialised functions): does it write all of val on every path?
+let acnValWrite (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
+    valWrite (acn r lm) acnHasDecodeContent true r.args.acnDeferred lm t
+
+/// The `in out` mode of val needs the init function the wrapper calls.
+let valInOut (vw:ValWrite) (soInitFuncName:string option) : bool =
+    match vw, soInitFuncName with
+    | MayLeavePartial, Some _ -> true
+    | MayLeavePartial, None
+    | FullWrite, _            -> false

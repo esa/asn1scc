@@ -98,6 +98,16 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
         match decodeOutcome with
         | AlwaysSucceeds _ -> true
         | MayFail          -> false
+    // coverage step 10c: val is `in out` when the decoder may leave it partly written; the wrapper initialises it
+    // (a type assignment that is a reference has no init function of its own: the referenced type's)
+    let soValInitFuncName =
+        match soInitFuncName with
+        | Some _ -> soInitFuncName
+        | None   -> Some (typeDefinitionName + lm.init.methodNameSuffix())
+    let bValInOut =
+        match codec with
+        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite r lm t) soValInitFuncName
+        | Encode -> false
     let soSparkAnnotations =
         match codec, decodeOutcome with
         | Decode, _ when hasBoundedFixedDeducedDecoder t ->
@@ -282,14 +292,14 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         prms @ extraPrms, prmNames @ extraNames
                     else
                         prms, prmNames
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) codec)
 
                 let errCodStr =
                     errCodes |>
                     List.groupBy (fun x -> x.errCodeName) |>
                     List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath}) |>
                     List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath) |> List.distinct
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits prms soSparkAnnotations codec)
+                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits prms soSparkAnnotations (bValInOut && not bVarNameIsUnreferenced) codec)
                 let ns2a =
                     match t.id.topLevelTas with
                     | None -> ns1a

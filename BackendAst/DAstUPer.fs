@@ -103,6 +103,16 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
         match decodeOutcome with
         | AlwaysSucceeds _ -> true
         | MayFail          -> false
+    // coverage step 10c: val is `in out` when the decoder may leave it partly written; the wrapper initialises it
+    // (a type assignment that is a reference has no init function of its own: the referenced type's)
+    let soValInitFuncName =
+        match soInitFuncName with
+        | Some _ -> soInitFuncName
+        | None   -> Some (lm.lg.getLongTypedefName typeDefinition + lm.init.methodNameSuffix())
+    let bValInOut =
+        match codec with
+        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.uperValWrite r lm t) soValInitFuncName
+        | Encode -> false
     let p = lm.lg.getParamType t codec
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
@@ -139,10 +149,10 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let precondAnnots = lm.lg.generatePrecond r UPER t codec
                 let postcondAnnots = lm.lg.generatePostcond r UPER p t codec
-                let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds codec)
+                let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) codec)
 
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue) x.fieldPath)
-                let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) codec)
+                let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) (bValInOut && not bVarNameIsUnreferenced) codec)
                 let ns2 =
                     match t.id.topLevelTas with
                     | None -> ns
