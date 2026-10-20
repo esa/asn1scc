@@ -156,6 +156,25 @@ END
     copyHelpers asn1FileName workDir
     File.WriteAllText(Path.Combine(workDir, "sample1.acn"), acnContent)
     
+/// The SPARK check of a RUN_SPARK test case (coverage step 10c, q/issues.md Issue 45): it passes only when
+/// gnatprove proves every check (the Unproved column of the Total row in gnatprove.out is ".") and prints no
+/// message (high / medium / low / warning; warnings are errors, as in the -gnatwe compilation). Returns the problems.
+let sparkProblems (workDir:string) (sparkLog:string list) : string list =
+    let message = System.Text.RegularExpressions.Regex(@"(^|: )\s*(high|medium|low|warning): ")
+    let messages = sparkLog |> List.filter (fun l -> message.IsMatch l || l.Contains "might fail, cannot prove")
+    let summary = Path.Combine(workDir, "obj_x86", "gnatprove", "gnatprove.out")
+    let unproved =
+        match File.Exists summary with
+        | false -> ["no " + summary]
+        | true  ->
+            match File.ReadLines summary |> Seq.tryFind (fun l -> l.StartsWith "Total") with
+            | None       -> ["no Total row in " + summary]
+            | Some total ->
+                match System.Text.RegularExpressions.Regex.Split(total.Trim(), @"\s{2,}") |> Array.last with
+                | "." -> []
+                | n   -> [sprintf "unproved checks: %s (%s)" n summary]
+    messages @ unproved
+
 let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) =
     let wsa = if ws=8 then "-fpWordSize 8 -wordSize 8" else "-fpWordSize 4 -wordSize 4"
     let slima = if slim then "-slim" else ""
@@ -241,13 +260,9 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                             if res.ExitCode <> 0 then
                                 markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
                             else
-                                let sparkLog = File.ReadLines sparkLogFname
-                                let bSparkFailed =
-                                    sparkLog |> Seq.exists(fun l -> l.Contains "might fail, cannot prove")
-                                if bSparkFailed then
-                                    markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
-                                else
-                                    markSuccess "Make OK, Code Coverage OK and SPARK OK"
+                                match sparkProblems workDir (File.ReadLines sparkLogFname |> Seq.toList) with
+                                | []       -> markSuccess "Make OK, Code Coverage OK and SPARK OK"
+                                | problems -> markError "SPARK Failed. See %s\n%s\n%s" sparkLogFname (problems |> List.truncate 10 |> String.concat "\n") cmd
                         else
                             markSuccess "Make and Code Coverage OK"
 

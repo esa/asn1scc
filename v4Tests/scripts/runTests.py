@@ -11,6 +11,26 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 
+def spark_problems(target_dir: str, log_lines: List[str]) -> List[str]:
+    """The SPARK check of a RUN_SPARK test case (coverage step 10c, q/issues.md Issue 45): gnatprove must prove
+    every check (Unproved column of the Total row in gnatprove.out is ".") and print no message (high / medium /
+    low / warning; warnings are errors, as in the -gnatwe compilation). Returns the problems."""
+    import re
+    message = re.compile(r"(^|: )\s*(high|medium|low|warning): ")
+    problems = [l for l in log_lines if message.search(l) or "might fail, cannot prove" in l]
+    summary = os.path.join(target_dir, "obj_x86", "gnatprove", "gnatprove.out")
+    if not os.path.exists(summary):
+        return problems + ["no " + summary]
+    with open(summary) as f:
+        total = next((l for l in f if l.startswith("Total")), None)
+    if total is None:
+        return problems + ["no Total row in " + summary]
+    unproved = re.split(r"\s{2,}", total.strip())[-1]
+    if unproved != ".":
+        problems.append(f"unproved checks: {unproved} ({summary})")
+    return problems
+
+
 # Thread-safe printing
 _print_lock = threading.Lock()
 
@@ -351,14 +371,18 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
                         raise Exception('TestFailed')
                 except FileNotFoundError as err:
                     safe_print("No file found at : " + gcov_path)
-            if runSpark:
+            if runSpark and shutil.which("gnatprove") is None:
+                # Docker / CI have gnatprove; a host without it (WSL) cannot run the SPARK check
+                safe_print("gnatprove not found: SPARK check skipped")
+            elif runSpark:
                 res = mysystem(cfg, targetDir, "gnatprove -Pasn1_x86.gpr -j0 -u test_case.adb --level=4 >sparklog.txt 2>&1", True, asn1, acn)
                 try:
                     with open(os.path.join(targetDir, "sparklog.txt"), 'r') as f:
                         lines = f.readlines()
-                    lines = filter(lambda x : "might fail, cannot prove" in x, lines)
-                    lines = list(lines)
+                    lines = spark_problems(targetDir, lines)
                     if len(lines) > 0:
+                        for l in lines[:10]:
+                            safe_print(l.rstrip())
                         PrintWarning("Spark failed.")
                         mysystem(cfg, targetDir, "cat sparklog.txt", False, asn1, acn)
                         results.add_error(f'Failed {asn1} {acn} in {language}')
