@@ -858,28 +858,6 @@ is
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
-   --  Full-range variants: used when every bit pattern of the field is a
-   --  valid value (range 0 .. 2**nSizeInBits - 1). The decode cannot fail,
-   --  so they have no Result; the Post bounds the value for the caller.
-   procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRange
-     (bs : in out Bitstream; IntVal : out Asn1UInt; nSizeInBits : Integer) with
-      Depends => ((bs, IntVal) => (bs, nSizeInBits)),
-      Pre     => nSizeInBits >= 0 and then nSizeInBits <= Asn1UInt'Size
-      and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
-      and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits
-      and then (if nSizeInBits < Asn1UInt'Size then
-                  IntVal < Shift_Left (Asn1UInt (1), nSizeInBits));
-
-   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRange
-     (bs : in out Bitstream; IntVal : out Asn1UInt) with
-      Pre => bs.Current_Bit_Pos < Natural'Last - 16
-      and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
-      and then IntVal <= 16#FFFF#;
-
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32
      (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
       maxVal :        Asn1UInt; Result : out ASN1_RESULT) with
@@ -2377,5 +2355,269 @@ is
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length);
+
+   --  Full-range decoders (coverage step 10b): used instead of the checked
+   --  procedures above when every bit pattern of the field is a valid
+   --  value. The decode cannot fail, so they have no Result; the Post
+   --  bounds the value, so a target subtype narrower than the field fails
+   --  the caller's proof. Names: <checked procedure>_FullRange<suffix>.
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt;
+      nSizeInBits : Integer) with
+      Pre => nSizeInBits >= 0 and then nSizeInBits <= Asn1UInt'Size
+      and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits
+      and then (if nSizeInBits < Asn1UInt'Size then
+                  IntVal < Shift_Left (Asn1UInt (1), nSizeInBits));
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 8
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8
+      and then IntVal <= 16#FF#;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRangeUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 8
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      and then IntVal <= 16#FFFF#;
+
+   procedure
+     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRangeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      and then IntVal <= 16#FFFF#;
+
+   procedure
+     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16_FullRangeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      and then IntVal <= 16#FFFF_FFFF#;
+
+   procedure
+     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32_FullRangeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      and then IntVal <= 16#FFFF_FFFF#;
+
+   procedure
+     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32_FullRangeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 64
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 64
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= 8
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= 16
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= 32
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int;
+      nSizeInBits : Integer) with
+      Pre => nSizeInBits >= 1 and then nSizeInBits <= Asn1UInt'Size
+      and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits
+      and then (if nSizeInBits < Asn1UInt'Size then
+                  IntVal >=
+                    -Asn1Int (Shift_Left (Asn1UInt (1), nSizeInBits - 1))
+                  and then
+                  IntVal <
+                    Asn1Int (Shift_Left (Asn1UInt (1), nSizeInBits - 1)));
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_8_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 8
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8
+      and then IntVal >= -128 and then IntVal <= 127;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_8_FullRangeInt8
+     (bs : in out Bitstream; IntVal : out Integer_8) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 8
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      and then IntVal >= -32768 and then IntVal <= 32767;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16_FullRangeInt16
+     (bs : in out Bitstream; IntVal : out Integer_16) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      and then IntVal >= -32768 and then IntVal <= 32767;
+
+   procedure
+     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16_FullRangeInt16
+     (bs : in out Bitstream; IntVal : out Integer_16) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      and then IntVal >= -16#7FFF_FFFF# - 1 and then IntVal <= 16#7FFF_FFFF#;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32_FullRangeInt32
+     (bs : in out Bitstream; IntVal : out Integer_32) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      and then IntVal >= -16#7FFF_FFFF# - 1 and then IntVal <= 16#7FFF_FFFF#;
+
+   procedure
+     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32_FullRangeInt32
+     (bs : in out Bitstream; IntVal : out Integer_32) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 64
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int) with
+      Pre => bs.Current_Bit_Pos < Natural'Last - 64
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt8
+     (bs : in out Bitstream; IntVal : out Integer_8; nBits : Integer) with
+      Pre => nBits >= 1 and then nBits <= 8
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt16
+     (bs : in out Bitstream; IntVal : out Integer_16; nBits : Integer) with
+      Pre => nBits >= 1 and then nBits <= 16
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt32
+     (bs : in out Bitstream; IntVal : out Integer_32; nBits : Integer) with
+      Pre => nBits >= 1 and then nBits <= 32
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
 
 end adaasn1rtl.encoding.acn;

@@ -456,4 +456,112 @@ is
       bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       data_length >= asn1SizeMin and data_length <= asn1SizeMax;
 
+   --  Full-range decoders (coverage step 10b): used instead of the checked
+   --  procedures above when every bit pattern of the field is a valid
+   --  value. The decode cannot fail, so they have no Result; the Post
+   --  bounds the value, so a target subtype narrower than the field fails
+   --  the caller's proof. Names: <checked procedure>_FullRange<suffix>.
+
+   procedure UPER_Dec_ConstraintPosWholeNumber_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt; MinVal : Asn1UInt;
+      nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= Asn1UInt'Size - 1
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then MinVal <=
+        Asn1UInt'Last - (Shift_Left (Asn1UInt (1), nBits) - 1),
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits
+      and then IntVal >= MinVal
+      and then IntVal - MinVal < Shift_Left (Asn1UInt (1), nBits);
+
+   procedure UPER_Dec_ConstraintPosWholeNumber_FullRangeUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8;
+      MinVal : Unsigned_8; nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= 8
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then nBits < Asn1UInt'Size
+      and then Shift_Left (Asn1UInt (1), nBits) - 1 <=
+                 Asn1UInt (Unsigned_8'Last) - Asn1UInt (MinVal),
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
+   procedure UPER_Dec_ConstraintPosWholeNumber_FullRangeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16;
+      MinVal : Unsigned_16; nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= 16
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then nBits < Asn1UInt'Size
+      and then Shift_Left (Asn1UInt (1), nBits) - 1 <=
+                 Asn1UInt (Unsigned_16'Last) - Asn1UInt (MinVal),
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
+   procedure UPER_Dec_ConstraintPosWholeNumber_FullRangeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32;
+      MinVal : Unsigned_32; nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= 32
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then nBits < Asn1UInt'Size
+      and then Shift_Left (Asn1UInt (1), nBits) - 1 <=
+                 Asn1UInt (Unsigned_32'Last) - Asn1UInt (MinVal),
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
+   procedure UPER_Dec_ConstraintWholeNumber_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1Int; MinVal : Asn1Int;
+      nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= Asn1UInt'Size - 2
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then MinVal <=
+        Asn1Int'Last - Asn1Int (Shift_Left (Asn1UInt (1), nBits) - 1),
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits
+      and then IntVal >= MinVal
+      and then IntVal <=
+        MinVal + Asn1Int (Shift_Left (Asn1UInt (1), nBits) - 1);
+
+   procedure UPER_Dec_ConstraintWholeNumber_FullRangeInt8
+     (bs : in out Bitstream; IntVal : out Integer_8;
+      MinVal : Integer_8; nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= 8
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then nBits <= Asn1UInt'Size - 2
+      and then Asn1Int (MinVal) <=
+        Asn1Int (Integer_8'Last) -
+          Asn1Int (Shift_Left (Asn1UInt (1), nBits) - 1),
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
+   procedure UPER_Dec_ConstraintWholeNumber_FullRangeInt16
+     (bs : in out Bitstream; IntVal : out Integer_16;
+      MinVal : Integer_16; nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= 16
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then nBits <= Asn1UInt'Size - 2
+      and then Asn1Int (MinVal) <=
+        Asn1Int (Integer_16'Last) -
+          Asn1Int (Shift_Left (Asn1UInt (1), nBits) - 1),
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
+   procedure UPER_Dec_ConstraintWholeNumber_FullRangeInt32
+     (bs : in out Bitstream; IntVal : out Integer_32;
+      MinVal : Integer_32; nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= 32
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then nBits <= Asn1UInt'Size - 2
+      and then Asn1Int (MinVal) <=
+        Asn1Int (Integer_32'Last) -
+          Asn1Int (Shift_Left (Asn1UInt (1), nBits) - 1),
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+
 end adaasn1rtl.encoding.uper;
