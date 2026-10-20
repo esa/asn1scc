@@ -991,6 +991,31 @@ is
       end if;
    end Acn_Dec_Int_PositiveInteger_ConstSize;
 
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt; nSizeInBits : Integer)
+   is
+      encVal  : Asn1UInt;
+      success : Boolean;
+   begin
+      BitStream_Decode_Non_Negative_Integer
+        (bs, encVal, nSizeInBits, success);
+      pragma Assert (success);
+      --  the value has nSizeInBits bits; the mask only states it for the
+      --  prover
+      if nSizeInBits < Asn1UInt'Size then
+         IntVal := encVal and (Shift_Left (Asn1UInt (1), nSizeInBits) - 1);
+      else
+         IntVal := encVal;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_ConstSize_FullRange;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRange
+     (bs : in out Bitstream; IntVal : out Asn1UInt)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_FullRange (bs, IntVal, 16);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRange;
+
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_8
      (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
       maxVal :        Asn1UInt; Result : out ASN1_RESULT)
