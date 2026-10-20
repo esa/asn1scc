@@ -15,8 +15,8 @@ type IUper_rust() =
             uper_rust.EmitTypeAssignment_def_err_code  sErrCode nErrValue sFieldPath 
         override this.EmitTypeAssignment_def  (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) (bEmptyEncodingSpace:bool) (nMaxBytesInPER:BigInteger) (nMaxBitsInPER:BigInteger) (soSparkAnnotations:string option) (bReqBytesForEncodingIsZero:bool) (codec:Codec) =
             uper_rust.EmitTypeAssignment_def  sVarName sStar sFuncName sTypeDefName arrsErrcodes bEmptyEncodingSpace nMaxBytesInPER nMaxBitsInPER soSparkAnnotations bReqBytesForEncodingIsZero codec
-        override this.EmitTypeAssignment  (sVarName:string) (sStar:string) (sFuncName:string) (soIValidFuncName:string option) (sTypeDefName:string) (arrsLocalVariables:seq<string>) (sContent:string) (soSparkAnnotations:string option) (sInitialExp:string) (bReqBytesForEncodingIsZero:bool) (bBsIsUnreferenced:bool) (bVarNameIsUnreferenced:bool) (soInitFuncName:string option) (arrsAnnots:seq<string>) (arrsPrecond:seq<string>) (arrsPostcond:seq<string>) (codec:Codec) =
-            uper_rust.EmitTypeAssignment  sVarName sStar sFuncName soIValidFuncName sTypeDefName arrsLocalVariables sContent soSparkAnnotations sInitialExp bReqBytesForEncodingIsZero bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName arrsAnnots arrsPrecond arrsPostcond codec
+        override this.EmitTypeAssignment  (sVarName:string) (sStar:string) (sFuncName:string) (soIValidFuncName:string option) (sTypeDefName:string) (arrsLocalVariables:seq<string>) (sContent:string) (soSparkAnnotations:string option) (sInitialExp:string) (bReqBytesForEncodingIsZero:bool) (bBsIsUnreferenced:bool) (bVarNameIsUnreferenced:bool) (soInitFuncName:string option) (arrsAnnots:seq<string>) (arrsPrecond:seq<string>) (arrsPostcond:seq<string>) (bAlwaysSucceeds:bool) (codec:Codec) =
+            uper_rust.EmitTypeAssignment  sVarName sStar sFuncName soIValidFuncName sTypeDefName arrsLocalVariables sContent soSparkAnnotations sInitialExp bReqBytesForEncodingIsZero bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName arrsAnnots arrsPrecond arrsPostcond bAlwaysSucceeds codec
         override this.InternalItem_oct_str  (p:string) (sAcc:string) (i:string) (sErrCode:string) (codec:Codec) =
             uper_rust.InternalItem_oct_str  p sAcc i sErrCode codec
         override this.InternalItem_string_with_alpha  (p:string) (sErrCode:string) (td:FE_StringTypeDefinition) (i:string) (nLastItemIndex:BigInteger) (arrnAlphabetAsciiCodes:seq<BigInteger>) (nAlphabetLength:BigInteger) (nCharIndexSize:BigInteger) (codec:Codec) =
@@ -121,3 +121,15 @@ type IUper_rust() =
             uper_rust.update_array_item  p sI sExpr 
         override this.InternalItem_bit_str  (p:string) (i:string) (sErrCode:string) (codec:Codec) =
             uper_rust.InternalItem_bit_str  p i sErrCode codec
+        override this.IntFullyConstraintPos_fullRange  (p:string) (nMin:BigInteger) (nBits:BigInteger) (sSsuffix:string) =
+            uper_rust.IntFullyConstraintPos_fullRange  p nMin nBits sSsuffix 
+        override this.IntFullyConstraint_fullRange  (p:string) (nMin:BigInteger) (nBits:BigInteger) (sSsuffix:string) =
+            uper_rust.IntFullyConstraint_fullRange  p nMin nBits sSsuffix 
+        override this.decode_result_init  () =
+            uper_rust.decode_result_init  () 
+        override this.sparkAnnotationsAlwaysSucceeds  (sTypeDefName:string) =
+            uper_rust.sparkAnnotationsAlwaysSucceeds  sTypeDefName 
+        override this.BooleanNoErrCode  (p:string) =
+            uper_rust.BooleanNoErrCode  p 
+        override this.sequence_presence_bit_noErrCode  (p:string) (sChName:string) =
+            uper_rust.sequence_presence_bit_noErrCode  p sChName 

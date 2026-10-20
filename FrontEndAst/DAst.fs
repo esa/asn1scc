@@ -491,6 +491,23 @@ type NestingScope = {
         parents = parents; parentSavePositionVar = None; deducedTrailingBits = 0I; isStandaloneRender = false}
     member this.isInit: bool = this.nestingLevel = 0I && this.nestingIx = 0I
 
+/// Whether the reads of a decoder can fail in the target language. C (and Scala, Python, Rust) decode
+/// from a buffer of any length, so every read can fail (truncated stream). The Ada decoders require
+/// the full-size stream in their precondition, so only value checks can fail.
+type ReadFailureModel =
+    | ReadsCanFail
+    | ReadsCannotFail
+
+/// What a decode part does with `result` when it cannot fail (coverage step 10b).
+type ResultWrite =
+    | WritesResult          // an RTL call or a generated decoder that sets result (Post: result.Success)
+    | NoResultWrite         // only _FullRange calls, which do not touch result
+
+/// Whether a decode part can fail; decides the join with the next part (DAstUtilFunctions.nestItemsByOutcome).
+type DecodeOutcome =
+    | MayFail
+    | AlwaysSucceeds of ResultWrite
+
 type UPERFuncBodyResult = {
     funcBody            : string
     errCodes            : ErrorCode list

@@ -494,6 +494,8 @@ type LangGeneric_a() =
             match isLiveDeduced with
             | true  -> NoDecodeSweep
             | false -> CorruptionSweep
+        // The precondition of every Ada decoder guarantees a full-size stream: reads cannot fail.
+        override _.decodeReadFailureModel = ReadsCannotFail
 
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name

@@ -22,6 +22,17 @@ JoinItems2(sPart, sNestedPart) ::= <<
 <sNestedPart>
 >>
 
+/* Coverage step 10b, Ada only (ReadsCanFail: never used here); kept identical to JoinItems2. */
+JoinItemsAssert(sPart, sNestedPart) ::= <<
+<sPart>
+<sNestedPart>
+>>
+
+JoinItemsNoCheck(sPart, sNestedPart) ::= <<
+<sPart>
+<sNestedPart>
+>>
+
 always_true_statement ()::= <<
 ret = Right(0)
 >>

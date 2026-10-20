@@ -30,7 +30,7 @@ pub const <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: usize = <nMaxBytesInPER>;
 pub const <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: usize = <nMaxBitsInPER>;
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds) ::= <<
 pub fn <sFuncName>(<sVarName>: &<sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32, bCheckConstraints: bool) -> bool {
     let mut ret: bool = true;
 <if(bVarNameIsUnreferenced)>
@@ -66,7 +66,7 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds) ::= <<
 pub fn <sFuncName>(<sVarName>: &mut <sTypeDefName><sStar>, pBitStrm: &mut BitStream, pErrCode: &mut i32) -> bool {
     let mut ret: bool = true;
     *pErrCode = 0;
@@ -1063,3 +1063,17 @@ InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
 
 InternalItem_bit_str_decode(p, i, sErrCode) ::=<<
 >>
+
+
+/* Coverage step 10b, Ada only (never used here). */
+IntFullyConstraintPos_fullRange(p, nMin, nBits, sSsuffix) ::= ""
+
+IntFullyConstraint_fullRange(p, nMin, nBits, sSsuffix) ::= ""
+
+decode_result_init() ::= ""
+
+sparkAnnotationsAlwaysSucceeds(sTypeDefName) ::= ""
+
+BooleanNoErrCode(p) ::= ""
+
+sequence_presence_bit_noErrCode(p, sChName) ::= ""

@@ -788,6 +788,12 @@ type ILangGeneric () =
     abstract member atcDecodeSweep : isLiveDeduced:bool -> AtcDecodeSweep
     default _.atcDecodeSweep _ = NoDecodeSweep
 
+    /// Whether every read of a decoder can fail (see ReadFailureModel). With ReadsCanFail every decode part
+    /// is MayFail and the decoders keep a check after each part; Ada (ReadsCannotFail) drops the checks
+    /// after parts that cannot fail (coverage step 10b, DecodeOutcome.fs).
+    abstract member decodeReadFailureModel : ReadFailureModel
+    default _.decodeReadFailureModel = ReadsCanFail
+
     /// True when an OPTIONAL child whose encoder produces no statements must still be
     /// emitted through sequence_optional_child (Rust: the presence flag is assigned there).
     abstract member emitOptionalChildWithEmptyBody : bool

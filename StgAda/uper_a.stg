@@ -67,7 +67,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
@@ -104,14 +104,19 @@ begin
     Stream.Current_Bit_Pos :=0;
     <sFuncName>_aux(<sVarName>, Stream, result);
     <if(soIValidFuncName)>
+    <if(bAlwaysSucceeds)>
+    pragma Assert (result.Success);
+    result := <soIValidFuncName>(<sVarName>);
+    <else>
     if result.success then
         result := <soIValidFuncName>(<sVarName>);
     end if;
+    <endif>
 
     <endif>
 end <sFuncName>;
 >>
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bAlwaysSucceeds) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
@@ -262,6 +267,11 @@ result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_boolean(bs, <p>, result.Success);
 >>
 
+/* Coverage step 10b: BOOLEAN in a uPER decoder, a part that cannot fail: no error code (DecodeOutcome.fs). */
+BooleanNoErrCode(p) ::= <<
+adaasn1rtl.encoding.uper.UPER_Dec_boolean(bs, <p>, result.Success);
+>>
+
 Real_encode(p, sSuffix, sErrCode, sType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Real(bs, <p>);"
 Real_decode(p, sSuffix, sErrCode, sType) ::= <<
 adaasn1rtl.encoding.uper.UPER_Dec_Real<sSuffix>(bs, <p>, result);
@@ -348,6 +358,11 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 sequence_presence_bit_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "<rtlModuleName()>.encoding.BitStream_AppendBit(bs,<p>.Exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
+<rtlModuleName()>.encoding.BitStream_ReadBit(bs,<p>.Exist.<sChName>, result.Success);
+>>
+
+/* Coverage step 10b: presence bit in a uPER decoder, a part that cannot fail: no error code (DecodeOutcome.fs). */
+sequence_presence_bit_noErrCode(p, sChName) ::= <<
 <rtlModuleName()>.encoding.BitStream_ReadBit(bs,<p>.Exist.<sChName>, result.Success);
 >>
 
@@ -1031,4 +1046,30 @@ if result.Success then
 	<p><sAcc>Length := nStringLength;
 	<bitString_FixSize_decode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "Length"], sErrCode=sErrCode)>
 end if;
+>>
+
+
+/* Coverage step 10b: decode of a field whose every bit pattern is a valid value (RTL _FullRange twins,
+   no Result: the decode cannot fail). */
+IntFullyConstraintPos_fullRange(p, nMin, nBits, sSsuffix) ::= <<
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber_FullRange<sSsuffix>(bs, <p>, <nMin>, <nBits>);
+>>
+
+IntFullyConstraint_fullRange(p, nMin, nBits, sSsuffix) ::= <<
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber_FullRange<sSsuffix>(bs, <p>, <nMin>, <nBits>);
+>>
+
+/* Coverage step 10b: start of a decoder none of whose mandatory parts assigns result.ErrorCode. */
+decode_result_init() ::= <<
+result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+>>
+
+/* Coverage step 10b: contract of a decoder that cannot fail. */
+sparkAnnotationsAlwaysSucceeds(sTypeDefName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
+       Post =>
+         result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
 >>

@@ -1032,6 +1032,26 @@ let nestItems joinItems2 children =
         |x::xs  -> Some (printChild x (printChildren xs))
     printChildren children
 
+/// nestItems for decode parts whose outcome is known (coverage step 10b, Ada): after a part that may fail
+/// the rest is nested under the success check (JoinItems2); after a part that cannot fail and sets result,
+/// the check becomes an assertion (JoinItemsAssert); after a part that does not touch result
+/// (_FullRange calls), the rest simply follows (JoinItemsNoCheck).
+let nestItemsByOutcome (lm:LanguageMacros) (children: (string * DecodeOutcome) list) =
+    let printChild (content:string) (outcome:DecodeOutcome) (soNestedContent:string option) =
+        match soNestedContent with
+        | None                -> content
+        | Some sNestedContent when String.IsNullOrWhiteSpace sNestedContent -> content
+        | Some sNestedContent ->
+            match outcome with
+            | MayFail                       -> lm.isvalid.JoinItems2 content sNestedContent
+            | AlwaysSucceeds WritesResult   -> lm.isvalid.JoinItemsAssert content sNestedContent
+            | AlwaysSucceeds NoResultWrite  -> lm.isvalid.JoinItemsNoCheck content sNestedContent
+    let rec printChildren children : Option<string> =
+        match children with
+        |[]           -> None
+        |(x, o)::xs   -> Some (printChild x o (printChildren xs))
+    printChildren children
+
 
 let nestItems_ret (lm:LanguageMacros) children =
     nestItems  lm.isvalid.JoinTwoIfFirstOk children

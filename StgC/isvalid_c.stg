@@ -26,6 +26,21 @@ if (ret) {
 }   /*COVERAGE_IGNORE*/
 >>
 
+/* Coverage step 10b, Ada only (ReadsCanFail: never used here); kept identical to JoinItems2. */
+JoinItemsAssert(sPart, sNestedPart) ::= <<
+<sPart>
+if (ret) {
+    <sNestedPart>
+}   /*COVERAGE_IGNORE*/
+>>
+
+JoinItemsNoCheck(sPart, sNestedPart) ::= <<
+<sPart>
+if (ret) {
+    <sNestedPart>
+}   /*COVERAGE_IGNORE*/
+>>
+
 
 
 

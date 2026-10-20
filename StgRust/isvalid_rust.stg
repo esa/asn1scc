@@ -27,6 +27,21 @@ if ret {
 }
 >>
 
+/* Coverage step 10b, Ada only (ReadsCanFail: never used here); kept identical to JoinItems2. */
+JoinItemsAssert(sPart, sNestedPart) ::= <<
+<sPart>
+if ret {
+    <sNestedPart>
+}
+>>
+
+JoinItemsNoCheck(sPart, sNestedPart) ::= <<
+<sPart>
+if ret {
+    <sNestedPart>
+}
+>>
+
 
 
 

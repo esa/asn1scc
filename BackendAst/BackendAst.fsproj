@@ -17,6 +17,7 @@
     <Compile Include="DastValidate2.fs" />
     <Compile Include="EncodeDecodeTestCase.fs" />
     <Compile Include="DAstInitialize.fs" />
+    <Compile Include="DecodeOutcome.fs" />
     <Compile Include="DAstUPer.fs" />
     <Compile Include="DAstXer.fs" />
     <Compile Include="Acn/AcnHelpers.fs" />

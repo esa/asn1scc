@@ -310,6 +310,19 @@ if result.Success then
 end if;
 >>
 
+/* Coverage step 10b (DAstUtilFunctions.nestItemsByOutcome): the part before cannot fail and sets result. */
+JoinItemsAssert(sPart, sNestedPart) ::= <<
+<sPart>
+pragma Assert (result.Success);
+<sNestedPart>
+>>
+
+/* Coverage step 10b: the part before cannot fail and does not touch result (_FullRange calls). */
+JoinItemsNoCheck(sPart, sNestedPart) ::= <<
+<sPart>
+<sNestedPart>
+>>
+
 
 
 
