@@ -446,7 +446,8 @@ is
          pragma Loop_Invariant
            (bs.Current_Bit_Pos =
             bs.Current_Bit_Pos'Loop_Entry +
-              (i - bitArrayData'First));
+              (i - bitArrayData'First)
+            and success);
          BitStream_ReadBit (bs, bitArrayData (i), success);
          if not success then
             return;

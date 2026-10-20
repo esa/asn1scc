@@ -205,7 +205,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - bits_to_read
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_read,
-     Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
+     Post => success
+     and then bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
 
    procedure BitStream_SkipBits
      (bs : in out Bitstream; bits_to_skip : Natural) with

@@ -750,7 +750,8 @@ is
          for i in data'First .. (data'First + data_length - 1) loop
             pragma Loop_Invariant
               (bs.Current_Bit_Pos =
-                 bs.Current_Bit_Pos'Loop_Entry + (i - data'First) * 8);
+                 bs.Current_Bit_Pos'Loop_Entry + (i - data'First) * 8
+               and success);
             BitStream_DecodeByte (bs, data (i), success);
             exit when not success;
          end loop;

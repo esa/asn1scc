@@ -358,7 +358,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos < Natural'Last - 8 * data_length
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * data_length,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8 * data_length;
+      Post => success
+      and then bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8 * data_length;
 
    procedure BitStream_EncodeOctetString
      (bs    : in out Bitstream; data : OctetBuffer; data_length : Integer;
