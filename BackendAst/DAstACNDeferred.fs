@@ -1116,16 +1116,25 @@ let private emitSpecializedFunctionDecl
         | _ -> true
     let bVarNameIsUnreferenced = finalBody.bValIsUnReferenced || not hasAsn1Children
 
+    // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
+    let specBodyContent =
+        match ctx.codec, ctx.lm.lg.decodeReadFailureModel with
+        | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit ctx.r ctx.lm ctx.o.resolvedType ->
+            ctx.lm.uper.decode_result_init () + "\n" + finalBody.funcBody
+        | Decode, ReadsCannotFail
+        | Decode, ReadsCanFail
+        | Encode, _ -> finalBody.funcBody
     let specFuncBody =
         ctx.lm.acn.EmitTypeAssignment_primitive
             varName sStar specFuncName isValidFuncName typeDefinitionName
-            lvars finalBody.funcBody
+            lvars specBodyContent
             None null  // soSparkAnnotations, no fallback initializer for finalBody
             deferredFormalParams deferredParamNames
             (ctx.t.acnMaxSizeInBits = 0I) finalBody.bBsIsUnReferenced bVarNameIsUnreferenced
             false
             soInitFuncName [] [] []  // funcDefAnnots, precondAnnots, postcondAnnots
             true  // bDeferredSpecialization: callers use the specialized body directly
+            false // bAlwaysSucceeds: a type with deferred determinants is MayFail (DecodeOutcome.acn)
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 

@@ -42,7 +42,7 @@ begin
 end <sFuncName>; <if(bDeferredSpecialization)>-- COVERAGE_IGNORE<else><if(arrsAcnPrms)>-- COVERAGE_IGNORE<endif><endif>
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization, bAlwaysSucceeds) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 is
 <if(bBsIsUnreferenced)>
@@ -86,15 +86,20 @@ begin
     Stream.Current_Bit_Pos :=0; -- COVERAGE_IGNORE
     <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=","><endif>); -- COVERAGE_IGNORE
     <if(soIValidFuncName)>
+    <if(bAlwaysSucceeds)>
+    pragma Assert (result.Success);
+    result := <soIValidFuncName>(<sVarName>); -- COVERAGE_IGNORE
+    <else>
     if result.success then -- COVERAGE_IGNORE
         result := <soIValidFuncName>(<sVarName>); -- COVERAGE_IGNORE
     end if;
+    <endif>
 
     <endif>
 end <sFuncName>; -- COVERAGE_IGNORE
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, bHasAcnChildrenToReturn, soInitFuncName, arrsAnnots, arrsPrecond, arrsPostcond, bDeferredSpecialization, bAlwaysSucceeds) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
@@ -2468,4 +2473,37 @@ begin
         end if;
     end if;
 end;
+>>
+
+
+/* Coverage step 10b: ACN INTEGER of an ASN.1 type whose field accepts every bit pattern (RTL _FullRange twins,
+   no Result: the decode cannot fail). */
+AcnIntFullRange(p, sKind, sWidth, sSsuffix, noBits) ::= <<
+adaasn1rtl.encoding.acn.Acn_Dec_Int_<sKind>_ConstSize<sWidth>_FullRange<sSsuffix>(bs, <p><if(noBits)>, <noBits><endif>);
+>>
+
+/* Coverage step 10b: presence bit in an ACN decoder, a part that cannot fail: no error code (DecodeOutcome.fs). */
+sequence_presence_optChild_noErrCode(p, sChName, soExistVar) ::= <<
+<rtlModuleName()>.encoding.BitStream_ReadBit(bs, <soExistVar>, result.Success);
+<p>.Exist.<sChName> := <soExistVar>;
+>>
+
+/* Coverage step 10b: contract of an ACN decoder that cannot fail. */
+sparkAnnotationsAlwaysSucceeds(sTypeDefName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
+       Post =>
+         result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+>>
+
+
+/* Coverage step 10b: BOOLEAN with a true or false pattern, a part that cannot fail (the call sets result): no error code. */
+BooleanPatternNoErrCode(p, bTruePattern, arrsBits) ::= <<
+<if(bTruePattern)>
+adaasn1rtl.encoding.acn.Acn_Dec_Boolean_true_pattern(bs, <p>, BitArray'(<arrsBits; separator=",">), result);
+<else>
+adaasn1rtl.encoding.acn.Acn_Dec_Boolean_false_pattern(bs, <p>, BitArray'(<arrsBits; separator=",">), result);
+<endif>
 >>

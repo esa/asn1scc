@@ -88,12 +88,25 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
     let EmitEncodingSizeConstants        =  lm.acn.EmitEncodingSizeConstants
 
     let typeDefinitionName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
-    let soSparkAnnotations =
+    // coverage step 10b: a decoder that cannot fail states result.Success in its contract and its wrapper does not
+    // test it (DecodeOutcome.acn)
+    let decodeOutcome =
         match codec with
-        | Decode when hasBoundedFixedDeducedDecoder t ->
+        | Decode -> DecodeOutcome.acn r lm t
+        | Encode -> MayFail
+    let bAlwaysSucceeds =
+        match decodeOutcome with
+        | AlwaysSucceeds _ -> true
+        | MayFail          -> false
+    let soSparkAnnotations =
+        match codec, decodeOutcome with
+        | Decode, _ when hasBoundedFixedDeducedDecoder t ->
             Some (lm.acn.sparkAnnotations_deducedFixed typeDefinitionName)
-        | Decode
-        | Encode -> soSparkAnnotations
+        | Decode, AlwaysSucceeds _ when soSparkAnnotations.IsSome ->
+            Some (lm.acn.sparkAnnotationsAlwaysSucceeds typeDefinitionName)
+        | Decode, AlwaysSucceeds _
+        | Decode, MayFail
+        | Encode, _ -> soSparkAnnotations
     let sEncodingSizeConstant = EmitEncodingSizeConstants typeDefinitionName nMaxBytesInACN t.acnMaxSizeInBits
 
     let funcBodyAsSeqComp (st: State)
@@ -208,7 +221,16 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                             match bodyResult.icdResult with
                             | Some _ -> bodyResult.icdResult
                             | None   -> AcnAlignment.prependAlignmentPaddingRow t.acnAlignment (zeroBitIcdResult ())
-                        bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
+                        // coverage step 10b: result is defined first when an exit or the end could read an unset
+                        // error code (DecodeOutcome.acnNeedsResultInit)
+                        let body =
+                            match codec, lm.lg.decodeReadFailureModel with
+                            | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit r lm t ->
+                                lm.uper.decode_result_init () + "\n" + bodyResult.funcBody
+                            | Decode, ReadsCannotFail
+                            | Decode, ReadsCanFail
+                            | Encode, _                 -> bodyResult.funcBody
+                        body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
 
                 let handleAcnParameter (p:AcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
@@ -260,7 +282,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         prms @ extraPrms, prmNames @ extraNames
                     else
                         prms, prmNames
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soInitFuncName funcDefAnnots precondAnnots postcondAnnots false codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds codec)
 
                 let errCodStr =
                     errCodes |>

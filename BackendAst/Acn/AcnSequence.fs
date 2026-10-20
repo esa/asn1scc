@@ -17,6 +17,12 @@ open AcnExternalField
 open AcnPrimitives
 
 
+/// How the parts of a decoder are joined (coverage step 10b): by their outcome (Ada, DecodeOutcome.fs), or with a
+/// success check after every part (the other languages; an Ada SEQUENCE with a pre-decoding function).
+type private JoinMode =
+    | OutcomeJoins
+    | CheckEveryPart
+
 type private SequenceChildStmt = {
     body: string option
     lvs: LocalVariable list
@@ -386,12 +392,19 @@ let private printPresenceBit
     (p:CodegenScope)
     (errCode:ErrorCode)
     (codec:CommonTypes.Codec)
+    (joinMode:JoinMode)
     (child:Asn1Child)
     (existVar:string option) : string option =
     match child.Optionality with
     | Some (Optional opt) ->
-        match opt.acnPresentWhen with
-        | None ->
+        match opt.acnPresentWhen, joinMode with
+        | None, OutcomeJoins ->
+            // coverage step 10b: a presence bit cannot fail and leaves the error code alone (DecodeOutcome.fs)
+            Some (lm.acn.sequence_presence_optChild_noErrCode
+                    (p.accessPath.joined lm.lg)
+                    (lm.lg.getAsn1ChildBackendName child)
+                    existVar)
+        | None, CheckEveryPart ->
             assert (codec = Encode || existVar.IsSome)
             Some (lm.acn.sequence_presence_optChild
                     (p.accessPath.joined lm.lg)
@@ -400,7 +413,7 @@ let private printPresenceBit
                     existVar
                     errCode.errCodeName
                     codec)
-        | Some _ -> None
+        | Some _, _ -> None
     | _ -> None
 
 // `fallbackEpilogue` (deferred-patching only): an extra block of C/Ada code
@@ -603,10 +616,16 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         let ns = scs.us
         let childrenStatements0 = childrenStatements00 |> List.collect (fun xs -> xs.stmts)
 
+        let joinMode =
+            match codec, lm.lg.decodeReadFailureModel, o.acnProperties.preDecodingFunction with
+            | Decode, ReadsCannotFail, None     -> OutcomeJoins
+            | Decode, ReadsCannotFail, Some _
+            | Decode, ReadsCanFail, _
+            | Encode, _, _                      -> CheckEveryPart
         let presenceBits = ((List.zip children childrenStatements00)
             |> List.choose (fun (child, res) ->
                 match child with
-                | Asn1Child asn1 -> printPresenceBit lm p errCode codec asn1 res.existVar
+                | Asn1Child asn1 -> printPresenceBit lm p errCode codec joinMode asn1 res.existVar
                 | AcnChild _ -> None))
         let seqProofGen =
             let children = childrenStatements00 |> List.map (fun xs -> xs.props)
@@ -649,7 +668,26 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             match codec, fallbackEpilogue with
             | Encode, Some makeCode -> [makeCode p]
             | _ -> []
-        let seqContent =  (saveInitialBitStrmStatements@childrenStatements@fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
+        let seqContent =
+            match joinMode with
+            | OutcomeJoins ->
+                // coverage step 10b: no check after a part that cannot fail (DecodeOutcome.fs); presence bits first,
+                // then one part per child (its own statements keep their checks)
+                let partOutcomes =
+                    (presenceBits |> List.map (fun _ -> AlwaysSucceeds WritesResult)) @
+                    (children |> List.map (fun c ->
+                        match c with
+                        | AcnChild _     -> MayFail
+                        | Asn1Child asn1 ->
+                            match DecodeOutcome.acnChildPart r lm asn1.Optionality asn1.Type.toAsn1AcnAst with
+                            | Some (outcome, _) -> outcome
+                            | None              -> MayFail))
+                let parts = List.zip allStmts partOutcomes |> List.choose (fun (stmt, o) -> stmt |> Option.map (fun s -> s, o))
+                let before = saveInitialBitStrmStatements |> List.map (fun s -> s, MayFail)
+                let after = (fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> List.map (fun s -> s, MayFail)
+                (before @ parts @ after) |> nestItemsByOutcome lm
+            | CheckEveryPart ->
+                (saveInitialBitStrmStatements@childrenStatements@fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
 
         let icdFnc _ _ _  =
             let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip

@@ -206,7 +206,7 @@ let castPp (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) codec pp (intClass:Asn1Acn
     | CommonTypes.Decode -> pp
 
 
-let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange:BigIntegerUperRange) errLoc (intClass:Asn1AcnAst.IntegerClass) (cons: IntegerTypeConstraint list) (allCons: IntegerTypeConstraint list) (typeId: ReferenceToType) (typeDefinition:TypeDefinitionOrReference) (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
+let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange:BigIntegerUperRange) errLoc (intClass:Asn1AcnAst.IntegerClass) (cons: IntegerTypeConstraint list) (allCons: IntegerTypeConstraint list) (typeId: ReferenceToType) (typeDefinition:TypeDefinitionOrReference) (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fullRangeUse: DecodeOutcome.FullRangeUse) =
     let pp, resultExpr = adaptArgument lm codec p
     let IntNoneRequired         = lm.uper.IntNoneRequired
     let IntFullyConstraintPos   = lm.uper.IntFullyConstraintPos
@@ -230,12 +230,12 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             lm.lg.generateIntFullyConstraintRangeAssert (ToC (r.args.TypePrefix + tasInfo.tasName)) p codec
         | None -> None
     // coverage step 10b: a field whose every bit pattern is a valid value is decoded with the RTL _FullRange
-    // twin (no Result); not yet inside ACN functions (fromACN), whose SEQUENCE still checks after every part
+    // twin (no Result), except for ACN inserted fields (DecodeOutcome.FullRangeUse)
     let fullRange =
-        match codec, fromACN with
-        | Decode, false -> DecodeOutcome.uperIntegerFullRange r lm uperRange intClass cons
-        | Decode, true
-        | Encode, _     -> None
+        match codec, fullRangeUse with
+        | Decode, DecodeOutcome.UseFullRange    -> DecodeOutcome.uperIntegerFullRange r lm uperRange intClass cons
+        | Decode, DecodeOutcome.KeepCheckedCall
+        | Encode, _                             -> None
     let IntBod (uperRange: uperRange<BigInteger>) (extCon: bool) : string * bool * bool * Asn1IntegerEncodingType option =
         match uperRange, fullRange with
         | Concrete (min, max), _ when min=max -> IntNoneRequired (lm.lg.getValue p.accessPath) (lm.lg.intValueToString min intClass) errCode.errCodeName sType codec, codec=Decode, true, None
@@ -275,7 +275,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
-        let res = getIntfuncBodyByCons r lm codec o.uperRange t.Location o.intClass o.cons o.AllCons t.id typeDefinition errCode nestingScope p fromACN
+        let res = getIntfuncBodyByCons r lm codec o.uperRange t.Location o.intClass o.cons o.AllCons t.id typeDefinition errCode nestingScope p DecodeOutcome.UseFullRange
         res |> Option.map (fun res ->
             let aux = lm.lg.generateIntegerAuxiliaries r UPER t o nestingScope p.accessPath codec
             {res with auxiliaries = res.auxiliaries @ aux}
@@ -292,13 +292,11 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
         let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
         let sType = lm.lg.getLongTypedefNameBasedOnModule tk t.moduleName
         let funcBodyContent =
-            // coverage step 10b: in a uPER decoder a BOOLEAN cannot fail and leaves the error code alone
-            // (DecodeOutcome.uperErrorCodeSummary); ACN decoders keep it (their joins still check every part)
-            match codec, lm.lg.decodeReadFailureModel, fromACN with
-            | Decode, ReadsCannotFail, false -> lm.uper.BooleanNoErrCode pp
-            | Decode, ReadsCannotFail, true
-            | Decode, ReadsCanFail, _
-            | Encode, _, _                   -> Boolean pp errCode.errCodeName sType codec
+            // coverage step 10b: a BOOLEAN cannot fail and leaves the error code alone (DecodeOutcome.fs)
+            match codec, lm.lg.decodeReadFailureModel with
+            | Decode, ReadsCannotFail -> lm.uper.BooleanNoErrCode pp
+            | Decode, ReadsCanFail
+            | Encode, _               -> Boolean pp errCode.errCodeName sType codec
         let aux = lm.lg.generateBooleanAuxiliaries r UPER t o nestingScope p.accessPath codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = aux}
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
@@ -613,7 +611,12 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
             | false, Decode -> [lm.lg.uper.count_var]
 
         match minSize with
-        | _ when maxSize < 65536I && isFixedSize -> fixedSize td pp access minSize errCode.errCodeName codec, (if false then lv::nStringLength else nStringLength)
+        | _ when maxSize < 65536I && isFixedSize ->
+            // coverage step 10b: the RTL call cannot fail, no failure branch (DecodeOutcome.fixedStringCannotFail)
+            match codec, DecodeOutcome.fixedStringCannotFail lm DecodeOutcome.FixedOctets true with
+            | Decode, true -> lm.uper.octet_FixedSize_noCheck pp access minSize, nStringLength
+            | Decode, false
+            | Encode, _    -> fixedSize td pp access minSize errCode.errCodeName codec, (if false then lv::nStringLength else nStringLength)
         | _ when maxSize < 65536I && (not isFixedSize) -> varSize td pp access minSize maxSize nSizeInBits  errCode.errCodeName codec, (if false  then lv::nStringLength else nStringLength)
         | _ ->
             let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem nIntItemMaxSize false false
@@ -661,7 +664,12 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)
             | false, Decode -> [lm.lg.uper.count_var]
 
         match minSize with
-        | _ when maxSize < 65536I && isFixedSize -> bitString_FixSize td pp access minSize errCode.errCodeName codec, nStringLength
+        | _ when maxSize < 65536I && isFixedSize ->
+            // coverage step 10b: the RTL call cannot fail, no failure branch (DecodeOutcome.fixedStringCannotFail)
+            match codec, DecodeOutcome.fixedStringCannotFail lm DecodeOutcome.FixedBits true with
+            | Decode, true -> lm.uper.bitString_FixSize_noCheck pp access minSize, nStringLength
+            | Decode, false
+            | Encode, _    -> bitString_FixSize td pp access minSize errCode.errCodeName codec, nStringLength
         | _ when maxSize < 65536I && (not isFixedSize) -> bitString_VarSize td pp access minSize maxSize errCode.errCodeName nSizeInBits codec, nStringLength
         | _ ->
             let funcBodyContent, fragmentationLvars = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem 1I true false
@@ -854,14 +862,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
             let seq_presence_bit_fix (value: string) =
                 sequence_presence_bit_fix pp access childName existVar errCode.errCodeName value codec
-            match child.Optionality, codec, lm.lg.decodeReadFailureModel, fromACN with
-            | None, _, _, _ -> None
-            // coverage step 10b: in a uPER decoder a presence bit cannot fail and leaves the error code alone
-            // (DecodeOutcome.uperErrorCodeSummary); the fix bits decode like an optional one
-            | Some _, Decode, ReadsCannotFail, false -> Some (lm.uper.sequence_presence_bit_noErrCode pp childName)
-            | Some Asn1AcnAst.AlwaysAbsent, _, _, _ -> Some (seq_presence_bit_fix absent)
-            | Some Asn1AcnAst.AlwaysPresent, _, _, _ -> Some (seq_presence_bit_fix present)
-            | Some (Asn1AcnAst.Optional opt), _, _, _ -> Some (sequence_presence_bit pp access childName existVar errCode.errCodeName codec)
+            match child.Optionality, codec, lm.lg.decodeReadFailureModel with
+            | None, _, _ -> None
+            // coverage step 10b: a presence bit cannot fail and leaves the error code alone (DecodeOutcome.fs);
+            // the fix bits decode like an optional one
+            | Some _, Decode, ReadsCannotFail -> Some (lm.uper.sequence_presence_bit_noErrCode pp childName)
+            | Some Asn1AcnAst.AlwaysAbsent, _, _ -> Some (seq_presence_bit_fix absent)
+            | Some Asn1AcnAst.AlwaysPresent, _, _ -> Some (seq_presence_bit_fix present)
+            | Some (Asn1AcnAst.Optional opt), _, _ -> Some (sequence_presence_bit pp access childName existVar errCode.errCodeName codec)
 
         let handleChild (s: SequenceChildState) (child:Asn1Child): SequenceChildResult * SequenceChildState =
             let childName =  TL "handleChild_01" (fun () -> lm.lg.getAsn1ChildBackendName child)
@@ -989,18 +997,16 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
         let proof = lm.lg.generateSequenceProof r UPER t o nestingScope p.accessPath codec
         let aux = lm.lg.generateSequenceAuxiliaries r UPER t o nestingScope p.accessPath codec
         let seqContent  =
-            match codec, lm.lg.decodeReadFailureModel, fromACN with
-            | Decode, ReadsCannotFail, false ->
-                // coverage step 10b: no check after a part that cannot fail (DecodeOutcome.fs); not yet
-                // inside ACN functions, which still decode full-range integers with the checked call
+            match codec, lm.lg.decodeReadFailureModel with
+            | Decode, ReadsCannotFail ->
+                // coverage step 10b: no check after a part that cannot fail (DecodeOutcome.fs)
                 let partOutcomes =
                     (presenceBits |> List.map (fun _ -> AlwaysSucceeds WritesResult)) @
                     (nonAcnChildren |> List.map (fun c -> DecodeOutcome.uperChild r lm c.Type.toAsn1AcnAst))
                 let parts = List.zip allStmts partOutcomes |> List.choose (fun (stmt, o) -> stmt |> Option.map (fun s -> s, o))
                 (parts @ ((seqBuild@proof) |> List.map (fun s -> s, MayFail))) |> nestItemsByOutcome lm
-            | Decode, ReadsCannotFail, true
-            | Decode, ReadsCanFail, _
-            | Encode, _, _                   -> (childrenStatements@seqBuild@proof) |> nestChildItems lm codec
+            | Decode, ReadsCanFail
+            | Encode, _               -> (childrenStatements@seqBuild@proof) |> nestChildItems lm codec
         TL "SQ_UPER_8" (fun () ->
             match seqContent, codec with
             | None, CommonTypes.Decode ->

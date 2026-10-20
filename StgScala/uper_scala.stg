@@ -958,3 +958,7 @@ sparkAnnotationsAlwaysSucceeds(sTypeDefName) ::= ""
 BooleanNoErrCode(p) ::= ""
 
 sequence_presence_bit_noErrCode(p, sChName) ::= ""
+
+octet_FixedSize_noCheck(p, sAcc, nFixedSize) ::= ""
+
+bitString_FixSize_noCheck(p, sAcc, nFixedSize) ::= ""

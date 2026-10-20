@@ -33,7 +33,12 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
         let funcBodyContent =
             match o.acnEncodingClass with
             | SZ_EC_FIXED_SIZE ->
-                let fncBody = fixedSize sType pp access o.minSize.acn errCode.errCodeName codec
+                // coverage step 10b: the RTL call cannot fail, no failure branch (DecodeOutcome.fixedStringCannotFail)
+                let fncBody =
+                    match codec, DecodeOutcome.fixedStringCannotFail lm DecodeOutcome.FixedOctets true with
+                    | Decode, true -> lm.uper.octet_FixedSize_noCheck pp access o.minSize.acn
+                    | Decode, false
+                    | Encode, _    -> fixedSize sType pp access o.minSize.acn errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED lenSize ->
@@ -130,7 +135,12 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let fncBody = lm.acn.bit_string_null_terminated sType pp errCode.errCodeName access i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt bFixedSize codec
                 Some (fncBody, [errCode], [])
             | SZ_EC_FIXED_SIZE       ->
-                let fncBody = bitString_FixSize sType pp access o.minSize.acn errCode.errCodeName codec
+                // coverage step 10b: the RTL call cannot fail, no failure branch (DecodeOutcome.fixedStringCannotFail)
+                let fncBody =
+                    match codec, DecodeOutcome.fixedStringCannotFail lm DecodeOutcome.FixedBits true with
+                    | Decode, true -> lm.uper.bitString_FixSize_noCheck pp access o.minSize.acn
+                    | Decode, false
+                    | Encode, _    -> bitString_FixSize sType pp access o.minSize.acn errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_Deduced ->

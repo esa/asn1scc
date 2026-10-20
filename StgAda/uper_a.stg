@@ -1073,3 +1073,14 @@ with
        Post =>
          result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
 >>
+
+
+/* Coverage step 10b: fixed-size OCTET / BIT STRING (not fragmented, no alignment option): the RTL call cannot fail
+   (its Post states success), so no failure branch. */
+octet_FixedSize_noCheck(p, sAcc, nFixedSize) ::= <<
+adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
+>>
+
+bitString_FixSize_noCheck(p, sAcc, nFixedSize) ::= <<
+adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
+>>

@@ -451,3 +451,11 @@ let sequence_presence_bit_noErrCode (p:string) (sChName:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "uper_rust" "sequence_presence_bit_noErrCode" [("p",p :>Object);("sChName",(if sChName = null then null else ST.StrHelper sChName:>Object) )]
 
+let octet_FixedSize_noCheck (p:string) (sAcc:string) (nFixedSize:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "octet_FixedSize_noCheck" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nFixedSize",nFixedSize :>Object)]
+
+let bitString_FixSize_noCheck (p:string) (sAcc:string) (nFixedSize:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "bitString_FixSize_noCheck" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nFixedSize",nFixedSize :>Object)]
+

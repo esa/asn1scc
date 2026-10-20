@@ -133,3 +133,7 @@ type IUper_rust() =
             uper_rust.BooleanNoErrCode  p 
         override this.sequence_presence_bit_noErrCode  (p:string) (sChName:string) =
             uper_rust.sequence_presence_bit_noErrCode  p sChName 
+        override this.octet_FixedSize_noCheck  (p:string) (sAcc:string) (nFixedSize:BigInteger) =
+            uper_rust.octet_FixedSize_noCheck  p sAcc nFixedSize 
+        override this.bitString_FixSize_noCheck  (p:string) (sAcc:string) (nFixedSize:BigInteger) =
+            uper_rust.bitString_FixSize_noCheck  p sAcc nFixedSize 

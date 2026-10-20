@@ -23,6 +23,7 @@ let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
                                      (uperRange : BigIntegerUperRange)
                                      (intClass:Asn1AcnAst.IntegerClass)
                                      (acnEncodingClass: IntEncodingClass)
+                                     (fullRangeUse: DecodeOutcome.FullRangeUse)
                                      (uperfuncBody : ErrorCode -> NestingScope -> CodegenScope -> bool -> (UPERFuncBodyResult option))
                                      (sAsn1Constraints:string option)
                                      (acnAlignment: AcnGenericTypes.AcnAlignment option)
@@ -107,7 +108,17 @@ let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
         let bcdVarSize () =
             Some (BCD_VarSize_NullTerminated (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax sType codec, [errCode], false, false)
 
+        // coverage step 10b: an ASN.1 INTEGER whose field accepts every bit pattern is decoded with the RTL _FullRange
+        // twin (no Result; DecodeOutcome.acnIntegerFullRange); Integer_uPER decides in the uPER body
+        let fullRange =
+            match codec, fullRangeUse with
+            | Decode, DecodeOutcome.UseFullRange    -> DecodeOutcome.acnIntegerFullRange r lm uperRange intClass acnEncodingClass soMF.IsSome
+            | Decode, DecodeOutcome.KeepCheckedCall
+            | Encode, _                             -> None
         let funcBodyContent  =
+           match fullRange with
+           | Some fr -> Some (lm.acn.AcnIntFullRange pp fr.sKind fr.sWidth sSsuffix fr.noBits, [errCode], false, false)
+           | None ->
            match acnEncodingClass with
             | Asn1AcnAst.Integer_uPER                                  -> uperfuncBody errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.bValIsUnReferenced, x.bBsIsUnReferenced)
             | Asn1AcnAst.PositiveInteger_ConstSize_8                   -> unsignedFixedWidth PositiveInteger_ConstSize_8                  8
@@ -163,7 +174,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
 
     let uperFuncBody (errCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let acnPrimitiveTypeDef = ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = "int"; definedInRtl = false}
-        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId acnPrimitiveTypeDef errCode nestingScope p true
+        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId acnPrimitiveTypeDef errCode nestingScope p DecodeOutcome.KeepCheckedCall
     let soMapFunMod, soMapFunc  =
         match t.acnProperties.mappingFunction with
         | Some (MappingFunction (soMapFunMod, mapFncName))    ->
@@ -176,7 +187,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
     let sAsn1Constraints = constraintsToIcdStr (DAstAsn1.createAcnInteger (t.cons@t.withcons))
     let unitsOfMeasure = None
 
-    let funcBody = createAcnIntegerFunctionInternal r lm codec t.uperRange t.intClass t.acnEncodingClass uperFuncBody sAsn1Constraints t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits unitsOfMeasure typeName (soMapFunc, soMapFunMod) sType
+    let funcBody = createAcnIntegerFunctionInternal r lm codec t.uperRange t.intClass t.acnEncodingClass DecodeOutcome.KeepCheckedCall uperFuncBody sAsn1Constraints t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits unitsOfMeasure typeName (soMapFunc, soMapFunMod) sType
     // ACN-inserted children declared via a named TAS (e.g. "crc MyUInt8 []")
     // record the referenced TAS in inheritInfo - keep that name on the ICD row
     // ("INTEGER (MyUInt8)", roadmap A4).  ACN children bypass
@@ -204,7 +215,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
             | None  -> getMappingFunctionModule r lm soMapFunc, soMapFunc
             | Some soMapFunMod   -> Some soMapFunMod.Value, soMapFunc
         | None -> None, None
-    let funcBodyOrig = createAcnIntegerFunctionInternal r lm codec o.uperRange o.intClass o.acnEncodingClass uperFunc.funcBody_e  sAsn1Constraints t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits t.unitsOfMeasure typeName (soMapFunc, soMapFunMod) typeName
+    let funcBodyOrig = createAcnIntegerFunctionInternal r lm codec o.uperRange o.intClass o.acnEncodingClass DecodeOutcome.UseFullRange uperFunc.funcBody_e  sAsn1Constraints t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits t.unitsOfMeasure typeName (soMapFunc, soMapFunMod) typeName
     let funcBody (errCode: ErrorCode)
                  (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)
                  (nestingScope: NestingScope)
@@ -293,7 +304,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
             | InPlace -> [GenericLocalVariable {GenericLocalVariable.name = intVal; varType = rtlIntType; arrSize = None; isStatic = false; initExp = None}]
         let pVal = {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.valueEmptyPath intVal}
         let uperIntStub _ _ _ _ : UPERFuncBodyResult option = raise(BugErrorException "Real_ScaledInt: unexpected uPER integer encoding class")
-        let intFuncBody = createAcnIntegerFunctionInternal r lm codec (Concrete (intMin, intMax)) intTypeClass intEncClass uperIntStub None t.acnAlignment o.acnMinSizeInBits o.acnMaxSizeInBits None typeName (None, None) typeName
+        let intFuncBody = createAcnIntegerFunctionInternal r lm codec (Concrete (intMin, intMax)) intTypeClass intEncClass DecodeOutcome.KeepCheckedCall uperIntStub None t.acnAlignment o.acnMinSizeInBits o.acnMaxSizeInBits None typeName (None, None) typeName
         match intFuncBody errCode acnArgs nestingScope pVal with
         | None -> None
         | Some intRes ->
@@ -408,19 +419,31 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
             match o.acnProperties.encodingPattern with
             | None ->
                 let pp, resultExpr = adaptArgument lm codec p
-                Boolean pp errCode.errCodeName sType codec, resultExpr
+                // coverage step 10b: a BOOLEAN cannot fail and leaves the error code alone (DecodeOutcome.fs)
+                match codec, lm.lg.decodeReadFailureModel with
+                | Decode, ReadsCannotFail -> lm.uper.BooleanNoErrCode pp, resultExpr
+                | Decode, ReadsCanFail
+                | Encode, _               -> Boolean pp errCode.errCodeName sType codec, resultExpr
             | Some (TrueValueEncoding pattern)  ->
                 let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                 let arrTrueValueAsByteArray = bitStringValueToByteArray pattern
                 let arrFalseValueAsByteArray = arrTrueValueAsByteArray |> Array.map (~~~)
                 let nSize = pattern.Value.Length
-                acnBoolean pvalue ptr true (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName sType codec, resultExpr
+                // coverage step 10b: the pattern call cannot fail and sets result: no error code (DecodeOutcome.fs)
+                match codec, lm.lg.decodeReadFailureModel with
+                | Decode, ReadsCannotFail -> lm.acn.BooleanPatternNoErrCode pvalue true arrBits, resultExpr
+                | Decode, ReadsCanFail
+                | Encode, _               -> acnBoolean pvalue ptr true (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName sType codec, resultExpr
             | Some (FalseValueEncoding pattern) ->
                 let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                 let arrFalseValueAsByteArray = bitStringValueToByteArray pattern
                 let arrTrueValueAsByteArray = arrFalseValueAsByteArray |> Array.map (~~~)
                 let nSize = pattern.Value.Length
-                acnBoolean pvalue ptr false (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName sType codec, resultExpr
+                // coverage step 10b: the pattern call cannot fail and sets result: no error code (DecodeOutcome.fs)
+                match codec, lm.lg.decodeReadFailureModel with
+                | Decode, ReadsCannotFail -> lm.acn.BooleanPatternNoErrCode pvalue false arrBits, resultExpr
+                | Decode, ReadsCanFail
+                | Encode, _               -> acnBoolean pvalue ptr false (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName sType codec, resultExpr
             | Some (TrueFalseValueEncoding(trPattern, fvPatten)) ->
                 let arrTrueBits = trPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                 let arrFalseBits = fvPatten.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
