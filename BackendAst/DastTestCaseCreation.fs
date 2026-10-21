@@ -511,7 +511,12 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
                 constraintViolations r lm path ts.Type |>
                 List.filter (fun v -> not v.inAlternative && v.presentChildren.IsEmpty && v.nonEmptySeqOfs.IsEmpty) |>
                 List.truncate 1 |>
-                List.map (fun v -> {v with contextNodes = t.id :: v.contextNodes})
+                List.map (fun v ->
+                    // the referenced type's own value is the reference site's value (the test values key a
+                    // primitive reference by the site only)
+                    match v.nodeId = ts.Type.id with
+                    | true  -> {v with nodeId = t.id}
+                    | false -> {v with contextNodes = t.id :: v.contextNodes})
         let siteCons =
             match ownErrCode t, ref.resolvedType.Kind with
             | Some e, Integer o ->
