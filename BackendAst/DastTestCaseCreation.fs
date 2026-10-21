@@ -335,6 +335,7 @@ type ConstraintViolation = {
     contextNodes    : ReferenceToType list      // ... and these (the reference sites on the way to it)
     presentChildren : ReferenceToType list      // ... and have these OPTIONAL children present
     nonEmptySeqOfs  : ReferenceToType list      // ... and at least one element in these SEQUENCE OFs (element 0 is changed)
+    inAlternative   : bool                      // ... and select the CHOICE alternatives on the way (via nodeId)
     setInvalid      : string                    // the statement that sets the invalid value
     errCode         : ErrorCode                 // the code IsConstraintValid must return
     errCodeModule   : string                    // the program unit that defines it
@@ -445,7 +446,7 @@ let private tryFindTypeAssignment (r:DAst.AstRoot) (modName:string) (tasName:str
 /// violation of the referenced type assignment (its own tests cover the rest), so that the parent's check of the
 /// call is covered, plus the violations of the constraints added at the reference site.
 let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : ConstraintViolation list =
-    let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; setInvalid = sSet; errCode = errCode; errCodeModule = ToC t.id.ModName; what = what}
+    let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; inAlternative = false; setInvalid = sSet; errCode = errCode; errCodeModule = ToC t.id.ModName; what = what}
     let sizeViolations (minSize:BigInteger) (maxSize:BigInteger) (isPure:bool) =
         match lm.lg.typedefConstraintModel, ownErrCode t, isPure && minSize <> maxSize with
         | TypedefsAreBaseTypes, Some e, true ->
@@ -496,15 +497,19 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
             match c.Optionality with
             | Some Asn1AcnAst.ChoiceAlwaysAbsent -> []
             | Some Asn1AcnAst.ChoiceAlwaysPresent
-            | None -> constraintViolations r lm (lm.lg.getChChild path (lm.lg.getAsn1ChChildBackendName c) c.chType.isIA5String) c.chType)
+            | None ->
+                constraintViolations r lm (lm.lg.getChChild path (lm.lg.getAsn1ChChildBackendName c) c.chType.isIA5String) c.chType |>
+                List.map (fun v -> {v with inAlternative = true}))
     | ReferenceType ref ->
         let referenced =
             match tryFindTypeAssignment r ref.baseInfo.modName.Value ref.baseInfo.tasName.Value with
             | None    -> []
             | Some ts ->
-                // inside a reference the test values are keyed by the referenced type's node ids, so the
-                // violation keeps its requirements and needs the reference site as well
+                // inside a reference the test values are keyed by the referenced type's node ids, which two
+                // reference sites of the same type share: only a violation that needs no selection (CHOICE
+                // alternative, OPTIONAL child, SEQUENCE OF element) is sure to hold at this site
                 constraintViolations r lm path ts.Type |>
+                List.filter (fun v -> not v.inAlternative && v.presentChildren.IsEmpty && v.nonEmptySeqOfs.IsEmpty) |>
                 List.truncate 1 |>
                 List.map (fun v -> {v with contextNodes = t.id :: v.contextNodes})
         let siteCons =
@@ -581,7 +586,7 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                 let absent =
                     match nc.Mark, ch.Optionality with
                     | Asn1Ast.MarkPresent, Some _ ->
-                        [{ nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []
+                        [{ nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                            setInvalid = lm.init.initSequence_optionalChild (path.joined lm.lg) (lm.lg.getAccess path) chName absentFlag ""
                            errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s absent, WITH COMPONENTS requires it" ch.Name.Value }]
                     | (Asn1Ast.MarkPresent | Asn1Ast.NoMark | Asn1Ast.MarkOptional | Asn1Ast.MarkAbsent), _ -> []
@@ -592,7 +597,7 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                         intViolatingValues r lm o.baseInfo o.baseInfo.cons [ic] |>
                         List.map (fun v ->
                             let sv = lm.lg.intValueToString v o.baseInfo.intClass
-                            { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []
+                            { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                               setInvalid = lm.init.initInteger (lm.lg.getValue chPath) sv false "" ""
                               errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s = %s, outside %s (WITH COMPONENTS)" ch.Name.Value sv ic.ASN1 })
                     | _ -> []
