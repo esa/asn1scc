@@ -31,6 +31,10 @@ let validation_comment (sText:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "validation_comment" [("sText",(if sText = null then null else ST.StrHelper sText:>Object) )]
 
+let implied_by_type_check (sExp:string) (sConstraint:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "isvalid_rust" "implied_by_type_check" [("sExp",(if sExp = null then null else ST.StrHelper sExp:>Object) );("sConstraint",(if sConstraint = null then null else ST.StrHelper sConstraint:>Object) )]
+
 let always_true_statement () =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "always_true_statement" []

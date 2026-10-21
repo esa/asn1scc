@@ -265,6 +265,9 @@ type ValidationStatement =
     | ValidationStatementTrue   of (string * LocalVariable list)
     | ValidationStatementFalse  of (string * LocalVariable list)
     | ValidationStatement       of (string * LocalVariable list)
+    // always true because the language type enforces the constraint (coverage step 11b, Ada); unlike
+    // ValidationStatementTrue the statement still reads the value (pragma Assert of the check, for the proof)
+    | ValidationStatementImplied of (string * LocalVariable list)
 
 #if MOVE_TO_COMMON
 type ReferenceToExistingDefinition = {
@@ -403,6 +406,14 @@ type AnonymousVariable = {
 /// Whether a validation function can return FALSE for a value of its language type (coverage step 11b): a parent does
 /// not call the IsConstraintValid of an AlwaysValid child. Derived from the body the function emits
 /// (DastValidate2.createIsValidFunction), so the two cannot disagree.
+/// Whether the typedef of a constrained type already enforces its range (coverage step 11b): Ada declares ranged
+/// subtypes (INTEGER, the Length of SIZE-constrained types) and enumerations, so a value of the type cannot violate
+/// those constraints and IsConstraintValid does not check them at run time; C, Scala, Python and Rust typedefs
+/// are base types.
+type TypedefConstraintModel =
+    | TypedefsAreBaseTypes
+    | TypedefsEnforceRanges
+
 type ValidationOutcome =
     | AlwaysValid       // no check, or only checks that the language type already enforces
     | MayBeInvalid

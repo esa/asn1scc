@@ -50,6 +50,10 @@ validation_comment(sText) ::= <<
 // <sText>
 >>
 
+/* Coverage step 11b: used only by languages whose typedefs enforce ranges (Ada). */
+implied_by_type_check(sExp, sConstraint) ::= <<
+>>
+
 always_true_statement ()::= <<
 ret = true;
 >>

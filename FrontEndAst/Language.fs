@@ -800,6 +800,11 @@ type ILangGeneric () =
     abstract member keepsUncalledChildValidators : bool
     default _.keepsUncalledChildValidators = false
 
+    /// Whether the typedefs enforce the range constraints of their type (see TypedefConstraintModel). With
+    /// TypedefsEnforceRanges IsConstraintValid replaces such a check by a pragma Assert (coverage step 11b).
+    abstract member typedefConstraintModel : TypedefConstraintModel
+    default _.typedefConstraintModel = TypedefsAreBaseTypes
+
     /// True when an OPTIONAL child whose encoder produces no statements must still be
     /// emitted through sequence_optional_child (Rust: the presence flag is assigned there).
     abstract member emitOptionalChildWithEmptyBody : bool

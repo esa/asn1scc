@@ -8,6 +8,13 @@ validation_comment(sText) ::= <<
 -- <sText>
 >>
 
+/* Coverage step 11b: a constraint that the Ada type of the value already enforces is not checked at run time;
+   the check stays as an assertion that gnatprove proves (a wrong classification fails the proof). */
+implied_by_type_check(sExp, sConstraint) ::= <<
+-- no run-time check: the Ada type of the value enforces <if(sConstraint)><sConstraint><else>its constraints<endif> (proved below)
+pragma Assert (<sExp>);
+>>
+
 always_true_statement ()::= <<
 ret := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 >>

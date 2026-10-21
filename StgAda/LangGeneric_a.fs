@@ -500,6 +500,8 @@ type LangGeneric_a() =
             | false -> CorruptionSweep
         // The precondition of every Ada decoder guarantees a full-size stream: reads cannot fail.
         override _.decodeReadFailureModel = ReadsCannotFail
+        // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.
+        override _.typedefConstraintModel = TypedefsEnforceRanges
 
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name
