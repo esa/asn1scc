@@ -591,6 +591,28 @@ type SeqCompIsValidAux =
                             isValidStatement    : CodegenScope -> ValidationStatement
                             chidIsValidFunction : IsValidFunction
                         |}
+    // coverage step 11b: the child's function always succeeds, so the parent does not call it
+    | IsValidNotCalled of {|
+                            childName           : string
+                            chidIsValidFunction : IsValidFunction
+                        |}
+
+/// Coverage step 11b: the comment a parent emits for the children whose IsConstraintValid it does not call,
+/// so that a reader does not take the missing check for a bug.
+let notCheckedComment (l:LanguageMacros) (names:string list) =
+    match names with
+    | []      -> None
+    | [name]  -> Some (l.isvalid.validation_comment (sprintf "%s is not checked: its type cannot hold an invalid value" name))
+    | _       -> Some (l.isvalid.validation_comment (sprintf "not checked, their types cannot hold an invalid value: %s" (names |> Seq.StrJoin ", ")))
+
+let prependComment (soComment:string option) (vs:ValidationStatement) =
+    match soComment with
+    | None          -> vs
+    | Some comment  ->
+        match vs with
+        | ValidationStatementTrue   (st, lv) -> ValidationStatementTrue  (comment + "\n" + st, lv)
+        | ValidationStatementFalse  (st, lv) -> ValidationStatementFalse (comment + "\n" + st, lv)
+        | ValidationStatement       (st, lv) -> ValidationStatement      (comment + "\n" + st, lv)
 
 
 let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type)  (fncBodyE : ErrorCode->CodegenScope->ValidationStatement) (typeDefinition:TypeDefinitionOrReference) (alphaFuncs : AlphaFunc list) (localVars : LocalVariable list) (childErrCodes : ErrorCode list) nonEmbeddedChildrenValidFuncs errorCodeComment (us:State)  =
@@ -606,6 +628,11 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
     let errCodes = errCode::childErrCodes
     let sf = lm.lg.getTypeBasedSuffix FunctionType.IsValidFunctionType t.Kind
     let p  = lm.lg.getParamTypeSuffix t sf Encode
+    let outcome =
+        match funcBody p with
+        | ValidationStatementTrue   _ -> AlwaysValid
+        | ValidationStatementFalse  _
+        | ValidationStatement       _ -> MayBeInvalid
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
     let sPtrPrefix = lm.lg.getPtrPrefix p.accessPath
@@ -639,6 +666,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
             localVariables              = localVars
             anonymousVariables          = []
             nonEmbeddedChildrenValidFuncs          = nonEmbeddedChildrenValidFuncs
+            outcome                     = outcome
         }
     Some ret, ns
 
@@ -762,18 +790,22 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
         let i = sprintf "i%d" (p.accessPath.SequenceOfLevel + 1)
         {p with accessPath = l.lg.getArrayItem p.accessPath i childType.isIA5String}
 
-    let childFunc, childErrCodes, childAlphaFuncs, childLocalVars, nonEmbeddedChildValidFuncs =
+    let childFunc, childErrCodes, childAlphaFuncs, childLocalVars, nonEmbeddedChildValidFuncs, soNotCheckedComment =
         match childType.isValidFunction with
-        | None ->   None, [], [], [], []
+        | None ->   None, [], [], [], [], None
         | Some cvf ->
-            match cvf.funcName with
-            | Some fncName  ->
+            match cvf.funcName, cvf.outcome with
+            | Some _, AlwaysValid ->
+                // coverage step 11b: the element function always succeeds, so the elements are not checked
+                let kept = match l.lg.keepsUncalledChildValidators with true -> [cvf] | false -> []
+                None, [], [], [], kept, Some (l.isvalid.validation_comment "the elements are not checked: their type cannot hold an invalid value")
+            | Some fncName, MayBeInvalid  ->
                 let f1 (p:CodegenScope)  =
                     ValidationStatement (callBaseTypeFunc (l.lg.getPointer (chp p).accessPath)  fncName None, [])
-                Some f1, [], [], [], [cvf]
-            | None          ->
+                Some f1, [], [], [], [cvf], None
+            | None, _          ->
                 let f1 (p:CodegenScope)  =  cvf.funcBody (chp p)
-                Some f1, cvf.errCodes, cvf.alphaFuncs, cvf.localVariables, []
+                Some f1, cvf.errCodes, cvf.alphaFuncs, cvf.localVariables, [], None
 
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
         let ii = p.accessPath.SequenceOfLevel + 1
@@ -786,13 +818,22 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
             | Some chFunc ->
                 let innerStatement = chFunc p
                 match innerStatement with
-                | ValidationStatementTrue   (_,_)  -> []
+                | ValidationStatementTrue   (_,_)  -> []    // see elementsComment
                 | ValidationStatementFalse  (st,clv)  -> [sequenceOf (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) i o.isFixedSize o.minSize.uper st, lv::clv]
                 | ValidationStatement       (st,clv)  -> [sequenceOf (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) i o.isFixedSize o.minSize.uper st, lv::clv]
         let childCheck, lllvs2 = childCheck |> List.unzip
-        match (with_component_check@childCheck) |> DAstUtilFunctions.nestItems_ret l  with
-        | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
-        | Some s ->ValidationStatement (s, (lllvs@lllvs2) |> List.collect id)
+        let elementsComment =
+            match soNotCheckedComment, childFunc |> Option.map (fun chFunc -> chFunc p) with
+            | Some c, _                                  -> Some c
+            | None, Some (ValidationStatementTrue _)     -> Some (l.isvalid.validation_comment "the elements are not checked: their type cannot hold an invalid value")
+            | None, Some (ValidationStatementFalse _)
+            | None, Some (ValidationStatement _)
+            | None, None                                 -> None
+        let body =
+            match (with_component_check@childCheck) |> DAstUtilFunctions.nestItems_ret l  with
+            | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
+            | Some s ->ValidationStatement (s, (lllvs@lllvs2) |> List.collect id)
+        prependComment elementsComment body
 
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t funBody  typeDefinition childAlphaFuncs childLocalVars childErrCodes nonEmbeddedChildValidFuncs (Some errorCodeComment) ns2
@@ -802,7 +843,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
     let sequence_OptionalChild           = l.isvalid.Sequence_OptionalChild
     let callBaseTypeFunc                 = l.isvalid.call_base_type_func
     let asn1Children = children |> List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
-    let handleChild (child:Asn1Child) (us:State) =
+    let handleChild0 (child:Asn1Child) (us:State) =
         let c_name = l.lg.getAsn1ChildBackendName child
         match child.Type.isValidFunction with
         | None                      -> None, us
@@ -831,40 +872,64 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
                     newFunc
                 | None      -> func
             (*return new local variables, errorcodes or alphaFuncs*)
-            match isValidFunction.funcName with
-            | Some fncName ->
+            match isValidFunction.funcName, isValidFunction.outcome with
+            | Some _, AlwaysValid ->
+                Some(IsValidNotCalled {|childName = c_name; chidIsValidFunction=isValidFunction|}), us
+            | Some fncName, MayBeInvalid ->
                 Some(IsValidProcCall {|isValidStatement= childFnc; chidIsValidFunction=isValidFunction|}), us
-            | None ->
+            | None, _ ->
                 Some(IsValidEmbedded {|isValidStatement = childFnc; localVars = isValidFunction.localVariables; alphaFuncs = isValidFunction.alphaFuncs; childErrCodes = isValidFunction.errCodes|}), us
+    let handleChild (child:Asn1Child) (us:State) =
+        let content, us = handleChild0 child us
+        content |> Option.map (fun c -> (l.lg.getAsn1ChildBackendName child, c)), us
     let childrenContent, ns1 =  asn1Children |> Asn1Fold.foldMap (fun us child -> handleChild child us) us
-    let childrenContent = childrenContent |> List.choose id
-    let childrenErrCodes = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.childErrCodes | IsValidProcCall _ -> [])
-    let alphaFuncs = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.alphaFuncs | IsValidProcCall _ -> []) //childrenContent |> List.collect(fun c -> c.alphaFuncs)
-    let localVars = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.localVars | IsValidProcCall _ -> []) //childrenContent |> List.collect(fun c -> c.localVars)
-    let nonEmbeddedChildrenValidFuncs = childrenContent |> List.choose(fun s -> match s with IsValidEmbedded c -> None | IsValidProcCall c -> Some c.chidIsValidFunction)
+    let childNames = childrenContent |> List.choose (Option.map fst)
+    let childrenContent = childrenContent |> List.choose (Option.map snd)
+    let childrenErrCodes = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.childErrCodes | IsValidProcCall _ | IsValidNotCalled _ -> [])
+    let alphaFuncs = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.alphaFuncs | IsValidProcCall _ | IsValidNotCalled _ -> []) //childrenContent |> List.collect(fun c -> c.alphaFuncs)
+    let localVars = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.localVars | IsValidProcCall _ | IsValidNotCalled _ -> []) //childrenContent |> List.collect(fun c -> c.localVars)
+    // a child function that is not called is not emitted where only its parent called it (an inline child type)
+    let nonEmbeddedChildrenValidFuncs =
+        childrenContent |>
+        List.choose(fun s ->
+            match s with
+            | IsValidEmbedded c  -> None
+            | IsValidProcCall c  -> Some c.chidIsValidFunction
+            | IsValidNotCalled c ->
+                match l.lg.keepsUncalledChildValidators with
+                | true  -> Some c.chidIsValidFunction
+                | false -> None)
     let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.SeqValue) = VCBTrue
     let vcbs, ns2 =  o.cons |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l t.id asn1Children valToStrFunc  c cs) ns1
     let x = 1
 
 
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
-        let childrenChecks, lv =
-            let aaa, lv =
-                childrenContent |>
-                List.choose(fun z ->
-                    let isValidStatement = match z with IsValidEmbedded c -> c.isValidStatement | IsValidProcCall c -> c.isValidStatement
-                    match isValidStatement p with
-                    | ValidationStatementTrue _ -> None
+        // per child: Choice1Of2 = its check, Choice2Of2 = its name when it is not checked (cannot be invalid)
+        let checkOrSkip =
+            List.zip childNames childrenContent |>
+            List.map(fun (name, z) ->
+                let statementOrSkip vs =
+                    match vs with
+                    | ValidationStatementTrue _ -> Choice2Of2 name
                     | ValidationStatementFalse  (st,lv)
-                    | ValidationStatement       (st,lv) -> Some (st, lv)) |>
-                List.unzip
+                    | ValidationStatement       (st,lv) -> Choice1Of2 (st, lv)
+                match z with
+                | IsValidNotCalled c -> Choice2Of2 c.childName
+                | IsValidEmbedded c  -> statementOrSkip (c.isValidStatement p)
+                | IsValidProcCall c  -> statementOrSkip (c.isValidStatement p))
+        let notCalled = checkOrSkip |> List.choose (fun x -> match x with Choice2Of2 name -> Some name | Choice1Of2 _ -> None)
+        let childrenChecks, lv =
+            let aaa, lv = checkOrSkip |> List.choose (fun x -> match x with Choice1Of2 c -> Some c | Choice2Of2 _ -> None) |> List.unzip
             aaa |> DAstUtilFunctions.nestItems_ret l  |> Option.toList, (lv |> List.collect id)
         let with_component_check, lv2 =
             convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |>
             List.unzip
-        match (childrenChecks@with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
-        | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
-        | Some s ->ValidationStatement (s, lv@(lv2 |>List.collect id))
+        let body =
+            match (childrenChecks@with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
+            | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
+            | Some s ->ValidationStatement (s, lv@(lv2 |>List.collect id))
+        prependComment (notCheckedComment l notCalled) body
 
 
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
@@ -923,10 +988,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
 
     let childrenContent, ns1 =  children |> Asn1Fold.foldMap (fun us child -> handleChild child us) us
     let childrenContent = childrenContent |> List.choose id
-    let childrenErrCodes = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.childErrCodes | IsValidProcCall _ -> [])
-    let alphaFuncs = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.alphaFuncs | IsValidProcCall _ -> []) //childrenContent |> List.collect(fun c -> c.alphaFuncs)
-    let localVars = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.localVars | IsValidProcCall _ -> []) //childrenContent |> List.collect(fun c -> c.localVars)
-    let nonEmbeddedChildrenValidFuncs = childrenContent |> List.choose(fun s -> match s with IsValidEmbedded c -> None | IsValidProcCall c -> Some c.chidIsValidFunction)
+    // a CHOICE still calls every alternative's function: no check follows the call, so there is nothing to drop
+    let childrenErrCodes = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.childErrCodes | IsValidProcCall _ | IsValidNotCalled _ -> [])
+    let alphaFuncs = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.alphaFuncs | IsValidProcCall _ | IsValidNotCalled _ -> []) //childrenContent |> List.collect(fun c -> c.alphaFuncs)
+    let localVars = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.localVars | IsValidProcCall _ | IsValidNotCalled _ -> []) //childrenContent |> List.collect(fun c -> c.localVars)
+    let nonEmbeddedChildrenValidFuncs = childrenContent |> List.choose(fun s -> match s with IsValidEmbedded c -> None | IsValidProcCall c -> Some c.chidIsValidFunction | IsValidNotCalled c -> Some c.chidIsValidFunction)
     let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.ChValue) = VCBTrue
     let vcbs, ns2 =  o.cons |> Asn1Fold.foldMap(fun cs c -> choiceConstraint2ValidationCodeBlock r l t.id children valToStrFunc defOrRef  c cs) ns1
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
@@ -934,11 +1000,18 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
             let childrenChecks, lv1 =
                 childrenContent |>
                 List.choose(fun z ->
-                    let isValidStatement = match z with IsValidEmbedded c -> c.isValidStatement | IsValidProcCall c -> c.isValidStatement
-                    match isValidStatement p with
-                    | ValidationStatementTrue st
-                    | ValidationStatementFalse  st
-                    | ValidationStatement       st -> Some st) |>
+                    match z with
+                    | IsValidNotCalled _ -> None    // not produced for a CHOICE
+                    | IsValidEmbedded c ->
+                        match c.isValidStatement p with
+                        | ValidationStatementTrue st
+                        | ValidationStatementFalse  st
+                        | ValidationStatement       st -> Some st
+                    | IsValidProcCall c ->
+                        match c.isValidStatement p with
+                        | ValidationStatementTrue st
+                        | ValidationStatementFalse  st
+                        | ValidationStatement       st -> Some st) |>
                 List.unzip
             //aaa |> DAstUtilFunctions.nestItems_ret l  |> Option.toList, (lv1|> List.collect id)
             let choice_switch_check =
@@ -1082,6 +1155,14 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             List.unzip
 
         match resolvedType.isValidFunction with
+        | Some rf when rf.outcome = AlwaysValid && o.refCons.IsEmpty && not (containsSubtypeConstraints o.resolvedType) ->
+            // coverage step 11b: the referenced type's function always succeeds, so it is not called. Only without
+            // constraints at the reference site: with them resolvedType is the narrower merged type (e.g. a fixed
+            // SIZE), whose outcome says nothing about the called function of the wider referenced type.
+            let comment = l.isvalid.validation_comment "the referenced type is not checked: it cannot hold an invalid value"
+            match (with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
+            | None   -> prependComment (Some comment) (convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName)
+            | Some s -> ValidationStatement (comment + "\n" + s, (lv2 |>List.collect id))
         | Some _    ->
             let funcBodyContent =
               match p.accessPath.selectionType with

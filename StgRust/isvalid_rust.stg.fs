@@ -27,6 +27,10 @@ let JoinItemsNoCheck (sPart:string) (sNestedPart:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "JoinItemsNoCheck" [("sPart",(if sPart = null then null else ST.StrHelper sPart:>Object) );("sNestedPart",(if sNestedPart = null then null else ST.StrHelper sNestedPart:>Object) )]
 
+let validation_comment (sText:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "isvalid_rust" "validation_comment" [("sText",(if sText = null then null else ST.StrHelper sText:>Object) )]
+
 let always_true_statement () =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "always_true_statement" []

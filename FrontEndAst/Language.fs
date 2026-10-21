@@ -794,6 +794,12 @@ type ILangGeneric () =
     abstract member decodeReadFailureModel : ReadFailureModel
     default _.decodeReadFailureModel = ReadsCanFail
 
+    /// Whether the IsConstraintValid of an inline child type is still emitted when its parent no longer calls it
+    /// (coverage step 11b: the child cannot be invalid). Scala: the ACN encoders of OPTIONAL children call it too.
+    /// Elsewhere only the parent called it, and an uncalled function would be dead code (C line-coverage gate).
+    abstract member keepsUncalledChildValidators : bool
+    default _.keepsUncalledChildValidators = false
+
     /// True when an OPTIONAL child whose encoder produces no statements must still be
     /// emitted through sequence_optional_child (Rust: the presence flag is assigned there).
     abstract member emitOptionalChildWithEmptyBody : bool

@@ -400,6 +400,13 @@ type AnonymousVariable = {
     valKind             : Asn1ValueKind        // the value
 }
 
+/// Whether a validation function can return FALSE for a value of its language type (coverage step 11b): a parent does
+/// not call the IsConstraintValid of an AlwaysValid child. Derived from the body the function emits
+/// (DastValidate2.createIsValidFunction), so the two cannot disagree.
+type ValidationOutcome =
+    | AlwaysValid       // no check, or only checks that the language type already enforces
+    | MayBeInvalid
+
 type IsValidFunction = {
     errCodes            : ErrorCode list
     funcName            : string option               // the name of the function. Valid only for TASes)
@@ -413,6 +420,7 @@ type IsValidFunction = {
                                                        //these are the bit and octet string values which cannot be expressed as single primitives in C/Ada
     nonEmbeddedChildrenValidFuncs  : IsValidFunction list         //a list with the first level child funcs which are not embedded by this
                                                        //IsValidFunction but the the function is called
+    outcome             : ValidationOutcome
 }
 
 

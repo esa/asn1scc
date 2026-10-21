@@ -45,6 +45,11 @@ if (ret) {
 
 
 
+/* Coverage step 11b: says why a check is not in the generated code (e.g. a child that cannot be invalid). */
+validation_comment(sText) ::= <<
+/* <sText> */
+>>
+
 always_true_statement ()::= <<
 ret = TRUE;
 >>

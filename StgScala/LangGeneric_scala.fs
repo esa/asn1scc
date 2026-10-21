@@ -284,6 +284,8 @@ type LangGeneric_scala() =
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
         override this.isObjectOriented = false
+        // the ACN encoders of OPTIONAL children call the child's IsConstraintValid (coverage step 11b)
+        override _.keepsUncalledChildValidators = true
         override this.nullTerminatorByte = Some 0uy
         override this.getAlignmentByteTypeName = "Byte"
         override this.getAlignmentWordTypeName = "Short"
