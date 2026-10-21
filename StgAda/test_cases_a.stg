@@ -535,3 +535,13 @@ end <sPackageName>;
 decodingCaseKind(sBody, sIdentifier) ::= <<
 <sBody>
 >>
+
+/* Coverage step 11c: constraint-violation tests, C only so far (ILangGeneric.atcEmitsInvalidValueTests). */
+emitConstraintViolationTestCase(sFuncName, arrsVars, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCode, arrsEncodeChecks) ::= <<
+>>
+
+constraintViolationEncodeCheck(sEncFunc, sTasName, sEnc, sAmber, sErrCode) ::= <<
+>>
+
+constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
+>>

@@ -147,3 +147,15 @@ let decodingCaseKind (sBody:string) (sIdentifier:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "decodingCaseKind" [("sBody",(if sBody = null then null else ST.StrHelper sBody:>Object) );("sIdentifier",(if sIdentifier = null then null else ST.StrHelper sIdentifier:>Object) )]
 
+let emitConstraintViolationTestCase (sFuncName:string) (arrsVars:seq<string>) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sSetInvalidValue:string) (sWhat:string) (sIsValidFunc:string) (sErrCode:string) (arrsEncodeChecks:seq<string>) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "emitConstraintViolationTestCase" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sInitializeTcData",(if sInitializeTcData = null then null else ST.StrHelper sInitializeTcData:>Object) );("bStatic",bStatic :>Object);("sSetInvalidValue",(if sSetInvalidValue = null then null else ST.StrHelper sSetInvalidValue:>Object) );("sWhat",(if sWhat = null then null else ST.StrHelper sWhat:>Object) );("sIsValidFunc",(if sIsValidFunc = null then null else ST.StrHelper sIsValidFunc:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("arrsEncodeChecks",(arrsEncodeChecks|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+
+let constraintViolationEncodeCheck (sEncFunc:string) (sTasName:string) (sEnc:string) (sAmber:string) (sErrCode:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "constraintViolationEncodeCheck" [("sEncFunc",(if sEncFunc = null then null else ST.StrHelper sEncFunc:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+
+let constraintViolationStringChar (sStr:string) (nIndex:BigInteger) (nChar:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "constraintViolationStringChar" [("sStr",(if sStr = null then null else ST.StrHelper sStr:>Object) );("nIndex",nIndex :>Object);("nChar",nChar :>Object)]
+
