@@ -522,7 +522,10 @@ pragma Warnings (On, "no entities of ""<inc>"" are referenced");
 pragma Warnings (On, "use clause for package ""<inc>"" has no effect");
 }; separator="\n">
 with Ada.Calendar;
+--  a file with constraint-violation tests only does not time anything
+pragma Warnings (Off, "use clause for private type ""Ada.Calendar.Time"" has no effect");
 use type Ada.Calendar.Time;
+pragma Warnings (On, "use clause for private type ""Ada.Calendar.Time"" has no effect");
 
 package body <sPackageName> is
 
@@ -536,12 +539,68 @@ decodingCaseKind(sBody, sIdentifier) ::= <<
 <sBody>
 >>
 
-/* Coverage step 11c: constraint-violation tests, C only so far (ILangGeneric.atcEmitsInvalidValueTests). */
-emitConstraintViolationTestCase(sFuncName, arrsVars, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCode, arrsEncodeChecks) ::= <<
+/* Coverage step 11c (T2): a value just outside one constraint (only values the Ada type can hold). IsConstraintValid
+   and every checked encoder must fail with the error code of that constraint. */
+emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks) ::= <<
+procedure <sFuncName> ( totalErrors : in out Integer)
+is
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
+    result  : adaasn1rtl.ASN1_RESULT;
+    ok      : Boolean;
+    <arrsVars; separator="\n">
+	pragma Warnings (Off, "there are no others");
+    tc_data : <sModName>.<sTasName>;
+	pragma Warnings (On, "there are no others");
+begin
+	pragma Warnings (Off, "there are no others");
+	pragma Warnings (Off, "condition can only be True if invalid values present");
+	pragma Warnings (Off, "condition can only be False if invalid values present");
+	pragma Warnings (Off, "condition is always False");
+	pragma Warnings (Off, "condition is always True");
+	pragma Warnings (Off, "is always True at this point");
+	pragma Warnings (Off, "is always False at this point");
+    <sInitializeTcData>
+	pragma Warnings (On, "there are no others");
+	pragma Warnings (On, "condition can only be True if invalid values present");
+	pragma Warnings (On, "condition can only be False if invalid values present");
+	pragma Warnings (On, "condition is always False");
+	pragma Warnings (On, "condition is always True");
+	pragma Warnings (On, "is always True at this point");
+	pragma Warnings (On, "is always False at this point");
+    --  the automatic test value is valid before the change
+    result := <sModName>.<sIsValidFunc> (tc_data);
+    ok := result.Success and result.ErrorCode = 0;
+    if ok then
+        --  <sWhat>
+        <sSetInvalidValue>
+        result := <sModName>.<sIsValidFunc> (tc_data);
+        ok := not result.Success and result.ErrorCode = <sErrCodeModule>.<sErrCode>;
+    end if;
+    <arrsEncodeChecks; separator="\n">
+    if ok then
+        Put_Line ("Test case '<sFuncName>' succeeded");
+    else
+        Put_Line ("Test case '<sFuncName>' failed: <sWhat>: not rejected with <sErrCode>, or the starting value was not valid.");
+        Put_Line ("========================================");
+        totalErrors := totalErrors + 1;
+    end if;
+end <sFuncName>;
 >>
 
-constraintViolationEncodeCheck(sEncFunc, sTasName, sEnc, sAmber, sErrCode) ::= <<
+constraintViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sErrCodeModule, sErrCode) ::= <<
+if ok then
+    declare
+        pragma Warnings (Off);
+        bs : <sModName>.<sTasName>_<sEnc>Stream;
+        pragma Warnings (On);
+    begin
+        <sModName>.<sEncFunc> (tc_data, bs, result);
+        ok := not result.Success and result.ErrorCode = <sErrCodeModule>.<sErrCode>;
+    end;
+end if;
 >>
 
+/* Coverage step 11c: character nIndex (0-based) of a string set to the code nChar (0 ends the string there). */
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
+<sStr>(<nIndex> + 1) := Character'Val (<nChar>);
 >>

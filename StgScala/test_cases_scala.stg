@@ -444,10 +444,10 @@ codec.base.bitStream.resetBitIndex()
 >>
 
 /* Coverage step 11c: constraint-violation tests, C only so far (ILangGeneric.atcEmitsInvalidValueTests). */
-emitConstraintViolationTestCase(sFuncName, arrsVars, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCode, arrsEncodeChecks) ::= <<
+emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks) ::= <<
 >>
 
-constraintViolationEncodeCheck(sEncFunc, sTasName, sEnc, sAmber, sErrCode) ::= <<
+constraintViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sErrCodeModule, sErrCode) ::= <<
 >>
 
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<

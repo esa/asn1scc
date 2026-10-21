@@ -816,7 +816,7 @@ decodingCaseKind(sBody, sIdentifier) ::= <<
 
 /* Coverage step 11c (T2): a value just outside one constraint. IsConstraintValid and every checked encoder must
    fail with the error code of that constraint. */
-emitConstraintViolationTestCase(sFuncName, arrsVars, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCode, arrsEncodeChecks) ::= <<
+emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks) ::= <<
 void <sFuncName>(const TestOutput* output, int *totalErrors)
 {
     flag result;
@@ -849,7 +849,7 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
 }
 >>
 
-constraintViolationEncodeCheck(sEncFunc, sTasName, sEnc, sAmber, sErrCode) ::= <<
+constraintViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sErrCodeModule, sErrCode) ::= <<
 if (result) {
     static byte encBuff_<sEnc>[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
     BitStream bitStrm;

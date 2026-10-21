@@ -765,6 +765,11 @@ type ILangGeneric () =
     abstract member atcEmitsInvalidValueTests : bool
     default _.atcEmitsInvalidValueTests = false
 
+    /// Automatic tests with a value just outside one constraint (coverage step 11c, DastTestCaseCreation
+    /// constraintViolationTestCases): C and Ada.
+    abstract member atcEmitsConstraintViolationTests : bool
+    default _.atcEmitsConstraintViolationTests = false
+
     /// True when the automatic tests also decode an ACN stream that holds an
     /// ENUMERATED code no item uses (a gap between the item values); the decoder must
     /// fail (C, Ada). See AcnEnum.createInvalidCodeStream.

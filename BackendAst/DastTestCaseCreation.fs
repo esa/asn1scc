@@ -337,6 +337,7 @@ type ConstraintViolation = {
     nonEmptySeqOfs  : ReferenceToType list      // ... and at least one element in these SEQUENCE OFs (element 0 is changed)
     setInvalid      : string                    // the statement that sets the invalid value
     errCode         : ErrorCode                 // the code IsConstraintValid must return
+    errCodeModule   : string                    // the program unit that defines it
     what            : string                    // what is changed, for the test's comment
 }
 
@@ -444,7 +445,7 @@ let private tryFindTypeAssignment (r:DAst.AstRoot) (modName:string) (tasName:str
 /// violation of the referenced type assignment (its own tests cover the rest), so that the parent's check of the
 /// call is covered, plus the violations of the constraints added at the reference site.
 let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : ConstraintViolation list =
-    let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; setInvalid = sSet; errCode = errCode; what = what}
+    let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; setInvalid = sSet; errCode = errCode; errCodeModule = ToC t.id.ModName; what = what}
     let sizeViolations (minSize:BigInteger) (maxSize:BigInteger) (isPure:bool) =
         match lm.lg.typedefConstraintModel, ownErrCode t, isPure && minSize <> maxSize with
         | TypedefsAreBaseTypes, Some e, true ->
@@ -548,14 +549,19 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
         | Some e ->
             let values = o.baseInfo.items |> List.map (fun it -> it.definitionValue) |> Set.ofList
             let valid = o.baseInfo.validItems |> List.map (fun it -> it.Name.Value) |> Set.ofList
-            let excluded = o.baseInfo.items |> List.filter (fun it -> not (valid.Contains it.Name.Value)) |> List.map (fun it -> it.definitionValue, sprintf "%s, excluded by a constraint" it.Name.Value)
+            let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
+            let itemName (it:Asn1AcnAst.NamedItem) =
+                lm.lg.qualifyNameWithModule tk.programUnit (ToC "MainProgram") (lm.lg.getNamedItemBackendName (Some o.definitionOrRef) it)
+            let excluded = o.baseInfo.items |> List.filter (fun it -> not (valid.Contains it.Name.Value)) |> List.map (fun it -> itemName it, sprintf "%s, excluded by a constraint" it.Name.Value)
             // a value that is no item: only where the typedef can hold it (C: an int)
             let nonItem =
                 match lm.lg.typedefConstraintModel with
-                | TypedefsAreBaseTypes  -> [Seq.initInfinite BigInteger |> Seq.find (fun v -> not (values.Contains v)), "not an item value"]
+                | TypedefsAreBaseTypes  ->
+                    let v = Seq.initInfinite BigInteger |> Seq.find (fun v -> not (values.Contains v))
+                    [v.ToString(), sprintf "%A: not an item value" v]
                 | TypedefsEnforceRanges -> []
             nonItem @ excluded |>
-            List.map (fun (v, what) -> mk t.id (lm.init.initEnumerated (lm.lg.getValue path) (v.ToString()) "" false "") e (sprintf "%A: %s" v what))
+            List.map (fun (sValue, what) -> mk t.id (lm.init.initEnumerated (lm.lg.getValue path) sValue "" false "") e what)
     | NullType _ | Boolean _ | ObjectIdentifier _ | TimeType _ -> []
 
 /// WITH COMPONENTS of a SEQUENCE (they fail the SEQUENCE's own check): a child marked PRESENT is made absent; an
@@ -577,7 +583,7 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                     | Asn1Ast.MarkPresent, Some _ ->
                         [{ nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []
                            setInvalid = lm.init.initSequence_optionalChild (path.joined lm.lg) (lm.lg.getAccess path) chName absentFlag ""
-                           errCode = e; what = sprintf "%s absent, WITH COMPONENTS requires it" ch.Name.Value }]
+                           errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s absent, WITH COMPONENTS requires it" ch.Name.Value }]
                     | (Asn1Ast.MarkPresent | Asn1Ast.NoMark | Asn1Ast.MarkOptional | Asn1Ast.MarkAbsent), _ -> []
                 let values =
                     match nc.Constraint, ch.Type.ActualType.Kind with
@@ -588,7 +594,7 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                             let sv = lm.lg.intValueToString v o.baseInfo.intClass
                             { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []
                               setInvalid = lm.init.initInteger (lm.lg.getValue chPath) sv false "" ""
-                              errCode = e; what = sprintf "%s = %s, outside %s (WITH COMPONENTS)" ch.Name.Value sv ic.ASN1 })
+                              errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s = %s, outside %s (WITH COMPONENTS)" ch.Name.Value sv ic.ASN1 })
                     | _ -> []
                 absent @ values)
 
@@ -596,7 +602,7 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
 /// encoding: it calls IsConstraintValid and every checked encoder of the type.
 let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Type) (encoders:(string*string) list) =
     let isValidFuncName = t.isValidFunction |> Option.bind (fun f -> f.funcName)
-    match lm.lg.atcEmitsInvalidValueTests, isValidFuncName with
+    match lm.lg.atcEmitsConstraintViolationTests, isValidFuncName with
     | true, Some sIsValidFunc ->
         let p = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
         let atcs = t.initFunction.automaticTestCases
@@ -623,11 +629,12 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
                     let arrsVars = initStatement.localVariables |> List.map(fun lv -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct |> Seq.toList
                     let encAmper, _ = gAmber lm t
                     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
-                    let sTasName = (lm.lg.getTypeDefinition t.FT_TypeDefinition).typeName
-                    let encodeChecks = encoders |> List.map (fun (sEncFunc, sEnc) -> lm.atc.constraintViolationEncodeCheck sEncFunc sTasName sEnc encAmper v.errCode.errCodeName)
+                    let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
+                    let sTasName = td.typeName
+                    let encodeChecks = encoders |> List.map (fun (sEncFunc, sEnc) -> lm.atc.constraintViolationEncodeCheck sEncFunc td.programUnit sTasName sEnc encAmper v.errCodeModule v.errCode.errCodeName)
                     // the text goes into a comment and a string literal
                     let sWhat = v.what.Replace("\"", "'").Replace("\\", "/").Replace("*/", "* /")
-                    let func_body = lm.atc.emitConstraintViolationTestCase sFuncName arrsVars sTasName encAmper initStatement.funcBody bStatic v.setInvalid sWhat sIsValidFunc v.errCode.errCodeName encodeChecks
+                    let func_body = lm.atc.emitConstraintViolationTestCase sFuncName arrsVars td.programUnit sTasName encAmper initStatement.funcBody bStatic v.setInvalid sWhat sIsValidFunc v.errCodeModule v.errCode.errCodeName encodeChecks
                     (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)))
     | true, None
     | false, _ -> []

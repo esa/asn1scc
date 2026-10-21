@@ -77,9 +77,9 @@ type ITestCases_rust() =
             test_cases_rust.printTestCaseFileBody  sThisFile arrsIncludedModules arrsTestFunctionBodies arrsProgramUnitNames arrsRtlUnits 
         override this.decodingCaseKind  (sBody:string) (sIdentifier:string) =
             test_cases_rust.decodingCaseKind  sBody sIdentifier 
-        override this.emitConstraintViolationTestCase  (sFuncName:string) (arrsVars:seq<string>) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sSetInvalidValue:string) (sWhat:string) (sIsValidFunc:string) (sErrCode:string) (arrsEncodeChecks:seq<string>) =
-            test_cases_rust.emitConstraintViolationTestCase  sFuncName arrsVars sTasName sAmber sInitializeTcData bStatic sSetInvalidValue sWhat sIsValidFunc sErrCode arrsEncodeChecks 
-        override this.constraintViolationEncodeCheck  (sEncFunc:string) (sTasName:string) (sEnc:string) (sAmber:string) (sErrCode:string) =
-            test_cases_rust.constraintViolationEncodeCheck  sEncFunc sTasName sEnc sAmber sErrCode 
+        override this.emitConstraintViolationTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sSetInvalidValue:string) (sWhat:string) (sIsValidFunc:string) (sErrCodeModule:string) (sErrCode:string) (arrsEncodeChecks:seq<string>) =
+            test_cases_rust.emitConstraintViolationTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sSetInvalidValue sWhat sIsValidFunc sErrCodeModule sErrCode arrsEncodeChecks 
+        override this.constraintViolationEncodeCheck  (sEncFunc:string) (sModName:string) (sTasName:string) (sEnc:string) (sAmber:string) (sErrCodeModule:string) (sErrCode:string) =
+            test_cases_rust.constraintViolationEncodeCheck  sEncFunc sModName sTasName sEnc sAmber sErrCodeModule sErrCode 
         override this.constraintViolationStringChar  (sStr:string) (nIndex:BigInteger) (nChar:BigInteger) =
             test_cases_rust.constraintViolationStringChar  sStr nIndex nChar 
