@@ -1287,26 +1287,33 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
         else baseTypeDefinitionName
     let baseFncName = l.lg.constructReferenceFuncName checkedTypeDefinitionName "" (l.isvalid.methodNameSuffix())
 
-    let ns =
+    // coverage step 11b: the referenced type's function always succeeds, so it is not called. Only without
+    // constraints at the reference site: with them resolvedType is the narrower merged type (e.g. a fixed SIZE),
+    // whose outcome says nothing about the called function of the wider referenced type.
+    let referencedNotCalled =
         match resolvedType.isValidFunction with
-        | Some _    ->
+        | Some rf -> rf.outcome = AlwaysValid && o.refCons.IsEmpty && not (containsSubtypeConstraints o.resolvedType)
+        | None    -> false
+    let ns =
+        // the call is registered only when it is made (else the referenced function would be emitted as dead
+        // code when nothing else calls it); Scala's ACN encoders of OPTIONAL children call it anyway
+        match resolvedType.isValidFunction, referencedNotCalled && not l.lg.keepsUncalledChildValidators with
+        | Some _, false ->
             match t.id.topLevelTas with
             | None -> us
             | Some tasInfo ->
                 let caller = {Caller.typeId = tasInfo; funcType=IsValidFunctionType}
                 let callee = {Callee.typeId = {TypeAssignmentInfo.modName = o.modName.Value; tasName=o.tasName.Value} ; funcType=IsValidFunctionType}
                 addFunctionCallToState us caller callee
-        | None      -> us
+        | Some _, true
+        | None, _      -> us
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
         let with_component_check, lv2 =
             convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |>
             List.unzip
 
         match resolvedType.isValidFunction with
-        | Some rf when rf.outcome = AlwaysValid && o.refCons.IsEmpty && not (containsSubtypeConstraints o.resolvedType) ->
-            // coverage step 11b: the referenced type's function always succeeds, so it is not called. Only without
-            // constraints at the reference site: with them resolvedType is the narrower merged type (e.g. a fixed
-            // SIZE), whose outcome says nothing about the called function of the wider referenced type.
+        | Some _ when referencedNotCalled ->
             let comment = l.isvalid.validation_comment "the referenced type is not checked: it cannot hold an invalid value"
             match (with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
             | None   -> prependComment (Some comment) (convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName)
