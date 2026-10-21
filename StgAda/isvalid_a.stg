@@ -328,6 +328,7 @@ end if;
 /* Coverage step 10b (DAstUtilFunctions.nestItemsByOutcome): the part before cannot fail and sets result. */
 JoinItemsAssert(sPart, sNestedPart) ::= <<
 <sPart>
+-- no check: the part above cannot fail (the stream holds the full size); proved by this Assert
 pragma Assert (result.Success);
 <sNestedPart>
 >>

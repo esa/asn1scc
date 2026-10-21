@@ -2482,6 +2482,7 @@ end;
 /* Coverage step 10b: ACN INTEGER of an ASN.1 type whose field accepts every bit pattern (RTL _FullRange twins,
    no Result: the decode cannot fail). */
 AcnIntFullRange(p, sKind, sWidth, sSsuffix, noBits) ::= <<
+-- cannot fail, no result to check: every bit pattern of the field is a valid value
 adaasn1rtl.encoding.acn.Acn_Dec_Int_<sKind>_ConstSize<sWidth>_FullRange<sSsuffix>(bs, <p><if(noBits)>, <noBits><endif>);
 >>
 

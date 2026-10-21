@@ -1046,10 +1046,12 @@ end if;
 /* Coverage step 10b: decode of a field whose every bit pattern is a valid value (RTL _FullRange twins,
    no Result: the decode cannot fail). */
 IntFullyConstraintPos_fullRange(p, nMin, nBits, sSsuffix) ::= <<
+-- cannot fail, no result to check: every bit pattern of the field is a valid value
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber_FullRange<sSsuffix>(bs, <p>, <nMin>, <nBits>);
 >>
 
 IntFullyConstraint_fullRange(p, nMin, nBits, sSsuffix) ::= <<
+-- cannot fail, no result to check: every bit pattern of the field is a valid value
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber_FullRange<sSsuffix>(bs, <p>, <nMin>, <nBits>);
 >>
 
