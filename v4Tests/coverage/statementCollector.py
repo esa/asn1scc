@@ -318,13 +318,11 @@ def measure(unit, args, root):
         units = bodies + harness if args.language == "c" else [Path(p).stem for p in bodies]
         if not units:
             raise ValueError("No generated codec units")
-        if args.check_encode and not any("#ifdef ASN1SCC_CHECK_ENCODE" in p.read_text()
+        if args.check_encode and not any("&uncheckedStrm, &uncheckedError" in p.read_text()
                                          for p in work.glob("*_auto_tcs.c")):
             raise ValueError("Generated harness does not support checked/unchecked encoding")
         if args.language == "c":
             flags = ["-g", "-O0", "-Wall", "-Wextra", "-Werror", "-D_DEBUG"]
-            if args.check_encode:
-                flags.append("-DASN1SCC_CHECK_ENCODE")
             if args.decode_stage != "baseline":
                 flags.append("-DASN1SCC_DECODE_ACTUAL_LENGTH")
             language, main = "C", "mainprogram.c"

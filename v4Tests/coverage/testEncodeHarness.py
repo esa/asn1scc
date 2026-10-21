@@ -48,7 +48,7 @@ def main():
             logs.mkdir()
             steps = []
             c.run_step([args.gcc, "-g", "-O0", "-Wall", "-Wextra", "-Werror",
-                        "-DASN1SCC_CHECK_ENCODE", "-fsanitize=address,undefined",
+                        "-fsanitize=address,undefined",
                         "-fno-sanitize-recover=all", "-fno-omit-frame-pointer", "-no-pie",
                         *[p.name for p in sorted(work.glob("*.c"))], "-lm", "-o", "oracle"],
                        work, logs, "build", 120, steps)

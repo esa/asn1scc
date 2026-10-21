@@ -447,10 +447,10 @@ def measure_unit(unit, args, run_dir):
                 rec["invalid_value_checks"] = harness_support("invalidValueHarness").prepare(work, unit["unit"], args)
             if args.check_invalid_streams:
                 rec["invalid_stream_checks"] = harness_support("invalidStreamHarness").prepare(work, unit["unit"], args)
-            if args.check_encode and not any("#ifdef ASN1SCC_CHECK_ENCODE" in p.read_text()
+            if args.check_encode and not any("&uncheckedStrm, &uncheckedError" in p.read_text()
                                              for p in work.glob("*_auto_tcs.c")):
                 raise StageError("compile", "Generated harness does not contain the checked/unchecked encode pilot")
-            cc = args.gcc + (" -DASN1SCC_CHECK_ENCODE" if args.check_encode else "")
+            cc = args.gcc
             if args.decode_stage != "baseline":
                 cc += " -DASN1SCC_DECODE_ACTUAL_LENGTH"
             run_step(["make", f"-j{args.jobs}", f"CC={cc}"], work, logs,

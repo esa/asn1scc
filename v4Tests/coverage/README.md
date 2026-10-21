@@ -1046,16 +1046,19 @@ Measure statements independently with the statement image and the all cohort:
 
 ## Bounded C encode pilot
 
-`--check-encode` enables `ASN1SCC_CHECK_ENCODE` when compiling the generated C
-harness. After each successful checked binary encode, the harness encodes the
+Since coverage step 11a the generated C harness always runs this check (the
+`ASN1SCC_CHECK_ENCODE` guard was removed); `--check-encode` now only requires that
+every unchecked encode call site was executed. After each successful checked
+binary encode, the harness encodes the
 same valid value with constraint checking disabled, into a separate buffer of
 the same capacity. It requires a true return value, error zero, identical byte/bit
 cursors and identical encoded bits. Unused low bits of the final byte are not
 compared.
 The original checked stream is retained for the ordinary round trip.
 Error stage 5 identifies an unchecked-encode failure or mismatch. XER keeps its
-ordinary harness. The option is off by default and is rejected for Ada and
-historical comparison; pilot runs cannot be exported as standard references.
+ordinary harness. The option is rejected for Ada and historical comparison;
+pilot runs cannot be exported as standard references. The paired pilot below
+predates step 11a: both of its modes now run the unchecked encode.
 
 Run the bounded comparison (three directives, each in uPER, legacy ACN and
 ACN-v2, with checking enabled only versus both modes):

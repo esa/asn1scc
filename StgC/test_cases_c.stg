@@ -74,8 +74,9 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
 ret = <sFuncName>(<sVal>, &bitStrm, pErrCode, TRUE);
 *pErrCode = (ret && *pErrCode ==0) ? 0 : 1;
 ret = *pErrCode == 0; /* a function that succeeds must not report an error */
-#ifdef ASN1SCC_CHECK_ENCODE
-/* Compare only valid checked encodes, retaining their stream for the round trip. */
+/* Encode the valid value again without the constraint check (bCheckConstraints = FALSE):
+   the output must be identical. Compare only valid checked encodes, retaining their stream
+   for the round trip. */
 if (ret) {
     static byte uncheckedBuff[sizeof encBuff];
     BitStream uncheckedStrm;
@@ -95,7 +96,6 @@ if (ret) {
     }
     *pErrCode = ret ? 0 : 5;
 }
-#endif
 >>
 
 Codec_Encode_XER(sModName, sFuncName, sVal, sTasName) ::= <<
