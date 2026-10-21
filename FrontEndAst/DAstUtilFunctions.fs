@@ -1053,6 +1053,40 @@ let nestItemsByOutcome (lm:LanguageMacros) (children: (string * DecodeOutcome) l
     printChildren children
 
 
+/// Coverage step 12a: the encoder of a type whose IsConstraintValid cannot fail (11b outcome AlwaysValid) does not
+/// call it; the template emits a comment instead of the call and its check. Decoders are unchanged.
+let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) : bool =
+    let alwaysValid =
+        match isValidFunc with
+        | Some {funcName = Some _; outcome = AlwaysValid}  -> true
+        | Some {funcName = Some _; outcome = MayBeInvalid}
+        | Some {funcName = None}
+        | None                                             -> false
+    // The merged type of a reference with constraints at the site (ByteFlags ::= BitFlags (SIZE(8))) can lend its
+    // encoder to the type assignment (DAstUPer.createReferenceFunction when the encodings differ), but the
+    // IsConstraintValid emitted under that name is the reference's, which calls the wider referenced type's
+    // function: the merged type's outcome says nothing about it (as for 11b's referencedNotCalled).
+    let outcomeIsTheCalledFunctions =
+        match t.inheritInfo with
+        | Some {hasAdditionalConstraints = true}   -> false
+        | Some {hasAdditionalConstraints = false}
+        | None                                     -> true
+    // (a variable-size OCTET / BIT STRING encoding starts with its own length check, which sets result)
+    let encodingWritesNoResult =
+        match t.Kind with
+        | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
+        | Asn1AcnAst.NullType _ | Asn1AcnAst.TimeType _ | Asn1AcnAst.Boolean _ | Asn1AcnAst.Enumerated _
+        | Asn1AcnAst.ObjectIdentifier _                                                        -> true
+        | Asn1AcnAst.OctetString o                                                             -> o.isFixedSize
+        | Asn1AcnAst.BitString o                                                               -> o.isFixedSize
+        | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.ReferenceType _ -> false
+    match codec, lm.lg.encoderValidationModel with
+    | CommonTypes.Encode, EncodersSkipAlwaysValid           -> alwaysValid && outcomeIsTheCalledFunctions
+    | CommonTypes.Encode, EncodersSkipAlwaysValidPrimitives -> alwaysValid && outcomeIsTheCalledFunctions && encodingWritesNoResult
+    | CommonTypes.Encode, EncodersCallEveryValidation
+    | CommonTypes.Decode, _                                 -> false
+
+
 let nestItems_ret (lm:LanguageMacros) children =
     nestItems  lm.isvalid.JoinTwoIfFirstOk children
 

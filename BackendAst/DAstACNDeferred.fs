@@ -1146,6 +1146,7 @@ let private emitSpecializedFunctionDecl
             true  // bDeferredSpecialization: callers use the specialized body directly
             false // bAlwaysSucceeds: a type with deferred determinants is MayFail (DecodeOutcome.acn)
             bValInOut
+            (DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t) // coverage step 12a
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 

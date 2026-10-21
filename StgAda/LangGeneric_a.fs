@@ -502,6 +502,8 @@ type LangGeneric_a() =
         override _.decodeReadFailureModel = ReadsCannotFail
         // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.
         override _.typedefConstraintModel = TypedefsEnforceRanges
+        // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
+        override _.encoderValidationModel = EncodersSkipAlwaysValidPrimitives
         override _.atcEmitsConstraintViolationTests = true
 
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =

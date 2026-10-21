@@ -892,6 +892,8 @@ type LangGeneric_c() =
 
         override _.acnDeferredTempVarName baseName = "_" + baseName
         override _.atcEmitsInvalidValueTests = true
+        // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
+        override _.encoderValidationModel = EncodersSkipAlwaysValid
         override _.atcEmitsConstraintViolationTests = true
         override _.atcEmitsInvalidStreamTests = true
         override _.atcInvalidStreamCodeOutsideItemRange = true

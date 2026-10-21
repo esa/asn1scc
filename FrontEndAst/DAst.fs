@@ -418,6 +418,16 @@ type ValidationOutcome =
     | AlwaysValid       // no check, or only checks that the language type already enforces
     | MayBeInvalid
 
+/// Whether a type's encoder calls its IsConstraintValid when that function cannot fail (coverage step 12a): C and
+/// Ada skip the call and its check (a comment says why); Scala, Python and Rust keep it.
+type EncoderValidationModel =
+    | EncodersCallEveryValidation
+    | EncodersSkipAlwaysValid               // C: ret is TRUE until a part sets it
+    // Ada: without the call the encoder starts with result := (True, 0), an unused assignment (gnatprove flow) when
+    // the first part of the body writes result. Until the parts carry their outcome (step 12b) only types whose
+    // encoding writes no result (no SEQUENCE / SEQUENCE OF / CHOICE / reference) skip the call.
+    | EncodersSkipAlwaysValidPrimitives
+
 type IsValidFunction = {
     errCodes            : ErrorCode list
     funcName            : string option               // the name of the function. Valid only for TASes)

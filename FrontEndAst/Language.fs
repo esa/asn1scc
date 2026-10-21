@@ -805,6 +805,11 @@ type ILangGeneric () =
     abstract member keepsUncalledChildValidators : bool
     default _.keepsUncalledChildValidators = false
 
+    /// Whether an encoder calls its type's IsConstraintValid when that function is AlwaysValid (see
+    /// EncoderValidationModel; coverage step 12a).
+    abstract member encoderValidationModel : EncoderValidationModel
+    default _.encoderValidationModel = EncodersCallEveryValidation
+
     /// Whether the typedefs enforce the range constraints of their type (see TypedefConstraintModel). With
     /// TypedefsEnforceRanges IsConstraintValid replaces such a check by a pragma Assert (coverage step 11b).
     abstract member typedefConstraintModel : TypedefConstraintModel

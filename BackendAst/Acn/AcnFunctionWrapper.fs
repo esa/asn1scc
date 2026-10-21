@@ -82,6 +82,8 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
     let nMinBytesInACN = BigInteger (ceil ((double t.acnMinSizeInBits)/8.0))
     let soInitFuncName = lm.lg.getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
+    // coverage step 12a: an encoder does not call a validity function that cannot fail
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec isValidFunc t
     let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
@@ -222,7 +224,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     match content with
                     | None ->
                         let emptyStatement = lm.lg.emptyStatement
-                        emptyStatement, [], [], true, isValidFuncName.IsNone, [], [], zeroBitIcdResult ()
+                        emptyStatement, [], [], true, isValidFuncName.IsNone || bValidityCannotFail, [], [], zeroBitIcdResult ()
                     | Some bodyResult ->
                         // Same zero-bit fallback as the inline branch above: a body
                         // without icdResult comes from the align-to-next/save-position
@@ -240,7 +242,9 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                             | Decode, ReadsCannotFail
                             | Decode, ReadsCanFail
                             | Encode, _                 -> bodyResult.funcBody
-                        body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
+                        // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
+                        let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
+                        body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
 
                 let handleAcnParameter (p:AcnParameter) =
                     let intType  = lm.typeDef.Declare_Integer ()
@@ -292,7 +296,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         prms @ extraPrms, prmNames @ extraNames
                     else
                         prms, prmNames
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
 
                 let errCodStr =
                     errCodes |>

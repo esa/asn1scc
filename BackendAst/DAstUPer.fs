@@ -117,6 +117,8 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
+    // coverage step 12a: an encoder does not call a validity function that cannot fail
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec isValidFunc t
     let func, funcDef, auxiliaries,ns2 =
             match funcName  with
             | None              -> None, None, [], ns
@@ -136,7 +138,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                     match content with
                     | None              ->
                         let emptyStatement = lm.lg.emptyStatement
-                        emptyStatement, [], [], true, isValidFuncName.IsNone, []
+                        emptyStatement, [], [], true, isValidFuncName.IsNone || bValidityCannotFail, []
                     | Some bodyResult   ->
                         let body =
                             match codec, lm.lg.decodeReadFailureModel with
@@ -145,11 +147,13 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                             | Decode, ReadsCannotFail
                             | Decode, ReadsCanFail
                             | Encode, _                 -> bodyResult.funcBody
-                        body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced, bodyResult.auxiliaries
+                        // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
+                        let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
+                        body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.auxiliaries
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let precondAnnots = lm.lg.generatePrecond r UPER t codec
                 let postcondAnnots = lm.lg.generatePostcond r UPER p t codec
-                let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) codec)
+                let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
 
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue) x.fieldPath)
                 let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) (bValInOut && not bVarNameIsUnreferenced) codec)
@@ -248,7 +252,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         | Encode, _                             -> None
     let IntBod (uperRange: uperRange<BigInteger>) (extCon: bool) : string * bool * bool * Asn1IntegerEncodingType option =
         match uperRange, fullRange with
-        | Concrete (min, max), _ when min=max -> IntNoneRequired (lm.lg.getValue p.accessPath) (lm.lg.intValueToString min intClass) errCode.errCodeName sType codec, codec=Decode, true, None
+        | Concrete (min, max), _ when min=max -> IntNoneRequired (lm.lg.getValue p.accessPath) (lm.lg.intValueToString min intClass) errCode.errCodeName sType codec, true, true, None
         | Concrete (min, max), Some fr when intClass.IsPositive && (not extCon) -> lm.uper.IntFullyConstraintPos_fullRange pp min fr.nBits suffix, false, false, Some (FullyConstrainedPositive (min, max))
         | Concrete (min, max), Some fr when (not extCon) -> lm.uper.IntFullyConstraint_fullRange pp min fr.nBits suffix, false, false, Some (FullyConstrained (min, max))
         | Concrete (min, max), _ when intClass.IsPositive && (not extCon) -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName rangeAssert sType codec, false, false, Some (FullyConstrainedPositive (min, max))
