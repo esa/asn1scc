@@ -810,6 +810,16 @@ type ILangGeneric () =
     abstract member encoderValidationModel : EncoderValidationModel
     default _.encoderValidationModel = EncodersCallEveryValidation
 
+    /// What an encode template writes to ret / result and whether it can fail (coverage step 12b, EncodeTemplate).
+    /// Unknown everywhere by default: the parts keep their checks (Scala, Python, Rust output unchanged).
+    abstract member encodeTemplateOutcome : EncodeTemplate -> EncodeOutcome
+    default _.encodeTemplateOutcome _ = EncodeOutcome.unknown
+
+    /// Whether the call of a child's encoder validates the child again (Ada: T_Encode_aux calls IsConstraintValid
+    /// unless 12a skipped it; C passes bCheckConstraints = FALSE), so that the call can fail on its validity check.
+    abstract member encodeCallValidates : bool
+    default _.encodeCallValidates = true
+
     /// Whether the typedefs enforce the range constraints of their type (see TypedefConstraintModel). With
     /// TypedefsEnforceRanges IsConstraintValid replaces such a check by a pragma Assert (coverage step 11b).
     abstract member typedefConstraintModel : TypedefConstraintModel

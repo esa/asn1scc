@@ -1053,9 +1053,23 @@ let nestItemsByOutcome (lm:LanguageMacros) (children: (string * DecodeOutcome) l
     printChildren children
 
 
+/// Coverage step 12b: the outcome of an encode part (decode bodies: unknown, not used).
+let encodeOutcomeOf (codec:CommonTypes.Codec) (o:EncodeOutcome) : EncodeOutcome =
+    match codec with
+    | CommonTypes.Encode -> o
+    | CommonTypes.Decode -> EncodeOutcome.unknown
+
+/// Coverage step 12b: what a call of the encoder sFuncName does (recorded when the type assignment's encoder was
+/// created; unknown when it was not).
+let encodeCallOutcome (us:State) (codec:CommonTypes.Codec) (sFuncName:string) : EncodeOutcome =
+    match codec, us.encodeCallOutcomes.TryFind sFuncName with
+    | CommonTypes.Encode, Some o    -> o
+    | CommonTypes.Encode, None
+    | CommonTypes.Decode, _         -> EncodeOutcome.unknown
+
 /// Coverage step 12a: the encoder of a type whose IsConstraintValid cannot fail (11b outcome AlwaysValid) does not
 /// call it; the template emits a comment instead of the call and its check. Decoders are unchanged.
-let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) : bool =
+let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) (bodyOutcome:EncodeOutcome) : bool =
     let alwaysValid =
         match isValidFunc with
         | Some {funcName = Some _; outcome = AlwaysValid}  -> true
@@ -1075,7 +1089,8 @@ let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isVali
         | Some {hasAdditionalConstraints = true}   -> false
         | Some {hasAdditionalConstraints = false}
         | None                                     -> true
-    // (a variable-size OCTET / BIT STRING encoding starts with its own length check, which sets result)
+    // (a variable-size OCTET / BIT STRING encoding starts with its own length check, which sets result); since 12b
+    // also any body whose writes are known: the encoder initialises result only where the body needs it
     let encodingWritesNoResult =
         match t.Kind with
         | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
@@ -1084,12 +1099,39 @@ let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isVali
         | Asn1AcnAst.OctetString o                                                             -> o.isFixedSize
         | Asn1AcnAst.BitString o                                                               -> o.isFixedSize
         | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.ReferenceType _ -> false
+    let bodyWritesKnown = bodyOutcome.writes <> WritesUnknown
     match codec, lm.lg.encoderValidationModel with
     | CommonTypes.Encode, EncodersSkipAlwaysValid           -> alwaysValid && outcomeIsTheCalledFunctions
-    | CommonTypes.Encode, EncodersSkipAlwaysValidPrimitives -> alwaysValid && outcomeIsTheCalledFunctions && encodingWritesNoResult
+    | CommonTypes.Encode, EncodersSkipAlwaysValidPrimitives -> alwaysValid && outcomeIsTheCalledFunctions && (encodingWritesNoResult || bodyWritesKnown)
     | CommonTypes.Encode, EncodersCallEveryValidation
     | CommonTypes.Decode, _                                 -> false
 
+
+/// nestItems for encode parts whose outcome is known (coverage step 12b): after a part that may fail the rest is
+/// nested under the check (JoinItems2); after a part that cannot fail and writes the result, C has no check and Ada
+/// asserts it (JoinItemsCannotFail, whose comment names the encoder the part calls); after a part that does not
+/// write the result, no check (JoinItemsNoWrite; only the first such join of the body carries a comment).
+let nestEncodeParts (lm:LanguageMacros) (parts: (string * EncodeOutcome) list) : string option =
+    let parts = List.toArray parts
+    let hasContentAfter i = parts |> Array.skip (i + 1) |> Array.exists (fun (s, _) -> not (String.IsNullOrWhiteSpace s))
+    let firstNoWriteJoin =
+        parts |> Array.tryFindIndex (fun (_, o) -> not o.canFail && o.writes = NoWrite) |>
+        Option.filter hasContentAfter
+    let rec printFrom i : string option =
+        match i < parts.Length with
+        | false -> None
+        | true  ->
+            let content, o = parts.[i]
+            match printFrom (i + 1) with
+            | None                                                          -> Some content
+            | Some sNested when String.IsNullOrWhiteSpace sNested           -> Some content
+            | Some sNested ->
+                match o.canFail, o.writes with
+                | true, _       -> Some (lm.isvalid.JoinItems2 content sNested)
+                | false, NoWrite -> Some (lm.isvalid.JoinItemsNoWrite content sNested (firstNoWriteJoin = Some i))
+                | false, (AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown) ->
+                    Some (lm.isvalid.JoinItemsCannotFail content sNested o.callee)
+    printFrom 0
 
 let nestItems_ret (lm:LanguageMacros) children =
     nestItems  lm.isvalid.JoinTwoIfFirstOk children

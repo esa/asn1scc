@@ -894,6 +894,23 @@ type LangGeneric_c() =
         override _.atcEmitsInvalidValueTests = true
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValid
+        // What the C encode templates write to ret (coverage step 12b; checked by step12/tools/gate12b.py).
+        override _.encodeTemplateOutcome t =
+            match t with
+            | EncRtlWritesOnly | EncPresenceBits | EncBitStringFixedSize | EncBitStringVarSize | EncStringFixedSize
+            | EncStringVarSize | EncSequenceOfFixedSize | EncSequenceOfVarSize | EncFragmentation
+            | EncSequenceOfOtherLoop | EncLoopWithoutInvariant  -> EncodeOutcome.noWrite
+            // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid value (coverage step 12d)
+            | EncEnumerated                                     -> {canFail = true; writes = SometimesWrites; callee = None}
+            // BitStream_EncodeOctetString_no_length returns FALSE for a buffer too short (left open, step 12 Q6)
+            | EncOctetStringFixedSize | EncOctetStringVarSize
+            | EncOctetStringNoLength                            -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncPresentWhenCheck | EncDeferredPatch
+            | EncChoiceAbsentArm                                -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid selector (coverage step 12d)
+            | EncChoiceDefaultArm                               -> {canFail = true; writes = SometimesWrites; callee = None}
+        // a parent calls its children's encoders with bCheckConstraints = FALSE
+        override _.encodeCallValidates = false
         override _.atcEmitsConstraintViolationTests = true
         override _.atcEmitsInvalidStreamTests = true
         override _.atcInvalidStreamCodeOutsideItemRange = true

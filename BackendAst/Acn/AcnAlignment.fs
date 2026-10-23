@@ -34,7 +34,7 @@ let handleSavePosition (funcBody: FuncBody)
                     Some {bodyResult with funcBody  = funcBodyStr}
                 | None              ->
                     let funcBodyStr = savePositionStatement
-                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; auxiliaries = []; icdResult = None }
+                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; auxiliaries = []; icdResult = None; encOutcome = EncodeOutcome.unknown }
             newContent, ns1a
         newFuncBody
 
@@ -130,7 +130,7 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
                     // icdResult stays None here and AcnFunctionWrapper synthesizes
                     // the 0-bit row (zeroBitIcdResult) and prepends the padding row
                     // via prependAlignmentPaddingRow, so the type keeps its ICD row.
-                    Some {funcBody = funcBodyStr; errCodes =[errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; auxiliaries = []; icdResult=None}
+                    Some {funcBody = funcBodyStr; errCodes =[errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; auxiliaries = []; icdResult=None; encOutcome = EncodeOutcome.unknown}
             newContent, ns1a
         newFuncBody
 
@@ -164,6 +164,6 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
                     let paddingOnlyIcd =
                         let rowsFunc _ sPresent _ = [icdPaddingRow al sPresent], []
                         Some {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = "NULL"; rowsFunc = rowsFunc; commentsForTas = []; scope = "type"; name = None}
-                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; auxiliaries = []; icdResult= paddingOnlyIcd}
+                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= true; bBsIsUnReferenced=false; resultExpr = None; auxiliaries = []; icdResult= paddingOnlyIcd; encOutcome = EncodeOutcome.unknown}
             newContent
         newFuncBody

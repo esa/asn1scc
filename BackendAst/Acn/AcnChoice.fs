@@ -254,7 +254,15 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 match child.Optionality with
                 | Some ChoiceAlwaysAbsent           -> []
                 | Some ChoiceAlwaysPresent | None   -> childContent_localVariables
-            [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries; hasContent=childContentResult.IsSome|}], ns1
+            // coverage step 12b: the arm (the index of the uPER-like encoding, then the child)
+            let armOutcome =
+                let childOutcome = childContentResult |> Option.map (fun c -> c.encOutcome) |> Option.defaultValue EncodeOutcome.noWrite
+                match child.Optionality, ec with
+                | Some ChoiceAlwaysAbsent, _                    -> lm.lg.encodeTemplateOutcome EncChoiceAbsentArm
+                | (Some ChoiceAlwaysPresent | None), CEC_uper   -> EncodeOutcome.sequence [lm.lg.encodeTemplateOutcome EncRtlWritesOnly; childOutcome]
+                | (Some ChoiceAlwaysPresent | None), CEC_enum _
+                | (Some ChoiceAlwaysPresent | None), CEC_presWhen -> childOutcome
+            [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries; hasContent=childContentResult.IsSome; encOutcome=armOutcome|}], ns1
 
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us
         let childrenStatements0 = childrenStatements00 |> List.collect id
@@ -292,7 +300,10 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             | CEC_presWhen    -> choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
         let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.accessPath codec
-        Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; userDefinedFunctions=childrenUserDefFuncs; bValIsUnReferenced=false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd}), ns
+        // coverage step 12b: one arm runs, then (C) the default arm of an invalid selector
+        let encOutcome =
+            encodeOutcomeOf codec (EncodeOutcome.sequence [EncodeOutcome.alternatives true (childrenStatements0 |> List.map (fun s -> s.encOutcome)); lm.lg.encodeTemplateOutcome EncChoiceDefaultArm])
+        Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; userDefinedFunctions=childrenUserDefFuncs; bValIsUnReferenced=false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd; encOutcome = encOutcome}), ns
 
 
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)

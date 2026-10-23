@@ -58,7 +58,6 @@ begin
     <if(soIValidFuncName)>
     <if(bValidityCannotFail)>
     -- no validity check: <soIValidFuncName> cannot fail for any value of this type
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
     <else>
     result := <soIValidFuncName>(<sVarName>);
@@ -67,7 +66,6 @@ begin
     end if;
     <endif>
     <else>
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
     <endif>
 end <sFuncName>_aux;

@@ -430,7 +430,7 @@ let private createDeferredSequenceFunction
                                         resultExpr = None
                                         auxiliaries = []
                                         icdResult = originalIcd
-                                        userDefinedFunctions = []
+                                        userDefinedFunctions = []; encOutcome = EncodeOutcome.unknown
                                     }
                                 | CommonTypes.Codec.Decode ->
                                     // Keep original decode funcBody but redirect
@@ -849,7 +849,7 @@ let private emptyBody (lm: LanguageMacros) : AcnFuncBodyResult =
         resultExpr = None
         auxiliaries = []
         icdResult = None
-        userDefinedFunctions = [] }
+        userDefinedFunctions = []; encOutcome = EncodeOutcome.unknown }
 
 
 // Constants threaded across the 7 createDeferredReferenceFunction helpers.
@@ -1126,14 +1126,21 @@ let private emitSpecializedFunctionDecl
         | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite ctx.r ctx.lm ctx.o.resolvedType) soValInitFuncName && not bVarNameIsUnreferenced
         | Encode -> false
 
+    // coverage step 12a / 12b: as AcnFunctionWrapper.createAcnFunction
+    let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t bodyOutcome
+    let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
     // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
     let specBodyContent =
         match ctx.codec, ctx.lm.lg.decodeReadFailureModel with
         | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit ctx.r ctx.lm ctx.o.resolvedType ->
             ctx.lm.uper.decode_result_init () + "\n" + finalBody.funcBody
         | Decode, ReadsCannotFail
-        | Decode, ReadsCanFail
-        | Encode, _ -> finalBody.funcBody
+        | Decode, ReadsCanFail -> finalBody.funcBody
+        | Encode, _ ->
+            match bValidityCalled, bodyOutcome.writes, ctx.lm.uper.decode_result_init () with
+            | false, (NoWrite | SometimesWrites | ReadsFirst | WritesUnknown), sInit when sInit <> "" -> sInit + "\n" + finalBody.funcBody
+            | _ -> finalBody.funcBody
     let specFuncBody =
         ctx.lm.acn.EmitTypeAssignment_primitive
             varName sStar specFuncName isValidFuncName typeDefinitionName
@@ -1146,7 +1153,7 @@ let private emitSpecializedFunctionDecl
             true  // bDeferredSpecialization: callers use the specialized body directly
             false // bAlwaysSucceeds: a type with deferred determinants is MayFail (DecodeOutcome.acn)
             bValInOut
-            (DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t) // coverage step 12a
+            bValidityCannotFail // coverage step 12a
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 
@@ -1286,7 +1293,7 @@ let private buildCallerWrapper
                bBsIsUnReferenced = false
                resultExpr = resultExpr
                auxiliaries = allAuxiliaries
-               icdResult = ctx.refIcd}), callerUs
+               icdResult = ctx.refIcd; encOutcome = EncodeOutcome.unknown}), callerUs
 
     // Record the function-call dependency (caller → callee)
     let ns3 =
@@ -1354,21 +1361,21 @@ let private createDeferredReferenceFunction
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInOctString ->
                 Some (makeContainingFuncBody (fun pp fncName _ ->
                     let fncBody = lm.acn.octet_string_containing_deferred_fixed_func pp fncName codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = EncodeOutcome.unknown}), us))
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInOctString ->
                 Some (makeContainingFuncBody (fun pp fncName errCode ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
                     let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType) codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = EncodeOutcome.unknown}), us))
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInBitString ->
                 Some (makeContainingFuncBody (fun pp fncName _ ->
                     let fncBody = lm.acn.bit_string_containing_deferred_fixed_func pp fncName codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = EncodeOutcome.unknown}), us))
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInBitString ->
                 Some (makeContainingFuncBody (fun pp fncName errCode ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
                     let fncBody = lm.acn.bit_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd}), us))
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = EncodeOutcome.unknown}), us))
             | _ when not isContainingExternalField ->
                 Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
             | _ -> None  // ExternalField with params → specialized function below
@@ -1483,7 +1490,16 @@ let private createDeferredReferenceFunction
                 let body =
                     appendPatchDetCalls ctx specP
                         isContainingExternalField (not baseAcnFunc.funcName.IsNone) bodyResult.funcBody
-                { bodyResult with funcBody = body }
+                // coverage step 12b: the PatchDet calls follow the body without a check and write the result (they
+                // may fail), so the body's writes before them are overwritten
+                let encOutcome =
+                    let patch = ctx.lm.lg.encodeTemplateOutcome EncDeferredPatch
+                    let b = bodyResult.encOutcome
+                    match body = bodyResult.funcBody, b.writes, patch.writes with
+                    | true, _, _                                                    -> b
+                    | false, (NoWrite | SometimesWrites | AlwaysWrites), AlwaysWrites -> {canFail = true; writes = AlwaysWrites; callee = None}
+                    | false, _, _                                                   -> {canFail = true; writes = (if b.writes = ReadsFirst && patch.writes = AlwaysWrites then ReadsFirst else WritesUnknown); callee = None}
+                { bodyResult with funcBody = body; encOutcome = encOutcome }
 
             // Step 3: build the specialized function's deferred formal params.
             let deferredFormalParams, deferredParamNames =

@@ -137,6 +137,108 @@ type Callee = {
     funcType : FunctionType
 }
 
+/// How an encode part writes ret / result (coverage step 12b). The Ada encoder initialises result only when its body
+/// does not write it on every path before reading it (else gnatprove reports an unused assignment).
+type ResultWrites =
+    | NoWrite           // RTL procedures only
+    | AlwaysWrites      // writes result on every path before any read of it
+    | SometimesWrites   // writes it on some paths only (OPTIONAL child, loop that may run zero times), reads it nowhere
+    | ReadsFirst        // may read result before writing it (a check after a part that may not have written it)
+    | WritesUnknown     // not classified: the encoder keeps its validity call and initialisation (as before 12b)
+
+/// What an encode part does (coverage step 12b, DAstUtilFunctions.nestEncodeParts): whether it can return FALSE / a
+/// failed result for a valid value and a buffer of REQUIRED_BYTES, and how it writes the result. Set where the part's
+/// template is chosen (ILangGeneric.encodeTemplateOutcome: what a template writes depends on the language); callee:
+/// the encoder the part calls, named in the comment that replaces the check after it.
+type EncodeOutcome = {
+    canFail : bool
+    writes  : ResultWrites
+    callee  : string option
+}
+
+[<RequireQualifiedAccess>]
+module EncodeOutcome =
+    /// A part that is not classified: may fail, writes unknown (the code around it is unchanged).
+    let unknown = {canFail = true; writes = WritesUnknown; callee = None}
+    /// RTL procedures only: cannot fail, no write.
+    let noWrite = {canFail = false; writes = NoWrite; callee = None}
+    /// A call of an encoder, which sets ret / result on every path.
+    let call (sFuncName:string) (canFail:bool) = {canFail = canFail; writes = AlwaysWrites; callee = Some sFuncName}
+
+    /// part a, then part b. The join after a part that writes reads the result (the check, or the Ada assertion after
+    /// a part that cannot fail), so after a part that writes on some paths only, b starts with a read.
+    let seq2 (a:EncodeOutcome) (b:EncodeOutcome) : EncodeOutcome =
+        let writes =
+            match a.writes, b.writes with
+            | WritesUnknown, _ | _, WritesUnknown    -> WritesUnknown
+            | AlwaysWrites, _                        -> AlwaysWrites
+            | ReadsFirst, _                          -> ReadsFirst
+            | SometimesWrites, _                     -> ReadsFirst
+            | NoWrite, w                             -> w
+        {canFail = a.canFail || b.canFail; writes = writes; callee = None}
+
+    /// The parts of a body in order; no part: noWrite.
+    let sequence (parts:EncodeOutcome list) : EncodeOutcome =
+        match List.rev parts with
+        | []        -> noWrite
+        | x::xs     -> xs |> List.fold (fun acc a -> seq2 a acc) x
+
+    /// A part that runs on some paths only (OPTIONAL child, loop body that may run zero times).
+    let conditional (a:EncodeOutcome) : EncodeOutcome =
+        let writes =
+            match a.writes with
+            | NoWrite                       -> NoWrite
+            | AlwaysWrites | SometimesWrites -> SometimesWrites
+            | ReadsFirst                    -> ReadsFirst
+            | WritesUnknown                 -> WritesUnknown
+        {a with writes = writes; callee = None}
+
+    /// The element of a loop (SEQUENCE OF): runs on some paths only; when it cannot fail and writes the result, the
+    /// Ada loop states pragma Loop_Invariant (result.Success), which reads it before the first element.
+    let loopElement (a:EncodeOutcome) : EncodeOutcome =
+        let c = conditional a
+        match a.canFail, a.writes with
+        | false, (AlwaysWrites | SometimesWrites | ReadsFirst) -> {c with writes = ReadsFirst}
+        | false, (NoWrite | WritesUnknown)
+        | true, _                                               -> c
+
+    /// One of several arms runs (CHOICE alternatives); bExhaustive: no path runs none of them.
+    let alternatives (bExhaustive:bool) (arms:EncodeOutcome list) : EncodeOutcome =
+        let all = if bExhaustive then arms else noWrite::arms
+        let writes =
+            match all with
+            | _ when all |> List.exists (fun a -> a.writes = WritesUnknown)  -> WritesUnknown
+            | _ when all |> List.exists (fun a -> a.writes = ReadsFirst)     -> ReadsFirst
+            | _ when all |> List.forall (fun a -> a.writes = AlwaysWrites)   -> AlwaysWrites
+            | _ when all |> List.forall (fun a -> a.writes = NoWrite)        -> NoWrite
+            | _                                                             -> SometimesWrites
+        {canFail = all |> List.exists (fun a -> a.canFail); writes = writes; callee = None}
+
+/// The encode templates whose writes to ret / result differ between languages (coverage step 12b): the part of the
+/// template itself, without the parts nested in it (elements, children). ILangGeneric.encodeTemplateOutcome maps
+/// each to what its text writes.
+type EncodeTemplate =
+    | EncRtlWritesOnly          // INTEGER, REAL, BOOLEAN, NULL, OBJECT IDENTIFIER, TIME (uPER): RTL writes
+    | EncPresenceBits           // the presence bits of a SEQUENCE
+    | EncEnumerated             // the value -> index / encoded value map
+    | EncOctetStringFixedSize
+    | EncOctetStringVarSize     // incl. the length
+    | EncOctetStringNoLength    // ACN: the bytes of an external-field / deduced size (C: the RTL call returns a flag)
+    | EncBitStringFixedSize
+    | EncBitStringVarSize
+    | EncStringFixedSize        // IA5String, NumericString
+    | EncStringVarSize
+    | EncSequenceOfFixedSize    // the loop, without the element
+    | EncSequenceOfVarSize      // the length and the loop, without the element
+    | EncFragmentation          // uPER fragmented SEQUENCE OF / OCTET / BIT STRING / IA5String, without the element
+    | EncSequenceOfOtherLoop    // ACN external-field / null-terminated / deduced SEQUENCE OF, without the element
+    | EncLoopWithoutInvariant   // such a loop whose element writes result: Ada has no loop invariant on result there, so
+                                // gnatprove could not prove an encoder's Post => result.Success after the loop
+    | EncPresentWhenCheck       // ACN: the presence flag of an OPTIONAL child must match its present-when expression
+    | EncChoiceDefaultArm       // CHOICE: the arm of a selector without alternative (C: defensive default, ret = FALSE)
+    | EncChoiceAbsentArm        // ACN CHOICE: the arm of an ALWAYS ABSENT alternative (writes a failure)
+    | EncDeferredPatch          // --acn-v2: the PatchDet calls after a specialised body (write result, may fail)
+
 type State = {
     currErrorCode   : int
     curErrCodeNames : Set<String>
@@ -155,10 +257,14 @@ type State = {
     // This map helps identify functions called by PDU types recursively.
     // Functions not called by PDU types recursively will not be generated.
     functionCalls : Map<Caller, Callee list>
+    // coverage step 12b: what a call of a type assignment's encoder does, by function name (uPER and ACN), so that
+    // the parent's join after the call knows whether it can fail. sortTypes creates the referenced type assignments
+    // first; a function that is not in the map is EncodeOutcome.unknown.
+    encodeCallOutcomes : Map<string, EncodeOutcome>
 }
 
 
-let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty}
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty}
 
 /// Parent context passed from the fold's pre-functions to child callbacks.
 /// Allows seqAcnChildFunc to know about the parent SEQUENCE's deferred children.
@@ -423,9 +529,9 @@ type ValidationOutcome =
 type EncoderValidationModel =
     | EncodersCallEveryValidation
     | EncodersSkipAlwaysValid               // C: ret is TRUE until a part sets it
-    // Ada: without the call the encoder starts with result := (True, 0), an unused assignment (gnatprove flow) when
-    // the first part of the body writes result. Until the parts carry their outcome (step 12b) only types whose
-    // encoding writes no result (no SEQUENCE / SEQUENCE OF / CHOICE / reference) skip the call.
+    // Ada: without the call the encoder initialises result only where its body needs it (step 12b: the body's
+    // EncodeOutcome.writes), so a body whose writes are not classified (a CHOICE, CONTAINING, ACN inserted fields)
+    // keeps the call; primitives skip it as in 12a.
     | EncodersSkipAlwaysValidPrimitives
 
 type IsValidFunction = {
@@ -545,6 +651,7 @@ type UPERFuncBodyResult = {
     bBsIsUnReferenced   : bool
     resultExpr          : string option
     auxiliaries         : string list
+    encOutcome          : EncodeOutcome     // encode only (coverage step 12b); decode bodies: EncodeOutcome.unknown
 }
 type UPerFunction = {
     funcName            : string option               // the name of the function
@@ -574,6 +681,7 @@ type AcnFuncBodyResult = {
     auxiliaries         : string list
     icdResult           : IcdArgAux option
     userDefinedFunctions : UserDefinedFunction list //a list of user defined functions prototypes used in this function body. Emitted at the begining of the source file
+    encOutcome          : EncodeOutcome     // encode only (coverage step 12b); decode bodies: EncodeOutcome.unknown
 }
 
 type XERFuncBodyResult = {

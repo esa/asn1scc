@@ -82,8 +82,6 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
     let nMinBytesInACN = BigInteger (ceil ((double t.acnMinSizeInBits)/8.0))
     let soInitFuncName = lm.lg.getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
-    // coverage step 12a: an encoder does not call a validity function that cannot fail
-    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec isValidFunc t
     let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
@@ -210,6 +208,34 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let precondAnnots = lm.lg.generatePrecond r ACN t codec
                 let postcondAnnots = lm.lg.generatePostcond r ACN p t codec
                 let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
+                // coverage step 12b: what the encoder's body does (an empty body writes nothing)
+                let bodyOutcome =
+                    match content with
+                    | Some c -> encodeOutcomeOf codec c.encOutcome
+                    | None   -> encodeOutcomeOf codec EncodeOutcome.noWrite
+                // coverage step 12a: an encoder does not call a validity function that cannot fail
+                let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec isValidFunc t bodyOutcome
+                let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
+                // coverage step 12b: an encoder that cannot fail states result.Success in its contract (Ada)
+                let soSparkAnnotations =
+                    match codec, bodyOutcome.canFail || bValidityCalled, soSparkAnnotations with
+                    | Encode, false, Some _ -> Some (lm.acn.sparkAnnotationsAlwaysSucceeds typeDefinitionName)
+                    | Encode, _, _
+                    | Decode, _, _          -> soSparkAnnotations
+                // coverage step 12b: without a validity call the Ada encoder initialises result before the body,
+                // unless the body writes it on every path before reading it (C: the macro is empty)
+                let withEncodeResultInit (body:string) =
+                    match codec, bValidityCalled, bodyOutcome.writes, lm.uper.decode_result_init () with
+                    | Encode, false, (NoWrite | SometimesWrites | ReadsFirst | WritesUnknown), sInit when sInit <> "" -> sInit + "\n" + body
+                    | Encode, _, _, _
+                    | Decode, _, _, _   -> body
+                // coverage step 12b: what a call of this encoder does, for the parents' joins
+                let ns1a =
+                    match codec with
+                    | Encode ->
+                        let callCanFail = bodyOutcome.canFail || (lm.lg.encodeCallValidates && bValidityCalled)
+                        {ns1a with encodeCallOutcomes = ns1a.encodeCallOutcomes.Add (funcName, EncodeOutcome.call funcName callCanFail)}
+                    | Decode -> ns1a
                 let sInitialExp =
                     // A null attribute disables the optional template initializer.
                     match content with
@@ -223,7 +249,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, udfcs, auxiliaries, icdResult =
                     match content with
                     | None ->
-                        let emptyStatement = lm.lg.emptyStatement
+                        let emptyStatement = withEncodeResultInit lm.lg.emptyStatement
                         emptyStatement, [], [], true, isValidFuncName.IsNone || bValidityCannotFail, [], [], zeroBitIcdResult ()
                     | Some bodyResult ->
                         // Same zero-bit fallback as the inline branch above: a body
@@ -240,8 +266,8 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                             | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit r lm t ->
                                 lm.uper.decode_result_init () + "\n" + bodyResult.funcBody
                             | Decode, ReadsCannotFail
-                            | Decode, ReadsCanFail
-                            | Encode, _                 -> bodyResult.funcBody
+                            | Decode, ReadsCanFail      -> bodyResult.funcBody
+                            | Encode, _                 -> withEncodeResultInit bodyResult.funcBody
                         // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
                         let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
                         body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult

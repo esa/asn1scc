@@ -504,6 +504,22 @@ type LangGeneric_a() =
         override _.typedefConstraintModel = TypedefsEnforceRanges
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValidPrimitives
+        // What the Ada encode templates write to result (coverage step 12b; gnatprove checks the assertions).
+        override _.encodeTemplateOutcome t =
+            match t with
+            | EncRtlWritesOnly | EncPresenceBits | EncEnumerated | EncOctetStringFixedSize | EncOctetStringNoLength | EncBitStringFixedSize
+            | EncStringFixedSize | EncSequenceOfFixedSize                           -> EncodeOutcome.noWrite
+            // the blocks are joined by checks of result before anything writes it
+            | EncFragmentation                                                      -> EncodeOutcome.unknown
+            | EncSequenceOfOtherLoop                                                -> EncodeOutcome.noWrite
+            // a loop without pragma Loop_Invariant (result.Success): the encoder could not prove Post => result.Success
+            | EncLoopWithoutInvariant                                               -> EncodeOutcome.unknown
+            // result.Success := Length >= min AND Length <= max (may become a pragma Assert later, as in 11b)
+            | EncOctetStringVarSize | EncBitStringVarSize | EncStringVarSize
+            | EncSequenceOfVarSize                                                  -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncPresentWhenCheck | EncDeferredPatch | EncChoiceAbsentArm           -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // an exhaustive case over the selector: no default arm
+            | EncChoiceDefaultArm                                                   -> EncodeOutcome.noWrite
         override _.atcEmitsConstraintViolationTests = true
 
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =

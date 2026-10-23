@@ -44,6 +44,7 @@ type private SequenceChildResult = {
     auxiliaries: string list
     icdResult : ((IcdRow list) * (IcdTypeAss list))
     bsReferenced: bool      // the child's code uses the bitstream (e.g. a call of a NULL type's codec)
+    encOutcome: EncodeOutcome   // coverage step 12b: the child's encode part (all its statements)
 } with
     member this.joinedBodies (lm:LanguageMacros) (codec:CommonTypes.Codec): string option =
         this.stmts |> List.choose (fun s -> s.body) |> nestChildItems lm codec
@@ -298,7 +299,22 @@ let private handleAsn1Child
         | Some AlwaysAbsent, _              -> false
         | _, Some childContent              -> not childContent.bBsIsUnReferenced
         | _, None                           -> false
-    let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult; bsReferenced=bsReferenced}
+    // coverage step 12b: the present-when check (encode), then the child on the paths where it is present
+    let encOutcome =
+        let presentWhenOutcome =
+            match presentWhenStmts, codec with
+            | Some _, Encode -> [lm.lg.encodeTemplateOutcome EncPresentWhenCheck]
+            | Some _, Decode
+            | None, _        -> []
+        let childOutcome =
+            match child.Optionality, childContentResult with
+            | _, None                           -> EncodeOutcome.noWrite
+            | Some AlwaysAbsent, Some _         -> EncodeOutcome.noWrite     // only the presence flag
+            | None, Some c
+            | Some AlwaysPresent, Some c        -> c.encOutcome
+            | Some (Optional _), Some c         -> EncodeOutcome.conditional c.encOutcome
+        encodeOutcomeOf codec (EncodeOutcome.sequence (presentWhenOutcome @ [childOutcome]))
+    let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult; bsReferenced=bsReferenced; encOutcome=encOutcome}
     let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
     res, newAcc
 
@@ -368,7 +384,8 @@ let private handleAcnChild
     // Note: uperMaxSizeBits and uperAccBits here do not make sense since we are in ACN
     let props = {info=childInfo.toAsn1AcnAst; sel=childP.accessPath; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
     let icdResult = ctx.icdAcnChild acnChild icdComments
-    let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult; bsReferenced=childEncDecStatement.IsSome}
+    // coverage step 12b: the determinant's update and its _is_initialized check are not classified (step 12c)
+    let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult; bsReferenced=childEncDecStatement.IsSome; encOutcome=EncodeOutcome.unknown}
     let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
     res, newAcc
 
@@ -668,6 +685,15 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             match codec, fallbackEpilogue with
             | Encode, Some makeCode -> [makeCode p]
             | _ -> []
+        // coverage step 12b: the outcome of each part of allStmts (presence bits, then one part per child)
+        let partEncOutcomes =
+            (presenceBits |> List.map (fun _ -> lm.lg.encodeTemplateOutcome EncPresenceBits)) @
+            (childrenStatements00 |> List.map (fun c -> c.encOutcome))
+        let bodyEncOutcome =
+            let present = List.zip allStmts partEncOutcomes |> List.choose (fun (stmt, o) -> stmt |> Option.map (fun _ -> o))
+            let before = saveInitialBitStrmStatements |> List.map (fun _ -> lm.lg.encodeTemplateOutcome EncRtlWritesOnly)
+            let after = (fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> List.map (fun _ -> EncodeOutcome.unknown)
+            encodeOutcomeOf codec (EncodeOutcome.sequence (before @ present @ after))
         let seqContent =
             match joinMode with
             | OutcomeJoins ->
@@ -686,6 +712,12 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 let before = saveInitialBitStrmStatements |> List.map (fun s -> s, MayFail)
                 let after = (fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> List.map (fun s -> s, MayFail)
                 (before @ parts @ after) |> nestItemsByOutcome lm
+            | CheckEveryPart when codec = Encode && lm.lg.encoderValidationModel <> EncodersCallEveryValidation ->
+                // coverage step 12b: no check after a part that cannot fail (DAstUtilFunctions.nestEncodeParts)
+                let parts = List.zip allStmts partEncOutcomes |> List.choose (fun (stmt, o) -> stmt |> Option.map (fun s -> s, o))
+                let before = saveInitialBitStrmStatements |> List.map (fun s -> s, lm.lg.encodeTemplateOutcome EncRtlWritesOnly)
+                let after = (fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> List.map (fun s -> s, EncodeOutcome.unknown)
+                (before @ parts @ after) |> nestEncodeParts lm
             | CheckEveryPart ->
                 (saveInitialBitStrmStatements@childrenStatements@fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
 
@@ -707,9 +739,9 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     match DAstUPer.decodeSequenceWithoutContent lm p asn1Children with
                     | None -> None, ns
                     | Some decodeEmptySeq ->
-                        Some ({AcnFuncBodyResult.funcBody = decodeEmptySeq; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=true; resultExpr=Some decodeEmptySeq; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
+                        Some ({AcnFuncBodyResult.funcBody = decodeEmptySeq; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=true; resultExpr=Some decodeEmptySeq; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd; encOutcome = EncodeOutcome.unknown}), ns
             | Some ret ->
-                Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I) && not (childrenStatements00 |> List.exists (fun s -> s.bsReferenced)); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd}), ns
+                Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I) && not (childrenStatements00 |> List.exists (fun s -> s.bsReferenced)); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd; encOutcome = bodyEncOutcome}), ns
 
         | errChild::_      ->
             raise(SemanticError(errChild.Name.Location, AcnClosureConversion.unusedAcnInsertedFieldMessage errChild.Name.Value errChild.Type))

@@ -39,7 +39,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | Decode, true -> lm.uper.octet_FixedSize_noCheck pp access o.minSize.acn
                     | Decode, false
                     | Encode, _    -> fixedSize sType pp access o.minSize.acn errCode.errCodeName codec
-                Some(fncBody, [errCode],[])
+                Some(fncBody, [errCode],[], EncOctetStringFixedSize)
 
             | SZ_EC_LENGTH_EMBEDDED lenSize ->
                 let fncBody = varSize sType pp access (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName codec
@@ -48,7 +48,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | Encode -> []
                     | Decode -> [lm.lg.uper.count_var]
 
-                Some(fncBody, [errCode],nStringLength)
+                Some(fncBody, [errCode],nStringLength, EncOctetStringVarSize)
             | SZ_EC_ExternalField _ ->
                 let extField = getExternalField lm r deps t.id
                 let tp = getExternalFieldType r deps t.id
@@ -67,7 +67,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     match o.isFixedSize with
                     | true  -> oct_external_field_fix_size sType pp access noSizeMin ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
                     | false -> oct_external_field sType pp access noSizeMin noSizeMax extField unsigned nAlignSize errCode.errCodeName codec
-                Some(fncBody, [errCode],[])
+                Some(fncBody, [errCode],[], EncOctetStringNoLength)
             | SZ_EC_TerminationPattern bitPattern  ->
                 let mod8 = bitPattern.Value.Length % 8
                 let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
@@ -80,20 +80,20 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     match codec, lm.lg.acn.checkBitPatternPresentResult with
                     | Decode, true    -> [IntegerLocalVariable ("checkBitPatternPresentResult", Some (lm.lg.intValueToString 0I (ASN1SCC_Int8 (-128I, 127I))))]
                     | _            -> []
-                Some(fncBody, [errCode],lv::lv2)
+                Some(fncBody, [errCode],lv::lv2, EncRtlWritesOnly)
             | SZ_EC_Deduced ->
                 let noSizeMin = if o.minSize.acn = 0I then None else Some o.minSize.acn
                 let fncBody = lm.acn.oct_deduced td pp access noSizeMin o.maxSize.acn nestingScope.deducedTrailingBits errCode.errCodeName codec
-                Some(fncBody, [errCode], [])
+                Some(fncBody, [errCode], [], EncOctetStringNoLength)
 
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent,errCodes, localVariables) ->
+        | Some (funcBodyContent,errCodes, localVariables, encTemplate) ->
             let funcBodyContent = DAstUPer.withFixedSizeCount r lm codec t o.isFixedSize o.minSize.acn p funcBodyContent
             let sAsn1Constraints = constraintsToIcdStr (DAstAsn1.createOctetStringFunction r t o)
             let icd = AcnPrimitiveFactory.buildOctetOrBitStringIcdAux t.acnAlignment o.acnEncodingClass "bytes" o.maxSize.acn (getASN1Name t) (getASN1Name t) sAsn1Constraints o.acnMinSizeInBits o.acnMaxSizeInBits t.unitsOfMeasure
 
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = Some icd})
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = Some icd; encOutcome = encodeOutcomeOf codec (lm.lg.encodeTemplateOutcome encTemplate)})
     let soSparkAnnotations = Some (sparkAnnotations lm td codec)
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us
 
@@ -122,7 +122,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     match o.minSize.uper = o.maxSize.uper with
                     | true  -> lm.acn.bit_string_external_field_fixed_size sType pp errCode.errCodeName access noSizeMin ( o.maxSize.acn) extField codec
                     | false  -> lm.acn.bit_string_external_field sType pp errCode.errCodeName access noSizeMin noSizeMax extField codec
-                Some (fncBody, [errCode], [])
+                Some (fncBody, [errCode], [], EncRtlWritesOnly)
             | SZ_EC_TerminationPattern   bitPattern    ->
                 let mod8 = bitPattern.Value.Length % 8
                 let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
@@ -133,7 +133,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 // fixed-size layout (no length field): exactly maxSize bits before the pattern
                 let bFixedSize = typedefIsFixedSize r t
                 let fncBody = lm.acn.bit_string_null_terminated sType pp errCode.errCodeName access i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt bFixedSize codec
-                Some (fncBody, [errCode], [])
+                Some (fncBody, [errCode], [], EncRtlWritesOnly)
             | SZ_EC_FIXED_SIZE       ->
                 // coverage step 10b: the RTL call cannot fail, no failure branch (DecodeOutcome.fixedStringCannotFail)
                 let fncBody =
@@ -141,7 +141,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     | Decode, true -> lm.uper.bitString_FixSize_noCheck pp access o.minSize.acn
                     | Decode, false
                     | Encode, _    -> bitString_FixSize sType pp access o.minSize.acn errCode.errCodeName codec
-                Some(fncBody, [errCode],[])
+                Some(fncBody, [errCode],[], EncBitStringFixedSize)
 
             | SZ_EC_Deduced ->
                 raise(BugErrorException "'size deduced' is not applicable to BIT STRING (should have been rejected by the front-end)")
@@ -153,15 +153,15 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     match codec with
                     | Encode -> []
                     | Decode -> [lm.lg.uper.count_var]
-                Some(fncBody, [errCode],nStringLength)
+                Some(fncBody, [errCode],nStringLength, EncBitStringVarSize)
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent,errCodes, localVariables) ->
+        | Some (funcBodyContent,errCodes, localVariables, encTemplate) ->
             let funcBodyContent = DAstUPer.withFixedSizeCount r lm codec t o.isFixedSize o.minSize.acn p funcBodyContent
             let sAsn1Constraints = constraintsToIcdStr (DAstAsn1.createBitStringFunction r t o)
             let icd = AcnPrimitiveFactory.buildOctetOrBitStringIcdAux t.acnAlignment o.acnEncodingClass "bits" o.maxSize.acn (getASN1Name t) (getASN1Name t) sAsn1Constraints o.acnMinSizeInBits o.acnMaxSizeInBits t.unitsOfMeasure
 
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = Some icd})
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = Some icd; encOutcome = encodeOutcomeOf codec (lm.lg.encodeTemplateOutcome encTemplate)})
 
     let soSparkAnnotations = Some(sparkAnnotations lm td codec)
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition  isValidFunc  (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p, us) (fun atc -> true) soSparkAnnotations [] us

@@ -42,6 +42,21 @@ if ret {
 }
 >>
 
+/* Coverage step 12b, C and Ada only (encode outcomes are unknown here: never used); kept identical to JoinItems2. */
+JoinItemsCannotFail(sPart, sNestedPart, soCallee) ::= <<
+<sPart>
+if ret {
+    <sNestedPart>
+}
+>>
+
+JoinItemsNoWrite(sPart, sNestedPart, bComment) ::= <<
+<sPart>
+if ret {
+    <sNestedPart>
+}
+>>
+
 
 
 

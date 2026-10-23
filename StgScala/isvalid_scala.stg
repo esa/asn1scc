@@ -33,6 +33,17 @@ JoinItemsNoCheck(sPart, sNestedPart) ::= <<
 <sNestedPart>
 >>
 
+/* Coverage step 12b, C and Ada only (encode outcomes are unknown here: never used); kept identical to JoinItems2. */
+JoinItemsCannotFail(sPart, sNestedPart, soCallee) ::= <<
+<sPart>
+<sNestedPart>
+>>
+
+JoinItemsNoWrite(sPart, sNestedPart, bComment) ::= <<
+<sPart>
+<sNestedPart>
+>>
+
 /* Coverage step 11b: says why a check is not in the generated code (e.g. a child that cannot be invalid). */
 validation_comment(sText) ::= <<
 // <sText>
