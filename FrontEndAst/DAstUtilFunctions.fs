@@ -1065,7 +1065,11 @@ let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isVali
     // The merged type of a reference with constraints at the site (ByteFlags ::= BitFlags (SIZE(8))) can lend its
     // encoder to the type assignment (DAstUPer.createReferenceFunction when the encodings differ), but the
     // IsConstraintValid emitted under that name is the reference's, which calls the wider referenced type's
-    // function: the merged type's outcome says nothing about it (as for 11b's referencedNotCalled).
+    // function and checks the site's constraints: the merged type's outcome is not that function's (as for 11b's
+    // referencedNotCalled). Since Issue 46 both check the same constraints on the same typedef, so a merged
+    // AlwaysValid no longer hides a check that can fail; but in Ada a site range that the subtype enforces
+    // (MyPDU ::= T1 (0 .. 100)) makes the merged type AlwaysValid while the reference's function still
+    // carries the check (MayBeInvalid), so the encoder keeps calling the function it names.
     let outcomeIsTheCalledFunctions =
         match t.inheritInfo with
         | Some {hasAdditionalConstraints = true}   -> false

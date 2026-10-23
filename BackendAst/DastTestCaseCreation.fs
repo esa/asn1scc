@@ -442,6 +442,24 @@ let private tryFindTypeAssignment (r:DAst.AstRoot) (modName:string) (tasName:str
     r.Files |> List.collect (fun f -> f.Modules) |> List.tryFind (fun m -> m.Name.Value = modName) |>
     Option.bind (fun m -> m.TypeAssignments |> List.tryFind (fun ts -> ts.Name.Value = tasName))
 
+/// The SIZE range of a referenced sizeable type assignment and whether its typedef is the fixed-size one (no length
+/// field): the typedef is the one at the end of the chain of referenced type assignments (as typedefIsFixedSize).
+let rec private referencedSizeRange (r:DAst.AstRoot) (modName:string) (tasName:string) : (BigInteger * BigInteger * bool) option =
+    match tryFindTypeAssignment r modName tasName with
+    | None    -> None
+    | Some ts ->
+        let typedefFixed (isFixed:bool) =
+            match ts.Type.Kind with
+            | ReferenceType ref -> referencedSizeRange r ref.baseInfo.modName.Value ref.baseInfo.tasName.Value |> Option.map (fun (_, _, f) -> f)
+            | _                 -> Some isFixed
+        let range (minSize:BigInteger) (maxSize:BigInteger) =
+            typedefFixed (minSize = maxSize) |> Option.map (fun f -> (minSize, maxSize, f))
+        match ts.Type.ActualType.Kind with
+        | OctetString o -> range o.baseInfo.minSize.uper o.baseInfo.maxSize.uper
+        | BitString o   -> range o.baseInfo.minSize.uper o.baseInfo.maxSize.uper
+        | SequenceOf o  -> range o.baseInfo.minSize.uper o.baseInfo.maxSize.uper
+        | _             -> None
+
 /// The constraint violations of a type's own tree (coverage step 11c). A reference contributes only the first
 /// violation of the referenced type assignment (its own tests cover the rest), so that the parent's check of the
 /// call is covered, plus the violations of the constraints added at the reference site.
@@ -517,6 +535,17 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
                     match v.nodeId = ts.Type.id with
                     | true  -> {v with nodeId = t.id}
                     | false -> {v with contextNodes = t.id :: v.contextNodes})
+        // A SIZE at the site (ByteFlags ::= BitFlags (SIZE(8))) keeps the typedef of the referenced type, so when
+        // that typedef has a length field the site's check is a real one (q/issues.md Issue 46): the sizes next to
+        // the site's range that the referenced type still accepts (else its own check fails first).
+        let siteSizeViolations (e:ErrorCode) (minSize:BigInteger) (maxSize:BigInteger) (isPure:bool) =
+            match isPure, referencedSizeRange r ref.baseInfo.modName.Value ref.baseInfo.tasName.Value with
+            | true, Some (refMin, refMax, false) ->
+                [minSize - 1I; maxSize + 1I] |> List.filter (fun n -> refMin <= n && n <= refMax) |>
+                List.map (fun n -> mk t.id (lm.init.initVarSizeSequenceOf (path.joined lm.lg) (lm.lg.getAccess path) n []) e (sprintf "size %A, outside %A..%A" n minSize maxSize))
+            | true, Some (_, _, true)
+            | true, None
+            | false, _ -> []
         let siteCons =
             match ownErrCode t, ref.resolvedType.Kind with
             | Some e, Integer o ->
@@ -529,6 +558,12 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
                 let asn1Children = sq.children |> List.choose (fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
                 let ncs = ref.baseInfo.refCons |> List.choose (fun c -> match c with Asn1AcnAst.SeqConstraint z -> Some z | _ -> None) |> List.collect withComponents
                 withComponentsViolations r lm path t asn1Children ncs
+            | Some e, OctetString o ->
+                siteSizeViolations e o.baseInfo.minSize.uper o.baseInfo.maxSize.uper (ref.baseInfo.refCons |> List.forall (fun c -> match c with Asn1AcnAst.OctetStringConstraint z -> pureSize z | _ -> false))
+            | Some e, BitString o ->
+                siteSizeViolations e o.baseInfo.minSize.uper o.baseInfo.maxSize.uper (ref.baseInfo.refCons |> List.forall (fun c -> match c with Asn1AcnAst.BitStringConstraint z -> pureSize z | _ -> false))
+            | Some e, SequenceOf o ->
+                siteSizeViolations e o.baseInfo.minSize.uper o.baseInfo.maxSize.uper (ref.baseInfo.refCons |> List.forall (fun c -> match c with Asn1AcnAst.SequenceOfConstraint z -> pureSeqOfSize z | _ -> false))
             | _ -> []
         referenced @ siteCons
     | IA5String o ->

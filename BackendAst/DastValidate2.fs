@@ -349,9 +349,12 @@ let enumeratedConstraint2ValidationCodeBlock  (l:LanguageMacros) (o:Asn1AcnAst.E
         ret
     foldGenericCon l  printNamedItem c st
 
-let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.OctetString) (equalFunc:EqualFunction) (c:OctetStringConstraint) st =
+/// typedefFixed: the layout of the typedef (Asn1AcnAstUtilFunctions.typedefIsFixedSize), not the type's size class: a
+/// fixed-size subtype of a variable-size type (Octs4 ::= Octs (SIZE(4))) shares the typedef with the length field,
+/// whose value must be checked against the fixed size (q/issues.md Issue 46).
+let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.OctetString) (typedefFixed:bool) (equalFunc:EqualFunction) (c:OctetStringConstraint) st =
     let getSizeFunc (lm:LanguageMacros) p =
-        if o.isFixedSize then
+        if typedefFixed then
             l.isvalid.StrLen (p.accessPath.joined l.lg)
         else
             l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)
@@ -360,14 +363,15 @@ let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:Language
         let octet_fix_string_equal = l.isvalid.octet_fix_string_equal
         let printOctetArrayAsCompoundLiteral = l.vars.PrintOctetArrayAsCompoundLiteral
         let octArrLiteral = printOctetArrayAsCompoundLiteral  (v |> List.map (fun b -> b.Value))
-        match o.isFixedSize with
+        match typedefFixed with
         | true   -> VCBExpression (octet_fix_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) o.minSize.uper (v.Length.AsBigInt) octArrLiteral)
         | false  -> VCBExpression (octet_var_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)  (v.Length.AsBigInt) octArrLiteral)
-    let hasCount = (not o.isFixedSize) || l.lg.FixedSizeSizableHasCount
+    let hasCount = (not typedefFixed) || l.lg.FixedSizeSizableHasCount
     let fnc, ns = foldSizableConstraint r l hasCount compareSingleValueFunc getSizeFunc c st
     fnc, ns
 
-let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.BitString) (equalFunc:EqualFunction) (c:BitStringConstraint) st =
+/// typedefFixed: see octetStringConstraint2ValidationCodeBlock.
+let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.BitString) (typedefFixed:bool) (equalFunc:EqualFunction) (c:BitStringConstraint) st =
     let getSizeFunc (l:LanguageMacros) p = l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)
     let compareSingleValueFunc (p:CodegenScope) (v:Asn1AcnAst.BitStringValue, (id,loc))  =
         let bit_var_string_equal = l.isvalid.bit_var_string_equal
@@ -376,10 +380,10 @@ let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageM
         let bytes = bitStringValueToByteArray (StringLoc.ByValue v.Value)
         let octArrLiteral = printOctetArrayAsCompoundLiteral  bytes
         let bitArrLiteral = variables_a.PrintBitArrayAsCompoundLiteral  (v.Value.ToCharArray() |> Seq.map(fun c -> if c = '0' then 0uy else 1uy))
-        match o.isFixedSize with
+        match typedefFixed with
         | true   -> VCBExpression (bit_fix_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) o.minSize.uper (v.Value.Length.AsBigInt) octArrLiteral bitArrLiteral)
         | false  -> VCBExpression (bit_var_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)  (v.Value.Length.AsBigInt) octArrLiteral bitArrLiteral)
-    let fnc, ns = foldSizableConstraint r l (not o.isFixedSize) compareSingleValueFunc getSizeFunc c st
+    let fnc, ns = foldSizableConstraint r l (not typedefFixed) compareSingleValueFunc getSizeFunc c st
     fnc, ns
 
 
@@ -388,8 +392,8 @@ let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMac
     | Integer o, IntegerTypeConstraint c        -> integerConstraint2ValidationCodeBlock r l (o.baseInfo.intClass) c st
     | Real o, RealTypeConstraint   c            -> realConstraint2ValidationCodeBlock l o.baseInfo.acnEncodingClass c st
     | IA5String  o, IA5StringConstraint c       -> ia5StringConstraint2ValidationCodeBlock r l t.id  c st
-    | OctetString o, OctetStringConstraint c    -> octetStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo  o.equalFunction c st
-    | BitString o, BitStringConstraint c        -> bitStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo o.equalFunction c st
+    | OctetString o, OctetStringConstraint c    -> octetStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo (typedefIsFixedSize r t.ActualType.toAsn1AcnAst) o.equalFunction c st
+    | BitString o, BitStringConstraint c        -> bitStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo (typedefIsFixedSize r t.ActualType.toAsn1AcnAst) o.equalFunction c st
     | NullType o, NullConstraint                -> (fun p -> VCBTrue), st
     | Boolean o, BoolConstraint c               -> booleanConstraint2ValidationCodeBlock l c st
     | Enumerated o, EnumConstraint c            -> enumeratedConstraint2ValidationCodeBlock  l  o.baseInfo o.definitionOrRef c st
@@ -398,7 +402,7 @@ let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMac
     | Sequence o, SeqConstraint c               ->
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.SeqValue) = VCBTrue //currently single value constraints are ignored.
         sequenceConstraint2ValidationCodeBlock r l t.id o.Asn1Children valToStrFunc  c st
-    | SequenceOf o, SequenceOfConstraint c      -> sequenceOfConstraint2ValidationCodeBlock r l t.id o.baseInfo o.childType o.equalFunction c st
+    | SequenceOf o, SequenceOfConstraint c      -> sequenceOfConstraint2ValidationCodeBlock r l t.id o.baseInfo (typedefIsFixedSize r t.ActualType.toAsn1AcnAst) o.childType o.equalFunction c st
     | Choice o, ChoiceConstraint c              ->
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.ChValue) = VCBTrue //currently single value constraints are ignored.
         choiceConstraint2ValidationCodeBlock r l t.id o.children valToStrFunc o.definitionOrRef c st
@@ -525,7 +529,8 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
         c
         st
 
-and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.SequenceOf) (child:Asn1Type) (equalFunc:EqualFunction) (c:SequenceOfConstraint) st =
+/// typedefFixed: see octetStringConstraint2ValidationCodeBlock.
+and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.SequenceOf) (typedefFixed:bool) (child:Asn1Type) (equalFunc:EqualFunction) (c:SequenceOfConstraint) st =
 
     let expressionToStatement              = l.isvalid.ExpressionToStatement
     let statementForLoop                 = l.isvalid.StatementForLoop
@@ -536,7 +541,7 @@ and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageM
     foldSequenceOfTypeConstraint2 (con_or l) (con_and l) (con_not l) (con_except l) con_root (con_root2 l)
         (fun _ v  s           -> (fun p -> compareSingleValueFunc p v) ,s)
         (fun _ intCon s       ->
-            match o.isFixedSize with
+            match typedefFixed with
             | false  -> foldSizeRangeTypeConstraint r l getSizeFunc intCon s
             | true  -> (fun p -> VCBTrue), s)
         (fun _ c loc s ->
@@ -836,13 +841,13 @@ let createBoolFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.A
     createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefinitionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
-    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  t.id o equalFunc c us) us
+    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  t.id o (typedefIsFixedSize r t) equalFunc c us) us
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     let enforced = (not o.cons.IsEmpty) && sizeEnforcedByTypedef r l t typeDefinition o.isFixedSize (o.cons |> List.forall sizeIsOneInterval)
     createIsValidFunction r l t (funcBodyOrImplied l enforced fncs errorCodeComment)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefinitionOrReference) (defOrRef:TypeDefinitionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
-    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  t.id o equalFunc c us) us
+    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  t.id o (typedefIsFixedSize r t) equalFunc c us) us
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     let enforced = (not o.cons.IsEmpty) && sizeEnforcedByTypedef r l t typeDefinition o.isFixedSize (o.cons |> List.forall sizeIsOneInterval)
     createIsValidFunction r l t (funcBodyOrImplied l enforced fncs errorCodeComment)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
@@ -916,7 +921,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
     let sequenceOf          = l.isvalid.sequenceOf2
     let callBaseTypeFunc    = l.isvalid.call_base_type_func
 
-    let vcbs, ns2 = o.cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l t.id o (childType:Asn1Type) equalFunc c cs) us
+    let vcbs, ns2 = o.cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l t.id o (typedefIsFixedSize r t) (childType:Asn1Type) equalFunc c cs) us
 
     let chp (p:CodegenScope) = 
         let i = sprintf "i%d" (p.accessPath.SequenceOfLevel + 1)
@@ -1178,7 +1183,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
     createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs (Some errorCodeComment) ns2
 
 
-let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (refTypeId:ReferenceToType) (refCons:Asn1AcnAst.AnyConstraint list) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State)  =
+/// t: the reference type; its actual type (the merged type) decides the typedef layout of a sizeable type.
+let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (refTypeId:ReferenceToType) (refCons:Asn1AcnAst.AnyConstraint list) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State)  =
     match resolvedType.Kind with
     | Sequence sq    ->
         let asn1Children = sq.children |> List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
@@ -1186,7 +1192,7 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.SeqValue) = VCBTrue
         cons |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l refTypeId asn1Children valToStrFunc  c cs) us
     | ReferenceType rt    ->
-        createReferenceTypeFunction_this_type r l refTypeId refCons typeDefinition rt.resolvedType  us
+        createReferenceTypeFunction_this_type r l t refTypeId refCons typeDefinition rt.resolvedType  us
     | Integer rt ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IntegerTypeConstraint z -> Some z | _ -> None )
         cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (rt.baseInfo.intClass) c us) us
@@ -1198,10 +1204,10 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         cons |> Asn1Fold.foldMap (fun us c -> booleanConstraint2ValidationCodeBlock l c us) us
     | OctetString oc ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.OctetStringConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  refTypeId oc.baseInfo resolvedType.equalFunction c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  refTypeId oc.baseInfo (typedefIsFixedSize r t.ActualType) resolvedType.equalFunction c us) us
     | BitString bs ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.BitStringConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  refTypeId bs.baseInfo resolvedType.equalFunction c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  refTypeId bs.baseInfo (typedefIsFixedSize r t.ActualType) resolvedType.equalFunction c us) us
     | IA5String st ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IA5StringConstraint z -> Some z | _ -> None )
         cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l refTypeId c us) {us with alphaIndex=0; alphaFuncs=[]}
@@ -1234,13 +1240,13 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         cons |> Asn1Fold.foldMap(fun cs c -> choiceConstraint2ValidationCodeBlock r l refTypeId ch.children valToStrFunc typeDefinition  c cs) us
     | SequenceOf sqo ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.SequenceOfConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l refTypeId sqo.baseInfo sqo.childType resolvedType.equalFunction c cs) us
+        cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l refTypeId sqo.baseInfo (typedefIsFixedSize r t.ActualType) sqo.childType resolvedType.equalFunction c cs) us
 
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State)  =
     let callBaseTypeFunc = l.isvalid.call_base_type_func
     let callSuperclassFunc = l.isvalid.call_superclass_func
-    let vcbs,us = createReferenceTypeFunction_this_type r l t.id o.refCons typeDefinition resolvedType us
+    let vcbs,us = createReferenceTypeFunction_this_type r l t t.id o.refCons typeDefinition resolvedType us
 
     let moduleName, typeDefinitionName, typeDefinitionName0 =
         match typeDefinition with
