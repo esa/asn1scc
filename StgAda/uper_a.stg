@@ -476,7 +476,7 @@ end if;
 
 
 loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize, bItemCannotFail, bItemWritesResult)::= /*nogen*/<<
-while <i>\<= <fixedSize> loop
+while <i>\<= <fixedSize><if(!bItemCannotFail)><if(bItemWritesResult)> and result.Success<endif><endif> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);<if(bItemCannotFail)><if(bItemWritesResult)><\n>    pragma Loop_Invariant (result.Success);  -- the element's encoding cannot fail<endif><endif>
     pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
     pragma Loop_Invariant (bs.Current_Bit_Pos\<=bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));

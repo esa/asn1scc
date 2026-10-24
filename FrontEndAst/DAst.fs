@@ -193,14 +193,14 @@ module EncodeOutcome =
             | WritesUnknown                 -> WritesUnknown
         {a with writes = writes; callee = None}
 
-    /// The element of a loop (SEQUENCE OF): runs on some paths only; when it cannot fail and writes the result, the
-    /// Ada loop states pragma Loop_Invariant (result.Success), which reads it before the first element.
+    /// The element of a loop (SEQUENCE OF): runs on some paths only. When it writes the result, the loop reads it
+    /// before the first element: in pragma Loop_Invariant (result.Success) (Ada) when the element cannot fail, in the
+    /// loop condition (C && ret, Ada and result.Success, Issue 49) when it may fail.
     let loopElement (a:EncodeOutcome) : EncodeOutcome =
         let c = conditional a
-        match a.canFail, a.writes with
-        | false, (AlwaysWrites | SometimesWrites | ReadsFirst) -> {c with writes = ReadsFirst}
-        | false, (NoWrite | WritesUnknown)
-        | true, _                                               -> c
+        match a.writes with
+        | AlwaysWrites | SometimesWrites | ReadsFirst  -> {c with writes = ReadsFirst}
+        | NoWrite | WritesUnknown                      -> c
 
     /// One of several arms runs (CHOICE alternatives); bExhaustive: no path runs none of them.
     let alternatives (bExhaustive:bool) (arms:EncodeOutcome list) : EncodeOutcome =

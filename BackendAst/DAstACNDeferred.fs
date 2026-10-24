@@ -992,6 +992,7 @@ let private appendPatchDetCalls
         (specP: CodegenScope)
         (isContainingExternalField: bool)
         (baseHasStandaloneFunc: bool)
+        (bodyOutcome: EncodeOutcome)
         (body: string) : string =
     match isContainingExternalField, not baseHasStandaloneFunc with
     | true, false -> body  // old approach: PatchDet is in STG template
@@ -1070,7 +1071,11 @@ let private appendPatchDetCalls
             | [] -> body
             | calls ->
                 let patchCode = calls |> String.concat "\n"
-                body + "\n" + patchCode
+                // The PatchDet calls write the result: after a body that may fail they run only when it succeeded,
+                // else a failed body would return success (Issue 48)
+                match bodyOutcome.canFail with
+                | true  -> ctx.lm.isvalid.JoinItems2 body patchCode
+                | false -> body + "\n" + patchCode
 
 
 /// Step 3 — build the specialized function's deferred-determinant formal
@@ -1489,16 +1494,18 @@ let private createDeferredReferenceFunction
             let finalBody =
                 let body =
                     appendPatchDetCalls ctx specP
-                        isContainingExternalField (not baseAcnFunc.funcName.IsNone) bodyResult.funcBody
-                // coverage step 12b: the PatchDet calls follow the body without a check and write the result (they
-                // may fail), so the body's writes before them are overwritten
+                        isContainingExternalField (not baseAcnFunc.funcName.IsNone) bodyResult.encOutcome bodyResult.funcBody
+                // coverage step 12b: the PatchDet calls write the result (they may fail); after a body that may fail
+                // they are nested under its check (Issue 48), after one that cannot fail they follow it unchecked, so
+                // the body's writes before them are overwritten
                 let encOutcome =
                     let patch = ctx.lm.lg.encodeTemplateOutcome EncDeferredPatch
                     let b = bodyResult.encOutcome
-                    match body = bodyResult.funcBody, b.writes, patch.writes with
-                    | true, _, _                                                    -> b
-                    | false, (NoWrite | SometimesWrites | AlwaysWrites), AlwaysWrites -> {canFail = true; writes = AlwaysWrites; callee = None}
-                    | false, _, _                                                   -> {canFail = true; writes = (if b.writes = ReadsFirst && patch.writes = AlwaysWrites then ReadsFirst else WritesUnknown); callee = None}
+                    match body = bodyResult.funcBody, b.canFail, b.writes, patch.writes with
+                    | true, _, _, _                                                     -> b
+                    | false, true, _, _                                                 -> EncodeOutcome.seq2 b patch
+                    | false, false, (NoWrite | SometimesWrites | AlwaysWrites), AlwaysWrites -> {canFail = true; writes = AlwaysWrites; callee = None}
+                    | false, false, _, _                                                -> {canFail = true; writes = (if b.writes = ReadsFirst && patch.writes = AlwaysWrites then ReadsFirst else WritesUnknown); callee = None}
                 { bodyResult with funcBody = body; encOutcome = encOutcome }
 
             // Step 3: build the specialized function's deferred formal params.
