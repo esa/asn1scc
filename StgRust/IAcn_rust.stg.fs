@@ -163,8 +163,8 @@ type IAcn_rust() =
             acn_rust.sequence_save_bitStream_start  sBitStreamPositionsLocalVar codec
         override this.sequence_save_bitstream  (sBitStreamPositionsLocalVar:string) (sChName:string) (codec:Codec) =
             acn_rust.sequence_save_bitstream  sBitStreamPositionsLocalVar sChName codec
-        override this.sequence_acn_child  (sChName:string) (sChildContent:string) (sErrCode:string) (soSaveBitStrmPosStatement:string option) (bIsPrimitive:bool) (codec:Codec) =
-            acn_rust.sequence_acn_child  sChName sChildContent sErrCode soSaveBitStrmPosStatement bIsPrimitive codec
+        override this.sequence_acn_child  (sChName:string) (sChildContent:string) (sErrCode:string) (soSaveBitStrmPosStatement:string option) (bIsPrimitive:bool) (bAlwaysInitialized:bool) (codec:Codec) =
+            acn_rust.sequence_acn_child  sChName sChildContent sErrCode soSaveBitStrmPosStatement bIsPrimitive bAlwaysInitialized codec
         override this.sequence_mandatory_child  (p:string) (sAcc:string) (sChName:string) (sChildContent:string) (soSaveBitStrmPosStatement:string option) (sChildTypedef:string) (bIsPrimitive:bool) (arrsAcnParams:seq<string>) (bChildHasAcnChildrenToReturn:bool) (soAlignmentCode:string option) (bInlineRequired:bool) (codec:Codec) =
             acn_rust.sequence_mandatory_child  p sAcc sChName sChildContent soSaveBitStrmPosStatement sChildTypedef bIsPrimitive arrsAcnParams bChildHasAcnChildrenToReturn soAlignmentCode bInlineRequired codec
         override this.sequence_always_present_child  (p:string) (sAcc:string) (sChName:string) (soChildContent:string option) (soChildExpr:string option) (sChildTypedef:string) (soSaveBitStrmPosStatement:string option) (bIsPrimitive:bool) (arrsAcnParams:seq<string>) (bChildHasAcnChildrenToReturn:bool) (soAlignmentCode:string option) (bInlineRequired:bool) (codec:Codec) =
@@ -203,20 +203,20 @@ type IAcn_rust() =
             acn_rust.ChoiceChild_Enum  p sAcc sEnmName sChildID sChildBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec
         override this.Choice_Enum  (p:string) (sAcc:string) (arrsChildren:seq<string>) (sEnmExtFld:string) (td:FE_ChoiceTypeDefinition) (sErrCode:string) (bIsDeferred:bool) (codec:Codec) =
             acn_rust.Choice_Enum  p sAcc arrsChildren sEnmExtFld td sErrCode bIsDeferred codec
-        override this.SizeDependency  (v:string) (sCount:string) (nMin:BigInteger) (nMax:BigInteger) (bCheckRange:bool) (bCheckMin:bool) (sTypedefName:string) =
-            acn_rust.SizeDependency  v sCount nMin nMax bCheckRange bCheckMin sTypedefName 
-        override this.SizeDependencyFixedSize  (v:string) (nFixedSize:BigInteger) =
-            acn_rust.SizeDependencyFixedSize  v nFixedSize 
-        override this.ChoiceDependencyEnum_Item  (v:string) (sChildCID:string) (sChildCIDHolder:string) (sEnumCName:string) (nChoiceIdx:BigInteger) (bIsOptional:bool) =
-            acn_rust.ChoiceDependencyEnum_Item  v sChildCID sChildCIDHolder sEnumCName nChoiceIdx bIsOptional 
+        override this.SizeDependency  (v:string) (sCount:string) (nMin:BigInteger) (nMax:BigInteger) (bCheckRange:bool) (bCheckMin:bool) (sTypedefName:string) (bSetInitFlag:bool) =
+            acn_rust.SizeDependency  v sCount nMin nMax bCheckRange bCheckMin sTypedefName bSetInitFlag 
+        override this.SizeDependencyFixedSize  (v:string) (nFixedSize:BigInteger) (bSetInitFlag:bool) =
+            acn_rust.SizeDependencyFixedSize  v nFixedSize bSetInitFlag 
+        override this.ChoiceDependencyEnum_Item  (v:string) (sChildCID:string) (sChildCIDHolder:string) (sEnumCName:string) (nChoiceIdx:BigInteger) (bIsOptional:bool) (bSetInitFlag:bool) =
+            acn_rust.ChoiceDependencyEnum_Item  v sChildCID sChildCIDHolder sEnumCName nChoiceIdx bIsOptional bSetInitFlag 
         override this.ChoiceDependencyEnum  (sV:string) (sChPath:string) (sAcc:string) (arrsChoiceEnumItems:seq<string>) (bIsOptional:bool) (sDefaultExpr:string) =
             acn_rust.ChoiceDependencyEnum  sV sChPath sAcc arrsChoiceEnumItems bIsOptional sDefaultExpr 
-        override this.PresenceDependency  (v:string) (sSeqPath:string) (sAcc:string) (sChildName:string) =
-            acn_rust.PresenceDependency  v sSeqPath sAcc sChildName 
-        override this.ChoiceDependencyIntPres_child  (v:string) (sChildNamePresent:string) (sChildRetVal:string) (sChoiceTypeName:string) =
-            acn_rust.ChoiceDependencyIntPres_child  v sChildNamePresent sChildRetVal sChoiceTypeName 
-        override this.ChoiceDependencyStrPres_child  (v:string) (sChildNamePresent:string) (sChildRetVal:string) (arruChildRetValBytes:seq<byte>) (arrsNullChars:seq<string>) (sChoiceTypeName:string) (sInsertedFieldTypeName:string) =
-            acn_rust.ChoiceDependencyStrPres_child  v sChildNamePresent sChildRetVal arruChildRetValBytes arrsNullChars sChoiceTypeName sInsertedFieldTypeName 
+        override this.PresenceDependency  (v:string) (sSeqPath:string) (sAcc:string) (sChildName:string) (bSetInitFlag:bool) =
+            acn_rust.PresenceDependency  v sSeqPath sAcc sChildName bSetInitFlag 
+        override this.ChoiceDependencyIntPres_child  (v:string) (sChildNamePresent:string) (sChildRetVal:string) (sChoiceTypeName:string) (bSetInitFlag:bool) =
+            acn_rust.ChoiceDependencyIntPres_child  v sChildNamePresent sChildRetVal sChoiceTypeName bSetInitFlag 
+        override this.ChoiceDependencyStrPres_child  (v:string) (sChildNamePresent:string) (sChildRetVal:string) (arruChildRetValBytes:seq<byte>) (arrsNullChars:seq<string>) (sChoiceTypeName:string) (sInsertedFieldTypeName:string) (bSetInitFlag:bool) =
+            acn_rust.ChoiceDependencyStrPres_child  v sChildNamePresent sChildRetVal arruChildRetValBytes arrsNullChars sChoiceTypeName sInsertedFieldTypeName bSetInitFlag 
         override this.ChoiceDependencyPres  (v:string) (sChPath:string) (sAcc:string) (arrsChoiceItems:seq<string>) (sChoiceTypeName:string) =
             acn_rust.ChoiceDependencyPres  v sChPath sAcc arrsChoiceItems sChoiceTypeName 
         override this.MultiAcnUpdate_checkEqual_pri0  (p1:string) (p2:string) =
@@ -231,12 +231,12 @@ type IAcn_rust() =
             acn_rust.MultiAcnUpdate_checkEqual_pri  sV0 sVi sChPath bIsAlwaysInit 
         override this.MultiAcnUpdate_checkEqual_str  (sV0:string) (sVi:string) (sChPath:string) (bIsAlwaysInit:bool) =
             acn_rust.MultiAcnUpdate_checkEqual_str  sV0 sVi sChPath bIsAlwaysInit 
-        override this.MultiAcnUpdate  (v:string) (sV0:string) (sErrCode:string) (arrsLocalDeclarations:seq<string>) (arrsLocalUpdateStatements:seq<string>) (arrsGetFirstIntValue:seq<string>) (bIsFirstIntValueSingle:bool) (arrsLocalCheckEquality:seq<string>) (sDefaultExpr:string) =
-            acn_rust.MultiAcnUpdate  v sV0 sErrCode arrsLocalDeclarations arrsLocalUpdateStatements arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality sDefaultExpr 
+        override this.MultiAcnUpdate  (v:string) (sV0:string) (sErrCode:string) (arrsLocalDeclarations:seq<string>) (arrsLocalUpdateStatements:seq<string>) (arrsGetFirstIntValue:seq<string>) (bIsFirstIntValueSingle:bool) (arrsLocalCheckEquality:seq<string>) (sDefaultExpr:string) (bSetInitFlag:bool) =
+            acn_rust.MultiAcnUpdate  v sV0 sErrCode arrsLocalDeclarations arrsLocalUpdateStatements arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality sDefaultExpr bSetInitFlag 
         override this.checkAccessPath  (arrsCheckPaths:seq<string>) (sUpdateStatement:string) (v:string) (sInitExpr:string) =
             acn_rust.checkAccessPath  arrsCheckPaths sUpdateStatement v sInitExpr 
-        override this.SizeDependency_oct_str_containing  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (v:string) (bIsOctet:bool) (sInner:string) (sLocalVarType:string) =
-            acn_rust.SizeDependency_oct_str_containing  p sFuncName sReqBytesForUperEncoding v bIsOctet sInner sLocalVarType 
+        override this.SizeDependency_oct_str_containing  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (v:string) (bIsOctet:bool) (sInner:string) (sLocalVarType:string) (bSetInitFlag:bool) =
+            acn_rust.SizeDependency_oct_str_containing  p sFuncName sReqBytesForUperEncoding v bIsOctet sInner sLocalVarType bSetInitFlag 
         override this.octet_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sExtField:string) (sErrCode:string) (soInner:string option) (bDeducedContent:bool) (codec:Codec) =
             acn_rust.octet_string_containing_ext_field_func  p sFuncName sReqBytesForUperEncoding sExtField sErrCode soInner bDeducedContent codec
         override this.octet_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (soMF:string option) (soMFM:string option) (sErrCode:string) (bDeducedContent:bool) (codec:Codec) =

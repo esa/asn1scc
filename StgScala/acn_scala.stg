@@ -792,13 +792,13 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 <sBitStreamPositionsLocalVar>.<sChName> = pBitStrm // save position of the bit stream
 >>
 
-sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive, bAlwaysInitialized) ::= <<
 /* Encode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive, bAlwaysInitialized) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
@@ -993,17 +993,17 @@ val <p> = <sEnmExtFld> match
 >>
 
 /* Updates */
-SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName, bSetInitFlag) ::= <<
 val <v> = <sCount>
 if <v> \< ULong.fromRaw(<nMin>) || <v> \> ULong.fromRaw(<nMax>) then
     return Left(860)
 >>
 
-SizeDependencyFixedSize(v, nFixedSize) ::= <<
+SizeDependencyFixedSize(v, nFixedSize, bSetInitFlag) ::= <<
 val <v> = <nFixedSize>
 >>
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional, bSetInitFlag) ::= <<
 <if(bIsOptional)>
 case SomeMut(<sChildCIDHolder>.<sChildCID>(_)) =>
 <else>
@@ -1020,16 +1020,16 @@ val <sV> = <sChPath> match
 <endif>
 >>
 
-PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
+PresenceDependency(v, sSeqPath, sAcc, sChildName, bSetInitFlag) ::= <<
 val <v> = <sSeqPath><sAcc><sChildName>.isDefined
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName, bSetInitFlag) ::= <<
 case _: <sChildNamePresent> =>
     <sChildRetVal>
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName, bSetInitFlag) ::= <<
 case _: <sChildNamePresent> =>
     Vector.fromList(List(<arruChildRetValBytes:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))
 >>
@@ -1071,7 +1071,7 @@ MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= <<
 <MultiAcnUpdate_checkEqual_pri(sV0=sV0, sVi=sVi, sChPath=sChPath, bIsAlwaysInit=bIsAlwaysInit)>
 >>
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag) ::= <<
 val <v> = {
     <arrsLocalDeclarations; separator="\n">
 
@@ -1099,7 +1099,7 @@ val <v> =
 >>
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag) ::= <<
 {
     /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
     val pBitStrm_save: BitStream = pBitStrm

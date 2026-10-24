@@ -335,21 +335,42 @@ let private handleAcnChild
     //handle updates
     let childP = {CodegenScope.modName = p.modName; accessPath= AccessPath.valueEmptyPath (getAcnDeterminantName acnChild.id)}
 
+    // coverage step 12c: the update reports whether it sets the determinant on every path (then its encoding needs no
+    // _is_initialized check) and what it writes
+    let update =
+        match codec, acnChild.funcUpdateStatement with
+        | Encode, Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild childNestingScope childP p false)
+        | Encode, None
+        | Decode, _                        -> None
+    let bAlwaysInitialized =
+        match lm.lg.acnDeterminantFlagModel, update with
+        | FlagMaybeUninitialized, Some {init = AlwaysInitialized} -> true
+        | FlagMaybeUninitialized, Some {init = MaybeUninitialized}
+        | FlagMaybeUninitialized, None
+        | FlagEveryDeterminant, _                                 -> false
     let updateStatement, ns1 =
         match codec with
         | Encode ->
-            let pRoot = p
-            let updateStatement, lvs, errCodes, icdComments =
+            let lvs, errCodes, icdComments =
                 match acnChild.funcUpdateStatement with
-                | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild childNestingScope childP pRoot), funcUpdateStatement.localVariables, funcUpdateStatement.errCodes, funcUpdateStatement.icdComments
-                | None                     -> None, [], [], []
-            Some {body=updateStatement; lvs=lvs; errCodes=errCodes; userDefinedFunctions = [];  icdComments=icdComments}, us
+                | Some funcUpdateStatement -> funcUpdateStatement.localVariables, funcUpdateStatement.errCodes, funcUpdateStatement.icdComments
+                | None                     -> [], [], []
+            // the flag local: declared here, by the child that needs it (FlagEveryDeterminant: for every ACN child, below)
+            let flagLv =
+                match lm.lg.acnDeterminantFlagModel, bAlwaysInitialized, acnChild.Type with
+                | FlagMaybeUninitialized, false, AcnNullType _  -> []
+                | FlagMaybeUninitialized, false, _              ->
+                    if lm.lg.usesWrappedOptional then [] else [BooleanLocalVariable(acnChild.c_name+"_is_initialized", Some lm.lg.FalseLiteral)]
+                | FlagMaybeUninitialized, true, _
+                | FlagEveryDeterminant, _, _                    -> []
+            Some {body=update |> Option.map (fun u -> u.updateBody); lvs=lvs@flagLv; errCodes=errCodes; userDefinedFunctions = [];  icdComments=icdComments}, us
         | Decode -> None, us
 
     //acn child encode/decode
+    let childContentResult = (acnChild.funcBody codec) [] childNestingScope childP ctx.bitStreamPositionsLocalVar
+    // the outcome of the determinant's own encoding (coverage step 12c)
+    let childContentOutcome = childContentResult |> Option.map (fun c -> encodeOutcomeOf codec c.encOutcome)
     let childEncDecStatement, auxiliaries, ns2 =
-        let chFunc = acnChild.funcBody codec
-        let childContentResult = chFunc [] childNestingScope childP ctx.bitStreamPositionsLocalVar
         match childContentResult with
         | None              -> None, [], ns1
         | Some childContent ->
@@ -372,20 +393,40 @@ let private handleAcnChild
                     let _errCodeName         = ToC ("ERR_ACN" + ((lm.lg.codecSuffix codec).ToUpper()) + "_" + ((acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_UNINITIALIZED")
                     let errFieldPath = match acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((ctx.r.args.TypePrefix + first) :: rest)).Replace("#","elm")
                     let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None errFieldPath
-                    let childBody = Some (lm.acn.sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType codec)
+                    let childBody = Some (lm.acn.sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement isPrimitiveType bAlwaysInitialized codec)
                     Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions;  errCodes=errCode::childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1a
             | Decode    ->
                 let sType = acnChild.typeDefinitionBodyWithinSeq
                 let childBody = Some (lm.acn.sequence_mandatory_child pp (lm.lg.getAccess p.accessPath) acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement sType isPrimitiveType [] false None false codec)
                 Some {body=childBody; lvs=childContent.localVariables; userDefinedFunctions=childContent.userDefinedFunctions; errCodes=childContent.errCodes; icdComments=[]}, childContent.auxiliaries, ns1
 
-    let stmts = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
+    let stmts0 = (updateStatement |> Option.toList)@(childEncDecStatement |> Option.toList)
+    // coverage step 12c: the encoding of the determinant follows its update by the update's outcome (no check after an
+    // assignment; C: a check after the CHOICE switch, whose default arm sets ret = FALSE); with the flag check the part
+    // writes ret / result on both arms
+    let childEncOutcome =
+        match bAlwaysInitialized, childContentOutcome with
+        | true, Some o  -> o
+        | true, None    -> EncodeOutcome.noWrite
+        | false, _      -> {canFail = true; writes = AlwaysWrites; callee = None}
+    let updOutcome = update |> Option.map (fun u -> u.updOutcome) |> Option.defaultValue EncodeOutcome.noWrite
+    let stmts, partEncOutcome =
+        match codec, lm.lg.acnDeterminantFlagModel, acnChild.Type with
+        | Encode, FlagMaybeUninitialized, AcnNullType _
+        | Encode, FlagEveryDeterminant, _
+        | Decode, _, _                                      -> stmts0, EncodeOutcome.unknown
+        | Encode, FlagMaybeUninitialized, _                 ->
+            let parts =
+                [(updateStatement |> Option.bind (fun u -> u.body), updOutcome); (childEncDecStatement |> Option.bind (fun c -> c.body), childEncOutcome)] |>
+                List.choose (fun (b, o) -> b |> Option.map (fun b -> b, o))
+            let joined = {body = nestEncodeParts lm parts; lvs = stmts0 |> List.collect (fun z -> z.lvs); errCodes = stmts0 |> List.collect (fun z -> z.errCodes);
+                          userDefinedFunctions = stmts0 |> List.collect (fun z -> z.userDefinedFunctions); icdComments = stmts0 |> List.collect (fun z -> z.icdComments)}
+            [joined], EncodeOutcome.sequence (parts |> List.map snd)
     let icdComments = stmts |> List.collect(fun z -> z.icdComments)
     // Note: uperMaxSizeBits and uperAccBits here do not make sense since we are in ACN
     let props = {info=childInfo.toAsn1AcnAst; sel=childP.accessPath; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
     let icdResult = ctx.icdAcnChild acnChild icdComments
-    // coverage step 12b: the determinant's update and its _is_initialized check are not classified (step 12c)
-    let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult; bsReferenced=childEncDecStatement.IsSome; encOutcome=EncodeOutcome.unknown}
+    let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult; bsReferenced=childEncDecStatement.IsSome; encOutcome=partEncOutcome}
     let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
     res, newAcc
 
@@ -547,9 +588,12 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     | Copy -> []
                 match codec with
                 | Encode ->
+                    // coverage step 12c: with FlagMaybeUninitialized the child that needs the flag declares it (handleAcnChild)
                     let initLv =
-                        if lm.lg.usesWrappedOptional then []
-                        else [BooleanLocalVariable(x.c_name+"_is_initialized", Some lm.lg.FalseLiteral)]
+                        match lm.lg.usesWrappedOptional, lm.lg.acnDeterminantFlagModel with
+                        | true, _                       -> []
+                        | false, FlagMaybeUninitialized -> []
+                        | false, FlagEveryDeterminant   -> [BooleanLocalVariable(x.c_name+"_is_initialized", Some lm.lg.FalseLiteral)]
                     childLv@initLv
                 | Decode -> childLv)
 

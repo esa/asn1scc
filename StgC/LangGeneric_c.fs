@@ -909,8 +909,15 @@ type LangGeneric_c() =
             | EncChoiceAbsentArm                                -> {canFail = true; writes = AlwaysWrites; callee = None}
             // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid selector (coverage step 12d)
             | EncChoiceDefaultArm                               -> {canFail = true; writes = SometimesWrites; callee = None}
+            // determinant updates (coverage step 12c): assignments (the C size update has no range check)
+            | EncDeterminantAssign | EncDeterminantRangeCheck   -> EncodeOutcome.noWrite
+            // the switch over the CHOICE selector: the defensive default arm (ret = FALSE, coverage step 12d)
+            | EncDeterminantSwitch                              -> {canFail = true; writes = SometimesWrites; callee = None}
+            // if (ret) { ... ret = (<sources agree>); }
+            | EncDeterminantMulti                               -> {canFail = true; writes = ReadsFirst; callee = None}
         // a parent calls its children's encoders with bCheckConstraints = FALSE
         override _.encodeCallValidates = false
+        override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         override _.atcEmitsConstraintViolationTests = true
         override _.atcEmitsInvalidStreamTests = true
         override _.atcInvalidStreamCodeOutsideItemRange = true

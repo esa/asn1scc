@@ -502,6 +502,7 @@ type LangGeneric_a() =
         override _.decodeReadFailureModel = ReadsCannotFail
         // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.
         override _.typedefConstraintModel = TypedefsEnforceRanges
+        override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValidPrimitives
         // What the Ada encode templates write to result (coverage step 12b; gnatprove checks the assertions).
@@ -520,6 +521,12 @@ type LangGeneric_a() =
             | EncPresentWhenCheck | EncDeferredPatch | EncChoiceAbsentArm           -> {canFail = true; writes = AlwaysWrites; callee = None}
             // an exhaustive case over the selector: no default arm
             | EncChoiceDefaultArm                                                   -> EncodeOutcome.noWrite
+            // determinant updates (coverage step 12c): assignments; an exhaustive case over the CHOICE selector
+            | EncDeterminantAssign | EncDeterminantSwitch                           -> EncodeOutcome.noWrite
+            // result.success := <v> <= max: a component write, so result must be initialised before
+            | EncDeterminantRangeCheck                                              -> {canFail = true; writes = ReadsFirst; callee = None}
+            // result := (Success => result.Success and <sources agree>, ...)
+            | EncDeterminantMulti                                                   -> {canFail = true; writes = ReadsFirst; callee = None}
         override _.atcEmitsConstraintViolationTests = true
 
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =

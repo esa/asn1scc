@@ -238,6 +238,23 @@ type EncodeTemplate =
     | EncChoiceDefaultArm       // CHOICE: the arm of a selector without alternative (C: defensive default, ret = FALSE)
     | EncChoiceAbsentArm        // ACN CHOICE: the arm of an ALWAYS ABSENT alternative (writes a failure)
     | EncDeferredPatch          // --acn-v2: the PatchDet calls after a specialised body (write result, may fail)
+    // coverage step 12c: the update of an ACN determinant (AcnDependencies), without the flag it may set
+    | EncDeterminantAssign      // size / presence: an assignment
+    | EncDeterminantRangeCheck  // IA5String size with a range check (Ada: result.Success := ..., a component write)
+    | EncDeterminantSwitch      // CHOICE determinant: a switch over the selector (C: defensive default arm)
+    | EncDeterminantMulti       // several sources that must agree (consistency check)
+
+/// Coverage step 12c: whether the update of an ACN determinant sets it on every path that reaches its encoding (when the
+/// update does not fail; a failing update is followed by a check). Only MaybeUninitialized keeps the _is_initialized
+/// flag, its check and the _UNINITIALIZED arm (ILangGeneric.acnDeterminantFlagModel).
+type DeterminantInit =
+    | AlwaysInitialized
+    | MaybeUninitialized        // a dependency path through an OPTIONAL child / CHOICE alternative, or no update text
+
+/// Coverage step 12c: where the encoders keep the _is_initialized flag of an ACN determinant.
+type DeterminantFlagModel =
+    | FlagEveryDeterminant      // as before 12c
+    | FlagMaybeUninitialized    // only where the update may leave the determinant unset (C, Ada)
 
 type State = {
     currErrorCode   : int
@@ -1208,9 +1225,18 @@ and ReferenceType = {
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 }
 
+/// The update of an ACN determinant (coverage step 12c): its text, whether it sets the determinant on every path, and
+/// what it writes to ret / result.
+and AcnChildUpdate = {
+    updateBody  : string
+    init        : DeterminantInit
+    updOutcome  : EncodeOutcome
+}
+
 and AcnChildUpdateResult = {
     icdComments              : string list
-    updateAcnChildFnc        : AcnChild -> NestingScope -> CodegenScope -> CodegenScope -> string
+    // bForceInitFlag: set the _is_initialized flag whatever the flag model (the sources of a MultiAcnUpdate: it reads them)
+    updateAcnChildFnc        : AcnChild -> NestingScope -> CodegenScope -> CodegenScope -> bool -> AcnChildUpdate
     //Given an automatic test case (which includes a map with the IDs of the involved types), this function
     //checks if the automatic test case contains a type which depends on this acn Child. If this is true
     // it returns the value of the dependency, otherwise none

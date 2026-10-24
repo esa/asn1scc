@@ -820,6 +820,10 @@ type ILangGeneric () =
     abstract member encodeCallValidates : bool
     default _.encodeCallValidates = true
 
+    /// Where the encoders keep the _is_initialized flag of an ACN determinant (coverage step 12c, DeterminantFlagModel).
+    abstract member acnDeterminantFlagModel : DeterminantFlagModel
+    default _.acnDeterminantFlagModel = FlagEveryDeterminant
+
     /// Whether the typedefs enforce the range constraints of their type (see TypedefConstraintModel). With
     /// TypedefsEnforceRanges IsConstraintValid replaces such a check by a pragma Assert (coverage step 11b).
     abstract member typedefConstraintModel : TypedefConstraintModel

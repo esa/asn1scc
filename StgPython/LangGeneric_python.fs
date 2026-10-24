@@ -999,7 +999,7 @@ type LangGeneric_python() =
                         // Generate the update code using the parent scope (current sequence)
                         let childP = {CodegenScope.modName = p.modName; accessPath= AccessPath.valueEmptyPath crossDep.acnChildCName}
                         let pRoot = this.getParamType t codec  // Use parent sequence type
-                        let updateStatement = updateFunc.updateAcnChildFnc tempAcnChild childNestingScope childP pRoot
+                        let updateStatement = (updateFunc.updateAcnChildFnc tempAcnChild childNestingScope childP pRoot false).updateBody
         
                         // printfn "[DEBUG] handleChild: Generated update statement for %s" crossDep.acnChildCName
 

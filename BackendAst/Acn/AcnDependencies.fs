@@ -217,6 +217,32 @@ let deferredDeterminantTestCaseFnc (deps:Asn1AcnAst.AcnInsertedFieldDependencies
     | NoConsumerValue   -> Some TcvAnyValue
     | Conflict          -> None
 
+/// Coverage step 12c: whether the update sets the _is_initialized flag of the determinant: where it may leave the
+/// determinant unset, where the caller reads the flag (bForceInitFlag: the sources of a MultiAcnUpdate), or everywhere
+/// for the languages that keep every flag (ILangGeneric.acnDeterminantFlagModel).
+let private setsInitFlag (lm:LanguageMacros) (bForceInitFlag:bool) (init:DeterminantInit) : bool =
+    match lm.lg.acnDeterminantFlagModel, init with
+    | FlagEveryDeterminant, _                         -> true
+    | FlagMaybeUninitialized, MaybeUninitialized      -> true
+    | FlagMaybeUninitialized, AlwaysInitialized       -> bForceInitFlag
+
+/// Coverage step 12c: an update whose dependency path goes through an OPTIONAL child or a CHOICE alternative
+/// (checkPath not empty) runs only when that path exists, so it may leave the determinant unset.
+let private initOfCheckPath (checkPath: 'a list) : DeterminantInit =
+    match checkPath with
+    | []    -> AlwaysInitialized
+    | _     -> MaybeUninitialized
+
+/// Coverage step 12c: the update, wrapped in the check of its dependency path when it has one.
+let private updateResult (lm:LanguageMacros) (checkPath: string list) (v:string) (sInitExpr:string) (updateStatement:string) (o:EncodeOutcome) : AcnChildUpdate =
+    match checkPath with
+    | []    -> {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = o}
+    | _     -> {updateBody = lm.acn.checkAccessPath checkPath updateStatement v sInitExpr; init = MaybeUninitialized; updOutcome = EncodeOutcome.conditional o}
+
+/// Coverage step 12c: no update text (the dependency's parent is not reachable from this nesting): the determinant
+/// stays unset, its encoding fails on the flag (as before).
+let private noUpdate : AcnChildUpdate = {updateBody = ""; init = MaybeUninitialized; updOutcome = EncodeOutcome.noWrite}
+
 let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (d:AcnDependency)  (us:State) =
     let ctx = { r=r; deps=deps; lm=lm; m=m; d=d }
     match d.dependencyKind with
@@ -234,14 +260,14 @@ and private handleRefTypeArgument (ctx: DepContext) (acnPrm: AcnGenericTypes.Acn
     match prmUpdateStatement with
     | None  -> None, ns1
     | Some prmUpdateStatement   ->
-        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
-            prmUpdateStatement.updateAcnChildFnc child nestingScope vTarget pSrcRoot
+        let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
+            prmUpdateStatement.updateAcnChildFnc child nestingScope vTarget pSrcRoot bForceInitFlag
         let icdComments = icdCommentsForDependency ctx.d
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=prmUpdateStatement.errCodes; testCaseFnc = prmUpdateStatement.testCaseFnc; localVariables=[]}), ns1
 
 and private handleSizeDeterminant (ctx: DepContext) (minSize: SIZE) (maxSize: SIZE) (us: State) =
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
-    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
+    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
         let v = lm.lg.getValue vTarget.accessPath
         let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath false lm pBase
@@ -250,13 +276,12 @@ and private handleSizeDeterminant (ctx: DepContext) (minSize: SIZE) (maxSize: SI
             | AcnInteger int -> int.isUnsigned
             | AcnNullType _ -> true
             | _ -> raise (BugErrorException "???")
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
         let updateStatement =
             match minSize.acn = maxSize.acn with
-            | true  -> lm.acn.SizeDependencyFixedSize v minSize.acn
-            | false -> lm.acn.SizeDependency v (lm.acn.getSizeableSize (pSizeable.accessPath.joined lm.lg) (lm.lg.getAccess pSizeable.accessPath) unsigned) minSize.uper maxSize.uper false false child.typeDefinitionBodyWithinSeq
-        match checkPath with
-        | []    -> updateStatement
-        | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
+            | true  -> lm.acn.SizeDependencyFixedSize v minSize.acn bSetInitFlag
+            | false -> lm.acn.SizeDependency v (lm.acn.getSizeableSize (pSizeable.accessPath.joined lm.lg) (lm.lg.getAccess pSizeable.accessPath) unsigned) minSize.uper maxSize.uper false false child.typeDefinitionBodyWithinSeq bSetInitFlag
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantAssign)
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
@@ -283,7 +308,7 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
             | None   -> [], [], us
         | None    -> [], [], us
 
-    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
+    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
         let v = lm.lg.getValue vTarget.accessPath
         let (ReferenceToType depNodes) = d.asn1Type
         let depResolvable =
@@ -295,7 +320,7 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
             // Parent scope unreachable from the current nesting. Only Python tolerates this
             // (types generated standalone); the other backends must fail loudly rather than
             // silently drop the determinant update and emit a wrong-but-compiling encoding.
-            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
+            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then noUpdate
             else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
         let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
@@ -309,10 +334,11 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
                 | Some a -> a.funcBody
             | None -> ""
         let sLocalVarType = child.typeDefinitionBodyWithinSeq
-        let updateStatement = lm.acn.SizeDependency_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.accessPath Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner sLocalVarType
-        match checkPath with
-        | []    -> updateStatement
-        | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
+        let updateStatement = lm.acn.SizeDependency_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.accessPath Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner sLocalVarType bSetInitFlag
+        // the temporary encoding of the contained type writes ret / result (not classified): sets the determinant only
+        // when it succeeded, else the check after the update stops the encoding
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement EncodeOutcome.unknown
     let testCaseFnc = dependencyTestCaseFnc d
     let localVars = lm.lg.acn.getAcnDepSizeDeterminantLocVars sReqBytesForUperEncoding
     let icdComments = icdCommentsForDependency ctx.d
@@ -320,7 +346,7 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
 
 and private handleIA5StringSizeDeterminant (ctx: DepContext) (minSize: SIZE) (maxSize: SIZE) (us: State) =
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
-    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
+    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
         let v = lm.lg.getValue vTarget.accessPath
         let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath true lm pBase
@@ -328,17 +354,16 @@ and private handleIA5StringSizeDeterminant (ctx: DepContext) (minSize: SIZE) (ma
         // determinant encoder. A lower bound of 0 is left out: "len >= 0" is always True
         // for an unsigned determinant (GNAT -gnatwc, an error with -gnatwe), and SPARK
         // knows it from getStringSize returning Natural.
-        let updateStatement = lm.acn.SizeDependency v (lm.acn.getStringSize (pSizeable.accessPath.joined lm.lg)) minSize.uper maxSize.uper true (minSize.uper > 0I) child.typeDefinitionBodyWithinSeq
-        match checkPath with
-        | []    -> updateStatement
-        | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
+        let updateStatement = lm.acn.SizeDependency v (lm.acn.getStringSize (pSizeable.accessPath.joined lm.lg)) minSize.uper maxSize.uper true (minSize.uper > 0I) child.typeDefinitionBodyWithinSeq bSetInitFlag
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantRangeCheck)
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
 and private handlePresenceBool (ctx: DepContext) (us: State) =
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
-    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
+    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
         let v = lm.lg.getValue vTarget.accessPath
         let parDecTypeSeq =
             match d.asn1Type with
@@ -356,15 +381,14 @@ and private handlePresenceBool (ctx: DepContext) (us: State) =
             // Parent scope unreachable from the current nesting. Only Python tolerates this
             // (types generated standalone); the other backends must fail loudly rather than
             // silently drop the determinant update and emit a wrong-but-compiling encoding.
-            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
+            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then noUpdate
             else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
             let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot parDecTypeSeq
             let pDecParSeq, checkPath = getAccessFromScopeNodeList relPath false lm pBase
-            let updateStatement = lm.acn.PresenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC (withBackendChildNames r lm d.asn1Type).lastItem)
-            match checkPath with
-            | []    -> updateStatement
-            | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
+            let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
+            let updateStatement = lm.acn.PresenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC (withBackendChildNames r lm d.asn1Type).lastItem) bSetInitFlag
+            updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantAssign)
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
@@ -372,7 +396,7 @@ and private handlePresenceBool (ctx: DepContext) (us: State) =
 and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.RelativePath) (chc: Asn1AcnAst.Choice) (us: State) =
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
     let icdComments = icdCommentsForDependency ctx.d
-    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
+    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
         let v = lm.lg.getValue vTarget.accessPath
         let (ReferenceToType depNodes) = d.asn1Type
         // Skip update when the dep target type is not reachable from the current nesting scope
@@ -386,11 +410,12 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
             // Parent scope unreachable from the current nesting. Only Python tolerates this
             // (types generated standalone); the other backends must fail loudly rather than
             // silently drop the determinant update and emit a wrong-but-compiling encoding.
-            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then ""
+            if lm.lg.allowUnresolvedAcnDependency || nestingScope.isStandaloneRender then noUpdate
             else raise (BugErrorException "ACN determinant parent is unreachable from the current nesting scope; the determinant update cannot be generated for this backend.")
         else
         let pBase, relPath1 = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
         let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
         let arrsChildUpdates =
             chc.children |>
@@ -403,21 +428,20 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
                     | AcnNullType _ -> true
                     | _ -> raise (BugErrorException "???")
                 match pres with
-                | PresenceInt   (_, intVal) -> lm.acn.ChoiceDependencyIntPres_child v presentWhenName (lm.lg.asn1SccIntValueToString intVal.Value unsigned) sChoiceTypeName
+                | PresenceInt   (_, intVal) -> lm.acn.ChoiceDependencyIntPres_child v presentWhenName (lm.lg.asn1SccIntValueToString intVal.Value unsigned) sChoiceTypeName bSetInitFlag
                 | PresenceStr   (_, strVal) -> raise(SemanticError(strVal.Location, "Unexpected presence condition. Expected integer, found string")))
         let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName
-        match checkPath with
-        | []    -> updateStatement
-        | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantSwitch)
     let testCaseFnc = dependencyTestCaseFnc d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
 and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.RelativePath) (chc: Asn1AcnAst.Choice) (str: Asn1AcnAst.StringType) (us: State) =
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
-    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
+    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
         let v = lm.lg.getValue vTarget.accessPath
         let pBase, relPath1 = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
         let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
         let sInsertedFieldTypeName =
             match child.Type with
@@ -444,34 +468,31 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
                         match lm.lg.nullTerminatorByte with
                         | Some nullByte -> Array.append baseBytes [| nullByte |]
                         | None -> baseBytes
-                    lm.acn.ChoiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls sChoiceTypeName sInsertedFieldTypeName)
+                    lm.acn.ChoiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls sChoiceTypeName sInsertedFieldTypeName bSetInitFlag)
         let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName
-        match checkPath with
-        | []    -> updateStatement
-        | _     -> lm.acn.checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantSwitch)
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = []
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc = testCaseFnc; localVariables=[]}), us
 
 and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.ReferenceToEnumerated) (chc: Asn1AcnAst.Choice) (isOptional: bool) (us: State) =
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
-    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
+    let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
         let v = lm.lg.getValue vTarget.accessPath
         let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath false lm pBase
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
         let arrsChildUpdates =
             chc.children |>
             List.mapi(fun idx ch ->
                 let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = ch.Name.Value)
                 let choiceName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName //chc.typeDef[Scala].typeName
-                lm.acn.ChoiceDependencyEnum_Item v (lm.lg.presentWhenName0 None ch) choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) (bigint idx) isOptional)
+                lm.acn.ChoiceDependencyEnum_Item v (lm.lg.presentWhenName0 None ch) choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) (bigint idx) isOptional bSetInitFlag)
         let updateStatement = lm.acn.ChoiceDependencyEnum v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates isOptional (initExpr r lm m child.Type)
         // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for
         // accessing enums fields instead of a compiler-unchecked access
         let updateStatement2 = lm.lg.formatAcnDeterminantUpdate (choicePath.accessPath.joined lm.lg) checkPath updateStatement
-        match checkPath with
-        | []    -> updateStatement2
-        | _     -> lm.acn.checkAccessPath checkPath updateStatement2 v (initExpr r lm m child.Type)
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement2 (lm.lg.encodeTemplateOutcome EncDeterminantSwitch)
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
@@ -512,7 +533,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
         let restErrCodes = localUpdateFuns |> List.choose id |> List.collect(fun z -> z.errCodes)
         let restLocalVariables = localUpdateFuns |> List.choose id |> List.collect(fun z -> z.localVariables)
         let icdComments = localUpdateFuns |> List.choose id |> List.collect(fun z -> z.icdComments)
-        let multiUpdateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) =
+        let multiUpdateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
             let v = lm.lg.getValue vTarget.accessPath
             let arrsLocalUpdateStatements =
                 localUpdateFuns |>
@@ -521,7 +542,8 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                     let lv = {CodegenScope.modName = vTarget.modName; accessPath = AccessPath.valueEmptyPath c_name}
                     match fn with
                     | None      -> None
-                    | Some fn   -> Some(fn.updateAcnChildFnc child nestingScope lv pSrcRoot)) |>
+                    // the sources keep their flags: arrsGetFirstIntValue / arrsLocalCheckEquality read them
+                    | Some fn   -> Some((fn.updateAcnChildFnc child nestingScope lv pSrcRoot true).updateBody)) |>
                 List.choose id
 
             let isAlwaysInit (d: AcnDependency): bool =
@@ -553,8 +575,11 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                     let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
                     let choicePath, _ = getAccessFromScopeNodeList relPath d.dependencyKind.isString lm pBase
                     cmp v vi (choicePath.accessPath.joined lm.lg) (isAlwaysInit d))
-            let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) arrsLocalUpdateStatements arrsGetFirstIntValue firstAlwaysInit.IsSome arrsLocalCheckEquality (initExpr r lm m child.Type)
-            updateStatement
+            // the determinant is set whenever the update succeeds (else ret / result is FALSE and the check after it stops
+            // the encoding)
+            let bSetInitFlag = setsInitFlag lm bForceInitFlag AlwaysInitialized
+            let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) arrsLocalUpdateStatements arrsGetFirstIntValue firstAlwaysInit.IsSome arrsLocalCheckEquality (initExpr r lm m child.Type) bSetInitFlag
+            {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = lm.lg.encodeTemplateOutcome EncDeterminantMulti}
         let testCaseFnc = agreedTestCaseValue (localUpdateFuns |> List.map (Option.map (fun res -> res.testCaseFnc)))
 
         let ret = Some(({AcnChildUpdateResult.updateAcnChildFnc = multiUpdateFunc; icdComments=icdComments; errCodes=errCode::restErrCodes ; testCaseFnc = testCaseFnc; localVariables = restLocalVariables}))

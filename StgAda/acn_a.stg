@@ -1048,17 +1048,19 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 >>
 
 
-sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive, bAlwaysInitialized) ::= <<
 --Encode <sChName>
-if <sChName>_is_initialized then
+<if(bAlwaysInitialized)>-- no check of <sChName>_is_initialized: its update above sets <sChName> on every path that reaches here
+<soSaveBitStrmPosStatement>
+<sChildContent><else>if <sChName>_is_initialized then
     result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
     <soSaveBitStrmPosStatement>
     <sChildContent>
 else
     result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>); --COVERAGE_IGNORE
-end if;
+end if;<endif>
 >>
-sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive, bAlwaysInitialized) ::= <<
 --Decode <sChName>
 <soSaveBitStrmPosStatement>
 <sChildContent>
@@ -1296,9 +1298,11 @@ MultiAcnUpdate_get_first_init_value_str(sV0, sVi, sChPath, bIsFirst, bIsSingleEl
 MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
 MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag) ::= <<
 declare
     <arrsLocalDeclarations; separator="\n">
+    -- a source whose update is unconditional makes its flag tests constant (GNAT -gnatwc)
+    pragma Warnings (Off, "condition is always*");
 begin
 
     <arrsLocalUpdateStatements; separator="\n">
@@ -1309,24 +1313,22 @@ begin
     end if;
 
     result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success and (<arrsLocalCheckEquality; separator=" and ">), ErrorCode => <sErrCode>);
-    <v>_is_initialized := result.Success;
+<if(bSetInitFlag)>    <v>_is_initialized := result.Success;<\n><endif>    pragma Warnings (On, "condition is always*");
 end;
 >>
 
 
 
 
-PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
-<v>_is_initialized := True;
-<v> := (<sSeqPath><sAcc>exist.<sChildName> = 1);
+PresenceDependency(v, sSeqPath, sAcc, sChildName, bSetInitFlag) ::= <<
+<if(bSetInitFlag)><v>_is_initialized := True;<\n><endif><v> := (<sSeqPath><sAcc>exist.<sChildName> = 1);
 >>
 
 
 
 
-SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName) ::= <<
-<v>_is_initialized := True;
-<v> := <sTypedefName>(<sCount>);
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName, bSetInitFlag) ::= <<
+<if(bSetInitFlag)><v>_is_initialized := True;<\n><endif><v> := <sTypedefName>(<sCount>);
 <if(bCheckRange)>
 <if(bCheckMin)>
 result.success := <v> \>= <nMin> and <v> \<= <nMax>;
@@ -1337,9 +1339,8 @@ result.success := <v> \<= <nMax>;
 <endif>
 >>
 
-SizeDependencyFixedSize(v, nFixedSize) ::= <<
-<v>_is_initialized := True;
-<v> := <nFixedSize>;
+SizeDependencyFixedSize(v, nFixedSize, bSetInitFlag) ::= <<
+<if(bSetInitFlag)><v>_is_initialized := True;<\n><endif><v> := <nFixedSize>;
 >>
 
 
@@ -1354,24 +1355,21 @@ case <sChPath><sAcc>kind is
 end case;
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName, bSetInitFlag) ::= <<
 when <sChildNamePresent> =>
-    <v>_is_initialized := True;
-	<v> := <sChildRetVal>;
+    <v> := <sChildRetVal>;<if(bSetInitFlag)><\n>    <v>_is_initialized := True;<endif>
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName, bSetInitFlag) ::= <<
 when <sChildNamePresent> =>
-    <v>_is_initialized := True;
-	<v> := "<sChildRetVal>"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=" & "><endif>;
+    <v> := "<sChildRetVal>"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=" & "><endif>;<if(bSetInitFlag)><\n>    <v>_is_initialized := True;<endif>
 >>
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional, bSetInitFlag) ::= <<
 when <sChildCID> =>
-    <v>_is_initialized := True;
-	<v> := <sEnumCName>;
+    <v> := <sEnumCName>;<if(bSetInitFlag)><\n>    <v>_is_initialized := True;<endif>
 >>
 
 ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
@@ -1388,7 +1386,7 @@ end if;
 
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag) ::= <<
 --first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string
 declare
     bs : adaasn1rtl.encoding.Bitstream := tmpBs;
@@ -1397,8 +1395,7 @@ begin
     tmpBs := bs;
 end;
 if result.success then
-	<v> := <sLocalVarType>(<if(bIsOctet)>adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs)<else>tmpBs.Current_Bit_Pos<endif>);
-	<v>_is_initialized := True;
+	<v> := <sLocalVarType>(<if(bIsOctet)>adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs)<else>tmpBs.Current_Bit_Pos<endif>);<if(bSetInitFlag)><\n>	<v>_is_initialized := True;<endif>
 end if;
 >>
 
