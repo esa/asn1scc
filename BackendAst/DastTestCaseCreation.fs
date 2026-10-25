@@ -516,7 +516,28 @@ let rec private referencedSizeRange (r:DAst.AstRoot) (modName:string) (tasName:s
 /// violation of the referenced type assignment (its own tests cover the rest), so that the parent's check of the
 /// call is covered, every invalid discriminant of it (step 12d), plus the violations of the constraints added at
 /// the reference site.
-let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : ConstraintViolation list =
+/// Coverage step 12f: the type assignments that have exactly one reference site in the value of a type, counted through
+/// nested references (Inner once in Mid, Mid twice in Outer: two Inner sites). A site inside a SEQUENCE OF element is one
+/// per element: the automatic test values give the elements different values.
+let private uniqueReferenceSites (r:DAst.AstRoot) (root:Asn1Type) : Set<string * string> =
+    let rec sites (many:bool) (t:Asn1Type) : ((string * string) * int) list =
+        match t.Kind with
+        | Sequence sq       -> sq.children |> List.collect (fun c -> match c with Asn1Child ch -> sites many ch.Type | AcnChild _ -> [])
+        | Choice ch         -> ch.children |> List.collect (fun c -> sites many c.chType)
+        | SequenceOf o      -> sites true o.childType
+        | ReferenceType rf  ->
+            let key = rf.baseInfo.modName.Value, rf.baseInfo.tasName.Value
+            let inside =
+                match tryFindTypeAssignment r (fst key) (snd key) with
+                | Some ts -> sites many ts.Type
+                | None    -> []
+            (key, (if many then 2 else 1)) :: inside
+        | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _ | BitString _ | Boolean _
+        | Enumerated _ | ObjectIdentifier _ | TimeType _ -> []
+    sites false root |> List.groupBy fst |> List.filter (fun (_, xs) -> (xs |> List.sumBy snd) = 1) |> List.map fst |> Set.ofList
+
+/// unique: the type assignments with one reference site in the tested value (uniqueReferenceSites).
+let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (unique:Set<string * string>) (path:AccessPath) (t:Asn1Type) : ConstraintViolation list =
     let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; inAlternative = false; setInvalid = sSet; errCode = errCode; errCodeModule = ToC t.id.ModName; what = what; encoding = CheckedOnly}
     let sizeViolations (minSize:BigInteger) (maxSize:BigInteger) (isPure:bool) =
         match lm.lg.typedefConstraintModel, ownErrCode t, isPure && minSize <> maxSize with
@@ -545,7 +566,11 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
     | SequenceOf o  ->
         let own = sizeViolations o.baseInfo.minSize.uper o.baseInfo.maxSize.uper (o.baseInfo.cons |> List.forall pureSeqOfSize)
         let elemPath = lm.lg.getArrayItem path (string lm.lg.ArrayStartIndex) o.childType.isIA5String
-        let elems = constraintViolations r lm elemPath o.childType |> List.map (fun v -> nested {v with nonEmptySeqOfs = t.id::v.nonEmptySeqOfs})
+        let elems = constraintViolations r lm unique elemPath o.childType |>
+                    // the elements get different test values, but the test value says only that one of them selects the
+                    // alternative or has the OPTIONAL child present (element 0 is changed): no selection inside an element
+                    List.filter (fun v -> not v.inAlternative && v.presentChildren.IsEmpty) |>
+                    List.map (fun v -> nested {v with nonEmptySeqOfs = t.id::v.nonEmptySeqOfs})
         own @ elems
     | Sequence sq ->
         let asn1Children = sq.children |> List.choose (fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
@@ -558,8 +583,8 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
                 | Some Asn1AcnAst.AlwaysPresent
                 | Some (Asn1AcnAst.Optional _) ->
                     // a violation inside an OPTIONAL child needs a start value where the child is present
-                    constraintViolations r lm (childPath ch) ch.Type |> List.map (fun v -> {v with presentChildren = ch.Type.id :: v.presentChildren})
-                | None -> constraintViolations r lm (childPath ch) ch.Type)
+                    constraintViolations r lm unique (childPath ch) ch.Type |> List.map (fun v -> {v with presentChildren = ch.Type.id :: v.presentChildren})
+                | None -> constraintViolations r lm unique (childPath ch) ch.Type)
         let presence = withComponentsViolations r lm path t asn1Children (sq.baseInfo.cons |> List.collect withComponents)
         children @ presence
     | Choice ch ->
@@ -578,7 +603,7 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
                 | Some Asn1AcnAst.ChoiceAlwaysAbsent -> []
                 | Some Asn1AcnAst.ChoiceAlwaysPresent
                 | None ->
-                    constraintViolations r lm (lm.lg.getChChild path (lm.lg.getAsn1ChChildBackendName c) c.chType.isIA5String) c.chType |>
+                    constraintViolations r lm unique (lm.lg.getChChild path (lm.lg.getAsn1ChChildBackendName c) c.chType.isIA5String) c.chType |>
                     List.map (fun v -> {v with inAlternative = true}))
         selector @ alternatives
     | ReferenceType ref ->
@@ -587,20 +612,24 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
             | None    -> []
             | Some ts ->
                 // inside a reference the test values are keyed by the referenced type's node ids, which two
-                // reference sites of the same type share: only a violation that needs no selection (CHOICE
-                // alternative, OPTIONAL child, SEQUENCE OF element) is sure to hold at this site
+                // reference sites of the same type share: a violation that needs a selection (CHOICE alternative,
+                // OPTIONAL child, SEQUENCE OF element) is sure to hold at this site only when it is the type's one
+                // site in the tested value (coverage step 12f)
+                let needsSelection (v:ConstraintViolation) = v.inAlternative || not v.presentChildren.IsEmpty || not v.nonEmptySeqOfs.IsEmpty
                 let candidates =
-                    constraintViolations r lm path ts.Type |>
-                    List.filter (fun v -> not v.inAlternative && v.presentChildren.IsEmpty && v.nonEmptySeqOfs.IsEmpty) |>
+                    constraintViolations r lm unique path ts.Type |>
+                    List.filter (fun v -> unique.Contains (ref.baseInfo.modName.Value, ref.baseInfo.tasName.Value) || not (needsSelection v)) |>
                     List.indexed
-                // the first one covers the parent's check of the call; every invalid discriminant too (step 12d): the
-                // parent often encodes the referenced type inline, with a default arm of its own
+                // the first one covers the parent's check of the call (one that needs no selection if there is one, as
+                // before 12f); every invalid discriminant too (step 12d): the parent often encodes the referenced type
+                // inline, with a default arm of its own
                 let first =
-                    candidates |>
-                    List.tryFind (fun (_, v) ->
+                    let callCheck (v:ConstraintViolation) =
                         match v.encoding with
                         | CheckedOnly | InvalidEnumItem _ -> true
-                        | InvalidSelector _               -> false)
+                        | InvalidSelector _               -> false
+                    candidates |> List.tryFind (fun (_, v) -> callCheck v && not (needsSelection v)) |>
+                    Option.orElse (candidates |> List.tryFind (fun (_, v) -> callCheck v))
                 let discriminants =
                     candidates |>
                     List.filter (fun (i, v) ->
@@ -770,7 +799,7 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
             | CheckedOnly
             | InvalidEnumItem OwnTree
             | InvalidSelector OwnTree -> List.tryHead fitting
-        constraintViolations r lm p.accessPath t |>
+        constraintViolations r lm (uniqueReferenceSites r t) p.accessPath t |>
         // the type's own CHOICE selectors: step 02's test_case_invalid_* cover them, checked and unchecked
         List.filter (fun v ->
             match v.encoding with
