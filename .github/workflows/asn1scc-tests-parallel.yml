@@ -73,6 +73,7 @@ jobs:
     - name: Build the solution, list the expected test cases
       run: |
         docker run --rm -v "${{ github.workspace }}:/app" "${{ needs.image.outputs.image }}" bash -c '
+          source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
           set -e
           dotnet build Antlr/
           dotnet build parseStg2/
