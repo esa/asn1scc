@@ -859,6 +859,19 @@ if (result) {
 }
 >>
 
+/* Coverage step 12d: an invalid CHOICE selector or ENUMERATED value behind a reference or in a SEQUENCE OF element.
+   The unchecked encoder must fail too, with any error code: the arm that rejects the value depends on the encoding
+   (the parent's inline ENUMERATED map, a determinant switch, the CHOICE's own switch). */
+constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
+if (result) {
+    static byte encBuffUnchecked_<sEnc>[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    BitStream bitStrm;
+    errCode = 0;
+    BitStream_Init(&bitStrm, encBuffUnchecked_<sEnc>, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+    result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, FALSE) && errCode != 0;
+}
+>>
+
 /* Coverage step 11c: character nIndex (0-based) of a string set to the code nChar (0 ends the string there). */
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 <sStr>[<nIndex>] = (char)<nChar>;

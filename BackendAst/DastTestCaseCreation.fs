@@ -328,8 +328,22 @@ let invalidValueTestCases (lm:LanguageMacros) (e:Asn1Encoding) (t:Asn1Type) (atc
                     (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)))
     | _ -> []
 
+/// Where an invalid discriminant (coverage step 12d) sits: in the type's own tree, where step 02's
+/// test_case_invalid_* encode it unchecked already, or behind a reference / in a SEQUENCE OF element, where the
+/// parent often encodes it inline with its own default arm.
+type DiscriminantPlace =
+    | OwnTree
+    | Nested
+
+/// How a constraint-violation test calls the encoders.
+type ViolationEncoding =
+    | CheckedOnly                           // a value outside a constraint: an unchecked encoder may write garbage or out of bounds
+    | InvalidEnumItem of DiscriminantPlace  // an ENUMERATED value that is no item
+    | InvalidSelector of DiscriminantPlace  // a CHOICE selector set to <X>_NONE
+
 /// Coverage step 11c (T2): a value just outside one constraint, set on one node of a type assignment's value.
-/// IsConstraintValid must return FALSE with errCode, every checked encoder too.
+/// IsConstraintValid must return FALSE with errCode, every checked encoder too; for a nested invalid discriminant
+/// (step 12d) every unchecked encoder must fail as well.
 type ConstraintViolation = {
     nodeId          : ReferenceToType           // the start test value must contain this node
     contextNodes    : ReferenceToType list      // ... and these (the reference sites on the way to it)
@@ -340,7 +354,45 @@ type ConstraintViolation = {
     errCode         : ErrorCode                 // the code IsConstraintValid must return
     errCodeModule   : string                    // the program unit that defines it
     what            : string                    // what is changed, for the test's comment
+    encoding        : ViolationEncoding         // whether the unchecked encoders are called too
 }
+
+/// A violation of a referenced type or of a SEQUENCE OF element, seen from the enclosing type.
+let private nested (v:ConstraintViolation) =
+    match v.encoding with
+    | CheckedOnly       -> v
+    | InvalidEnumItem _ -> {v with encoding = InvalidEnumItem Nested}
+    | InvalidSelector _ -> {v with encoding = InvalidSelector Nested}
+
+/// A reference site with constraints of its own (h Inner (WITH COMPONENTS {...})) gets a merged type whose nodes, and
+/// the automatic test values of the site, are keyed by the site's ids (Outer.h.k), not by the referenced type's
+/// (Inner.k): the ids under the referenced type are moved under the merged type.
+let private rebaseIds (fromId:ReferenceToType) (toId:ReferenceToType) (v:ConstraintViolation) =
+    let prefix = fromId.ToScopeNodeList
+    let rebase (id:ReferenceToType) =
+        let nodes = id.ToScopeNodeList
+        match nodes.Length >= prefix.Length && List.take prefix.Length nodes = prefix with
+        | true  -> ReferenceToType (toId.ToScopeNodeList @ List.skip prefix.Length nodes)
+        | false -> id
+    {v with nodeId = rebase v.nodeId; contextNodes = List.map rebase v.contextNodes
+            presentChildren = List.map rebase v.presentChildren; nonEmptySeqOfs = List.map rebase v.nonEmptySeqOfs}
+
+/// The node with this id in a type's tree, through references (only the subtrees whose ids lead to it).
+let rec private tryFindNode (id:ReferenceToType) (t:Asn1Type) : Asn1Type option =
+    let leadsTo (x:ReferenceToType) =
+        let p, l = x.ToScopeNodeList, id.ToScopeNodeList
+        p.Length <= l.Length && List.take p.Length l = p
+    match t.id = id, leadsTo t.id with
+    | true, _      -> Some t
+    | false, false -> None
+    | false, true  ->
+        match t.Kind with
+        | Sequence sq   -> sq.children |> List.tryPick (fun c -> match c with Asn1Child ch -> tryFindNode id ch.Type | AcnChild _ -> None)
+        | Choice ch     -> ch.children |> List.tryPick (fun c -> tryFindNode id c.chType)
+        | SequenceOf o  -> tryFindNode id o.childType
+        | ReferenceType rf -> tryFindNode id rf.resolvedType
+        | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _ | BitString _ | Boolean _
+        | Enumerated _ | ObjectIdentifier _ | TimeType _ -> None
 
 let rec private rangeEndpoints (c:Asn1AcnAst.RangeTypeConstraint<'v,'v>) : 'v list =
     match c with
@@ -462,9 +514,10 @@ let rec private referencedSizeRange (r:DAst.AstRoot) (modName:string) (tasName:s
 
 /// The constraint violations of a type's own tree (coverage step 11c). A reference contributes only the first
 /// violation of the referenced type assignment (its own tests cover the rest), so that the parent's check of the
-/// call is covered, plus the violations of the constraints added at the reference site.
+/// call is covered, every invalid discriminant of it (step 12d), plus the violations of the constraints added at
+/// the reference site.
 let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) : ConstraintViolation list =
-    let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; inAlternative = false; setInvalid = sSet; errCode = errCode; errCodeModule = ToC t.id.ModName; what = what}
+    let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; inAlternative = false; setInvalid = sSet; errCode = errCode; errCodeModule = ToC t.id.ModName; what = what; encoding = CheckedOnly}
     let sizeViolations (minSize:BigInteger) (maxSize:BigInteger) (isPure:bool) =
         match lm.lg.typedefConstraintModel, ownErrCode t, isPure && minSize <> maxSize with
         | TypedefsAreBaseTypes, Some e, true ->
@@ -492,7 +545,7 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
     | SequenceOf o  ->
         let own = sizeViolations o.baseInfo.minSize.uper o.baseInfo.maxSize.uper (o.baseInfo.cons |> List.forall pureSeqOfSize)
         let elemPath = lm.lg.getArrayItem path (string lm.lg.ArrayStartIndex) o.childType.isIA5String
-        let elems = constraintViolations r lm elemPath o.childType |> List.map (fun v -> {v with nonEmptySeqOfs = t.id::v.nonEmptySeqOfs})
+        let elems = constraintViolations r lm elemPath o.childType |> List.map (fun v -> nested {v with nonEmptySeqOfs = t.id::v.nonEmptySeqOfs})
         own @ elems
     | Sequence sq ->
         let asn1Children = sq.children |> List.choose (fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
@@ -510,14 +563,24 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
         let presence = withComponentsViolations r lm path t asn1Children (sq.baseInfo.cons |> List.collect withComponents)
         children @ presence
     | Choice ch ->
-        ch.children |>
-        List.collect (fun c ->
-            match c.Optionality with
-            | Some Asn1AcnAst.ChoiceAlwaysAbsent -> []
-            | Some Asn1AcnAst.ChoiceAlwaysPresent
-            | None ->
-                constraintViolations r lm (lm.lg.getChChild path (lm.lg.getAsn1ChChildBackendName c) c.chType.isIA5String) c.chType |>
-                List.map (fun v -> {v with inAlternative = true}))
+        // the selector set to <X>_NONE: only where the language can represent it (as step 02's invalidValueNodes)
+        let selector =
+            match lm.lg.atcEmitsInvalidValueTests, ownErrCode t with
+            | true, Some e ->
+                let sSet = sprintf "%s%skind = 0; /* <X>_NONE */" (path.joined lm.lg) (lm.lg.getAccess path)
+                [{mk t.id sSet e "selector <X>_NONE" with encoding = InvalidSelector OwnTree}]
+            | true, None
+            | false, _ -> []
+        let alternatives =
+            ch.children |>
+            List.collect (fun c ->
+                match c.Optionality with
+                | Some Asn1AcnAst.ChoiceAlwaysAbsent -> []
+                | Some Asn1AcnAst.ChoiceAlwaysPresent
+                | None ->
+                    constraintViolations r lm (lm.lg.getChChild path (lm.lg.getAsn1ChChildBackendName c) c.chType.isIA5String) c.chType |>
+                    List.map (fun v -> {v with inAlternative = true}))
+        selector @ alternatives
     | ReferenceType ref ->
         let referenced =
             match tryFindTypeAssignment r ref.baseInfo.modName.Value ref.baseInfo.tasName.Value with
@@ -526,13 +589,45 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
                 // inside a reference the test values are keyed by the referenced type's node ids, which two
                 // reference sites of the same type share: only a violation that needs no selection (CHOICE
                 // alternative, OPTIONAL child, SEQUENCE OF element) is sure to hold at this site
-                constraintViolations r lm path ts.Type |>
-                List.filter (fun v -> not v.inAlternative && v.presentChildren.IsEmpty && v.nonEmptySeqOfs.IsEmpty) |>
-                List.truncate 1 |>
+                let candidates =
+                    constraintViolations r lm path ts.Type |>
+                    List.filter (fun v -> not v.inAlternative && v.presentChildren.IsEmpty && v.nonEmptySeqOfs.IsEmpty) |>
+                    List.indexed
+                // the first one covers the parent's check of the call; every invalid discriminant too (step 12d): the
+                // parent often encodes the referenced type inline, with a default arm of its own
+                let first =
+                    candidates |>
+                    List.tryFind (fun (_, v) ->
+                        match v.encoding with
+                        | CheckedOnly | InvalidEnumItem _ -> true
+                        | InvalidSelector _               -> false)
+                let discriminants =
+                    candidates |>
+                    List.filter (fun (i, v) ->
+                        match v.encoding, first with
+                        | CheckedOnly, _                                       -> false
+                        | (InvalidEnumItem _ | InvalidSelector _), Some (j, _) -> i <> j
+                        | (InvalidEnumItem _ | InvalidSelector _), None        -> true)
+                // the site's constraints may reach into references of the referenced type (WITH COMPONENTS of a
+                // component): those reference sites are merged types with ids of their own as well
+                let rec rebaseNestedSites i (v:ConstraintViolation) =
+                    match List.tryItem i v.contextNodes with
+                    | None     -> v
+                    | Some ctx ->
+                        let v =
+                            match tryFindNode ctx ref.resolvedType |> Option.map (fun n -> n.Kind) with
+                            | Some (ReferenceType rf) ->
+                                match tryFindTypeAssignment r rf.baseInfo.modName.Value rf.baseInfo.tasName.Value with
+                                | Some ts2 -> rebaseIds ts2.Type.id rf.resolvedType.id v
+                                | None     -> v
+                            | Some _ | None -> v
+                        rebaseNestedSites (i + 1) v
+                (Option.toList first) @ discriminants |>
+                List.map (snd >> nested >> rebaseIds ts.Type.id ref.resolvedType.id >> rebaseNestedSites 0) |>
                 List.map (fun v ->
                     // the referenced type's own value is the reference site's value (the test values key a
                     // primitive reference by the site only)
-                    match v.nodeId = ts.Type.id with
+                    match v.nodeId = ref.resolvedType.id with
                     | true  -> {v with nodeId = t.id}
                     | false -> {v with contextNodes = t.id :: v.contextNodes})
         // A SIZE at the site (ByteFlags ::= BitFlags (SIZE(8))) keeps the typedef of the referenced type, so when
@@ -605,8 +700,8 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:AccessPa
                     let v = Seq.initInfinite BigInteger |> Seq.find (fun v -> not (values.Contains v))
                     [v.ToString(), sprintf "%A: not an item value" v]
                 | TypedefsEnforceRanges -> []
-            nonItem @ excluded |>
-            List.map (fun (sValue, what) -> mk t.id (lm.init.initEnumerated (lm.lg.getValue path) sValue "" false "") e what)
+            let set (sValue, what) = mk t.id (lm.init.initEnumerated (lm.lg.getValue path) sValue "" false "") e what
+            (nonItem |> List.map (fun x -> {set x with encoding = InvalidEnumItem OwnTree})) @ (excluded |> List.map set)
     | NullType _ | Boolean _ | ObjectIdentifier _ | TimeType _ -> []
 
 /// WITH COMPONENTS of a SEQUENCE (they fail the SEQUENCE's own check): a child marked PRESENT is made absent; an
@@ -628,7 +723,7 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                     | Asn1Ast.MarkPresent, Some _ ->
                         [{ nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                            setInvalid = lm.init.initSequence_optionalChild (path.joined lm.lg) (lm.lg.getAccess path) chName absentFlag ""
-                           errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s absent, WITH COMPONENTS requires it" ch.Name.Value }]
+                           errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s absent, WITH COMPONENTS requires it" ch.Name.Value; encoding = CheckedOnly }]
                     | (Asn1Ast.MarkPresent | Asn1Ast.NoMark | Asn1Ast.MarkOptional | Asn1Ast.MarkAbsent), _ -> []
                 let values =
                     match nc.Constraint, ch.Type.ActualType.Kind with
@@ -639,12 +734,13 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                             let sv = lm.lg.intValueToString v o.baseInfo.intClass
                             { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                               setInvalid = lm.init.initInteger (lm.lg.getValue chPath) sv false "" ""
-                              errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s = %s, outside %s (WITH COMPONENTS)" ch.Name.Value sv ic.ASN1 })
+                              errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s = %s, outside %s (WITH COMPONENTS)" ch.Name.Value sv ic.ASN1; encoding = CheckedOnly })
                     | _ -> []
                 absent @ values)
 
 /// One automatic test per constraint violation of a type assignment (coverage step 11c), independent of the
-/// encoding: it calls IsConstraintValid and every checked encoder of the type.
+/// encoding: it calls IsConstraintValid and every checked encoder of the type; for a nested invalid discriminant
+/// (step 12d) every unchecked encoder too.
 let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Type) (encoders:(string*string) list) =
     let isValidFuncName = t.isValidFunction |> Option.bind (fun f -> f.funcName)
     match lm.lg.atcEmitsConstraintViolationTests, isValidFuncName with
@@ -664,9 +760,24 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
                 match m.TryFind id with
                 | Some (TcvSizeableTypeValue n) -> n >= 1I
                 | Some _ | None                 -> false))
+        // the unchecked encoders reach the arm of an invalid discriminant only from a value they can encode
+        let acnValid (atc:AutomaticTestCase) = t.acnEncFunction |> Option.forall (fun f -> f.isTestVaseValid atc)
+        let start (v:ConstraintViolation) =
+            let fitting = atcs |> List.filter (fits v)
+            match v.encoding with
+            | InvalidEnumItem Nested
+            | InvalidSelector Nested -> fitting |> List.tryFind acnValid |> Option.orElse (List.tryHead fitting)
+            | CheckedOnly
+            | InvalidEnumItem OwnTree
+            | InvalidSelector OwnTree -> List.tryHead fitting
         constraintViolations r lm p.accessPath t |>
+        // the type's own CHOICE selectors: step 02's test_case_invalid_* cover them, checked and unchecked
+        List.filter (fun v ->
+            match v.encoding with
+            | InvalidSelector OwnTree -> false
+            | CheckedOnly | InvalidEnumItem _ | InvalidSelector Nested -> true) |>
         List.choose (fun v ->
-            atcs |> List.tryFind (fits v) |>
+            start v |>
             Option.map (fun atc ->
                 fun idx ->
                     let sFuncName = sprintf "test_case_constraint_%06d" idx
@@ -676,9 +787,19 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
                     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
                     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
                     let sTasName = td.typeName
-                    let encodeChecks = encoders |> List.map (fun (sEncFunc, sEnc) -> lm.atc.constraintViolationEncodeCheck sEncFunc td.programUnit sTasName sEnc encAmper v.errCodeModule v.errCode.errCodeName)
+                    let checkedEncodes = encoders |> List.map (fun (sEncFunc, sEnc) -> lm.atc.constraintViolationEncodeCheck sEncFunc td.programUnit sTasName sEnc encAmper v.errCodeModule v.errCode.errCodeName)
+                    let uncheckedEncodes, what =
+                        match v.encoding with
+                        | InvalidEnumItem Nested
+                        | InvalidSelector Nested ->
+                            encoders |> List.map (fun (sEncFunc, sEnc) -> lm.atc.constraintViolationUncheckedEncodeCheck sEncFunc td.programUnit sTasName sEnc encAmper),
+                            v.what + ", unchecked encoding too"
+                        | CheckedOnly
+                        | InvalidEnumItem OwnTree
+                        | InvalidSelector OwnTree -> [], v.what
+                    let encodeChecks = checkedEncodes @ uncheckedEncodes
                     // the text goes into a comment and a string literal
-                    let sWhat = v.what.Replace("\"", "'").Replace("\\", "/").Replace("*/", "* /")
+                    let sWhat = what.Replace("\"", "'").Replace("\\", "/").Replace("*/", "* /")
                     let func_body = lm.atc.emitConstraintViolationTestCase sFuncName arrsVars td.programUnit sTasName encAmper initStatement.funcBody bStatic v.setInvalid sWhat sIsValidFunc v.errCodeModule v.errCode.errCodeName encodeChecks
                     (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)))
     | true, None

@@ -340,5 +340,9 @@ emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber,
 constraintViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sErrCodeModule, sErrCode) ::= <<
 >>
 
+/* Coverage step 12d: C only (invalid CHOICE selectors / ENUMERATED values, ILangGeneric.atcEmitsInvalidValueTests). */
+constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
+>>
+
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 >>

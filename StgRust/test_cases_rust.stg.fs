@@ -155,6 +155,10 @@ let constraintViolationEncodeCheck (sEncFunc:string) (sModName:string) (sTasName
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "constraintViolationEncodeCheck" [("sEncFunc",(if sEncFunc = null then null else ST.StrHelper sEncFunc:>Object) );("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sErrCodeModule",(if sErrCodeModule = null then null else ST.StrHelper sErrCodeModule:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
 
+let constraintViolationUncheckedEncodeCheck (sEncFunc:string) (sModName:string) (sTasName:string) (sEnc:string) (sAmber:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "constraintViolationUncheckedEncodeCheck" [("sEncFunc",(if sEncFunc = null then null else ST.StrHelper sEncFunc:>Object) );("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) )]
+
 let constraintViolationStringChar (sStr:string) (nIndex:BigInteger) (nChar:BigInteger) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "constraintViolationStringChar" [("sStr",(if sStr = null then null else ST.StrHelper sStr:>Object) );("nIndex",nIndex :>Object);("nChar",nChar :>Object)]
