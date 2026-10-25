@@ -17,6 +17,10 @@ type CliArguments =
     | [<Unique; AltCommandLine("-p")>]      Parallel of int 
     | [<Unique; AltCommandLine("-ig")>]     Init_Globals
     | [<Unique; AltCommandLine("-acnv2")>]  Acn_V2
+    | [<Unique>]                            Shard of shard:string
+    | [<Unique>]                            Spark of mode:string
+    | [<Unique>]                            List
+    | [<Unique>]                            Json of file:string
 with
     interface IArgParserTemplate with
         member this.Usage =
@@ -31,6 +35,10 @@ with
             | Parallel       _   -> ""
             | Init_Globals       -> "generate const globals for types initialization. Applicable only to C."
             | Acn_V2             -> "use ACN v2 deferred patching mode (--acn-v2 flag to asn1scc). Applicable to C and Ada."
+            | Shard _            -> "k/N: run only the k-th of N shards of the selected test cases (k = 1..N, round robin over the ordered list)"
+            | Spark _            -> "only | exclude: keep only / drop the Ada test cases of files marked RUN_SPARK"
+            | List               -> "print the selected test cases (one id per line) without running them"
+            | Json _             -> "write the result and duration of every test case to this JSON file"
 
 let checkArguement arg =
     match arg with
@@ -44,6 +52,10 @@ let checkArguement arg =
     | Asn1scc_Location _ -> ()
     | Init_Globals       -> ()
     | Acn_V2             -> ()
+    | Shard _            -> ()
+    | Spark _            -> ()
+    | List               -> ()
+    | Json _             -> ()
 
 let StrJoin str listItems =
     if Seq.isEmpty listItems then 
@@ -73,6 +85,13 @@ type Test_Case =
             let p = this.asn1.Split (Path.DirectorySeparatorChar)
             p[p.Length - 2 ..] |> StrJoin (Path.DirectorySeparatorChar.ToString())
 
+/// A test case and its id "<folder>/<file>.asn1#<n>" (n = position of the directive in its file), unique within a
+/// configuration; used by --list, --json and the sharded CI runs.
+type IdentifiedTestCase = {
+    id : string
+    tc : Test_Case
+}
+
 
 
 
@@ -101,7 +120,8 @@ let collectTestAsn1Files (test_cases_dir:string) =
                 else None)
 
     let test_cases =
-        allfiles |> List.collect parseAsn1File
+        allfiles |> List.collect (fun f ->
+            parseAsn1File f |> List.mapi (fun i t -> {id = sprintf "%s#%d" (t.sAsn1.Replace('\\', '/')) (i + 1); tc = t}))
     test_cases
     //allfiles |> Seq.iter (fun z -> printfn "%s" z)
     
@@ -293,51 +313,42 @@ let executeTestCaseSync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, w
     let rndDir = Path.GetRandomFileName()
     let newWorkDir = Path.Combine(workDir, rndDir)
     Directory.CreateDirectory newWorkDir |> ignore
+    let watch = Diagnostics.Stopwatch.StartNew()
     let ret = executeTestCase asn1sccdll newWorkDir t (lang, ws, slim, enableIG, enableAcnV2)
+    let seconds = watch.Elapsed.TotalSeconds
     match ret with
-    | Success _     -> 
+    | Success _     ->
         dirSafeDelete newWorkDir
     | Failed  _     -> ()
-    (i, ret, rndDir, t, lang, ws, slim)
+    (i, ret, rndDir, t, lang, ws, slim, seconds)
 
-let executeTestCaseAsync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) =
-    async {
-    (*
-        let rndDir = Path.GetRandomFileName()
-        let newWorkDir = Path.Combine(workDir, rndDir)
-        Directory.CreateDirectory newWorkDir |> ignore
-        let ret = executeTestCase asn1sccdll newWorkDir t (lang, ws, slim)    
-        match ret with
-        | Success _     -> 
-            dirSafeDelete newWorkDir
-        | Failed  _     -> ()
-        return (i, ret, rndDir, t, lang, ws, slim)
-        *)
-        let aa = executeTestCaseSync asn1sccdll workDir i t (lang, ws, slim, enableIG, enableAcnV2)
-        return aa
-    }
+/// Runs the test cases with at most nWorkers at a time: a worker takes the next case as soon as its case ends (the
+/// earlier version ran batches of nWorkers cases and waited for the slowest case of each batch, e.g. a SPARK proof).
+let executeParallel (nWorkers:int) fnc (items: 'a list) =
+    let total = items.Length
+    let finished = ref 0
+    let results = Collections.Concurrent.ConcurrentBag<_>()
+    let opts = Threading.Tasks.ParallelOptions(MaxDegreeOfParallelism = nWorkers)
+    let queue = Collections.Concurrent.Partitioner.Create(items, Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering)
+    Threading.Tasks.Parallel.ForEach(queue, opts, fun item ->
+        results.Add (fnc item)
+        let n = Threading.Interlocked.Increment(&finished.contents)
+        lock finished (fun () -> printInfo "Progress %d/%d\n" n total)) |> ignore
+    results |> Seq.toList
 
-
-let rec executeBatch (batchSize:int) fnc initialList =
-    let intCnt = initialList |> Seq.toList |> List.length
-    let rec executeBatch_aux curResult lst =
-        let actBatchSize = min batchSize (Seq.length lst)
-        let witems = lst |> Seq.take actBatchSize
-        let rest = lst |> Seq.skip actBatchSize
-        let executeItems witems =
-            witems
-            |> Seq.map fnc
-            |> Async.Parallel
-            |> Async.RunSynchronously
-        let ret1 = executeItems witems |> Seq.toList
-        let newCurResult = curResult@ret1
-        printInfo "Progress %d/%d\n" newCurResult.Length intCnt
-        match Seq.isEmpty rest with
-        | true    -> newCurResult
-        | false   -> 
-            let ret = executeBatch_aux newCurResult  rest
-            ret
-    executeBatch_aux [] initialList
+/// One entry of the --json file.
+type CaseResult = {
+    id : string
+    lang : string
+    ws : int
+    slim : bool
+    ig : bool
+    acnv2 : bool
+    ok : bool
+    seconds : float
+    workDir : string
+    message : string
+}
 
 let main0 argv =
     
@@ -401,47 +412,86 @@ let main0 argv =
                             if not (l <> "c" && sm) then   // slim mode is C-only
                                 yield (l,ws,sm, enableIG, enableAcnV2)
             } |> Seq.toList
+        let isSparkFile (t:Test_Case) = File.ReadLines t.asn1 |> Seq.exists (fun l -> l.Contains "RUN_SPARK")
+        let sparkFilter =
+            match parserResults.TryGetResult(<@ Spark @>) with
+            | None           -> fun _ -> true
+            | Some "only"    -> fun (t, lang) -> lang = "Ada" && isSparkFile t
+            | Some "exclude" -> fun (t, lang) -> not (lang = "Ada" && isSparkFile t)
+            | Some m         -> failwithf "--spark expects only or exclude, got %s" m
+        let shardFilter =
+            match parserResults.TryGetResult(<@ Shard @>) with
+            | None   -> fun _ -> true
+            | Some s ->
+                match s.Split '/' |> Array.map Int32.TryParse with
+                | [|(true, k); (true, n)|] when 1 <= k && k <= n -> fun i -> i % n = k - 1
+                | _ -> failwithf "--shard expects k/N with 1 <= k <= N, got %s" s
+
         let asn1sccInvoications =
             seq {
-                for tc in all_tests do
+                for itc in all_tests do
                     for (lang, _, _, _, acnV2) as m in asn1sccModes do
-                        if isTestSelected tc lang acnV2 then
-                            yield (tc, m)
+                        if isTestSelected itc.tc lang acnV2 then
+                            yield (itc, m)
             } |> Seq.toList
 
         //asn1sccInvoications |>
         let results0 = 
             asn1sccInvoications |>
-            List.filter(fun (t,_) -> match tc with None -> true | Some s -> t.asn1.EndsWith s) |>
-            List.mapi(fun i (t,b) -> (i,t, b)) 
+            List.filter(fun (itc,_) -> match tc with None -> true | Some s -> itc.tc.asn1.EndsWith s) |>
+            List.filter(fun (itc, (lang, _, _, _, _)) -> sparkFilter (itc.tc, lang)) |>
+            List.indexed |>
+            List.filter(fun (i, _) -> shardFilter i) |>
+            List.map snd |>
+            List.mapi(fun i (itc,b) -> (i,itc, b)) 
+
+        match parserResults.Contains <@ List @> with
+        | true ->
+            results0 |> List.iter (fun (_, itc, (lang, ws, slim, ig, acnV2)) ->
+                printfn "%s\tl=%s\tws=%d\tslim=%b\tig=%b\tacnv2=%b" itc.id lang ws slim ig acnV2)
+            0
+        | false ->
+
+        let ids = results0 |> List.map (fun (i, itc, _) -> (i, itc.id)) |> Map.ofList
         let results =
             match threadPoolSize > 1 with 
             | true ->
                 results0 |>
-                executeBatch threadPoolSize (fun (i,tc, m) -> executeTestCaseAsync asn1sccdll workDir i tc m) |>
-                List.sortBy (fun (i, _, _, _, _, _, _) -> i)
+                executeParallel threadPoolSize (fun (i,itc, m) -> executeTestCaseSync asn1sccdll workDir i itc.tc m) |>
+                List.sortBy (fun (i, _, _, _, _, _, _, _) -> i)
             | false  ->
-                results0 |> List.map (fun (i,tc, m) -> executeTestCaseSync asn1sccdll workDir i tc m) |>
-                List.sortBy (fun (i, _, _, _, _, _, _) -> i)
+                results0 |> List.map (fun (i,itc, m) -> executeTestCaseSync asn1sccdll workDir i itc.tc m) |>
+                List.sortBy (fun (i, _, _, _, _, _, _, _) -> i)
 
 
         let errors = 
-            results |> List.filter (fun (i, ret, _, _, _, _, _) ->  match ret with Failed _ -> true | Success _ -> false)
-        let sucRes = results |> List.filter (fun (i, ret, _, _, _, _, _) ->  match ret with Failed _ -> false | Success _ -> true)
+            results |> List.filter (fun (i, ret, _, _, _, _, _, _) ->  match ret with Failed _ -> true | Success _ -> false)
+        let sucRes = results |> List.filter (fun (i, ret, _, _, _, _, _, _) ->  match ret with Failed _ -> false | Success _ -> true)
 
         sucRes |> 
-        List.iter (fun (i, ret, rndDir, t, lang, ws, slim) -> 
+        List.iter (fun (i, ret, rndDir, t, lang, ws, slim, _) -> 
             printInfo "%s, l=%s, ws=%d, slim=%b, wd=%s, acn=%s --> " t.sAsn1 lang ws slim rndDir (t.acn.Trim())
             printSuccess "OK\n"
         )
         errors |> 
-        List.iter (fun (i, ret, rndDir, t, lang, ws, slim) -> 
+        List.iter (fun (i, ret, rndDir, t, lang, ws, slim, _) -> 
             printInfo "%s, l=%s, ws=%d, slim=%b, wd=%s, acn=%s --> " t.sAsn1 lang ws slim rndDir (t.acn.Trim())
             match ret with
             | Failed errMsg -> 
                 printError "Failed\n%s\n" errMsg
             | Success _ -> ()
         )
+
+        match parserResults.TryGetResult(<@ Json @>) with
+        | None       -> ()
+        | Some fname ->
+            let entries =
+                results |> List.map (fun (i, ret, rndDir, _, lang, ws, slim, seconds) ->
+                    let ok, message = match ret with Success m -> true, m | Failed m -> false, m
+                    { id = ids[i]; lang = lang; ws = ws; slim = slim; ig = enableIG; acnv2 = enableAcnV2
+                      ok = ok; seconds = Math.Round(seconds, 1); workDir = (if ok then "" else Path.Combine(workDir, rndDir))
+                      message = (if ok then "" else message) })
+            File.WriteAllText(fname, Text.Json.JsonSerializer.Serialize(entries, Text.Json.JsonSerializerOptions(WriteIndented = true)))
 
         (if errors.IsEmpty then 0 else 1)
     with
