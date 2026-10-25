@@ -21,6 +21,7 @@ type CliArguments =
     | [<Unique>]                            Spark of mode:string
     | [<Unique>]                            List
     | [<Unique>]                            Json of file:string
+    | [<Unique>]                            Timings of file:string
 with
     interface IArgParserTemplate with
         member this.Usage =
@@ -39,6 +40,7 @@ with
             | Spark _            -> "only | exclude: keep only / drop the Ada test cases of files marked RUN_SPARK"
             | List               -> "print the selected test cases (one id per line) without running them"
             | Json _             -> "write the result and duration of every test case to this JSON file"
+            | Timings _          -> "JSON {\"l=<lang> ws=<n> slim=<b> ig=<b> acnv2=<b>\": {<id>: seconds}}: --shard balances the shards by these durations (longest first) and the cases run longest first"
 
 let checkArguement arg =
     match arg with
@@ -56,6 +58,7 @@ let checkArguement arg =
     | Spark _            -> ()
     | List               -> ()
     | Json _             -> ()
+    | Timings _          -> ()
 
 let StrJoin str listItems =
     if Seq.isEmpty listItems then 
@@ -419,13 +422,37 @@ let main0 argv =
             | Some "only"    -> fun (t, lang) -> lang = "Ada" && isSparkFile t
             | Some "exclude" -> fun (t, lang) -> not (lang = "Ada" && isSparkFile t)
             | Some m         -> failwithf "--spark expects only or exclude, got %s" m
-        let shardFilter =
+        let shard =
             match parserResults.TryGetResult(<@ Shard @>) with
-            | None   -> fun _ -> true
+            | None   -> None
             | Some s ->
                 match s.Split '/' |> Array.map Int32.TryParse with
-                | [|(true, k); (true, n)|] when 1 <= k && k <= n -> fun i -> i % n = k - 1
+                | [|(true, k); (true, n)|] when 1 <= k && k <= n -> Some (k, n)
                 | _ -> failwithf "--shard expects k/N with 1 <= k <= N, got %s" s
+        // measured duration of each case of this configuration (unknown cases: the median of the known ones)
+        let legKey (lang:string, ws:int, slim:bool, ig:bool, acnV2:bool) =
+            sprintf "l=%s ws=%d slim=%b ig=%b acnv2=%b" lang ws slim ig acnV2
+        let timings : Map<string, Map<string, float>> =
+            match parserResults.TryGetResult(<@ Timings @>) with
+            | None       -> Map.empty
+            | Some fname ->
+                Text.Json.JsonSerializer.Deserialize<Collections.Generic.Dictionary<string, Collections.Generic.Dictionary<string, float>>>(File.ReadAllText fname)
+                |> Seq.map (fun kv -> kv.Key, (kv.Value |> Seq.map (fun x -> x.Key, x.Value) |> Map.ofSeq)) |> Map.ofSeq
+        let weight (itc:IdentifiedTestCase, m) =
+            match timings.TryFind (legKey m) with
+            | None    -> 1.0
+            | Some ts ->
+                match ts.TryFind itc.id with
+                | Some w -> w
+                | None   -> ts |> Seq.map (fun kv -> kv.Value) |> Seq.sort |> Seq.toArray |> fun a -> if a.Length = 0 then 1.0 else a[a.Length / 2]
+        /// Longest processing time first: each case (heaviest first) goes to the least loaded shard. With no timings
+        /// every weight is 1 and this is round robin over the ordered list.
+        let assignShards n (cases: (int * float) list) =
+            let loads = Array.zeroCreate<float> n
+            cases |> List.sortBy (fun (i, w) -> (-w, i)) |> List.map (fun (i, w) ->
+                let s = loads |> Array.mapi (fun j l -> (l, j)) |> Array.min |> snd
+                loads[s] <- loads[s] + w
+                (i, s)) |> Map.ofList
 
         let asn1sccInvoications =
             seq {
@@ -440,10 +467,19 @@ let main0 argv =
             asn1sccInvoications |>
             List.filter(fun (itc,_) -> match tc with None -> true | Some s -> itc.tc.asn1.EndsWith s) |>
             List.filter(fun (itc, (lang, _, _, _, _)) -> sparkFilter (itc.tc, lang)) |>
-            List.indexed |>
-            List.filter(fun (i, _) -> shardFilter i) |>
-            List.map snd |>
+            fun selected ->
+                match shard with
+                | None        -> selected
+                | Some (k, n) ->
+                    let shardOf = selected |> List.mapi (fun i c -> (i, weight c)) |> assignShards n
+                    selected |> List.indexed |> List.filter (fun (i, _) -> shardOf[i] = k - 1) |> List.map snd
+            |>
             List.mapi(fun i (itc,b) -> (i,itc, b)) 
+        // with timings the longest cases start first, so that the workers finish together
+        let executionOrder =
+            match timings.IsEmpty with
+            | true  -> results0
+            | false -> results0 |> List.sortBy (fun (i, itc, m) -> (-(weight (itc, m)), i))
 
         match parserResults.Contains <@ List @> with
         | true ->
@@ -456,7 +492,7 @@ let main0 argv =
         let results =
             match threadPoolSize > 1 with 
             | true ->
-                results0 |>
+                executionOrder |>
                 executeParallel threadPoolSize (fun (i,itc, m) -> executeTestCaseSync asn1sccdll workDir i itc.tc m) |>
                 List.sortBy (fun (i, _, _, _, _, _, _, _) -> i)
             | false  ->

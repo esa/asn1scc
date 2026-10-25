@@ -8,12 +8,20 @@ The single source of the jobs, the regression legs and their shards:
   ciPlan.py --run JOB              run the steps of one job; every step runs, exit 1 if one failed
   ciPlan.py --summary RESULTS EXPECTED [--trx DIR]
                                    markdown report (stdout): per leg expected / ran / ok / failed /
-                                   missing cases, the failures, the slowest cases; exit 1 if a case failed
-                                   or is missing
+                                   missing cases, the PUSCInteropTest methods, the failures, the slowest
+                                   cases; exit 1 if a case / test failed or is missing
+  ciPlan.py --update-timings RESULTS
+                                   rewrite v4Tests/scripts/ci-timings.json from the results of a run
+                                   (the regression --json files and the PUSCInteropTest .trx files)
 
 Run from the repository root, inside the asn1scc image (except --summary and --matrix, plain python3).
 A regression step writes ci-results/<job>-<n>.json (regression --json); the summary checks that the
 shards of each leg together ran exactly the cases of the unsharded leg.
+
+Shards are balanced by the measured durations in ci-timings.json (regression --timings: longest
+processing time first; PUSCInteropTest: by PUS service, so that a shard builds each service once).
+Refresh the file after a run whose shards came out uneven: download the results-* artifacts, run
+--update-timings, commit.
 """
 
 import argparse
@@ -21,6 +29,7 @@ import collections
 import glob
 import json
 import os
+import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -28,6 +37,11 @@ import xml.etree.ElementTree as ET
 REGRESSION = "../regression/bin/Debug/net10.0/regression"
 RESULTS_DIR = "ci-results"
 PARALLEL = 4   # GitHub-hosted runners of public repositories: 4 vCPU
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(os.path.dirname(HERE))
+TIMINGS = os.path.join(HERE, "ci-timings.json")
+PUSC_DIR = os.path.join(REPO, "PUSCInteropTest")
+PUSC_KEY = "PUSCInteropTest"     # key of the per-service durations in ci-timings.json
 
 
 def reg(leg, spark=None, shard=None):
@@ -39,12 +53,52 @@ def sh(cmd, cwd="v4Tests"):
     return {"kind": "shell", "cmd": cmd, "cwd": cwd}
 
 
-ADA_SPARK_SHARDS = 4
+def load_timings():
+    if os.path.exists(TIMINGS):
+        with open(TIMINGS) as f:
+            return json.load(f)
+    return {}
 
 
-def ada_ws8(leg):
-    return [[reg(leg, spark="exclude")]] + \
-           [[reg(leg, spark="only", shard=f"{k}/{ADA_SPARK_SHARDS}")] for k in range(1, ADA_SPARK_SHARDS + 1)]
+def pusc_methods():
+    """(class, method) of every [TestMethod] (also the ignored ones) in the PUSCInteropTest sources."""
+    out = []
+    for fn in sorted(glob.glob(os.path.join(PUSC_DIR, "*", "*.cs"))):
+        text = open(fn, encoding="utf-8-sig").read()
+        cls = re.search(r"public class (\w+)", text)
+        for m in re.finditer(r"\[TestMethod[^\]]*\]\s*public void (\w+)\(", text):
+            out.append((cls.group(1), m.group(1)))
+    return out
+
+
+def service_of(method):
+    return re.match(r"S\d+", method).group(0)
+
+
+def lpt(weights, n):
+    """Longest processing time first: {item: weight} -> n lists of items."""
+    bins = [[] for _ in range(n)]
+    loads = [0.0] * n
+    for item, w in sorted(weights.items(), key=lambda kv: (-kv[1], kv[0])):
+        j = loads.index(min(loads))
+        bins[j].append(item)
+        loads[j] += w
+    return bins
+
+
+def scala_shards(n):
+    """PUSCInteropTest split by PUS service: every test of a service (all classes) in the same shard, so that
+    the shard generates and builds that service once (BuildCache)."""
+    methods = pusc_methods()
+    services = sorted({service_of(m) for _, m in methods}, key=lambda x: int(x[1:]))
+    known = load_timings().get(PUSC_KEY, {})
+    default = sorted(known.values())[len(known) // 2] if known else 1.0
+    bins = lpt({svc: known.get(svc, default) for svc in services}, n)
+    shards = []
+    for b in bins:
+        names = sorted({m for _, m in methods if service_of(m) in b})
+        shards.append("|".join(f"Name={x}" for x in names))
+    return shards
 
 
 def scala(test_filter):
@@ -53,37 +107,38 @@ def scala(test_filter):
                f'--logger "trx;LogFilePrefix=scala" --results-directory ../{RESULTS_DIR}/trx', cwd="PUSCInteropTest")]
 
 
+def sharded(legs_, k, n):
+    return [reg(leg, shard=f"{k}/{n}") for leg in legs_]
+
+
+ADA_WS8_SHARDS = 3
+C_SHARDS = 4
+SCALA_SHARDS = 3
+C_LEGS = ["-l c -ws 4 -s false", "-l c -ws 4 -s false -acnv2",
+          "-l c -ws 8 -s true -ig", "-l c -ws 8 -s true", "-l c -ws 8 -s false",
+          "-l c -ws 8 -s true -acnv2", "-l c -ws 8 -s false -acnv2"]
+
+
 def build_jobs():
     jobs = collections.OrderedDict()
     jobs["ada-rtl-x86"] = [sh("./scripts/proveAdaRtl.sh x86")]
     jobs["ada-rtl-msp430"] = [sh("./scripts/proveAdaRtl.sh msp430")]
-    jobs["ada-ws4"] = [reg("-l Ada -ws 4 -s false")]
-    jobs["ada-ws4-acnv2"] = [reg("-l Ada -ws 4 -s false -acnv2")]
+    jobs["ada-ws4"] = [reg("-l Ada -ws 4 -s false"), reg("-l Ada -ws 4 -s false -acnv2")]
     for suffix, leg in [("", "-l Ada -ws 8 -s false"), ("-acnv2", "-l Ada -ws 8 -s false -acnv2")]:
-        steps = ada_ws8(leg)
-        jobs[f"ada-ws8{suffix}-nospark"] = steps[0]
-        for k, s in enumerate(steps[1:], 1):
-            jobs[f"ada-ws8{suffix}-spark-{k}"] = s
-    jobs["c-ws4"] = [reg("-l c -ws 4 -s false"), reg("-l c -ws 4 -s false -acnv2")]
-    jobs["c-ws8-slim"] = [reg("-l c -ws 8 -s true -ig"), reg("-l c -ws 8 -s true")]
-    jobs["c-ws8"] = [reg("-l c -ws 8 -s false"), reg("-l c -ws 8 -s true -acnv2")]
-    jobs["c-ws8-acnv2"] = [reg("-l c -ws 8 -s false -acnv2"),
-                           sh("./scripts/runWireTests.sh"),
-                           sh("./scripts/runIcdPdusTests.sh"),
-                           sh("python3 ./scripts/runIcdTests.py")]
+        for k in range(1, ADA_WS8_SHARDS + 1):
+            jobs[f"ada-ws8{suffix}-{k}"] = [reg(leg, shard=f"{k}/{ADA_WS8_SHARDS}")]
+    # every C leg split over the C jobs; the script checks go to the first two
+    for k in range(1, C_SHARDS + 1):
+        jobs[f"c-{k}"] = sharded(C_LEGS, k, C_SHARDS)
+    jobs["c-1"] += [sh("./scripts/runWireTests.sh"), sh("./scripts/runIcdPdusTests.sh")]
+    jobs["c-2"] += [sh("python3 ./scripts/runIcdTests.py")]
     jobs["python"] = [reg("-l python -ws 4 -s false"), reg("-l python -ws 8 -s false"),
                       sh("uvx --python=3.11 pytest tests -v", cwd="asn1python"),
                       sh("./tools/check_generated_code.sh", cwd="asn1python")]
-    jobs["rust-ws4"] = [reg("-l Rust -ws 4 -s false")]
-    jobs["rust-ws8"] = [reg("-l Rust -ws 8 -s false")]
-    jobs["scala-encdec-c-python"] = scala("FullyQualifiedName~PUS_C_Interop_Test.EncDecC|FullyQualifiedName~PUS_C_Interop_Test.EncDecPython")
-    jobs["scala-encdec-scala"] = scala("FullyQualifiedName~PUS_C_Interop_Test.EncDecScala")
-    jobs["scala-interop-acn"] = scala("FullyQualifiedName~PUS_C_Interop_Test.InteropAcn")
-    jobs["scala-interop-uper-xer"] = scala("FullyQualifiedName~PUS_C_Interop_Test.InteropUper|FullyQualifiedName~PUS_C_Interop_Test.InteropXer")
+    jobs["rust"] = [reg("-l Rust -ws 4 -s false"), reg("-l Rust -ws 8 -s false")]
+    for k, f in enumerate(scala_shards(SCALA_SHARDS), 1):
+        jobs[f"scala-{k}"] = scala(f)
     return jobs
-
-
-SCALA_CLASSES = ["EncDecC", "EncDecPython", "EncDecScala", "InteropAcn", "InteropUper", "InteropXer"]
 
 
 def legs(jobs):
@@ -102,6 +157,8 @@ def regression_cmd(step, out_json):
         cmd += f" --spark {step['spark']}"
     if step["shard"]:
         cmd += f" --shard {step['shard']}"
+    if os.path.exists(TIMINGS):
+        cmd += f" --timings {TIMINGS}"
     return cmd + f" --json {out_json}"
 
 
@@ -194,33 +251,31 @@ def summary(results_dir, expected_file, trx_dir):
     out += ["", f"Total: {len(all_entries)} cases run, {total_ok} OK "
                 f"(the `--> OK` lines of the sequential flow)."]
 
-    if trx_dir and os.path.isdir(trx_dir):
-        ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
-        per_class = collections.defaultdict(lambda: collections.Counter())
-        for fn in glob.glob(os.path.join(trx_dir, "**", "*.trx"), recursive=True):
-            root = ET.parse(fn).getroot()
-            names = {}
-            for ut in root.iter(f"{{{ns['t']}}}UnitTest"):
-                tm = ut.find("t:TestMethod", ns)
-                names[ut.get("id")] = tm.get("className").split(".")[-1] if tm is not None else "?"
-            for r in root.iter(f"{{{ns['t']}}}UnitTestResult"):
-                cls = names.get(r.get("testId"), "?")
-                per_class[cls][r.get("outcome")] += 1
-                h, m, s = r.get("duration", "0:0:0").split(":")
-                per_class[cls]["seconds"] += int(h) * 3600 + int(m) * 60 + float(s)
+    if trx_dir is not None:
+        expected_methods = collections.Counter(pusc_methods())
+        seen = collections.Counter()
+        per_class = collections.defaultdict(collections.Counter)
+        for cls, name, outcome, secs in trx_results(trx_dir):
+            seen[(cls, name)] += 1
+            per_class[cls][outcome] += 1
+            per_class[cls]["seconds"] += secs
+        missing = sorted(set(expected_methods) - set(seen))
+        dups = sorted(k for k, v in seen.items() if v > 1)
+        failed_tests = sum(c["Failed"] for c in per_class.values())
+        if missing or dups or failed_tests:
+            bad = True
         out += ["", "## PUSCInteropTest (dotnet test)", "",
                 "| class | passed | failed | skipped | seconds |", "|---|---:|---:|---:|---:|"]
-        for cls in sorted(set(per_class) | set(SCALA_CLASSES)):
-            c = per_class.get(cls, collections.Counter())
-            if not c:
-                bad = True
-            if c["Failed"]:
-                bad = True
-            out.append(f"| {cls} | {c['Passed']} | {c['Failed']} | {c['NotExecuted']} | {c['seconds']:.0f} |")
         tot = collections.Counter()
-        for c in per_class.values():
+        for cls in sorted({c for c, _ in expected_methods} | set(per_class)):
+            c = per_class.get(cls, collections.Counter())
             tot.update(c)
+            out.append(f"| {cls} | {c['Passed']} | {c['Failed']} | {c['NotExecuted']} | {c['seconds']:.0f} |")
         out.append(f"| **total** | {tot['Passed']} | {tot['Failed']} | {tot['NotExecuted']} | {tot['seconds']:.0f} |")
+        out.append("")
+        out.append(f"Test methods in the sources: {sum(expected_methods.values())}, in the results: "
+                   f"{sum(seen.values())}, missing: {len(missing)}, duplicated: {len(dups)}.")
+        out += [f"- MISSING {c}.{m}" for c, m in missing[:50]] + [f"- DUPLICATED {c}.{m}" for c, m in dups[:50]]
 
     if step_failures:
         bad = True
@@ -239,6 +294,42 @@ def summary(results_dir, expected_file, trx_dir):
     return 1 if bad else 0
 
 
+def trx_results(trx_dir):
+    """(class, method, outcome, seconds) of every test result in the .trx files under trx_dir."""
+    ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+    for fn in glob.glob(os.path.join(trx_dir, "**", "*.trx"), recursive=True):
+        root = ET.parse(fn).getroot()
+        names = {}
+        for ut in root.iter(f"{{{ns['t']}}}UnitTest"):
+            tm = ut.find("t:TestMethod", ns)
+            names[ut.get("id")] = (tm.get("className").split(".")[-1], tm.get("name"))
+        for r in root.iter(f"{{{ns['t']}}}UnitTestResult"):
+            cls, name = names[r.get("testId")]
+            h, m, sec = r.get("duration", "0:0:0").split(":")
+            yield cls, name, r.get("outcome"), int(h) * 3600 + int(m) * 60 + float(sec)
+
+
+def update_timings(results_dir):
+    timings = collections.defaultdict(dict)
+    for fn in sorted(glob.glob(os.path.join(results_dir, "**", "*.json"), recursive=True)):
+        if fn.endswith(".steps.json"):
+            continue
+        with open(fn) as f:
+            for e in json.load(f):
+                timings[leg_key(e)][e["id"]] = e["seconds"]
+    per_service = collections.Counter()
+    for _, name, _, secs in trx_results(results_dir):
+        per_service[service_of(name)] += secs
+    if per_service:
+        timings[PUSC_KEY] = {k: round(v, 1) for k, v in per_service.items()}
+    out = {k: dict(sorted(v.items())) for k, v in sorted(timings.items())}
+    with open(TIMINGS, "w") as f:
+        json.dump(out, f, indent=0, sort_keys=True)
+        f.write("\n")
+    print(f"{TIMINGS}: {sum(len(v) for v in out.values())} entries")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     g = ap.add_mutually_exclusive_group(required=True)
@@ -246,12 +337,15 @@ def main():
     g.add_argument("--expected", metavar="OUT")
     g.add_argument("--run", metavar="JOB")
     g.add_argument("--summary", nargs=2, metavar=("RESULTS", "EXPECTED"))
+    g.add_argument("--update-timings", metavar="RESULTS")
     ap.add_argument("--trx", metavar="DIR")
     a = ap.parse_args()
     jobs = build_jobs()
     if a.matrix:
         print(json.dumps(list(jobs)))
         return 0
+    if a.update_timings:
+        return update_timings(a.update_timings)
     if a.expected:
         return write_expected(a.expected, jobs)
     if a.run:
