@@ -30,6 +30,8 @@ Notes:
     the whole corpus takes minutes, not hours.
   * Trailing whitespace and CRLF/LF differences are ignored. Absolute output
     paths, if a generated file ever embeds one, are normalised to <OUT>.
+    In compiler stderr, the source location of .NET stack frames is reduced
+    to the file name (the builds live in different directories).
   * Expected-to-fail cases (--TCLFC/--TCFFC) are run through both compilers
     and their (normalised) error messages are compared instead.
   * Identical outputs are deleted as soon as they are compared; only the
@@ -162,6 +164,15 @@ def normalize_text(data, out_dirs):
     return "\n".join(lines)
 
 
+STACK_FRAME_SOURCE = re.compile(r"^(\s+at .*?) in .*?([^/\\]+):line \d+$", re.MULTILINE)
+
+
+def normalize_stderr(data, out_dirs):
+    """normalize_text + the source location of .NET stack frames reduced to the file name: the two compilers
+    are built in different directories, and a line number moves with any edit of the file."""
+    return STACK_FRAME_SOURCE.sub(r"\1 in \2", normalize_text(data, out_dirs))
+
+
 def run_compiler(compiler, cfg, case, workdir):
     os.makedirs(workdir, exist_ok=True)
     asn1 = os.path.join(workdir, "sample1.asn1")
@@ -223,11 +234,11 @@ def compare_case(baseline, candidate, cfg, case, workroot, keep):
             "rc-mismatch", cfg, case, "(compiler exit)",
             "baseline rc=%d, candidate rc=%d\nbaseline stderr:\n%s\n"
             "candidate stderr:\n%s" %
-            (rc_b, rc_c, normalize_text(err_b, out_dirs),
-             normalize_text(err_c, out_dirs))))
+            (rc_b, rc_c, normalize_stderr(err_b, out_dirs),
+             normalize_stderr(err_c, out_dirs))))
     elif rc_b != 0:
-        nb = normalize_text(err_b, out_dirs)
-        nc = normalize_text(err_c, out_dirs)
+        nb = normalize_stderr(err_b, out_dirs)
+        nc = normalize_stderr(err_c, out_dirs)
         if nb != nc:
             findings.append(Finding(
                 "stderr-drift", cfg, case, "(compiler stderr)",

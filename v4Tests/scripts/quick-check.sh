@@ -10,6 +10,11 @@
 #
 # Runs C and Ada, ws=8, legacy and --acn-v2, without the SPARK proofs (they run in CI).
 # Exit 1 if a case failed; the failed cases keep their work directory under work_dir/.
+#
+# Run from the Windows filesystem (/mnt/...), the script copies the source files (git ls-files: tracked
+# and untracked, not ignored) to $QUICK_CHECK_MIRROR (default ~/asn1scc-work/quick-check-mirror, Linux
+# filesystem, ~8x faster) and runs there; build outputs stay in the mirror, so later builds are
+# incremental. QUICK_CHECK_MIRROR=none runs in place.
 
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -28,8 +33,28 @@ done
 
 REG=../regression/bin/Debug/net10.0/regression
 start=$(date +%s)
-case "$PWD" in
-    /mnt/*) echo "warning: $PWD is on the Windows filesystem: ~8x slower than a worktree on the Linux filesystem" ;;
+
+MIRROR=${QUICK_CHECK_MIRROR:-$HOME/asn1scc-work/quick-check-mirror}
+ROOT=$(cd .. && pwd)
+case "$ROOT" in
+    /mnt/*)
+        if [ "$MIRROR" != none ]; then
+            echo "=== mirror $ROOT -> $MIRROR"
+            mkdir -p "$MIRROR"
+            (cd "$ROOT" && git ls-files -co --exclude-standard) | sort > "$MIRROR/.quick-check-files.new"
+            # files that left the list since the last run (deleted or renamed)
+            if [ -f "$MIRROR/.quick-check-files" ]; then
+                comm -23 "$MIRROR/.quick-check-files" "$MIRROR/.quick-check-files.new" | (cd "$MIRROR" && xargs -r -d '\n' rm -f --)
+            fi
+            rsync -a --files-from="$MIRROR/.quick-check-files.new" "$ROOT/" "$MIRROR/" || exit 1
+            mv "$MIRROR/.quick-check-files.new" "$MIRROR/.quick-check-files"
+            cd "$MIRROR/v4Tests" || exit 1
+            mapped=()
+            for t in "${TARGETS[@]}"; do mapped+=("${t/#$ROOT/$MIRROR}"); done
+            TARGETS=("${mapped[@]}")
+        else
+            echo "warning: $ROOT is on the Windows filesystem: ~8x slower than the Linux filesystem"
+        fi ;;
 esac
 
 if [ $BUILD -eq 1 ]; then

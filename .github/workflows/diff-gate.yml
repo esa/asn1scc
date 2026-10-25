@@ -161,7 +161,7 @@ jobs:
           echo
           for r in reports/*/report.md; do
             n=$(grep -oE '^[0-9]+ finding' "$r" | cut -d' ' -f1)
-            [ "${n:-0}" -gt 0 ] && { echo "### $(basename $(dirname $r))"; sed -n '/finding(s) in/,$p' "$r" | head -80; echo; }
+            if [ "${n:-0}" -gt 0 ]; then echo "### $(basename $(dirname $r))"; sed -n '/finding(s) in/,$p' "$r" | head -80; echo; fi
           done
         } > summary.md
         cat summary.md >> "$GITHUB_STEP_SUMMARY"
