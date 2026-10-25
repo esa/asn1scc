@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plan of the parallel CI regression (.github/workflows/asn1scc-tests-parallel.yml).
+"""Plan of the parallel CI regression (.github/workflows/asn1scc-tests.yml).
 
 The single source of the jobs, the regression legs and their shards:
 

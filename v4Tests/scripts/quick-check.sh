@@ -1,6 +1,6 @@
 #!/bin/bash
 # Quick local check before pushing a branch (the full regression runs on GitHub:
-# .github/workflows/asn1scc-tests-parallel.yml).
+# .github/workflows/asn1scc-tests.yml).
 #
 # Usage (from v4Tests/): ./scripts/quick-check.sh [-j N] [--no-build] [folder|file.asn1 ...]
 #   folder     a folder of test-cases/acn (e.g. 09-CHOICE) or a path to a test .asn1 file;
