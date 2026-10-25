@@ -715,13 +715,13 @@ let ChoiceChild_preWhen_str_condition (sExtFld:string) (sVal:string) (arrsNullCh
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "ChoiceChild_preWhen_str_condition" [("sExtFld",(if sExtFld = null then null else ST.StrHelper sExtFld:>Object) );("sVal",(if sVal = null then null else ST.StrHelper sVal:>Object) );("arrsNullChars",(arrsNullChars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arruVal",arruVal|>Seq.toArray :>Object)]
 
-let Choice_preWhen (p:string) (sAcc:string) (arrsChildren:seq<string>) (td:FE_ChoiceTypeDefinition) (sErrCode:string) codec =
+let Choice_preWhen (p:string) (sAcc:string) (arrsChildren:seq<string>) (td:FE_ChoiceTypeDefinition) (sErrCode:string) (soCovExempt:string option) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "Choice_preWhen_encode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("td",td :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "Choice_preWhen_encode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("td",td :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("soCovExempt",(if soCovExempt.IsNone then null else ST.StrHelper soCovExempt.Value:>Object) )]
     | Decode    ->
-        ST.call "acn_rust" "Choice_preWhen_decode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("td",td :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "Choice_preWhen_decode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("td",td :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("soCovExempt",(if soCovExempt.IsNone then null else ST.StrHelper soCovExempt.Value:>Object) )]
 
 let ChoiceChild_Enum (p:string) (sAcc:string) (sEnmName:string) (sChildID:string) (sChildBody:string) (sChildName:string) (sChildTypeDef:string) (sChoiceTypeName:string) (sChildInitExpr:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -731,13 +731,13 @@ let ChoiceChild_Enum (p:string) (sAcc:string) (sEnmName:string) (sChildID:string
     | Decode    ->
         ST.call "acn_rust" "ChoiceChild_Enum_decode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sEnmName",(if sEnmName = null then null else ST.StrHelper sEnmName:>Object) );("sChildID",(if sChildID = null then null else ST.StrHelper sChildID:>Object) );("sChildBody",(if sChildBody = null then null else ST.StrHelper sChildBody:>Object) );("sChildName",(if sChildName = null then null else ST.StrHelper sChildName:>Object) );("sChildTypeDef",(if sChildTypeDef = null then null else ST.StrHelper sChildTypeDef:>Object) );("sChoiceTypeName",(if sChoiceTypeName = null then null else ST.StrHelper sChoiceTypeName:>Object) );("sChildInitExpr",(if sChildInitExpr = null then null else ST.StrHelper sChildInitExpr:>Object) )]
 
-let Choice_Enum (p:string) (sAcc:string) (arrsChildren:seq<string>) (sEnmExtFld:string) (td:FE_ChoiceTypeDefinition) (sErrCode:string) (bIsDeferred:bool) codec =
+let Choice_Enum (p:string) (sAcc:string) (arrsChildren:seq<string>) (sEnmExtFld:string) (td:FE_ChoiceTypeDefinition) (sErrCode:string) (bIsDeferred:bool) (soCovExempt:string option) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "Choice_Enum_encode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sEnmExtFld",(if sEnmExtFld = null then null else ST.StrHelper sEnmExtFld:>Object) );("td",td :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bIsDeferred",bIsDeferred :>Object)]
+        ST.call "acn_rust" "Choice_Enum_encode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sEnmExtFld",(if sEnmExtFld = null then null else ST.StrHelper sEnmExtFld:>Object) );("td",td :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bIsDeferred",bIsDeferred :>Object);("soCovExempt",(if soCovExempt.IsNone then null else ST.StrHelper soCovExempt.Value:>Object) )]
     | Decode    ->
-        ST.call "acn_rust" "Choice_Enum_decode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sEnmExtFld",(if sEnmExtFld = null then null else ST.StrHelper sEnmExtFld:>Object) );("td",td :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bIsDeferred",bIsDeferred :>Object)]
+        ST.call "acn_rust" "Choice_Enum_decode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sEnmExtFld",(if sEnmExtFld = null then null else ST.StrHelper sEnmExtFld:>Object) );("td",td :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bIsDeferred",bIsDeferred :>Object);("soCovExempt",(if soCovExempt.IsNone then null else ST.StrHelper soCovExempt.Value:>Object) )]
 
 let SizeDependency (v:string) (sCount:string) (nMin:BigInteger) (nMax:BigInteger) (bCheckRange:bool) (bCheckMin:bool) (sTypedefName:string) (bSetInitFlag:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -751,9 +751,9 @@ let ChoiceDependencyEnum_Item (v:string) (sChildCID:string) (sChildCIDHolder:str
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "ChoiceDependencyEnum_Item" [("v",v :>Object);("sChildCID",(if sChildCID = null then null else ST.StrHelper sChildCID:>Object) );("sChildCIDHolder",(if sChildCIDHolder = null then null else ST.StrHelper sChildCIDHolder:>Object) );("sEnumCName",(if sEnumCName = null then null else ST.StrHelper sEnumCName:>Object) );("nChoiceIdx",nChoiceIdx :>Object);("bIsOptional",bIsOptional :>Object);("bSetInitFlag",bSetInitFlag :>Object)]
 
-let ChoiceDependencyEnum (sV:string) (sChPath:string) (sAcc:string) (arrsChoiceEnumItems:seq<string>) (bIsOptional:bool) (sDefaultExpr:string) =
+let ChoiceDependencyEnum (sV:string) (sChPath:string) (sAcc:string) (arrsChoiceEnumItems:seq<string>) (bIsOptional:bool) (sDefaultExpr:string) (soCovExempt:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "acn_rust" "ChoiceDependencyEnum" [("sV",(if sV = null then null else ST.StrHelper sV:>Object) );("sChPath",(if sChPath = null then null else ST.StrHelper sChPath:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChoiceEnumItems",(arrsChoiceEnumItems|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("bIsOptional",bIsOptional :>Object);("sDefaultExpr",(if sDefaultExpr = null then null else ST.StrHelper sDefaultExpr:>Object) )]
+    ST.call "acn_rust" "ChoiceDependencyEnum" [("sV",(if sV = null then null else ST.StrHelper sV:>Object) );("sChPath",(if sChPath = null then null else ST.StrHelper sChPath:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChoiceEnumItems",(arrsChoiceEnumItems|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("bIsOptional",bIsOptional :>Object);("sDefaultExpr",(if sDefaultExpr = null then null else ST.StrHelper sDefaultExpr:>Object) );("soCovExempt",(if soCovExempt.IsNone then null else ST.StrHelper soCovExempt.Value:>Object) )]
 
 let PresenceDependency (v:string) (sSeqPath:string) (sAcc:string) (sChildName:string) (bSetInitFlag:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -767,9 +767,9 @@ let ChoiceDependencyStrPres_child (v:string) (sChildNamePresent:string) (sChildR
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "ChoiceDependencyStrPres_child" [("v",v :>Object);("sChildNamePresent",(if sChildNamePresent = null then null else ST.StrHelper sChildNamePresent:>Object) );("sChildRetVal",(if sChildRetVal = null then null else ST.StrHelper sChildRetVal:>Object) );("arruChildRetValBytes",arruChildRetValBytes|>Seq.toArray :>Object);("arrsNullChars",(arrsNullChars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sChoiceTypeName",(if sChoiceTypeName = null then null else ST.StrHelper sChoiceTypeName:>Object) );("sInsertedFieldTypeName",(if sInsertedFieldTypeName = null then null else ST.StrHelper sInsertedFieldTypeName:>Object) );("bSetInitFlag",bSetInitFlag :>Object)]
 
-let ChoiceDependencyPres (v:string) (sChPath:string) (sAcc:string) (arrsChoiceItems:seq<string>) (sChoiceTypeName:string) =
+let ChoiceDependencyPres (v:string) (sChPath:string) (sAcc:string) (arrsChoiceItems:seq<string>) (sChoiceTypeName:string) (soCovExempt:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "acn_rust" "ChoiceDependencyPres" [("v",v :>Object);("sChPath",(if sChPath = null then null else ST.StrHelper sChPath:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChoiceItems",(arrsChoiceItems|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sChoiceTypeName",(if sChoiceTypeName = null then null else ST.StrHelper sChoiceTypeName:>Object) )]
+    ST.call "acn_rust" "ChoiceDependencyPres" [("v",v :>Object);("sChPath",(if sChPath = null then null else ST.StrHelper sChPath:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChoiceItems",(arrsChoiceItems|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sChoiceTypeName",(if sChoiceTypeName = null then null else ST.StrHelper sChoiceTypeName:>Object) );("soCovExempt",(if soCovExempt.IsNone then null else ST.StrHelper soCovExempt.Value:>Object) )]
 
 let MultiAcnUpdate_checkEqual_pri0 (p1:string) (p2:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -1051,17 +1051,17 @@ let acn_deferred_det_switch_case_int (sCaseName:string) (sVarName:string) (sValu
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "acn_deferred_det_switch_case_int" [("sCaseName",(if sCaseName = null then null else ST.StrHelper sCaseName:>Object) );("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) )]
 
-let acn_deferred_det_switch_int (sVarName:string) (sKindAccess:string) (arrsCaseItems:seq<string>) =
+let acn_deferred_det_switch_int (sVarName:string) (sKindAccess:string) (arrsCaseItems:seq<string>) (soCovExempt:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "acn_rust" "acn_deferred_det_switch_int" [("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("sKindAccess",(if sKindAccess = null then null else ST.StrHelper sKindAccess:>Object) );("arrsCaseItems",(arrsCaseItems|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+    ST.call "acn_rust" "acn_deferred_det_switch_int" [("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("sKindAccess",(if sKindAccess = null then null else ST.StrHelper sKindAccess:>Object) );("arrsCaseItems",(arrsCaseItems|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("soCovExempt",(if soCovExempt.IsNone then null else ST.StrHelper soCovExempt.Value:>Object) )]
 
 let acn_deferred_det_switch_case_str (sCaseName:string) (sVarName:string) (sValue:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "acn_deferred_det_switch_case_str" [("sCaseName",(if sCaseName = null then null else ST.StrHelper sCaseName:>Object) );("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) )]
 
-let acn_deferred_det_switch_str (sVarName:string) (sKindAccess:string) (arrsCaseItems:seq<string>) =
+let acn_deferred_det_switch_str (sVarName:string) (sKindAccess:string) (arrsCaseItems:seq<string>) (soCovExempt:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "acn_rust" "acn_deferred_det_switch_str" [("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("sKindAccess",(if sKindAccess = null then null else ST.StrHelper sKindAccess:>Object) );("arrsCaseItems",(arrsCaseItems|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+    ST.call "acn_rust" "acn_deferred_det_switch_str" [("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("sKindAccess",(if sKindAccess = null then null else ST.StrHelper sKindAccess:>Object) );("arrsCaseItems",(arrsCaseItems|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("soCovExempt",(if soCovExempt.IsNone then null else ST.StrHelper soCovExempt.Value:>Object) )]
 
 let acn_deferred_det_fallback_value (sPatchFuncName:string) (sDefaultVal:string) (sDetName:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

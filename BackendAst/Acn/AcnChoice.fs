@@ -285,6 +285,15 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let choiceContent, resultExpr =
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
             let access = lm.lg.getAccess p.accessPath
+            // coverage step 12e: the update of the determinant, earlier in this function, switched on the same selector
+            // with a failing default arm, and every alternative it accepts has an arm here (none is always absent)
+            let soCovExempt =
+                match codec, ec, alwaysAbsentChildren with
+                | Encode, (CEC_enum _ | CEC_presWhen), [] ->
+                    nestingScope.selectorExemption (choiceSelectorKey pp access) "ASN1SCC-COV-004" |> Option.map covExemptJustification
+                | Encode, (CEC_enum _ | CEC_presWhen), _ :: _
+                | Encode, CEC_uper, _
+                | Decode, _, _                            -> None
             match ec with
             | CEC_uper        ->
                 choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
@@ -296,8 +305,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 // when-others would be redundant — Ada flags it as a warning,
                 // which becomes an error under -gnatwe.
                 let bIsDeferred = isDeferredDeterminant (snd enm)
-                choice_Enum pp access childrenStatements extField td errCode.errCodeName bIsDeferred codec, resultExpr
-            | CEC_presWhen    -> choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
+                choice_Enum pp access childrenStatements extField td errCode.errCodeName bIsDeferred soCovExempt codec, resultExpr
+            | CEC_presWhen    -> choice_preWhen pp  access childrenStatements td errCode.errCodeName soCovExempt codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
         let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.accessPath codec
         // coverage step 12b: one arm runs, then (C) the default arm of an invalid selector

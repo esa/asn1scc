@@ -1222,13 +1222,13 @@ when <sEnmName> =>
 
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 case <p><sAcc>kind is
     <arrsChildren; separator="\n">
 end case;
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 case <sEnmExtFld> is
     <arrsChildren; separator="\n">
     <if(bIsDeferred)>when others => -- COVERAGE_IGNORE
@@ -1246,7 +1246,7 @@ ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> = <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "(<sExtFld>(1 .. String'(\"<sVal>\")'Length + 1) = \"<sVal>\" & adaasn1rtl.NUL)"
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode, soCovExempt) ::= <<
 case <p><sAcc>kind is
     <arrsChildren; separator="\n">
 end case;
@@ -1259,7 +1259,7 @@ when <sChildID> =>
 
 
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode, soCovExempt) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 <arrsChildren; separator="\n">
 else
@@ -1349,7 +1349,7 @@ getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p>.Length"
 
 
 
-ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName, soCovExempt) ::= <<
 case <sChPath><sAcc>kind is
     <arrsChoiceItems; separator="\n">
 end case;
@@ -1372,7 +1372,7 @@ when <sChildCID> =>
     <v> := <sEnumCName>;<if(bSetInitFlag)><\n>    <v>_is_initialized := True;<endif>
 >>
 
-ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
+ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr, soCovExempt) ::= <<
 case <sChPath><sAcc>kind is
     <arrsChoiceEnumItems; separator="\n">
 end case;
@@ -2241,7 +2241,7 @@ acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "when <sCaseNa
 
 /* Constant-Asn1UInt declared via case-expression on the choice kind.
    This is emitted as part of a declare-block via acn_deferred_det_preblock_wrap. */
-acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= <<
+acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= <<
 <sVarName> : constant adaasn1rtl.Asn1UInt :=
     (case <sKindAccess> is
         <arrsCaseItems; separator=",\n">,
@@ -2252,7 +2252,7 @@ acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= <<
 acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= "when <sCaseName> => \"<sValue>\""
 
 /* Constant-String declared via case-expression on the choice kind. */
-acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= <<
+acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= <<
 <sVarName> : constant String :=
     (case <sKindAccess> is
         <arrsCaseItems; separator=",\n">,

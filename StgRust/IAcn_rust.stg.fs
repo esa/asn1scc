@@ -197,28 +197,28 @@ type IAcn_rust() =
             acn_rust.ChoiceChild_preWhen_int_condition  sExtFld sVal 
         override this.ChoiceChild_preWhen_str_condition  (sExtFld:string) (sVal:string) (arrsNullChars:seq<string>) (arruVal:seq<byte>) =
             acn_rust.ChoiceChild_preWhen_str_condition  sExtFld sVal arrsNullChars arruVal 
-        override this.Choice_preWhen  (p:string) (sAcc:string) (arrsChildren:seq<string>) (td:FE_ChoiceTypeDefinition) (sErrCode:string) (codec:Codec) =
-            acn_rust.Choice_preWhen  p sAcc arrsChildren td sErrCode codec
+        override this.Choice_preWhen  (p:string) (sAcc:string) (arrsChildren:seq<string>) (td:FE_ChoiceTypeDefinition) (sErrCode:string) (soCovExempt:string option) (codec:Codec) =
+            acn_rust.Choice_preWhen  p sAcc arrsChildren td sErrCode soCovExempt codec
         override this.ChoiceChild_Enum  (p:string) (sAcc:string) (sEnmName:string) (sChildID:string) (sChildBody:string) (sChildName:string) (sChildTypeDef:string) (sChoiceTypeName:string) (sChildInitExpr:string) (codec:Codec) =
             acn_rust.ChoiceChild_Enum  p sAcc sEnmName sChildID sChildBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec
-        override this.Choice_Enum  (p:string) (sAcc:string) (arrsChildren:seq<string>) (sEnmExtFld:string) (td:FE_ChoiceTypeDefinition) (sErrCode:string) (bIsDeferred:bool) (codec:Codec) =
-            acn_rust.Choice_Enum  p sAcc arrsChildren sEnmExtFld td sErrCode bIsDeferred codec
+        override this.Choice_Enum  (p:string) (sAcc:string) (arrsChildren:seq<string>) (sEnmExtFld:string) (td:FE_ChoiceTypeDefinition) (sErrCode:string) (bIsDeferred:bool) (soCovExempt:string option) (codec:Codec) =
+            acn_rust.Choice_Enum  p sAcc arrsChildren sEnmExtFld td sErrCode bIsDeferred soCovExempt codec
         override this.SizeDependency  (v:string) (sCount:string) (nMin:BigInteger) (nMax:BigInteger) (bCheckRange:bool) (bCheckMin:bool) (sTypedefName:string) (bSetInitFlag:bool) =
             acn_rust.SizeDependency  v sCount nMin nMax bCheckRange bCheckMin sTypedefName bSetInitFlag 
         override this.SizeDependencyFixedSize  (v:string) (nFixedSize:BigInteger) (bSetInitFlag:bool) =
             acn_rust.SizeDependencyFixedSize  v nFixedSize bSetInitFlag 
         override this.ChoiceDependencyEnum_Item  (v:string) (sChildCID:string) (sChildCIDHolder:string) (sEnumCName:string) (nChoiceIdx:BigInteger) (bIsOptional:bool) (bSetInitFlag:bool) =
             acn_rust.ChoiceDependencyEnum_Item  v sChildCID sChildCIDHolder sEnumCName nChoiceIdx bIsOptional bSetInitFlag 
-        override this.ChoiceDependencyEnum  (sV:string) (sChPath:string) (sAcc:string) (arrsChoiceEnumItems:seq<string>) (bIsOptional:bool) (sDefaultExpr:string) =
-            acn_rust.ChoiceDependencyEnum  sV sChPath sAcc arrsChoiceEnumItems bIsOptional sDefaultExpr 
+        override this.ChoiceDependencyEnum  (sV:string) (sChPath:string) (sAcc:string) (arrsChoiceEnumItems:seq<string>) (bIsOptional:bool) (sDefaultExpr:string) (soCovExempt:string option) =
+            acn_rust.ChoiceDependencyEnum  sV sChPath sAcc arrsChoiceEnumItems bIsOptional sDefaultExpr soCovExempt 
         override this.PresenceDependency  (v:string) (sSeqPath:string) (sAcc:string) (sChildName:string) (bSetInitFlag:bool) =
             acn_rust.PresenceDependency  v sSeqPath sAcc sChildName bSetInitFlag 
         override this.ChoiceDependencyIntPres_child  (v:string) (sChildNamePresent:string) (sChildRetVal:string) (sChoiceTypeName:string) (bSetInitFlag:bool) =
             acn_rust.ChoiceDependencyIntPres_child  v sChildNamePresent sChildRetVal sChoiceTypeName bSetInitFlag 
         override this.ChoiceDependencyStrPres_child  (v:string) (sChildNamePresent:string) (sChildRetVal:string) (arruChildRetValBytes:seq<byte>) (arrsNullChars:seq<string>) (sChoiceTypeName:string) (sInsertedFieldTypeName:string) (bSetInitFlag:bool) =
             acn_rust.ChoiceDependencyStrPres_child  v sChildNamePresent sChildRetVal arruChildRetValBytes arrsNullChars sChoiceTypeName sInsertedFieldTypeName bSetInitFlag 
-        override this.ChoiceDependencyPres  (v:string) (sChPath:string) (sAcc:string) (arrsChoiceItems:seq<string>) (sChoiceTypeName:string) =
-            acn_rust.ChoiceDependencyPres  v sChPath sAcc arrsChoiceItems sChoiceTypeName 
+        override this.ChoiceDependencyPres  (v:string) (sChPath:string) (sAcc:string) (arrsChoiceItems:seq<string>) (sChoiceTypeName:string) (soCovExempt:string option) =
+            acn_rust.ChoiceDependencyPres  v sChPath sAcc arrsChoiceItems sChoiceTypeName soCovExempt 
         override this.MultiAcnUpdate_checkEqual_pri0  (p1:string) (p2:string) =
             acn_rust.MultiAcnUpdate_checkEqual_pri0  p1 p2 
         override this.MultiAcnUpdate_checkEqual_str0  (p1:string) (p2:string) =
@@ -303,12 +303,12 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_value_presence_bool  p sAcc sChildName 
         override this.acn_deferred_det_switch_case_int  (sCaseName:string) (sVarName:string) (sValue:string) =
             acn_rust.acn_deferred_det_switch_case_int  sCaseName sVarName sValue 
-        override this.acn_deferred_det_switch_int  (sVarName:string) (sKindAccess:string) (arrsCaseItems:seq<string>) =
-            acn_rust.acn_deferred_det_switch_int  sVarName sKindAccess arrsCaseItems 
+        override this.acn_deferred_det_switch_int  (sVarName:string) (sKindAccess:string) (arrsCaseItems:seq<string>) (soCovExempt:string option) =
+            acn_rust.acn_deferred_det_switch_int  sVarName sKindAccess arrsCaseItems soCovExempt 
         override this.acn_deferred_det_switch_case_str  (sCaseName:string) (sVarName:string) (sValue:string) =
             acn_rust.acn_deferred_det_switch_case_str  sCaseName sVarName sValue 
-        override this.acn_deferred_det_switch_str  (sVarName:string) (sKindAccess:string) (arrsCaseItems:seq<string>) =
-            acn_rust.acn_deferred_det_switch_str  sVarName sKindAccess arrsCaseItems 
+        override this.acn_deferred_det_switch_str  (sVarName:string) (sKindAccess:string) (arrsCaseItems:seq<string>) (soCovExempt:string option) =
+            acn_rust.acn_deferred_det_switch_str  sVarName sKindAccess arrsCaseItems soCovExempt 
         override this.acn_deferred_det_fallback_value  (sPatchFuncName:string) (sDefaultVal:string) (sDetName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_fallback_value  sPatchFuncName sDefaultVal sDetName codec
         override this.acn_deferred_det_fallback_value_with_size  (sPatchFuncName:string) (sDefaultVal:string) (nBits:BigInteger) (sDetName:string) (codec:Codec) =

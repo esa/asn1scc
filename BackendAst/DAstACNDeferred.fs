@@ -80,6 +80,13 @@ let deferredDetLocalName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (name: str
 /// Identifier "patchDetVal" / "patchDetStrVal" must NOT start with an
 /// underscore — Ada rejects leading-underscore identifiers and the same
 /// names are emitted into both C and Ada output.
+///
+/// bAfterCheckedBody (coverage step 12e): the block runs only after the
+/// encoding of the function body succeeded.  The switch on the kind of a
+/// consumer CHOICE then cannot reach its default arm (ASN1SCC-COV-004) when
+/// the CHOICE is encoded unconditionally in that body: every node from the
+/// boundary to it is a mandatory SEQUENCE component, so its own switch,
+/// whose default arm fails, ran on the same selector.
 let computePatchDetValueExpr
     (r: Asn1AcnAst.AstRoot)
     (lm: LanguageMacros)
@@ -87,11 +94,17 @@ let computePatchDetValueExpr
     (dep: Asn1AcnAst.AcnDependency)
     (boundaryPath: ScopeNode list)
     (specP: CodegenScope)
+    (bAfterCheckedBody: bool)
     : (string option * string) =
     // backend names of the children (fields renamed by -fp AUTO)
     let backendType = withBackendChildNames r lm dep.asn1Type
     let fieldPath = backendType.ToScopeNodeList
     let relParts = fieldPath |> List.skip boundaryPath.Length
+    let soCovExempt =
+        let unconditional = relParts |> List.forall (function SEQ_CHILD (_, false) -> true | _ -> false)
+        match bAfterCheckedBody, unconditional with
+        | true, true                -> Some (DAstACN.covExemptJustification "ASN1SCC-COV-004")
+        | true, false | false, _    -> None
     match dep.dependencyKind with
     | Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _) ->
         if minSize.acn = maxSize.acn then
@@ -123,7 +136,7 @@ let computePatchDetValueExpr
                 lm.acn.acn_deferred_det_switch_case_int presentWhenName varName (intVal.Value.ToString())
             | AcnGenericTypes.PresenceStr _ ->
                 failwithf "BUG: PresenceStr in AcnDepPresence (should be AcnDepPresenceStr)")
-        let switchBlock = lm.acn.acn_deferred_det_switch_int varName kindAccess switchItems
+        let switchBlock = lm.acn.acn_deferred_det_switch_int varName kindAccess switchItems soCovExempt
         (Some switchBlock, varName)
 
     | Asn1AcnAst.AcnDepPresenceStr (relPath, chc, _strType) ->
@@ -138,7 +151,7 @@ let computePatchDetValueExpr
                 lm.acn.acn_deferred_det_switch_case_str presentWhenName varName strVal.Value
             | AcnGenericTypes.PresenceInt _ ->
                 failwithf "BUG: PresenceInt in AcnDepPresenceStr")
-        let switchBlock = lm.acn.acn_deferred_det_switch_str varName kindAccess switchItems
+        let switchBlock = lm.acn.acn_deferred_det_switch_str varName kindAccess switchItems soCovExempt
         (Some switchBlock, varName)
 
     | Asn1AcnAst.AcnDepChoiceDeterminant (enm, chc, _isOptional) ->
@@ -156,7 +169,7 @@ let computePatchDetValueExpr
             // without an enum→uint cast (which Ada disallows).
             let enumIntVal = enmItem.acnEncodeValue.ToString()
             lm.acn.acn_deferred_det_switch_case_int presentWhenName varName enumIntVal)
-        let switchBlock = lm.acn.acn_deferred_det_switch_int varName kindAccess switchItems
+        let switchBlock = lm.acn.acn_deferred_det_switch_int varName kindAccess switchItems soCovExempt
         (Some switchBlock, varName)
 
     | _ ->
@@ -638,7 +651,7 @@ let private createDeferredSequenceFunction
                                 match lm.lg.getDeferredDetFunctions determinant.Type with
                                 | None -> None
                                 | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                    let preBlock, rawValueExpr = computePatchDetValueExpr r lm deps dep parentPath root
+                                    let preBlock, rawValueExpr = computePatchDetValueExpr r lm deps dep parentPath root true
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
@@ -705,7 +718,7 @@ let private createDeferredSequenceFunction
                             | None -> []
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 siblingConsumers ac.id |> List.map (fun dep root ->
-                                    let preBlock, rawValueExpr = computePatchDetValueExpr r lm deps dep parentPath root
+                                    let preBlock, rawValueExpr = computePatchDetValueExpr r lm deps dep parentPath root true
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
@@ -890,7 +903,9 @@ let private buildContainingClosureBody
     let containingSizePrm = findContainingSizeParam ctx.deps ctx.o
     let nArgs = ctx.o.acnArguments.Length
     let paramsArgsPairs = List.zip ctx.o.acnArguments (ctx.o.resolvedType.acnParameters |> List.take nArgs)
-    let bodyContent, ns2 = baseAcnFunc.funcBody ns1 paramsArgsPairs (NestingScope.init ctx.t.acnMaxSizeInBits ctx.t.uperMaxSizeInBits []) specP
+    let bodyContent, ns2Body = baseAcnFunc.funcBody ns1 paramsArgsPairs (NestingScope.init ctx.t.acnMaxSizeInBits ctx.t.uperMaxSizeInBits []) specP
+    // coverage step 12e: the checked selectors of a function body end with it
+    let ns2 = {ns2Body with acnSequenceCheckedSelectors = []}
     match bodyContent with
     | None -> emptyBody ctx.lm, ns2
     | Some br ->
@@ -970,7 +985,9 @@ let private buildNormalReferenceBody
         (stripLocals: LocalVariable list -> LocalVariable list)
         (ns1: State) : AcnFuncBodyResult * State =
     let paramsArgsPairs = List.zip ctx.o.acnArguments ctx.o.resolvedType.acnParameters
-    let bodyContent, ns2 = baseAcnFunc.funcBody ns1 paramsArgsPairs (NestingScope.init ctx.t.acnMaxSizeInBits ctx.t.uperMaxSizeInBits []) specP
+    let bodyContent, ns2Body = baseAcnFunc.funcBody ns1 paramsArgsPairs (NestingScope.init ctx.t.acnMaxSizeInBits ctx.t.uperMaxSizeInBits []) specP
+    // coverage step 12e: the checked selectors of a function body end with it
+    let ns2 = {ns2Body with acnSequenceCheckedSelectors = []}
     match bodyContent with
     | None -> emptyBody ctx.lm, ns2
     | Some br ->
@@ -1040,7 +1057,7 @@ let private appendPatchDetCalls
                         match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
                         | None -> None
                         | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP
+                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP bodyOutcome.canFail
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
                             // but ConstSize encodes value directly, so subtract the offset.
                             let valueExpr =

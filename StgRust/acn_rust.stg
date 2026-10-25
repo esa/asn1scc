@@ -1265,7 +1265,7 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 >>
 
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode, soCovExempt) ::= <<
 match <p> {
     <arrsChildren; separator="\n">
     _ => {
@@ -1275,7 +1275,7 @@ match <p> {
 }
 >>
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode, soCovExempt) ::= <<
 *pErrCode = 0;
 <arrsChildren; separator="\n">
 else {
@@ -1304,7 +1304,7 @@ ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sCh
 >>
 
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 match <p> {
     <arrsChildren; separator="\n">
     _ => {
@@ -1314,7 +1314,7 @@ match <p> {
 }
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 match <sEnmExtFld> {
     <arrsChildren; separator="\n">
     _ => {
@@ -1350,7 +1350,7 @@ ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx,
 }
 >>
 
-ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
+ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr, soCovExempt) ::= <<
 match <sChPath> {
     <arrsChoiceEnumItems; separator="\n">
     _ => {
@@ -1380,7 +1380,7 @@ ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetVa
 }
 >>
 
-ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName, soCovExempt) ::= <<
 match <sChPath> {
     <arrsChoiceItems; separator="\n">
     _ => {
@@ -2027,7 +2027,7 @@ acn_deferred_det_value_presence_bool(p, sAcc, sChildName) ::= "(<p><sAcc>exist.<
 acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "    <sCaseName>(..) => { <sVarName> = <sValue>; }"
 
 /* Full switch block for integer presence or choice determinant */
-acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= <<
+acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= <<
 let mut <sVarName>: u64;
 match <sKindAccess> {
 <arrsCaseItems; separator="\n">
@@ -2040,7 +2040,7 @@ if !ret { return false; }
 acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= <<    <sCaseName>(..) => { <sVarName> = "<sValue>"; }>>
 
 /* Full switch block for string presence */
-acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= <<
+acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= <<
 let mut <sVarName>: &str;
 match <sKindAccess> {
 <arrsCaseItems; separator="\n">

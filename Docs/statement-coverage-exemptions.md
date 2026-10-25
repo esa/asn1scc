@@ -50,7 +50,8 @@ covered nor proven.
   ```
 
   For the templates whose proof depends on the instance (ACN ENUMERATED, see
-  ASN1SCC-COV-001 and -003) the compiler emits the region only when the
+  ASN1SCC-COV-001 and -003; the CHOICE and determinant switches of
+  ASN1SCC-COV-004 and -005) the compiler emits the region only when the
   conditions of the entry hold; otherwise the arm is reachable and is covered
   by an automatic test. The asn1scc test suite checks that every region it
   measures is exactly the set of statements whose precondition
@@ -321,3 +322,200 @@ C:2012 Rule 16.4.
 **Ada.** Covered by ASN1SCC-COV-001: the Ada fixed-size decoders check the item
 range themselves (postcondition), which is stronger than the width argument.
 
+---
+
+## ASN1SCC-COV-004: default arm of a switch on a CHOICE selector that an earlier switch of the same encoder already checked (C)
+
+**Code.** An ACN encoder switches twice on the selector (`kind`) of the same
+CHOICE. The first switch has a `case` for every alternative it accepts and a
+`default:` arm that sets `ret = FALSE`; the second switch runs only when the
+first one let `ret` stay TRUE, and has a `case` for every label of the first.
+The `default:` arm of the second switch cannot execute. There are two shapes:
+
+- **Legacy ACN, and `--acn-v2` determinants of the same SEQUENCE.** The
+  update of an ACN determinant (the inserted field that selects the CHOICE,
+  through an ENUMERATED value or `present-when` conditions) maps the
+  selector to the determinant's value before the determinant is encoded. The
+  CHOICE itself is encoded later in the same function and switches on the
+  selector again to encode the alternative.
+- **`--acn-v2` deferred determinants.** The determinant was reserved earlier
+  in the bitstream (`InitDet`) and is patched (`PatchDet`) after the
+  function body that encodes the CHOICE succeeded; the value to patch is
+  computed by a second switch on the selector.
+
+**Templates** (`StgC/acn_c.stg`): `Choice_Enum_encode` and
+`Choice_preWhen_encode` (first shape: the second switch is the CHOICE's),
+`acn_deferred_det_switch_int` and `acn_deferred_det_switch_str` (second shape:
+the second switch computes the patch value; the first is the CHOICE's own).
+The first switch of the first shape is emitted by `ChoiceDependencyEnum` or
+`ChoiceDependencyPres`; when a CHOICE selects several determinants (e.g. a
+service type and a subtype), the update switches of the later ones are second
+switches too.
+
+**Example** (legacy; `Kind ::= ENUMERATED {a, b}`, `Msg ::= SEQUENCE { chr Ch }`,
+ACN `Msg [] { kind Kind [encoding pos-int, size 8], chr <kind> [] }`,
+`Ch <Kind:kind> [determinant kind]`):
+
+```c
+switch (pVal->chr.kind) {               /* update of the determinant */
+    case Ch_a_PRESENT:
+        Msg_kind = Kind_a;
+        break;
+    case Ch_b_PRESENT:
+        Msg_kind = Kind_b;
+        break;
+    default:
+        ret = FALSE;                            /*COVERAGE_IGNORE*/
+        *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/
+}
+if (ret) {
+    /* ... encoding of Msg_kind ... */
+}
+if (ret) {
+    /*Encode chr */
+    switch(pVal->chr.kind)
+    {
+        case Ch_a_PRESENT:
+            BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->chr.u.a, 0, 10);
+            break;
+        case Ch_b_PRESENT:
+            BitStream_AppendBit(pBitStrm,pVal->chr.u.b);
+            break;
+    default:                                    /*COVERAGE_IGNORE*/    /* <- exempted */
+        *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+        ret = FALSE;                    /*COVERAGE_IGNORE*/
+    }
+}
+```
+
+`--acn-v2` (the specialised encoder of `chr`, which receives the reserved
+determinant as a parameter):
+
+```c
+switch(pVal->kind)
+{
+    /* ... one case per alternative ... */
+default:
+    *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+    ret = FALSE;                    /*COVERAGE_IGNORE*/
+}
+if (ret) {
+    {
+    asn1SccUint patchDetVal;
+    switch(pVal->kind) {
+        case Ch_a_PRESENT: patchDetVal = 0; break;
+        case Ch_b_PRESENT: patchDetVal = 1; break;
+        default:                                    /*COVERAGE_IGNORE*/    /* <- exempted */
+            *pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE; /*COVERAGE_IGNORE*/
+            return FALSE;                           /*COVERAGE_IGNORE*/
+    }
+    ret = Acn_PatchDet_U8((asn1SccUint)patchDetVal, pBitStrm, Msg_chr_kind, pErrCode);
+    }
+}
+```
+
+**Proof.** The encoder receives the value through a pointer to `const` and
+writes no part of it, so both switches read the same selector value. When the
+first switch takes its `default:` arm, `ret` becomes FALSE. Between the two
+switches, every statement that could set `ret` back to TRUE runs only inside an
+`if (ret)` block opened after the first switch, which is not entered once `ret`
+is FALSE; the second switch is inside such a block. So when the second switch runs, the first one took one of its
+`case` arms, and the value is one of its labels, which all have a `case` in the
+second switch.
+
+**Conditions** (checked by `classifyStatements.py` on the generated code):
+the selector is read through the `const` parameter `pVal` (no array index);
+the first switch is in the same function, before the second, its `default:`
+arm sets `ret = FALSE` and nothing else to `ret`, and its labels are labels
+of the second switch; the second switch is inside an `if (ret)` block that
+opens after the first switch, and no statement between the two sets `ret` to
+anything but FALSE outside such a block; every condition (`if`, `case`) that
+guards the first switch but not the second is also a condition of the second
+(`if (E == L)` and `case L:` of `switch (E)` count as the same), or is an
+`if (ret)`. The compiler emits the region only when its own record of the
+encoder shows the same: the update of a determinant ran earlier in the same
+function on the same selector, and the CHOICE has no always-absent
+alternative (the second switch would have no `case` for it); for `--acn-v2`,
+the patch runs after a body that may fail and the CHOICE is reached from the
+function's value through mandatory SEQUENCE components only.
+
+A CHOICE that is OPTIONAL or sits in an alternative of another CHOICE does
+not meet the last condition of `--acn-v2`: its own switch runs only when it is
+present, the patch switch always. Neither does, in both modes, a CHOICE in an
+`ALWAYS PRESENT` component: the update checks the component's `exist` flag, the
+encoding of the CHOICE does not. Those arms are not exempted.
+
+**Why the code stays.** The second switch is generated by a template that is
+also used where no earlier switch exists (a CHOICE encoder called directly),
+and MISRA C:2012 Rule 16.4 requires a `default:` label in every switch.
+
+**Ada.** No exemption: the Ada CHOICE encoders and the legacy determinant
+updates use exhaustive `case` statements without `when others`, and the
+`--acn-v2` patch value is a `case` expression (`when others => 0`), which has
+no statement of its own.
+
+---
+
+## ASN1SCC-COV-005: default arm of the encoding of an ACN determinant that every update sets to an item (C)
+
+**Code.** An ACN inserted field of an ENUMERATED type that selects a CHOICE is
+held in a local of the encoder. The update of the determinant assigns the local
+one item of the ENUMERATED per CHOICE alternative; the encoding of the
+determinant then maps the local to its encoded value with a switch that has a
+`case` for every item and a failing `default:` arm. The `default:` arm cannot
+execute.
+
+**Template**: `StgC/acn_c.stg`, macro `EnumeratedEncValues_encode`, for the
+determinant locals whose every update is a CHOICE selector update
+(`ChoiceDependencyEnum`, possibly several of them combined by
+`MultiAcnUpdate`). Not when an update copies a value from the encoded value
+(`pVal`), e.g. an ENUMERATED component passed as an ACN argument.
+
+**Example** (the legacy example of ASN1SCC-COV-004, encoding of `Msg_kind`):
+
+```c
+if (ret) {
+    /*Encode Msg_kind */
+    /* no check of Msg_kind_is_initialized: its update above sets Msg_kind on every path that reaches here */
+    switch(Msg_kind) {
+        case Kind_a:
+            intVal_Msg_kind = 0UL;
+            break;
+        case Kind_b:
+            intVal_Msg_kind = 1UL;
+            break;
+        default:                                    /*COVERAGE_IGNORE*/    /* <- exempted */
+            ret = FALSE;                            /*COVERAGE_IGNORE*/
+            *pErrCode = ERR_ACN_ENCODE_MSG_KIND;                 /*COVERAGE_IGNORE*/
+    }
+    if (ret) {
+        Acn_Enc_Int_PositiveInteger_ConstSize_8(pBitStrm, intVal_Msg_kind);
+    }
+}
+```
+
+**Proof.** Every assignment of the local in the encoder stores an item that
+has a `case` (or a copy of another local of which the same holds, when one
+determinant selects several CHOICEs). The switch reads the local only after
+an assignment: either under its `_is_initialized` flag, which starts FALSE and
+is set only right after an assignment of the local, or after a construct that
+assigns it on every path on which `ret` stays TRUE (a switch with an
+assignment in every `case` and a failing `default:`, or an `if` / `else if`
+chain with an assignment in every branch and a final `else` that sets `ret =
+FALSE`), with the same `ret` argument as ASN1SCC-COV-004.
+
+**Conditions** (checked by `classifyStatements.py`): the switch is in an
+encoder and its selector is a local declared without an initializer in that
+encoder; every assignment of the local is a label of the switch, or a local
+whose assignments are all labels of the switch and which is read only under
+its own `_is_initialized` flag (set only after an assignment of it); and one of
+the two forms of "read only after an assignment" above holds. The compiler
+emits the region only for a determinant whose updates all are CHOICE selector
+updates.
+
+**Why the code stays.** The same template encodes ENUMERATED components of the
+encoded value, whose `default:` arm is reachable with an invalid value, and
+MISRA C:2012 Rule 16.4.
+
+**Ada.** No exemption needed: the Ada encoding is an exhaustive `case`
+statement without `when others`.

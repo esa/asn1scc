@@ -35,6 +35,9 @@ type private SequenceChildState = {
     childIx: bigint
     uperAccBits: bigint
     acnAccBits: bigint
+    // coverage step 12e: NestingScope.checkedSelectors for the next children (those of the parent plus the CHOICE
+    // selectors checked by the determinant updates of the previous children)
+    checkedSelectors: (string * string) list
 }
 type private SequenceChildResult = {
     stmts: SequenceChildStmt list
@@ -102,6 +105,7 @@ let private mkChildNestingScope (ctx:SequenceChildCtx) (s:SequenceChildState) (c
         acnOffset = ctx.nestingScope.acnOffset + s.acnAccBits
         parents = (ctx.p, ctx.t) :: ctx.nestingScope.parents
         deducedTrailingBits = ctx.nestingScope.deducedTrailingBits + trailingAfterChild
+        checkedSelectors = s.checkedSelectors
         parentSavePositionVar =
             match ctx.hasOwnPostEncoding with
             | true  -> Some ctx.bitStreamPositionsLocalVar
@@ -123,7 +127,7 @@ let private handleAsn1Child
     let deps = ctx.deps
     let us = s.us
     let soSaveBitStrmPosStatement = None
-    let childNestingScope = mkChildNestingScope ctx s child.Name.Value
+    let childNestingScope0 = mkChildNestingScope ctx s child.Name.Value
 
     let childTypeDef = child.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules p.modName
     let childName = lm.lg.getAsn1ChildBackendName child
@@ -132,10 +136,25 @@ let private handleAsn1Child
     let childP =
         let newArg = if lm.lg.usesWrappedOptional && childSel.isOptional && codec = Encode then childSel.asLast else childSel
         {p with accessPath = newArg}
+    // coverage step 12e: an ALWAYS PRESENT child is encoded without the check of its exist flag, which guards the
+    // updates that switched on the selectors inside it: they do not prove its switches
+    let childNestingScope =
+        match child.Optionality with
+        | Some AlwaysPresent ->
+            let prefix = childP.accessPath.joined lm.lg
+            let inside (sel: string) = sel.StartsWith prefix && sel.Length > prefix.Length && not (System.Char.IsLetterOrDigit sel[prefix.Length] || sel[prefix.Length] = '_')
+            {childNestingScope0 with checkedSelectors = childNestingScope0.checkedSelectors |> List.filter (fun (sel, _) -> not (inside sel))}
+        | Some AlwaysAbsent | Some (Optional _) | None -> childNestingScope0
     let childContentResult, ns1 =
         match chFunc with
-        | Some chFunc -> chFunc.funcBodyAsSeqComp us ctx.acnArgs childNestingScope childP childName ctx.bitStreamPositionsLocalVar
+        | Some chFunc -> chFunc.funcBodyAsSeqComp {us with acnSequenceCheckedSelectors = []} ctx.acnArgs childNestingScope childP childName ctx.bitStreamPositionsLocalVar
         | None -> None, us
+    // coverage step 12e: a mandatory SEQUENCE child encoded inline in this function ran its determinant updates on every
+    // path that reaches the next children (a call of its own encoder leaves the list empty)
+    let checkedInChild =
+        match codec, child.Optionality, child.Type.ActualType.Kind with
+        | Encode, None, Sequence _  -> ns1.acnSequenceCheckedSelectors
+        | _                         -> []
 
     //handle present-when acn property
     let presentWhenStmts, presentWhenLvs, presentWhenErrs, existVar, ns2 =
@@ -315,7 +334,7 @@ let private handleAsn1Child
             | Some (Optional _), Some c         -> EncodeOutcome.conditional c.encOutcome
         encodeOutcomeOf codec (EncodeOutcome.sequence (presentWhenOutcome @ [childOutcome]))
     let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult; bsReferenced=bsReferenced; encOutcome=encOutcome}
-    let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits}
+    let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits; checkedSelectors=checkedInChild @ s.checkedSelectors}
     res, newAcc
 
 // Per-child handler for an ACN-inserted SEQUENCE component.
@@ -367,7 +386,13 @@ let private handleAcnChild
         | Decode -> None, us
 
     //acn child encode/decode
-    let childContentResult = (acnChild.funcBody codec) [] childNestingScope childP ctx.bitStreamPositionsLocalVar
+    // coverage step 12e: the encoding reads the determinant only after its update set it (bAlwaysInitialized: on every
+    // path that reaches it; else under the _is_initialized flag that the update sets with it)
+    let contentNestingScope =
+        match update with
+        | Some u when u.writesOnlyEnumItems -> {childNestingScope with checkedSelectors = (lm.lg.getValue childP.accessPath, "ASN1SCC-COV-005") :: childNestingScope.checkedSelectors}
+        | Some _ | None                     -> childNestingScope
+    let childContentResult = (acnChild.funcBody codec) [] contentNestingScope childP ctx.bitStreamPositionsLocalVar
     // the outcome of the determinant's own encoding (coverage step 12c)
     let childContentOutcome = childContentResult |> Option.map (fun c -> encodeOutcomeOf codec c.encOutcome)
     let childEncDecStatement, auxiliaries, ns2 =
@@ -427,7 +452,9 @@ let private handleAcnChild
     let props = {info=childInfo.toAsn1AcnAst; sel=childP.accessPath; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
     let icdResult = ctx.icdAcnChild acnChild icdComments
     let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult; bsReferenced=childEncDecStatement.IsSome; encOutcome=partEncOutcome}
-    let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits}
+    // coverage step 12e: the CHOICE selectors the update rejected unless valid, for the CHOICEs encoded after it
+    let checkedByUpdate = update |> Option.map (fun u -> u.checkedSelectors |> List.map (fun sel -> sel, "ASN1SCC-COV-004")) |> Option.defaultValue []
+    let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits; checkedSelectors=checkedByUpdate @ s.checkedSelectors}
     res, newAcc
 
 // Top-level dispatcher: hand the per-child work to the right helper based
@@ -673,8 +700,8 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             icdAsn1Child = icd_asn1_child
             icdAcnChild = icd_acn_child
         }
-        let (childrenStatements00: SequenceChildResult list), scs = children |> foldMap (handleSequenceChild childCtx) {us=us; childIx=nbPresenceBits; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits}
-        let ns = scs.us
+        let (childrenStatements00: SequenceChildResult list), scs = children |> foldMap (handleSequenceChild childCtx) {us=us; childIx=nbPresenceBits; uperAccBits=nbPresenceBits; acnAccBits=nbPresenceBits; checkedSelectors=nestingScope.checkedSelectors}
+        let ns = {scs.us with acnSequenceCheckedSelectors = scs.checkedSelectors}
         let childrenStatements0 = childrenStatements00 |> List.collect (fun xs -> xs.stmts)
 
         let joinMode =

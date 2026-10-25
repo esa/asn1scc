@@ -1233,11 +1233,11 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
     <p> = <sChoiceTypeName>(kind=<sChildID>, data=instance_<sChildName>)
 >>
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode, soCovExempt) ::= <<
 <arrsChildren; separator="\nel">
 >>
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode, soCovExempt) ::= <<
 <arrsChildren; separator="\n">
 else:
     raise Asn1InvalidValueException(f"No matching choice alternative (Error {cls.DecodeConstants.<sErrCode>})")
@@ -1250,7 +1250,7 @@ if <p>.kind == <sChildID>:
     <sChildBody>
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 <arrsChildren; separator="\nel">
 >>
 
@@ -1260,7 +1260,7 @@ if <p> == <sEnmName>:
     <p> = cls(kind=<sChildID>, data=instance_<sChildName>)
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 <p> = getattr(<sEnmExtFld>, 'val', <sEnmExtFld>)
 <arrsChildren; separator="\nel">
 else:
@@ -1286,7 +1286,7 @@ if <v>_choice == <nChoiceIdx>:
     <v>_is_initialized = True
 >>
 
-ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
+ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr, soCovExempt) ::= <<
 # Map choice discriminator to ASN.1 enum value
 <if(!bIsOptional)>
 <sV>_choice = <sChPath>.kind
@@ -1323,7 +1323,7 @@ if <v>_choice == <sChildNamePresent>:
     <v>_is_initialized = True
 >>
 
-ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName, soCovExempt) ::= <<
 <v>_choice = <sChPath>.kind
 <arrsChoiceItems; separator="\nel">
 >>
@@ -1638,9 +1638,9 @@ acn_deferred_det_distance_bytes_decode(sStart, sEnd) ::= "0"
 acn_deferred_det_kind_access(p, sAcc) ::= "# TODO"
 acn_deferred_det_value_presence_bool(p, sAcc, sChildName) ::= "# TODO"
 acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "# TODO"
-acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= "# TODO"
+acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= "# TODO"
 acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= "# TODO"
-acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= "# TODO"
+acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= "# TODO"
 
 acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= "# TODO"
 acn_deferred_det_fallback_value_decode(sPatchFuncName, sDefaultVal, sDetName) ::= ""

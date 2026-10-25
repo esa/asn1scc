@@ -110,6 +110,22 @@ let adaptArgument = DAstUPer.adaptArgument
 let adaptArgumentValue = DAstUPer.adaptArgumentValue
 let joinedOrAsIdentifier = DAstUPer.joinedOrAsIdentifier
 
+/// Justification of a GNATcoverage exemption region in the generated code; the IDs and
+/// their proofs are in Docs/statement-coverage-exemptions.md (the C uPER / ACN CHOICE
+/// and string templates carry the same COV-001 / COV-002 texts).
+let covExemptJustification (id:string) =
+    match id with
+    | "ASN1SCC-COV-001" -> "ASN1SCC-COV-001: value range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md"
+    | "ASN1SCC-COV-003" -> "ASN1SCC-COV-003: every value of the decoded bit width has an item, see Docs/statement-coverage-exemptions.md"
+    | "ASN1SCC-COV-004" -> "ASN1SCC-COV-004: an earlier switch of this function on the same selector rejected every other value, see Docs/statement-coverage-exemptions.md"
+    | "ASN1SCC-COV-005" -> "ASN1SCC-COV-005: every update of the determinant assigns an item, see Docs/statement-coverage-exemptions.md"
+    | _ -> raise (BugErrorException ("unknown coverage exemption " + id))
+
+/// Coverage step 12e: the key of a CHOICE selector in NestingScope.checkedSelectors / AcnChildUpdate.checkedSelectors
+/// (the text of `<p><sAcc>kind` of the C templates; only compared with other keys of the same language).
+let choiceSelectorKey (joined:string) (acc:string) = joined + acc + "kind"
+
+
 /// Build a function-call string and insert extra actual parameters before
 /// the closing ");".  For example:
 ///   "ret = Fn(pVal, pBitStrm, pErrCode, FALSE);"

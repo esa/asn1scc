@@ -76,14 +76,6 @@ let private encodableRange (enc:IntEncodingClass) : (BigInteger*BigInteger) opti
     | ASCII_UINT_VarSize_NullTerminated _
     | BCD_VarSize_NullTerminated _ -> None
 
-/// Justification of a GNATcoverage exemption region in the generated code; the IDs and
-/// their proofs are in Docs/statement-coverage-exemptions.md (the C uPER / ACN CHOICE
-/// and string templates carry the same COV-001 / COV-002 texts).
-let private covExemptJustification (id:string) =
-    match id with
-    | "ASN1SCC-COV-001" -> "ASN1SCC-COV-001: value range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md"
-    | "ASN1SCC-COV-003" -> "ASN1SCC-COV-003: every value of the decoded bit width has an item, see Docs/statement-coverage-exemptions.md"
-    | _ -> raise (BugErrorException ("unknown coverage exemption " + id))
 
 /// The exemption that proves the `default:` / `when others` arm of the ACN ENUMERATED
 /// decoder unreachable, or None when an invalid stream can reach it (the complement of
@@ -198,7 +190,12 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                             List.map(fun it ->
                                 let enumClassName = lm.lg.extractEnumClassName "" it.scala_name it.Name.Value
                                 Enumerated_item (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
-                        EnumeratedEncValues (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal (decodeDefaultArmExemption lm o) codec, localVar@intAcnFuncBdResult.localVariables
+                        // coverage step 12e: the encoder of a determinant local that its update set to an item
+                        let soCovExempt =
+                            match codec with
+                            | Decode -> decodeDefaultArmExemption lm o
+                            | Encode -> nestingScope.selectorExemption (lm.lg.getValue p.accessPath) "ASN1SCC-COV-005" |> Option.map covExemptJustification
+                        EnumeratedEncValues (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal soCovExempt codec, localVar@intAcnFuncBdResult.localVariables
                     | true ->
                         let sEnumIndex = "nEnumIndex"
                         let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))

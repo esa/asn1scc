@@ -27,6 +27,7 @@ let getAcnDeterminantName = AcnHelpers.getAcnDeterminantName
 let adaptArgument = AcnHelpers.adaptArgument
 let adaptArgumentValue = AcnHelpers.adaptArgumentValue
 let joinedOrAsIdentifier = AcnHelpers.joinedOrAsIdentifier
+let covExemptJustification = AcnHelpers.covExemptJustification
 
 let getDeterminantTypeDefinitionBodyWithinSeq = AcnDeterminantDef.getDeterminantTypeDefinitionBodyWithinSeq
 let getDeterminant_macro = AcnDeterminantDef.getDeterminant_macro

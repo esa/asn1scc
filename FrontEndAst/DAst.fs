@@ -278,10 +278,13 @@ type State = {
     // the parent's join after the call knows whether it can fail. sortTypes creates the referenced type assignments
     // first; a function that is not in the map is EncodeOutcome.unknown.
     encodeCallOutcomes : Map<string, EncodeOutcome>
+    // coverage step 12e: NestingScope.checkedSelectors at the end of the last SEQUENCE encoder body generated inline;
+    // a parent SEQUENCE clears it before a child and reads it after a mandatory SEQUENCE child (same function)
+    acnSequenceCheckedSelectors : (string * string) list
 }
 
 
-let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty}
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; acnSequenceCheckedSelectors=[]}
 
 /// Parent context passed from the fold's pre-functions to child callbacks.
 /// Allows seqAcnChildFunc to know about the parent SEQUENCE's deferred children.
@@ -636,11 +639,19 @@ type NestingScope = {
     deducedTrailingBits: bigint
     // True for a traversal deliberately started in isolation from a type's real usage
     isStandaloneRender: bool
+    // coverage step 12e: (selector, exemption ID) of the switch selectors whose value an earlier part of the same
+    // function body has already restricted to the labels of a later switch on them: a CHOICE selector that a
+    // determinant update switch rejected unless valid (ASN1SCC-COV-004), a determinant local that every update sets to
+    // an enum item (ASN1SCC-COV-005). Every function body starts from NestingScope.init, so it never crosses a call.
+    checkedSelectors: (string * string) list
 } with
     static member init (acnOuterMaxSize: bigint) (uperOuterMaxSize: bigint) (parents: (CodegenScope * Asn1AcnAst.Asn1Type) list): NestingScope =
         {acnOuterMaxSize = acnOuterMaxSize; uperOuterMaxSize = uperOuterMaxSize; nestingLevel = 0I; nestingIx = 0I;
         acnRelativeOffset = 0I; uperRelativeOffset = 0I; acnOffset = 0I; uperOffset = 0I; acnSiblingMaxSize = None; uperSiblingMaxSize = None;
-        parents = parents; parentSavePositionVar = None; deducedTrailingBits = 0I; isStandaloneRender = false}
+        parents = parents; parentSavePositionVar = None; deducedTrailingBits = 0I; isStandaloneRender = false; checkedSelectors = []}
+    /// coverage step 12e: the exemption that proves the default arm of a switch on `selector` unreachable here
+    member this.selectorExemption (selector: string) (id: string) : string option =
+        this.checkedSelectors |> List.tryPick (fun (s, i) -> if s = selector && i = id then Some id else None)
     member this.isInit: bool = this.nestingLevel = 0I && this.nestingIx = 0I
 
 /// Whether the reads of a decoder can fail in the target language. C (and Scala, Python, Rust) decode
@@ -1231,6 +1242,11 @@ and AcnChildUpdate = {
     updateBody  : string
     init        : DeterminantInit
     updOutcome  : EncodeOutcome
+    // coverage step 12e: the CHOICE selectors (`<choice path><access>kind`) whose switch in the update rejects every
+    // value without an alternative (default arm: ret = FALSE), and whether every assignment of the update writes an enum
+    // item (CHOICE determinant updates only)
+    checkedSelectors    : string list
+    writesOnlyEnumItems : bool
 }
 
 and AcnChildUpdateResult = {

@@ -188,7 +188,9 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         // ICD is requested.
                         // This renders an undeclared/inline type in isolation from its
                         // real usage, so mark the scope isStandaloneRender
-                        let content, ns1a = funcBody ns errCode [] {NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits [] with isStandaloneRender = true} p
+                        let content, ns1aBody = funcBody ns errCode [] {NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits [] with isStandaloneRender = true} p
+                        // coverage step 12e: the checked selectors of a function body end with it
+                        let ns1a = {ns1aBody with acnSequenceCheckedSelectors = []}
                         let icdResult, udfcs =
                             match content with
                             | None -> zeroBitIcdResult (), []
@@ -207,7 +209,9 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
             | Some funcName ->
                 let precondAnnots = lm.lg.generatePrecond r ACN t codec
                 let postcondAnnots = lm.lg.generatePostcond r ACN p t codec
-                let content, ns1a = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
+                let content, ns1aBody = funcBody ns errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p
+                // coverage step 12e: the checked selectors of a function body end with it
+                let ns1a = {ns1aBody with acnSequenceCheckedSelectors = []}
                 // coverage step 12b: what the encoder's body does (an empty body writes nothing)
                 let bodyOutcome =
                     match content with

@@ -200,6 +200,347 @@ def cov002(lines, first, src):
     return decoded_range(lines, first, "charIndex") == (0, int(match[1]))
 
 
+# ASN1SCC-COV-004 / -005: the generated encoders are structured C (blocks, if / else,
+# switch, one statement per line), which the helpers below follow line by line.
+
+def c_function_head(lines, line):
+    """Line number of the definition of the C function that holds `line`, or None."""
+    for number in range(line, 0, -1):
+        text = lines[number - 1]
+        if not text.strip() or text[:1].isspace() or text.startswith(("#", "/", "{")):
+            continue
+        if text.startswith("}"):
+            return None
+        match = C_FUNCTION.match(text)
+        if match and match[1] not in {"if", "while", "for", "switch", "return", "sizeof"}:
+            return number
+        return None
+    return None
+
+
+def block_stacks(lines, start, end):
+    """{line: enclosing blocks} for the lines start..end (1-based) of a C function,
+    each block a tuple (open line, header, current case label). The header is the
+    code before the block's '{' (or the line before it when the '{' stands alone);
+    the case label is the last `case L:` met directly in a switch block."""
+    stacks, stack, previous = {}, [], ""
+    for number in range(start, end + 1):
+        text = code_only(lines[number - 1])
+        stacks[number] = tuple(stack)
+        label = re.match(r"^\s*(case\s+([^:]+?)\s*:|default\s*:)", text)
+        if label and stack and re.match(r"^\s*switch\b", stack[-1][1]):
+            stack[-1] = (stack[-1][0], stack[-1][1], label[2].strip() if label[2] else "default")
+        pos = 0
+        for match in re.finditer(r"[{}]", text):
+            if match[0] == "{":
+                header = text[pos:match.start()].strip()
+                header = re.sub(r"^\}\s*", "", header)
+                if not header and not previous.endswith(("{", "}", ";", ":")):
+                    header = previous  # `switch (E)` / a function head on the line before the '{'
+                stack.append((number, header, None))
+            elif stack:
+                stack.pop()
+            pos = match.end()
+        if text.strip() and text.strip() != "{":
+            previous = text.strip()
+    return stacks
+
+
+def norm(expr):
+    expr = re.sub(r"\s+", "", expr)
+    while expr.startswith("(") and expr.endswith(")") and balanced(expr[1:-1]):
+        expr = expr[1:-1]
+    return expr
+
+
+def balanced(text):
+    depth = 0
+    for char in text:
+        depth += {"(": 1, ")": -1}.get(char, 0)
+        if depth < 0:
+            return False
+    return depth == 0
+
+
+def guard(block):
+    """The condition under which a block runs: ('ret',), ('if', C), ('elif', C) (C and the
+    earlier conditions of the chain false), ('case', E, L), None for a plain block,
+    ('other',) for else / loops."""
+    _, header, label = block
+    match = re.match(r"^if\s*\((.*)\)$", header)
+    if match:
+        cond = norm(match[1])
+        return ("ret",) if cond == "ret" or cond.startswith("ret&&") else ("if", cond)
+    match = re.match(r"^else\s+if\s*\((.*)\)$", header)
+    if match:
+        return ("elif", norm(match[1]))  # runs when the condition holds, but not only then
+    match = re.match(r"^switch\s*\((.*)\)$", header)
+    if match:
+        return ("case", norm(match[1]), label)
+    if header == "" or C_FUNCTION.match(header) or re.match(r"^[\w ]+\*?\s*\w+\s*\(.*\)$", header):
+        return None
+    return ("other",)
+
+
+def same_guard(a, b):
+    """True when guards a and b are the same condition: also `if (E == L)` against
+    `case L:` of `switch (E)`."""
+    if a == b:
+        return True
+    for x, y in ((a, b), (b, a)):
+        if x[0] == "if" and y[0] == "case" and y[2] not in (None, "default"):
+            if x[1] in (f"{y[1]}=={norm(y[2])}", f"{norm(y[2])}=={y[1]}"):
+                return True
+    return False
+
+
+RET_SET = re.compile(r"(?<![\w.>])ret\s*=(?!=)\s*([^;]*);")
+
+
+def sticky(stacks, after, until):
+    """True when no line between `after` and `until` can turn a FALSE ret back to
+    TRUE: every assignment of ret there other than `ret = FALSE` sits in a block
+    `if (ret ...)` opened after `after`."""
+    for number in range(after + 1, until):
+        for match in RET_SET.finditer(code_only(stacks["lines"][number - 1])):
+            if match[1].strip() == "FALSE":
+                continue
+            if not any(b[0] > after and guard(b) == ("ret",) for b in stacks[number]):
+                return False
+    return True
+
+
+def runs_after(stacks, first_head, first_end, later_head):
+    """True when the code at `later_head` runs only after the construct first_head ..
+    first_end ran to its end with ret TRUE: `later_head` is inside a block `if (ret)`
+    opened after the construct, ret cannot turn TRUE again on the way, and every
+    condition of the construct that `later_head` does not share is a condition of
+    `later_head` as well (or an `if (ret)` that keeps ret FALSE)."""
+    a, b = stacks[first_head], stacks[later_head]
+    checks = [x for x in b if x[0] > first_end and guard(x) == ("ret",) and sticky(stacks, first_end, x[0])]
+    if not checks:
+        return False
+    check = checks[0][0]
+    shared = {x[0] for x in b}
+    for block in a:
+        if block[0] in shared:
+            continue
+        g = guard(block)
+        if g is None:
+            continue
+        if g == ("ret",):
+            if not sticky(stacks, block[0], check):
+                return False
+            continue
+        if g[0] in ("other", "elif") or not any(guard(y) and same_guard(g, guard(y)) for y in b):
+            return False
+    return True
+
+
+def switch_body(lines, head, limit):
+    """(selector, '{' line, end line, {label: [lines]}, default lines) of the switch
+    at line `head`, or None. Labels with no statement between them share one group."""
+    match = re.match(r"^\s*switch\s*\((.*)\)\s*\{?\s*$", code_only(lines[head - 1]))
+    if not match:
+        return None
+    opened = head if "{" in code_only(lines[head - 1]) else head + 1
+    depth, groups, default, current = 0, {}, [], None
+    for number in range(opened, limit + 1):
+        text = code_only(lines[number - 1])
+        if depth == 1:
+            case = re.match(r"^\s*case\s+([^:]+?)\s*:(.*)$", text)
+            if case:
+                label = case[1].strip()
+                if current is None or current == "default" or any(groups[x] for x in current):
+                    current = []
+                current.append(label)
+                groups[label] = groups.get(label, [])
+                if case[2].strip():
+                    for x in current:
+                        groups[x].append(number)
+            elif re.match(r"^\s*default\s*:", text):
+                current = "default"
+                default.append(number)
+            elif text.strip() and current is not None:
+                target = [default] if current == "default" else [groups[x] for x in current]
+                for lines_of in target:
+                    lines_of.append(number)
+        elif depth > 1 and current is not None:
+            target = [default] if current == "default" else [groups[x] for x in current]
+            for lines_of in target:
+                lines_of.append(number)
+        depth += text.count("{") - text.count("}")
+        if depth <= 0 and number >= opened:
+            return norm(match[1]), opened, number, groups, default
+    return None
+
+
+def owning_switch(lines, first):
+    """Head line of the switch whose `default:` arm holds line `first`, or None."""
+    default = None
+    for number in range(first, max(first - 4, 0), -1):
+        if re.match(r"^\s*default\s*:", lines[number - 1]):
+            default = number
+            break
+        if re.match(r"^\s*(case\b|\}|break;)", lines[number - 1]) and number != first:
+            return None
+    if default is None:
+        return None
+    head, depth = default - 1, 0
+    while head > 0:
+        text = code_only(lines[head - 1])
+        depth += text.count("}") - text.count("{")
+        if depth < 0:
+            break
+        head -= 1
+    if head > 1 and code_only(lines[head - 1]).strip() == "{":
+        head -= 1
+    return head if head and re.match(r"^\s*switch\s*\(", lines[head - 1]) else None
+
+
+def fails(lines, numbers):
+    """True when the statements of a default arm end the switch with ret FALSE."""
+    code = " ".join(code_only(lines[n - 1]) for n in numbers)
+    sets = [m[1].strip() for m in RET_SET.finditer(code)]
+    return (sets == ["FALSE"] or "return FALSE;" in code) and all(v == "FALSE" for v in sets)
+
+
+def function_region(lines, first):
+    """(definition line, last line) of the C function holding `first`, or None."""
+    start = c_function_head(lines, first)
+    if start is None:
+        return None
+    for number in range(start, len(lines) + 1):
+        if lines[number - 1].startswith("}"):
+            return start, number
+    return None
+
+
+def cov004(lines, first):
+    """ASN1SCC-COV-004: the statement is in the `default:` arm of a switch on a
+    selector read through the encoder's `const` pointer pVal, and an earlier switch
+    of the same function on the same selector, whose default arm fails and whose
+    labels are all labels of this switch, ran before it with ret TRUE."""
+    head = owning_switch(lines, first)
+    region = function_region(lines, first)
+    if head is None or region is None:
+        return False
+    start, end = region
+    if not re.search(r"\(\s*const\s+[\w ]+\*\s*pVal\s*,", lines[start - 1]):
+        return False
+    later = switch_body(lines, head, end)
+    if later is None or not re.fullmatch(r"pVal->[\w.>-]+", later[0]):
+        return False
+    stacks = block_stacks(lines, start, end)
+    stacks["lines"] = lines
+    for number in range(start + 1, head):
+        earlier = switch_body(lines, number, end)
+        if earlier is None or earlier[0] != later[0] or earlier[2] >= head:
+            continue
+        if not set(earlier[3]) <= set(later[3]) or not fails(lines, earlier[4]):
+            continue
+        if runs_after(stacks, number, earlier[2], head):
+            return True
+    return False
+
+
+def local_assignments(lines, start, end, name):
+    """Right-hand sides of the assignments of local `name` in lines start..end."""
+    pattern = re.compile(r"(?<![\w.>])" + re.escape(name) + r"\s*=(?!=)\s*([^;]*);")
+    return [(n, m[1].strip()) for n in range(start, end + 1) for m in pattern.finditer(code_only(lines[n - 1]))]
+
+
+def flag_follows_value(lines, stacks, start, end, name):
+    """True when `name_is_initialized` starts FALSE and every `name_is_initialized = TRUE`
+    follows an assignment of `name` in the same block (the update's case arm)."""
+    flag = name + "_is_initialized"
+    declared = any(re.search(r"\bflag\s+" + flag + r"\s*=\s*FALSE\s*;", lines[n - 1]) for n in range(start, end + 1))
+    sets = [n for n, v in local_assignments(lines, start, end, flag) if v == "TRUE"]
+    if not declared:
+        return False
+    for n in sets:
+        block = stacks[n][-1][0] if stacks[n] else start
+        if not any(m < n and m > block and stacks[m] == stacks[n] for m, _ in local_assignments(lines, start, end, name)):
+            return False
+    return True
+
+
+def assigns_on_every_exit(lines, stacks, end, head, name):
+    """For the construct starting at line `head`: a switch whose every case group assigns
+    `name` and whose default arm fails, or an if / else if chain whose every branch
+    assigns `name` but a final else that sets ret FALSE. Returns its last line or None."""
+    def assigned(numbers, block):
+        """An unconditional statement of the block (opened at line `block`) assigns `name`."""
+        return any(re.match(r"^\s*" + re.escape(name) + r"\s*=(?!=)", code_only(lines[n - 1]))
+                   and stacks[n] and stacks[n][-1][0] == block for n in numbers)
+    body = switch_body(lines, head, end)
+    if body is not None:
+        _, opened, last, groups, default = body
+        ok = groups and all(assigned(ns, opened) for ns in groups.values()) and default and fails(lines, default)
+        return last if ok else None
+    if not re.match(r"^\s*if\s*\(.*\)\s*\{\s*$", code_only(lines[head - 1])):
+        return None
+    branches, depth = [("if", head, [])], 1
+    for number in range(head + 1, end + 1):
+        text = code_only(lines[number - 1])
+        branch = re.match(r"^\s*\}\s*(else(?:\s+if\s*\(.*\))?)\s*\{\s*$", text)
+        if depth == 1 and branch:
+            branches.append((branch[1], number, []))
+            continue
+        depth += text.count("{") - text.count("}")
+        if depth == 0:
+            break
+        branches[-1][2].append(number)
+    else:
+        return None
+    if branches[-1][0] != "else" or len(branches) < 2:
+        return None
+    if not all(assigned(ns, opened) for _, opened, ns in branches[:-1]) or not fails(lines, branches[-1][2]):
+        return None
+    return number
+
+
+def cov005(lines, first):
+    """ASN1SCC-COV-005: the statement is in the `default:` arm of a switch on a local
+    of the encoder that every assignment sets to a label of that switch (or to a local
+    set only to such labels and read under its _is_initialized flag), and the switch
+    reads it only after it was assigned: under its _is_initialized flag, set only with
+    the value, or after a construct that assigns it on every exit with ret TRUE."""
+    head = owning_switch(lines, first)
+    region = function_region(lines, first)
+    if head is None or region is None:
+        return False
+    start, end = region
+    if "_Encode" not in lines[start - 1]:
+        return False
+    body = switch_body(lines, head, end)
+    if body is None or not re.fullmatch(r"[A-Za-z_]\w*", body[0]) or body[0] == "pVal":
+        return False
+    name, labels = body[0], set(body[3])
+    declared = lambda v: any(re.match(r"^\s*[\w]+\s+" + re.escape(v) + r"\s*;", lines[n - 1]) for n in range(start, head))
+    if not declared(name):
+        return False
+    stacks = block_stacks(lines, start, end)
+    stacks["lines"] = lines
+    for n, value in local_assignments(lines, start, end, name):
+        if value in labels:
+            continue
+        # a source of a multi-determinant update: set only to labels, read only under its flag
+        if not (re.fullmatch(r"\w+", value) and declared(value)
+                and all(v in labels for _, v in local_assignments(lines, start, end, value))
+                and flag_follows_value(lines, stacks, start, end, value)
+                and any(guard(b) in (("if", value + "_is_initialized"), ("elif", value + "_is_initialized"))
+                        for b in stacks[n])):
+            return False
+    if any(guard(b) == ("if", name + "_is_initialized") for b in stacks[head]) and flag_follows_value(lines, stacks, start, end, name):
+        return True
+    for number in range(start + 1, head):
+        last = assigns_on_every_exit(lines, stacks, end, number, name)
+        if last is not None and last < head and runs_after(stacks, number, last, head):
+            return True
+    return False
+
+
 # RTL decoders whose postcondition bounds the value on success: the uPER
 # constrained whole numbers (Result and IntVal in MinVal .. MaxVal) and the ACN
 # fixed-size integers (Result.Success and IntVal in minVal .. maxVal).
@@ -287,6 +628,10 @@ def proven_unreachable(language, lines, first, src):
         return "ASN1SCC-COV-002"
     if cov003(lines, first):
         return "ASN1SCC-COV-003"
+    if cov004(lines, first):
+        return "ASN1SCC-COV-004"
+    if cov005(lines, first):
+        return "ASN1SCC-COV-005"
     return ""
 
 

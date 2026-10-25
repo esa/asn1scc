@@ -234,14 +234,16 @@ let private initOfCheckPath (checkPath: 'a list) : DeterminantInit =
     | _     -> MaybeUninitialized
 
 /// Coverage step 12c: the update, wrapped in the check of its dependency path when it has one.
-let private updateResult (lm:LanguageMacros) (checkPath: string list) (v:string) (sInitExpr:string) (updateStatement:string) (o:EncodeOutcome) : AcnChildUpdate =
+/// Coverage step 12e: checkedSelectors / writesOnlyEnumItems as in AcnChildUpdate (the checks of the dependency path guard
+/// the update and the encoding of the CHOICE alike).
+let private updateResult (lm:LanguageMacros) (checkPath: string list) (v:string) (sInitExpr:string) (updateStatement:string) (o:EncodeOutcome) (checkedSelectors:string list) (writesOnlyEnumItems:bool) : AcnChildUpdate =
     match checkPath with
-    | []    -> {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = o}
-    | _     -> {updateBody = lm.acn.checkAccessPath checkPath updateStatement v sInitExpr; init = MaybeUninitialized; updOutcome = EncodeOutcome.conditional o}
+    | []    -> {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = o; checkedSelectors = checkedSelectors; writesOnlyEnumItems = writesOnlyEnumItems}
+    | _     -> {updateBody = lm.acn.checkAccessPath checkPath updateStatement v sInitExpr; init = MaybeUninitialized; updOutcome = EncodeOutcome.conditional o; checkedSelectors = checkedSelectors; writesOnlyEnumItems = writesOnlyEnumItems}
 
 /// Coverage step 12c: no update text (the dependency's parent is not reachable from this nesting): the determinant
 /// stays unset, its encoding fails on the flag (as before).
-let private noUpdate : AcnChildUpdate = {updateBody = ""; init = MaybeUninitialized; updOutcome = EncodeOutcome.noWrite}
+let private noUpdate : AcnChildUpdate = {updateBody = ""; init = MaybeUninitialized; updOutcome = EncodeOutcome.noWrite; checkedSelectors = []; writesOnlyEnumItems = false}
 
 let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (d:AcnDependency)  (us:State) =
     let ctx = { r=r; deps=deps; lm=lm; m=m; d=d }
@@ -281,7 +283,7 @@ and private handleSizeDeterminant (ctx: DepContext) (minSize: SIZE) (maxSize: SI
             match minSize.acn = maxSize.acn with
             | true  -> lm.acn.SizeDependencyFixedSize v minSize.acn bSetInitFlag
             | false -> lm.acn.SizeDependency v (lm.acn.getSizeableSize (pSizeable.accessPath.joined lm.lg) (lm.lg.getAccess pSizeable.accessPath) unsigned) minSize.uper maxSize.uper false false child.typeDefinitionBodyWithinSeq bSetInitFlag
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantAssign)
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantAssign) [] false
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
@@ -338,7 +340,7 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
         let updateStatement = lm.acn.SizeDependency_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.accessPath Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner sLocalVarType bSetInitFlag
         // the temporary encoding of the contained type writes ret / result (not classified): sets the determinant only
         // when it succeeded, else the check after the update stops the encoding
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement EncodeOutcome.unknown
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement EncodeOutcome.unknown [] false
     let testCaseFnc = dependencyTestCaseFnc d
     let localVars = lm.lg.acn.getAcnDepSizeDeterminantLocVars sReqBytesForUperEncoding
     let icdComments = icdCommentsForDependency ctx.d
@@ -356,7 +358,7 @@ and private handleIA5StringSizeDeterminant (ctx: DepContext) (minSize: SIZE) (ma
         // knows it from getStringSize returning Natural.
         let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
         let updateStatement = lm.acn.SizeDependency v (lm.acn.getStringSize (pSizeable.accessPath.joined lm.lg)) minSize.uper maxSize.uper true (minSize.uper > 0I) child.typeDefinitionBodyWithinSeq bSetInitFlag
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantRangeCheck)
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantRangeCheck) [] false
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
@@ -388,7 +390,7 @@ and private handlePresenceBool (ctx: DepContext) (us: State) =
             let pDecParSeq, checkPath = getAccessFromScopeNodeList relPath false lm pBase
             let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
             let updateStatement = lm.acn.PresenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC (withBackendChildNames r lm d.asn1Type).lastItem) bSetInitFlag
-            updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantAssign)
+            updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantAssign) [] false
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
@@ -430,8 +432,10 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
                 match pres with
                 | PresenceInt   (_, intVal) -> lm.acn.ChoiceDependencyIntPres_child v presentWhenName (lm.lg.asn1SccIntValueToString intVal.Value unsigned) sChoiceTypeName bSetInitFlag
                 | PresenceStr   (_, strVal) -> raise(SemanticError(strVal.Location, "Unexpected presence condition. Expected integer, found string")))
-        let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantSwitch)
+        // coverage step 12e: an earlier update of this function already switched on the same selector
+        let soCovExempt = nestingScope.selectorExemption (choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)) "ASN1SCC-COV-004" |> Option.map covExemptJustification
+        let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName soCovExempt
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantSwitch) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] false
     let testCaseFnc = dependencyTestCaseFnc d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
@@ -469,8 +473,10 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
                         | Some nullByte -> Array.append baseBytes [| nullByte |]
                         | None -> baseBytes
                     lm.acn.ChoiceDependencyStrPres_child v presentWhenName strVal.Value bytesStr arrNulls sChoiceTypeName sInsertedFieldTypeName bSetInitFlag)
-        let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantSwitch)
+        // coverage step 12e: an earlier update of this function already switched on the same selector
+        let soCovExempt = nestingScope.selectorExemption (choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)) "ASN1SCC-COV-004" |> Option.map covExemptJustification
+        let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName soCovExempt
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantSwitch) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] false
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = []
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc = testCaseFnc; localVariables=[]}), us
@@ -488,11 +494,13 @@ and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.Reference
                 let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = ch.Name.Value)
                 let choiceName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName //chc.typeDef[Scala].typeName
                 lm.acn.ChoiceDependencyEnum_Item v (lm.lg.presentWhenName0 None ch) choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) (bigint idx) isOptional bSetInitFlag)
-        let updateStatement = lm.acn.ChoiceDependencyEnum v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates isOptional (initExpr r lm m child.Type)
+        // coverage step 12e: an earlier update of this function already switched on the same selector
+        let soCovExempt = nestingScope.selectorExemption (choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)) "ASN1SCC-COV-004" |> Option.map covExemptJustification
+        let updateStatement = lm.acn.ChoiceDependencyEnum v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates isOptional (initExpr r lm m child.Type) soCovExempt
         // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for
         // accessing enums fields instead of a compiler-unchecked access
         let updateStatement2 = lm.lg.formatAcnDeterminantUpdate (choicePath.accessPath.joined lm.lg) checkPath updateStatement
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement2 (lm.lg.encodeTemplateOutcome EncDeterminantSwitch)
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement2 (lm.lg.encodeTemplateOutcome EncDeterminantSwitch) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] true
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
@@ -543,7 +551,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                     match fn with
                     | None      -> None
                     // the sources keep their flags: arrsGetFirstIntValue / arrsLocalCheckEquality read them
-                    | Some fn   -> Some((fn.updateAcnChildFnc child nestingScope lv pSrcRoot true).updateBody)) |>
+                    | Some fn   -> Some(fn.updateAcnChildFnc child nestingScope lv pSrcRoot true)) |>
                 List.choose id
 
             let isAlwaysInit (d: AcnDependency): bool =
@@ -578,8 +586,11 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
             // the determinant is set whenever the update succeeds (else ret / result is FALSE and the check after it stops
             // the encoding)
             let bSetInitFlag = setsInitFlag lm bForceInitFlag AlwaysInitialized
-            let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) arrsLocalUpdateStatements arrsGetFirstIntValue firstAlwaysInit.IsSome arrsLocalCheckEquality (initExpr r lm m child.Type) bSetInitFlag
-            {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = lm.lg.encodeTemplateOutcome EncDeterminantMulti}
+            let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) (arrsLocalUpdateStatements |> List.map (fun u -> u.updateBody)) arrsGetFirstIntValue firstAlwaysInit.IsSome arrsLocalCheckEquality (initExpr r lm m child.Type) bSetInitFlag
+            // coverage step 12e: the determinant takes the value of one of the sources, after all their switches ran
+            {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = lm.lg.encodeTemplateOutcome EncDeterminantMulti
+             checkedSelectors = arrsLocalUpdateStatements |> List.collect (fun u -> u.checkedSelectors)
+             writesOnlyEnumItems = arrsLocalUpdateStatements |> List.forall (fun u -> u.writesOnlyEnumItems)}
         let testCaseFnc = agreedTestCaseValue (localUpdateFuns |> List.map (Option.map (fun res -> res.testCaseFnc)))
 
         let ret = Some(({AcnChildUpdateResult.updateAcnChildFnc = multiUpdateFunc; icdComments=icdComments; errCodes=errCode::restErrCodes ; testCaseFnc = testCaseFnc; localVariables = restLocalVariables}))
