@@ -9,7 +9,9 @@ name: Build and Test
 
 on:
   push:
-    branches: [ '**' ]
+    # Dependabot branches (npm / uv / ... bumps) would take all 20 runner slots of the org on every update wave;
+    # run one by hand when a bump touches the compiler: gh workflow run asn1scc-tests.yml --ref <branch>
+    branches-ignore: [ 'dependabot/**' ]
   pull_request:
     branches: [ '**' ]
   workflow_dispatch:
