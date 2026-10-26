@@ -67,9 +67,9 @@ let isEqual_Real (p1:string) (p2:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "equal_rust" "isEqual_Real" [("p1",p1 :>Object);("p2",p2 :>Object)]
 
-let isEqual_BitString (p1:string) (p2:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) =
+let isEqual_BitString (p1:string) (p2:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (bFullBytes:bool) (bTrailingBits:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "equal_rust" "isEqual_BitString" [("p1",p1 :>Object);("p2",p2 :>Object);("bIsFixedSize",bIsFixedSize :>Object);("nFixedSize",nFixedSize :>Object)]
+    ST.call "equal_rust" "isEqual_BitString" [("p1",p1 :>Object);("p2",p2 :>Object);("bIsFixedSize",bIsFixedSize :>Object);("nFixedSize",nFixedSize :>Object);("bFullBytes",bFullBytes :>Object);("bTrailingBits",bTrailingBits :>Object)]
 
 let isEqual_OctetString (p1:string) (p2:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

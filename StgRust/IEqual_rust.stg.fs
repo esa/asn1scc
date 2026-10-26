@@ -37,8 +37,8 @@ type IEqual_rust() =
             equal_rust.isEqual_Boolean  p1 p2 
         override this.isEqual_Real  (p1:string) (p2:string) =
             equal_rust.isEqual_Real  p1 p2 
-        override this.isEqual_BitString  (p1:string) (p2:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) =
-            equal_rust.isEqual_BitString  p1 p2 bIsFixedSize nFixedSize 
+        override this.isEqual_BitString  (p1:string) (p2:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (bFullBytes:bool) (bTrailingBits:bool) =
+            equal_rust.isEqual_BitString  p1 p2 bIsFixedSize nFixedSize bFullBytes bTrailingBits 
         override this.isEqual_OctetString  (p1:string) (p2:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) =
             equal_rust.isEqual_OctetString  p1 p2 bIsFixedSize nFixedSize 
         override this.isObjectIdentifier_equal  (p1:string) (p2:string) =

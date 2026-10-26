@@ -116,7 +116,7 @@ isEqual_OctetString(p1, p2, bFixedSize, nFixedSize) ::= <<
 
 
 
-isEqual_BitString(p1,p2,bFixedSize,nFixedSize) ::= <<
+isEqual_BitString(p1,p2,bFixedSize,nFixedSize, bFullBytes, bTrailingBits) ::= <<
 <if(bitStringAlignment)>
 <if(bFixedSize)>adaasn1rtl.BitString_Bytes_Equal(<nFixedSize>, <nFixedSize>, <p1>Data, <p2>Data)<else>adaasn1rtl.BitString_Bytes_Equal(<p1>Length, <p2>Length, <p1>Data, <p2>Data)<endif>
 <else>

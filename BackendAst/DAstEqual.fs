@@ -61,7 +61,7 @@ let isEqualBodyOctetString (lm:LanguageMacros) sMin sMax (v1:CodegenScope) (v2:C
 let isEqualBodyBitString  (lm:LanguageMacros) sMin sMax (v1:CodegenScope) (v2:CodegenScope) =
     let v1 = sprintf "%s%s" (v1.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath)
     let v2 = sprintf "%s%s" (v2.accessPath.joined lm.lg) (lm.lg.getAccess v2.accessPath)
-    Some (lm.equal.isEqual_BitString v1 v2 (sMin = sMax) sMax, [])
+    Some (lm.equal.isEqual_BitString v1 v2 (sMin = sMax) sMax (sMax / 8I > 0I) (sMax % 8I > 0I), [])
 
 
 let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (newChild:Asn1Type) (v1:CodegenScope) (v2:CodegenScope)  =
