@@ -1572,16 +1572,16 @@ acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 
-acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 
@@ -1597,29 +1597,29 @@ acn_deferred_det_init_ptr_with_size_encode(sInitFuncName, nBits, sDetName) ::= <
 acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 
-acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
-acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 # TODO: ACN deferred patching not supported for Python
 >>
 

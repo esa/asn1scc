@@ -943,21 +943,21 @@ let acn_deferred_det_init_ptr (sInitFuncName:string) (sDetName:string) codec =
     | Decode    ->
         ST.call "acn_rust" "acn_deferred_det_init_ptr_decode" [("sInitFuncName",(if sInitFuncName = null then null else ST.StrHelper sInitFuncName:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) )]
 
-let acn_deferred_det_patch_value (sPatchFuncName:string) (sValue:string) (sDetName:string) (sErrCode:string) codec =
+let acn_deferred_det_patch_value (sPatchFuncName:string) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_value_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_value_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
     | Decode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_value_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_value_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
 
-let acn_deferred_det_patch_ptr (sPatchFuncName:string) (sValue:string) (sDetName:string) (sErrCode:string) codec =
+let acn_deferred_det_patch_ptr (sPatchFuncName:string) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_ptr_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_ptr_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
     | Decode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_ptr_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_ptr_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
 
 let acn_deferred_det_init_value_with_size (sInitFuncName:string) (nBits:BigInteger) (sDetName:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -975,37 +975,37 @@ let acn_deferred_det_init_ptr_with_size (sInitFuncName:string) (nBits:BigInteger
     | Decode    ->
         ST.call "acn_rust" "acn_deferred_det_init_ptr_with_size_decode" [("sInitFuncName",(if sInitFuncName = null then null else ST.StrHelper sInitFuncName:>Object) );("nBits",nBits :>Object);("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) )]
 
-let acn_deferred_det_patch_value_with_size (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) codec =
+let acn_deferred_det_patch_value_with_size (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_value_with_size_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_value_with_size_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
     | Decode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_value_with_size_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_value_with_size_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
 
-let acn_deferred_det_patch_ptr_with_size (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) codec =
+let acn_deferred_det_patch_ptr_with_size (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_ptr_with_size_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_ptr_with_size_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
     | Decode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_ptr_with_size_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_ptr_with_size_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
 
-let acn_deferred_det_patch_value_str (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) codec =
+let acn_deferred_det_patch_value_str (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_value_str_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_value_str_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
     | Decode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_value_str_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_value_str_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
 
-let acn_deferred_det_patch_ptr_str (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) codec =
+let acn_deferred_det_patch_ptr_str (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_ptr_str_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_ptr_str_encode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
     | Decode    ->
-        ST.call "acn_rust" "acn_deferred_det_patch_ptr_str_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "acn_rust" "acn_deferred_det_patch_ptr_str_decode" [("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("nBits",nBits :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCannotFail",bCannotFail :>Object)]
 
 let acn_deferred_det_formal_param (sDetName:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

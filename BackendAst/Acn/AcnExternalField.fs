@@ -103,6 +103,40 @@ let fieldOwnParam (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (
     |> List.tryHead
     |> Option.map snd
 
+/// The consumers of each ACN field (determinantIdentity): the dependencies that patch it (every kind but the
+/// RefTypeArgument links that pass it on), built once per dependency list.
+let private fieldConsumersCache =
+    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, AcnDependency list>>()
+
+let private fieldConsumers (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) : Map<ReferenceToType, AcnDependency list> =
+    fieldConsumersCache.GetValue(deps, fun deps ->
+        deps.acnDependencies
+        |> List.filter (fun d -> match d.dependencyKind with AcnDepRefTypeArgument _ -> false | _ -> true)
+        |> List.groupBy (fun d -> determinantIdentity r deps d.determinant)
+        |> Map.ofList)
+
+/// --acn-v2, coverage step 13b: whether at most one PatchDet of the ACN field fieldId runs per InitDet, so none can
+/// fail (Acn_PatchDet_* fails only on a ref already set with another value). True when the field has one consumer,
+/// or consumers in different alternatives of one CHOICE (only one is encoded), and no consumer is under a SEQUENCE
+/// OF that does not also hold the field (one patch per element).
+let isOnlyPatchOfField (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : bool =
+    let fieldPath = fieldId.ToScopeNodeList
+    let commonPrefix (a: ScopeNode list) (b: ScopeNode list) =
+        List.zip (List.truncate b.Length a) (List.truncate a.Length b) |> List.takeWhile (fun (x, y) -> x = y) |> List.length
+    let belowSequenceOf (path: ScopeNode list) =
+        path |> List.skip (commonPrefix fieldPath path) |> List.exists (function SQF -> true | _ -> false)
+    let exclusive (a: ScopeNode list) (b: ScopeNode list) =
+        let n = commonPrefix a b
+        match List.tryItem n a, List.tryItem n b with
+        | Some (CH_CHILD _), Some (CH_CHILD _) -> true
+        | _ -> false
+    match (fieldConsumers r deps).TryFind fieldId |> Option.defaultValue [] |> List.map (fun d -> d.asn1Type.ToScopeNodeList) with
+    | [] -> false
+    | paths ->
+        not (paths |> List.exists belowSequenceOf)
+        && (List.allPairs (List.indexed paths) (List.indexed paths)
+            |> List.forall (fun ((i, a), (j, b)) -> i = j || exclusive a b))
+
 /// --acn-v2: name of the AcnInsertedFieldRef local that holds the ACN field `identity`
 /// (determinantIdentity) in the function that declares it: the field's path from its
 /// type assignment (`detail`, `header_detail`), unique in every function by
