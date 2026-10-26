@@ -1,0 +1,21 @@
+-- ACNV2_ONLY
+-- GitHub #421: an ACN field passed as an ACN argument by a reference that is not a direct child of
+-- the field's SEQUENCE: the field is in an inline child SEQUENCE (H1, H2: two levels, H4, H6) or
+-- the reference is inside an inline child (H3, H5). The field reserves its position (InitDet) in
+-- the encoding function of the outer SEQUENCE, the reference patches it, and the fallback / the
+-- other consumers (H4: raw [size header.len]) patch it at the end of the innermost SEQUENCE holding
+-- the field and all its references. Before 4.9.53.0 the field was encoded as a same-level
+-- determinant and the AcnInsertedFieldRef passed to the reference was never set: the encoder
+-- patched position 0 of the stream and the decoder always read 0 (C and Ada).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+Truth ::= CHOICE { yes NULL, no NULL }
+Payload ::= OCTET STRING (SIZE(0..10))
+H1 ::= SEQUENCE { a INTEGER (0..15), header SEQUENCE { }, choice Truth }
+H2 ::= SEQUENCE { a INTEGER (0..15), header SEQUENCE { b INTEGER (0..7), inner SEQUENCE { c INTEGER (0..3) } }, choice Truth }
+H3 ::= SEQUENCE { a INTEGER (0..15), header SEQUENCE { b INTEGER (0..7) }, pl SEQUENCE { choice Truth } }
+H4 ::= SEQUENCE { a INTEGER (0..15), header SEQUENCE { b INTEGER (0..7) }, pld Payload, raw OCTET STRING (SIZE(0..10)) }
+H5 ::= SEQUENCE { a INTEGER (0..15), pl SEQUENCE { choice Truth } }
+H6 ::= SEQUENCE { a INTEGER (0..15), header SEQUENCE { b INTEGER (0..7) }, choice Truth OPTIONAL }
+END
+
+--TCFS   027.acn

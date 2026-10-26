@@ -938,7 +938,7 @@ let private mapType (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1Acn
 
         (fun pi t ti us -> DAst.SequenceOfParentData, us)
         (fun pi t ti us ->
-            let deferredNames = DAstACNDeferred.collectDeferredDetNamesFromAst r t ti
+            let deferredNames = DAstACNDeferred.collectDeferredDetNamesFromAst r deps t ti
             DAst.SequenceParentData deferredNames, us)
         (fun pi t ti us -> DAst.ChoiceParentData, us)
 

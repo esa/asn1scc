@@ -1,0 +1,10 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+Truth <INTEGER:detail> [] { yes [present-when detail == 1], no [present-when detail == 2] }
+Payload <INTEGER:len> [size len]
+H1 [] { a [], header [] { detail INTEGER [encoding pos-int, size 2] }, choice <header.detail> [] }
+H2 [] { a [], header [] { b [], inner [] { detail INTEGER [encoding pos-int, size 3], c [] } }, choice <header.inner.detail> [] }
+H3 [] { a [], header [] { detail INTEGER [encoding pos-int, size 3], b [] }, pl [] { choice <header.detail> [] } }
+H4 [] { a [], header [] { len INTEGER [encoding pos-int, size 4], b [] }, pld <header.len> [], raw [size header.len] }
+H5 [] { a [], detail INTEGER [encoding pos-int, size 3], pl [] { choice <detail> [] } }
+H6 [] { a [], header [] { detail INTEGER [encoding pos-int, size 3], b [] }, choice <header.detail> [] }
+END

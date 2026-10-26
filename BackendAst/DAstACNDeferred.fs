@@ -220,9 +220,28 @@ let private getDeferredMappingFunction
     | None -> None, None, []
 
 
+let private isScopePrefix (prefix: ScopeNode list) (full: ScopeNode list) =
+    prefix.Length <= full.Length && List.take prefix.Length full = prefix
+
+/// The boundaries (paths of the reference types) that take the ACN field detId as an ACN argument.
+let private refArgumentBoundaries (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (detId: ReferenceToType) : ScopeNode list list =
+    deps.acnDependencies |> List.choose (fun dep ->
+        match dep.determinant, dep.dependencyKind with
+        | AcnChildDeterminant d, AcnDepRefTypeArgument _ when d.id = detId -> Some dep.asn1Type.ToScopeNodeList
+        | _ -> None)
+
+/// The ACN children of a SEQUENCE passed as an ACN argument, found by id wherever the argument is (#421): besides
+/// a reference child of the SEQUENCE (the names collectDeferredDetNames finds), a reference inside an inline child
+/// (`pl SEQUENCE { choice <detail> }`) or beside an inline ancestor (`header SEQUENCE {...}, choice <header.detail>`).
+let private refArgumentDeterminantNames (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (acnChildren: (string * ReferenceToType) list) : Set<string> =
+    acnChildren
+    |> List.filter (fun (_, id) -> not (List.isEmpty (refArgumentBoundaries deps id)))
+    |> List.map fst
+    |> Set.ofList
+
 /// Collect deferred determinant names from the original AST (before the fold).
 /// Used by preSeqFunc to provide parent context to createAcnChild.
-let collectDeferredDetNamesFromAst (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Type) (seq: Asn1AcnAst.Sequence) : Set<string> =
+let collectDeferredDetNamesFromAst (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (t: Asn1AcnAst.Asn1Type) (seq: Asn1AcnAst.Sequence) : Set<string> =
     if not r.args.acnDeferred then Set.empty
     else
         // A SEQUENCE OF child passes the arguments of its element type (the
@@ -242,7 +261,11 @@ let collectDeferredDetNamesFromAst (r: Asn1AcnAst.AstRoot) (t: Asn1AcnAst.Asn1Ty
             |> List.collect (fun ac -> argumentNames ac.Type.Kind)
             |> Set.ofList
         let fromOwnParams = t.acnParameters |> List.map (fun p -> p.name) |> Set.ofList
-        Set.union fromChildren fromOwnParams
+        let fromDeps =
+            seq.children
+            |> List.choose (fun c -> match c with Asn1AcnAst.AcnChild ac -> Some (ac.Name.Value, ac.id) | _ -> None)
+            |> refArgumentDeterminantNames deps
+        Set.unionMany [fromChildren; fromOwnParams; fromDeps]
 
 /// Collect the names of determinants that are passed as acnArguments
 /// by child reference types within a SEQUENCE.  These are the ACN children
@@ -305,13 +328,50 @@ let private createDeferredSequenceFunction
     //   (b) the sequence's own acnParameters — the sequence receives
     //       AcnInsertedFieldRef* formal parameters (producer or consumer)
     //       and its direct ACN children matching those params need InitDet
+    //   (c) direct ACN children passed as an argument elsewhere (#421): by a
+    //       reference inside an inline child, or beside an inline ancestor
     let deferredDetNamesFromChildren = collectDeferredDetNames children
     let deferredDetNamesFromOwnParams =
         t.acnParameters |> List.map (fun p -> p.name) |> Set.ofList
-    let deferredDetNames = Set.union deferredDetNamesFromChildren deferredDetNamesFromOwnParams
+    let deferredDetNamesFromDeps =
+        children
+        |> List.choose (fun c -> match c with DAst.AcnChild ac -> Some (ac.Name.Value, ac.id) | _ -> None)
+        |> refArgumentDeterminantNames deps
+    let deferredDetNames = Set.unionMany [deferredDetNamesFromChildren; deferredDetNamesFromOwnParams; deferredDetNamesFromDeps]
+
+    // The AcnInsertedFieldRef local of a deferred determinant lives in the encoding
+    // function of its SEQUENCE, which also holds the inline SEQUENCE children. Its
+    // fallback and sibling-consumer patches must run after every reference that
+    // takes it as an argument, i.e. at the end of the innermost SEQUENCE holding
+    // the determinant and all of them (#421): a determinant of an inline child
+    // passed beside it is patched here, not at the end of that child.
+    let parentPath = t.id.ToScopeNodeList
+    let patchedHere (determinantParent: ScopeNode list) (detId: ReferenceToType) =
+        let boundaries = refArgumentBoundaries deps detId
+        boundaries |> List.forall (isScopePrefix parentPath)
+        && (determinantParent = parentPath
+            || not (boundaries |> List.forall (isScopePrefix (List.take (parentPath.Length + 1) determinantParent))))
+    // ACN children of the inline SEQUENCE descendants (through SEQUENCE components
+    // only: a reference is its own function, which receives the field as a parameter)
+    let rec inlineDescendantAcnChildren (seq: Asn1AcnAst.Sequence) : (ScopeNode list * Asn1AcnAst.AcnChild) list =
+        seq.children |> List.collect (fun c ->
+            match c with
+            | Asn1AcnAst.Asn1Child ch ->
+                match ch.Type.Kind with
+                | Asn1AcnAst.Sequence inner ->
+                    let innerPath = ch.Type.id.ToScopeNodeList
+                    (inner.children |> List.choose (function Asn1AcnAst.AcnChild ac -> Some (innerPath, ac) | _ -> None))
+                    @ inlineDescendantAcnChildren inner
+                | _ -> []
+            | Asn1AcnAst.AcnChild _ -> [])
+    let adoptedDeterminants =
+        inlineDescendantAcnChildren o
+        |> List.filter (fun (determinantParent, ac) ->
+            not (List.isEmpty (refArgumentBoundaries deps ac.id)) && patchedHere determinantParent ac.id)
+        |> List.map snd
 
     // If no deferred determinants, use the inline version as-is
-    if deferredDetNames.IsEmpty then
+    if deferredDetNames.IsEmpty && adoptedDeterminants.IsEmpty then
         DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc children acnPrms None us
     else
         // Collect the names of direct ACN children in this SEQUENCE
@@ -330,6 +390,19 @@ let private createDeferredSequenceFunction
                     (match kind with AcnDepRefTypeArgument _ -> false | _ -> true)
                 | _ -> false)
         let hasSiblingConsumers detId = not (List.isEmpty (siblingConsumers detId))
+
+        // The local deferred determinants whose fallback and sibling-consumer
+        // patches this SEQUENCE emits: its own (not formal parameters, not
+        // passed beside it) and the adopted ones of its inline children.
+        let localPatchedDets : (string * ReferenceToType * Asn1AcnAst.AcnInsertedType) list =
+            (children |> List.choose (fun child ->
+                match child with
+                | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames
+                                     && not (Set.contains ac.Name.Value deferredDetNamesFromOwnParams)
+                                     && patchedHere parentPath ac.id ->
+                    Some (ac.Name.Value, ac.id, ac.Type)
+                | _ -> None))
+            @ (adoptedDeterminants |> List.map (fun ac -> (ac.Name.Value, ac.id, ac.Type)))
 
         // Modify direct ACN children that are deferred determinants
         let modifiedChildren =
@@ -699,21 +772,17 @@ let private createDeferredSequenceFunction
             match codec with
             | CommonTypes.Codec.Decode -> None
             | CommonTypes.Codec.Encode ->
-                let parentPath = t.id.ToScopeNodeList
                 let patches =
-                    children |> List.collect (fun child ->
-                        match child with
-                        | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames
-                                             && not (Set.contains ac.Name.Value deferredDetNamesFromOwnParams) ->
-                            match lm.lg.getDeferredDetFunctions ac.Type with
+                    localPatchedDets |> List.collect (fun (acName, acId, acType) ->
+                            match lm.lg.getDeferredDetFunctions acType with
                             | None -> []
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                siblingConsumers ac.id |> List.map (fun dep root ->
+                                siblingConsumers acId |> List.map (fun dep root ->
                                     let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
-                                    let detName = deferredDetLocalName r lm ac.Name.Value
+                                    let detName = deferredDetLocalName r lm acName
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                                     let patchCall =
                                         if patchFn.Contains("IA5String") then
@@ -724,8 +793,7 @@ let private createDeferredSequenceFunction
                                             match nBitsOpt with
                                             | Some nBits -> lm.acn.acn_deferred_det_patch_value_with_size patchFn nBits valueExpr detName errCode codec
                                             | None -> lm.acn.acn_deferred_det_patch_value patchFn valueExpr detName errCode codec
-                                    guardPatchBlock lm checks preBlock patchCall)
-                        | _ -> [])
+                                    guardPatchBlock lm checks preBlock patchCall))
                 match patches with
                 | [] -> None
                 | _ -> Some (fun root -> patches |> List.map (fun patch -> patch root) |> String.concat "\n")
@@ -745,17 +813,13 @@ let private createDeferredSequenceFunction
             match codec with
             | CommonTypes.Codec.Encode ->
                 let fallbackDets =
-                    children |> List.choose (fun child ->
-                        match child with
-                        | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames
-                                             && not (Set.contains ac.Name.Value deferredDetNamesFromOwnParams) ->
-                            match lm.lg.getDeferredDetFunctions ac.Type with
+                    localPatchedDets |> List.choose (fun (acName, _acId, acType) ->
+                            match lm.lg.getDeferredDetFunctions acType with
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                let detVarName = deferredDetLocalName r lm ac.Name.Value
-                                let defaultVal = lm.lg.computeDeferredFallbackValue ac.Type uperMinOffset
-                                Some (detVarName, patchFn, nBitsOpt, defaultVal, ac.Type)
-                            | None -> None
-                        | _ -> None)
+                                let detVarName = deferredDetLocalName r lm acName
+                                let defaultVal = lm.lg.computeDeferredFallbackValue acType uperMinOffset
+                                Some (detVarName, patchFn, nBitsOpt, defaultVal, acType)
+                            | None -> None)
                 match fallbackDets with
                 | [] -> None
                 | _ ->
