@@ -14,4 +14,4 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 END
 
---TCLFC    Truth <INTEGER:detail> [] { yes [present-when detail == 1], no [present-when detail == 0] } Holder [] { a [], header [] { detail INTEGER [encoding pos-int, size 3], b [] }, choice <header.detail> [] }          $$$ sample1.acn:4:182: error: Invalid reference 'header.detail': component 'header' is OPTIONAL, so the ACN fields inside it are not encoded when it is absent. Only components inside 'header' may refer to them.
+--TCLFC    Truth <INTEGER:detail> [] { yes [present-when detail == 1], no [present-when detail == 0] } Holder [] { a [], header [] { detail INTEGER [encoding pos-int, size 3], b [] }, choice <header.detail> [] }          $$$ sample1.acn:4:182: error: Invalid reference 'header.detail': component 'header' is OPTIONAL, so the ACN fields inside it are not encoded when it is absent, but the component that depends on them is always present.

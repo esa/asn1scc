@@ -82,21 +82,31 @@ let private checkRelativePath (tasPositions:Map<ReferenceToType,int>) (curState:
                         | Sequence _  -> true
                         | _           -> false
                     | _ -> false ) |>  Seq.tryFind findSeq
-            // the ACN fields of an OPTIONAL component are not encoded when the component is absent,
-            // so only a dependency inside that component may use them (Issue 53)
+            // The dependent component is present whenever the SEQUENCE where the path starts is: every step down to
+            // it is a mandatory SEQUENCE component. An OPTIONAL component, a CHOICE alternative or a SEQUENCE OF
+            // element on the way may be absent together with the determinant; the values where it is present and
+            // the determinant is not are the user's responsibility (e.g. a chain of OPTIONAL components, each present
+            // when a field of the one before says so: 25-ACNV2-BOUNDARIES/021).
+            let dependencyAlwaysPresent =
+                match parSeq with
+                | None   -> false
+                | Some p ->
+                    let (ReferenceToType seqPath) = p.id
+                    let (ReferenceToType dependencyPath) = asn1TypeWithDependency.id
+                    List.isPrefixOf seqPath dependencyPath &&
+                    dependencyPath |> List.skip seqPath.Length |> List.forall (fun n -> match n with SEQ_CHILD (_, false) -> true | _ -> false)
+            // the ACN fields of an OPTIONAL component are not encoded when the component is absent, so a component
+            // that is always present cannot depend on them (Issue 53)
             let checkComponentOnPathIsPresent (ch:Asn1Child) (x1:StringLoc) =
-                let (ReferenceToType componentPath) = ch.Type.id
-                let (ReferenceToType dependencyPath) = asn1TypeWithDependency.id
-                match ch.Optionality with
-                | None
-                | Some AlwaysPresent -> ()
-                | Some AlwaysAbsent
-                | Some (Optional _) ->
-                    match List.isPrefixOf componentPath dependencyPath with
-                    | true  -> ()
-                    | false ->
-                        let errMsg = sprintf "Invalid reference '%s': component '%s' is OPTIONAL, so the ACN fields inside it are not encoded when it is absent. Only components inside '%s' may refer to them." (path |> Seq.StrJoin ".") x1.Value x1.Value
-                        raise(SemanticError(x1.Location, errMsg))
+                match ch.Optionality, dependencyAlwaysPresent with
+                | None, _
+                | Some AlwaysPresent, _
+                | Some AlwaysAbsent, false
+                | Some (Optional _), false -> ()
+                | Some AlwaysAbsent, true
+                | Some (Optional _), true ->
+                    let errMsg = sprintf "Invalid reference '%s': component '%s' is OPTIONAL, so the ACN fields inside it are not encoded when it is absent, but the component that depends on them is always present." (path |> Seq.StrJoin ".") x1.Value
+                    raise(SemanticError(x1.Location, errMsg))
             let rec checkSeqWithPath (seq:Asn1Type) (path : StringLoc list)=
                 match seq.Kind with
                 | Sequence seq ->
