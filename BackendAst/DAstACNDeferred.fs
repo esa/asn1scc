@@ -1180,6 +1180,7 @@ let private emitSpecializedFunctionDecl
             deferredFormalParams
             None  // soSparkAnnotations
             bValInOut
+            true  // bDeferredSpecialization: no public wrapper (coverage step 13a), callers use the specialized body
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 

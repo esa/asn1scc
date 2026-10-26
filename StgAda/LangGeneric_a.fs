@@ -466,9 +466,9 @@ type LangGeneric_a() =
         override _.wrapDeferredSpecBody body =
             // Suppress benign diagnostics around closure-converted spec
             // functions that surface only on this branch:
-            //   * "is not referenced": the public TAS wrapper (e.g.
-            //     PDU_hdr_ACN_Encode) is dead code in the deferred path —
-            //     callers invoke `_aux` directly.
+            //   * "is not referenced": a spec function nobody calls (its
+            //     public wrapper, e.g. PDU_hdr_ACN_Encode, is no longer
+            //     emitted since coverage step 13a: callers invoke `_aux`).
             //   * "not assigned a value": `val` is `out` for Headers whose
             //     only Asn1 child is a NULL-pattern, never written.
             //   * "redundant" / "previous choices cover all values": the

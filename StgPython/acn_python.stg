@@ -11,7 +11,7 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment, sFieldP
 
 EmitAcnParameter(sName, sType, sDefaultValue) ::= "<sName>: <sType> = <sDefaultValue>"
 
-EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut) ::= <<
+EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization) ::= <<
 <arrsErrcodes; separator="\n">
 REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
 REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
@@ -37,7 +37,7 @@ def <sFuncName>(self, codec: ACNEncoder, check_constraints: bool = True<if(arrsA
     <sContent>
 >>
 
-EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut) ::= <<
+EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization) ::= <<
 <arrsErrcodes; separator="\n">
 >>
 
