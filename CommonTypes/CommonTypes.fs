@@ -9,7 +9,12 @@ open System.IO
 open Antlr.Runtime.Tree
 open Antlr.Runtime
 
-let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ] |> Set.ofList
+let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while";
+                    // C99 (C++), and C23 keywords that C99 / C11 code gets as macros of <stdbool.h>, <stdalign.h>, <assert.h>,
+                    // <threads.h> (the generated code includes <stdbool.h>: a component `true` compiled to `NullType 1;`).
+                    // The reserved forms with an underscore and a capital (_Bool, _Atomic, ...) cannot be ASN.1 names.
+                    "inline"; "restrict";
+                    "alignas"; "alignof"; "bool"; "constexpr"; "false"; "nullptr"; "static_assert"; "thread_local"; "true"; "typeof"; "typeof_unqual"; ] |> Set.ofList
 let scala_keywords =  [ "abstract"; "case"; "catch"; "class"; "def"; "do"; "else"; "enum"; "export"; "extends"; "false"; "final"; "finally"; "float"; "for"; "given"; "if"; "implicit"; "import"; "int"; "lazy"; "match"; "new"; "null"; "object"; "override"; "package"; "private"; "protected"; "return"; "sealed"; "super"; "then"; "throw"; "trait"; "true"; "try"; "type"; "val"; "var"; "while"; "with"; "yield"; ] |> Set.ofList
 let ada_keywords =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ] |> Set.ofList
 let rust_keywords = FsUtils.rust_keywords

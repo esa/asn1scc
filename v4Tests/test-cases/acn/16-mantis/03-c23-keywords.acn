@@ -1,0 +1,5 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+Flag [encoding pos-int, size 1]
+Truth []
+Words []
+END
