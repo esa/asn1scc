@@ -1,5 +1,7 @@
 [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/NWDXtobZpVSQ5ErUz9CgXB/3deZmhdEfAoLGYUJtiCX4c/tree/master.svg?style=svg&circle-token=69c83a7973425a3ab92fb7e2d7580bcb292a508f)](https://dl.circleci.com/status-badge/redirect/circleci/NWDXtobZpVSQ5ErUz9CgXB/3deZmhdEfAoLGYUJtiCX4c/tree/master)
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/asn1scc.svg)](https://repology.org/project/asn1scc/versions)
+
 Executive summary
 =================
 
