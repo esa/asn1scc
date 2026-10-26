@@ -544,6 +544,21 @@ class Cov004(unittest.TestCase):
         self.assertEqual(check(V2_PATCHDET, "*pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE;"), "ASN1SCC-COV-004")
         self.assertEqual(check(V2_PATCHDET, "return FALSE;"), "ASN1SCC-COV-004")
 
+    def test_patchdet_under_the_checks_of_the_path_is_proven(self):
+        # q/issues.md Issue 50: the CHOICE sits in an OPTIONAL component inside an alternative; its own switch runs
+        # under `case p_PRESENT` and `if (exist)`, the patch under one `if (kind == p_PRESENT && exist)`
+        source = (V2_PATCHDET
+                  .replace("    switch(pVal->kind)\n    {", "    switch(pVal->kind)\n    {\n    case p_PRESENT:\n    if (pVal->u.p.exist.y) {\n    switch(pVal->u.p.y.kind)\n    {", 1)
+                  .replace("        ret = FALSE;                    /*COVERAGE_IGNORE*/\n    }\n",
+                           "        ret = FALSE;                    /*COVERAGE_IGNORE*/\n    }\n    }\n    break;\n    default:\n        ret = FALSE;\n    }\n", 1)
+                  .replace("        {\n        asn1SccUint patchDetVal;\n        switch(pVal->kind) {",
+                           "        if (pVal->kind == p_PRESENT && pVal->u.p.exist.y) {\n        asn1SccUint patchDetVal;\n        switch(pVal->u.p.y.kind) {", 1))
+        self.assertIn("switch(pVal->u.p.y.kind) {", source)
+        self.assertEqual(check(source, "return FALSE;"), "ASN1SCC-COV-004")
+        # one condition of the CHOICE's own switch is missing from the patch's checks
+        weaker = source.replace("if (pVal->kind == p_PRESENT && pVal->u.p.exist.y) {", "if (pVal->kind == p_PRESENT) {")
+        self.assertEqual(check(weaker, "return FALSE;"), "")
+
     def test_choice_in_an_alternative_is_proven(self):
         self.assertEqual(check(LEGACY_IN_ALTERNATIVE, CHOICE_ARM), "ASN1SCC-COV-004")
 

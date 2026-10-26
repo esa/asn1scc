@@ -41,7 +41,9 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
             List.fold(fun (curPath, curCheckExp, zeroBasedSequenceOfLevel, idx) n ->
                 let checkPath, newPath = handleNode zeroBasedSequenceOfLevel curPath n (childTypeIsString && idx=length)
                 let zeroBasedSequenceOfLevel = match n with SQF -> zeroBasedSequenceOfLevel + 1 | _ -> zeroBasedSequenceOfLevel
-                (newPath, checkPath@curCheckExp, zeroBasedSequenceOfLevel, idx+1)) (pVal,[], 0, 1) |> (fun (a,checkPath,_,_) -> a, checkPath)
+                // the checks of the outer nodes first: they are joined with && / and then, and a check below a CHOICE
+                // alternative reads a member that exists only when the alternative is selected
+                (newPath, curCheckExp@checkPath, zeroBasedSequenceOfLevel, idx+1)) (pVal,[], 0, 1) |> (fun (a,checkPath,_,_) -> a, checkPath)
         ret
     | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 

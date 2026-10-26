@@ -21,33 +21,6 @@ open AcnHelpers
 open AcnDependencies
 
 
-/// Build an access expression from relative scope nodes and the root receiver.
-/// Returns (accessExpr, accessor) where the accessor is the operator that the
-/// caller should put between accessExpr and the next field — "->" / "." in C
-/// when the result is a pointer / struct, always "." in Ada (records).
-/// The root accessor (between rootId and the first hop) comes from
-/// lm.lg.getAccess on the caller's AccessPath, which carries the language's
-/// pointer-vs-value convention.
-/// E.g., C   []                   + pVal/ByPointer → ("pVal", "->")
-///       Ada []                   + val/ByValue    → ("val",  ".")
-///       both [SEQ_CHILD("buffer",_)] + …          → ("<root><rootAcc>buffer", ".")
-let buildRelativeAccess (lm: LanguageMacros) (relParts: ScopeNode list) (specP: CodegenScope) : (string * string) =
-    let rootId = specP.accessPath.rootId
-    let rootAcc = lm.lg.getAccess specP.accessPath
-    match relParts with
-    | [] -> (rootId, rootAcc)
-    | _ ->
-        let parts = relParts |> List.map (fun node ->
-            match node with
-            | SEQ_CHILD (name, _) -> ToC name
-            | CH_CHILD (name, _, _) -> ToC name
-            | _ -> failwithf "BUG: unexpected scope node %A in relative access" node)
-        // First hop after rootId uses the language-specific rootAcc; subsequent
-        // hops are always "." (struct member access in both C and Ada).
-        let fieldAccess = rootId + rootAcc + (parts |> String.concat ".")
-        (fieldAccess, ".")
-
-
 /// Name of the AcnInsertedFieldRef local variable that holds the ACN field (or
 /// argument) `name` in the caller: ToC name, with the suffix "_ref" when that
 /// would clash with a keyword of the target language or, in a case-insensitive
@@ -95,37 +68,48 @@ let computePatchDetValueExpr
     (boundaryPath: ScopeNode list)
     (specP: CodegenScope)
     (bAfterCheckedBody: bool)
-    : (string option * string) =
+    : (string option * string * string list) =
     // backend names of the children (fields renamed by -fp AUTO)
     let backendType = withBackendChildNames r lm dep.asn1Type
     let fieldPath = backendType.ToScopeNodeList
     let relParts = fieldPath |> List.skip boundaryPath.Length
+    // The access to the consumer and the checks of its path (exist of an OPTIONAL component, kind of a CHOICE
+    // alternative), as the legacy update builds them (q/issues.md Issue 50): the patch runs only when the consumer
+    // exists, else the fallback PatchDet of the producer writes the default.
+    let relAccess (parts: ScopeNode list) (isString: bool) =
+        match parts with
+        | [] -> (specP.accessPath.rootId, lm.lg.getAccess specP.accessPath), []
+        | _  ->
+            let p, checkPath = getAccessFromScopeNodeList (ReferenceToType (MD "" :: TA "" :: parts)) isString lm specP
+            (p.accessPath.joined lm.lg, lm.lg.getAccess p.accessPath), checkPath
+    // coverage step 12e: the switch on the kind of a consumer CHOICE after a checked body runs under the checks of the
+    // path, which hold whenever the CHOICE's own switch ran (ASN1SCC-COV-004)
     let soCovExempt =
-        let unconditional = relParts |> List.forall (function SEQ_CHILD (_, false) -> true | _ -> false)
-        match bAfterCheckedBody, unconditional with
+        let reachable = relParts |> List.forall (function SEQ_CHILD _ | CH_CHILD _ -> true | _ -> false)
+        match bAfterCheckedBody, reachable with
         | true, true                -> Some (DAstACN.covExemptJustification "ASN1SCC-COV-004")
         | true, false | false, _    -> None
     match dep.dependencyKind with
     | Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _) ->
         if minSize.acn = maxSize.acn then
-            (None, minSize.acn.ToString())
+            (None, minSize.acn.ToString(), [])
         else
-            let (fieldExpr, acc) = buildRelativeAccess lm relParts specP
-            (None, lm.acn.getSizeableSize fieldExpr acc false)
+            let (fieldExpr, acc), checks = relAccess relParts false
+            (None, lm.acn.getSizeableSize fieldExpr acc false, checks)
 
     | Asn1AcnAst.AcnDepIA5StringSizeDeterminant _ ->
-        let (fieldExpr, _acc) = buildRelativeAccess lm relParts specP
-        (None, lm.acn.getStringSize fieldExpr)
+        let (fieldExpr, _acc), checks = relAccess relParts true
+        (None, lm.acn.getStringSize fieldExpr, checks)
 
     | Asn1AcnAst.AcnDepPresenceBool ->
         // dep.asn1Type points to the OPTIONAL child; parent is one level up
         let parentRelParts = relParts |> List.rev |> List.tail |> List.rev
-        let (parentExpr, pAcc) = buildRelativeAccess lm parentRelParts specP
+        let (parentExpr, pAcc), checks = relAccess parentRelParts false
         let childName = ToC (backendType.lastItem)
-        (None, lm.acn.acn_deferred_det_value_presence_bool parentExpr pAcc childName)
+        (None, lm.acn.acn_deferred_det_value_presence_bool parentExpr pAcc childName, checks)
 
     | Asn1AcnAst.AcnDepPresence (relPath, chc) ->
-        let (choiceExpr, acc) = buildRelativeAccess lm relParts specP
+        let (choiceExpr, acc), checks = relAccess relParts false
         let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
         let varName = lm.lg.acnDeferredTempVarName "patchDetVal"
         let switchItems = chc.children |> List.map (fun ch ->
@@ -137,10 +121,10 @@ let computePatchDetValueExpr
             | AcnGenericTypes.PresenceStr _ ->
                 failwithf "BUG: PresenceStr in AcnDepPresence (should be AcnDepPresenceStr)")
         let switchBlock = lm.acn.acn_deferred_det_switch_int varName kindAccess switchItems soCovExempt
-        (Some switchBlock, varName)
+        (Some switchBlock, varName, checks)
 
     | Asn1AcnAst.AcnDepPresenceStr (relPath, chc, _strType) ->
-        let (choiceExpr, acc) = buildRelativeAccess lm relParts specP
+        let (choiceExpr, acc), checks = relAccess relParts false
         let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
         let varName = lm.lg.acnDeferredTempVarName "patchDetStrVal"
         let switchItems = chc.children |> List.map (fun ch ->
@@ -152,10 +136,10 @@ let computePatchDetValueExpr
             | AcnGenericTypes.PresenceInt _ ->
                 failwithf "BUG: PresenceInt in AcnDepPresenceStr")
         let switchBlock = lm.acn.acn_deferred_det_switch_str varName kindAccess switchItems soCovExempt
-        (Some switchBlock, varName)
+        (Some switchBlock, varName, checks)
 
     | Asn1AcnAst.AcnDepChoiceDeterminant (enm, chc, _isOptional) ->
-        let (choiceExpr, acc) = buildRelativeAccess lm relParts specP
+        let (choiceExpr, acc), checks = relAccess relParts false
         let kindAccess = lm.acn.acn_deferred_det_kind_access choiceExpr acc
         let varName = lm.lg.acnDeferredTempVarName "patchDetVal"
         // The value the determinant field itself writes (its own acnEncodeValue): the
@@ -170,11 +154,21 @@ let computePatchDetValueExpr
             let enumIntVal = enmItem.acnEncodeValue.ToString()
             lm.acn.acn_deferred_det_switch_case_int presentWhenName varName enumIntVal)
         let switchBlock = lm.acn.acn_deferred_det_switch_int varName kindAccess switchItems soCovExempt
-        (Some switchBlock, varName)
+        (Some switchBlock, varName, checks)
 
     | _ ->
         failwithf "BUG: PatchDet not yet implemented for dependency kind %A" dep.dependencyKind
 
+
+/// The patch block of a consumer, under the checks of its path (computePatchDetValueExpr).
+let guardPatchBlock (lm: LanguageMacros) (checks: string list) (preBlock: string option) (patchCall: string) : string =
+    let block =
+        match preBlock with
+        | None     -> patchCall
+        | Some pre -> lm.acn.acn_deferred_det_preblock_wrap pre patchCall
+    match checks with
+    | []    -> block
+    | _     -> lm.acn.checkAccessPath checks block "" ""
 
 /// Follow the RefTypeArgumentDependency chain from a parameter upward
 /// through intermediate boundaries until reaching the original
@@ -651,7 +645,7 @@ let private createDeferredSequenceFunction
                                 match lm.lg.getDeferredDetFunctions determinant.Type with
                                 | None -> None
                                 | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                    let preBlock, rawValueExpr = computePatchDetValueExpr r lm deps dep parentPath root true
+                                    let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
@@ -666,10 +660,7 @@ let private createDeferredSequenceFunction
                                             match nBitsOpt with
                                             | Some nBits -> lm.acn.acn_deferred_det_patch_value_with_size patchFn nBits valueExpr detName errCode codec
                                             | None -> lm.acn.acn_deferred_det_patch_value patchFn valueExpr detName errCode codec
-                                    Some (
-                                        match preBlock with
-                                        | None -> patchCall
-                                        | Some pre -> lm.acn.acn_deferred_det_preblock_wrap pre patchCall))
+                                    Some (guardPatchBlock lm checks preBlock patchCall))
                             match patches with
                             | [] -> None
                             | _ ->
@@ -718,7 +709,7 @@ let private createDeferredSequenceFunction
                             | None -> []
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 siblingConsumers ac.id |> List.map (fun dep root ->
-                                    let preBlock, rawValueExpr = computePatchDetValueExpr r lm deps dep parentPath root true
+                                    let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
@@ -733,9 +724,7 @@ let private createDeferredSequenceFunction
                                             match nBitsOpt with
                                             | Some nBits -> lm.acn.acn_deferred_det_patch_value_with_size patchFn nBits valueExpr detName errCode codec
                                             | None -> lm.acn.acn_deferred_det_patch_value patchFn valueExpr detName errCode codec
-                                    match preBlock with
-                                    | None -> patchCall
-                                    | Some pre -> lm.acn.acn_deferred_det_preblock_wrap pre patchCall)
+                                    guardPatchBlock lm checks preBlock patchCall)
                         | _ -> [])
                 match patches with
                 | [] -> None
@@ -1010,12 +999,12 @@ let private appendPatchDetCalls
         (isContainingExternalField: bool)
         (baseHasStandaloneFunc: bool)
         (bodyOutcome: EncodeOutcome)
-        (body: string) : string =
+        (body: string) : string * bool =
     match isContainingExternalField, not baseHasStandaloneFunc with
-    | true, false -> body  // old approach: PatchDet is in STG template
+    | true, false -> body, false  // old approach: PatchDet is in STG template
     | _ ->
         match ctx.codec with
-        | CommonTypes.Codec.Decode -> body
+        | CommonTypes.Codec.Decode -> body, false
         | CommonTypes.Codec.Encode ->
             // Identify CONTAINING size param to exclude from step 2b.  Always
             // check (not just when isContainingExternalField) because named
@@ -1057,7 +1046,7 @@ let private appendPatchDetCalls
                         match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
                         | None -> None
                         | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                            let (preBlock, rawValueExpr) = computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP bodyOutcome.canFail
+                            let (preBlock, rawValueExpr, checks) = computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP bodyOutcome.canFail
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
                             // but ConstSize encodes value directly, so subtract the offset.
                             let valueExpr =
@@ -1079,20 +1068,17 @@ let private appendPatchDetCalls
                                         ctx.lm.acn.acn_deferred_det_patch_ptr_with_size patchFn nBits valueExpr detParamName errCodePatch ctx.codec
                                     | None ->
                                         ctx.lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch ctx.codec
-                            let fullBlock =
-                                match preBlock with
-                                | None -> patchCall
-                                | Some pre -> ctx.lm.acn.acn_deferred_det_preblock_wrap pre patchCall
-                            Some fullBlock)
+                            Some (guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty))
             match patchCalls with
-            | [] -> body
+            | [] -> body, false
             | calls ->
-                let patchCode = calls |> String.concat "\n"
+                let patchCode = calls |> List.map fst |> String.concat "\n"
+                let guarded = calls |> List.exists snd
                 // The PatchDet calls write the result: after a body that may fail they run only when it succeeded,
                 // else a failed body would return success (Issue 48)
                 match bodyOutcome.canFail with
-                | true  -> ctx.lm.isvalid.JoinItems2 body patchCode
-                | false -> body + "\n" + patchCode
+                | true  -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded
+                | false -> body + "\n" + patchCode, guarded
 
 
 /// Step 3 — build the specialized function's deferred-determinant formal
@@ -1509,14 +1495,18 @@ let private createDeferredReferenceFunction
 
             // Step 2b: append PatchDet calls (encode only) onto the body.
             let finalBody =
-                let body =
+                let body, bPatchGuarded =
                     appendPatchDetCalls ctx specP
                         isContainingExternalField (not baseAcnFunc.funcName.IsNone) bodyResult.encOutcome bodyResult.funcBody
                 // coverage step 12b: the PatchDet calls write the result (they may fail); after a body that may fail
                 // they are nested under its check (Issue 48), after one that cannot fail they follow it unchecked, so
                 // the body's writes before them are overwritten
                 let encOutcome =
-                    let patch = ctx.lm.lg.encodeTemplateOutcome EncDeferredPatch
+                    // a patch under the checks of its consumer's path (q/issues.md Issue 50) may not run
+                    let patch =
+                        match bPatchGuarded with
+                        | false -> ctx.lm.lg.encodeTemplateOutcome EncDeferredPatch
+                        | true  -> EncodeOutcome.conditional (ctx.lm.lg.encodeTemplateOutcome EncDeferredPatch)
                     let b = bodyResult.encOutcome
                     match body = bodyResult.funcBody, b.canFail, b.writes, patch.writes with
                     | true, _, _, _                                                     -> b

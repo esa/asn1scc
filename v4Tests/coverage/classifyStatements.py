@@ -282,6 +282,20 @@ def guard(block):
     return ("other",)
 
 
+def conjuncts(g):
+    """The conditions of a guard: `if (a && b)` runs only when a and b hold."""
+    if g is None or g[0] != "if":
+        return [g]
+    parts, depth, start, cond = [], 0, 0, g[1]
+    for i, char in enumerate(cond):
+        depth += {"(": 1, ")": -1}.get(char, 0)
+        if depth == 0 and cond.startswith("&&", i):
+            parts.append(cond[start:i])
+            start = i + 2
+    parts.append(cond[start:])
+    return [("if", norm(x)) for x in parts]
+
+
 def same_guard(a, b):
     """True when guards a and b are the same condition: also `if (E == L)` against
     `case L:` of `switch (E)`."""
@@ -332,7 +346,8 @@ def runs_after(stacks, first_head, first_end, later_head):
             if not sticky(stacks, block[0], check):
                 return False
             continue
-        if g[0] in ("other", "elif") or not any(guard(y) and same_guard(g, guard(y)) for y in b):
+        later = [c for y in b for c in conjuncts(guard(y)) if c]
+        if g[0] in ("other", "elif") or not all(any(same_guard(c, x) for x in later) for c in conjuncts(g)):
             return False
     return True
 
