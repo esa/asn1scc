@@ -876,3 +876,40 @@ if (result) {
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 <sStr>[<nIndex>] = (char)<nChar>;
 >>
+
+/* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
+   changed must compare unequal, both ways. */
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    const char* equalFor = NULL;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>static <endif><sTasName> tc_data;
+    <if(bStatic)>static <endif><sTasName> tc_data2;
+    <sInitializeTcData>
+    <arrsVariantChecks; separator="\n">
+    if (equalFor == NULL) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed: <sEqualFunc> returned TRUE for two different values:");
+        output->report_failure_message(equalFor);
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    output->report_case_end();
+}
+>>
+
+equalityVariantCheck(sModName, sAmber, sApplyVariant, sWhat, sEqualFunc) ::= <<
+/* <sWhat> */
+memcpy(&tc_data2, &tc_data, sizeof(tc_data));
+<sApplyVariant>
+if (<sEqualFunc>(<sAmber>tc_data, <sAmber>tc_data2) || <sEqualFunc>(<sAmber>tc_data2, <sAmber>tc_data)) {
+    equalFor = "<sWhat>";
+}
+>>

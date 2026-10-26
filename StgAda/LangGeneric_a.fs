@@ -528,6 +528,7 @@ type LangGeneric_a() =
             // result := (Success => result.Success and <sources agree>, ...)
             | EncDeterminantMulti                                                   -> {canFail = true; writes = ReadsFirst; callee = None}
         override _.atcEmitsConstraintViolationTests = true
+        override _.atcEmitsEqualityVariantTests = true
 
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name

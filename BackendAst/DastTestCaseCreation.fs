@@ -834,6 +834,54 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
     | true, None
     | false, _ -> []
 
+/// Coverage step 14a: T_Equal with two different values. The automatic test values carry their variants (one node of
+/// the type's own tree changed, AutomaticTestCase.variants); a test per start value whose variants an earlier one does
+/// not cover, so every variant is checked once. The first variant of a value replaces it with another test value of
+/// the type (a primitive type assignment's own compare).
+let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
+    match lm.lg.atcEmitsEqualityVariantTests, t.equalFunction.isEqualFuncName with
+    | true, Some sEqualFunc ->
+        let atcs = t.initFunction.automaticTestCases |> List.toArray
+        let variantsOf (i:int) (atc:AutomaticTestCase) =
+            let whole =
+                match atcs.Length >= 2 with
+                | true  -> [{AtcVariant.nodeId = t.id; what = ": another test value"; applyFnc = atcs.[(i + 1) % atcs.Length].initTestCaseFunc}]
+                | false -> []
+            whole @ atc.variants
+        let _, starts =
+            atcs |> Array.toList |> List.indexed |>
+            List.fold (fun (seen:Set<string>, acc) (i, atc) ->
+                let fresh = variantsOf i atc |> List.distinctBy (fun v -> v.what) |> List.filter (fun v -> not (seen.Contains v.what))
+                match fresh with
+                | [] -> (seen, acc)
+                | _  -> (fresh |> List.fold (fun (s:Set<string>) v -> s.Add v.what) seen, acc @ [(atc, fresh)])) (Set.empty, [])
+        let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
+        let encAmper, _ = gAmber lm t
+        let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
+        let sTypeName = t.id.tasInfo |> Option.map (fun ti -> ti.tasName) |> Option.defaultValue td.typeName
+        let p  = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
+        let p2 = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data2"}
+        starts |>
+        List.map (fun (atc, variants) ->
+            fun idx ->
+                let sFuncName = sprintf "test_case_unequal_%06d" idx
+                let initStatement = atc.initTestCaseFunc p
+                let applied = variants |> List.map (fun v -> v, v.applyFnc p2)
+                let arrsVars =
+                    initStatement.localVariables @ (applied |> List.collect (fun (_, a) -> a.localVariables)) |>
+                    List.map lm.lg.getLocalVariableDeclaration |> Seq.distinct |> Seq.toList
+                let checks =
+                    applied |>
+                    List.map (fun (v, a) ->
+                        let what = if v.what.StartsWith ":" then sTypeName + v.what else sTypeName + "." + v.what
+                        // the text goes into a comment and a string literal
+                        let sWhat = what.Replace("\"", "'").Replace("\\", "/").Replace("*/", "* /")
+                        lm.atc.equalityVariantCheck td.programUnit encAmper a.funcBody sWhat sEqualFunc)
+                let func_body = lm.atc.emitEqualityVariantTestCase sFuncName arrsVars td.programUnit td.typeName encAmper initStatement.funcBody bStatic sEqualFunc checks
+                (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName))
+    | true, None
+    | false, _ -> []
+
 /// One automatic test per ENUMERATED type assignment whose ACN item values leave a
 /// gap: the ACN decoder must reject a stream that holds the smallest unused code
 /// (AcnEnum.createInvalidCodeStream), which executes its default arm.
@@ -944,7 +992,18 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                 match r.args.encodings |> List.exists tested with
                 | true  -> yield! constraintViolationTestCases r lm t.Type encoders
                 | false -> () ]
-    let tcFunctors = validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors
+    // Equal tests with two different values (coverage step 14a) come after them.
+    let equalityFunctors =
+        [ for m in r.Files |> List.collect(fun f -> f.Modules) do
+            for t in m.TypeAssignments do
+                let tested (e:Asn1Encoding) =
+                    let typeAssignmentInfo = t.Type.id.tasInfo.Value
+                    (t.Type.getEncDecTestFunc e).IsSome &&
+                    r.callersSet |> Set.contains {Caller.typeId = typeAssignmentInfo; funcType = asn1EncodingMapping e}
+                match r.args.encodings |> List.exists tested with
+                | true  -> yield! equalityVariantTestCases lm t.Type
+                | false -> () ]
+    let tcFunctors = validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors @ equalityFunctors
     let invalidStreamFunctorCount = invalidStreamFunctors.Count
     let maxTestCasesPerFile = 100.0
     let nMaxTestCasesPerFile = int maxTestCasesPerFile

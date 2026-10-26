@@ -477,6 +477,17 @@ generated.
 type AutomaticTestCase = {
     initTestCaseFunc        : CodegenScope  -> InitFunctionResult //returns a list of set the statement(s) that initialize this type accordingly
     testCaseTypeIDsMap      : Map<ReferenceToType, TestCaseValue>    //used by ACN to produce valid test cases
+    variants                : AtcVariant list                        //this value with one node changed (coverage step 14a)
+}
+
+/// Coverage step 14a: the value of an automatic test case with one node of the type's own tree changed (another
+/// automatic test value of that node, or a language toggle). Built together with the value, so it holds for exactly
+/// this value: no lookup by node id. A referenced type is changed only as a whole (its own nodes are changed by the
+/// tests of its type assignment).
+and AtcVariant = {
+    nodeId      : ReferenceToType                       // the node whose value differs
+    what        : string                                // the node and the change, for the test's comment and message
+    applyFnc    : CodegenScope -> InitFunctionResult    // writes the change on a copy of the value (same scope as initTestCaseFunc)
 }
 
 type InitProcedure0 = {
@@ -539,6 +550,17 @@ type AnonymousVariable = {
 type TypedefConstraintModel =
     | TypedefsAreBaseTypes
     | TypedefsEnforceRanges
+
+/// Coverage step 14a: a change of one node's value for the Equal tests that another automatic test value cannot
+/// give (a node with one test value; the content of a string with the same length). The result may violate the
+/// node's constraints: only Equal is called on it.
+type EqualityToggle =
+    | ToggleInteger
+    | ToggleReal
+    | ToggleEnumerated
+    | ToggleFirstChar               // IA5String / NumericString: character 0
+    | ToggleByte of BigInteger      // OCTET STRING: this byte; BIT STRING: the first bit of this byte
+    | ToggleBit of BigInteger       // BIT STRING: this bit (0-based)
 
 type ValidationOutcome =
     | AlwaysValid       // no check, or only checks that the language type already enforces

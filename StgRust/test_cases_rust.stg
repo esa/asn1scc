@@ -346,3 +346,10 @@ constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmb
 
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 >>
+
+/* Coverage step 14a: C and Ada only (ILangGeneric.atcEmitsEqualityVariantTests). */
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<
+>>
+
+equalityVariantCheck(sModName, sAmber, sApplyVariant, sWhat, sEqualFunc) ::= <<
+>>

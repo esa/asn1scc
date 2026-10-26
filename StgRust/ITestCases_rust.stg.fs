@@ -85,3 +85,7 @@ type ITestCases_rust() =
             test_cases_rust.constraintViolationUncheckedEncodeCheck  sEncFunc sModName sTasName sEnc sAmber 
         override this.constraintViolationStringChar  (sStr:string) (nIndex:BigInteger) (nChar:BigInteger) =
             test_cases_rust.constraintViolationStringChar  sStr nIndex nChar 
+        override this.emitEqualityVariantTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sEqualFunc:string) (arrsVariantChecks:seq<string>) =
+            test_cases_rust.emitEqualityVariantTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sEqualFunc arrsVariantChecks 
+        override this.equalityVariantCheck  (sModName:string) (sAmber:string) (sApplyVariant:string) (sWhat:string) (sEqualFunc:string) =
+            test_cases_rust.equalityVariantCheck  sModName sAmber sApplyVariant sWhat sEqualFunc 

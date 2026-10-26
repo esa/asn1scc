@@ -610,3 +610,55 @@ constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmb
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 <sStr>(<nIndex> + 1) := Character'Val (<nChar>);
 >>
+
+/* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
+   changed must compare unequal, both ways. */
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<
+procedure <sFuncName> ( totalErrors : in out Integer)
+is
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
+    ok       : Boolean := True;
+    <arrsVars; separator="\n">
+	pragma Warnings (Off, "there are no others");
+    tc_data  : <sModName>.<sTasName>;
+    tc_data2 : <sModName>.<sTasName>;
+	pragma Warnings (On, "there are no others");
+begin
+	pragma Warnings (Off, "there are no others");
+	pragma Warnings (Off, "condition can only be True if invalid values present");
+	pragma Warnings (Off, "condition can only be False if invalid values present");
+	pragma Warnings (Off, "condition is always False");
+	pragma Warnings (Off, "condition is always True");
+	pragma Warnings (Off, "is always True at this point");
+	pragma Warnings (Off, "is always False at this point");
+	--  a variant may replace the whole copy
+	pragma Warnings (Off, "useless assignment to ""tc_data2""*");
+    <sInitializeTcData>
+    <arrsVariantChecks; separator="\n">
+	pragma Warnings (On, "there are no others");
+	pragma Warnings (On, "condition can only be True if invalid values present");
+	pragma Warnings (On, "condition can only be False if invalid values present");
+	pragma Warnings (On, "condition is always False");
+	pragma Warnings (On, "condition is always True");
+	pragma Warnings (On, "is always True at this point");
+	pragma Warnings (On, "is always False at this point");
+	pragma Warnings (On, "useless assignment to ""tc_data2""*");
+    if ok then
+        Put_Line ("Test case '<sFuncName>' succeeded");
+    else
+        Put_Line ("Test case '<sFuncName>' failed: <sEqualFunc> returned True for two different values.");
+        Put_Line ("========================================");
+        totalErrors := totalErrors + 1;
+    end if;
+end <sFuncName>;
+>>
+
+equalityVariantCheck(sModName, sAmber, sApplyVariant, sWhat, sEqualFunc) ::= <<
+--  <sWhat>
+tc_data2 := tc_data;
+<sApplyVariant>
+if <sModName>.<sEqualFunc> (tc_data, tc_data2) or else <sModName>.<sEqualFunc> (tc_data2, tc_data) then
+    ok := False;
+    Put_Line ("  equal for: <sWhat>");
+end if;
+>>

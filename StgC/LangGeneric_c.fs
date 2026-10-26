@@ -919,6 +919,17 @@ type LangGeneric_c() =
         override _.encodeCallValidates = false
         override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         override _.atcEmitsConstraintViolationTests = true
+        override _.atcEmitsEqualityVariantTests = true
+        override this.atcEqualityToggle (toggle:EqualityToggle) (path:AccessPath) =
+            let v = this.getValue path
+            let arr = sprintf "%s%sarr" (path.joined this) (this.getAccess path)
+            match toggle with
+            | ToggleInteger     -> Some (sprintf "%s ^= 1;" v)
+            | ToggleReal        -> Some (sprintf "%s = (%s == 0.0) ? 1.0 : 0.0;" v v)
+            | ToggleEnumerated  -> Some (sprintf "%s = (%s == 0) ? 1 : 0;" v v)
+            | ToggleFirstChar   -> Some (sprintf "%s[0] = (%s[0] == 'A') ? 'B' : 'A';" v v)
+            | ToggleByte i      -> Some (sprintf "%s[%A] ^= 0x80;" arr i)
+            | ToggleBit k       -> Some (sprintf "%s[%A] ^= 0x%02X;" arr (k / 8I) (0x80 >>> int (k % 8I)))
         override _.atcEmitsInvalidStreamTests = true
         override _.atcInvalidStreamCodeOutsideItemRange = true
         override _.atcInvalidStreamPackages = ["asn1crt_encoding_acn"]

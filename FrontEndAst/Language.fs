@@ -770,6 +770,16 @@ type ILangGeneric () =
     abstract member atcEmitsConstraintViolationTests : bool
     default _.atcEmitsConstraintViolationTests = false
 
+    /// Automatic tests that call T_Equal with two different values (coverage step 14a, DastTestCaseCreation
+    /// equalityVariantTestCases, AutomaticTestCase.variants): C and Ada.
+    abstract member atcEmitsEqualityVariantTests : bool
+    default _.atcEmitsEqualityVariantTests = false
+
+    /// The statement that changes the value at the path for the Equal tests (coverage step 14a), when the language
+    /// can hold the changed value: C (its typedefs are base types); None elsewhere.
+    abstract member atcEqualityToggle : EqualityToggle -> AccessPath -> string option
+    default _.atcEqualityToggle _ _ = None
+
     /// True when the automatic tests also decode an ACN stream that holds an
     /// ENUMERATED code no item uses (a gap between the item values); the decoder must
     /// fail (C, Ada). See AcnEnum.createInvalidCodeStream.

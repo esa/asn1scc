@@ -240,6 +240,40 @@ let acnValidChildTestCases (r:Asn1AcnAst.AstRoot) (child:Asn1Type) : AutomaticTe
         | []    -> atcs
         | valid -> valid
 
+/// Coverage step 14a: the toggles of a primitive test value, where the language can hold the changed value
+/// (ILangGeneric.atcEqualityToggle: C).
+let private toggleVariants (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (toggles:EqualityToggle list) : AtcVariant list =
+    toggles |>
+    List.choose (fun toggle ->
+        // the language decides by the kind of toggle, not by the path
+        lm.lg.atcEqualityToggle toggle (AccessPath.valueEmptyPath "x") |>
+        Option.map (fun _ ->
+            let what =
+                match toggle with
+                | ToggleInteger | ToggleReal | ToggleEnumerated -> ": another value"
+                | ToggleFirstChar                               -> ": character 0 changed"
+                | ToggleByte i                                  -> sprintf ": byte %A changed" i
+                | ToggleBit k                                   -> sprintf ": bit %A changed" k
+            {AtcVariant.nodeId = t.id; what = what
+             applyFnc = fun p ->
+                let sToggle = lm.lg.atcEqualityToggle toggle p.accessPath |> Option.defaultValue ""
+                {InitFunctionResult.funcBody = sToggle; resultVar = p.accessPath.asIdentifier lm.lg; localVariables = []}}))
+
+/// Coverage step 14a: the variants of a component's test value seen from its parent: the component's scope is
+/// computed from the parent's, the description gets the component's name.
+let private liftVariants (sName:string) (childScope:CodegenScope -> CodegenScope) (variants:AtcVariant list) : AtcVariant list =
+    variants |>
+    List.map (fun v ->
+        let what = if v.what.StartsWith ":" || v.what.StartsWith "[" then sName + v.what else sName + "." + v.what
+        {v with what = what; applyFnc = fun p -> v.applyFnc (childScope p)})
+
+/// A component's own variants are lifted to its parent unless it is a reference: the referenced type's nodes are
+/// changed by the tests of its own type assignment, whose T_Equal the parent calls.
+let private ownTreeVariants (child:Asn1Type) (atc:AutomaticTestCase) =
+    match child.Kind with
+    | ReferenceType _ -> []
+    | _               -> atc.variants
+
 let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference)  =
     let initInteger = lm.init.initInteger
     let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
@@ -285,7 +319,9 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
                 // Compute sType based on the test code generation module context
                 let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 {InitFunctionResult.funcBody = initInteger (lm.lg.getValueUnchecked p.accessPath PartialAccess) (lm.lg.intValueToString vl o.intClass) p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
-            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] }        )
+            // one value: the other values of the Equal tests (coverage step 14a) come from a toggle
+            let variants = toggleVariants lm t (if integerVals.Length = 1 then [ToggleInteger] else [])
+            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]; variants = variants }        )
 
     createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] [] []
 
@@ -309,7 +345,8 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.
                 let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 let resVar = (p.accessPath.asIdentifier lm.lg)
                 {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.accessPath) vl p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]}
-            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] } )
+            let variants = toggleVariants lm t (if realVals.Length = 1 then [ToggleReal] else [])
+            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]; variants = variants } )
     let isZeroAllowed = isValidValueRanged o.AllCons 0.0
     let tasInitFunc (p:CodegenScope)  =
         let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
@@ -379,7 +416,9 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
                 let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
                 let funcBody = initTestCaseIA5String (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) (nSize) ((typedefMaxSize r t)+1I) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false resVar sFirstNonNullChar
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
-            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
+            // a fixed size gives one value: the Equal tests (coverage step 14a) change its first character
+            let variants = toggleVariants lm t (if o.minSize.uper = o.maxSize.uper && nSize >= 1I then [ToggleFirstChar] else [])
+            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)]; variants = variants }
         seq {
             match o.minSize.uper = o.maxSize.uper with
             | true  -> yield seqOfCase o.minSize.uper
@@ -448,7 +487,9 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                     let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                     let funcBody = initTestCaseOctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize i (typedefIsFixedSize r t) false o.minSize.uper (nSize = 0I) resVar
                     {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
-                {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
+                // the same length with other content: the content compare of Equal (coverage step 14a)
+                let variants = toggleVariants lm t (if nSize >= 1I then [ToggleByte 0I] else [])
+                {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)]; variants = variants }
             let testCaseFuncs =
                 seq {
                     match o.minSize.acn = o.maxSize.acn with
@@ -481,7 +522,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                         let lhs = lm.lg.getInitAssignmentLhs p
                         let ret = sprintf "%s%s%s;" lhs lm.lg.AssignOperator compLit
                         {InitFunctionResult.funcBody = ret; resultVar = resVar; localVariables=[]}
-                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
+                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]; variants = [] })
             ret, ret.Head.initTestCaseFunc
 
     let maxArrLength =
@@ -506,7 +547,7 @@ let createNullTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1Ac
                 let resVar = (p.accessPath.asIdentifier lm.lg)
                 let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                 {InitFunctionResult.funcBody = initNull (lm.lg.getValueUnchecked p.accessPath PartialAccess) p.accessPath.isOptional resVar sType; resultVar = resVar; localVariables=[]});
-          testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]}]
+          testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]; variants = [] }]
     createInitFunctionCommon r lm t typeDefinition funcBody testCaseFuncs.Head.initTestCaseFunc testCaseFuncs constantInitExpression constantInitExpression [] [] []
 
 let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.BitString   ) (typeDefinition:TypeDefinitionOrReference) (isValidFunction:IsValidFunction option)=
@@ -554,7 +595,10 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                     let tdNameForTestCase = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
                     let funcBody = initTestCaseBitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) tdNameForTestCase nSize (nSizeCeiled) i (isFixedLayout) false o.minSize.uper p.accessPath.isOptional resVar
                     {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
-                {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
+                // the same length with other content (coverage step 14a): a bit of the whole bytes and the last bit
+                // (the trailing bits are compared apart)
+                let toggles = (if nSize >= 8I then [ToggleByte 0I] else []) @ (if nSize % 8I > 0I then [ToggleBit (nSize - 1I)] else [])
+                {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)]; variants = toggleVariants lm t toggles }
 
             let testCaseFuncs =
                 seq {
@@ -590,7 +634,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                         let lhs = lm.lg.getInitAssignmentLhs p
                         let ret = sprintf "%s%s%s;" lhs lm.lg.AssignOperator compLit
                         {InitFunctionResult.funcBody = ret; resultVar = resVar; localVariables=[]}
-                    {AutomaticTestCase.initTestCaseFunc = retFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
+                    {AutomaticTestCase.initTestCaseFunc = retFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]; variants = [] })
             ret, ret.Head.initTestCaseFunc
 
     let user_aux_functions =
@@ -636,7 +680,7 @@ let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnA
 
     let testCaseFuncs =
         EncodeDecodeTestCase.BooleanAutomaticTestCaseValues r t o |>
-        List.map (fun vl -> {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc vl; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
+        List.map (fun vl -> {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc vl; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]; variants = [] })
 
     let tasInitFunc (p:CodegenScope)  =
         let resVar = (p.accessPath.asIdentifier lm.lg)
@@ -666,7 +710,7 @@ let createObjectIdentifierInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t
                 let resVar = (p.accessPath.asIdentifier lm.lg)
                 let (pStr, sAccStr) = lm.lg.getObjectIdentifierAccessPair p
                 let arrsBytes = vl |> List.mapi(fun i b -> initObjectIdentifier_valid pStr sAccStr ((i+lm.lg.ArrayStartIndex).ToString()) b)
-                {InitFunctionResult.funcBody = initObjectIdentifier pStr sAccStr (BigInteger vl.Length) arrsBytes; resultVar = resVar; localVariables = []}); testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
+                {InitFunctionResult.funcBody = initObjectIdentifier pStr sAccStr (BigInteger vl.Length) arrsBytes; resultVar = resVar; localVariables = []}); testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]; variants = [] })
 
     let tasInitFunc (p:CodegenScope) =
         let resVar = (p.accessPath.asIdentifier lm.lg)
@@ -705,7 +749,7 @@ let createTimeTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1Ac
         List.map (fun vl ->
             {AutomaticTestCase.initTestCaseFunc = (fun (p:CodegenScope) ->
                 let resVar = (p.accessPath.asIdentifier lm.lg)
-                {InitFunctionResult.funcBody = initByValue p vl; resultVar = resVar; localVariables = []}); testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
+                {InitFunctionResult.funcBody = initByValue p vl; resultVar = resVar; localVariables = []}); testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]; variants = [] })
 
     let tasInitFunc (p:CodegenScope) =
         let resVar = (p.accessPath.asIdentifier lm.lg)
@@ -742,7 +786,9 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
         initEnumerated (lm.lg.getValue p.accessPath) enumValue tdName p.accessPath.isOptional resVar
 
     let testCaseFuncs =
-        EncodeDecodeTestCase.EnumeratedAutomaticTestCaseValues2 r t o |>
+        let enumVals = EncodeDecodeTestCase.EnumeratedAutomaticTestCaseValues2 r t o
+        let variants = toggleVariants lm t (if enumVals.Length = 1 then [ToggleEnumerated] else [])
+        enumVals |>
         List.map (fun vl ->
             {
                 AutomaticTestCase.initTestCaseFunc =
@@ -754,6 +800,7 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
                         let enumValue = lm.lg.qualifyNameWithModule tk.programUnit p.modName enumValueBase
                         {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.accessPath) enumValue tdName p.accessPath.isOptional resVar; resultVar = resVar; localVariables=[]});
                 testCaseTypeIDsMap = Map.ofList [(t.id, (TcvEnumeratedValue vl.Name.Value))]
+                variants = variants
             })
     let constantInitExpression () = lm.lg.getNamedItemBackendName (Some typeDefinition) o.items.Head
     createInitFunctionCommon r lm t typeDefinition funcBody testCaseFuncs.Head.initTestCaseFunc testCaseFuncs constantInitExpression constantInitExpression [] [] []
@@ -803,13 +850,28 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     //let ii = t.id.SequenceOfLevel + 1
     //let i = sprintf "i%d" (t.id.SequenceOfLevel + 1)
     let testCaseFuncs =
-        let seqOfCase (childTestCases : AutomaticTestCase list) (nSize:BigInteger)  =
+        // Coverage step 14a: element 0 (childAll.[bundleStart]) changed: another value of the element type, then the
+        // element's own variants
+        let elementVariants (childAll:AutomaticTestCase list) (bundleStart:int) : AtcVariant list =
+            match lm.lg.ArrayInitByAppend, childAll with
+            | true, _
+            | false, [] -> []
+            | false, _  ->
+                let elemScope (p:CodegenScope) = {p with accessPath = lm.lg.getArrayItem p.accessPath (string lm.lg.ArrayStartIndex) childType.isIA5String}
+                let swap =
+                    match childAll.Length >= 2 with
+                    | true  ->
+                        let other = childAll.[(bundleStart + 1) % childAll.Length]
+                        [{AtcVariant.nodeId = childType.id; what = "[0]: another value"; applyFnc = fun p -> other.initTestCaseFunc (elemScope p)}]
+                    | false -> []
+                swap @ liftVariants "[0]" elemScope (ownTreeVariants childType childAll.[bundleStart])
+        let seqOfCase (childAll : AutomaticTestCase list) (bundleStart:int) (childTestCases : AutomaticTestCase list) (nSize:BigInteger)  =
                 match childTestCases with
                 | []    ->
                     let initTestCaseFunc (p:CodegenScope) =
                         let resVar = (p.accessPath.asIdentifier lm.lg)
                         {InitFunctionResult.funcBody = ""; resultVar = resVar; localVariables = []}
-                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
+                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)]; variants = [] }
                 | [ atc ] ->
                     let initTestCaseFunc (p:CodegenScope) =
                         let ii = p.accessPath.SequenceOfLevel + 1
@@ -827,7 +889,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         let funcBody = initTestCaseSizeSequenceOf (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) tdName None nSize (typedefIsFixedSize r t) [childBody] false i resVar
                         {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables= (SequenceOfIndex (ii, None))::childCase.localVariables }
                     let combinedTestCase = atc.testCaseTypeIDsMap.Add(t.id, TcvSizeableTypeValue nSize)
-                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase }
+                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase; variants = elementVariants childAll bundleStart }
                 | _             ->
                     let initTestCaseFunc (p:CodegenScope) =
                         let ii = p.accessPath.SequenceOfLevel + 1
@@ -852,7 +914,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                     let combinedTestCase =
                         let thisCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)]
                         childTestCases |> List.fold(fun (newMap:Map<ReferenceToType, TestCaseValue>) atc -> mergeMaps newMap atc.testCaseTypeIDsMap) thisCase
-                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase }
+                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase; variants = elementVariants childAll bundleStart }
         match r.args.generateAutomaticTestCases with
         | true  ->
             let seqOfCase_aux (nSize:BigInteger) =
@@ -865,15 +927,22 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                     seq {
                         for i in [1..test_case_bundles] do
                             let bund_cases = childTestCases |> Seq.skip ((i-1) * (int nSize)) |> Seq.take (int nSize) |> Seq.toList
-                            yield seqOfCase bund_cases nSize
+                            yield nSize, seqOfCase childTestCases ((i-1) * (int nSize)) bund_cases nSize
 
                         if (last_test_case_bundle_size > 0) then
                             let last_bund_cases = childTestCases |> Seq.skip (test_case_bundles * (int nSize)) |> Seq.take (last_test_case_bundle_size) |> Seq.toList
-                            yield seqOfCase last_bund_cases nSize
+                            yield nSize, seqOfCase childTestCases (test_case_bundles * (int nSize)) last_bund_cases nSize
 
                     } |> Seq.toList
                 | false -> []
 
+            // Coverage step 14a: each value gets a variant with another size (the first value of another size)
+            let withSizeVariants (sized:(BigInteger * AutomaticTestCase) list) =
+                sized |>
+                List.map (fun (nSize, atc) ->
+                    match sized |> List.tryFind (fun (n, _) -> n <> nSize) with
+                    | Some (n, other) -> {atc with variants = {AtcVariant.nodeId = t.id; what = sprintf ": %A elements instead of %A" n nSize; applyFnc = other.initTestCaseFunc} :: atc.variants}
+                    | None            -> atc)
             seq {
                 match o.minSize.acn = o.maxSize.acn with
                 | true  -> yield! seqOfCase_aux o.minSize.acn
@@ -884,7 +953,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                     | true ->
                             yield! (fragmentationCases seqOfCase_aux o.maxSize.acn |> List.collect id)
                     | false -> ()
-            } |> Seq.toList
+            } |> Seq.toList |> withSizeVariants
         | false  -> []
 
     let initTasFunction, nonEmbeddedChildrenFuncs =
@@ -990,14 +1059,16 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         match atc.testCaseTypeIDsMap.ContainsKey ch.Type.id with
                         | true      -> atc.testCaseTypeIDsMap
                         | false     -> atc.testCaseTypeIDsMap.Add(ch.Type.id, TcvAnyValue)
-                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase }
+                    let childScope (p:CodegenScope) = {p with accessPath = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome}
+                    let variants = liftVariants ch.Name.Value childScope (ownTreeVariants ch.Type atc)
+                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase; variants = variants }
                 let nonPresenceFunc =
                     let initTestCaseFunc (p:CodegenScope) =
                         let newArg = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
                         let resVar = newArg.asIdentifier lm.lg
                         let funcBody = initTestCase_sequence_child_opt (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName ch) childTypeDef resVar
                         {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables = [] }
-                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.empty }
+                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.empty; variants = [] }
                 match ch.Optionality with
                 | None                              -> [presentFunc]
                 | Some (Asn1AcnAst.Optional opt)    -> [presentFunc; nonPresenceFunc]
@@ -1083,7 +1154,16 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         {funcBody = bodyRes; resultVar = resVar; localVariables = atcedChildren |> List.collect (fun c -> c.localVariables)}
 
                     let combinedTestCases = children_ith_testCase |> List.fold (fun map atc -> mergeMaps map atc.testCaseTypeIDsMap) Map.empty
-                    {AutomaticTestCase.initTestCaseFunc = testCaseFunc; testCaseTypeIDsMap = combinedTestCases})
+                    // Coverage step 14a: each child with another value (the next of its values: an OPTIONAL child's
+                    // values alternate present / absent), then the variants of the children's values
+                    let swaps =
+                        childrenATCs |>
+                        List.choose (fun (c, childCases, ln) ->
+                            match ln >= 2 with
+                            | true  -> Some {AtcVariant.nodeId = c.Type.id; what = c.Name.Value + ": another value"; applyFnc = childCases.[(seqTestCaseIndex + 1) % ln].initTestCaseFunc}
+                            | false -> None)
+                    let variants = swaps @ (children_ith_testCase |> List.collect (fun atc -> atc.variants))
+                    {AutomaticTestCase.initTestCaseFunc = testCaseFunc; testCaseTypeIDsMap = combinedTestCases; variants = variants })
 
             testCases
 
@@ -1249,6 +1329,17 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
 
 
     let testCaseFuncs =
+        // Coverage step 14a: each value of an alternative gets a variant with another alternative (the first value of
+        // the next alternative that has values)
+        let withAlternativeVariants (perAlternative:AutomaticTestCase list list) =
+            let nAlts = perAlternative.Length
+            let all = perAlternative |> List.mapi (fun ai atcs -> atcs |> List.map (fun atc -> (ai, atc))) |> List.concat
+            all |>
+            List.map (fun (ai, atc) ->
+                let other = [1 .. nAlts - 1] |> List.tryPick (fun d -> all |> List.tryFind (fun (aj, _) -> aj = (ai + d) % nAlts))
+                match other with
+                | Some (_, o) -> {atc with variants = {AtcVariant.nodeId = t.id; what = ": another alternative"; applyFnc = o.initTestCaseFunc} :: atc.variants}
+                | None        -> atc)
         let handleChild  (ch:ChChildInfo)  =
             let len = ch.chType.initFunction.automaticTestCases.Length
             let sChildName = (lm.lg.getAsn1ChChildBackendName ch)
@@ -1283,7 +1374,14 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                     match atc.testCaseTypeIDsMap.ContainsKey ch.chType.id with
                     | true      -> atc.testCaseTypeIDsMap
                     | false     -> atc.testCaseTypeIDsMap.Add(ch.chType.id, TcvAnyValue)
-                {AutomaticTestCase.initTestCaseFunc = presentFunc; testCaseTypeIDsMap = combinedTestCase } )
+                // coverage step 14a: the alternative's variants, where it is written in place
+                let variants =
+                    match lm.lg.init.choiceComponentTempInit || lm.lg.usesChoiceTempVarPath with
+                    | true  -> []
+                    | false ->
+                        let altScope (p:CodegenScope) = {p with accessPath = lm.lg.getChChild p.accessPath sChildName ch.chType.isIA5String}
+                        liftVariants ch.Name.Value altScope (ownTreeVariants ch.chType atc)
+                {AutomaticTestCase.initTestCaseFunc = presentFunc; testCaseTypeIDsMap = combinedTestCase; variants = variants } )
 
         match r.args.generateAutomaticTestCases with
         | true  ->
@@ -1291,7 +1389,8 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             //if some alternatives have restricted to always ABSENT (via WITH COMPONENTS constraint) then do not produce a test case for them.
             // except for backend with COPY semantics since they expect the result to be declared
             List.filter (fun c -> c.Optionality.IsNone || c.Optionality = (Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysPresent) || (lm.lg.decodingKind = Copy && c.Optionality <> Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysAbsent)) |>
-            List.collect handleChild
+            List.map handleChild |>
+            withAlternativeVariants
         | false -> []
 
 
