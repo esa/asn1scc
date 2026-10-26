@@ -251,6 +251,36 @@ let private childrenPassArguments (children: SeqChildInfo list) : bool =
 //  Deferred SEQUENCE function
 // ---------------------------------------------------------------------------
 
+/// Coverage step 13c: whether the consumer dependency dep patches its field on every path of the SEQUENCE t, i.e.
+/// whenever the encoding of t's body succeeds: the node whose encoding patches (the dependent, or for a presence
+/// flag its parent SEQUENCE) is reached from t through mandatory SEQUENCE components only, references included
+/// (no OPTIONAL component, CHOICE alternative or SEQUENCE OF element on the way). Then the fallback PatchDet of the
+/// field at the end of t can never run.
+let private consumerOnEveryPath (t: Asn1AcnAst.Asn1Type) (dep: Asn1AcnAst.AcnDependency) : bool =
+    let parentPath = t.id.ToScopeNodeList
+    let depPath = dep.asn1Type.ToScopeNodeList
+    let patchingNode =
+        match dep.dependencyKind with
+        | AcnDepPresenceBool -> List.take (depPath.Length - 1) depPath
+        | _ -> depPath
+    let rec mandatory (kind: Asn1AcnAst.Asn1TypeKind) (rel: ScopeNode list) =
+        match rel, kind with
+        | [], _ -> true
+        | _, Asn1AcnAst.ReferenceType rt -> mandatory rt.resolvedType.Kind rel
+        | SEQ_CHILD (name, _) :: rest, Asn1AcnAst.Sequence sq ->
+            sq.children |> List.exists (fun c ->
+                match c with
+                | Asn1AcnAst.Asn1Child ch when ch.Name.Value = name ->
+                    match ch.Optionality with
+                    | None
+                    | Some Asn1AcnAst.AlwaysPresent -> mandatory ch.Type.Kind rest
+                    | Some Asn1AcnAst.AlwaysAbsent
+                    | Some (Asn1AcnAst.Optional _) -> false
+                | Asn1AcnAst.Asn1Child _
+                | Asn1AcnAst.AcnChild _ -> false)
+        | _ -> false
+    isScopePrefix parentPath patchingNode && mandatory t.Kind (List.skip parentPath.Length patchingNode)
+
 /// Deferred version of createSequenceFunction.
 /// Pre-processes the children list: for direct ACN children that are deferred
 /// determinants (collectDeferredDetIdsFromAst), replaces their encoding with
@@ -752,19 +782,28 @@ let private createDeferredSequenceFunction
         let localFallbackEpilogue =
             match codec with
             | CommonTypes.Codec.Encode ->
+                // coverage step 13c: no fallback when a consumer patches the field on every path (comment instead)
+                let alwaysPatchedBy (acId: ReferenceToType) =
+                    AcnExternalField.consumersOfField r deps acId |> List.tryFind (consumerOnEveryPath t)
+                let omitted =
+                    localPatchedDets |> List.choose (fun (acId, _) ->
+                        alwaysPatchedBy acId |> Option.map (fun dep ->
+                            let consumer = dep.asn1Type.AcnAbsPath |> List.skip (parentPath.Length) |> String.concat "."
+                            lm.acn.acn_deferred_det_fallback_omitted (deferredDetRefName r lm acId) consumer))
                 let fallbackDets =
                     localPatchedDets |> List.choose (fun (acId, acType) ->
-                            match lm.lg.getDeferredDetFunctions acType with
-                            | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
+                            match alwaysPatchedBy acId, lm.lg.getDeferredDetFunctions acType with
+                            | None, Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 let detVarName = deferredDetRefName r lm acId
                                 let defaultVal = lm.lg.computeDeferredFallbackValue acType uperMinOffset
                                 Some (detVarName, patchFn, nBitsOpt, defaultVal, acType)
-                            | None -> None)
-                match fallbackDets with
-                | [] -> None
+                            | Some _, _
+                            | None, None -> None)
+                match fallbackDets, omitted with
+                | [], [] -> None
                 | _ ->
                     let fallbackCode =
-                        fallbackDets |> List.map (fun (detVarName, patchFn, nBitsOpt, defaultVal, acnType) ->
+                        (fallbackDets |> List.map (fun (detVarName, patchFn, nBitsOpt, defaultVal, acnType) ->
                             match acnType with
                             | Asn1AcnAst.AcnInsertedType.AcnInteger _
                             | Asn1AcnAst.AcnInsertedType.AcnBoolean _
@@ -782,16 +821,23 @@ let private createDeferredSequenceFunction
                                     failwithf "BUG: IA5String fallback PatchDet requires nChars (nBits) parameter"
                             | Asn1AcnAst.AcnInsertedType.AcnNullType _ ->
                                 failwithf "BUG: AcnNullType should not appear as a deferred determinant"
-                        ) |> String.concat "\n"
-                    Some (fun _ -> fallbackCode)
+                        ))
+                    Some (fallbackCode, omitted)
             | CommonTypes.Codec.Decode -> None
 
+        // the code joined at the end of the body, and the comments of the omitted fallbacks (after the body)
         let epilogue =
-            [producerPatchEpilogue; localSiblingEpilogue; localFallbackEpilogue]
-            |> List.choose id
-            |> function
-               | [] -> None
-               | blocks -> Some (fun p -> blocks |> List.map (fun block -> block p) |> String.concat "\n")
+            let codeBlocks = [producerPatchEpilogue; localSiblingEpilogue] |> List.choose id
+            let fallbackCode, omittedComments =
+                match localFallbackEpilogue with
+                | Some (code, comments) -> code, comments
+                | None -> [], []
+            match codeBlocks, fallbackCode, omittedComments with
+            | [], [], [] -> None
+            | _ ->
+                Some (fun p ->
+                    let code = (codeBlocks |> List.map (fun block -> block p)) @ fallbackCode
+                    (match code with [] -> None | _ -> Some (String.concat "\n" code)), omittedComments)
 
         // The deferred determinants of modifiedChildren carry no update statement (their value
         // is patched by the consumers), so check the automatic test values against the original

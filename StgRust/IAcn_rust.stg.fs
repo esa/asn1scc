@@ -309,6 +309,8 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_switch_case_str  sCaseName sVarName sValue 
         override this.acn_deferred_det_switch_str  (sVarName:string) (sKindAccess:string) (arrsCaseItems:seq<string>) (soCovExempt:string option) =
             acn_rust.acn_deferred_det_switch_str  sVarName sKindAccess arrsCaseItems soCovExempt 
+        override this.acn_deferred_det_fallback_omitted  (sDetName:string) (sConsumer:string) =
+            acn_rust.acn_deferred_det_fallback_omitted  sDetName sConsumer 
         override this.acn_deferred_det_fallback_value  (sPatchFuncName:string) (sDefaultVal:string) (sDetName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_fallback_value  sPatchFuncName sDefaultVal sDetName codec
         override this.acn_deferred_det_fallback_value_with_size  (sPatchFuncName:string) (sDefaultVal:string) (nBits:BigInteger) (sDetName:string) (codec:Codec) =

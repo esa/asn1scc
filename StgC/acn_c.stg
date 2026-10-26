@@ -1956,6 +1956,9 @@ switch(<sKindAccess>) {
 /* Group B: Fallback PatchDet (encode-only, decode is empty) */
 
 /* Fallback patch without nBits */
+/* coverage step 13c: the fallback is omitted when a consumer patches the field on every path */
+acn_deferred_det_fallback_omitted(sDetName, sConsumer) ::= "/* no fallback PatchDet of <sDetName>: <sConsumer> patches it on every path */"
+
 acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= <<
 if (!<sDetName>.is_set) {
     <sPatchFuncName>((asn1SccUint)<sDefaultVal>, pBitStrm, &<sDetName>, pErrCode); /*COVERAGE_IGNORE*/

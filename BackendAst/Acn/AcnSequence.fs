@@ -505,7 +505,10 @@ let private printPresenceBit
 // that the deferred dispatcher injects at the end of the encode body to
 // patch determinants whose consumer never executed.  Threaded as plain
 // text instead of via a synthetic AcnChild — see DAstACNDeferred for
-// the rationale.
+// the rationale.  The second item: comments appended after the whole body
+// (coverage step 13c: the fallbacks omitted because a consumer patches the
+// field on every path), outside the join chain, so that a comment is never
+// the only content of an `if`.
 /// An automatic test value is valid for the ACN encoding of a SEQUENCE when every ACN child
 /// can be updated from the value during the encoding.
 let isTestCaseValidForAcnChildren (children:SeqChildInfo list) (atc:AutomaticTestCase) =
@@ -518,7 +521,7 @@ let isTestCaseValidForAcnChildren (children:SeqChildInfo list) (atc:AutomaticTes
         | None, Some testCaseFnc        -> (testCaseFnc atc).IsSome
         | None, None                    -> false)
 
-let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (_:DastAcnParameter list) (fallbackEpilogue:(CodegenScope -> string) option) (us:State)  =
+let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (_:DastAcnParameter list) (fallbackEpilogue:(CodegenScope -> string option * string list) option) (us:State)  =
     (*
         1. all Acn inserted children are declared as local variables in the encoded and decode functions (declaration step)
         2. all Acn inserted children must be initialized appropriately in the encoding phase
@@ -752,10 +755,12 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             | _ -> None, []
         let proof = lm.lg.generateSequenceProof r ACN t o nestingScope p.accessPath codec
         let aux = lm.lg.generateSequenceAuxiliaries r ACN t o nestingScope p.accessPath codec
-        let fallbackStmts =
+        let fallbackStmts, trailingComments =
             match codec, fallbackEpilogue with
-            | Encode, Some makeCode -> [makeCode p]
-            | _ -> []
+            | Encode, Some makeCode ->
+                let code, comments = makeCode p
+                Option.toList code, comments
+            | _ -> [], []
         // coverage step 12b: the outcome of each part of allStmts (presence bits, then one part per child)
         let partEncOutcomes =
             (presenceBits |> List.map (fun _ -> lm.lg.encodeTemplateOutcome EncPresenceBits)) @
@@ -791,6 +796,10 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 (before @ parts @ after) |> nestEncodeParts lm
             | CheckEveryPart ->
                 (saveInitialBitStrmStatements@childrenStatements@fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> nestChildItems lm codec
+        let seqContent =
+            match trailingComments with
+            | []       -> seqContent
+            | comments -> seqContent |> Option.map (fun content -> content + "\n" + String.concat "\n" comments)
 
         let icdFnc _ _ _  =
             let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip

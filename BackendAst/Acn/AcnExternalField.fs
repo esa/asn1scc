@@ -115,6 +115,10 @@ let private fieldConsumers (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDepend
         |> List.groupBy (fun d -> determinantIdentity r deps d.determinant)
         |> Map.ofList)
 
+/// --acn-v2: the consumers of the ACN field fieldId (the dependencies that patch it).
+let consumersOfField (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : AcnDependency list =
+    (fieldConsumers r deps).TryFind fieldId |> Option.defaultValue []
+
 /// --acn-v2, coverage step 13b: whether at most one PatchDet of the ACN field fieldId runs per InitDet, so none can
 /// fail (Acn_PatchDet_* fails only on a ref already set with another value). True when the field has one consumer,
 /// or consumers in different alternatives of one CHOICE (only one is encoded), and no consumer is under a SEQUENCE

@@ -1063,6 +1063,10 @@ let acn_deferred_det_switch_str (sVarName:string) (sKindAccess:string) (arrsCase
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "acn_deferred_det_switch_str" [("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("sKindAccess",(if sKindAccess = null then null else ST.StrHelper sKindAccess:>Object) );("arrsCaseItems",(arrsCaseItems|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("soCovExempt",(if soCovExempt.IsNone then null else ST.StrHelper soCovExempt.Value:>Object) )]
 
+let acn_deferred_det_fallback_omitted (sDetName:string) (sConsumer:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_deferred_det_fallback_omitted" [("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sConsumer",(if sConsumer = null then null else ST.StrHelper sConsumer:>Object) )]
+
 let acn_deferred_det_fallback_value (sPatchFuncName:string) (sDefaultVal:string) (sDetName:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with

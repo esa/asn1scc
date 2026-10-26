@@ -2291,6 +2291,9 @@ acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems, soCovExempt) :
 
 /* Group B: Fallback PatchDet (encode-only, decode is empty) */
 
+/* coverage step 13c: the fallback is omitted when a consumer patches the field on every path */
+acn_deferred_det_fallback_omitted(sDetName, sConsumer) ::= "-- no fallback PatchDet of <sDetName>: <sConsumer> patches it on every path"
+
 acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= <<
 if not <sDetName>.Is_Set then
     <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sDefaultVal>), bs, <sDetName>, result); -- COVERAGE_IGNORE

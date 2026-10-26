@@ -1642,6 +1642,9 @@ acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems, soCovExempt) :
 acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= "# TODO"
 acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= "# TODO"
 
+/* coverage step 13c: the fallback is omitted when a consumer patches the field on every path */
+acn_deferred_det_fallback_omitted(sDetName, sConsumer) ::= "# no fallback PatchDet of <sDetName>: <sConsumer> patches it on every path"
+
 acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= "# TODO"
 acn_deferred_det_fallback_value_decode(sPatchFuncName, sDefaultVal, sDetName) ::= ""
 acn_deferred_det_fallback_value_with_size_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= "# TODO"
