@@ -1,0 +1,19 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+-- Issue 53: a determinant inside an OPTIONAL component may be used by a component
+-- inside the same OPTIONAL component, by a path from the outer SEQUENCE or from
+-- the component itself (00-ExpectToFail/005 and 006: a component outside it may not).
+Truth ::= CHOICE { yes NULL, no NULL }
+
+Holder ::= SEQUENCE {
+	a INTEGER (0..15),
+	header SEQUENCE {
+		b INTEGER (0..7),
+		inner SEQUENCE { choice Truth }
+	} OPTIONAL
+}
+
+END
+
+--TCLS     Truth <INTEGER:detail> [] { yes [present-when detail == 1], no [present-when detail == 0] } Holder [] { a [], header [] { detail INTEGER [encoding pos-int, size 3], b [], inner [] { choice <header.detail> [] } } }
+--TCLS     Truth <INTEGER:detail> [] { yes [present-when detail == 1], no [present-when detail == 0] } Holder [] { a [], header [] { detail INTEGER [encoding pos-int, size 3], b [], inner [] { choice <detail> [] } } }

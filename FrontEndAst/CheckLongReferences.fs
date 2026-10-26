@@ -82,6 +82,21 @@ let private checkRelativePath (tasPositions:Map<ReferenceToType,int>) (curState:
                         | Sequence _  -> true
                         | _           -> false
                     | _ -> false ) |>  Seq.tryFind findSeq
+            // the ACN fields of an OPTIONAL component are not encoded when the component is absent,
+            // so only a dependency inside that component may use them (Issue 53)
+            let checkComponentOnPathIsPresent (ch:Asn1Child) (x1:StringLoc) =
+                let (ReferenceToType componentPath) = ch.Type.id
+                let (ReferenceToType dependencyPath) = asn1TypeWithDependency.id
+                match ch.Optionality with
+                | None
+                | Some AlwaysPresent -> ()
+                | Some AlwaysAbsent
+                | Some (Optional _) ->
+                    match List.isPrefixOf componentPath dependencyPath with
+                    | true  -> ()
+                    | false ->
+                        let errMsg = sprintf "Invalid reference '%s': component '%s' is OPTIONAL, so the ACN fields inside it are not encoded when it is absent. Only components inside '%s' may refer to them." (path |> Seq.StrJoin ".") x1.Value x1.Value
+                        raise(SemanticError(x1.Location, errMsg))
             let rec checkSeqWithPath (seq:Asn1Type) (path : StringLoc list)=
                 match seq.Kind with
                 | Sequence seq ->
@@ -101,7 +116,9 @@ let private checkRelativePath (tasPositions:Map<ReferenceToType,int>) (curState:
                         | None -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
                         | Some ch ->
                             match ch with
-                            | Asn1Child ch -> checkSeqWithPath ch.Type xs
+                            | Asn1Child ch ->
+                                checkComponentOnPathIsPresent ch x1
+                                checkSeqWithPath ch.Type xs
                             | _            -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
                 | ReferenceType ref -> checkSeqWithPath ref.resolvedType path
                 | _            -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))

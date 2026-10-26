@@ -1,0 +1,17 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	-- Issue 53: the ACN fields of an OPTIONAL component are not encoded when
+	-- the component is absent, so a component outside it cannot use them as
+	-- determinant (before, the grammar was accepted and the generated code
+	-- failed its round trip). 09-CHOICE/021 has the accepted forms.
+	Truth ::= CHOICE { yes NULL, no NULL }
+
+	Holder ::= SEQUENCE {
+		a INTEGER (0..15),
+		header SEQUENCE { b INTEGER (0..7) } OPTIONAL,
+		choice Truth
+	}
+
+END
+
+--TCLFC    Truth <INTEGER:detail> [] { yes [present-when detail == 1], no [present-when detail == 0] } Holder [] { a [], header [] { detail INTEGER [encoding pos-int, size 3], b [] }, choice <header.detail> [] }          $$$ sample1.acn:4:182: error: Invalid reference 'header.detail': component 'header' is OPTIONAL, so the ACN fields inside it are not encoded when it is absent. Only components inside 'header' may refer to them.
