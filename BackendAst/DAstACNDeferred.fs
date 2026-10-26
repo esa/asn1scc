@@ -21,23 +21,12 @@ open AcnHelpers
 open AcnDependencies
 
 
-/// Name of the AcnInsertedFieldRef local variable that holds the ACN field (or
-/// argument) `name` in the caller: ToC name, with the suffix "_ref" when that
-/// would clash with a keyword of the target language or, in a case-insensitive
-/// language (Ada), with a module (package) or type name, which the local would
-/// hide (e.g. "type", or "parameterReportStructureType" hiding package
-/// ParameterReportStructureType). Every place that declares, patches or passes
-/// such a local must use this function.
-let deferredDetLocalName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (name: string) : string =
-    let cName = ToC name
-    let same (a: string) (b: string) =
-        if lm.lg.isCaseSensitive then a = b else a.ToUpperInvariant() = b.ToUpperInvariant()
-    let isKeyword = lm.lg.Keywords |> Seq.exists (same cName)
-    let hidesModuleOrType =
-        not lm.lg.isCaseSensitive
-        && (r.modulesMap |> Map.exists (fun modName _ -> same cName (ToC modName))
-            || r.typeAssignmentsMap |> Map.exists (fun (_, tasName) _ -> same cName (ToC (r.args.TypePrefix + tasName))))
-    if isKeyword || hidesModuleOrType then cName + "_ref" else cName
+/// Name of the AcnInsertedFieldRef local that holds the ACN field `identity`
+/// (AcnExternalField.determinantIdentity) in the function that declares it. Every
+/// place that declares, patches or passes such a local must use this function
+/// (q/issues.md Issue 52).
+let deferredDetRefName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (identity: ReferenceToType) : string =
+    AcnExternalField.deferredDetRefName r lm identity
 
 
 /// Compute the value expression for a PatchDet call, based on the
@@ -230,69 +219,32 @@ let private refArgumentBoundaries (deps: Asn1AcnAst.AcnInsertedFieldDependencies
         | AcnChildDeterminant d, AcnDepRefTypeArgument _ when d.id = detId -> Some dep.asn1Type.ToScopeNodeList
         | _ -> None)
 
-/// The ACN children of a SEQUENCE passed as an ACN argument, found by id wherever the argument is (#421): besides
-/// a reference child of the SEQUENCE (the names collectDeferredDetNames finds), a reference inside an inline child
-/// (`pl SEQUENCE { choice <detail> }`) or beside an inline ancestor (`header SEQUENCE {...}, choice <header.detail>`).
-let private refArgumentDeterminantNames (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (acnChildren: (string * ReferenceToType) list) : Set<string> =
-    acnChildren
-    |> List.filter (fun (_, id) -> not (List.isEmpty (refArgumentBoundaries deps id)))
-    |> List.map fst
-    |> Set.ofList
-
-/// Collect deferred determinant names from the original AST (before the fold).
-/// Used by preSeqFunc to provide parent context to createAcnChild.
-let collectDeferredDetNamesFromAst (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (t: Asn1AcnAst.Asn1Type) (seq: Asn1AcnAst.Sequence) : Set<string> =
+/// The deferred determinants among the ACN children of a SEQUENCE, from the original AST (before the fold): the
+/// children some ACN parameter stands for (AcnExternalField.isDeferredField, matched by id, q/issues.md Issue 52),
+/// wherever the reference taking it is (#421): a reference child of the SEQUENCE, a reference inside an inline child
+/// (`pl SEQUENCE { choice <detail> }`), beside an inline ancestor (`header SEQUENCE {...}, choice <header.detail>`),
+/// or the reference of an enclosing type the field is exposed to. Used by preSeqFunc to provide parent context to
+/// createAcnChild.
+let collectDeferredDetIdsFromAst (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (seq: Asn1AcnAst.Sequence) : Set<ReferenceToType> =
     if not r.args.acnDeferred then Set.empty
     else
-        // A SEQUENCE OF child passes the arguments of its element type (the
-        // element encoder patches them, once per element), so look through
-        // SEQUENCE OF, nested ones included, to the reference type.
-        let rec argumentNames (kind: Asn1AcnAst.Asn1TypeKind) =
-            match kind with
-            | Asn1AcnAst.ReferenceType rt ->
-                rt.acnArguments
-                |> List.choose (fun (AcnGenericTypes.RelativePath parts) ->
-                    match parts with [] -> None | _ -> Some (parts |> List.last).Value)
-            | Asn1AcnAst.SequenceOf so -> argumentNames so.child.Kind
-            | _ -> []
-        let fromChildren =
-            seq.children
-            |> List.choose (fun c -> match c with Asn1AcnAst.Asn1Child ac -> Some ac | _ -> None)
-            |> List.collect (fun ac -> argumentNames ac.Type.Kind)
-            |> Set.ofList
-        let fromOwnParams = t.acnParameters |> List.map (fun p -> p.name) |> Set.ofList
-        let fromDeps =
-            seq.children
-            |> List.choose (fun c -> match c with Asn1AcnAst.AcnChild ac -> Some (ac.Name.Value, ac.id) | _ -> None)
-            |> refArgumentDeterminantNames deps
-        Set.unionMany [fromChildren; fromOwnParams; fromDeps]
+        seq.children
+        |> List.choose (fun c -> match c with Asn1AcnAst.AcnChild ac when AcnExternalField.isDeferredField r deps ac.id -> Some ac.id | _ -> None)
+        |> Set.ofList
 
-/// Collect the names of determinants that are passed as acnArguments
-/// by child reference types within a SEQUENCE.  These are the ACN children
-/// that need deferred handling (InitDet instead of normal encoding).
-let collectDeferredDetNames (children: SeqChildInfo list) : Set<string> =
-    // As collectDeferredDetNamesFromAst: through SEQUENCE OF to the element.
-    let rec argumentNames (kind: DAst.Asn1TypeKind) =
+/// Whether a child reference type of the SEQUENCE takes ACN arguments. A SEQUENCE
+/// OF child passes the arguments of its element type (the element encoder patches
+/// them, once per element), so look through SEQUENCE OF, nested ones included.
+let private childrenPassArguments (children: SeqChildInfo list) : bool =
+    let rec passesArguments (kind: DAst.Asn1TypeKind) =
         match kind with
-        | DAst.ReferenceType rt ->
-            rt.baseInfo.acnArguments
-            |> List.choose (fun arg ->
-                let (AcnGenericTypes.RelativePath parts) = arg
-                // Only the last part is the determinant name.
-                // Earlier parts are sibling navigation (e.g., "hdr" in
-                // "hdr.buffers-length" is the sibling, not a determinant).
-                match parts with
-                | [] -> None
-                | _  -> Some (parts |> List.last |> fun sl -> sl.Value))
-        | DAst.SequenceOf so -> argumentNames so.childType.Kind
-        | _ -> []
-    children
-    |> List.choose (fun c ->
+        | DAst.ReferenceType rt -> not rt.baseInfo.acnArguments.IsEmpty
+        | DAst.SequenceOf so -> passesArguments so.childType.Kind
+        | _ -> false
+    children |> List.exists (fun c ->
         match c with
-        | DAst.Asn1Child ac -> Some ac
-        | _ -> None)
-    |> List.collect (fun ac -> argumentNames ac.Type.Kind)
-    |> Set.ofList
+        | DAst.Asn1Child ac -> passesArguments ac.Type.Kind
+        | DAst.AcnChild _ -> false)
 
 
 // ---------------------------------------------------------------------------
@@ -300,13 +252,11 @@ let collectDeferredDetNames (children: SeqChildInfo list) : Set<string> =
 // ---------------------------------------------------------------------------
 
 /// Deferred version of createSequenceFunction.
-/// Pre-processes the children list:
-///   1. For each unique argument name referenced by child ReferenceTypes'
-///      acnArguments, ensures an AcnInsertedFieldRef local variable is
-///      declared at this SEQUENCE level.
-///   2. For direct ACN children that match a deferred det name, replaces
-///      their encoding with InitDet and marks them as NullType to bypass
-///      _is_initialized checks.
+/// Pre-processes the children list: for direct ACN children that are deferred
+/// determinants (collectDeferredDetIdsFromAst), replaces their encoding with
+/// InitDet into the AcnInsertedFieldRef that holds them and marks them as
+/// NullType to bypass _is_initialized checks. The locals passed to child
+/// references are declared by the references' callers (buildCallerWrapper).
 /// Then delegates to the inline version with the modified children list.
 let private createDeferredSequenceFunction
         (r:Asn1AcnAst.AstRoot)
@@ -322,22 +272,15 @@ let private createDeferredSequenceFunction
         (us:State) =
 
     let typePrefix = r.args.TypePrefix
-    // Deferred determinant names come from two sources:
-    //   (a) child ReferenceTypes' acnArguments — the parent SEQUENCE declares
-    //       AcnInsertedFieldRef variables and passes them to children
-    //   (b) the sequence's own acnParameters — the sequence receives
-    //       AcnInsertedFieldRef* formal parameters (producer or consumer)
-    //       and its direct ACN children matching those params need InitDet
-    //   (c) direct ACN children passed as an argument elsewhere (#421): by a
-    //       reference inside an inline child, or beside an inline ancestor
-    let deferredDetNamesFromChildren = collectDeferredDetNames children
-    let deferredDetNamesFromOwnParams =
-        t.acnParameters |> List.map (fun p -> p.name) |> Set.ofList
-    let deferredDetNamesFromDeps =
-        children
-        |> List.choose (fun c -> match c with DAst.AcnChild ac -> Some (ac.Name.Value, ac.id) | _ -> None)
-        |> refArgumentDeterminantNames deps
-    let deferredDetNames = Set.unionMany [deferredDetNamesFromChildren; deferredDetNamesFromOwnParams; deferredDetNamesFromDeps]
+    // The deferred determinants, matched by id (q/issues.md Issue 52): the direct
+    // ACN children some ACN parameter stands for (collectDeferredDetIdsFromAst).
+    // One the function exposes to an enclosing type is held in the formal
+    // parameter standing for it (fieldOwnParam, also for a field of an inline
+    // child); every other one in a local of this function (deferredDetRefName).
+    let isDeferred (detId: ReferenceToType) = AcnExternalField.isDeferredField r deps detId
+    let ownParam (detId: ReferenceToType) = AcnExternalField.fieldOwnParam r deps detId
+    let hasDeferredChildren =
+        children |> List.exists (function DAst.AcnChild ac -> isDeferred ac.id | DAst.Asn1Child _ -> false)
 
     // The AcnInsertedFieldRef local of a deferred determinant lives in the encoding
     // function of its SEQUENCE, which also holds the inline SEQUENCE children. Its
@@ -367,19 +310,13 @@ let private createDeferredSequenceFunction
     let adoptedDeterminants =
         inlineDescendantAcnChildren o
         |> List.filter (fun (determinantParent, ac) ->
-            not (List.isEmpty (refArgumentBoundaries deps ac.id)) && patchedHere determinantParent ac.id)
+            not (List.isEmpty (refArgumentBoundaries deps ac.id)) && (ownParam ac.id).IsNone && patchedHere determinantParent ac.id)
         |> List.map snd
 
     // If no deferred determinants, use the inline version as-is
-    if deferredDetNames.IsEmpty && adoptedDeterminants.IsEmpty then
+    if not (childrenPassArguments children) && t.acnParameters.IsEmpty && not hasDeferredChildren && adoptedDeterminants.IsEmpty then
         DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc children acnPrms None us
     else
-        // Collect the names of direct ACN children in this SEQUENCE
-        let directAcnChildNames =
-            children
-            |> List.choose (fun c -> match c with DAst.AcnChild ac -> Some ac.Name.Value | _ -> None)
-            |> Set.ofList
-
         // Consumers of a determinant other than the reference arguments that
         // make it deferred: siblings in this SEQUENCE sized, selected or made
         // present by it.
@@ -394,21 +331,21 @@ let private createDeferredSequenceFunction
         // The local deferred determinants whose fallback and sibling-consumer
         // patches this SEQUENCE emits: its own (not formal parameters, not
         // passed beside it) and the adopted ones of its inline children.
-        let localPatchedDets : (string * ReferenceToType * Asn1AcnAst.AcnInsertedType) list =
+        let localPatchedDets : (ReferenceToType * Asn1AcnAst.AcnInsertedType) list =
             (children |> List.choose (fun child ->
                 match child with
-                | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames
-                                     && not (Set.contains ac.Name.Value deferredDetNamesFromOwnParams)
+                | DAst.AcnChild ac when isDeferred ac.id
+                                     && (ownParam ac.id).IsNone
                                      && patchedHere parentPath ac.id ->
-                    Some (ac.Name.Value, ac.id, ac.Type)
+                    Some (ac.id, ac.Type)
                 | _ -> None))
-            @ (adoptedDeterminants |> List.map (fun ac -> (ac.Name.Value, ac.id, ac.Type)))
+            @ (adoptedDeterminants |> List.map (fun ac -> (ac.id, ac.Type)))
 
         // Modify direct ACN children that are deferred determinants
         let modifiedChildren =
             children |> List.map (fun child ->
                 match child with
-                | DAst.AcnChild ac when Set.contains ac.Name.Value deferredDetNames ->
+                | DAst.AcnChild ac when isDeferred ac.id ->
                     let detFuncs = lm.lg.getDeferredDetFunctions ac.Type
                     match detFuncs with
                     | Some (initFuncName, _patchFuncName, nBitsOpt, _uperMinOffset) ->
@@ -419,14 +356,13 @@ let private createDeferredSequenceFunction
                         //   value field, not into a nonexistent local variable)
                         // - funcUpdateStatement = None (value patched by consumer)
                         // - Type = AcnNullType (bypasses _is_initialized check)
-                        let isOwnParam = Set.contains ac.Name.Value deferredDetNamesFromOwnParams
-                        // For own parameters (formal AcnInsertedFieldRef*), use full
-                        // path name (matches getExternalField0 resolution).
-                        // For local variables, use the field name (matches callerFuncBody's
-                        // actual param naming, deferredDetLocalName).
-                        let detVarName =
-                            if isOwnParam then DAstACN.getAcnDeterminantName ac.id
-                            else deferredDetLocalName r lm ac.Name.Value
+                        // A field exposed to an enclosing type is held in the formal
+                        // AcnInsertedFieldRef* standing for it; any other one in the
+                        // local named after it (matches buildCallerWrapper).
+                        let isOwnParam, detVarName =
+                            match ownParam ac.id with
+                            | Some prmId -> true, DAstACN.getAcnDeterminantName prmId
+                            | None       -> false, deferredDetRefName r lm ac.id
                         let originalFuncBody = ac.funcBody
                         // Determinant ICD comment(s) ("size determinant for ...",
                         // "reference determinant for ...") normally reach the row via
@@ -722,7 +658,7 @@ let private createDeferredSequenceFunction
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
-                                    let detName = DAstACN.getAcnDeterminantName parameter.id
+                                    let detName = deferredDetRefName r lm determinant.id
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                                     let patchCall =
                                         if patchFn.Contains("IA5String") then
@@ -773,7 +709,7 @@ let private createDeferredSequenceFunction
             | CommonTypes.Codec.Decode -> None
             | CommonTypes.Codec.Encode ->
                 let patches =
-                    localPatchedDets |> List.collect (fun (acName, acId, acType) ->
+                    localPatchedDets |> List.collect (fun (acId, acType) ->
                             match lm.lg.getDeferredDetFunctions acType with
                             | None -> []
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
@@ -782,7 +718,7 @@ let private createDeferredSequenceFunction
                                     let valueExpr =
                                         if uperMinOffset = 0I then rawValueExpr
                                         else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
-                                    let detName = deferredDetLocalName r lm acName
+                                    let detName = deferredDetRefName r lm acId
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                                     let patchCall =
                                         if patchFn.Contains("IA5String") then
@@ -813,10 +749,10 @@ let private createDeferredSequenceFunction
             match codec with
             | CommonTypes.Codec.Encode ->
                 let fallbackDets =
-                    localPatchedDets |> List.choose (fun (acName, _acId, acType) ->
+                    localPatchedDets |> List.choose (fun (acId, acType) ->
                             match lm.lg.getDeferredDetFunctions acType with
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                let detVarName = deferredDetLocalName r lm acName
+                                let detVarName = deferredDetRefName r lm acId
                                 let defaultVal = lm.lg.computeDeferredFallbackValue acType uperMinOffset
                                 Some (detVarName, patchFn, nBitsOpt, defaultVal, acType)
                             | None -> None)
@@ -882,18 +818,18 @@ let private findContainingSizeParamInfo
 let private findContainingSizeParam deps o =
     findContainingSizeParamInfo deps o |> Option.map fst
             
-/// After boundary post-processing rewrites &name → formal param name in the
-/// body text, the matching AcnInsertedFieldRef local variable declarations
-/// injected by inner callerFuncBodies become orphans.  Strip them — they
-/// are now provided by this function's formal params.
+/// A local AcnInsertedFieldRef for an ACN field that a formal parameter of this
+/// function holds would hide the parameter: strip it (the inner callers pass the
+/// formal parameter, buildCallerWrapper).
 let private stripOwnParamLocals
         (r: Asn1AcnAst.AstRoot)
+        (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
         (lm: LanguageMacros)
         (acnParameters: AcnGenericTypes.AcnParameter list)
         (locals: LocalVariable list) : LocalVariable list =
     let ownParamNames =
         acnParameters
-        |> List.map (fun prm -> deferredDetLocalName r lm prm.name)
+        |> List.map (fun prm -> deferredDetRefName r lm (AcnExternalField.paramIdentity r deps prm))
         |> Set.ofList
     let detTypeName = lm.acn.acn_deferred_det_type_name()
     locals |> List.filter (fun lv ->
@@ -1269,71 +1205,26 @@ let private buildCallerWrapper
                 toc, Some toc
             | _ -> str, None
 
-        // For each acnArgument, classify the call site:
-        //   - Intermediate level (parent param exists) → pass parent's
-        //     formal param name (pointer pass-through).  No local
-        //     declaration needed; the parent already has it.
-        //   - Declaration level (no parent param) → pass &localName.
-        //     The local AcnInsertedFieldRef must be declared in the
-        //     caller's scope, so emit a localVariable for it.
+        // For each parameter of the specialized function, the ACN field it
+        // stands for (AcnExternalField.paramIdentity, q/issues.md Issue 52):
+        //   - a formal parameter of the enclosing function holds the field
+        //     (pointer pass-through) → pass it.  No local declaration needed.
+        //   - otherwise → pass &local, the local AcnInsertedFieldRef named after
+        //     the field (deferredDetRefName), declared in the caller's scope:
+        //     the producer and every consumer of the field in this function
+        //     use the same local, and fields with the same name do not share one.
         let extraActualParams, declLevelLocalNames =
-            List.zip ctx.o.acnArguments ctx.o.resolvedType.acnParameters
-            |> List.fold (fun (paramsAcc, localsAcc) (arg, resolvedParam) ->
-                let (AcnGenericTypes.RelativePath parts) = arg
-                let argName = parts |> List.last |> fun sl -> sl.Value
+            ctx.o.resolvedType.acnParameters
+            |> List.fold (fun (paramsAcc, localsAcc) resolvedParam ->
+                let identity = AcnExternalField.paramIdentity ctx.r ctx.deps resolvedParam
                 let parentParam =
-                    acnArgs |> List.tryFind (fun (_, prm) -> prm.name = argName)
+                    acnArgs |> List.tryFind (fun (_, prm) -> AcnExternalField.paramIdentity ctx.r ctx.deps prm = identity)
                 match parentParam with
                 | Some (_, prm) ->
                     let pStr = DAstACN.getAcnDeterminantName prm.id
                     paramsAcc @ [pStr], localsAcc
                 | None ->
-                    // At declaration level, use the actual determinant named
-                    // by the RefTypeArgument dependency. The formal parameter
-                    // name belongs to the referenced type; it can differ from
-                    // the caller's field name and is not the local we reserve.
-                    // A producer parameter that no dependency uses has no such
-                    // link (AcnClosureConversion.applyDepRewrites): the local is
-                    // named after the argument, as its consumers expect.
-                    let argumentLink =
-                        ctx.deps.acnDependencies
-                        |> List.tryPick (fun dep ->
-                            if dep.asn1Type = ctx.t.id then
-                                match dep.dependencyKind with
-                                | AcnDepRefTypeArgument prm when prm.id = resolvedParam.id ->
-                                    Some (dep.asn1Type, dep.determinant)
-                                | _ -> None
-                            else None)
-                    let rec resolveActualDeterminant determinant =
-                        match determinant with
-                        | AcnChildDeterminant _ -> determinant
-                        | AcnParameterDeterminant parameter ->
-                            ctx.deps.acnDependencies
-                            |> List.tryPick (fun dep ->
-                                match dep.dependencyKind with
-                                | AcnDepRefTypeArgument prm when prm.id = parameter.id ->
-                                    Some dep.determinant
-                                | _ -> None)
-                            |> Option.map resolveActualDeterminant
-                            |> Option.defaultWith (fun () ->
-                                failwithf "BUG: unresolved RefTypeArgument parameter %s" parameter.id.AsString)
-                    let cName =
-                        match argumentLink with
-                        | None -> deferredDetLocalName ctx.r ctx.lm argName
-                        | Some (argumentBoundary, determinant) ->
-                            let actualDeterminant = resolveActualDeterminant determinant
-                            let (ReferenceToType boundaryPath) = argumentBoundary
-                            let (ReferenceToType determinantPath) = actualDeterminant.id
-                            let determinantIsInsideBoundary =
-                                boundaryPath.Length <= determinantPath.Length
-                                && List.take boundaryPath.Length determinantPath = boundaryPath
-                            // A determinant produced inside the boundary is named after
-                            // the boundary's parameter: that is the name its consumers in
-                            // this scope use (AcnExternalField.getExternalField0).
-                            match actualDeterminant, determinantIsInsideBoundary with
-                            | AcnChildDeterminant child, false -> deferredDetLocalName ctx.r ctx.lm child.Name.Value
-                            | AcnChildDeterminant _, true      -> DAstACN.getAcnDeterminantName resolvedParam.id
-                            | AcnParameterDeterminant _, _     -> DAstACN.getAcnDeterminantName actualDeterminant.id
+                    let cName = deferredDetRefName ctx.r ctx.lm identity
                     let pStr = ctx.lm.acn.acn_deferred_det_actual_param cName ctx.codec
                     paramsAcc @ [pStr], localsAcc @ [cName]
             ) ([], [])
@@ -1341,10 +1232,9 @@ let private buildCallerWrapper
         let baseFuncCall = callBaseTypeFunc ctx.lm pp specFuncName ctx.codec
         let funcBodyContent = insertActualParams baseFuncCall extraActualParams
 
-        // Declaration-level AcnInsertedFieldRef locals.  Distinct by name in
-        // case the same determinant is referenced via multiple acnArguments
-        // paths (e.g. hdr.x and direct x); duplicates would be deduped later
-        // anyway, but we save work by deduping here.
+        // Declaration-level AcnInsertedFieldRef locals.  Distinct in case two
+        // parameters stand for the same field; duplicates would be deduped
+        // later anyway, but we save work by deduping here.
         let extraLocals =
             declLevelLocalNames
             |> List.distinct
@@ -1498,7 +1388,7 @@ let private createDeferredReferenceFunction
             let errCode, ns1 = getNextValidErrorCode us errCodeName None errFieldPath
 
             let specP : CodegenScope = lm.lg.getParamType t codec
-            let stripLocals = stripOwnParamLocals r lm o.resolvedType.acnParameters
+            let stripLocals = stripOwnParamLocals r deps lm o.resolvedType.acnParameters
 
             let ctx : DeferredRefCtx = {
                 r              = r

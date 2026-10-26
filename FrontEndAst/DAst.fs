@@ -289,7 +289,7 @@ let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alph
 /// Parent context passed from the fold's pre-functions to child callbacks.
 /// Allows seqAcnChildFunc to know about the parent SEQUENCE's deferred children.
 type ParentData =
-    | SequenceParentData of deferredAcnChildren: Set<string>
+    | SequenceParentData of deferredAcnChildren: Set<ReferenceToType>
     | ChoiceParentData
     | SequenceOfParentData
 

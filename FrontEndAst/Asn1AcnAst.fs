@@ -926,6 +926,11 @@ type AstRoot = {
     /// lies outside them (AcnClosureConversion.findTassesWithExportedDeterminants).
     /// They get no standalone ACN encoder/decoder. Always empty in legacy mode.
     tassesWithExportedDeterminants : Set<TypeAssignmentInfo>
+    /// --acn-v2 only: the ACN field each ACN parameter added by closure conversion stands for
+    /// (parameter id -> field id). A producer parameter that no dependency uses has no RefTypeArgument
+    /// link to its field (AcnClosureConversion.applyDepRewrites), so the backend finds it here
+    /// (q/issues.md Issue 52). Always empty in legacy mode.
+    closureParamDeterminants : Map<ReferenceToType, ReferenceToType>
 }
 
 

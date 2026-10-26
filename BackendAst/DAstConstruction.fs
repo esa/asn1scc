@@ -74,7 +74,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         // (Περίπτωση Α) still need funcUpdateStatement for the inline path.
         let isDeferred =
             match parentData with
-            | DAst.SequenceParentData deferredNames -> Set.contains ch.Name.Value deferredNames
+            | DAst.SequenceParentData deferredIds -> Set.contains ch.id deferredIds
             | _ -> false
         // A deferred child still needs the value it takes for an automatic test value (CHOICEs
         // sharing it must select the same alternative, AcnSequence.isTestCaseValidForAcnChildren).
@@ -938,8 +938,8 @@ let private mapType (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1Acn
 
         (fun pi t ti us -> DAst.SequenceOfParentData, us)
         (fun pi t ti us ->
-            let deferredNames = DAstACNDeferred.collectDeferredDetNamesFromAst r deps t ti
-            DAst.SequenceParentData deferredNames, us)
+            let deferredIds = DAstACNDeferred.collectDeferredDetIdsFromAst r deps ti
+            DAst.SequenceParentData deferredIds, us)
         (fun pi t ti us -> DAst.ChoiceParentData, us)
 
         deps

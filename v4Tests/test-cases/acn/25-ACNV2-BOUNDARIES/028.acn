@@ -1,0 +1,9 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+Truth <INTEGER:detail> [] { yes [present-when detail == 1], no [present-when detail == 2] }
+Hdr [] { detail INTEGER [encoding pos-int, size 3], b [] }
+Hdr2 [] { sub [] { detail INTEGER [encoding pos-int, size 3], b [] }, detail INTEGER [encoding pos-int, size 3] }
+S1 [] { a [], header [], trailer [], c1 <header.detail> [], c2 <trailer.detail> [] }
+S2 [] { a [], detail INTEGER [encoding pos-int, size 3], header [], c1 <detail> [], c2 <header.detail> [] }
+S3 [] { a [], header [], c1 <header.sub.detail> [], c2 <header.detail> [] }
+S4 [] { a [], header [] { detail INTEGER [encoding pos-int, size 3], b [] }, trailer [] { detail INTEGER [encoding pos-int, size 3], b [] }, c1 <header.detail> [], c2 <trailer.detail> [] }
+END

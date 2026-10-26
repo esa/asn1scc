@@ -97,15 +97,25 @@ let private mapInsertedTypeToParamType (insType: AcnInsertedType) (loc: SrcLoc) 
         AcnPrmRefType (r.modName, r.tasName)
 
 
-/// Create an AcnParameter for a cross-scope determinant
-let private createParam (resolvedType: Asn1Type) (det: AcnChild) : AcnParameter =
+/// Create an AcnParameter named prmName for a cross-scope determinant
+let private createParam (resolvedType: Asn1Type) (det: AcnChild) (prmName: string) : AcnParameter =
     let (ReferenceToType rPath) = resolvedType.id
     {
-        AcnParameter.name = det.Name.Value
+        AcnParameter.name = prmName
         asn1Type = mapInsertedTypeToParamType det.Type det.Name.Location
         loc = det.Name.Location
-        id = ReferenceToType (rPath @ [PRM det.Name.Value])
+        id = ReferenceToType (rPath @ [PRM prmName])
     }
+
+/// The names of the parameters a boundary adds for the determinants dets: the field's name, or, when another
+/// parameter of the boundary has the same name, the field's path from its type assignment (q/issues.md Issue 52:
+/// `c1 <header.sub.detail>` and `c2 <header.detail>` gave two parameters `detail` at the boundary `header`).
+let private newParamNames (existingParams: AcnParameter list) (dets: AcnChild list) : string list =
+    let names = (existingParams |> List.map (fun p -> p.name)) @ (dets |> List.map (fun d -> d.Name.Value))
+    dets |> List.map (fun d ->
+        match names |> List.filter ((=) d.Name.Value) |> List.length with
+        | 1 -> d.Name.Value
+        | _ -> (d.id.AcnAbsPath |> List.skip 2 |> String.concat "-").Replace("#", "elm"))
 
 
 /// A dep rewrite instruction collected during the recursive AST walk.
@@ -176,17 +186,12 @@ let rec private transformType (deps: AcnInsertedFieldDependencies) (t: Asn1Type)
         let producerDets = findProducerDeterminants boundaryPath deps
         let allCrossDets = (consumerDets @ producerDets) |> List.distinctBy (fun ac -> ac.id)
 
-        // Filter out determinants that are already covered.
-        // A determinant is covered if:
-        //   (a) a parameter with the same name already exists, OR
-        //   (b) a RefTypeArgumentDependency already connects this determinant
-        //       to an existing parameter at this boundary (covers the case
-        //       where the ACN file uses a different parameter name, e.g.,
-        //       explicit "buffer-len" for determinant "buffers-length").
-        let existingParamNames =
-            rt.resolvedType.acnParameters
-            |> List.map (fun p -> p.name)
-            |> Set.ofList
+        // Filter out determinants that are already covered: a
+        // RefTypeArgumentDependency already connects this determinant to an
+        // existing parameter at this boundary (whatever the parameter's name,
+        // e.g. explicit "buffer-len" for determinant "buffers-length").  A
+        // parameter that only has the determinant's name stands for another
+        // field (q/issues.md Issue 52).
         let deterministsCoveredByRefTypeArg =
             deps.acnDependencies
             |> List.choose (fun dep ->
@@ -200,14 +205,14 @@ let rec private transformType (deps: AcnInsertedFieldDependencies) (t: Asn1Type)
             |> Set.ofList
         let newDets =
             allCrossDets
-            |> List.filter (fun d ->
-                not (Set.contains d.Name.Value existingParamNames)
-                && not (Set.contains d.id deterministsCoveredByRefTypeArg))
+            |> List.filter (fun d -> not (Set.contains d.id deterministsCoveredByRefTypeArg))
 
         if newDets.IsEmpty then
             t', childRewrites
         else
-            let newParams = newDets |> List.map (createParam rt.resolvedType)
+            let newParams =
+                List.zip newDets (newParamNames rt.resolvedType.acnParameters newDets)
+                |> List.map (fun (d, prmName) -> createParam rt.resolvedType d prmName)
             let newArgs = newDets |> List.map (fun d -> RelativePath [d.Name])
             let resolvedType' =
                 { rt.resolvedType with
@@ -517,4 +522,7 @@ let closureConvertAcnReferences (r: AstRoot) (deps: AcnInsertedFieldDependencies
 
     let newDeps = applyDepRewrites deps allRewrites
 
-    newAst, newDeps
+    let closureParamDeterminants =
+        allRewrites |> List.map (fun rw -> rw.newParam.id, rw.originalDet.id) |> Map.ofList
+
+    { newAst with closureParamDeterminants = closureParamDeterminants }, newDeps

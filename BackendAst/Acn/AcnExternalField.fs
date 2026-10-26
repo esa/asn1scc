@@ -10,6 +10,110 @@ open DAstUtilFunctions
 open Language
 
 
+/// Name of the AcnInsertedFieldRef local variable called `name` in the caller:
+/// ToC name, with the suffix "_ref" when that would clash with a keyword of the
+/// target language or, in a case-insensitive language (Ada), with a module
+/// (package) or type name, which the local would hide (e.g. "type", or
+/// "parameterReportStructureType" hiding package ParameterReportStructureType).
+let deferredDetLocalName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (name: string) : string =
+    let cName = ToC name
+    let same (a: string) (b: string) =
+        if lm.lg.isCaseSensitive then a = b else a.ToUpperInvariant() = b.ToUpperInvariant()
+    let isKeyword = lm.lg.Keywords |> Seq.exists (same cName)
+    let hidesModuleOrType =
+        not lm.lg.isCaseSensitive
+        && (r.modulesMap |> Map.exists (fun modName _ -> same cName (ToC modName))
+            || r.typeAssignmentsMap |> Map.exists (fun (_, tasName) _ -> same cName (ToC (r.args.TypePrefix + tasName))))
+    if isKeyword || hidesModuleOrType then cName + "_ref" else cName
+
+
+/// The RefTypeArgument link of each ACN parameter (parameter id -> the determinant
+/// passed to it), built once per dependency list.
+let private paramLinksCache =
+    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, Determinant>>()
+
+let private paramLinks (deps: AcnInsertedFieldDependencies) : Map<ReferenceToType, Determinant> =
+    paramLinksCache.GetValue(deps, fun deps ->
+        deps.acnDependencies
+        |> List.choose (fun d ->
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument prm -> Some (prm.id, d.determinant)
+            | _ -> None)
+        |> List.rev
+        |> Map.ofList)
+
+/// --acn-v2: the ACN field an AcnInsertedFieldRef stands for (q/issues.md Issue 52).
+/// Every AcnInsertedFieldRef, a formal parameter or a local, holds one ACN field;
+/// the backend matches them by this id, never by name (two fields with the same
+/// name shared one local). A parameter added by closure conversion stands for the
+/// field it was created for (AstRoot.closureParamDeterminants); any other parameter
+/// for what its RefTypeArgument link passes, followed up to the field. A parameter
+/// without either (a parameter of the outermost function) stands for itself.
+let rec private paramIdIdentity (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (prmId: ReferenceToType) : ReferenceToType =
+    match r.closureParamDeterminants.TryFind prmId with
+    | Some fieldId -> fieldId
+    | None ->
+        match (paramLinks deps).TryFind prmId with
+        | Some (AcnChildDeterminant ac)      -> ac.id
+        | Some (AcnParameterDeterminant prm) -> paramIdIdentity r deps prm.id
+        | None                               -> prmId
+
+let determinantIdentity (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (det: Determinant) : ReferenceToType =
+    match det with
+    | AcnChildDeterminant ac      -> ac.id
+    | AcnParameterDeterminant prm -> paramIdIdentity r deps prm.id
+
+/// determinantIdentity of an ACN parameter.
+let paramIdentity (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (prm: AcnParameter) : ReferenceToType =
+    determinantIdentity r deps (AcnParameterDeterminant prm)
+
+/// The ACN parameters (ids) that stand for each ACN field (determinantIdentity), built once per dependency list.
+let private fieldParamsCache =
+    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, ReferenceToType list>>()
+
+let private fieldParams (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) : Map<ReferenceToType, ReferenceToType list> =
+    fieldParamsCache.GetValue(deps, fun deps ->
+        Seq.append (paramLinks deps |> Map.keys) (r.closureParamDeterminants |> Map.keys)
+        |> Seq.distinct
+        |> Seq.map (fun prmId -> paramIdIdentity r deps prmId, prmId)
+        |> Seq.filter (fun (identity, prmId) -> identity <> prmId)
+        |> Seq.toList
+        |> List.groupBy fst
+        |> List.map (fun (identity, xs) -> identity, xs |> List.map snd)
+        |> Map.ofList)
+
+/// --acn-v2: whether the ACN field fieldId is held in an AcnInsertedFieldRef (InitDet / PatchDet): some ACN
+/// parameter stands for it (determinantIdentity), i.e. it is passed to a referenced type or exposed by its own.
+let isDeferredField (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : bool =
+    (fieldParams r deps).ContainsKey fieldId
+
+/// --acn-v2: the formal parameter (id) that holds the ACN field fieldId in the function that encodes it: the
+/// parameter standing for the field of the innermost reference boundary enclosing it, when the field is exposed to
+/// an enclosing type (closure conversion adds such a parameter at every boundary on the way out).
+let fieldOwnParam (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : ReferenceToType option =
+    let fieldPath = fieldId.ToScopeNodeList
+    (fieldParams r deps).TryFind fieldId
+    |> Option.defaultValue []
+    |> List.choose (fun prmId ->
+        let boundary = prmId.ToScopeNodeList |> List.take (prmId.ToScopeNodeList.Length - 1)
+        match boundary.Length < fieldPath.Length && List.take boundary.Length fieldPath = boundary with
+        | true  -> Some (boundary.Length, prmId)
+        | false -> None)
+    |> List.sortByDescending fst
+    |> List.tryHead
+    |> Option.map snd
+
+/// --acn-v2: name of the AcnInsertedFieldRef local that holds the ACN field `identity`
+/// (determinantIdentity) in the function that declares it: the field's path from its
+/// type assignment (`detail`, `header_detail`), unique in every function by
+/// construction (q/issues.md Issue 52). A parameter of the outermost function keeps
+/// its parameter name.
+let deferredDetRefName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (identity: ReferenceToType) : string =
+    match identity.ToScopeNodeList |> List.tryLast with
+    | Some (PRM _) -> AcnHelpers.getAcnDeterminantName identity
+    | _ -> deferredDetLocalName r lm ((identity.AcnAbsPath |> List.skip 2 |> String.concat "_").Replace("#", "elm"))
+
+
 let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 (stopAtPrm: bool) =
     let dependency =
         match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d ) with
@@ -77,7 +181,9 @@ let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
         let resolvedLastNode = resolvedNodes |> List.rev |> List.head
         match resolvedLastNode, isExposedProducer with
         | _, true ->
-            let pointer = lm.lg.getPointer (AccessPath.valueEmptyPath baseName)
+            // the caller's local of the exposed field (DAstACNDeferred.buildCallerWrapper)
+            let localName = deferredDetRefName r lm (determinantIdentity r deps dependency.determinant)
+            let pointer = lm.lg.getPointer (AccessPath.valueEmptyPath localName)
             match dependency.dependencyKind with
             | Asn1AcnAst.AcnDepPresenceStr _ -> lm.acn.acn_deferred_det_access_str_ptr pointer
             | Asn1AcnAst.AcnDepPresenceBool  -> lm.acn.acn_deferred_det_access_bool_ptr pointer

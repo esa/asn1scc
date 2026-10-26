@@ -47,7 +47,7 @@ run_wire_test() {
     echo "wire $n$mode OK"
 }
 
-for n in 004 010 011 016 017 018 019 020 021 022 023 024 025; do
+for n in 004 010 011 016 017 018 019 020 021 022 023 024 025 028; do
     run_wire_test $n ""
 done
 
