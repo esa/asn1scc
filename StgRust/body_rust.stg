@@ -8,17 +8,15 @@ printSourceFile(sFileNameWithoutExtension, arrsIncludedFiles, arrsAdaUseTypes, a
 #![allow(non_snake_case, non_upper_case_globals, unused_parens, unused_imports, unused_variables, unused_mut, unused_assignments, dead_code)]
 use asn1rust::*;
 use crate::<sFileNameWithoutExtension>Def::*;
-<arrsIncludedFiles; separator="
-">
+<arrsIncludedFiles:{inc|use crate::<inc>Def::*;
+use crate::<inc>::*;}; separator="\n">
 <if(arrsUserDefinedFunctions)>
 /* User defined functions */
-<arrsUserDefinedFunctions: {udf|<udf>}; separator="
-">
+<arrsUserDefinedFunctions: {udf|<udf>}; separator="\n">
 
 <endif>
 
-<arrsValueAndTypeAssignments: {uv|<uv>}; separator="
-">
+<arrsValueAndTypeAssignments: {uv|<uv>}; separator="\n">
 
 
 >>
@@ -26,8 +24,6 @@ use crate::<sFileNameWithoutExtension>Def::*;
 
 printTass(arrsAllProcs) ::= <<
 
-<arrsAllProcs; separator="
-
-">
+<arrsAllProcs; separator="\n\n">
 
 >>
