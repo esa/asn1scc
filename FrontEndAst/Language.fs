@@ -336,6 +336,14 @@ type ILangGeneric () =
     /// Default: "0" (Ada/Scala don't yet implement --acn-v2).
     abstract member computeDeferredFallbackValue : Asn1AcnAst.AcnInsertedType -> BigInteger -> string
 
+    /// The generated code calls a mapping-function through its module (Ada: <Package>.<f>_encode), so a mapping-function
+    /// needs one, from the ACN or from -mfm (q/issues.md Issue 58). Default false: the module is not used (C, Python, ...).
+    abstract member mappingFunctionsNeedModule : bool
+    /// An ACN integer with a mapping-function is decoded into a temporary of the RTL integer type, which the decode
+    /// mapping-function maps; the field takes the result after a check of its range (Ada, Issue 58). Default false: the
+    /// field itself is decoded and mapped in place (C).
+    abstract member acnMappedIntDecodeViaTemporary : bool
+
     /// Wrap the body of a closure-converted (--acn-v2) specialized function
     /// with language-specific suppression of "dead code / unused symbol"
     /// diagnostics.  The public TAS-style wrapper that some backends emit
@@ -889,6 +897,8 @@ type ILangGeneric () =
         sourceCode
     default _.getDeferredDetFunctions _ = None
     default _.computeDeferredFallbackValue _ _ = "0"
+    default _.mappingFunctionsNeedModule = false
+    default _.acnMappedIntDecodeViaTemporary = false
     default _.wrapDeferredSpecBody body = body
     default _.acnDeferredTempVarName baseName = baseName
     default this.real_annotations = []

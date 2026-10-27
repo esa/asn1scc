@@ -101,6 +101,9 @@ if ret {
 <endif>
 >>
 
+/* not used: the field is decoded and mapped in place (ILangGeneric.acnMappedIntDecodeViaTemporary, Ada only) */
+acn_int_mapped_read(p, sWireRead, sMF, soMFM, sTmpType, noMin, noMax, nFieldMin) ::= "// not used"
+
 MappingFunctionDeclaration_encode(sTypeName, sMF) ::= "/* extern <sTypeName> <sMF>_encode(<sTypeName>); */"
 
 MappingFunctionDeclaration_decode(sTypeName, sMF) ::= "/* extern <sTypeName> <sMF>_decode(<sTypeName>); */"
@@ -2135,7 +2138,7 @@ acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "<sRootId>.<sFieldPath
 acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
 
 /* The value of a field mapped by its mapping-function encode (PatchDet writes what the field's encoder would) */
-acn_deferred_det_mapped_value(sValue, sMF, soMFM) ::= "<sMF>_encode(<sValue>)"
+acn_deferred_det_mapped_value(sValue, sMF, soMFM, sRtlType) ::= "<sMF>_encode(<sValue>)"
 
 /* Wrap a preBlock and patchCall in braces */
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<

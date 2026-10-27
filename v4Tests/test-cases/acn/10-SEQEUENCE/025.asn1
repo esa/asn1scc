@@ -1,0 +1,22 @@
+-- C_ADA_ONLY (the mapping functions are in C and Ada: 025.helpers)
+-- q/issues.md Issues 58 / 59: mapping-functions (C: <f>_encode / <f>_decode, Ada: in the package
+-- named by the ACN, test-mappers). Pct and Temperature are mapped types (unsigned and signed: the
+-- Ada decoder maps the wire value, then checks the range of the type). The length of d is not on the
+-- wire (size 0): its decode mapping-function supplies it, as a PUS parameter length known from the
+-- context; the encode one records it. Before 4.9.62.0 the Ada code did not compile.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Pct ::= INTEGER (0..100)
+Temperature ::= INTEGER (-50..50)
+Length ::= INTEGER (0..10)
+Data ::= OCTET STRING (SIZE(1..10))
+
+Pdu ::= SEQUENCE {
+    p Pct,
+    t Temperature,
+    d Data
+}
+
+END
+
+--TCFS   025.acn

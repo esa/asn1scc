@@ -1,7 +1,7 @@
 TEST-CASE DEFINITIONS ::= BEGIN
 
 Document [] {
-    length INTEGER [encoding pos-int, size 8, mapping-function plus],
+    length INTEGER [encoding pos-int, size 8, mapping-function test-mappers.plus],
     payload [size length],
     trailer [encoding pos-int, size 8]
 }

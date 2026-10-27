@@ -1,4 +1,4 @@
--- ACNV2_ONLY C_ONLY (Ada: decoding with a mapping-function does not compile yet)
+-- ACNV2_ONLY C_ADA_ONLY (the mapping functions are in C and Ada: <name>.helpers)
 -- q/issues.md Issue 59: a length determinant with a mapping-function. With --acn-v2 the field is
 -- patched (PatchDet) by its consumers, and every patch must write the mapped value, as the field's
 -- own encoder does: in the specialised function of a sized reference (OCTET STRING, SEQUENCE OF,

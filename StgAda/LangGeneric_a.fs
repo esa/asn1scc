@@ -102,6 +102,9 @@ type LangGeneric_a() =
         override this.TrueLiteral = "True"
         override this.FalseLiteral = "False"
         override this.hasModules = true
+        // mapping functions: <Package>.<f>_encode / _decode, decoded through a temporary (q/issues.md Issue 58)
+        override _.mappingFunctionsNeedModule = true
+        override _.acnMappedIntDecodeViaTemporary = true
         // Standard.: the test object "dummy" hides a package named Dummy (22-modules/005)
         override this.atcQualifiedFuncName programUnit funcName = "Standard." + programUnit + "." + funcName
         override this.allowsSrcFilesWithNoFunctions = false

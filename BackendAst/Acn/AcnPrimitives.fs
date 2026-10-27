@@ -17,6 +17,35 @@ open AcnHelpers
 
 type AcnIntegerFuncBody = ErrorCode -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> NestingScope -> CodegenScope -> (AcnFuncBodyResult option)
 
+/// The integer type of the RTL that the encoding of an ACN integer reads and writes (Ada: Asn1UInt / Asn1Int) and its
+/// range: the type of the value the mapping-functions of the field take and return (q/issues.md Issue 58). None for a
+/// uPER encoding, which applies no mapping-function.
+let mappingRtlType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (acnEncodingClass: IntEncodingClass) =
+    match acnEncodingClass with
+    | Asn1AcnAst.Integer_uPER                               -> None
+    | Asn1AcnAst.PositiveInteger_ConstSize_8
+    | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_16
+    | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_16
+    | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_32
+    | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_32
+    | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_64
+    | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_64
+    | Asn1AcnAst.PositiveInteger_ConstSize _
+    | Asn1AcnAst.ASCII_UINT_ConstSize _
+    | Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated _
+    | Asn1AcnAst.BCD_ConstSize _
+    | Asn1AcnAst.BCD_VarSize_NullTerminated _               -> Some (lm.typeDef.Declare_PosInteger (), 0I, r.args.UIntMax)
+    | Asn1AcnAst.TwosComplement_ConstSize_8
+    | Asn1AcnAst.TwosComplement_ConstSize_big_endian_16
+    | Asn1AcnAst.TwosComplement_ConstSize_little_endian_16
+    | Asn1AcnAst.TwosComplement_ConstSize_big_endian_32
+    | Asn1AcnAst.TwosComplement_ConstSize_little_endian_32
+    | Asn1AcnAst.TwosComplement_ConstSize_big_endian_64
+    | Asn1AcnAst.TwosComplement_ConstSize_little_endian_64
+    | Asn1AcnAst.TwosComplement_ConstSize _
+    | Asn1AcnAst.ASCII_ConstSize _
+    | Asn1AcnAst.ASCII_VarSize_NullTerminated _             -> Some (lm.typeDef.Declare_Integer (), r.args.SIntMin, r.args.SIntMax)
+
 let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
                                      (lm:LanguageMacros)
                                      (codec:CommonTypes.Codec)
@@ -76,17 +105,30 @@ let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
                  (nestingScope: NestingScope)
                  (p:CodegenScope) =
         let pp, resultExpr = adaptArgument lm codec p
+        // q/issues.md Issue 58: a language that decodes a mapped integer through a temporary (Ada) reads the wire value
+        // into it with the macro of the encoding without mapping and the bounds of the RTL integer type (the wire value
+        // need not be a value of the field); acn_int_mapped_read then maps it and checks the field's range
+        let mappedTmp =
+            match codec, soMF, lm.lg.acnMappedIntDecodeViaTemporary with
+            | Decode, Some sMF, true    -> mappingRtlType r lm acnEncodingClass |> Option.map (fun rtlType -> sMF, rtlType)
+            | Decode, _, _
+            | Encode, _, _              -> None
+        // what the macro of the encoding reads: the field, or the temporary
+        let rdPp, rdSuffix, rdMF, rdMFM, rdMin, rdMax =
+            match mappedTmp with
+            | None                                  -> pp, lm.lg.getIntDecFuncSuffix intClass, soMF, soMFM, nUperMin, nUperMax
+            | Some (_, (_, typeMin, typeMax))       -> "mapFuncIntVal", "", None, None, typeMin, typeMax
         let uIntActualMax (nBits:int) =
             let a = 2I**nBits - 1I
-            min a nUperMax
+            min a rdMax
         let sIntActualMin (nBits:int) =
             let a = -(2I**(nBits-1))
-            max a nUperMin
+            max a rdMin
         let sIntActualMax (nBits:int) =
             let a = 2I**(nBits-1) - 1I
-            min a nUperMax
-        let sSsuffix = lm.lg.getIntDecFuncSuffix intClass
-        let castPp encFuncBits = DAstUPer.castPp r lm codec pp intClass encFuncBits
+            min a rdMax
+        let sSsuffix = rdSuffix
+        let castPp encFuncBits = DAstUPer.castPp r lm codec rdPp intClass encFuncBits
         let word_size_in_bits = (int r.args.integerSizeInBytes)*8
         // coverage step 12b: the ACN integer encodings are RTL procedure calls
         let rtlWritesOnly = encodeOutcomeOf codec (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)
@@ -96,19 +138,19 @@ let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
         // arm into a one-line lookup.  The match itself stays exhaustive so
         // the F# compiler still catches a missing case on future DU additions.
         let unsignedFixedWidth macro width =
-            Some (macro (castPp width) sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax width) sType codec, [errCode], false, false, rtlWritesOnly)
+            Some (macro (castPp width) sSsuffix errCode.errCodeName rdMF rdMFM (max 0I rdMin) (uIntActualMax width) sType codec, [errCode], false, false, rtlWritesOnly)
         let signedFixedWidth macro width =
-            Some (macro (castPp width) sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin width) (sIntActualMax width) sType codec, [errCode], false, false, rtlWritesOnly)
+            Some (macro (castPp width) sSsuffix errCode.errCodeName rdMF rdMFM (sIntActualMin width) (sIntActualMax width) sType codec, [errCode], false, false, rtlWritesOnly)
         let unsignedVarWidth (bitSize: BigInteger) =
-            Some (PositiveInteger_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName bitSize soMF soMFM (max 0I nUperMin) (uIntActualMax (int bitSize)) sType codec, [errCode], false, false, rtlWritesOnly)
+            Some (PositiveInteger_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName bitSize rdMF rdMFM (max 0I rdMin) (uIntActualMax (int bitSize)) sType codec, [errCode], false, false, rtlWritesOnly)
         let signedVarWidth (bitSize: BigInteger) =
-            Some (TwosComplement_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM bitSize (sIntActualMin (int bitSize)) (sIntActualMax (int bitSize)) sType codec, [errCode], false, false, rtlWritesOnly)
+            Some (TwosComplement_ConstSize (castPp word_size_in_bits) sSsuffix errCode.errCodeName rdMF rdMFM bitSize (sIntActualMin (int bitSize)) (sIntActualMax (int bitSize)) sType codec, [errCode], false, false, rtlWritesOnly)
         let asciiOrBcdConst macro (size: BigInteger) bitsPerDigit =
-            Some (macro (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax (size / bitsPerDigit) sType codec, [errCode], false, false, rtlWritesOnly)
+            Some (macro (castPp word_size_in_bits) sSsuffix errCode.errCodeName rdMF rdMFM rdMin rdMax (size / bitsPerDigit) sType codec, [errCode], false, false, rtlWritesOnly)
         let asciiVarSize macro (nullBytes: byte list) =
-            Some (macro (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax nullBytes sType codec, [errCode], false, false, rtlWritesOnly)
+            Some (macro (castPp word_size_in_bits) sSsuffix errCode.errCodeName rdMF rdMFM rdMin rdMax nullBytes sType codec, [errCode], false, false, rtlWritesOnly)
         let bcdVarSize () =
-            Some (BCD_VarSize_NullTerminated (castPp word_size_in_bits) sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax sType codec, [errCode], false, false, rtlWritesOnly)
+            Some (BCD_VarSize_NullTerminated (castPp word_size_in_bits) sSsuffix errCode.errCodeName rdMF rdMFM rdMin rdMax sType codec, [errCode], false, false, rtlWritesOnly)
 
         // coverage step 10b: an ASN.1 INTEGER whose field accepts every bit pattern is decoded with the RTL _FullRange
         // twin (no Result; DecodeOutcome.acnIntegerFullRange); Integer_uPER decides in the uPER body
@@ -148,6 +190,15 @@ let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
             | Asn1AcnAst.BCD_ConstSize size                            -> asciiOrBcdConst BCD_ConstSize          size 4I
             | Asn1AcnAst.BCD_VarSize_NullTerminated _                  -> bcdVarSize ()
            
+        // the temporary mapped and checked against the range of the field (only the bounds narrower than its type)
+        let funcBodyContent =
+            match mappedTmp, funcBodyContent with
+            | Some (sMF, (sTmpType, typeMin, typeMax)), Some (wireRead, errCodes, _, bBsIsUnReferenced, encOutcome) ->
+                let noMin = if nUperMin > typeMin then Some nUperMin else None
+                let noMax = if nUperMax < typeMax then Some nUperMax else None
+                Some (lm.acn.acn_int_mapped_read pp wireRead sMF soMFM sTmpType noMin noMax (max typeMin nUperMin), errCodes, false, bBsIsUnReferenced, encOutcome)
+            | Some _, None
+            | None, _ -> funcBodyContent
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, bValIsUnReferenced, bBsIsUnReferenced, encOutcome) ->
@@ -157,17 +208,27 @@ let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= bValIsUnReferenced; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr = resultExpr; auxiliaries = []; userDefinedFunctions=userDefinedFunctions; icdResult=Some icd; encOutcome = encodeOutcomeOf codec encOutcome})
     funcBody
 
-let getMappingFunctionModule (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (soMapFuncName:string option) =
+/// The module of a mapping-function written without one in the ACN: -mfm. A language that calls the function through
+/// its module (Ada) cannot do without one (q/issues.md Issue 58).
+let getMappingFunctionModule (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (mapFuncName:StringLoc) =
     match lm.lg.hasModules with
     | false     -> None
     | true   ->
-        match soMapFuncName with
-        | None  -> None
-        | Some sMapFuncName ->
-            let knownMappingFunctions = ["milbus"]
-            match knownMappingFunctions |> Seq.exists ((=) sMapFuncName) with
-            | true  -> Some (acn_a.rtlModuleName() )
-            | false -> r.args.mappingFunctionsModule
+        let knownMappingFunctions = ["milbus"]
+        match knownMappingFunctions |> Seq.exists ((=) mapFuncName.Value), r.args.mappingFunctionsModule, lm.lg.mappingFunctionsNeedModule with
+        | true, _, _                -> Some (acn_a.rtlModuleName() )
+        | false, Some mfm, _        -> Some mfm
+        | false, None, false        -> None
+        | false, None, true         ->
+            raise (SemanticError (mapFuncName.Location,
+                    sprintf "mapping-function '%s' names no module, which the Ada code needs: write 'mapping-function <Package>.%s' or give the package with -mfm <Package> (--mapping-functions-module)." mapFuncName.Value mapFuncName.Value))
+
+/// The name and the module of a mapping-function (soMF, soMFM).
+let getMappingFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (mappingFunction: MappingFunction option) =
+    match mappingFunction with
+    | Some (MappingFunction (Some mapFunMod, mapFncName))   -> Some mapFncName.Value, Some mapFunMod.Value
+    | Some (MappingFunction (None, mapFncName))             -> Some mapFncName.Value, getMappingFunctionModule r lm mapFncName
+    | None                                                  -> None, None
 
 let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnInteger) (typeName:string)  (us:State) (sType:string) =
     let errCodeName         = ToC ("ERR_ACN" + ((lm.lg.codecSuffix codec).ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
@@ -177,14 +238,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
     let uperFuncBody (errCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let acnPrimitiveTypeDef = ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = "int"; definedInRtl = false}
         DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId acnPrimitiveTypeDef errCode nestingScope p DecodeOutcome.KeepCheckedCall
-    let soMapFunMod, soMapFunc  =
-        match t.acnProperties.mappingFunction with
-        | Some (MappingFunction (soMapFunMod, mapFncName))    ->
-            let soMapFunMod, soMapFunc  =  soMapFunMod,  Some mapFncName.Value
-            match soMapFunMod with
-            | None  -> getMappingFunctionModule r lm soMapFunc, soMapFunc
-            | Some soMapFunMod   -> Some soMapFunMod.Value, soMapFunc
-        | None -> None, None
+    let soMapFunc, soMapFunMod = getMappingFunction r lm t.acnProperties.mappingFunction
 
     let sAsn1Constraints = constraintsToIcdStr (DAstAsn1.createAcnInteger (t.cons@t.withcons))
     let unitsOfMeasure = None
@@ -209,14 +263,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
         | _  -> Some sTmpCons
 
     let typeName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
-    let soMapFunMod, soMapFunc  =
-        match o.acnProperties.mappingFunction with
-        | Some (MappingFunction (soMapFunMod, mapFncName))    ->
-            let soMapFunMod, soMapFunc  =  soMapFunMod,  Some mapFncName.Value
-            match soMapFunMod with
-            | None  -> getMappingFunctionModule r lm soMapFunc, soMapFunc
-            | Some soMapFunMod   -> Some soMapFunMod.Value, soMapFunc
-        | None -> None, None
+    let soMapFunc, soMapFunMod = getMappingFunction r lm o.acnProperties.mappingFunction
     let funcBodyOrig = createAcnIntegerFunctionInternal r lm codec o.uperRange o.intClass o.acnEncodingClass DecodeOutcome.UseFullRange uperFunc.funcBody_e  sAsn1Constraints t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits t.unitsOfMeasure typeName (soMapFunc, soMapFunMod) typeName
     let funcBody (errCode: ErrorCode)
                  (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)

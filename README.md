@@ -542,7 +542,7 @@ supported only by C.
 | `--custom-stg <file>` | `-customStg` | Use a custom StringTemplate file for code generation |
 | `--custom-stg-ast-version <int>` | `-customStgAstVersion` | AST version for custom STG (1 = original, 4 = with referenced types) |
 | `--include-func <func>` | `-if` | Include a function from the RTL (C only) |
-| `--mapping-functions-module <name>` | `-mfm` | Name of the Ada module or C header file with mapping function definitions |
+| `--mapping-functions-module <name>` | `-mfm` | Name of the Ada module or C header file with mapping function definitions ([Docs/acn-mapping-functions.md](Docs/acn-mapping-functions.md)) |
 | `--word-size <int>` | `-wordSize` | Size of `asn1SccSint`/`asn1SccUint` in bytes (4 or 8). C only |
 | `--fp-word-size <int>` | `-fpWordSize` | Size of REAL type (4 or 8 bytes). C only |
 | `--target <profile>` | `-t` | Ada target profile: `x86`, `stm32`, `msp430`, or `allboards`. Ada only |

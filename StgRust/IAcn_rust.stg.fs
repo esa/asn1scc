@@ -19,6 +19,8 @@ type IAcn_rust() =
             acn_rust.EmitTypeAssignment_primitive_def  sVarName sStar sFuncName sTypeDefName arrsErrcodes bEmptyEncodingSpace nMaxBytesInACN nMaxBitsInACN arrsAcnPrms soSparkAnnotations bValInOut bDeferredSpecialization codec
         override this.EmitTypeAssignment_primitive  (sVarName:string) (sStar:string) (sFuncName:string) (soIValidFuncName:string option) (sTypeDefName:string) (arrsLocalVariables:seq<string>) (sContent:string) (soSparkAnnotations:string option) (sInitialExp:string) (arrsAcnPrms:seq<string>) (arrsAcnParamNames:seq<string>) (bEmptyEncodingSpace:bool) (bBsIsUnreferenced:bool) (bVarNameIsUnreferenced:bool) (bHasAcnChildrenToReturn:bool) (soInitFuncName:string option) (arrsAnnots:seq<string>) (arrsPrecond:seq<string>) (arrsPostcond:seq<string>) (bDeferredSpecialization:bool) (bAlwaysSucceeds:bool) (bValInOut:bool) (bValidityCannotFail:bool) (codec:Codec) =
             acn_rust.EmitTypeAssignment_primitive  sVarName sStar sFuncName soIValidFuncName sTypeDefName arrsLocalVariables sContent soSparkAnnotations sInitialExp arrsAcnPrms arrsAcnParamNames bEmptyEncodingSpace bBsIsUnreferenced bVarNameIsUnreferenced bHasAcnChildrenToReturn soInitFuncName arrsAnnots arrsPrecond arrsPostcond bDeferredSpecialization bAlwaysSucceeds bValInOut bValidityCannotFail codec
+        override this.acn_int_mapped_read  (p:string) (sWireRead:string) (sMF:string) (soMFM:string option) (sTmpType:string) (noMin:BigInteger option) (noMax:BigInteger option) (nFieldMin:BigInteger) =
+            acn_rust.acn_int_mapped_read  p sWireRead sMF soMFM sTmpType noMin noMax nFieldMin 
         override this.MappingFunctionDeclaration  (sTypeName:string) (sMF:string) (codec:Codec) =
             acn_rust.MappingFunctionDeclaration  sTypeName sMF codec
         override this.alignToNext  (sMainBody:string) (sAlignmentValue:string) (nAlignmentValue:BigInteger) (nAbsOffset:BigInteger) (nRemainingMinBits:BigInteger) (nLevel:BigInteger) (nIx:BigInteger) (nOffset:BigInteger) (codec:Codec) =
@@ -343,8 +345,8 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_relative_access  sRootId sFieldPath 
         override this.acn_deferred_det_uper_offset_sub  (sValue:string) (sOffset:string) =
             acn_rust.acn_deferred_det_uper_offset_sub  sValue sOffset 
-        override this.acn_deferred_det_mapped_value  (sValue:string) (sMF:string) (soMFM:string option) =
-            acn_rust.acn_deferred_det_mapped_value  sValue sMF soMFM 
+        override this.acn_deferred_det_mapped_value  (sValue:string) (sMF:string) (soMFM:string option) (sRtlType:string) =
+            acn_rust.acn_deferred_det_mapped_value  sValue sMF soMFM sRtlType 
         override this.acn_deferred_det_preblock_wrap  (sPreBlock:string) (sPatchCall:string) =
             acn_rust.acn_deferred_det_preblock_wrap  sPreBlock sPatchCall 
         override this.acn_deferred_det_optional_producer_check  (sParent:string) (sAcc:string) (sProducer:string) (sConsumer:string) (sErrCode:string) =

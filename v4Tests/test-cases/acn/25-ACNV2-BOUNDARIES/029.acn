@@ -1,16 +1,16 @@
 TEST-CASE DEFINITIONS ::= BEGIN
 
 P1 [] {
-    len INTEGER [encoding pos-int, size 8, mapping-function plus],
-    elen INTEGER [encoding pos-int, size 8, mapping-function plus],
-    tlen INTEGER [encoding pos-int, size 8, mapping-function plus],
+    len INTEGER [encoding pos-int, size 8, mapping-function test-mappers.plus],
+    elen INTEGER [encoding pos-int, size 8, mapping-function test-mappers.plus],
+    tlen INTEGER [encoding pos-int, size 8, mapping-function test-mappers.plus],
     data [size len],
     elems [size elen],
     txt [size tlen]
 }
 
 Header [] {
-    len INTEGER [encoding pos-int, size 8, mapping-function plus],
+    len INTEGER [encoding pos-int, size 8, mapping-function test-mappers.plus],
     version [encoding pos-int, size 8]
 }
 
@@ -20,13 +20,13 @@ P2 [] {
 }
 
 P3 [] {
-    len INTEGER [encoding pos-int, size 8, mapping-function plus],
+    len INTEGER [encoding pos-int, size 8, mapping-function test-mappers.plus],
     data [size len],
     raw [size len]
 }
 
 P4 [] {
-    len INTEGER [encoding pos-int, size 8, mapping-function plus],
+    len INTEGER [encoding pos-int, size 8, mapping-function test-mappers.plus],
     id [encoding pos-int, size 8],
     data [size len]
 }

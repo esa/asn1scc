@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Pct [encoding pos-int, size 8, mapping-function test-mappers.plus]
+Temperature [encoding twos-complement, size 8, mapping-function test-mappers.negate]
+
+Pdu [] {
+    len Length [encoding pos-int, size 0, mapping-function test-mappers.context-length],
+    p [],
+    t [],
+    d [size len]
+}
+
+END

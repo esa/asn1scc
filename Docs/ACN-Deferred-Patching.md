@@ -260,7 +260,7 @@ The alternate flag name `-acnDeferred` is also accepted.
 
 **Limitations:**
 - C and Ada backends (experimental)
-- The Ada backend cannot decode fields with a `mapping-function` (in any mode)
+- Ada: a `mapping-function` needs its package (`Pkg.f` in the ACN or `-mfm`), see [acn-mapping-functions.md](acn-mapping-functions.md)
 - When `--acn-v2` is omitted, the compiler produces identical output to before -- there is no regression
 
 ## Benefits

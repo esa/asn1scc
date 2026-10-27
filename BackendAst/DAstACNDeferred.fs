@@ -188,13 +188,8 @@ let private fieldMappingFunction
         (determinant: Asn1AcnAst.AcnChild) : (string * string option * UserDefinedFunction) option =
     match determinant.Type with
     | Asn1AcnAst.AcnInteger integer ->
-        match integer.acnProperties.mappingFunction with
-        | Some (MappingFunction (explicitModule, functionName)) ->
-            let name = functionName.Value
-            let mappingModule =
-                match explicitModule with
-                | Some moduleName -> Some moduleName.Value
-                | None -> AcnPrimitives.getMappingFunctionModule r lm (Some name)
+        match AcnPrimitives.getMappingFunction r lm integer.acnProperties.mappingFunction with
+        | Some name, mappingModule ->
             let declaration =
                 lm.acn.MappingFunctionDeclaration
                     (DAstACN.getDeterminantTypeDefinitionBodyWithinSeq
@@ -202,7 +197,7 @@ let private fieldMappingFunction
                     name codec
                 |> UserMappingFunction
             Some (name, mappingModule, declaration)
-        | None -> None
+        | None, _ -> None
     | Asn1AcnAst.AcnNullType _
     | Asn1AcnAst.AcnBoolean _
     | Asn1AcnAst.AcnReferenceToEnumerated _
@@ -228,7 +223,17 @@ let private patchDetWireValue
         (valueExpr: string) : string =
     let mapped =
         match determinant |> Option.bind (fieldMappingFunction r lm CommonTypes.Codec.Encode) with
-        | Some (name, mappingModule, _) -> lm.acn.acn_deferred_det_mapped_value valueExpr name mappingModule
+        | Some (name, mappingModule, _) ->
+            // the value converted to the integer type of the RTL the field's encoding takes (Issue 58)
+            let sRtlType =
+                match determinant |> Option.map (fun d -> d.Type) with
+                | Some (Asn1AcnAst.AcnInteger integer) ->
+                    match AcnPrimitives.mappingRtlType r lm integer.acnEncodingClass with
+                    | Some (sType, _, _) -> sType
+                    | None               -> lm.typeDef.Declare_PosInteger ()
+                | Some (Asn1AcnAst.AcnNullType _ | Asn1AcnAst.AcnBoolean _ | Asn1AcnAst.AcnReferenceToEnumerated _ | Asn1AcnAst.AcnReferenceToIA5String _)
+                | None -> lm.typeDef.Declare_PosInteger ()
+            lm.acn.acn_deferred_det_mapped_value valueExpr name mappingModule sRtlType
         | None                          -> valueExpr
     if uperMinOffset = 0I then mapped
     else lm.acn.acn_deferred_det_uper_offset_sub mapped (uperMinOffset.ToString())

@@ -185,6 +185,21 @@ end if;
 
 MFen(soMF, soMFM, p) /*nogen*/ ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
 
+/* An integer with a mapping-function (q/issues.md Issue 58): sWireRead reads the wire value into mapFuncIntVal (type
+   of the RTL, any value of the encoding), the decode function maps it, the field takes it within its range
+   (noMin / noMax: only the bounds narrower than the type of mapFuncIntVal) */
+acn_int_mapped_read(p, sWireRead, sMF, soMFM, sTmpType, noMin, noMax, nFieldMin) ::= <<
+declare
+    mapFuncIntVal : <sTmpType>;
+begin
+    <sWireRead>
+    if result.Success then
+        mapFuncIntVal := <soMFM>.<sMF>_decode(mapFuncIntVal);
+<if(noMin)>        result.Success := mapFuncIntVal \>= <noMin><if(noMax)> and mapFuncIntVal \<= <noMax><endif>;<\n><else><if(noMax)>        result.Success := mapFuncIntVal \<= <noMax>;<\n><endif><endif>    end if;
+    <p> := (if result.Success then mapFuncIntVal else <nFieldMin>);
+end;
+>>
+
 
 MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
 >>
@@ -2388,8 +2403,10 @@ acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "<sRootId>.<sFieldPath
 /* UPER offset subtraction expression. */
 acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
 
-/* The value of a field mapped by its mapping-function encode (PatchDet writes what the field's encoder would) */
-acn_deferred_det_mapped_value(sValue, sMF, soMFM) ::= "<soMFM>.<sMF>_encode(<sValue>)"
+/* The value of a field mapped by its mapping-function encode (PatchDet writes what the field's encoder would).
+   Through the base type: the value (Integer length, Asn1UInt constant) and the result, which the patch converts to
+   Asn1UInt, would otherwise be "redundant conversions" (-gnatwr) when they already have the type */
+acn_deferred_det_mapped_value(sValue, sMF, soMFM, sRtlType) ::= "<sRtlType>'Base(<soMFM>.<sMF>_encode(<sRtlType>'Base(<sValue>)))"
 
 /* Wrap a preBlock (declarations) and patchCall in an Ada declare/begin/end block.
    The preBlock is emitted in the declarative part; the patchCall in the body. */

@@ -1,4 +1,4 @@
--- ACNV2_ONLY C_ONLY (Ada: decoding with a mapping-function does not compile yet)
+-- ACNV2_ONLY C_ADA_ONLY (the mapping functions are in C and Ada: <name>.helpers)
 -- A mapped length determinant sizes a plain (non-CHOICE) CONTAINING field
 -- that is followed by a trailer.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
