@@ -459,10 +459,15 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 | false ->
                     [], []
             let rtlFiles = lm.lg.getRtlFiles r.args.encodings arrsTypeAssignments
-            let sanitizedImports = pu.importedProgramUnits |> List.map lm.lg.sanitizeModuleName
-            let importUseStatements = sanitizedImports |> List.collect (fun inc ->
-                ["use crate::" + inc + "Def::*;"; "use crate::" + inc + "::*;"])
-            let arrsImportedFiles = rtlFiles@pu.importedUserModules@importUseStatements |> List.distinct
+            let arrsImportedFiles =
+                match r.lang with
+                | CommonTypes.ProgrammingLanguage.Rust ->
+                    let sanitizedImports = pu.importedProgramUnits |> List.map lm.lg.sanitizeModuleName
+                    let importUseStatements = sanitizedImports |> List.collect (fun inc ->
+                        ["use crate::" + inc + "Def::*;"; "use crate::" + inc + "::*;"])
+                    rtlFiles@pu.importedUserModules@importUseStatements |> List.distinct
+                | _ ->
+                    rtlFiles@pu.importedUserModules@pu.importedProgramUnits |> List.distinct
             let arrsUserDefinedFunctions =
                 tases |> List.collect(fun t ->
                         (t.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> x.userDefinedFunctions )) @
