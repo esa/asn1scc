@@ -164,16 +164,21 @@ module EncodeOutcome =
     let noWrite = {canFail = false; writes = NoWrite; callee = None}
     /// A call of an encoder, which sets ret / result on every path.
     let call (sFuncName:string) (canFail:bool) = {canFail = canFail; writes = AlwaysWrites; callee = Some sFuncName}
+    /// A call of an encoder whose outcome is not recorded (coverage step 14b; e.g. an --acn-v2 specialised function):
+    /// it may fail, but it sets ret / result on every path (Ada: an out parameter).
+    let unknownCall = {canFail = true; writes = AlwaysWrites; callee = None}
 
     /// part a, then part b. The join after a part that writes reads the result (the check, or the Ada assertion after
-    /// a part that cannot fail), so after a part that writes on some paths only, b starts with a read.
+    /// a part that cannot fail), so after a part that writes on some paths only, b starts with a read. What b does
+    /// after a part that writes or reads first does not change how the result is first used (coverage step 14b: an
+    /// unknown b no longer hides that a writes first, which left an unused result initialisation in Ada).
     let seq2 (a:EncodeOutcome) (b:EncodeOutcome) : EncodeOutcome =
         let writes =
             match a.writes, b.writes with
-            | WritesUnknown, _ | _, WritesUnknown    -> WritesUnknown
             | AlwaysWrites, _                        -> AlwaysWrites
             | ReadsFirst, _                          -> ReadsFirst
             | SometimesWrites, _                     -> ReadsFirst
+            | WritesUnknown, _                       -> WritesUnknown
             | NoWrite, w                             -> w
         {canFail = a.canFail || b.canFail; writes = writes; callee = None}
 
@@ -228,6 +233,7 @@ type EncodeTemplate =
     | EncBitStringVarSize
     | EncStringFixedSize        // IA5String, NumericString
     | EncStringVarSize
+    | EncStringVarSizeUper      // uPER IA5String / NumericString with a length (Ada: writes result.Success only, coverage 14b)
     | EncSequenceOfFixedSize    // the loop, without the element
     | EncSequenceOfVarSize      // the length and the loop, without the element
     | EncFragmentation          // uPER fragmented SEQUENCE OF / OCTET / BIT STRING / IA5String, without the element

@@ -898,7 +898,7 @@ type LangGeneric_c() =
         override _.encodeTemplateOutcome t =
             match t with
             | EncRtlWritesOnly | EncPresenceBits | EncBitStringFixedSize | EncBitStringVarSize | EncStringFixedSize
-            | EncStringVarSize | EncSequenceOfFixedSize | EncSequenceOfVarSize | EncFragmentation
+            | EncStringVarSize | EncStringVarSizeUper | EncSequenceOfFixedSize | EncSequenceOfVarSize | EncFragmentation
             | EncSequenceOfOtherLoop | EncLoopWithoutInvariant  -> EncodeOutcome.noWrite
             // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid value (coverage step 12d)
             | EncEnumerated                                     -> {canFail = true; writes = SometimesWrites; callee = None}

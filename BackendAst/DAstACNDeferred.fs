@@ -1312,7 +1312,8 @@ let private buildCallerWrapper
                bBsIsUnReferenced = false
                resultExpr = resultExpr
                auxiliaries = allAuxiliaries
-               icdResult = ctx.refIcd; encOutcome = EncodeOutcome.unknown}), callerUs
+               // coverage step 14b: the outcome of the specialised function is not recorded, but the call sets the result
+               icdResult = ctx.refIcd; encOutcome = encodeOutcomeOf ctx.codec EncodeOutcome.unknownCall}), callerUs
 
     // Record the function-call dependency (caller → callee)
     let ns3 =

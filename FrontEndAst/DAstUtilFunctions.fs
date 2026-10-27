@@ -1070,11 +1070,11 @@ let encodeCallKey (lm:LanguageMacros) (sModName:string) (sFuncName:string) : str
     | true, true | false, _     -> sFuncName
 
 /// Coverage step 12b: what a call of the encoder sFuncName does (recorded when the type assignment's encoder was
-/// created; unknown when it was not). sCallerModName: the module of the type whose body makes the call.
+/// created; when it was not, a call that may fail and sets the result, 14b). sCallerModName: the module of the type whose body makes the call.
 let encodeCallOutcome (lm:LanguageMacros) (sCallerModName:string) (us:State) (codec:CommonTypes.Codec) (sFuncName:string) : EncodeOutcome =
     match codec, us.encodeCallOutcomes.TryFind (encodeCallKey lm sCallerModName sFuncName) with
     | CommonTypes.Encode, Some o    -> o
-    | CommonTypes.Encode, None
+    | CommonTypes.Encode, None      -> EncodeOutcome.unknownCall
     | CommonTypes.Decode, _         -> EncodeOutcome.unknown
 
 /// Coverage step 12a: the encoder of a type whose IsConstraintValid cannot fail (11b outcome AlwaysValid) does not
