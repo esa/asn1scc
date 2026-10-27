@@ -177,7 +177,7 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                         | _ -> baseContent
                     | _ -> callBaseTypeFunc lm pp baseFncName codec
                 // coverage step 12b: what the call of the referenced type's encoder does
-                let encOutcome = encodeCallOutcome us codec baseFncName
+                let encOutcome = encodeCallOutcome lm t.id.ModName us codec baseFncName
                 Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd; encOutcome = encOutcome}), us)
 
             let ns =

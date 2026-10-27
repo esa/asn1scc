@@ -1061,10 +1061,18 @@ let encodeOutcomeOf (codec:CommonTypes.Codec) (o:EncodeOutcome) : EncodeOutcome 
     | CommonTypes.Encode -> o
     | CommonTypes.Decode -> EncodeOutcome.unknown
 
+/// Coverage step 14b: the key of an encoder in State.encodeCallOutcomes. With modules (Ada) a call into another module
+/// names the encoder with its package (getBaseTypeDefName), and two modules may define a type of the same name
+/// (q/issues.md Issue 57), so the key is always the qualified name; a name that is already qualified stays as is.
+let encodeCallKey (lm:LanguageMacros) (sModName:string) (sFuncName:string) : string =
+    match lm.lg.hasModules, sFuncName.Contains "." with
+    | true, false               -> ToC sModName + "." + sFuncName
+    | true, true | false, _     -> sFuncName
+
 /// Coverage step 12b: what a call of the encoder sFuncName does (recorded when the type assignment's encoder was
-/// created; unknown when it was not).
-let encodeCallOutcome (us:State) (codec:CommonTypes.Codec) (sFuncName:string) : EncodeOutcome =
-    match codec, us.encodeCallOutcomes.TryFind sFuncName with
+/// created; unknown when it was not). sCallerModName: the module of the type whose body makes the call.
+let encodeCallOutcome (lm:LanguageMacros) (sCallerModName:string) (us:State) (codec:CommonTypes.Codec) (sFuncName:string) : EncodeOutcome =
+    match codec, us.encodeCallOutcomes.TryFind (encodeCallKey lm sCallerModName sFuncName) with
     | CommonTypes.Encode, Some o    -> o
     | CommonTypes.Encode, None
     | CommonTypes.Decode, _         -> EncodeOutcome.unknown

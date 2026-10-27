@@ -183,7 +183,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                     match codec with
                     | Encode ->
                         let callCanFail = bodyOutcome.canFail || (lm.lg.encodeCallValidates && bValidityCalled)
-                        {ns with encodeCallOutcomes = ns.encodeCallOutcomes.Add (funcName, EncodeOutcome.call funcName callCanFail)}
+                        {ns with encodeCallOutcomes = ns.encodeCallOutcomes.Add (encodeCallKey lm t.id.ModName funcName, EncodeOutcome.call funcName callCanFail)}
                     | Decode -> ns
                 let ns2 =
                     match t.id.topLevelTas with
@@ -740,7 +740,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let nIntItemMaxSize = ( child.uperMaxSizeInBits)
 
     let baseFuncName =  match baseTypeUperFunc  with None -> None | Some baseFunc -> baseFunc.funcName
-    let baseFuncOutcome = baseFuncName |> Option.map (encodeCallOutcome us codec)
+    let baseFuncOutcome = baseFuncName |> Option.map (encodeCallOutcome lm t.id.ModName us codec)
     // coverage step 12b: the part of the SEQUENCE OF itself (length, loop), then the element on some paths
     let encTemplate =
         match o.minSize with
@@ -1098,7 +1098,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
 
 let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (typeDefinition:TypeDefinitionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (children:ChChildInfo list) (us:State)  =
-    let baseFuncOutcome = baseTypeUperFunc |> Option.bind (fun f -> f.funcName) |> Option.map (encodeCallOutcome us codec)
+    let baseFuncOutcome = baseTypeUperFunc |> Option.bind (fun f -> f.funcName) |> Option.map (encodeCallOutcome lm t.id.ModName us codec)
     // stg macros
     let choice_child       = lm.uper.choice_child
     let choice             = lm.uper.choice
@@ -1211,7 +1211,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                     addFunctionCallToState us caller callee
 
             // coverage step 12b: what the call of the referenced type's encoder does
-            let callOutcome = encodeCallOutcome us codec baseFncName
+            let callOutcome = encodeCallOutcome lm t.id.ModName us codec baseFncName
             let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
                 let pp, resultExpr =
                     TL "UPER_REF_04" (fun () ->
