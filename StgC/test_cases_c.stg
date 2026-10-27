@@ -539,6 +539,27 @@ emitTestCaseAsFunc_dummy_init_function(sTypeName, sFuncName, sDummyVarname) ::= 
 //<sDummyVarname> = <sFuncName>();
 >>
 
+/* The data of an automatic test on the heap instead of a static object of the function: the static test data of
+   PUS-C S12 exceeded the 2 GB that x86-64 code can address (2026-10-27). The name keeps working through a #define
+   (an array type too: *p is the array), testDataFree ends it before the next test function. */
+testDataOnHeap(sTasName, sVar, sFuncName) /*nogen*/ ::= <<
+<sTasName>* const <sVar>_p = (<sTasName>*)malloc(sizeof(<sTasName>));
+#define <sVar> (*<sVar>_p)
+if (<sVar>_p == NULL) {
+    output->report_failure_begin();
+    output->report_failure_message("Test case '<sFuncName>': out of memory.");
+    *totalErrors = (*totalErrors) + 1;
+    output->report_failure_end();
+    output->report_case_end();
+    return;
+}
+>>
+
+testDataFree(sVar) /*nogen*/ ::= <<
+#undef <sVar>
+free(<sVar>_p);
+>>
+
 emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber, soEncDecPrefix) ::= <<
 void <sFuncName>(const TestOutput* output, int *totalErrors)
 {
@@ -550,13 +571,29 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <if(arrsDummyInitStatementsNeededForStatementCoverage)>
     {
         // dummy statement used for calling init functions
-        <if(bStatic)>        static <endif><sTasName> tmp0;
+        <if(bStatic)>
+        <testDataOnHeap(sTasName=sTasName, sVar="tmp0", sFuncName=sFuncName)>
+        <else>
+        <sTasName> tmp0;
+        <endif>
         <arrsDummyInitStatementsNeededForStatementCoverage; separator="\n">
+        <if(bStatic)>
+        <testDataFree(sVar="tmp0")>
+        <endif>
     }
 
     <endif>
-    <if(bStatic)>    static <endif><sTasName> tc_data<if(bValueAssignment)> = <else>; <endif>
-    <sInitializeTcData><if(bValueAssignment)>;<endif>
+    <if(bValueAssignment)>
+    <if(bStatic)>    static <endif><sTasName> tc_data = 
+    <sInitializeTcData>;
+    <else>
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
+    <sInitializeTcData>
+    <endif>
 #ifndef _MSC_VER
     struct timeval stop, start;
     gettimeofday(&start, NULL);
@@ -604,6 +641,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         output->report_failure_end();
     }
     <sGenerateDatFile>
+    <if(bStatic)><if(!bValueAssignment)>
+    <testDataFree(sVar="tc_data")>
+    <endif><endif>
 
     output->report_case_end();
 }
@@ -624,7 +664,11 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <arrsVars; separator="\n">
 
     output->report_case_begin("<sFuncName>");
-    <if(bStatic)>static <endif><sTasName> tc_data;
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
     <sInitializeTcData>
     /* the automatic test value is valid before the change */
     result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
@@ -658,6 +702,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         output->report_failure_end();
     }
 
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
     output->report_case_end();
 }
 >>
@@ -678,7 +725,11 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <arrsVars; separator="\n">
 
     output->report_case_begin("<sFuncName>");
-    <if(bStatic)>static <endif><sTasName> tc_data;
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
     <sInitializeTcData>
     /* the automatic test value is valid before the change */
     result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
@@ -712,6 +763,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         output->report_failure_end();
     }
 
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
     output->report_case_end();
 }
 >>
@@ -789,6 +843,7 @@ printTestCaseFileBody(sThisFile, arrsIncludedModules, arrsTestFunctionBodies, ar
 
 #include \<stdio.h>
 #include \<string.h>
+#include \<stdlib.h>
 #include \<math.h>
 #include \<float.h>
 #include \<limits.h>
@@ -824,7 +879,11 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <arrsVars; separator="\n">
 
     output->report_case_begin("<sFuncName>");
-    <if(bStatic)>static <endif><sTasName> tc_data;
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
     <sInitializeTcData>
     /* the automatic test value is valid before the change */
     result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
@@ -845,6 +904,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         output->report_failure_end();
     }
 
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
     output->report_case_end();
 }
 >>
@@ -886,8 +948,16 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <arrsVars; separator="\n">
 
     output->report_case_begin("<sFuncName>");
-    <if(bStatic)>static <endif><sTasName> tc_data;
-    <if(bStatic)>static <endif><sTasName> tc_data2;
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data2", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data2;
+    <endif>
     <sInitializeTcData>
     <arrsVariantChecks; separator="\n">
     if (equalFor == NULL) {
@@ -901,6 +971,10 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         output->report_failure_end();
     }
 
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data2")>
+    <testDataFree(sVar="tc_data")>
+    <endif>
     output->report_case_end();
 }
 >>
@@ -926,7 +1000,11 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <arrsVars; separator="\n">
 
     output->report_case_begin("<sFuncName>");
-    <if(bStatic)>static <endif><sTasName> tc_data;
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
     <sInitializeTcData>
     /* <sWhat> */
     <sChange>
@@ -942,6 +1020,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         output->report_failure_end();
     }
 
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
     output->report_case_end();
 }
 >>
