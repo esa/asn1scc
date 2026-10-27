@@ -476,7 +476,8 @@ let private createDeferredSequenceFunction
                                         resultExpr = None
                                         auxiliaries = []
                                         icdResult = originalIcd
-                                        userDefinedFunctions = []; encOutcome = EncodeOutcome.unknown
+                                        // coverage step 14b: InitDet reserves the bits, it writes no ret / result
+                                        userDefinedFunctions = []; encOutcome = lm.lg.encodeTemplateOutcome EncRtlWritesOnly
                                     }
                                 | CommonTypes.Codec.Decode ->
                                     // Keep original decode funcBody but redirect
