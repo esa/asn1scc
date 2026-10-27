@@ -180,33 +180,65 @@ let findDetFunctionsForParam (lm: LanguageMacros) (deps: Asn1AcnAst.AcnInsertedF
     findOriginalDeterminantForParam deps paramId
     |> Option.bind (fun determinant -> lm.lg.getDeferredDetFunctions determinant.Type)
 
+/// The mapping-function of a deferred ACN field (name, module), with the declaration of its codec function.
+let private fieldMappingFunction
+        (r: Asn1AcnAst.AstRoot)
+        (lm: LanguageMacros)
+        (codec: CommonTypes.Codec)
+        (determinant: Asn1AcnAst.AcnChild) : (string * string option * UserDefinedFunction) option =
+    match determinant.Type with
+    | Asn1AcnAst.AcnInteger integer ->
+        match integer.acnProperties.mappingFunction with
+        | Some (MappingFunction (explicitModule, functionName)) ->
+            let name = functionName.Value
+            let mappingModule =
+                match explicitModule with
+                | Some moduleName -> Some moduleName.Value
+                | None -> AcnPrimitives.getMappingFunctionModule r lm (Some name)
+            let declaration =
+                lm.acn.MappingFunctionDeclaration
+                    (DAstACN.getDeterminantTypeDefinitionBodyWithinSeq
+                        r lm (Asn1AcnAst.AcnChildDeterminant determinant))
+                    name codec
+                |> UserMappingFunction
+            Some (name, mappingModule, declaration)
+        | None -> None
+    | Asn1AcnAst.AcnNullType _
+    | Asn1AcnAst.AcnBoolean _
+    | Asn1AcnAst.AcnReferenceToEnumerated _
+    | Asn1AcnAst.AcnReferenceToIA5String _ -> None
+
 let private getDeferredMappingFunction
         (r: Asn1AcnAst.AstRoot)
         (lm: LanguageMacros)
         (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
         (codec: CommonTypes.Codec)
         (paramId: ReferenceToType) : string option * string option * UserDefinedFunction list =
-    match findOriginalDeterminantForParam deps paramId with
-    | Some determinant ->
-        match determinant.Type with
-        | Asn1AcnAst.AcnInteger integer ->
-            match integer.acnProperties.mappingFunction with
-            | Some (MappingFunction (explicitModule, functionName)) ->
-                let name = functionName.Value
-                let mappingModule =
-                    match explicitModule with
-                    | Some moduleName -> Some moduleName.Value
-                    | None -> AcnPrimitives.getMappingFunctionModule r lm (Some name)
-                let declaration =
-                    lm.acn.MappingFunctionDeclaration
-                        (DAstACN.getDeterminantTypeDefinitionBodyWithinSeq
-                            r lm (Asn1AcnAst.AcnChildDeterminant determinant))
-                        name codec
-                    |> UserMappingFunction
-                Some name, mappingModule, [declaration]
-            | None -> None, None, []
-        | _ -> None, None, []
+    match findOriginalDeterminantForParam deps paramId |> Option.bind (fieldMappingFunction r lm codec) with
+    | Some (name, mappingModule, declaration) -> Some name, mappingModule, [declaration]
     | None -> None, None, []
+
+/// The value a PatchDet writes for the field: the value of the field mapped by its mapping-function encode, as the
+/// field's own encoder would write it (q/issues.md Issue 59), less the offset of a uPER-encoded field.
+let private patchDetWireValue
+        (r: Asn1AcnAst.AstRoot)
+        (lm: LanguageMacros)
+        (determinant: Asn1AcnAst.AcnChild option)
+        (uperMinOffset: BigInteger)
+        (valueExpr: string) : string =
+    let mapped =
+        match determinant |> Option.bind (fieldMappingFunction r lm CommonTypes.Codec.Encode) with
+        | Some (name, mappingModule, _) -> lm.acn.acn_deferred_det_mapped_value valueExpr name mappingModule
+        | None                          -> valueExpr
+    if uperMinOffset = 0I then mapped
+    else lm.acn.acn_deferred_det_uper_offset_sub mapped (uperMinOffset.ToString())
+
+/// The declaration of the mapping-function encode a PatchDet of the field calls (C: extern), if it has one.
+let private patchDetMappingDeclarations (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (determinant: Asn1AcnAst.AcnChild option) =
+    determinant
+    |> Option.bind (fieldMappingFunction r lm CommonTypes.Codec.Encode)
+    |> Option.map (fun (_, _, declaration) -> declaration)
+    |> Option.toList
 
 
 let private isScopePrefix (prefix: ScopeNode list) (full: ScopeNode list) =
@@ -361,15 +393,18 @@ let private createDeferredSequenceFunction
         // The local deferred determinants whose fallback and sibling-consumer
         // patches this SEQUENCE emits: its own (not formal parameters, not
         // passed beside it) and the adopted ones of its inline children.
-        let localPatchedDets : (ReferenceToType * Asn1AcnAst.AcnInsertedType) list =
+        let localPatchedFields : Asn1AcnAst.AcnChild list =
             (children |> List.choose (fun child ->
                 match child with
                 | DAst.AcnChild ac when isDeferred ac.id
                                      && (ownParam ac.id).IsNone
                                      && patchedHere parentPath ac.id ->
-                    Some (ac.id, ac.Type)
+                    Some ac.toAsn1AcnAst
                 | _ -> None))
-            @ (adoptedDeterminants |> List.map (fun ac -> (ac.id, ac.Type)))
+            @ adoptedDeterminants
+        let localPatchedDets : (ReferenceToType * Asn1AcnAst.AcnInsertedType) list =
+            localPatchedFields |> List.map (fun ac -> (ac.id, ac.Type))
+        let localPatchedField (acId: ReferenceToType) = localPatchedFields |> List.tryFind (fun ac -> ac.id = acId)
 
         // Modify direct ACN children that are deferred determinants
         let modifiedChildren =
@@ -476,8 +511,10 @@ let private createDeferredSequenceFunction
                                         resultExpr = None
                                         auxiliaries = []
                                         icdResult = originalIcd
+                                        // the mapping-function encode of the field, called by the patches of this SEQUENCE (Issue 59)
+                                        userDefinedFunctions = patchDetMappingDeclarations r lm (Some ac.toAsn1AcnAst)
                                         // coverage step 14b: InitDet reserves the bits, it writes no ret / result
-                                        userDefinedFunctions = []; encOutcome = lm.lg.encodeTemplateOutcome EncRtlWritesOnly
+                                        encOutcome = lm.lg.encodeTemplateOutcome EncRtlWritesOnly
                                     }
                                 | CommonTypes.Codec.Decode ->
                                     // Keep original decode funcBody but redirect
@@ -686,9 +723,7 @@ let private createDeferredSequenceFunction
                                 | None -> None
                                 | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                     let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true
-                                    let valueExpr =
-                                        if uperMinOffset = 0I then rawValueExpr
-                                        else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
+                                    let valueExpr = patchDetWireValue r lm (Some determinant) uperMinOffset rawValueExpr
                                     let detName = deferredDetRefName r lm determinant.id
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                                     // coverage step 13b: the only patch of the field cannot fail
@@ -748,9 +783,7 @@ let private createDeferredSequenceFunction
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 siblingConsumers acId |> List.map (fun dep root ->
                                     let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true
-                                    let valueExpr =
-                                        if uperMinOffset = 0I then rawValueExpr
-                                        else lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
+                                    let valueExpr = patchDetWireValue r lm (localPatchedField acId) uperMinOffset rawValueExpr
                                     let detName = deferredDetRefName r lm acId
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                                     // coverage step 13b: the only patch of the field cannot fail
@@ -796,7 +829,13 @@ let private createDeferredSequenceFunction
                             match alwaysPatchedBy acId, lm.lg.getDeferredDetFunctions acType with
                             | None, Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 let detVarName = deferredDetRefName r lm acId
-                                let defaultVal = lm.lg.computeDeferredFallbackValue acType uperMinOffset
+                                let defaultVal =
+                                    let value = lm.lg.computeDeferredFallbackValue acType uperMinOffset
+                                    // a field with a mapping-function carries the mapped value of its default (Issue 59)
+                                    let field = localPatchedField acId
+                                    match field |> Option.bind (fieldMappingFunction r lm codec) with
+                                    | Some _ -> patchDetWireValue r lm field uperMinOffset value
+                                    | None   -> value
                                 Some (detVarName, patchFn, nBitsOpt, defaultVal, acType)
                             | Some _, _
                             | None, None -> None)
@@ -1050,12 +1089,12 @@ let private appendPatchDetCalls
         (isContainingExternalField: bool)
         (baseHasStandaloneFunc: bool)
         (bodyOutcome: EncodeOutcome)
-        (body: string) : string * bool =
+        (body: string) : string * bool * UserDefinedFunction list =
     match isContainingExternalField, not baseHasStandaloneFunc with
-    | true, false -> body, false  // old approach: PatchDet is in STG template
+    | true, false -> body, false, []  // old approach: PatchDet is in STG template
     | _ ->
         match ctx.codec with
-        | CommonTypes.Codec.Decode -> body, false
+        | CommonTypes.Codec.Decode -> body, false, []
         | CommonTypes.Codec.Encode ->
             // Identify CONTAINING size param to exclude from step 2b.  Always
             // check (not just when isContainingExternalField) because named
@@ -1100,9 +1139,8 @@ let private appendPatchDetCalls
                             let (preBlock, rawValueExpr, checks) = computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP bodyOutcome.canFail
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
                             // but ConstSize encodes value directly, so subtract the offset.
-                            let valueExpr =
-                                if uperMinOffset = 0I then rawValueExpr
-                                else ctx.lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
+                            let field = findOriginalDeterminantForParam ctx.deps prm.id
+                            let valueExpr = patchDetWireValue ctx.r ctx.lm field uperMinOffset rawValueExpr
                             let detParamName = DAstACN.getAcnDeterminantName prm.id
                             let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                             // coverage step 13b: the only patch of the field cannot fail; 14d: nor the first one
@@ -1124,17 +1162,19 @@ let private appendPatchDetCalls
                                         ctx.lm.acn.acn_deferred_det_patch_ptr_with_size patchFn nBits valueExpr detParamName errCodePatch bCannotFail ctx.codec
                                     | None ->
                                         ctx.lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch bCannotFail ctx.codec
-                            Some (guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty))
+                            Some (guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty,
+                                  patchDetMappingDeclarations ctx.r ctx.lm field))
             match patchCalls with
-            | [] -> body, false
+            | [] -> body, false, []
             | calls ->
-                let patchCode = calls |> List.map fst |> String.concat "\n"
-                let guarded = calls |> List.exists snd
+                let patchCode = calls |> List.map (fun (code, _, _) -> code) |> String.concat "\n"
+                let guarded = calls |> List.exists (fun (_, guarded, _) -> guarded)
+                let mappingDeclarations = calls |> List.collect (fun (_, _, declarations) -> declarations)
                 // The PatchDet calls write the result: after a body that may fail they run only when it succeeded,
                 // else a failed body would return success (Issue 48)
                 match bodyOutcome.canFail with
-                | true  -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded
-                | false -> body + "\n" + patchCode, guarded
+                | true  -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded, mappingDeclarations
+                | false -> body + "\n" + patchCode, guarded, mappingDeclarations
 
 
 /// Step 3 — build the specialized function's deferred-determinant formal
@@ -1507,7 +1547,7 @@ let private createDeferredReferenceFunction
 
             // Step 2b: append PatchDet calls (encode only) onto the body.
             let finalBody =
-                let body, bPatchGuarded =
+                let body, bPatchGuarded, mappingDeclarations =
                     appendPatchDetCalls ctx specP
                         isContainingExternalField (not baseAcnFunc.funcName.IsNone) bodyResult.encOutcome bodyResult.funcBody
                 // coverage step 12b: the PatchDet calls write the result (they may fail); after a body that may fail
@@ -1525,7 +1565,8 @@ let private createDeferredReferenceFunction
                     | false, true, _, _                                                 -> EncodeOutcome.seq2 b patch
                     | false, false, (NoWrite | SometimesWrites | AlwaysWrites), AlwaysWrites -> {canFail = true; writes = AlwaysWrites; callee = None}
                     | false, false, _, _                                                -> {canFail = true; writes = (if b.writes = ReadsFirst && patch.writes = AlwaysWrites then ReadsFirst else WritesUnknown); callee = None}
-                { bodyResult with funcBody = body; encOutcome = encOutcome }
+                { bodyResult with funcBody = body; encOutcome = encOutcome
+                                  userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations }
 
             // Step 3: build the specialized function's deferred formal params.
             let deferredFormalParams, deferredParamNames =

@@ -1,0 +1,21 @@
+-- ACNV2_ONLY C_ONLY (Ada: decoding with a mapping-function does not compile yet)
+-- q/issues.md Issue 59: a length determinant with a mapping-function. With --acn-v2 the field is
+-- patched (PatchDet) by its consumers, and every patch must write the mapped value, as the field's
+-- own encoder does: in the specialised function of a sized reference (OCTET STRING, SEQUENCE OF,
+-- IA5String: P1), in the SEQUENCE for a field of a referenced child (P2) or a sibling consumer (P3),
+-- and in the fallback patch when the consumer is absent (P4). Before 4.9.62.0 they wrote the raw length.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Payload ::= OCTET STRING (SIZE(1..10))
+Numbers ::= SEQUENCE (SIZE(1..5)) OF INTEGER (0..255)
+Label ::= IA5String (SIZE(1..8))
+Header ::= SEQUENCE { version INTEGER (0..7) }
+
+P1 ::= SEQUENCE { data Payload, elems Numbers, txt Label }
+P2 ::= SEQUENCE { hdr Header, data OCTET STRING (SIZE(1..10)) }
+P3 ::= SEQUENCE { data Payload, raw OCTET STRING (SIZE(1..10)) }
+P4 ::= SEQUENCE { id INTEGER (0..7), data Payload OPTIONAL }
+
+END
+
+--TCFS   029.acn

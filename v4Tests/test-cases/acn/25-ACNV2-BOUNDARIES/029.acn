@@ -1,0 +1,34 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+P1 [] {
+    len INTEGER [encoding pos-int, size 8, mapping-function plus],
+    elen INTEGER [encoding pos-int, size 8, mapping-function plus],
+    tlen INTEGER [encoding pos-int, size 8, mapping-function plus],
+    data [size len],
+    elems [size elen],
+    txt [size tlen]
+}
+
+Header [] {
+    len INTEGER [encoding pos-int, size 8, mapping-function plus],
+    version [encoding pos-int, size 8]
+}
+
+P2 [] {
+    hdr [],
+    data [size hdr.len]
+}
+
+P3 [] {
+    len INTEGER [encoding pos-int, size 8, mapping-function plus],
+    data [size len],
+    raw [size len]
+}
+
+P4 [] {
+    len INTEGER [encoding pos-int, size 8, mapping-function plus],
+    id [encoding pos-int, size 8],
+    data [size len]
+}
+
+END

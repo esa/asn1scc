@@ -2388,6 +2388,9 @@ acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "<sRootId>.<sFieldPath
 /* UPER offset subtraction expression. */
 acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
 
+/* The value of a field mapped by its mapping-function encode (PatchDet writes what the field's encoder would) */
+acn_deferred_det_mapped_value(sValue, sMF, soMFM) ::= "<soMFM>.<sMF>_encode(<sValue>)"
+
 /* Wrap a preBlock (declarations) and patchCall in an Ada declare/begin/end block.
    The preBlock is emitted in the declarative part; the patchCall in the body. */
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<

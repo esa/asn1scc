@@ -343,6 +343,8 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_relative_access  sRootId sFieldPath 
         override this.acn_deferred_det_uper_offset_sub  (sValue:string) (sOffset:string) =
             acn_rust.acn_deferred_det_uper_offset_sub  sValue sOffset 
+        override this.acn_deferred_det_mapped_value  (sValue:string) (sMF:string) (soMFM:string option) =
+            acn_rust.acn_deferred_det_mapped_value  sValue sMF soMFM 
         override this.acn_deferred_det_preblock_wrap  (sPreBlock:string) (sPatchCall:string) =
             acn_rust.acn_deferred_det_preblock_wrap  sPreBlock sPatchCall 
         override this.acn_deferred_det_optional_producer_check  (sParent:string) (sAcc:string) (sProducer:string) (sConsumer:string) (sErrCode:string) =

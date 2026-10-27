@@ -1676,6 +1676,7 @@ acn_deferred_det_access_str_ptr(sDetName) ::= "# TODO"
 acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "# TODO"
 
 acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "# TODO"
+acn_deferred_det_mapped_value(sValue, sMF, soMFM) ::= "# TODO"
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= "# TODO"
 acn_deferred_det_optional_producer_check(sParent, sAcc, sProducer, sConsumer, sErrCode) ::= "# TODO"
 acn_deferred_det_optional_producer_wrap(sParent, sAcc, sProducer, sBody) ::= "# TODO"
