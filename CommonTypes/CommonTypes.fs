@@ -352,6 +352,8 @@ type ILangBasic () =
     abstract member keywords : string Set
     abstract member isKeyword : string -> bool
     abstract member OnTypeNameConflictTryAppendModName : bool
+    abstract member moduleSeparator : string
+    default _.moduleSeparator = "."
     abstract member declare_IntegerNoRTL : string*string*string
     abstract member declare_PosIntegerNoRTL : string*string*string
     abstract member getRealRtlTypeName : string*string*string
@@ -728,7 +730,7 @@ type FE_StringTypeDefinition = {
 }
 with
     member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+        let z n = let sep = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then "::" else "." in let pu = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then this.programUnit.ToLower() + "Def" else this.programUnit in pu + sep + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -751,7 +753,7 @@ type FE_SizeableTypeDefinition = {
 }
 with
     member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+        let z n = let sep = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then "::" else "." in let pu = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then this.programUnit.ToLower() + "Def" else this.programUnit in pu + sep + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -773,7 +775,7 @@ type FE_SequenceTypeDefinition = {
 }
 with
     member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+        let z n = let sep = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then "::" else "." in let pu = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then this.programUnit.ToLower() + "Def" else this.programUnit in pu + sep + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -796,7 +798,7 @@ type FE_ChoiceTypeDefinition = {
 }
 with
     member this.longTypedefName2 bHasModules callerProgramUnit =
-        let z n = this.programUnit + "." + n
+        let z n = let sep = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then "::" else "." in let pu = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then this.programUnit.ToLower() + "Def" else this.programUnit in pu + sep + n
         match bHasModules with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -822,7 +824,7 @@ type FE_EnumeratedTypeDefinition = {
 with
 
     member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+        let z n = let sep = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then "::" else "." in let pu = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then this.programUnit.ToLower() + "Def" else this.programUnit in pu + sep + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this

@@ -336,6 +336,15 @@ type LangGeneric_rust() =
 
         override this.toHex n = sprintf "0x%x" n
 
+        override this.formatValueAssignmentTestCase (typeKind:Asn1TypeKind) (valueType:string) (initStmt:string) : string =
+            // The test case file already imports types via 'use crate::xxxDef::*;'
+            // so the init statement should use unqualified type names.
+            // Strip module-qualified prefixes (e.g. "test_caseDef::" or "crate::test_caseDef::")
+            // from type references in the init statement.
+            // Use regex to replace patterns like (crate::)?wordDef::TypeName with just TypeName
+            let regex = System.Text.RegularExpressions.Regex(@"(?:(?:crate::)?[a-zA-Z_][a-zA-Z0-9_]*Def)::")
+            regex.Replace(initStmt, "")
+
         override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
         override this.uper =
