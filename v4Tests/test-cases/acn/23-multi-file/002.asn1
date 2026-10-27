@@ -14,4 +14,9 @@ BEGIN
     mode BaseEnum
   }
   
+
+  CombinedSeq ::= SEQUENCE {
+    baseField BaseSeq,
+    derived DerivedSeq
+  }
 END

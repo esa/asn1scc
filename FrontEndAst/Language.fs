@@ -506,8 +506,10 @@ type ILangGeneric () =
     /// Constructs the prefix for a cross-module function call (e.g. "pu." for Ada,
     /// "pu::" for Rust). The moduleName is the raw (ToC'd) program unit name.
     abstract member constructCrossModuleFuncPrefix: moduleName:string -> string
+    abstract member constructCrossModuleTypeDefPrefix: moduleName:string -> string
     default _.atcQualifiedFuncName _programUnit funcName = funcName
     default _.constructCrossModuleFuncPrefix (moduleName: string) = moduleName + "."
+    default _.constructCrossModuleTypeDefPrefix (moduleName: string) = moduleName + "."
     default _.qualifyNameWithModule _targetMod _curMod name = name
     abstract member wrapIA5StringValue: typeRef:TypeDefinitionOrReference -> modName:string -> literal:string -> string
     default _.wrapIA5StringValue _typeRef _modName literal = literal

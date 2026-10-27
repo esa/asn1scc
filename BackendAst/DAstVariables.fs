@@ -224,7 +224,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                     let vas = r.getValueAssignmentByName md vs
                     match (ToC md) = curProgramUnitName with
                     | true  -> lm.lg.getValueAssignmentName vas
-                    | false -> curProgramUnitName + "." + (lm.lg.getValueAssignmentName vas)
+                    | false -> lm.lg.constructCrossModuleTypeDefPrefix (ToC md) + (lm.lg.getValueAssignmentName vas)
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer)  =
     let printValue (curProgramUnitName:string) (parentValue:Asn1ValueKind option) (v:Asn1ValueKind) =

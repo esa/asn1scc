@@ -327,7 +327,12 @@ type LangGeneric_rust() =
         /// Cross-module function calls use the sanitized (lowercase) module name
         /// with '::' separator, since functions live in the body module file.
         override this.constructCrossModuleFuncPrefix (moduleName: string) : string =
-            "crate::" + this.sanitizeModuleName moduleName + "::" 
+            "crate::" + this.sanitizeModuleName moduleName + "::"
+
+        /// Types and constants live in the Def file, so cross-module type/constant
+        /// references must use the Def module (crate::puDef::), not the body module.
+        override this.constructCrossModuleTypeDefPrefix (moduleName: string) : string =
+            "crate::" + this.sanitizeModuleName moduleName + "Def::" 
 
         override this.toHex n = sprintf "0x%x" n
 
