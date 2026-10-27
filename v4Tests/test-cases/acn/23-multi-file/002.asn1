@@ -1,0 +1,17 @@
+--NO_AUTOMATIC_TEST_CASES
+MULTI-FILE-TEST-MODULE-B DEFINITIONS AUTOMATIC TAGS ::=
+BEGIN
+  IMPORTS
+    BaseInteger, BaseBoolean, BaseEnum, BaseSeq
+  FROM MULTI-FILE-TEST-MODULE-A;
+
+  -- Types that reference types from the other module
+  DerivedInt ::= BaseInteger
+  DerivedSeq ::= SEQUENCE {
+    count BaseInteger,
+    items SEQUENCE (SIZE (0..10)) OF BaseInteger,
+    flag BaseBoolean,
+    mode BaseEnum
+  }
+  
+END

@@ -20,7 +20,7 @@ let GetEncodingString (lm:LanguageMacros) = function
 let includedPackages r (lm:LanguageMacros) =
     match lm.lg.hasModules with
     | false     -> r.programUnits |> Seq.map(fun x -> lm.lg.sanitizeModuleName (System.IO.Path.GetFileNameWithoutExtension(x.testcase_specFileName)))
-    | true      -> r.programUnits |> Seq.collect(fun x -> [x.name; x.testcase_name])
+    | true      -> r.programUnits |> Seq.collect(fun x -> [lm.lg.sanitizeModuleName x.name; lm.lg.sanitizeModuleName x.testcase_name])
 
 
 let rec gAmber (lm:LanguageMacros) (t:Asn1Type) =

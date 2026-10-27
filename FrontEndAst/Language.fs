@@ -503,7 +503,11 @@ type ILangGeneric () =
     /// file calls it. Ada test files USE every package, so a name that two packages define
     /// (a type in two modules) is ambiguous unless qualified with its package.
     abstract member atcQualifiedFuncName: programUnit:string -> funcName:string -> string
+    /// Constructs the prefix for a cross-module function call (e.g. "pu." for Ada,
+    /// "pu::" for Rust). The moduleName is the raw (ToC'd) program unit name.
+    abstract member constructCrossModuleFuncPrefix: moduleName:string -> string
     default _.atcQualifiedFuncName _programUnit funcName = funcName
+    default _.constructCrossModuleFuncPrefix (moduleName: string) = moduleName + "."
     default _.qualifyNameWithModule _targetMod _curMod name = name
     abstract member wrapIA5StringValue: typeRef:TypeDefinitionOrReference -> modName:string -> literal:string -> string
     default _.wrapIA5StringValue _typeRef _modName literal = literal

@@ -1506,7 +1506,7 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
                 | true   ->
                     match t.id.ModName = o.modName.Value with
                     | true  -> funcName, globalName
-                    | false -> moduleName + "." + funcName, moduleName + "." + globalName
+                    | false -> lm.lg.constructCrossModuleFuncPrefix moduleName + funcName, lm.lg.constructCrossModuleFuncPrefix moduleName + globalName
             let constantInitExpression () = 
                 if lm.lg.useInlineInitExpression then
                     bs.initExpressionFnc ()

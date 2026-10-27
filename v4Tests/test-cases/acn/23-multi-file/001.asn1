@@ -1,0 +1,16 @@
+--NO_AUTOMATIC_TEST_CASES
+MULTI-FILE-TEST-MODULE-A DEFINITIONS AUTOMATIC TAGS ::=
+BEGIN
+  -- This module defines base types that are imported by another module
+  -- in a separate file. Tests the hasModules=true Rust code generation
+  -- where each ASN.1 module becomes a separate Rust file pair.
+  
+  BaseInteger ::= INTEGER (0 .. 65535)
+  BaseBoolean ::= BOOLEAN
+  BaseEnum ::= ENUMERATED { off, on, standby }
+  BaseSeq ::= SEQUENCE {
+    field1 BaseInteger,
+    field2 BaseBoolean,
+    field3 BaseEnum OPTIONAL
+  }
+END
