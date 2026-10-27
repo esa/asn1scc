@@ -1104,8 +1104,11 @@ let private appendPatchDetCalls
                                 else ctx.lm.acn.acn_deferred_det_uper_offset_sub rawValueExpr (uperMinOffset.ToString())
                             let detParamName = DAstACN.getAcnDeterminantName prm.id
                             let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
-                            // coverage step 13b: the only patch of the field cannot fail
-                            let bCannotFail = AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps (AcnExternalField.paramIdentity ctx.r ctx.deps prm)
+                            // coverage step 13b: the only patch of the field cannot fail; 14d: nor the first one
+                            let fieldId = AcnExternalField.paramIdentity ctx.r ctx.deps prm
+                            let bCannotFail =
+                                AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
+                                AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id
                             let isIA5StringDet = patchFn.Contains("IA5String")
                             let patchCall =
                                 if isIA5StringDet then

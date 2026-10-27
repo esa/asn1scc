@@ -141,6 +141,72 @@ let isOnlyPatchOfField (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependenci
         && (List.allPairs (List.indexed paths) (List.indexed paths)
             |> List.forall (fun ((i, a), (j, b)) -> i = j || exclusive a b))
 
+/// The nodes of a type assignment in encoding order (preorder, ACN children included, references not entered).
+let private encodingOrderCache =
+    System.Runtime.CompilerServices.ConditionalWeakTable<Asn1AcnAst.AstRoot, System.Collections.Generic.Dictionary<ReferenceToType, Map<ReferenceToType, int>>>()
+
+let private encodingOrder (r: Asn1AcnAst.AstRoot) (tasId: ReferenceToType) : Map<ReferenceToType, int> =
+    let perTas = encodingOrderCache.GetValue(r, fun _ -> System.Collections.Generic.Dictionary<ReferenceToType, Map<ReferenceToType, int>>())
+    match perTas.TryGetValue tasId with
+    | true, order -> order
+    | false, _ ->
+        let rec walk (t: Asn1AcnAst.Asn1Type) (acc: ReferenceToType list) =
+            let acc = t.id :: acc
+            match t.Kind with
+            | Asn1AcnAst.Sequence sq ->
+                sq.children |> List.fold (fun acc (c: Asn1AcnAst.SeqChildInfo) ->
+                    match c with
+                    | Asn1AcnAst.Asn1Child ch -> walk ch.Type acc
+                    | Asn1AcnAst.AcnChild ac  -> ac.id :: acc) acc
+            | Asn1AcnAst.Choice ch      -> ch.children |> List.fold (fun acc (c: Asn1AcnAst.ChChildInfo) -> walk c.Type acc) acc
+            | Asn1AcnAst.SequenceOf sqf -> walk sqf.child acc
+            | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
+            | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _
+            | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.TimeType _ | Asn1AcnAst.ReferenceType _ -> acc
+        let order =
+            r.Files |> List.collect (fun f -> f.Modules) |> List.collect (fun m -> m.TypeAssignments) |>
+            List.tryFind (fun ts -> ts.Type.id = tasId) |>
+            Option.map (fun ts -> walk ts.Type [] |> List.rev |> List.mapi (fun i id -> id, i) |> Map.ofList) |>
+            Option.defaultValue Map.empty
+        perTas.[tasId] <- order
+        order
+
+/// --acn-v2, coverage step 14d: whether the PatchDet at the reference site siteId (of its parameter paramId, which
+/// stands for the ACN field fieldId) is the first patch of the field after its InitDet, so it cannot fail. True when
+/// the site receives the field directly as an argument, its type does not pass the parameter on (no other patch of the
+/// field inside the site), the site is not under a SEQUENCE OF relative to the field, and every other site that
+/// receives the field comes later in encoding order. The consumers that are not reference sites patch in the epilogue
+/// of a SEQUENCE that holds the site, after its children. A field exposed by a referenced child (no site with the field
+/// as argument in its tree) keeps the check.
+let isFirstPatchOfField (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) (siteId: ReferenceToType) (paramId: ReferenceToType) : bool =
+    let sites =
+        deps.acnDependencies |> List.choose (fun d ->
+            match d.dependencyKind, d.determinant with
+            | AcnDepRefTypeArgument _, AcnChildDeterminant ac when ac.id = fieldId -> Some d.asn1Type
+            | _ -> None)
+    let passedOn =
+        deps.acnDependencies |> List.exists (fun d ->
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument _ -> d.determinant.id = paramId
+            | _ -> false)
+    let fieldPath = fieldId.ToScopeNodeList
+    let sitePath = siteId.ToScopeNodeList
+    let belowSequenceOf =
+        let common = List.zip (List.truncate sitePath.Length fieldPath) (List.truncate fieldPath.Length sitePath) |> List.takeWhile (fun (x, y) -> x = y) |> List.length
+        sitePath |> List.skip common |> List.exists (function SQF -> true | _ -> false)
+    match sites |> List.contains siteId, passedOn, belowSequenceOf, fieldPath with
+    | true, false, false, md :: ta :: _ ->
+        let order = encodingOrder r (ReferenceToType [md; ta])
+        match order.TryFind siteId with
+        | None   -> false
+        | Some k ->
+            sites |> List.forall (fun s ->
+                s = siteId ||
+                (match order.TryFind s with
+                 | Some ks -> ks > k
+                 | None    -> false))
+    | _ -> false
+
 /// --acn-v2: name of the AcnInsertedFieldRef local that holds the ACN field `identity`
 /// (determinantIdentity) in the function that declares it: the field's path from its
 /// type assignment (`detail`, `header_detail`), unique in every function by

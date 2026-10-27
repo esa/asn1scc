@@ -2131,7 +2131,7 @@ acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
 acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, result);
 <if(bCannotFail)>
--- cannot fail: the only patch of <sDetName> (an unset ref takes any value)
+-- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2146,7 +2146,7 @@ acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode, 
 acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, result);
 <if(bCannotFail)>
--- cannot fail: the only patch of <sDetName> (an unset ref takes any value)
+-- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2175,7 +2175,7 @@ acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <
 acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, <nBits>, result);
 <if(bCannotFail)>
--- cannot fail: the only patch of <sDetName> (an unset ref takes any value)
+-- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2190,7 +2190,7 @@ acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDe
 acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, <nBits>, result);
 <if(bCannotFail)>
--- cannot fail: the only patch of <sDetName> (an unset ref takes any value)
+-- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2207,7 +2207,7 @@ acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetN
 acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 <sPatchFuncName>(<sValue>, bs, <nBits>, <sDetName>, result);
 <if(bCannotFail)>
--- cannot fail: the only patch of <sDetName> (an unset ref takes any value)
+-- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2222,7 +2222,7 @@ acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName,
 acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
 <sPatchFuncName>(<sValue>, bs, <nBits>, <sDetName>, result);
 <if(bCannotFail)>
--- cannot fail: the only patch of <sDetName> (an unset ref takes any value)
+-- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
 pragma Assume (result.Success);
 <else>
 if not result.Success then
