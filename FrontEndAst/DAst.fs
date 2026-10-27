@@ -482,12 +482,15 @@ type AutomaticTestCase = {
 
 /// Coverage step 14a: the value of an automatic test case with one node of the type's own tree changed (another
 /// automatic test value of that node, or a language toggle). Built together with the value, so it holds for exactly
-/// this value: no lookup by node id. A referenced type is changed only as a whole (its own nodes are changed by the
-/// tests of its type assignment).
+/// this value: no lookup by node id. A referenced type is changed only as a whole: another value, or a change at its
+/// root (its own inner nodes are changed by the tests of its type assignment).
 and AtcVariant = {
     nodeId      : ReferenceToType                       // the node whose value differs
     what        : string                                // the node and the change, for the test's comment and message
     applyFnc    : CodegenScope -> InitFunctionResult    // writes the change on a copy of the value (same scope as initTestCaseFunc)
+    // the node and the testCaseTypeIDsMap of the test value written there, when the change is another test value of
+    // the node (coverage step 14d: the ACN validity of the changed value); None for a toggle or a SEQUENCE OF element
+    replaces    : (ReferenceToType * Map<ReferenceToType, TestCaseValue>) option
 }
 
 type InitProcedure0 = {

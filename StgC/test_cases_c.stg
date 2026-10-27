@@ -913,3 +913,35 @@ if (<sEqualFunc>(<sAmber>tc_data, <sAmber>tc_data2) || <sEqualFunc>(<sAmber>tc_d
     equalFor = "<sWhat>";
 }
 >>
+
+/* Coverage step 14d: a value whose ACN fields disagree (one consumer of a shared field changed): the ACN encoder must
+   reject it with a nonzero error code. */
+emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    flag result;
+    int errCode = 0;
+    static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    BitStream bitStrm;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>static <endif><sTasName> tc_data;
+    <sInitializeTcData>
+    /* <sWhat> */
+    <sChange>
+    BitStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+    result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, TRUE) && errCode != 0;
+    if (result) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed: <sWhat>: the ACN fields of the value disagree, but <sEncFunc> did not fail with an error code.");
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    output->report_case_end();
+}
+>>

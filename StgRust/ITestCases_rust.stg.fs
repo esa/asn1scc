@@ -89,3 +89,5 @@ type ITestCases_rust() =
             test_cases_rust.emitEqualityVariantTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sEqualFunc arrsVariantChecks 
         override this.equalityVariantCheck  (sModName:string) (sAmber:string) (sApplyVariant:string) (sWhat:string) (sEqualFunc:string) =
             test_cases_rust.equalityVariantCheck  sModName sAmber sApplyVariant sWhat sEqualFunc 
+        override this.emitInconsistentValueTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sChange:string) (sWhat:string) (sEncFunc:string) (sEnc:string) =
+            test_cases_rust.emitInconsistentValueTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sChange sWhat sEncFunc sEnc 

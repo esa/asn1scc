@@ -662,3 +662,46 @@ if <sModName>.<sEqualFunc> (tc_data, tc_data2) or else <sModName>.<sEqualFunc> (
     Put_Line ("  equal for: <sWhat>");
 end if;
 >>
+
+/* Coverage step 14d: a value whose ACN fields disagree (one consumer of a shared field changed): the ACN encoder must
+   reject it with a nonzero error code. */
+emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc) ::= <<
+procedure <sFuncName> ( totalErrors : in out Integer)
+is
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
+    result  : adaasn1rtl.ASN1_RESULT;
+    <arrsVars; separator="\n">
+	pragma Warnings (Off, "there are no others");
+    tc_data : <sModName>.<sTasName>;
+	pragma Warnings (On, "there are no others");
+	pragma Warnings (Off);
+    bs : <sModName>.<sTasName>_<sEnc>Stream;
+	pragma Warnings (On);
+begin
+	pragma Warnings (Off, "there are no others");
+	pragma Warnings (Off, "condition can only be True if invalid values present");
+	pragma Warnings (Off, "condition can only be False if invalid values present");
+	pragma Warnings (Off, "condition is always False");
+	pragma Warnings (Off, "condition is always True");
+	pragma Warnings (Off, "is always True at this point");
+	pragma Warnings (Off, "is always False at this point");
+    <sInitializeTcData>
+    --  <sWhat>
+    <sChange>
+	pragma Warnings (On, "there are no others");
+	pragma Warnings (On, "condition can only be True if invalid values present");
+	pragma Warnings (On, "condition can only be False if invalid values present");
+	pragma Warnings (On, "condition is always False");
+	pragma Warnings (On, "condition is always True");
+	pragma Warnings (On, "is always True at this point");
+	pragma Warnings (On, "is always False at this point");
+    <sModName>.<sEncFunc> (tc_data, bs, result);
+    if not result.Success and result.ErrorCode /= 0 then
+        Put_Line ("Test case '<sFuncName>' succeeded");
+    else
+        Put_Line ("Test case '<sFuncName>' failed: <sWhat>: the ACN fields of the value disagree, but <sEncFunc> did not fail with an error code.");
+        Put_Line ("========================================");
+        totalErrors := totalErrors + 1;
+    end if;
+end <sFuncName>;
+>>

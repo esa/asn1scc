@@ -838,16 +838,28 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
 /// the type's own tree changed, AutomaticTestCase.variants); a test per start value whose variants an earlier one does
 /// not cover, so every variant is checked once. The first variant of a value replaces it with another test value of
 /// the type (a primitive type assignment's own compare).
+/// The variants of a type assignment's i-th automatic test value: the whole value replaced by the next test value,
+/// then the value's own variants (AutomaticTestCase.variants).
+let private startVariants (t:Asn1Type) (atcs:AutomaticTestCase array) (i:int) (atc:AutomaticTestCase) =
+    let whole =
+        match atcs.Length >= 2 with
+        | true  ->
+            let other = atcs.[(i + 1) % atcs.Length]
+            [{AtcVariant.nodeId = t.id; what = ": another test value"; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap)}]
+        | false -> []
+    whole @ atc.variants
+
+/// The description of a variant with the type assignment's name.
+let private variantText (t:Asn1Type) (sTypeName:string) (v:AtcVariant) =
+    let what = if v.what.StartsWith ":" then sTypeName + v.what else sTypeName + "." + v.what
+    // the text goes into a comment and a string literal
+    what.Replace("\"", "'").Replace("\\", "/").Replace("*/", "* /")
+
 let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
     match lm.lg.atcEmitsEqualityVariantTests, t.equalFunction.isEqualFuncName with
     | true, Some sEqualFunc ->
         let atcs = t.initFunction.automaticTestCases |> List.toArray
-        let variantsOf (i:int) (atc:AutomaticTestCase) =
-            let whole =
-                match atcs.Length >= 2 with
-                | true  -> [{AtcVariant.nodeId = t.id; what = ": another test value"; applyFnc = atcs.[(i + 1) % atcs.Length].initTestCaseFunc}]
-                | false -> []
-            whole @ atc.variants
+        let variantsOf = startVariants t atcs
         let _, starts =
             atcs |> Array.toList |> List.indexed |>
             List.fold (fun (seen:Set<string>, acc) (i, atc) ->
@@ -872,12 +884,52 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
                     List.map lm.lg.getLocalVariableDeclaration |> Seq.distinct |> Seq.toList
                 let checks =
                     applied |>
-                    List.map (fun (v, a) ->
-                        let what = if v.what.StartsWith ":" then sTypeName + v.what else sTypeName + "." + v.what
-                        // the text goes into a comment and a string literal
-                        let sWhat = what.Replace("\"", "'").Replace("\\", "/").Replace("*/", "* /")
-                        lm.atc.equalityVariantCheck td.programUnit encAmper a.funcBody sWhat sEqualFunc)
+                    List.map (fun (v, a) -> lm.atc.equalityVariantCheck td.programUnit encAmper a.funcBody (variantText t sTypeName v) sEqualFunc)
                 let func_body = lm.atc.emitEqualityVariantTestCase sFuncName arrsVars td.programUnit td.typeName encAmper initStatement.funcBody bStatic sEqualFunc checks
+                (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName))
+    | true, None
+    | false, _ -> []
+
+/// Coverage step 14d: values whose ACN fields disagree. A variant that writes another test value at one node
+/// (AtcVariant.replaces) of an ACN-valid automatic test value, after which the value is no longer ACN-valid
+/// (isTestVaseValid: the consumers of an ACN field disagree, e.g. CHOICEs sharing a determinant select different
+/// alternatives, or sizes / presences differ), must be rejected by the ACN encoder with a nonzero error code. One test
+/// per such variant (each description once).
+let inconsistentValueTestCases (lm:LanguageMacros) (t:Asn1Type) (sEncFunc:string) (sEnc:string) =
+    match lm.lg.atcEmitsConstraintViolationTests, t.acnEncFunction with
+    | true, Some acnEnc ->
+        let atcs = t.initFunction.automaticTestCases |> List.toArray
+        let under (node:ReferenceToType) (id:ReferenceToType) =
+            let a, b = node.ToScopeNodeList, id.ToScopeNodeList
+            a.Length <= b.Length && List.take a.Length b = a
+        // the start value's map with the node's subtree replaced by the written test value's map
+        let changedMap (atc:AutomaticTestCase) (node:ReferenceToType, written:Map<ReferenceToType, TestCaseValue>) =
+            written |> Map.fold (fun (m:Map<ReferenceToType, TestCaseValue>) k v -> m.Add (k, v)) (atc.testCaseTypeIDsMap |> Map.filter (fun k _ -> not (under node k)))
+        let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
+        let encAmper, _ = gAmber lm t
+        let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
+        let sTypeName = t.id.tasInfo |> Option.map (fun ti -> ti.tasName) |> Option.defaultValue td.typeName
+        let p = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
+        atcs |> Array.toList |> List.indexed |>
+        List.filter (fun (_, atc) -> acnEnc.isTestVaseValid atc) |>
+        List.collect (fun (i, atc) ->
+            startVariants t atcs i atc |>
+            List.choose (fun v ->
+                v.replaces |>
+                Option.bind (fun replaced ->
+                    match acnEnc.isTestVaseValid {atc with testCaseTypeIDsMap = changedMap atc replaced} with
+                    | true  -> None
+                    | false -> Some (atc, v)))) |>
+        List.distinctBy (fun (_, v) -> v.what) |>
+        List.map (fun (atc, v) ->
+            fun idx ->
+                let sFuncName = sprintf "test_case_inconsistent_%06d" idx
+                let initStatement = atc.initTestCaseFunc p
+                let change = v.applyFnc p
+                let arrsVars =
+                    initStatement.localVariables @ change.localVariables |>
+                    List.map lm.lg.getLocalVariableDeclaration |> Seq.distinct |> Seq.toList
+                let func_body = lm.atc.emitInconsistentValueTestCase sFuncName arrsVars td.programUnit td.typeName encAmper initStatement.funcBody bStatic change.funcBody (variantText t sTypeName v) sEncFunc sEnc
                 (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName))
     | true, None
     | false, _ -> []
@@ -1003,7 +1055,21 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                 match r.args.encodings |> List.exists tested with
                 | true  -> yield! equalityVariantTestCases lm t.Type
                 | false -> () ]
-    let tcFunctors = validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors @ equalityFunctors
+    // Values whose ACN fields disagree (coverage step 14d), the ACN encoder of each type assignment tested with ACN.
+    let inconsistentFunctors =
+        [ for m in r.Files |> List.collect(fun f -> f.Modules) do
+            for t in m.TypeAssignments do
+                let typeAssignmentInfo = t.Type.id.tasInfo.Value
+                let testedAcn =
+                    r.args.encodings |> List.contains Asn1Encoding.ACN &&
+                    (t.Type.getEncDecTestFunc Asn1Encoding.ACN).IsSome &&
+                    r.callersSet |> Set.contains {Caller.typeId = typeAssignmentInfo; funcType = asn1EncodingMapping Asn1Encoding.ACN} &&
+                    hasAcnEncodeFunction t.Type.acnEncFunction t.Type.acnParameters t.Type.id.tasInfo
+                match testedAcn, t.Type.acnEncFunction |> Option.bind (fun f -> f.funcName) with
+                | true, Some sEncFunc -> yield! inconsistentValueTestCases lm t.Type sEncFunc (GetEncodingString lm Asn1Encoding.ACN)
+                | true, None
+                | false, _ -> () ]
+    let tcFunctors = validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors @ equalityFunctors @ inconsistentFunctors
     let invalidStreamFunctorCount = invalidStreamFunctors.Count
     let maxTestCasesPerFile = 100.0
     let nMaxTestCasesPerFile = int maxTestCasesPerFile
