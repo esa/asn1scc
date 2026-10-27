@@ -22,8 +22,10 @@ asn1SccUint data_length_decode(asn1SccUint value);
 ```
 
 The generated `.c` file declares the functions it calls (`extern`). With a module (`mapping-function my-mappers.f` or
-`-mfm my_mappers`) it also does `#include "my_mappers.h"`. The type is the C type of the field (`asn1SccUint` for an ACN
-`INTEGER` field with an unsigned encoding).
+`-mfm my_mappers`) it also does `#include "my_mappers.h"`. The type is the C type of the field: the typedef of the
+referenced type (`T`), or `asn1SccUint` / `asn1SccSint` for an ACN `INTEGER` field. It follows the options: with `-slim`
+a small range gives a small type (`uint8_t`), so define the functions with the generated typedef names, not with a
+fixed type.
 
 ## Ada
 
