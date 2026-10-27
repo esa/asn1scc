@@ -35,13 +35,16 @@ run_wire_test() {
         run_compiler -c -ACN --acn-v2 -fp AUTO -equal -o "$out" "$cases/$n.asn1" "$cases/$n.acn"
     fi
     helpers=
+    helperInc=
     if [ -d "$cases/$n.helpers" ]; then
         helpers=$(ls "$cases/$n.helpers"/*.c)
+        # headers of the helpers (e.g. the module of the mapping functions, test_mappers.h)
+        helperInc="-I $cases/$n.helpers"
     fi
     sanitize=
     [ "$n" = 022 ] && sanitize=-fsanitize=address
     [ "$n" = 023 ] && sanitize="-fsanitize=undefined -fno-sanitize-recover=undefined"
-    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror $sanitize -I "$out" \
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror $sanitize -I "$out" $helperInc \
         "$out"/*.c $helpers "$cases/${n}_wire_test.c" -o "$out/wire_test"
     "$out/wire_test"
     echo "wire $n$mode OK"
