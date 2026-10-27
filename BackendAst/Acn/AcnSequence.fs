@@ -437,7 +437,8 @@ let private handleAcnChild
     let updOutcome = update |> Option.map (fun u -> u.updOutcome) |> Option.defaultValue EncodeOutcome.noWrite
     let stmts, partEncOutcome =
         match codec, lm.lg.acnDeterminantFlagModel, acnChild.Type with
-        | Encode, FlagMaybeUninitialized, AcnNullType _
+        // coverage step 14b: an ACN NULL field has no update and no flag: the outcome of its encoding (a pattern)
+        | Encode, FlagMaybeUninitialized, AcnNullType _     -> stmts0, (childContentOutcome |> Option.defaultValue EncodeOutcome.noWrite)
         | Encode, FlagEveryDeterminant, _
         | Decode, _, _                                      -> stmts0, EncodeOutcome.unknown
         | Encode, FlagMaybeUninitialized, _                 ->
