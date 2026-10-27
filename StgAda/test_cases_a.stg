@@ -617,7 +617,7 @@ emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sIn
 procedure <sFuncName> ( totalErrors : in out Integer)
 is
     procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
-    ok       : Boolean := True;
+    ok       : adaasn1rtl.Asn1Boolean := True;   --  references adaasn1rtl (a file may hold only these tests)
     <arrsVars; separator="\n">
 	pragma Warnings (Off, "there are no others");
     tc_data  : <sModName>.<sTasName>;

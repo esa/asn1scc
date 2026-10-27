@@ -835,8 +835,8 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
     | false, _ -> []
 
 /// Coverage step 14a: T_Equal with two different values. The automatic test values carry their variants (one node of
-/// the type's own tree changed, AutomaticTestCase.variants); a test per start value whose variants an earlier one does
-/// not cover, so every variant is checked once. The first variant of a value replaces it with another test value of
+/// the type's own tree changed, AutomaticTestCase.variants); one test per type assignment that sets, one after the
+/// other, the start values whose variants an earlier one does not cover, so every variant is checked once. The first variant of a value replaces it with another test value of
 /// the type (a primitive type assignment's own compare).
 /// The variants of a type assignment's i-th automatic test value: the whole value replaced by the next test value,
 /// then the value's own variants (AutomaticTestCase.variants).
@@ -873,20 +873,24 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
         let sTypeName = t.id.tasInfo |> Option.map (fun ti -> ti.tasName) |> Option.defaultValue td.typeName
         let p  = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
         let p2 = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data2"}
-        starts |>
-        List.map (fun (atc, variants) ->
-            fun idx ->
+        // one test per type assignment: the start values one after the other in the same tc_data / tc_data2 (a test
+        // per start value gave PUS-C S12 > 2 GB of static test data in C)
+        match starts with
+        | [] -> []
+        | _  ->
+            [fun idx ->
                 let sFuncName = sprintf "test_case_unequal_%06d" idx
-                let initStatement = atc.initTestCaseFunc p
-                let applied = variants |> List.map (fun v -> v, v.applyFnc p2)
-                let arrsVars =
-                    initStatement.localVariables @ (applied |> List.collect (fun (_, a) -> a.localVariables)) |>
-                    List.map lm.lg.getLocalVariableDeclaration |> Seq.distinct |> Seq.toList
-                let checks =
-                    applied |>
-                    List.map (fun (v, a) -> lm.atc.equalityVariantCheck td.programUnit encAmper a.funcBody (variantText t sTypeName v) sEqualFunc)
-                let func_body = lm.atc.emitEqualityVariantTestCase sFuncName arrsVars td.programUnit td.typeName encAmper initStatement.funcBody bStatic sEqualFunc checks
-                (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName))
+                let parts =
+                    starts |>
+                    List.map (fun (atc, variants) ->
+                        let initStatement = atc.initTestCaseFunc p
+                        let applied = variants |> List.map (fun v -> v, v.applyFnc p2)
+                        let checks = applied |> List.map (fun (v, a) -> lm.atc.equalityVariantCheck td.programUnit encAmper a.funcBody (variantText t sTypeName v) sEqualFunc)
+                        initStatement.localVariables @ (applied |> List.collect (fun (_, a) -> a.localVariables)), initStatement.funcBody :: checks)
+                let arrsVars = parts |> List.collect fst |> List.map lm.lg.getLocalVariableDeclaration |> Seq.distinct |> Seq.toList
+                let blocks = parts |> List.collect snd
+                let func_body = lm.atc.emitEqualityVariantTestCase sFuncName arrsVars td.programUnit td.typeName encAmper "" bStatic sEqualFunc blocks
+                (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)]
     | true, None
     | false, _ -> []
 
