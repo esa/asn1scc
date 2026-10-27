@@ -519,6 +519,8 @@ type LangGeneric_a() =
             | EncOctetStringVarSize | EncBitStringVarSize | EncStringVarSize
             | EncSequenceOfVarSize                                                  -> {canFail = true; writes = AlwaysWrites; callee = None}
             | EncPresentWhenCheck | EncDeferredPatch | EncChoiceAbsentArm           -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // result.Success := nStringLength >= min AND ...: a component write, so result must be initialised before
+            | EncStringVarSizeUper                                                  -> {canFail = true; writes = ReadsFirst; callee = None}
             // an exhaustive case over the selector: no default arm
             | EncChoiceDefaultArm                                                   -> EncodeOutcome.noWrite
             // determinant updates (coverage step 12c): assignments; an exhaustive case over the CHOICE selector

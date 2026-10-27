@@ -103,7 +103,10 @@ let collectTestAsn1Files (test_cases_dir:string) =
     let allfiles = 
         Directory.GetFiles(test_cases_dir, "*.asn1", SearchOption.AllDirectories) |>
         Seq.map(fun s -> Path.GetFullPath s) |> 
-        Seq.toList
+        Seq.toList |>
+        // a fixed order: --shard k/N assigns the cases by their position in this list, and the CI jobs run on
+        // different machines, whose directory listings come in different orders
+        List.sortWith (fun a b -> String.CompareOrdinal(a, b))
     
     let parseAsn1File (asn1File:String) =
             File.ReadAllLines(asn1File) |> 

@@ -238,7 +238,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     match codec with
                     | Encode ->
                         let callCanFail = bodyOutcome.canFail || (lm.lg.encodeCallValidates && bValidityCalled)
-                        {ns1a with encodeCallOutcomes = ns1a.encodeCallOutcomes.Add (funcName, EncodeOutcome.call funcName callCanFail)}
+                        {ns1a with encodeCallOutcomes = ns1a.encodeCallOutcomes.Add (encodeCallKey lm t.id.ModName funcName, EncodeOutcome.call funcName callCanFail)}
                     | Decode -> ns1a
                 let sInitialExp =
                     // A null attribute disables the optional template initializer.

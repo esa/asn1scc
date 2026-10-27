@@ -140,12 +140,21 @@ jobs:
         if-no-files-found: warn
         retention-days: 14
 
+    # The container runs as root: files it leaves may not be readable by the runner user (cargo's incremental lock
+    # files under target/ made the upload fail with EACCES, losing the work directories of the failed Rust cases).
+    - name: Make the work directories readable
+      if: failure()
+      run: sudo chown -R "$(id -u):$(id -g)" v4Tests/work_dir 2>/dev/null || true
+
     - name: Upload work directories of failed cases
       if: failure()
       uses: actions/upload-artifact@v4
       with:
         name: failed-workdirs-${{ matrix.job }}
-        path: v4Tests/work_dir/
+        # Rust build outputs (target/) are large and not needed to reproduce a case
+        path: |
+          v4Tests/work_dir/
+          !v4Tests/work_dir/**/target/
         if-no-files-found: ignore
         retention-days: 7
 

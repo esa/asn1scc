@@ -476,7 +476,8 @@ let private createDeferredSequenceFunction
                                         resultExpr = None
                                         auxiliaries = []
                                         icdResult = originalIcd
-                                        userDefinedFunctions = []; encOutcome = EncodeOutcome.unknown
+                                        // coverage step 14b: InitDet reserves the bits, it writes no ret / result
+                                        userDefinedFunctions = []; encOutcome = lm.lg.encodeTemplateOutcome EncRtlWritesOnly
                                     }
                                 | CommonTypes.Codec.Decode ->
                                     // Keep original decode funcBody but redirect
@@ -1311,7 +1312,8 @@ let private buildCallerWrapper
                bBsIsUnReferenced = false
                resultExpr = resultExpr
                auxiliaries = allAuxiliaries
-               icdResult = ctx.refIcd; encOutcome = EncodeOutcome.unknown}), callerUs
+               // coverage step 14b: the outcome of the specialised function is not recorded, but the call sets the result
+               icdResult = ctx.refIcd; encOutcome = encodeOutcomeOf ctx.codec EncodeOutcome.unknownCall}), callerUs
 
     // Record the function-call dependency (caller → callee)
     let ns3 =
