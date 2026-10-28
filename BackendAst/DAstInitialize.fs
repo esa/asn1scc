@@ -1186,7 +1186,11 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                     | None  ->
                         match ch.Type.typeDefinitionOrReference with
                         | ReferenceToExistingDefinition    rf   when (not rf.definedInRtl) ->
-                            let fncName = (ch.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) + (lm.init.methodNameSuffix())
+                            let tdName = (ch.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName)
+                            let fncName = match rf.programUnit with
+                                          | Some pu when pu <> "" && lm.lg.hasModules && (lm.lg.sanitizeModuleName pu) <> (lm.lg.sanitizeModuleName t.moduleName) ->
+                                              lm.lg.constructCrossModuleFuncPrefix pu + tdName + (lm.init.methodNameSuffix())
+                                          | _ -> tdName + (lm.init.methodNameSuffix())
                             let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.accessPath) (fncName)
                             let funcBody = initTestCase_sequence_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName ch) chContent ch.Optionality.IsSome (ch.Type.initFunction.initExpressionFnc ())
                             {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables = [] }

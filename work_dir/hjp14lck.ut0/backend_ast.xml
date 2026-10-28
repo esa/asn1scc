@@ -1,0 +1,1426 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AstRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="asn1sccAst.xsd" rename_policy="AlwaysPrefixTypeName">
+  <Asn1File FileName="sample1.asn1">
+    <Modules>
+      <Module Name="Standard-Datatypes">
+        <TypeAssignments>
+          <TypeAssignment Name="Standard-Boolean">
+            <Boolean id="Standard-Datatypes.Standard-Boolean" newTypedefName="ASN1SCC_Standard_Boolean" newTypedefName2="ASN1SCC_Standard_Boolean" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Unsigned-Integer">
+            <INTEGER id="Standard-Datatypes.Unsigned-Integer" newTypedefName="ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Signed-Integer">
+            <INTEGER id="Standard-Datatypes.Signed-Integer" newTypedefName="ASN1SCC_Signed_Integer" newTypedefName2="ASN1SCC_Signed_Integer" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Real-1">
+            <REAL id="Standard-Datatypes.Real-1" newTypedefName="ASN1SCC_Real_1" newTypedefName2="ASN1SCC_Real_1" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Real-2">
+            <REAL id="Standard-Datatypes.Real-2" newTypedefName="ASN1SCC_Real_2" newTypedefName2="ASN1SCC_Real_2" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+      <Module Name="Event-Action">
+        <TypeAssignments>
+          <TypeAssignment Name="Event-Action-Service-Report">
+            <CHOICE id="Event-Action.Event-Action-Service-Report" newTypedefName="ASN1SCC_Event_Action_Service_Report" newTypedefName2="ASN1SCC_Event_Action_Service_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+              <CHOICE_ALTERNATIVE Name="foo" PresentWhenName="Event_Action_Service_Report_foo_PRESENT" AdaName="foo" CName="foo" ScalaName="foo" AcnPresentWhenCont="">
+                <INTEGER id="Event-Action.Event-Action-Service-Report.foo" newTypedefName="ASN1SCC_Event_Action_Service_Report_foo" newTypedefName2="ASN1SCC_Event_Action_Service_Report_foo" newTypedefName2_kind="NewTypeDefinition" />
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+      <Module Name="Onboard-Monitoring">
+        <TypeAssignments>
+          <TypeAssignment Name="Onboard-Monitoring-Service-Report">
+            <CHOICE id="Onboard-Monitoring.Onboard-Monitoring-Service-Report" newTypedefName="ASN1SCC_Onboard_Monitoring_Service_Report" newTypedefName2="ASN1SCC_Onboard_Monitoring_Service_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+              <CHOICE_ALTERNATIVE Name="transition" PresentWhenName="Onboard_Monitoring_Service_Report_transition_PRESENT" AdaName="transition" CName="transition" ScalaName="transition" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Onboard-Monitoring.Onboard-Monitoring-Service-Report.transition" newTypedefName="ASN1SCC_Check_Transition_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Check-Transition-Report" newTypedefName2="ASN1SCC_Check_Transition_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCEOF id="Onboard-Monitoring.Check-Transition-Report" newTypedefName="ASN1SCC_Check_Transition_Report" newTypedefName2="ASN1SCC_Check_Transition_Report" newTypedefName2_kind="NewTypeDefinition">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Check-Transition-Report.#" newTypedefName="ASN1SCC_Transition_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Transition-Report" newTypedefName2="ASN1SCC_Transition_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                      <SEQUENCE id="Onboard-Monitoring.Transition-Report" newTypedefName="ASN1SCC_Transition_Report" newTypedefName2="ASN1SCC_Transition_Report" newTypedefName2_kind="NewTypeDefinition">
+                        <SEQUENCE_COMPONENT Name="id">
+                          <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                            <Enumerated id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                        <SEQUENCE_COMPONENT Name="value">
+                          <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.value" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                            <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                              <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                                <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </CHOICE_ALTERNATIVE>
+                              <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                                <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </CHOICE_ALTERNATIVE>
+                            </CHOICE>
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                        <SEQUENCE_COMPONENT Name="limit-crossed">
+                          <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.limit-crossed" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                            <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                              <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                                <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </CHOICE_ALTERNATIVE>
+                              <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                                <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </CHOICE_ALTERNATIVE>
+                            </CHOICE>
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                        <SEQUENCE_COMPONENT Name="previous-checking-status">
+                          <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                            <Enumerated id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                        <SEQUENCE_COMPONENT Name="current-checking-status">
+                          <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                            <Enumerated id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                        <SEQUENCE_COMPONENT Name="transition-time">
+                          <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.transition-time" newTypedefName="Onboard_Parameters.ASN1SCC_On_Board_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                            <SEQUENCE id="Onboard-Parameters.On-Board-Time" newTypedefName="ASN1SCC_On_Board_Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="NewTypeDefinition">
+                              <SEQUENCE_COMPONENT Name="p-field">
+                                <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.p-field" newTypedefName="ASN1SCC_Time_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Rep-Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+                                    <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                                      <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </SEQUENCE_COMPONENT>
+                                    <SEQUENCE_COMPONENT Name="fine-time-rep">
+                                      <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </SEQUENCE_COMPONENT>
+                                  </SEQUENCE>
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                              <SEQUENCE_COMPONENT Name="coarse-time">
+                                <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Coarse-Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <OctetString id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                              <SEQUENCE_COMPONENT Name="fine-time">
+                                <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Fine-Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <OctetString id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                            </SEQUENCE>
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                      </SEQUENCE>
+                    </REFERENCE_TYPE>
+                  </SEQUENCEOF>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="Check-Transition-Report">
+            <SEQUENCEOF id="Onboard-Monitoring.Check-Transition-Report" newTypedefName="ASN1SCC_Check_Transition_Report" newTypedefName2="ASN1SCC_Check_Transition_Report" newTypedefName2_kind="NewTypeDefinition">
+              <REFERENCE_TYPE id="Onboard-Monitoring.Check-Transition-Report.#" newTypedefName="ASN1SCC_Transition_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Transition-Report" newTypedefName2="ASN1SCC_Transition_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                <SEQUENCE id="Onboard-Monitoring.Transition-Report" newTypedefName="ASN1SCC_Transition_Report" newTypedefName2="ASN1SCC_Transition_Report" newTypedefName2_kind="NewTypeDefinition">
+                  <SEQUENCE_COMPONENT Name="id">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                      <Enumerated id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                  <SEQUENCE_COMPONENT Name="value">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.value" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                      <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                        <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                          <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                            <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </CHOICE_ALTERNATIVE>
+                        <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                          <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                            <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </CHOICE_ALTERNATIVE>
+                      </CHOICE>
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                  <SEQUENCE_COMPONENT Name="limit-crossed">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.limit-crossed" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                      <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                        <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                          <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                            <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </CHOICE_ALTERNATIVE>
+                        <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                          <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                            <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </CHOICE_ALTERNATIVE>
+                      </CHOICE>
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                  <SEQUENCE_COMPONENT Name="previous-checking-status">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                      <Enumerated id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                  <SEQUENCE_COMPONENT Name="current-checking-status">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                      <Enumerated id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                  <SEQUENCE_COMPONENT Name="transition-time">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.transition-time" newTypedefName="Onboard_Parameters.ASN1SCC_On_Board_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                      <SEQUENCE id="Onboard-Parameters.On-Board-Time" newTypedefName="ASN1SCC_On_Board_Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="NewTypeDefinition">
+                        <SEQUENCE_COMPONENT Name="p-field">
+                          <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.p-field" newTypedefName="ASN1SCC_Time_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Rep-Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                            <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+                              <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                                <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                              <SEQUENCE_COMPONENT Name="fine-time-rep">
+                                <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                            </SEQUENCE>
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                        <SEQUENCE_COMPONENT Name="coarse-time">
+                          <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Coarse-Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                            <OctetString id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                        <SEQUENCE_COMPONENT Name="fine-time">
+                          <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Fine-Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                            <OctetString id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                      </SEQUENCE>
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                </SEQUENCE>
+              </REFERENCE_TYPE>
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Transition-Report">
+            <SEQUENCE id="Onboard-Monitoring.Transition-Report" newTypedefName="ASN1SCC_Transition_Report" newTypedefName2="ASN1SCC_Transition_Report" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="id">
+                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                  <Enumerated id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="value">
+                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.value" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                  <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                    <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="limit-crossed">
+                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.limit-crossed" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                  <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                    <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="previous-checking-status">
+                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                  <Enumerated id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="current-checking-status">
+                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                  <Enumerated id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="transition-time">
+                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.transition-time" newTypedefName="Onboard_Parameters.ASN1SCC_On_Board_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="Onboard-Parameters.On-Board-Time" newTypedefName="ASN1SCC_On_Board_Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="NewTypeDefinition">
+                    <SEQUENCE_COMPONENT Name="p-field">
+                      <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.p-field" newTypedefName="ASN1SCC_Time_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Rep-Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+                          <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                            <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCE_COMPONENT>
+                          <SEQUENCE_COMPONENT Name="fine-time-rep">
+                            <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCE_COMPONENT>
+                        </SEQUENCE>
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                    <SEQUENCE_COMPONENT Name="coarse-time">
+                      <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Coarse-Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                        <OctetString id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                    <SEQUENCE_COMPONENT Name="fine-time">
+                      <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Fine-Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                        <OctetString id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="Checking-Status">
+            <Enumerated id="Onboard-Monitoring.Checking-Status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+      <Module Name="Telecommand-Verification">
+        <TypeAssignments>
+          <TypeAssignment Name="Telecommand-Packet-ID">
+            <INTEGER id="Telecommand-Verification.Telecommand-Packet-ID" newTypedefName="ASN1SCC_Telecommand_Packet_ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Verification-Failure-Code">
+            <INTEGER id="Telecommand-Verification.Verification-Failure-Code" newTypedefName="ASN1SCC_Verification_Failure_Code" newTypedefName2="ASN1SCC_Verification_Failure_Code" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Telecommand-Verification-Service-Report">
+            <CHOICE id="Telecommand-Verification.Telecommand-Verification-Service-Report" newTypedefName="ASN1SCC_Telecommand_Verification_Service_Report" newTypedefName2="ASN1SCC_Telecommand_Verification_Service_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+              <CHOICE_ALTERNATIVE Name="success" PresentWhenName="Telecommand_Verification_Service_Report_success_PRESENT" AdaName="success" CName="success" ScalaName="success" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Telecommand-Verification.Telecommand-Verification-Service-Report.success" newTypedefName="ASN1SCC_Successful_Telecommand_Verification_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Successful-Telecommand-Verification-Report" newTypedefName2="ASN1SCC_Successful_Telecommand_Verification_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="Telecommand-Verification.Successful-Telecommand-Verification-Report" newTypedefName="ASN1SCC_Successful_Telecommand_Verification_Report" newTypedefName2="ASN1SCC_Successful_Telecommand_Verification_Report" newTypedefName2_kind="NewTypeDefinition">
+                    <SEQUENCE_COMPONENT Name="packet-id">
+                      <REFERENCE_TYPE id="Telecommand-Verification.Successful-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Telecommand-Packet-ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Telecommand-Verification.Successful-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="failure" PresentWhenName="Telecommand_Verification_Service_Report_failure_PRESENT" AdaName="failure" CName="failure" ScalaName="failure" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Telecommand-Verification.Telecommand-Verification-Service-Report.failure" newTypedefName="ASN1SCC_Failing_Telecommand_Verification_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Failing-Telecommand-Verification-Report" newTypedefName2="ASN1SCC_Failing_Telecommand_Verification_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="Telecommand-Verification.Failing-Telecommand-Verification-Report" newTypedefName="ASN1SCC_Failing_Telecommand_Verification_Report" newTypedefName2="ASN1SCC_Failing_Telecommand_Verification_Report" newTypedefName2_kind="NewTypeDefinition">
+                    <SEQUENCE_COMPONENT Name="packet-id">
+                      <REFERENCE_TYPE id="Telecommand-Verification.Failing-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Telecommand-Packet-ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Telecommand-Verification.Failing-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                    <SEQUENCE_COMPONENT Name="code">
+                      <REFERENCE_TYPE id="Telecommand-Verification.Failing-Telecommand-Verification-Report.code" newTypedefName="ASN1SCC_Verification_Failure_Code" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Verification-Failure-Code" newTypedefName2="ASN1SCC_Verification_Failure_Code" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Telecommand-Verification.Failing-Telecommand-Verification-Report.code" newTypedefName="ASN1SCC_Verification_Failure_Code" newTypedefName2="ASN1SCC_Verification_Failure_Code" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="Successful-Telecommand-Verification-Report">
+            <SEQUENCE id="Telecommand-Verification.Successful-Telecommand-Verification-Report" newTypedefName="ASN1SCC_Successful_Telecommand_Verification_Report" newTypedefName2="ASN1SCC_Successful_Telecommand_Verification_Report" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="packet-id">
+                <REFERENCE_TYPE id="Telecommand-Verification.Successful-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Telecommand-Packet-ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Telecommand-Verification.Successful-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="Failing-Telecommand-Verification-Report">
+            <SEQUENCE id="Telecommand-Verification.Failing-Telecommand-Verification-Report" newTypedefName="ASN1SCC_Failing_Telecommand_Verification_Report" newTypedefName2="ASN1SCC_Failing_Telecommand_Verification_Report" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="packet-id">
+                <REFERENCE_TYPE id="Telecommand-Verification.Failing-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Telecommand-Packet-ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Telecommand-Verification.Failing-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="code">
+                <REFERENCE_TYPE id="Telecommand-Verification.Failing-Telecommand-Verification-Report.code" newTypedefName="ASN1SCC_Verification_Failure_Code" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Verification-Failure-Code" newTypedefName2="ASN1SCC_Verification_Failure_Code" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Telecommand-Verification.Failing-Telecommand-Verification-Report.code" newTypedefName="ASN1SCC_Verification_Failure_Code" newTypedefName2="ASN1SCC_Verification_Failure_Code" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+      <Module Name="Onboard-Parameters">
+        <TypeAssignments>
+          <TypeAssignment Name="Parameter-ID">
+            <Enumerated id="Onboard-Parameters.Parameter-ID" newTypedefName="ASN1SCC_Parameter_ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Parameter-ID-Set">
+            <SEQUENCEOF id="Onboard-Parameters.Parameter-ID-Set" newTypedefName="ASN1SCC_Parameter_ID_Set" newTypedefName2="ASN1SCC_Parameter_ID_Set" newTypedefName2_kind="NewTypeDefinition">
+              <REFERENCE_TYPE id="Onboard-Parameters.Parameter-ID-Set.#" newTypedefName="ASN1SCC_Parameter_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                <Enumerated id="Onboard-Parameters.Parameter-ID-Set.#" newTypedefName="ASN1SCC_Parameter_ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+              </REFERENCE_TYPE>
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Parameter-Value">
+            <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+              <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="Parameter-Value-Set">
+            <SEQUENCEOF id="Onboard-Parameters.Parameter-Value-Set" newTypedefName="ASN1SCC_Parameter_Value_Set" newTypedefName2="ASN1SCC_Parameter_Value_Set" newTypedefName2_kind="NewTypeDefinition">
+              <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value-Set.#" newTypedefName="ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                  <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                    <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                      <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </CHOICE_ALTERNATIVE>
+                  <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                    <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                      <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </CHOICE_ALTERNATIVE>
+                </CHOICE>
+              </REFERENCE_TYPE>
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Var-Bit-String">
+            <SEQUENCEOF id="Onboard-Parameters.Var-Bit-String" newTypedefName="ASN1SCC_Var_Bit_String" newTypedefName2="ASN1SCC_Var_Bit_String" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Var-Bit-String.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-1">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-1" newTypedefName="ASN1SCC_Fixed_Bit_String_1" newTypedefName2="ASN1SCC_Fixed_Bit_String_1" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-1.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-2">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-2" newTypedefName="ASN1SCC_Fixed_Bit_String_2" newTypedefName2="ASN1SCC_Fixed_Bit_String_2" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-2.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-3">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-3" newTypedefName="ASN1SCC_Fixed_Bit_String_3" newTypedefName2="ASN1SCC_Fixed_Bit_String_3" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-3.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-4">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-4" newTypedefName="ASN1SCC_Fixed_Bit_String_4" newTypedefName2="ASN1SCC_Fixed_Bit_String_4" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-4.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-5">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-5" newTypedefName="ASN1SCC_Fixed_Bit_String_5" newTypedefName2="ASN1SCC_Fixed_Bit_String_5" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-5.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-6">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-6" newTypedefName="ASN1SCC_Fixed_Bit_String_6" newTypedefName2="ASN1SCC_Fixed_Bit_String_6" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-6.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-7">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-7" newTypedefName="ASN1SCC_Fixed_Bit_String_7" newTypedefName2="ASN1SCC_Fixed_Bit_String_7" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-7.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-8">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-8" newTypedefName="ASN1SCC_Fixed_Bit_String_8" newTypedefName2="ASN1SCC_Fixed_Bit_String_8" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-8.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-9">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-9" newTypedefName="ASN1SCC_Fixed_Bit_String_9" newTypedefName2="ASN1SCC_Fixed_Bit_String_9" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-9.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-10">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-10" newTypedefName="ASN1SCC_Fixed_Bit_String_10" newTypedefName2="ASN1SCC_Fixed_Bit_String_10" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-10.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-11">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-11" newTypedefName="ASN1SCC_Fixed_Bit_String_11" newTypedefName2="ASN1SCC_Fixed_Bit_String_11" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-11.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-12">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-12" newTypedefName="ASN1SCC_Fixed_Bit_String_12" newTypedefName2="ASN1SCC_Fixed_Bit_String_12" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-12.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-13">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-13" newTypedefName="ASN1SCC_Fixed_Bit_String_13" newTypedefName2="ASN1SCC_Fixed_Bit_String_13" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-13.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-14">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-14" newTypedefName="ASN1SCC_Fixed_Bit_String_14" newTypedefName2="ASN1SCC_Fixed_Bit_String_14" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-14.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-15">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-15" newTypedefName="ASN1SCC_Fixed_Bit_String_15" newTypedefName2="ASN1SCC_Fixed_Bit_String_15" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-15.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Bit-String-16">
+            <SEQUENCEOF id="Onboard-Parameters.Fixed-Bit-String-16" newTypedefName="ASN1SCC_Fixed_Bit_String_16" newTypedefName2="ASN1SCC_Fixed_Bit_String_16" newTypedefName2_kind="NewTypeDefinition">
+              <Boolean id="Onboard-Parameters.Fixed-Bit-String-16.#" newTypedefName="bool" newTypedefName2="bool" newTypedefName2_kind="FE_Reference2RTL" />
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Var-Octet-String">
+            <OctetString id="Onboard-Parameters.Var-Octet-String" newTypedefName="ASN1SCC_Var_Octet_String" newTypedefName2="ASN1SCC_Var_Octet_String" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-1">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-1" newTypedefName="ASN1SCC_Fixed_Octet_String_1" newTypedefName2="ASN1SCC_Fixed_Octet_String_1" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-2">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-2" newTypedefName="ASN1SCC_Fixed_Octet_String_2" newTypedefName2="ASN1SCC_Fixed_Octet_String_2" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-3">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-3" newTypedefName="ASN1SCC_Fixed_Octet_String_3" newTypedefName2="ASN1SCC_Fixed_Octet_String_3" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-4">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-4" newTypedefName="ASN1SCC_Fixed_Octet_String_4" newTypedefName2="ASN1SCC_Fixed_Octet_String_4" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-5">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-5" newTypedefName="ASN1SCC_Fixed_Octet_String_5" newTypedefName2="ASN1SCC_Fixed_Octet_String_5" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-6">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-6" newTypedefName="ASN1SCC_Fixed_Octet_String_6" newTypedefName2="ASN1SCC_Fixed_Octet_String_6" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-7">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-7" newTypedefName="ASN1SCC_Fixed_Octet_String_7" newTypedefName2="ASN1SCC_Fixed_Octet_String_7" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-8">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-8" newTypedefName="ASN1SCC_Fixed_Octet_String_8" newTypedefName2="ASN1SCC_Fixed_Octet_String_8" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-9">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-9" newTypedefName="ASN1SCC_Fixed_Octet_String_9" newTypedefName2="ASN1SCC_Fixed_Octet_String_9" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-10">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-10" newTypedefName="ASN1SCC_Fixed_Octet_String_10" newTypedefName2="ASN1SCC_Fixed_Octet_String_10" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-11">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-11" newTypedefName="ASN1SCC_Fixed_Octet_String_11" newTypedefName2="ASN1SCC_Fixed_Octet_String_11" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-12">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-12" newTypedefName="ASN1SCC_Fixed_Octet_String_12" newTypedefName2="ASN1SCC_Fixed_Octet_String_12" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-13">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-13" newTypedefName="ASN1SCC_Fixed_Octet_String_13" newTypedefName2="ASN1SCC_Fixed_Octet_String_13" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-14">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-14" newTypedefName="ASN1SCC_Fixed_Octet_String_14" newTypedefName2="ASN1SCC_Fixed_Octet_String_14" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-15">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-15" newTypedefName="ASN1SCC_Fixed_Octet_String_15" newTypedefName2="ASN1SCC_Fixed_Octet_String_15" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Octet-String-16">
+            <OctetString id="Onboard-Parameters.Fixed-Octet-String-16" newTypedefName="ASN1SCC_Fixed_Octet_String_16" newTypedefName2="ASN1SCC_Fixed_Octet_String_16" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Var-Character-String">
+            <OctetString id="Onboard-Parameters.Var-Character-String" newTypedefName="ASN1SCC_Var_Character_String" newTypedefName2="ASN1SCC_Var_Character_String" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-1">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-1" newTypedefName="ASN1SCC_Fixed_Character_String_1" newTypedefName2="ASN1SCC_Fixed_Character_String_1" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-2">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-2" newTypedefName="ASN1SCC_Fixed_Character_String_2" newTypedefName2="ASN1SCC_Fixed_Character_String_2" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-3">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-3" newTypedefName="ASN1SCC_Fixed_Character_String_3" newTypedefName2="ASN1SCC_Fixed_Character_String_3" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-4">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-4" newTypedefName="ASN1SCC_Fixed_Character_String_4" newTypedefName2="ASN1SCC_Fixed_Character_String_4" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-5">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-5" newTypedefName="ASN1SCC_Fixed_Character_String_5" newTypedefName2="ASN1SCC_Fixed_Character_String_5" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-6">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-6" newTypedefName="ASN1SCC_Fixed_Character_String_6" newTypedefName2="ASN1SCC_Fixed_Character_String_6" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-7">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-7" newTypedefName="ASN1SCC_Fixed_Character_String_7" newTypedefName2="ASN1SCC_Fixed_Character_String_7" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-8">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-8" newTypedefName="ASN1SCC_Fixed_Character_String_8" newTypedefName2="ASN1SCC_Fixed_Character_String_8" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-9">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-9" newTypedefName="ASN1SCC_Fixed_Character_String_9" newTypedefName2="ASN1SCC_Fixed_Character_String_9" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-10">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-10" newTypedefName="ASN1SCC_Fixed_Character_String_10" newTypedefName2="ASN1SCC_Fixed_Character_String_10" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-11">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-11" newTypedefName="ASN1SCC_Fixed_Character_String_11" newTypedefName2="ASN1SCC_Fixed_Character_String_11" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-12">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-12" newTypedefName="ASN1SCC_Fixed_Character_String_12" newTypedefName2="ASN1SCC_Fixed_Character_String_12" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-13">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-13" newTypedefName="ASN1SCC_Fixed_Character_String_13" newTypedefName2="ASN1SCC_Fixed_Character_String_13" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-14">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-14" newTypedefName="ASN1SCC_Fixed_Character_String_14" newTypedefName2="ASN1SCC_Fixed_Character_String_14" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-15">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-15" newTypedefName="ASN1SCC_Fixed_Character_String_15" newTypedefName2="ASN1SCC_Fixed_Character_String_15" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Fixed-Character-String-16">
+            <OctetString id="Onboard-Parameters.Fixed-Character-String-16" newTypedefName="ASN1SCC_Fixed_Character_String_16" newTypedefName2="ASN1SCC_Fixed_Character_String_16" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="On-Board-Coarse-Time">
+            <OctetString id="Onboard-Parameters.On-Board-Coarse-Time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="On-Board-Fine-Time">
+            <OctetString id="Onboard-Parameters.On-Board-Fine-Time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Time-Component-Rep-Spec">
+            <INTEGER id="Onboard-Parameters.Time-Component-Rep-Spec" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Time-Rep-Spec">
+            <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="fine-time-rep">
+                <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="On-Board-Time">
+            <SEQUENCE id="Onboard-Parameters.On-Board-Time" newTypedefName="ASN1SCC_On_Board_Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="p-field">
+                <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.p-field" newTypedefName="ASN1SCC_Time_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Rep-Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+                    <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                      <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                    <SEQUENCE_COMPONENT Name="fine-time-rep">
+                      <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="coarse-time">
+                <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Coarse-Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                  <OctetString id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="fine-time">
+                <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Fine-Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                  <OctetString id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="Pus-Time">
+            <REFERENCE_TYPE id="Onboard-Parameters.Pus-Time" newTypedefName="ASN1SCC_Pus_Time" typeDefinitionOrReference="TypeDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Time" newTypedefName2="ASN1SCC_Pus_Time" newTypedefName2_kind="NewSubTypeDefinition { asn1Name = &quot;On-Board-Time&quot;&#xA;  asn1Module = Some &quot;Onboard-Parameters&quot;&#xA;  programUnit = &quot;Onboard_Parameters&quot;&#xA;  typeName = &quot;ASN1SCC_On_Board_Time&quot;&#xA;  exist = &quot;ASN1SCC_On_Board_Time_exist&quot;&#xA;  extension_function_positions =&#xA;   &quot;ASN1SCC_On_Board_Time_extension_function_positions&quot;&#xA;  kind = NonPrimitiveNewTypeDefinition }">
+              <SEQUENCE id="Onboard-Parameters.On-Board-Time" newTypedefName="ASN1SCC_On_Board_Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="NewTypeDefinition">
+                <SEQUENCE_COMPONENT Name="p-field">
+                  <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.p-field" newTypedefName="ASN1SCC_Time_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Rep-Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                    <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+                      <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                        <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                          <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                      <SEQUENCE_COMPONENT Name="fine-time-rep">
+                        <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                          <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                    </SEQUENCE>
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+                <SEQUENCE_COMPONENT Name="coarse-time">
+                  <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Coarse-Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                    <OctetString id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+                <SEQUENCE_COMPONENT Name="fine-time">
+                  <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Fine-Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                    <OctetString id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+              </SEQUENCE>
+            </REFERENCE_TYPE>
+          </TypeAssignment>
+          <TypeAssignment Name="Pus-Relative-Time">
+            <REFERENCE_TYPE id="Onboard-Parameters.Pus-Relative-Time" newTypedefName="ASN1SCC_Pus_Relative_Time" typeDefinitionOrReference="TypeDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Time" newTypedefName2="ASN1SCC_Pus_Relative_Time" newTypedefName2_kind="NewSubTypeDefinition { asn1Name = &quot;On-Board-Time&quot;&#xA;  asn1Module = Some &quot;Onboard-Parameters&quot;&#xA;  programUnit = &quot;Onboard_Parameters&quot;&#xA;  typeName = &quot;ASN1SCC_On_Board_Time&quot;&#xA;  exist = &quot;ASN1SCC_On_Board_Time_exist&quot;&#xA;  extension_function_positions =&#xA;   &quot;ASN1SCC_On_Board_Time_extension_function_positions&quot;&#xA;  kind = NonPrimitiveNewTypeDefinition }">
+              <SEQUENCE id="Onboard-Parameters.On-Board-Time" newTypedefName="ASN1SCC_On_Board_Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="NewTypeDefinition">
+                <SEQUENCE_COMPONENT Name="p-field">
+                  <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.p-field" newTypedefName="ASN1SCC_Time_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Rep-Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                    <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+                      <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                        <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                          <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                      <SEQUENCE_COMPONENT Name="fine-time-rep">
+                        <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                          <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                    </SEQUENCE>
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+                <SEQUENCE_COMPONENT Name="coarse-time">
+                  <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Coarse-Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                    <OctetString id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+                <SEQUENCE_COMPONENT Name="fine-time">
+                  <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Fine-Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                    <OctetString id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+              </SEQUENCE>
+            </REFERENCE_TYPE>
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+      <Module Name="Event-Reporting">
+        <TypeAssignments>
+          <TypeAssignment Name="Report-ID">
+            <INTEGER id="Event-Reporting.Report-ID" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Event-Reporting-Service-Report">
+            <CHOICE id="Event-Reporting.Event-Reporting-Service-Report" newTypedefName="ASN1SCC_Event_Reporting_Service_Report" newTypedefName2="ASN1SCC_Event_Reporting_Service_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+              <CHOICE_ALTERNATIVE Name="normal" PresentWhenName="Event_Reporting_Service_Report_normal_PRESENT" AdaName="normal" CName="normal" ScalaName="normal" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Event-Reporting.Event-Reporting-Service-Report.normal" newTypedefName="ASN1SCC_Normal_Progress_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Normal-Progress-Report" newTypedefName2="ASN1SCC_Normal_Progress_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="Event-Reporting.Normal-Progress-Report" newTypedefName="ASN1SCC_Normal_Progress_Report" newTypedefName2="ASN1SCC_Normal_Progress_Report" newTypedefName2_kind="NewTypeDefinition">
+                    <SEQUENCE_COMPONENT Name="rid">
+                      <REFERENCE_TYPE id="Event-Reporting.Normal-Progress-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Event-Reporting.Normal-Progress-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="anomaly" PresentWhenName="Event_Reporting_Service_Report_anomaly_PRESENT" AdaName="anomaly" CName="anomaly" ScalaName="anomaly" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Event-Reporting.Event-Reporting-Service-Report.anomaly" newTypedefName="ASN1SCC_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Error-Anomaly-Report" newTypedefName2="ASN1SCC_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <CHOICE id="Event-Reporting.Error-Anomaly-Report" newTypedefName="ASN1SCC_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                    <CHOICE_ALTERNATIVE Name="low" PresentWhenName="Error_Anomaly_Report_low_PRESENT" AdaName="low" CName="low" ScalaName="low" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Event-Reporting.Error-Anomaly-Report.low" newTypedefName="ASN1SCC_Low_Severity_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Low-Severity-Error-Anomaly-Report" newTypedefName2="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCE id="Event-Reporting.Low-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+                          <SEQUENCE_COMPONENT Name="rid">
+                            <REFERENCE_TYPE id="Event-Reporting.Low-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="Event-Reporting.Low-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCE_COMPONENT>
+                        </SEQUENCE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="medium" PresentWhenName="Error_Anomaly_Report_medium_PRESENT" AdaName="medium" CName="medium" ScalaName="medium" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Event-Reporting.Error-Anomaly-Report.medium" newTypedefName="ASN1SCC_Medium_Severity_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Medium-Severity-Error-Anomaly-Report" newTypedefName2="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCE id="Event-Reporting.Medium-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+                          <SEQUENCE_COMPONENT Name="rid">
+                            <REFERENCE_TYPE id="Event-Reporting.Medium-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="Event-Reporting.Medium-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCE_COMPONENT>
+                        </SEQUENCE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="high" PresentWhenName="Error_Anomaly_Report_high_PRESENT" AdaName="high" CName="high" ScalaName="high" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Event-Reporting.Error-Anomaly-Report.high" newTypedefName="ASN1SCC_High_Severity_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="High-Severity-Error-Anomaly-Report" newTypedefName2="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCE id="Event-Reporting.High-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+                          <SEQUENCE_COMPONENT Name="rid">
+                            <REFERENCE_TYPE id="Event-Reporting.High-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="Event-Reporting.High-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCE_COMPONENT>
+                        </SEQUENCE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="Normal-Progress-Report">
+            <SEQUENCE id="Event-Reporting.Normal-Progress-Report" newTypedefName="ASN1SCC_Normal_Progress_Report" newTypedefName2="ASN1SCC_Normal_Progress_Report" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="rid">
+                <REFERENCE_TYPE id="Event-Reporting.Normal-Progress-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Event-Reporting.Normal-Progress-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="Error-Anomaly-Report">
+            <CHOICE id="Event-Reporting.Error-Anomaly-Report" newTypedefName="ASN1SCC_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+              <CHOICE_ALTERNATIVE Name="low" PresentWhenName="Error_Anomaly_Report_low_PRESENT" AdaName="low" CName="low" ScalaName="low" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Event-Reporting.Error-Anomaly-Report.low" newTypedefName="ASN1SCC_Low_Severity_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Low-Severity-Error-Anomaly-Report" newTypedefName2="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="Event-Reporting.Low-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+                    <SEQUENCE_COMPONENT Name="rid">
+                      <REFERENCE_TYPE id="Event-Reporting.Low-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Event-Reporting.Low-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="medium" PresentWhenName="Error_Anomaly_Report_medium_PRESENT" AdaName="medium" CName="medium" ScalaName="medium" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Event-Reporting.Error-Anomaly-Report.medium" newTypedefName="ASN1SCC_Medium_Severity_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Medium-Severity-Error-Anomaly-Report" newTypedefName2="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="Event-Reporting.Medium-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+                    <SEQUENCE_COMPONENT Name="rid">
+                      <REFERENCE_TYPE id="Event-Reporting.Medium-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Event-Reporting.Medium-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="high" PresentWhenName="Error_Anomaly_Report_high_PRESENT" AdaName="high" CName="high" ScalaName="high" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Event-Reporting.Error-Anomaly-Report.high" newTypedefName="ASN1SCC_High_Severity_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="High-Severity-Error-Anomaly-Report" newTypedefName2="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="Event-Reporting.High-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+                    <SEQUENCE_COMPONENT Name="rid">
+                      <REFERENCE_TYPE id="Event-Reporting.High-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Event-Reporting.High-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="Low-Severity-Error-Anomaly-Report">
+            <SEQUENCE id="Event-Reporting.Low-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="rid">
+                <REFERENCE_TYPE id="Event-Reporting.Low-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Event-Reporting.Low-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="Medium-Severity-Error-Anomaly-Report">
+            <SEQUENCE id="Event-Reporting.Medium-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="rid">
+                <REFERENCE_TYPE id="Event-Reporting.Medium-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Event-Reporting.Medium-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="High-Severity-Error-Anomaly-Report">
+            <SEQUENCE id="Event-Reporting.High-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="rid">
+                <REFERENCE_TYPE id="Event-Reporting.High-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                  <INTEGER id="Event-Reporting.High-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+      <Module Name="Service-Reports">
+        <TypeAssignments>
+          <TypeAssignment Name="Service-Report">
+            <CHOICE id="Service-Reports.Service-Report" newTypedefName="ASN1SCC_Service_Report" newTypedefName2="ASN1SCC_Service_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+              <CHOICE_ALTERNATIVE Name="event-reporting-1" PresentWhenName="Event_Reporting.Service_Report_event_reporting_1_PRESENT" AdaName="event_reporting_1" CName="event_reporting_1" ScalaName="event_reporting_1" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Service-Reports.Service-Report.event-reporting-1" newTypedefName="Event_Reporting.ASN1SCC_Event_Reporting_Service_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Event-Reporting-Service-Report" newTypedefName2="ASN1SCC_Event_Reporting_Service_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <CHOICE id="Event-Reporting.Event-Reporting-Service-Report" newTypedefName="ASN1SCC_Event_Reporting_Service_Report" newTypedefName2="ASN1SCC_Event_Reporting_Service_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                    <CHOICE_ALTERNATIVE Name="normal" PresentWhenName="Event_Reporting_Service_Report_normal_PRESENT" AdaName="normal" CName="normal" ScalaName="normal" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Event-Reporting.Event-Reporting-Service-Report.normal" newTypedefName="ASN1SCC_Normal_Progress_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Normal-Progress-Report" newTypedefName2="ASN1SCC_Normal_Progress_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCE id="Event-Reporting.Normal-Progress-Report" newTypedefName="ASN1SCC_Normal_Progress_Report" newTypedefName2="ASN1SCC_Normal_Progress_Report" newTypedefName2_kind="NewTypeDefinition">
+                          <SEQUENCE_COMPONENT Name="rid">
+                            <REFERENCE_TYPE id="Event-Reporting.Normal-Progress-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="Event-Reporting.Normal-Progress-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCE_COMPONENT>
+                        </SEQUENCE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="anomaly" PresentWhenName="Event_Reporting_Service_Report_anomaly_PRESENT" AdaName="anomaly" CName="anomaly" ScalaName="anomaly" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Event-Reporting.Event-Reporting-Service-Report.anomaly" newTypedefName="ASN1SCC_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Error-Anomaly-Report" newTypedefName2="ASN1SCC_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                        <CHOICE id="Event-Reporting.Error-Anomaly-Report" newTypedefName="ASN1SCC_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                          <CHOICE_ALTERNATIVE Name="low" PresentWhenName="Error_Anomaly_Report_low_PRESENT" AdaName="low" CName="low" ScalaName="low" AcnPresentWhenCont="">
+                            <REFERENCE_TYPE id="Event-Reporting.Error-Anomaly-Report.low" newTypedefName="ASN1SCC_Low_Severity_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Low-Severity-Error-Anomaly-Report" newTypedefName2="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                              <SEQUENCE id="Event-Reporting.Low-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Low_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+                                <SEQUENCE_COMPONENT Name="rid">
+                                  <REFERENCE_TYPE id="Event-Reporting.Low-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <INTEGER id="Event-Reporting.Low-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                                  </REFERENCE_TYPE>
+                                </SEQUENCE_COMPONENT>
+                              </SEQUENCE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                          <CHOICE_ALTERNATIVE Name="medium" PresentWhenName="Error_Anomaly_Report_medium_PRESENT" AdaName="medium" CName="medium" ScalaName="medium" AcnPresentWhenCont="">
+                            <REFERENCE_TYPE id="Event-Reporting.Error-Anomaly-Report.medium" newTypedefName="ASN1SCC_Medium_Severity_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Medium-Severity-Error-Anomaly-Report" newTypedefName2="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                              <SEQUENCE id="Event-Reporting.Medium-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_Medium_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+                                <SEQUENCE_COMPONENT Name="rid">
+                                  <REFERENCE_TYPE id="Event-Reporting.Medium-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <INTEGER id="Event-Reporting.Medium-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                                  </REFERENCE_TYPE>
+                                </SEQUENCE_COMPONENT>
+                              </SEQUENCE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                          <CHOICE_ALTERNATIVE Name="high" PresentWhenName="Error_Anomaly_Report_high_PRESENT" AdaName="high" CName="high" ScalaName="high" AcnPresentWhenCont="">
+                            <REFERENCE_TYPE id="Event-Reporting.Error-Anomaly-Report.high" newTypedefName="ASN1SCC_High_Severity_Error_Anomaly_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="High-Severity-Error-Anomaly-Report" newTypedefName2="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                              <SEQUENCE id="Event-Reporting.High-Severity-Error-Anomaly-Report" newTypedefName="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2="ASN1SCC_High_Severity_Error_Anomaly_Report" newTypedefName2_kind="NewTypeDefinition">
+                                <SEQUENCE_COMPONENT Name="rid">
+                                  <REFERENCE_TYPE id="Event-Reporting.High-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Reporting" TypeAssignment="Report-ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <INTEGER id="Event-Reporting.High-Severity-Error-Anomaly-Report.rid" newTypedefName="ASN1SCC_Report_ID" newTypedefName2="ASN1SCC_Report_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                                  </REFERENCE_TYPE>
+                                </SEQUENCE_COMPONENT>
+                              </SEQUENCE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="telecommand-verification-1" PresentWhenName="Telecommand_Verification.Service_Report_telecommand_verification_1_PRESENT" AdaName="telecommand_verification_1" CName="telecommand_verification_1" ScalaName="telecommand_verification_1" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Service-Reports.Service-Report.telecommand-verification-1" newTypedefName="Telecommand_Verification.ASN1SCC_Telecommand_Verification_Service_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Telecommand-Verification-Service-Report" newTypedefName2="ASN1SCC_Telecommand_Verification_Service_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <CHOICE id="Telecommand-Verification.Telecommand-Verification-Service-Report" newTypedefName="ASN1SCC_Telecommand_Verification_Service_Report" newTypedefName2="ASN1SCC_Telecommand_Verification_Service_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                    <CHOICE_ALTERNATIVE Name="success" PresentWhenName="Telecommand_Verification_Service_Report_success_PRESENT" AdaName="success" CName="success" ScalaName="success" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Telecommand-Verification.Telecommand-Verification-Service-Report.success" newTypedefName="ASN1SCC_Successful_Telecommand_Verification_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Successful-Telecommand-Verification-Report" newTypedefName2="ASN1SCC_Successful_Telecommand_Verification_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCE id="Telecommand-Verification.Successful-Telecommand-Verification-Report" newTypedefName="ASN1SCC_Successful_Telecommand_Verification_Report" newTypedefName2="ASN1SCC_Successful_Telecommand_Verification_Report" newTypedefName2_kind="NewTypeDefinition">
+                          <SEQUENCE_COMPONENT Name="packet-id">
+                            <REFERENCE_TYPE id="Telecommand-Verification.Successful-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Telecommand-Packet-ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="Telecommand-Verification.Successful-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCE_COMPONENT>
+                        </SEQUENCE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="failure" PresentWhenName="Telecommand_Verification_Service_Report_failure_PRESENT" AdaName="failure" CName="failure" ScalaName="failure" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Telecommand-Verification.Telecommand-Verification-Service-Report.failure" newTypedefName="ASN1SCC_Failing_Telecommand_Verification_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Failing-Telecommand-Verification-Report" newTypedefName2="ASN1SCC_Failing_Telecommand_Verification_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCE id="Telecommand-Verification.Failing-Telecommand-Verification-Report" newTypedefName="ASN1SCC_Failing_Telecommand_Verification_Report" newTypedefName2="ASN1SCC_Failing_Telecommand_Verification_Report" newTypedefName2_kind="NewTypeDefinition">
+                          <SEQUENCE_COMPONENT Name="packet-id">
+                            <REFERENCE_TYPE id="Telecommand-Verification.Failing-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Telecommand-Packet-ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="Telecommand-Verification.Failing-Telecommand-Verification-Report.packet-id" newTypedefName="ASN1SCC_Telecommand_Packet_ID" newTypedefName2="ASN1SCC_Telecommand_Packet_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCE_COMPONENT>
+                          <SEQUENCE_COMPONENT Name="code">
+                            <REFERENCE_TYPE id="Telecommand-Verification.Failing-Telecommand-Verification-Report.code" newTypedefName="ASN1SCC_Verification_Failure_Code" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Telecommand-Verification" TypeAssignment="Verification-Failure-Code" newTypedefName2="ASN1SCC_Verification_Failure_Code" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="Telecommand-Verification.Failing-Telecommand-Verification-Report.code" newTypedefName="ASN1SCC_Verification_Failure_Code" newTypedefName2="ASN1SCC_Verification_Failure_Code" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCE_COMPONENT>
+                        </SEQUENCE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="onboard-monitoring-1" PresentWhenName="Onboard_Monitoring.Service_Report_onboard_monitoring_1_PRESENT" AdaName="onboard_monitoring_1" CName="onboard_monitoring_1" ScalaName="onboard_monitoring_1" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Service-Reports.Service-Report.onboard-monitoring-1" newTypedefName="Onboard_Monitoring.ASN1SCC_Onboard_Monitoring_Service_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Onboard-Monitoring-Service-Report" newTypedefName2="ASN1SCC_Onboard_Monitoring_Service_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <CHOICE id="Onboard-Monitoring.Onboard-Monitoring-Service-Report" newTypedefName="ASN1SCC_Onboard_Monitoring_Service_Report" newTypedefName2="ASN1SCC_Onboard_Monitoring_Service_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                    <CHOICE_ALTERNATIVE Name="transition" PresentWhenName="Onboard_Monitoring_Service_Report_transition_PRESENT" AdaName="transition" CName="transition" ScalaName="transition" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Onboard-Monitoring.Onboard-Monitoring-Service-Report.transition" newTypedefName="ASN1SCC_Check_Transition_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Check-Transition-Report" newTypedefName2="ASN1SCC_Check_Transition_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCEOF id="Onboard-Monitoring.Check-Transition-Report" newTypedefName="ASN1SCC_Check_Transition_Report" newTypedefName2="ASN1SCC_Check_Transition_Report" newTypedefName2_kind="NewTypeDefinition">
+                          <REFERENCE_TYPE id="Onboard-Monitoring.Check-Transition-Report.#" newTypedefName="ASN1SCC_Transition_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Transition-Report" newTypedefName2="ASN1SCC_Transition_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                            <SEQUENCE id="Onboard-Monitoring.Transition-Report" newTypedefName="ASN1SCC_Transition_Report" newTypedefName2="ASN1SCC_Transition_Report" newTypedefName2_kind="NewTypeDefinition">
+                              <SEQUENCE_COMPONENT Name="id">
+                                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <Enumerated id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                              <SEQUENCE_COMPONENT Name="value">
+                                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.value" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                                    <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </CHOICE_ALTERNATIVE>
+                                    <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </CHOICE_ALTERNATIVE>
+                                  </CHOICE>
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                              <SEQUENCE_COMPONENT Name="limit-crossed">
+                                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.limit-crossed" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                                    <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </CHOICE_ALTERNATIVE>
+                                    <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </CHOICE_ALTERNATIVE>
+                                  </CHOICE>
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                              <SEQUENCE_COMPONENT Name="previous-checking-status">
+                                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <Enumerated id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                              <SEQUENCE_COMPONENT Name="current-checking-status">
+                                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <Enumerated id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                              <SEQUENCE_COMPONENT Name="transition-time">
+                                <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.transition-time" newTypedefName="Onboard_Parameters.ASN1SCC_On_Board_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <SEQUENCE id="Onboard-Parameters.On-Board-Time" newTypedefName="ASN1SCC_On_Board_Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="NewTypeDefinition">
+                                    <SEQUENCE_COMPONENT Name="p-field">
+                                      <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.p-field" newTypedefName="ASN1SCC_Time_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Rep-Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+                                          <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                                            <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                              <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                                            </REFERENCE_TYPE>
+                                          </SEQUENCE_COMPONENT>
+                                          <SEQUENCE_COMPONENT Name="fine-time-rep">
+                                            <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                              <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                                            </REFERENCE_TYPE>
+                                          </SEQUENCE_COMPONENT>
+                                        </SEQUENCE>
+                                      </REFERENCE_TYPE>
+                                    </SEQUENCE_COMPONENT>
+                                    <SEQUENCE_COMPONENT Name="coarse-time">
+                                      <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Coarse-Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <OctetString id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </SEQUENCE_COMPONENT>
+                                    <SEQUENCE_COMPONENT Name="fine-time">
+                                      <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Fine-Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <OctetString id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </SEQUENCE_COMPONENT>
+                                  </SEQUENCE>
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                            </SEQUENCE>
+                          </REFERENCE_TYPE>
+                        </SEQUENCEOF>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="event-action-1" PresentWhenName="Event_Action.Service_Report_event_action_1_PRESENT" AdaName="event_action_1" CName="event_action_1" ScalaName="event_action_1" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="Service-Reports.Service-Report.event-action-1" newTypedefName="Event_Action.ASN1SCC_Event_Action_Service_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Event-Action" TypeAssignment="Event-Action-Service-Report" newTypedefName2="ASN1SCC_Event_Action_Service_Report" newTypedefName2_kind="FE_Reference2OtherType">
+                  <CHOICE id="Event-Action.Event-Action-Service-Report" newTypedefName="ASN1SCC_Event_Action_Service_Report" newTypedefName2="ASN1SCC_Event_Action_Service_Report" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                    <CHOICE_ALTERNATIVE Name="foo" PresentWhenName="Event_Action_Service_Report_foo_PRESENT" AdaName="foo" CName="foo" ScalaName="foo" AcnPresentWhenCont="">
+                      <INTEGER id="Event-Action.Event-Action-Service-Report.foo" newTypedefName="ASN1SCC_Event_Action_Service_Report_foo" newTypedefName2="ASN1SCC_Event_Action_Service_Report_foo" newTypedefName2_kind="NewTypeDefinition" />
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+      <Module Name="Onboard-Monitoring-Dataview">
+        <TypeAssignments>
+          <TypeAssignment Name="Check-State">
+            <REFERENCE_TYPE id="Onboard-Monitoring-Dataview.Check-State" newTypedefName="ASN1SCC_Check_State" typeDefinitionOrReference="TypeDefinition" Module="Onboard-Monitoring" TypeAssignment="Transition-Report" newTypedefName2="ASN1SCC_Check_State" newTypedefName2_kind="NewSubTypeDefinition { asn1Name = &quot;Transition-Report&quot;&#xA;  asn1Module = Some &quot;Onboard-Monitoring&quot;&#xA;  programUnit = &quot;Onboard_Monitoring&quot;&#xA;  typeName = &quot;ASN1SCC_Transition_Report&quot;&#xA;  exist = &quot;ASN1SCC_Transition_Report_exist&quot;&#xA;  extension_function_positions =&#xA;   &quot;ASN1SCC_Transition_Report_extension_function_positions&quot;&#xA;  kind = NonPrimitiveNewTypeDefinition }">
+              <SEQUENCE id="Onboard-Monitoring.Transition-Report" newTypedefName="ASN1SCC_Transition_Report" newTypedefName2="ASN1SCC_Transition_Report" newTypedefName2_kind="NewTypeDefinition">
+                <SEQUENCE_COMPONENT Name="id">
+                  <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                    <Enumerated id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+                <SEQUENCE_COMPONENT Name="value">
+                  <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.value" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                    <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                      <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                        <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                          <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </CHOICE_ALTERNATIVE>
+                      <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                        <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                          <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </CHOICE_ALTERNATIVE>
+                    </CHOICE>
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+                <SEQUENCE_COMPONENT Name="limit-crossed">
+                  <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.limit-crossed" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                    <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                      <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                        <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                          <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </CHOICE_ALTERNATIVE>
+                      <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                        <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                          <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </CHOICE_ALTERNATIVE>
+                    </CHOICE>
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+                <SEQUENCE_COMPONENT Name="previous-checking-status">
+                  <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                    <Enumerated id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+                <SEQUENCE_COMPONENT Name="current-checking-status">
+                  <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                    <Enumerated id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+                <SEQUENCE_COMPONENT Name="transition-time">
+                  <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.transition-time" newTypedefName="Onboard_Parameters.ASN1SCC_On_Board_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                    <SEQUENCE id="Onboard-Parameters.On-Board-Time" newTypedefName="ASN1SCC_On_Board_Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="NewTypeDefinition">
+                      <SEQUENCE_COMPONENT Name="p-field">
+                        <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.p-field" newTypedefName="ASN1SCC_Time_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Rep-Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                          <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+                            <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                              <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                              </REFERENCE_TYPE>
+                            </SEQUENCE_COMPONENT>
+                            <SEQUENCE_COMPONENT Name="fine-time-rep">
+                              <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                              </REFERENCE_TYPE>
+                            </SEQUENCE_COMPONENT>
+                          </SEQUENCE>
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                      <SEQUENCE_COMPONENT Name="coarse-time">
+                        <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Coarse-Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                          <OctetString id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                      <SEQUENCE_COMPONENT Name="fine-time">
+                        <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Fine-Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                          <OctetString id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                    </SEQUENCE>
+                  </REFERENCE_TYPE>
+                </SEQUENCE_COMPONENT>
+              </SEQUENCE>
+            </REFERENCE_TYPE>
+          </TypeAssignment>
+          <TypeAssignment Name="Check-Transition">
+            <REFERENCE_TYPE id="Onboard-Monitoring-Dataview.Check-Transition" newTypedefName="ASN1SCC_Check_Transition" typeDefinitionOrReference="TypeDefinition" Module="Onboard-Monitoring-Dataview" TypeAssignment="Check-State" newTypedefName2="ASN1SCC_Check_Transition" newTypedefName2_kind="NewSubTypeDefinition { asn1Name = &quot;Check-State&quot;&#xA;  asn1Module = Some &quot;Onboard-Monitoring-Dataview&quot;&#xA;  programUnit = &quot;Onboard_Monitoring_Dataview&quot;&#xA;  typeName = &quot;ASN1SCC_Check_State&quot;&#xA;  exist = &quot;ASN1SCC_Check_State_exist&quot;&#xA;  extension_function_positions =&#xA;   &quot;ASN1SCC_Check_State_extension_function_positions&quot;&#xA;  kind =&#xA;   NonPrimitiveNewSubTypeDefinition&#xA;     { asn1Name = &quot;Transition-Report&quot;&#xA;       asn1Module = Some &quot;Onboard-Monitoring&quot;&#xA;       programUnit = &quot;Onboard_Monitoring&quot;&#xA;       typeName = &quot;ASN1SCC_Transition_Report&quot;&#xA;       exist = &quot;ASN1SCC_Transition_Report_exist&quot;&#xA;       extension_function_positions =&#xA;        &quot;ASN1SCC_Transition_Report_extension_function_positions&quot;&#xA;       kind = NonPrimitiveNewTypeDefinition } }">
+              <REFERENCE_TYPE id="Onboard-Monitoring-Dataview.Check-State" newTypedefName="ASN1SCC_Check_State" typeDefinitionOrReference="TypeDefinition" Module="Onboard-Monitoring" TypeAssignment="Transition-Report" newTypedefName2="ASN1SCC_Check_State" newTypedefName2_kind="NewSubTypeDefinition { asn1Name = &quot;Transition-Report&quot;&#xA;  asn1Module = Some &quot;Onboard-Monitoring&quot;&#xA;  programUnit = &quot;Onboard_Monitoring&quot;&#xA;  typeName = &quot;ASN1SCC_Transition_Report&quot;&#xA;  exist = &quot;ASN1SCC_Transition_Report_exist&quot;&#xA;  extension_function_positions =&#xA;   &quot;ASN1SCC_Transition_Report_extension_function_positions&quot;&#xA;  kind = NonPrimitiveNewTypeDefinition }">
+                <SEQUENCE id="Onboard-Monitoring.Transition-Report" newTypedefName="ASN1SCC_Transition_Report" newTypedefName2="ASN1SCC_Transition_Report" newTypedefName2_kind="NewTypeDefinition">
+                  <SEQUENCE_COMPONENT Name="id">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                      <Enumerated id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                  <SEQUENCE_COMPONENT Name="value">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.value" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                      <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                        <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                          <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                            <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </CHOICE_ALTERNATIVE>
+                        <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                          <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                            <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </CHOICE_ALTERNATIVE>
+                      </CHOICE>
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                  <SEQUENCE_COMPONENT Name="limit-crossed">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.limit-crossed" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                      <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                        <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                          <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                            <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </CHOICE_ALTERNATIVE>
+                        <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                          <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                            <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </CHOICE_ALTERNATIVE>
+                      </CHOICE>
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                  <SEQUENCE_COMPONENT Name="previous-checking-status">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                      <Enumerated id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                  <SEQUENCE_COMPONENT Name="current-checking-status">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                      <Enumerated id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                  <SEQUENCE_COMPONENT Name="transition-time">
+                    <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.transition-time" newTypedefName="Onboard_Parameters.ASN1SCC_On_Board_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                      <SEQUENCE id="Onboard-Parameters.On-Board-Time" newTypedefName="ASN1SCC_On_Board_Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="NewTypeDefinition">
+                        <SEQUENCE_COMPONENT Name="p-field">
+                          <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.p-field" newTypedefName="ASN1SCC_Time_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Rep-Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                            <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+                              <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                                <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                              <SEQUENCE_COMPONENT Name="fine-time-rep">
+                                <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCE_COMPONENT>
+                            </SEQUENCE>
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                        <SEQUENCE_COMPONENT Name="coarse-time">
+                          <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Coarse-Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                            <OctetString id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                        <SEQUENCE_COMPONENT Name="fine-time">
+                          <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Fine-Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                            <OctetString id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </SEQUENCE_COMPONENT>
+                      </SEQUENCE>
+                    </REFERENCE_TYPE>
+                  </SEQUENCE_COMPONENT>
+                </SEQUENCE>
+              </REFERENCE_TYPE>
+            </REFERENCE_TYPE>
+          </TypeAssignment>
+          <TypeAssignment Name="Check-Transition-Set">
+            <SEQUENCEOF id="Onboard-Monitoring-Dataview.Check-Transition-Set" newTypedefName="ASN1SCC_Check_Transition_Set" newTypedefName2="ASN1SCC_Check_Transition_Set" newTypedefName2_kind="NewTypeDefinition">
+              <REFERENCE_TYPE id="Onboard-Monitoring-Dataview.Check-Transition-Set.#" newTypedefName="Onboard_Monitoring.ASN1SCC_Transition_Report" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring-Dataview" TypeAssignment="Check-Transition" newTypedefName2="ASN1SCC_Check_Transition" newTypedefName2_kind="FE_Reference2OtherType">
+                <REFERENCE_TYPE id="Onboard-Monitoring-Dataview.Check-Transition" newTypedefName="ASN1SCC_Check_Transition" typeDefinitionOrReference="TypeDefinition" Module="Onboard-Monitoring-Dataview" TypeAssignment="Check-State" newTypedefName2="ASN1SCC_Check_Transition" newTypedefName2_kind="NewSubTypeDefinition { asn1Name = &quot;Check-State&quot;&#xA;  asn1Module = Some &quot;Onboard-Monitoring-Dataview&quot;&#xA;  programUnit = &quot;Onboard_Monitoring_Dataview&quot;&#xA;  typeName = &quot;ASN1SCC_Check_State&quot;&#xA;  exist = &quot;ASN1SCC_Check_State_exist&quot;&#xA;  extension_function_positions =&#xA;   &quot;ASN1SCC_Check_State_extension_function_positions&quot;&#xA;  kind =&#xA;   NonPrimitiveNewSubTypeDefinition&#xA;     { asn1Name = &quot;Transition-Report&quot;&#xA;       asn1Module = Some &quot;Onboard-Monitoring&quot;&#xA;       programUnit = &quot;Onboard_Monitoring&quot;&#xA;       typeName = &quot;ASN1SCC_Transition_Report&quot;&#xA;       exist = &quot;ASN1SCC_Transition_Report_exist&quot;&#xA;       extension_function_positions =&#xA;        &quot;ASN1SCC_Transition_Report_extension_function_positions&quot;&#xA;       kind = NonPrimitiveNewTypeDefinition } }">
+                  <REFERENCE_TYPE id="Onboard-Monitoring-Dataview.Check-State" newTypedefName="ASN1SCC_Check_State" typeDefinitionOrReference="TypeDefinition" Module="Onboard-Monitoring" TypeAssignment="Transition-Report" newTypedefName2="ASN1SCC_Check_State" newTypedefName2_kind="NewSubTypeDefinition { asn1Name = &quot;Transition-Report&quot;&#xA;  asn1Module = Some &quot;Onboard-Monitoring&quot;&#xA;  programUnit = &quot;Onboard_Monitoring&quot;&#xA;  typeName = &quot;ASN1SCC_Transition_Report&quot;&#xA;  exist = &quot;ASN1SCC_Transition_Report_exist&quot;&#xA;  extension_function_positions =&#xA;   &quot;ASN1SCC_Transition_Report_extension_function_positions&quot;&#xA;  kind = NonPrimitiveNewTypeDefinition }">
+                    <SEQUENCE id="Onboard-Monitoring.Transition-Report" newTypedefName="ASN1SCC_Transition_Report" newTypedefName2="ASN1SCC_Transition_Report" newTypedefName2_kind="NewTypeDefinition">
+                      <SEQUENCE_COMPONENT Name="id">
+                        <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType">
+                          <Enumerated id="Onboard-Monitoring.Transition-Report.id" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_ID" newTypedefName2="ASN1SCC_Parameter_ID" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                      <SEQUENCE_COMPONENT Name="value">
+                        <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.value" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                          <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                            <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                              <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                              </REFERENCE_TYPE>
+                            </CHOICE_ALTERNATIVE>
+                            <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                              <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                              </REFERENCE_TYPE>
+                            </CHOICE_ALTERNATIVE>
+                          </CHOICE>
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                      <SEQUENCE_COMPONENT Name="limit-crossed">
+                        <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.limit-crossed" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                          <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                            <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                              <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                              </REFERENCE_TYPE>
+                            </CHOICE_ALTERNATIVE>
+                            <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                              <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                                <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                              </REFERENCE_TYPE>
+                            </CHOICE_ALTERNATIVE>
+                          </CHOICE>
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                      <SEQUENCE_COMPONENT Name="previous-checking-status">
+                        <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                          <Enumerated id="Onboard-Monitoring.Transition-Report.previous-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                      <SEQUENCE_COMPONENT Name="current-checking-status">
+                        <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Monitoring" TypeAssignment="Checking-Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType">
+                          <Enumerated id="Onboard-Monitoring.Transition-Report.current-checking-status" newTypedefName="ASN1SCC_Checking_Status" newTypedefName2="ASN1SCC_Checking_Status" newTypedefName2_kind="FE_Reference2OtherType" />
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                      <SEQUENCE_COMPONENT Name="transition-time">
+                        <REFERENCE_TYPE id="Onboard-Monitoring.Transition-Report.transition-time" newTypedefName="Onboard_Parameters.ASN1SCC_On_Board_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                          <SEQUENCE id="Onboard-Parameters.On-Board-Time" newTypedefName="ASN1SCC_On_Board_Time" newTypedefName2="ASN1SCC_On_Board_Time" newTypedefName2_kind="NewTypeDefinition">
+                            <SEQUENCE_COMPONENT Name="p-field">
+                              <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.p-field" newTypedefName="ASN1SCC_Time_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Rep-Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                <SEQUENCE id="Onboard-Parameters.Time-Rep-Spec" newTypedefName="ASN1SCC_Time_Rep_Spec" newTypedefName2="ASN1SCC_Time_Rep_Spec" newTypedefName2_kind="NewTypeDefinition">
+                                  <SEQUENCE_COMPONENT Name="coarse-time-rep">
+                                    <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                      <INTEGER id="Onboard-Parameters.Time-Rep-Spec.coarse-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                                    </REFERENCE_TYPE>
+                                  </SEQUENCE_COMPONENT>
+                                  <SEQUENCE_COMPONENT Name="fine-time-rep">
+                                    <REFERENCE_TYPE id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Time-Component-Rep-Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType">
+                                      <INTEGER id="Onboard-Parameters.Time-Rep-Spec.fine-time-rep" newTypedefName="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2="ASN1SCC_Time_Component_Rep_Spec" newTypedefName2_kind="FE_Reference2OtherType" />
+                                    </REFERENCE_TYPE>
+                                  </SEQUENCE_COMPONENT>
+                                </SEQUENCE>
+                              </REFERENCE_TYPE>
+                            </SEQUENCE_COMPONENT>
+                            <SEQUENCE_COMPONENT Name="coarse-time">
+                              <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Coarse-Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                                <OctetString id="Onboard-Parameters.On-Board-Time.coarse-time" newTypedefName="ASN1SCC_On_Board_Coarse_Time" newTypedefName2="ASN1SCC_On_Board_Coarse_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                              </REFERENCE_TYPE>
+                            </SEQUENCE_COMPONENT>
+                            <SEQUENCE_COMPONENT Name="fine-time">
+                              <REFERENCE_TYPE id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="On-Board-Fine-Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType">
+                                <OctetString id="Onboard-Parameters.On-Board-Time.fine-time" newTypedefName="ASN1SCC_On_Board_Fine_Time" newTypedefName2="ASN1SCC_On_Board_Fine_Time" newTypedefName2_kind="FE_Reference2OtherType" />
+                              </REFERENCE_TYPE>
+                            </SEQUENCE_COMPONENT>
+                          </SEQUENCE>
+                        </REFERENCE_TYPE>
+                      </SEQUENCE_COMPONENT>
+                    </SEQUENCE>
+                  </REFERENCE_TYPE>
+                </REFERENCE_TYPE>
+              </REFERENCE_TYPE>
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="Check-Definition">
+            <SEQUENCE id="Onboard-Monitoring-Dataview.Check-Definition" newTypedefName="ASN1SCC_Check_Definition" newTypedefName2="ASN1SCC_Check_Definition" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="lower-bound">
+                <REFERENCE_TYPE id="Onboard-Monitoring-Dataview.Check-Definition.lower-bound" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                  <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                    <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="upper-bound">
+                <REFERENCE_TYPE id="Onboard-Monitoring-Dataview.Check-Definition.upper-bound" newTypedefName="Onboard_Parameters.ASN1SCC_Parameter_Value" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Onboard-Parameters" TypeAssignment="Parameter-Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="FE_Reference2OtherType">
+                  <CHOICE id="Onboard-Parameters.Parameter-Value" newTypedefName="ASN1SCC_Parameter_Value" newTypedefName2="ASN1SCC_Parameter_Value" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                    <CHOICE_ALTERNATIVE Name="type-1-0" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_0_PRESENT" AdaName="type_1_0" CName="type_1_0" ScalaName="type_1_0" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-0" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="type-1-1" PresentWhenName="Standard_Datatypes.Parameter_Value_type_1_1_PRESENT" AdaName="type_1_1" CName="type_1_1" ScalaName="type_1_1" AcnPresentWhenCont="">
+                      <REFERENCE_TYPE id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="Standard-Datatypes" TypeAssignment="Unsigned-Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="Onboard-Parameters.Parameter-Value.type-1-1" newTypedefName="Standard_Datatypes.ASN1SCC_Unsigned_Integer" newTypedefName2="ASN1SCC_Unsigned_Integer" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+      <Module Name="Application-Processes">
+        <TypeAssignments>
+          <TypeAssignment Name="Application-Process-ID">
+            <Enumerated id="Application-Processes.Application-Process-ID" newTypedefName="ASN1SCC_Application_Process_ID" newTypedefName2="ASN1SCC_Application_Process_ID" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+      <Module Name="TASTE-Directives">
+        <TypeAssignments>
+          <TypeAssignment Name="Simulink-Initializer-Excel-T">
+            <SEQUENCE id="TASTE-Directives.Simulink-Initializer-Excel-T" newTypedefName="ASN1SCC_Simulink_Initializer_Excel_T" newTypedefName2="ASN1SCC_Simulink_Initializer_Excel_T" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="filename">
+                <IA5STRING id="TASTE-Directives.Simulink-Initializer-Excel-T.filename" newTypedefName="ASN1SCC_Simulink_Initializer_Excel_T_filename" newTypedefName2="ASN1SCC_Simulink_Initializer_Excel_T_filename" newTypedefName2_kind="NewTypeDefinition" />
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="col">
+                <INTEGER id="TASTE-Directives.Simulink-Initializer-Excel-T.col" newTypedefName="ASN1SCC_Simulink_Initializer_Excel_T_col" newTypedefName2="ASN1SCC_Simulink_Initializer_Excel_T_col" newTypedefName2_kind="NewTypeDefinition" />
+              </SEQUENCE_COMPONENT>
+              <SEQUENCE_COMPONENT Name="line">
+                <INTEGER id="TASTE-Directives.Simulink-Initializer-Excel-T.line" newTypedefName="ASN1SCC_Simulink_Initializer_Excel_T_line" newTypedefName2="ASN1SCC_Simulink_Initializer_Excel_T_line" newTypedefName2_kind="NewTypeDefinition" />
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="Simulink-Script-T">
+            <SEQUENCE id="TASTE-Directives.Simulink-Script-T" newTypedefName="ASN1SCC_Simulink_Script_T" newTypedefName2="ASN1SCC_Simulink_Script_T" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="filename">
+                <IA5STRING id="TASTE-Directives.Simulink-Script-T.filename" newTypedefName="ASN1SCC_Simulink_Script_T_filename" newTypedefName2="ASN1SCC_Simulink_Script_T_filename" newTypedefName2_kind="NewTypeDefinition" />
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="Taste-directive">
+            <CHOICE id="TASTE-Directives.Taste-directive" newTypedefName="ASN1SCC_Taste_directive" newTypedefName2="ASN1SCC_Taste_directive" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+              <CHOICE_ALTERNATIVE Name="simulink-initializer-excel" PresentWhenName="Taste_directive_simulink_initializer_excel_PRESENT" AdaName="simulink_initializer_excel" CName="simulink_initializer_excel" ScalaName="simulink_initializer_excel" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="TASTE-Directives.Taste-directive.simulink-initializer-excel" newTypedefName="ASN1SCC_Simulink_Initializer_Excel_T" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="TASTE-Directives" TypeAssignment="Simulink-Initializer-Excel-T" newTypedefName2="ASN1SCC_Simulink_Initializer_Excel_T" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="TASTE-Directives.Simulink-Initializer-Excel-T" newTypedefName="ASN1SCC_Simulink_Initializer_Excel_T" newTypedefName2="ASN1SCC_Simulink_Initializer_Excel_T" newTypedefName2_kind="NewTypeDefinition">
+                    <SEQUENCE_COMPONENT Name="filename">
+                      <IA5STRING id="TASTE-Directives.Simulink-Initializer-Excel-T.filename" newTypedefName="ASN1SCC_Simulink_Initializer_Excel_T_filename" newTypedefName2="ASN1SCC_Simulink_Initializer_Excel_T_filename" newTypedefName2_kind="NewTypeDefinition" />
+                    </SEQUENCE_COMPONENT>
+                    <SEQUENCE_COMPONENT Name="col">
+                      <INTEGER id="TASTE-Directives.Simulink-Initializer-Excel-T.col" newTypedefName="ASN1SCC_Simulink_Initializer_Excel_T_col" newTypedefName2="ASN1SCC_Simulink_Initializer_Excel_T_col" newTypedefName2_kind="NewTypeDefinition" />
+                    </SEQUENCE_COMPONENT>
+                    <SEQUENCE_COMPONENT Name="line">
+                      <INTEGER id="TASTE-Directives.Simulink-Initializer-Excel-T.line" newTypedefName="ASN1SCC_Simulink_Initializer_Excel_T_line" newTypedefName2="ASN1SCC_Simulink_Initializer_Excel_T_line" newTypedefName2_kind="NewTypeDefinition" />
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="simulink-script" PresentWhenName="Taste_directive_simulink_script_PRESENT" AdaName="simulink_script" CName="simulink_script" ScalaName="simulink_script" AcnPresentWhenCont="">
+                <REFERENCE_TYPE id="TASTE-Directives.Taste-directive.simulink-script" newTypedefName="ASN1SCC_Simulink_Script_T" typeDefinitionOrReference="ReferenceToExistingDefinition" Module="TASTE-Directives" TypeAssignment="Simulink-Script-T" newTypedefName2="ASN1SCC_Simulink_Script_T" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="TASTE-Directives.Simulink-Script-T" newTypedefName="ASN1SCC_Simulink_Script_T" newTypedefName2="ASN1SCC_Simulink_Script_T" newTypedefName2_kind="NewTypeDefinition">
+                    <SEQUENCE_COMPONENT Name="filename">
+                      <IA5STRING id="TASTE-Directives.Simulink-Script-T.filename" newTypedefName="ASN1SCC_Simulink_Script_T_filename" newTypedefName2="ASN1SCC_Simulink_Script_T_filename" newTypedefName2_kind="NewTypeDefinition" />
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+      <Module Name="TEST-CASE">
+        <TypeAssignments>
+          <TypeAssignment Name="MyPDU">
+            <INTEGER id="TEST-CASE.MyPDU" newTypedefName="ASN1SCC_MyPDU" newTypedefName2="ASN1SCC_MyPDU" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+    </Modules>
+  </Asn1File>
+  <AcnDependencies />
+</AstRoot>

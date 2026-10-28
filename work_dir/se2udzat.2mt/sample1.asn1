@@ -1,0 +1,19 @@
+--RUN_SPARK
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	-- REAL encoded as scaled unsigned integer (issue #339)
+	-- range authored as [0, 65535*0.01] so that a 16-bit encoding has LSB = 0.01
+	MyPDU ::= REAL (0.0 .. 655.35)
+
+	pdu1 MyPDU ::= 0.0
+
+END
+
+--TCLS     MyPDU[encoding pos-int, size 16]
+--TCLS     MyPDU[encoding pos-int, size 16, endianness little]
+--TCLS     MyPDU[encoding pos-int, size 32]
+--TCLS     MyPDU[encoding pos-int, size 32, endianness little]
+--TCLS     MyPDU[encoding pos-int, size 8]
+--TCLS     MyPDU[encoding pos-int, size 13]
+--TCLFC    MyPDU[encoding pos-int]    $$$  sample1.acn:4:6: error: Mandatory ACN property 'size' is missing
+--TCLFC    MyPDU[encoding pos-int, size 16, mapping-function foo]    $$$  sample1.acn:4:6: error: Acn property 'mapping-function' cannot be applied to REAL types

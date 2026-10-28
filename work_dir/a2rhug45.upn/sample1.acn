@@ -1,0 +1,53 @@
+Standard-Datatypes DEFINITIONS  ::=
+BEGIN
+
+END
+
+Event-Action DEFINITIONS  ::=
+BEGIN
+
+
+END
+Onboard-Monitoring DEFINITIONS  ::=
+BEGIN
+
+END
+Telecommand-Verification DEFINITIONS  ::=
+BEGIN
+
+
+END
+Onboard-Parameters DEFINITIONS  ::=
+BEGIN
+
+
+END
+Event-Reporting DEFINITIONS  ::=
+BEGIN
+
+
+END
+Service-Reports DEFINITIONS  ::=
+BEGIN
+
+
+END
+Onboard-Monitoring-Dataview DEFINITIONS  ::=
+BEGIN
+    
+
+END
+Application-Processes DEFINITIONS  ::=
+BEGIN
+
+ 
+END
+TASTE-Directives DEFINITIONS  ::= 
+BEGIN
+
+
+END
+
+
+TEST-CASE DEFINITIONS  ::= BEGIN
+END

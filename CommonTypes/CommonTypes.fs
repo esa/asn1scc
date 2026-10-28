@@ -730,7 +730,7 @@ type FE_StringTypeDefinition = {
 }
 with
     member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = let sep = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then "::" else "." in let pu = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then this.programUnit.ToLower() + "Def" else this.programUnit in pu + sep + n
+        let z n = n  // Rust: return bare name; qualification is done by the caller
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -753,7 +753,7 @@ type FE_SizeableTypeDefinition = {
 }
 with
     member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = let sep = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then "::" else "." in let pu = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then this.programUnit.ToLower() + "Def" else this.programUnit in pu + sep + n
+        let z n = n  // Rust: return bare name; qualification is done by the caller
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -775,7 +775,7 @@ type FE_SequenceTypeDefinition = {
 }
 with
     member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = let sep = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then "::" else "." in let pu = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then this.programUnit.ToLower() + "Def" else this.programUnit in pu + sep + n
+        let z n = n  // Rust: return bare name; qualification is done by the caller
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -798,7 +798,7 @@ type FE_ChoiceTypeDefinition = {
 }
 with
     member this.longTypedefName2 bHasModules callerProgramUnit =
-        let z n = let sep = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then "::" else "." in let pu = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then this.programUnit.ToLower() + "Def" else this.programUnit in pu + sep + n
+        let z n = n  // Rust: return bare name; qualification is done by the caller
         match bHasModules with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -824,7 +824,7 @@ type FE_EnumeratedTypeDefinition = {
 with
 
     member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = let sep = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then "::" else "." in let pu = if ProgrammingLanguage.ActiveLanguages |> List.contains Rust then this.programUnit.ToLower() + "Def" else this.programUnit in pu + sep + n
+        let z n = n  // Rust: return bare name; qualification is done by the caller
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this

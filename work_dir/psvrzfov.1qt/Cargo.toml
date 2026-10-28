@@ -1,0 +1,14 @@
+[package]
+name = "asn1scc_project"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+asn1rust = { path = "asn1rust" }
+
+[[bin]]
+name = "mainprogram"
+path = "mainprogram.rs"
+
+[profile.release]
+opt-level = 3

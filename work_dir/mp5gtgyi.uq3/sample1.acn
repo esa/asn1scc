@@ -1,0 +1,5 @@
+-- Auto generated file
+TEST-CASE DEFINITIONS ::= BEGIN
+
+	CONSTANT WSIZE ::=64-1 MyPDU[encoding twos-complement, size WSIZE]      
+END

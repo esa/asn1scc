@@ -1,0 +1,5 @@
+-- Auto generated file
+TEST-CASE DEFINITIONS ::= BEGIN
+
+	MyPDU[encoding pos-int, size 64]          
+END

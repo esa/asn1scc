@@ -1,0 +1,9 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+	GnssAccuracy [encoding pos-int, size 16]
+
+	BodyRate [encoding twos-complement, size 32, endianness little]
+
+	MyPDU []
+
+END

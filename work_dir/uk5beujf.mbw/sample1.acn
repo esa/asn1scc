@@ -1,0 +1,5 @@
+-- Auto generated file
+TEST-CASE DEFINITIONS ::= BEGIN
+
+	     MyPDU[encoding IEEE754-1985-64, endianness little]
+END

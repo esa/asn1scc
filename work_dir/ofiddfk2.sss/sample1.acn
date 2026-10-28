@@ -1,0 +1,5 @@
+-- Auto generated file
+TEST-CASE DEFINITIONS ::= BEGIN
+
+	     MyTemplate[] {version [encoding pos-int, size 4], someReal[encoding IEEE754-1985-64, endianness little], innerType []} MyMissionSpecificType [] {red [encoding pos-int, size 8], green [encoding pos-int, size 8],blue [encoding pos-int, size 8]}
+END

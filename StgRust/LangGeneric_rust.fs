@@ -310,10 +310,10 @@ type LangGeneric_rust() =
                         match pu with
                         | "" -> ref.typedefName
                         | k when safePu = safeMod -> ref.typedefName
-                        // Types live in the Def file, so cross-module type
-                        // references must use the Def module (puDef::Type), not
-                        // the body module (pu::Type).
-                        | _ -> "crate::" + safePu + "Def::" + ref.typedefName
+                        // Return bare type name for cross-module references.
+                        // The caller is responsible for qualifying with the
+                        // appropriate prefix (Def for types, body for functions).
+                        | _ -> ref.typedefName
                     | false     -> ref.typedefName
                 | None    -> ref.typedefName
 

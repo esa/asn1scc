@@ -1,0 +1,15 @@
+--RUN_SPARK
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	-- REAL encoded as scaled two's-complement integer (issue #339)
+	MyPDU ::= REAL (-450.0 .. 450.0)
+
+	pdu1 MyPDU ::= -450.0
+
+END
+
+--TCLS     MyPDU[encoding twos-complement, size 16]
+--TCLS     MyPDU[encoding twos-complement, size 32]
+--TCLS     MyPDU[encoding twos-complement, size 32, endianness little]
+--TCLS     MyPDU[encoding twos-complement, size 13]
+--TCLFC    MyPDU[encoding twos-complement]    $$$  sample1.acn:4:6: error: Mandatory ACN property 'size' is missing
