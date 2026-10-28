@@ -76,7 +76,7 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
     let modName = typeModName//ToC m.Name.Value
     let sFuncName = sprintf "test_case_%A_%06d" e idx
     let encAmper, initAmper = gAmber lm v.Type
-    let curProgramUnitName = ToC modName  //Use the module name so same-module types are not qualified
+    let curProgramUnitName = ""  //Main program has no module (test cases import qualified names; language hooks render the prefix)
     let valueType = match v.Type.typeDefinitionOrReference with
                     | TypeDefinition  td -> lm.lg.constructCrossModuleTypeDefPrefix modName + td.typedefName
                     | ReferenceToExistingDefinition ref -> lm.lg.constructCrossModuleTypeDefPrefix modName + ref.typedefName

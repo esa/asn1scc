@@ -474,7 +474,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
         o.AllCons |>
         List.map DastFold.getValueFromSizeableConstraint |>
         List.collect id |>
-        List.map(fun (v,_) -> DAstVariables.printOctetStringValueAsCompoundLiteral lm (ToC t.ActualType.moduleName) o (v|>List.map(fun bl -> bl.Value)))
+        List.map(fun (v,_) -> DAstVariables.printOctetStringValueAsCompoundLiteral lm "" o (v|>List.map(fun bl -> bl.Value)))
 
     let testCaseFuncs, tasInitFunc =
         match anonyms with
@@ -578,7 +578,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
         o.AllCons |>
         List.map DastFold.getValueFromSizeableConstraint |>
         List.collect id |>
-        List.map(fun (v,_) -> DAstVariables.printBitStringValueAsCompoundLiteral lm (ToC t.ActualType.moduleName) o v.Value)
+        List.map(fun (v,_) -> DAstVariables.printBitStringValueAsCompoundLiteral lm "" o v.Value)
 
     let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
     let tdName = lm.lg.getLongTypedefName typeDefinition
