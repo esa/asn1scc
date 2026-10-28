@@ -352,8 +352,6 @@ type ILangBasic () =
     abstract member keywords : string Set
     abstract member isKeyword : string -> bool
     abstract member OnTypeNameConflictTryAppendModName : bool
-    abstract member moduleSeparator : string
-    default _.moduleSeparator = "."
     abstract member declare_IntegerNoRTL : string*string*string
     abstract member declare_PosIntegerNoRTL : string*string*string
     abstract member getRealRtlTypeName : string*string*string
@@ -729,8 +727,8 @@ type FE_StringTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_StringTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = n  // Rust: return bare name; qualification is done by the caller
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -752,8 +750,8 @@ type FE_SizeableTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SizeableTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = n  // Rust: return bare name; qualification is done by the caller
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -774,8 +772,8 @@ type FE_SequenceTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SequenceTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = n  // Rust: return bare name; qualification is done by the caller
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -797,8 +795,8 @@ type FE_ChoiceTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_ChoiceTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasModules callerProgramUnit =
-        let z n = n  // Rust: return bare name; qualification is done by the caller
+    member this.longTypedefName2 bHasModules callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasModules with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -823,8 +821,8 @@ type FE_EnumeratedTypeDefinition = {
 }
 with
 
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = n  // Rust: return bare name; qualification is done by the caller
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
