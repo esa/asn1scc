@@ -1,5 +1,0 @@
--- Auto generated file
-TEST-CASE DEFINITIONS ::= BEGIN
-
-	     MyPDU[encoding twos-complement, size 32]
-END

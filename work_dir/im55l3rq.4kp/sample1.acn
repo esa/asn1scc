@@ -1,5 +1,0 @@
--- Auto generated file
-TEST-CASE DEFINITIONS ::= BEGIN
-
-	     CONSTANT WSIZE ::=37 MyPDU[encoding pos-int, size WSIZE]
-END

@@ -1,5 +1,0 @@
--- Auto generated file
-TEST-CASE DEFINITIONS ::= BEGIN
-
-	     MyPDU[encoding ASCII, size 160]  
-END

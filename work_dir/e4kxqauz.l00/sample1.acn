@@ -1,5 +1,0 @@
--- Auto generated file
-TEST-CASE DEFINITIONS ::= BEGIN
-
-	     MyPDU[encoding BCD, size null-terminated]
-END
