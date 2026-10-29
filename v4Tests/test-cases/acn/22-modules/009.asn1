@@ -1,3 +1,6 @@
+-- C_ADA_ONLY (Rust: the value-assignment test cases strip the crate::mod_aDef::
+-- prefix and the constants exist in mod_a.rs and mod_aDef.rs -> E0659 ambiguous;
+-- Python: values of other modules are not emitted, pre-existing on master)
 -- Cross-module references with one program unit per ASN.1 module (Ada, Rust):
 -- types, value assignments and a value that references a value of another
 -- module. Ada named such a value with the wrong package ("MOD_B.pairA",
