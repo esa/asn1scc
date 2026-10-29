@@ -292,7 +292,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                             | true       ->
                                 match md.Value = t.id.ModName with
                                 | true  -> ToC2(r.args.TypePrefix + ts.Value)
-                                | false -> (ToC2 md.Value) + "." + ToC2(r.args.TypePrefix + ts.Value)
+                                | false -> lm.lg.constructCrossModuleFuncPrefix (ToC2 md.Value) + ToC2(r.args.TypePrefix + ts.Value)
                         let resolvedKind =
                             r.Modules
                             |> Seq.tryFind (fun m -> m.Name.Value = md.Value)

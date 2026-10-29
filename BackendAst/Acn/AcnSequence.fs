@@ -657,8 +657,8 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     | false ->  ToC fncName.Value
                     | true ->
                         match modFncName with
-                        | None -> ToC (r.args.mappingFunctionsModule.orElse "") + "." + ToC fncName.Value
-                        | Some modFncName -> ToC modFncName.Value + "." + ToC fncName.Value
+                        | None -> lm.lg.constructCrossModuleFuncPrefix (ToC (r.args.mappingFunctionsModule.orElse "")) + ToC fncName.Value
+                        | Some modFncName -> lm.lg.constructCrossModuleFuncPrefix (ToC modFncName.Value) + ToC fncName.Value
 
                 let fncCall = sequence_call_post_encoding_function (lm.lg.getPointer p.accessPath) actualFncName bsPosStart bitStreamPositionsLocalVar
                 let fncCallPrototype = sequence_call_post_encoding_function_prototype td.typeName actualFncName td.extension_function_positions
@@ -673,8 +673,8 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                         | false -> (ToC fncName.Value)
                         | true ->
                             match modFncName with
-                            | None -> (ToC (r.args.mappingFunctionsModule.orElse "")) + "." + (ToC fncName.Value)
-                            | Some modFncName -> (ToC modFncName.Value) + "." + (ToC fncName.Value)
+                            | None -> lm.lg.constructCrossModuleFuncPrefix (ToC (r.args.mappingFunctionsModule.orElse "")) + (ToC fncName.Value)
+                            | Some modFncName -> lm.lg.constructCrossModuleFuncPrefix (ToC modFncName.Value) + (ToC fncName.Value)
                     let fncCall = sequence_call_post_decoding_validator (lm.lg.getPointer p.accessPath) actualFncName bsPosStart  bitStreamPositionsLocalVar
                     let fncCallPrototype = sequence_call_post_decoding_validator_prototype td.typeName actualFncName td.extension_function_positions
                     let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec

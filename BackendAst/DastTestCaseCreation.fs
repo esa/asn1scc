@@ -20,7 +20,7 @@ let GetEncodingString (lm:LanguageMacros) = function
 let includedPackages r (lm:LanguageMacros) =
     match lm.lg.hasModules with
     | false     -> r.programUnits |> Seq.map(fun x -> lm.lg.sanitizeModuleName (System.IO.Path.GetFileNameWithoutExtension(x.testcase_specFileName)))
-    | true      -> r.programUnits |> Seq.collect(fun x -> [x.name; x.testcase_name])
+    | true      -> r.programUnits |> Seq.collect(fun x -> [lm.lg.sanitizeModuleName x.name; lm.lg.sanitizeModuleName x.testcase_name])
 
 
 let rec gAmber (lm:LanguageMacros) (t:Asn1Type) =
@@ -76,10 +76,10 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
     let modName = typeModName//ToC m.Name.Value
     let sFuncName = sprintf "test_case_%A_%06d" e idx
     let encAmper, initAmper = gAmber lm v.Type
-    let curProgramUnitName = ""  //Main program has no module
+    let curProgramUnitName = ""  //Main program has no module (test cases import qualified names; language hooks render the prefix)
     let valueType = match v.Type.typeDefinitionOrReference with
-                    | TypeDefinition  td -> modName + "." + td.typedefName
-                    | ReferenceToExistingDefinition ref -> modName + "." + ref.typedefName
+                    | TypeDefinition  td -> lm.lg.constructCrossModuleTypeDefPrefix modName + td.typedefName
+                    | ReferenceToExistingDefinition ref -> lm.lg.constructCrossModuleTypeDefPrefix modName + ref.typedefName
     
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
     let initStatement = lm.lg.formatValueAssignmentTestCase (resolveReferenceType v.Type.Kind) valueType initStatement
@@ -135,7 +135,7 @@ let getTypeDecl (r:DAst.AstRoot) (vasPU_name:string) (lm:LanguageMacros) (vas:Va
         | true ->
             match ToC vasPU_name = ToC ref.baseInfo.modName.Value with
             | true  -> tasName
-            |false  -> (ToC ref.baseInfo.modName.Value) + "." + tasName
+            |false  -> lm.lg.constructCrossModuleTypeDefPrefix (ToC ref.baseInfo.modName.Value) + tasName
 
 
     | _             ->

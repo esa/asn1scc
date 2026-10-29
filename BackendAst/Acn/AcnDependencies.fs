@@ -296,7 +296,7 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
         | true   ->
             match m.Name.Value = o.modName.Value with
             | true  -> ToC2(r.args.TypePrefix + o.tasName.Value)
-            | false -> (ToC o.modName.Value) + "." + ToC2(r.args.TypePrefix + o.tasName.Value)
+            | false -> lm.lg.constructCrossModuleFuncPrefix (ToC o.modName.Value) + ToC2(r.args.TypePrefix + o.tasName.Value)
     let baseFncName = baseTypeDefinitionName + "_ACN" + (lm.lg.codecSuffix Encode)
     let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
     let asn1TypeD = us.newTypesMap[d.asn1Type] :?> Asn1Type

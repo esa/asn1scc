@@ -1,0 +1,34 @@
+-- C_ADA_ONLY (Rust: the value-assignment test cases strip the crate::mod_aDef::
+-- prefix and the constants exist in mod_a.rs and mod_aDef.rs -> E0659 ambiguous;
+-- Python: values of other modules are not emitted, pre-existing on master)
+-- Cross-module references with one program unit per ASN.1 module (Ada, Rust):
+-- types, value assignments and a value that references a value of another
+-- module. Ada named such a value with the wrong package ("MOD_B.pairA",
+-- ".pairA" in the test cases) before the cross-module prefix hooks (PR #428).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS Pair, Bytes, Color, Name, pairA, bytesA, colorA, nameA FROM MOD-A;
+
+   Outer ::= SEQUENCE { p Pair, b Bytes, c Color, n Name }
+
+   MyPDU ::= SEQUENCE {
+      outer  Outer,
+      items  SEQUENCE (SIZE (0..4)) OF Pair
+   }
+
+   outerB Outer ::= { p pairA, b bytesA, c colorA, n nameA }
+   pairB  Pair  ::= pairA
+END
+
+MOD-A DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   Color ::= ENUMERATED { red, green, blue }
+   Pair  ::= SEQUENCE { x INTEGER (0..255), c Color }
+   Bytes ::= OCTET STRING (SIZE (0..4))
+   Name  ::= IA5String (SIZE (1..8))
+
+   pairA  Pair  ::= { x 7, c green }
+   bytesA Bytes ::= '0102'H
+   colorA Color ::= blue
+   nameA  Name  ::= "abc"
+END
+
+--TCLS     MyPDU[]

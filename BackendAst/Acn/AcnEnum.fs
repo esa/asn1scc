@@ -166,7 +166,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
     let nLastItemIndex      = BigInteger(Seq.length o.items) - 1I
 
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
-        let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
+        let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 (lm.lg.hasModules) (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
         let localVar, intVal =
             let varName = lm.lg.getEnumIntLocalVarName (ToC (p.accessPath.asIdentifier lm.lg))
             let lv =

@@ -328,7 +328,7 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
         | true   ->
             match t.id.ModName = o.modName.Value with
             | true  -> baseTypeDefName + "_Equal"
-            | false -> moduleName + "." + baseTypeDefName + "_Equal"
+            | false -> lm.lg.constructCrossModuleFuncPrefix moduleName + baseTypeDefName + "_Equal"
 
 
     match baseType.Kind with

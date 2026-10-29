@@ -1157,7 +1157,7 @@ let getBaseTypeDefName (lm:LanguageMacros) (baseTypeDefinitionName: string) (mod
         // e.g. Baz ::= Bar ::= Foo where Foo is in module A, Baz/Bar in module B.
         match ToC t.id.ModName = moduleName with
         | true  -> baseTypeDefinitionName
-        | false -> moduleName + "." + baseTypeDefinitionName
+        | false -> lm.lg.constructCrossModuleFuncPrefix moduleName + baseTypeDefinitionName
 
 let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) (methodSuffix:string) (codec:CommonTypes.Codec) =
     let moduleName, typeDefinitionName0 =
