@@ -415,7 +415,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
                 let ii = p.accessPath.SequenceOfLevel + 1
                 let i = sprintf "i%d" ii
                 let resVar = (p.accessPath.asIdentifier lm.lg)
-                let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
+                let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
                 let funcBody = initTestCaseIA5String (p.accessPath.joinedUnchecked lm.lg FullAccess) (lm.lg.getAccess p.accessPath) (nSize) ((typedefMaxSize r t)+1I) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false resVar sFirstNonNullChar
                 {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables=[SequenceOfIndex (ii, None)]}
             // a fixed size gives one value: the Equal tests (coverage step 14a) change its first character
@@ -436,7 +436,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
         let ii = p.accessPath.SequenceOfLevel + 1
         let i = sprintf "i%d" ii
         let resVar = (p.accessPath.asIdentifier lm.lg)
-        let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
+        let td = strTypeDef.longTypedefName2 (lm.lg.hasModules) (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
         let funcBody = initTestCaseIA5String (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (o.maxSize.uper) ((typedefMaxSize r t)+1I) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true resVar sFirstNonNullChar
         let lvars = lm.lg.init.zeroIA5String_localVars ii
         let resVar = (p.accessPath.asIdentifier lm.lg)
@@ -1186,7 +1186,14 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                     | None  ->
                         match ch.Type.typeDefinitionOrReference with
                         | ReferenceToExistingDefinition    rf   when (not rf.definedInRtl) ->
-                            let fncName = (ch.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) + (lm.init.methodNameSuffix())
+                            // The name of an init function: functions live in the body module,
+                            // so a cross-module call takes the function prefix (lm.lg hook),
+                            // while the type name itself must stay unqualified.
+                            let bareName = (ch.Type.typeDefinitionOrReference.longTypedefName2 None false t.moduleName)
+                            let fncName = match rf.programUnit with
+                                          | Some pu when pu <> "" && lm.lg.hasModules && (lm.lg.sanitizeModuleName pu) <> (lm.lg.sanitizeModuleName t.moduleName) ->
+                                              lm.lg.constructCrossModuleFuncPrefix pu + bareName + (lm.init.methodNameSuffix())
+                                          | _ -> bareName + (lm.init.methodNameSuffix())
                             let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.accessPath) (fncName)
                             let funcBody = initTestCase_sequence_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.getAsn1ChildBackendName ch) chContent ch.Optionality.IsSome (ch.Type.initFunction.initExpressionFnc ())
                             {InitFunctionResult.funcBody = funcBody; resultVar = resVar; localVariables = [] }
@@ -1506,7 +1513,7 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
                 | true   ->
                     match t.id.ModName = o.modName.Value with
                     | true  -> funcName, globalName
-                    | false -> moduleName + "." + funcName, moduleName + "." + globalName
+                    | false -> lm.lg.constructCrossModuleFuncPrefix moduleName + funcName, lm.lg.constructCrossModuleTypeDefPrefix moduleName + globalName
             let constantInitExpression () = 
                 if lm.lg.useInlineInitExpression then
                     bs.initExpressionFnc ()

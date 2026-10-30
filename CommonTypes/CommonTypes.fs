@@ -727,8 +727,8 @@ type FE_StringTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_StringTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -750,8 +750,8 @@ type FE_SizeableTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SizeableTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -772,8 +772,8 @@ type FE_SequenceTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SequenceTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -795,8 +795,8 @@ type FE_ChoiceTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_ChoiceTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasModules callerProgramUnit =
-        let z n = this.programUnit + "." + n
+    member this.longTypedefName2 bHasModules callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasModules with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -821,8 +821,8 @@ type FE_EnumeratedTypeDefinition = {
 }
 with
 
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this

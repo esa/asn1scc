@@ -23,7 +23,7 @@ let private padBytesArray (bytes: byte array) (maxLen: int) =
 let printOctetStringValueAsCompoundLiteral  (lm:LanguageMacros) curProgramUnitName  (o:Asn1AcnAst.OctetString) (bytes : byte list) =
     let printOct = lm.vars.PrintBitOrOctetStringValueAsCompoundLiteral
 
-    let td = (lm.lg.getSizeableTypeDefinition  o.typeDef).longTypedefName2 lm.lg.hasModules curProgramUnitName
+    let td = (lm.lg.getSizeableTypeDefinition  o.typeDef).longTypedefName2 lm.lg.hasModules curProgramUnitName lm.lg.constructCrossModuleTypeDefPrefix
     let bytes = if lm.lg.padByteArraysToMaxSize then padBytes bytes (int o.maxSize.uper) else bytes
     printOct td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
 
@@ -40,7 +40,7 @@ let printTimeValue (lm:LanguageMacros) (td) (v:TimeValue) =
 
 let printBitStringValueAsCompoundLiteral  (lm:LanguageMacros) curProgramUnitName  (o:Asn1AcnAst.BitString) (v : BitStringValue) =
     let printOct =  lm.vars.PrintBitOrOctetStringValueAsCompoundLiteral
-    let td = (lm.lg.getSizeableTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules curProgramUnitName
+    let td = (lm.lg.getSizeableTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules curProgramUnitName lm.lg.constructCrossModuleTypeDefPrefix
     let bytes = lm.lg.bitStringValueToByteArray v |> Seq.toList
     let bytes = if lm.lg.padByteArraysToMaxSize then padBytes bytes (int ((o.maxSize.uper + 7I) / 8I)) else bytes
     printOct td (o.minSize.uper = o.maxSize.uper) bytes o.minSize.uper
@@ -224,7 +224,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
                     let vas = r.getValueAssignmentByName md vs
                     match (ToC md) = curProgramUnitName with
                     | true  -> lm.lg.getValueAssignmentName vas
-                    | false -> curProgramUnitName + "." + (lm.lg.getValueAssignmentName vas)
+                    | false -> lm.lg.constructCrossModuleTypeDefPrefix (ToC md) + (lm.lg.getValueAssignmentName vas)
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer)  =
     let printValue (curProgramUnitName:string) (parentValue:Asn1ValueKind option) (v:Asn1ValueKind) =

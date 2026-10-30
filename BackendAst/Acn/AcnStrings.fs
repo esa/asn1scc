@@ -25,7 +25,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) (us:State) =
         let pp, resultExpr = adaptArgument lm codec p
-        let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+        let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
         let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
         let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
         let funcBodyContent, ns =
@@ -81,8 +81,8 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             let md = r.GetModuleByName t.modName
             let tas = md.GetTypeAssignmentByName t.tasName r
             match tas.Type.ActualType.Kind with
-            | Asn1AcnAst.IA5String     z -> (lm.lg.getStrTypeDefinition z.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
-            | Asn1AcnAst.NumericString z -> (lm.lg.getStrTypeDefinition z.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+            | Asn1AcnAst.IA5String     z -> (lm.lg.getStrTypeDefinition z.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
+            | Asn1AcnAst.NumericString z -> (lm.lg.getStrTypeDefinition z.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
             | _                           -> raise(SemanticError(t.tasName.Location, (sprintf "Type assignment %s.%s does not point to a string type" t.modName.Value t.modName.Value)))
         let ii = p.accessPath.SequenceOfLevel + 1
         let i = sprintf "i%d" ii
@@ -145,7 +145,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
     AcnPrimitiveFactory.createAcnOnlyPrimitive lm codec typeId us (fun errCode ->
         fun (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) ->
-            let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+            let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
             let pp, resultExpr = adaptArgument lm codec p
             let sType = (ToC typeId.dropModule.AsString)
             let funcBodyContent =

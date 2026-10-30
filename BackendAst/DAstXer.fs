@@ -423,7 +423,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         | true   ->
             match t.id.ModName = o.modName.Value with
             | true  -> typeDefinitionName0
-            | false -> moduleName + "." + typeDefinitionName0
+            | false -> lm.lg.constructCrossModuleFuncPrefix moduleName + typeDefinitionName0
 
     let baseFncName = baseTypeDefinitionName+ "_XER"  + (lm.lg.codecSuffix codec)
 

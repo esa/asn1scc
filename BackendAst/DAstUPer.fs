@@ -420,7 +420,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         let nMax = BigInteger(Seq.length o.items) - 1I
         let nLastItemIndex      = nMax
         let typeDef0 = lm.lg.getEnumTypeDefinition o.typeDef
-        let td =  typeDef0.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
+        let td =  typeDef0.longTypedefName2 (lm.lg.hasModules) (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
         let pp, resultExpr = adaptArgumentValue lm codec p
         let sFirstItemName = lm.lg.getNamedItemBackendName (Some typeDefinition) o.items.Head
         let nMin = 0I
@@ -561,7 +561,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let i = sprintf "i%d" ii
         let lv = SequenceOfIndex (ii, None)
         let td0 = lm.lg.getStrTypeDefinition o.typeDef
-        let td = td0.longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
+        let td = td0.longTypedefName2 (lm.lg.hasModules) (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
         let InternalItem_string_no_alpha   = lm.uper.InternalItem_string_no_alpha
         let InternalItem_string_with_alpha = lm.uper.InternalItem_string_with_alpha
         let str_FixedSize       = lm.uper.str_FixedSize
@@ -1114,7 +1114,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let td0 = lm.lg.getChoiceTypeDefinition o.typeDef
-        let td = td0.longTypedefName2 lm.lg.hasModules (ToC p.modName)
+        let td = td0.longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
         let acnSiblingMaxSize = children |> List.map (fun c -> c.chType.acnMaxSizeInBits) |> List.max
         let uperSiblingMaxSize = children |> List.map (fun c -> c.chType.uperMaxSizeInBits) |> List.max
 
