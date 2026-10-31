@@ -478,6 +478,7 @@ class IcdDocument:
         self.data = data
         self.anchors = anchors                      # table id -> html anchor
         self.tables: dict[str, IcdTable] = {}
+        self.inlined_ids: set[str] = set()
         # child table id -> the parent row referencing it (first one wins)
         self.referrers: dict[str, IcdRow] = {}
         # type name -> ASN.1 grammar-section anchor, filled by
@@ -948,6 +949,7 @@ class IcdDocument:
             if target is not None and target.kind in ("SEQUENCE", "SEQUENCE OF") \
                     and target.id not in visited and target.rows:
                 # Flatten the composite: title row + its rows one level deeper.
+                self.inlined_ids.add(target.id)
                 label = (target.kind or "COMPOSITE").replace("_", " ") + " " + target.name
                 title_typ = label
                 if row.ref_id in rendered_ids and row.ref_id in self.anchors:
@@ -1022,13 +1024,24 @@ class TypeDef:
     comment: str
 
 
+@dataclass
+class ConstantDef:
+    module: str
+    name: str
+    asn_node: Optional[ET.Element]
+    concrete: Optional[ET.Element]
+    value_node: Optional[ET.Element]
+    comment: str
+
+
 class GrammarModel:
-    """Indexes the ASN.1 type assignments of the XML AST (grammar rendering)."""
+    """Indexes the ASN.1 type assignments and value assignments of the XML AST."""
 
     def __init__(self, root: Optional[ET.Element]):
         self.root = root
         self.by_name: dict[str, TypeDef] = {}
         self.by_qualified_name: dict[str, TypeDef] = {}
+        self.constants: list[ConstantDef] = []
         if root is None:
             return
         for module in root.iter():
@@ -1043,6 +1056,15 @@ class GrammarModel:
                     typedef = TypeDef(module_name, name, asn_node, concrete, comments_of(assignment))
                     self.by_name.setdefault(name, typedef)
                     self.by_qualified_name[qualified_name(module_name, name)] = typedef
+            for assignment in children(child(module, "ValueAssignments"), "ValueAssignment"):
+                name = attr(assignment, "Name")
+                asn_node = child(assignment, "Asn1Type")
+                concrete = first_type(asn_node)
+                val_children = [c for c in assignment if tag(c) != "Asn1Type" and not tag(c).endswith("Comment")]
+                val_node = val_children[0] if val_children else None
+                comment = comments_of(assignment)
+                if name:
+                    self.constants.append(ConstantDef(module_name, name, asn_node, concrete, val_node, comment))
 
     def by_usage_path(self, usage_path: str) -> Optional[TypeDef]:
         """TypeDef of an icdRaw usagePath (Module.Type or a deeper path)."""
@@ -1072,6 +1094,8 @@ class GrammarRenderer:
     def type_reference(self, name: str) -> str:
         typedef = self.model.by_name.get(name)
         anchor = self.table_anchor(typedef) if typedef else ""
+        if not anchor and typedef:
+            anchor = "ASN1_" + safe_id(typedef.name)
         return anchor_link(name, anchor) if anchor else html_escape(name)
 
     def has_assignment(self, typedef: TypeDef) -> bool:
@@ -1221,6 +1245,114 @@ class GrammarRenderer:
             asn.append(f'<a id="ASN1_{html_escape(safe_id(typedef.name))}"></a><a id="ASN1_{html_escape(safe_id(key))}"></a>' + self.asn_assignment(typedef) + "\n\n")
             acn.append(f'<a id="ACN_{html_escape(safe_id(typedef.name))}"></a><a id="ACN_{html_escape(safe_id(key))}"></a>' + self.acn_assignment(typedef) + "\n\n")
         return "".join(asn) + "</pre>" + "".join(acn) + "</pre>"
+
+
+def format_asn1_value(val_node: Optional[ET.Element], indent: int = 0) -> str:
+    if val_node is None:
+        return ""
+    t = tag(val_node)
+    if t == "IntegerValue":
+        return (val_node.text or "0").strip()
+    if t == "BooleanValue":
+        val_text = (val_node.text or "").strip().lower()
+        return "TRUE" if val_text == "true" else "FALSE"
+    if t == "EnumValue":
+        return (val_node.text or "").strip()
+    if t == "RealValue":
+        return (val_node.text or "").strip()
+    if t == "StringValue":
+        return f'"{val_node.text or ""}"'
+    if t == "BitStringValue":
+        return f"'{val_node.text or ''}'B"
+    if t == "OctetStringValue":
+        return f"'{val_node.text or ''}'H"
+    if t == "NullValue":
+        return "NULL"
+    if t == "ReferenceValue":
+        child_elems = [c for c in val_node if not tag(c).endswith("Comment")]
+        if child_elems:
+            return format_asn1_value(child_elems[0], indent)
+        return attr(val_node, "Name")
+    if t == "ChoiceValue":
+        nv = [c for c in val_node if tag(c) == "NamedValue"]
+        if nv:
+            name = attr(nv[0], "Name")
+            children_of_nv = [c for c in nv[0] if not tag(c).endswith("Comment")]
+            inner = format_asn1_value(children_of_nv[0], indent + 2) if children_of_nv else ""
+            return f"{name} : {inner}"
+        return ""
+    if t == "SequenceOfValue":
+        items = [format_asn1_value(c, indent + 2) for c in val_node if not tag(c).endswith("Comment")]
+        inline = "{ " + ", ".join(items) + " }"
+        if len(inline) <= 80 and "\n" not in inline:
+            return inline
+        sp = " " * (indent + 2)
+        sp_close = " " * indent
+        return "{\n" + ",\n".join(sp + item.replace("\n", "\n" + sp) for item in items) + "\n" + sp_close + "}"
+    if t == "SequenceValue":
+        named_vals = []
+        for nv in val_node.findall("NamedValue"):
+            name = attr(nv, "Name")
+            children_of_nv = [c for c in nv if not tag(c).endswith("Comment")]
+            inner = format_asn1_value(children_of_nv[0], indent + 2) if children_of_nv else ""
+            named_vals.append(f"{name} {inner}")
+        inline = "{ " + ", ".join(named_vals) + " }"
+        if len(inline) <= 80 and "\n" not in inline:
+            return inline
+        sp = " " * (indent + 2)
+        sp_close = " " * indent
+        return "{\n" + ",\n".join(sp + nv.replace("\n", "\n" + sp) for nv in named_vals) + "\n" + sp_close + "}"
+    if t == "ObjectIdentifierValue":
+        parts = [attr(c, "IntValue") or attr(c, "label") for c in val_node.findall("ObjIdComponent")]
+        return "{ " + " ".join(p for p in parts if p) + " }"
+    return (val_node.text or "").strip()
+
+
+def constants_table_html(model: GrammarModel, grammar: GrammarRenderer) -> str:
+    if not model.constants:
+        return ""
+
+    rows = []
+    modules = {c.module for c in model.constants}
+    show_module = len(modules) > 1
+    has_comments = any(bool(c.comment.strip()) for c in model.constants)
+
+    for c in sorted(model.constants, key=lambda x: (x.module, x.name.lower())):
+        type_str = grammar.render_type(c.concrete, asn_node=c.asn_node) if c.concrete is not None else ""
+        val_str = html_escape(format_asn1_value(c.value_node))
+        cid = safe_id(c.name)
+
+        tds = []
+        if show_module:
+            tds.append(f"<td>{html_escape(c.module)}</td>")
+        tds.append(f'<td><a id="const_{cid}"></a><a id="{cid}"></a><code>{html_escape(c.name)}</code></td>')
+        tds.append(f"<td>{type_str}</td>")
+        tds.append(f'<td class="constantValue"><code>{val_str}</code></td>')
+        if has_comments:
+            comment_str = grammar.comment_lines(c.comment)
+            tds.append(f'<td>{"<br/>".join(comment_str)}</td>')
+
+        rows.append(f'<tr id="row_const_{cid}">' + "".join(tds) + "</tr>")
+
+    headers = []
+    if show_module:
+        headers.append("<th>Module</th>")
+    headers.append("<th>Constant</th>")
+    headers.append("<th>Type</th>")
+    headers.append("<th>Value</th>")
+    if has_comments:
+        headers.append("<th>Comment</th>")
+
+    col_count = len(headers)
+    table_html = (
+        f'<table class="constantsTable"><thead>'
+        f'<tr class="typeRow"><th colspan="{col_count}">ASN.1 Constants ({len(model.constants)})</th></tr>'
+        f'<tr>{"".join(headers)}</tr>'
+        f"</thead><tbody>"
+        f'{"".join(rows)}'
+        f"</tbody></table>"
+    )
+    return f'<h1 id="ASN1_CONSTANTS">Constants</h1>' + table_html
 
 
 # ---------------------------------------------------------------------------
@@ -1591,7 +1723,7 @@ def table_html(anchor: str, title: str, kind_name: str, min_size: str, max_size:
     local_acn = collapsible("ACN representation", '<pre class="grammar localGrammar">' + (grammar.acn_assignment(typedef) if grammar and typedef else "(ASN.1 AST not available)") + "</pre>")
     compact = collapsible("Compact representation", compact_diagram_html(title, compact_rows if compact_rows is not None else rows, is_root, kind_name.upper() == "CHOICE", table_comments))
 
-    def row_html(row: IcdRow) -> str:
+    def row_html(row: IcdRow, idx: int) -> str:
         row_class = {"section": "sectionRow", "title": "titleRow", "choice-link": "choiceLinkRow", "type-link": "choiceLinkRow", "summary": "titleRow", "field": ""}.get(row.kind, "")
         field_html = row.field if row.field_html else html_escape(row.field)
         # Tree chars: every non-section row shows the leaf marker at its
@@ -1619,7 +1751,8 @@ def table_html(anchor: str, title: str, kind_name: str, min_size: str, max_size:
             html_escape(row.max_bits),
             html_escape(row.unit),
         ]
-        return f'<tr class="{row_class}">' + "".join(f'<td class="c{i}">{v}</td>' for i, v in enumerate(values)) + "</tr>"
+        row_id = row.anchor or f"row_{safe_id(anchor)}_{idx}"
+        return f'<tr class="{row_class}" id="{row_id}">' + "".join(f'<td class="c{i}">{v}</td>' for i, v in enumerate(values)) + "</tr>"
 
     table = (
         f'<table><tbody><tr class="typeRow"><td colspan="8">{html_escape(title)} ({html_escape(kind_name)}) '
@@ -1628,7 +1761,7 @@ def table_html(anchor: str, title: str, kind_name: str, min_size: str, max_size:
         f'<td>Max: {html_escape(max_size)} bits{bits_and_bytes(max_size)}</td></tr><tr>'
         + "".join("<th>" + html_escape(h) + "</th>" for h in TABLE_HEADERS)
         + "</tr>"
-        + "".join(row_html(row) for row in rows)
+        + "".join(row_html(row, idx) for idx, row in enumerate(rows))
         + "</tbody></table>"
     )
 
@@ -1698,7 +1831,8 @@ def visible_anchors(doc: IcdDocument, rendered_ids: set[str]) -> dict[str, str]:
     """Anchors of the rendered tables only, keyed by table id and usage path.
 
     Grammar-side type references link through this mapping: a type whose
-    table was flattened inline (or restricted away) must not be linked.
+    table was flattened inline (or restricted away) links to its inlined
+    position or stays unlinked.
     """
     out: dict[str, str] = {}
     for table_id in rendered_ids:
@@ -1723,6 +1857,11 @@ def render_document(doc: IcdDocument, model: Optional[GrammarModel], root_names:
     if model is not None:
         for name in model.by_name:
             doc.grammar_anchors[name] = "ASN1_" + safe_id(name)
+        for qname in model.by_qualified_name:
+            doc.grammar_anchors[qname] = "ASN1_" + safe_id(qname)
+        for c in model.constants:
+            doc.grammar_anchors[c.name] = "const_" + safe_id(c.name)
+            doc.grammar_anchors[qualified_name(c.module, c.name)] = "const_" + safe_id(c.name)
     # Resolve the type-column links of every table against the tables
     # that actually appear in the document. ALL tables, not only the
     # rendered ones: in root mode the composites flattened inline come
@@ -1731,6 +1870,8 @@ def render_document(doc: IcdDocument, model: Optional[GrammarModel], root_names:
     for table in doc.tables.values():
         table.rows = [doc.resolve_row(row, rendered_ids) for row in table.rows]
     grammar = GrammarRenderer(model, visible_anchors(doc, rendered_ids)) if model is not None else None
+
+    navigation.append(("toc", "Table of contents", "root"))
 
     for table, is_root in plan:
         anchor = doc.anchors[table.id]
@@ -1746,14 +1887,61 @@ def render_document(doc: IcdDocument, model: Optional[GrammarModel], root_names:
                                       rendered_ids=rendered_ids))
 
     if grammar is not None:
+        for table_id in doc.inlined_ids:
+            table = doc.tables.get(table_id)
+            if table is not None:
+                inline_anchor = "inline_" + safe_id(table_id)
+                if table.usage_path:
+                    grammar.anchors.setdefault(table.usage_path, inline_anchor)
+                if table.tas_name:
+                    grammar.anchors.setdefault(table.tas_name, inline_anchor)
+
+    has_constants = bool(model and model.constants)
+    if has_constants:
+        navigation.append(("ASN1_CONSTANTS", "Constants", "normal"))
+
+    if grammar is not None:
         navigation += [("ASN1_GRAMMAR", "ASN.1 grammar", "normal"), ("ACN_GRAMMAR", "ACN grammar", "normal")]
 
+    toc_items: list[str] = []
+    selected_pdu_links = []
+    for table, is_root in plan:
+        if is_root:
+            anchor = doc.anchors[table.id]
+            selected_pdu_links.append(f'<li><a href="#{html_escape(anchor)}">{html_escape(table.name)}</a></li>')
+
+    if selected_pdu_links:
+        pdus_html = (
+            '<li>'
+            '<a href="#PDU_TYPES" class="tocChapterLink">Selected PDU types</a>'
+            '<ul class="tocPduList">'
+            + "".join(selected_pdu_links)
+            + '</ul></li>'
+        )
+        toc_items.append(pdus_html)
+
+    if has_constants:
+        toc_items.append('<li><a href="#ASN1_CONSTANTS" class="tocChapterLink">Constants</a></li>')
+
+    if grammar is not None:
+        toc_items.append('<li><a href="#ASN1_GRAMMAR" class="tocChapterLink">ASN.1 grammar</a></li>')
+        toc_items.append('<li><a href="#ACN_GRAMMAR" class="tocChapterLink">ACN grammar</a></li>')
+
+    toc_html = (
+        '<div class="tocBlock" id="toc">'
+        '<h2>Table of Contents</h2>'
+        '<ol class="tocList">'
+        + "".join(toc_items)
+        + '</ol>'
+        '</div>'
+    )
+
     css = """
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#222;display:flex;height:100vh}.nav-pane{width:270px;background:#f4f4f4;padding:15px;overflow-y:auto;position:fixed;height:100vh;border-right:2px solid #ccc}.content{margin-left:270px;padding:20px;overflow-y:auto;height:100vh;flex-grow:1}.nav-pane a{display:block;padding:5px;text-decoration:none;color:#333;border-bottom:1px solid #ddd;font-size:14px}.nav-pane a.root{font-weight:bold;background-color:#e4e4e4;margin-top:8px}.nav-pane a:hover{background:#ddd}#navFilterInput{width:100%;padding:8px;margin-bottom:12px;border:1px solid #ccc;border-radius:4px}.block{border:1px solid #ccc;border-radius:4px;margin:8px 0 14px 0;padding:0;background:#fff}.block>summary{cursor:pointer;background:#eee;padding:7px 10px;font-weight:700}table{border-collapse:collapse;width:100%;font-size:13px;margin:0 0 18px 0}th,td{border:1px solid #777;padding:5px 7px;vertical-align:top}th{background:#e6e6e6;text-align:left}.typeRow td{background:#cfd8e6;font-weight:900;font-size:15px}.sectionRow td{background:#d9ead3;font-weight:900;font-size:14px}.titleRow td{background:#eef5ff;font-weight:900;font-size:14px}.choiceLinkRow td{background:#fff2cc;font-weight:800}.c0,.c7,.c8{text-align:right;white-space:nowrap}.c1{white-space:nowrap}.c6{font-family:Consolas,"Courier New",monospace;white-space:nowrap}.level{display:inline-block}.level0{padding-left:0}.level1{padding-left:1.5em}.level2{padding-left:3em}.level3{padding-left:4.5em}.level4{padding-left:6em}.enumeration{margin:0;padding-left:18px}.enumeration_name{font-weight:bold}.choiceOptions{margin:4px 0 0 18px;padding:0}.packetDiagram{margin:10px}.packetDiagramTitle{font-weight:bold;margin:4px 0 6px 0;color:#000}.packetMap{display:flex;align-items:stretch;flex-wrap:wrap;gap:0}.packetCell{min-width:105px;max-width:180px;text-align:center;display:flex;flex-direction:column;color:#000}.packetFieldName{padding:8px 6px;min-height:54px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#000}.packetFieldType{padding:5px 4px;min-height:30px;background:rgba(255,255,255,.35);font-size:11px;display:flex;align-items:center;justify-content:center;flex-grow:1;color:#000}.packetGroup{display:flex;flex-direction:column;min-width:150px;color:#000}.packetGroupTitle{text-align:center;font-weight:700;padding:7px;color:#000}.packetGroupChildren{display:flex;align-items:stretch}.packetMeta{font-size:10px;font-style:italic;border-top:1px solid #999;background:#fff;padding:1px 2px;text-align:center;color:#000}.rootCompact .packetCell,.rootCompact .packetGroup{border:1px solid #1f5fa8;background:#9eb9d8}.rootCompact .packetFieldName,.rootCompact .packetGroupTitle{border-bottom:1px solid #1f5fa8;background:#9eb9d8}.rootCompact .packetFieldType{background:rgba(255,255,255,.28)}.otherCompact .packetCell,.otherCompact .packetGroup{border:1px solid #d93025;background:#f9c08e}.otherCompact .packetFieldName,.otherCompact .packetGroupTitle{border-bottom:1px solid #d93025;background:#f7bd88}.packetChoice{font-style:italic}.grammar{background:#fbfbfb;border:1px solid #ccc;padding:12px;white-space:pre-wrap;font-family:Consolas,"Courier New",monospace;margin:0}.localGrammar{border:0}.grammar b{color:#5F9EA0}.grammar font{color:#008000}.fileLink{font-size:11px;margin-left:6px}a{color:#0645ad}.mapFnStar{color:#c0392b;font-weight:bold;text-decoration:none;cursor:help}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#222;display:flex;height:100vh}.nav-pane{width:270px;background:#f4f4f4;padding:15px;overflow-y:auto;position:fixed;height:100vh;border-right:2px solid #ccc}.content{margin-left:270px;padding:20px;overflow-y:auto;height:100vh;flex-grow:1}.nav-pane a{display:block;padding:5px;text-decoration:none;color:#333;border-bottom:1px solid #ddd;font-size:14px}.nav-pane a.root{font-weight:bold;background-color:#e4e4e4;margin-top:8px}.nav-pane a:hover{background:#ddd}#navFilterInput{width:100%;padding:8px;margin-bottom:12px;border:1px solid #ccc;border-radius:4px}.tocBlock{background:#fff;border:1px solid #ccc;border-radius:4px;padding:15px 20px;margin:0 0 24px 0}.tocBlock h2{margin-top:0;margin-bottom:12px;font-size:18px;border-bottom:1px solid #eee;padding-bottom:6px}.tocList{margin:0;padding-left:22px;font-size:14px;line-height:1.6}.tocList li{margin-bottom:6px}.tocChapterLink{font-weight:bold;text-decoration:none;color:#0645ad}.tocChapterLink:hover{text-decoration:underline}.tocPduList{margin:4px 0 8px 0;padding-left:20px;list-style-type:circle}.tocPduList li{margin-bottom:3px}.constantsTable{margin:10px 0 24px 0}.constantValue{font-family:Consolas,"Courier New",monospace;white-space:pre-wrap;word-break:break-all}.block{border:1px solid #ccc;border-radius:4px;margin:8px 0 14px 0;padding:0;background:#fff}.block>summary{cursor:pointer;background:#eee;padding:7px 10px;font-weight:700}table{border-collapse:collapse;width:100%;font-size:13px;margin:0 0 18px 0}th,td{border:1px solid #777;padding:5px 7px;vertical-align:top}th{background:#e6e6e6;text-align:left}.typeRow td,.typeRow th{background:#cfd8e6;font-weight:900;font-size:15px}.sectionRow td{background:#d9ead3;font-weight:900;font-size:14px}.titleRow td{background:#eef5ff;font-weight:900;font-size:14px}.choiceLinkRow td{background:#fff2cc;font-weight:800}.c0,.c7,.c8{text-align:right;white-space:nowrap}.c1{white-space:nowrap}.c6{font-family:Consolas,"Courier New",monospace;white-space:nowrap}.level{display:inline-block}.level0{padding-left:0}.level1{padding-left:1.5em}.level2{padding-left:3em}.level3{padding-left:4.5em}.level4{padding-left:6em}.enumeration{margin:0;padding-left:18px}.enumeration_name{font-weight:bold}.choiceOptions{margin:4px 0 0 18px;padding:0}.packetDiagram{margin:10px}.packetDiagramTitle{font-weight:bold;margin:4px 0 6px 0;color:#000}.packetMap{display:flex;align-items:stretch;flex-wrap:wrap;gap:0}.packetCell{min-width:105px;max-width:180px;text-align:center;display:flex;flex-direction:column;color:#000}.packetFieldName{padding:8px 6px;min-height:54px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#000}.packetFieldType{padding:5px 4px;min-height:30px;background:rgba(255,255,255,.35);font-size:11px;display:flex;align-items:center;justify-content:center;flex-grow:1;color:#000}.packetGroup{display:flex;flex-direction:column;min-width:150px;color:#000}.packetGroupTitle{text-align:center;font-weight:700;padding:7px;color:#000}.packetGroupChildren{display:flex;align-items:stretch}.packetMeta{font-size:10px;font-style:italic;border-top:1px solid #999;background:#fff;padding:1px 2px;text-align:center;color:#000}.rootCompact .packetCell,.rootCompact .packetGroup{border:1px solid #1f5fa8;background:#9eb9d8}.rootCompact .packetFieldName,.rootCompact .packetGroupTitle{border-bottom:1px solid #1f5fa8;background:#9eb9d8}.rootCompact .packetFieldType{background:rgba(255,255,255,.28)}.otherCompact .packetCell,.otherCompact .packetGroup{border:1px solid #d93025;background:#f9c08e}.otherCompact .packetFieldName,.otherCompact .packetGroupTitle{border-bottom:1px solid #d93025;background:#f7bd88}.packetChoice{font-style:italic}.grammar{background:#fbfbfb;border:1px solid #ccc;padding:12px;white-space:pre-wrap;font-family:Consolas,"Courier New",monospace;margin:0}.localGrammar{border:0}.grammar b{color:#5F9EA0}.grammar font{color:#008000}.fileLink{font-size:11px;margin-left:6px}a{color:#0645ad}.mapFnStar{color:#c0392b;font-weight:bold;text-decoration:none;cursor:help}
 """.strip()
 
     javascript = """
-<script>(function(){document.addEventListener("DOMContentLoaded",function(){const f=document.getElementById("navFilterInput"),a=document.getElementById("navigationMenu").getElementsByTagName("a");f.addEventListener("keyup",function(){const s=f.value.toUpperCase();for(let i=0;i<a.length;i++){const t=a[i].textContent||a[i].innerText;a[i].style.display=t.toUpperCase().indexOf(s)>-1?"":"none";}});});})();</script>
+<script>(function(){function scrollToHash(){const h=window.location.hash.substring(1);if(!h)return;const el=document.getElementById(h)||document.getElementsByName(h)[0];if(el){el.scrollIntoView();}}window.addEventListener("hashchange",scrollToHash);window.addEventListener("popstate",scrollToHash);document.addEventListener("DOMContentLoaded",function(){if(window.location.hash){setTimeout(scrollToHash,50);}document.addEventListener("click",function(e){const a=e.target.closest('a[href^="#"]');if(!a)return;const href=a.getAttribute("href");if(!href||href==="#")return;let curr=a.parentElement,fromId=null;while(curr&&curr!==document.body){if(curr.id){fromId=curr.id;break;}curr=curr.parentElement;}if(fromId&&window.history&&history.replaceState){const currentHash=window.location.hash.substring(1);if(currentHash!==fromId){history.replaceState(null,null,"#"+fromId);}}});const f=document.getElementById("navFilterInput"),nav=document.getElementById("navigationMenu");if(f&&nav){const a=nav.getElementsByTagName("a");f.addEventListener("keyup",function(){const s=f.value.toUpperCase();for(let i=0;i<a.length;i++){const t=a[i].textContent||a[i].innerText;a[i].style.display=t.toUpperCase().indexOf(s)>-1?"":"none";}});}});})();</script>
 """.strip()
 
     nav_html = (
@@ -1764,9 +1952,13 @@ def render_document(doc: IcdDocument, model: Optional[GrammarModel], root_names:
     )
 
     body_intro = (
-        '<div class="content"><em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules. '
+        '<div class="content">'
+        + toc_html
+        + '<em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules. '
         'Implicit encoding fields (length determinants, presence bits, choice discriminants, padding and fixed patterns) are included.</em><br/><br/>'
+        + '<h1 id="PDU_TYPES">Selected PDU types</h1>'
     )
+    constants_html = constants_table_html(model, grammar) if (model and grammar and has_constants) else ""
     grammar_html = grammar.full_grammar() if grammar else ""
 
     return (
@@ -1774,6 +1966,7 @@ def render_document(doc: IcdDocument, model: Optional[GrammarModel], root_names:
         + nav_html
         + body_intro
         + "".join(content)
+        + constants_html
         + grammar_html
         + "</div>"
         + javascript
