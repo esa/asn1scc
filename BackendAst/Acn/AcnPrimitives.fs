@@ -46,6 +46,19 @@ let mappingRtlType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (acnEncodingClass:
     | Asn1AcnAst.ASCII_ConstSize _
     | Asn1AcnAst.ASCII_VarSize_NullTerminated _             -> Some (lm.typeDef.Declare_Integer (), r.args.SIntMin, r.args.SIntMax)
 
+/// The mapping-function of an ACN integer as written for the ICD: "pkg.fn"
+/// (module kept when the ACN names one). Empty for a uPER integer, which
+/// applies no mapping-function.
+let icdMappingFunctionNote (soMF: string option) (soMFM: string option) (acnMinSizeInBits: BigInteger) (acnMaxSizeInBits: BigInteger) =
+    match soMF with
+    | None -> None
+    | Some mf ->
+        let full = match soMFM with Some m -> m + "." + mf | None -> mf
+        if acnMinSizeInBits = 0I && acnMaxSizeInBits = 0I then
+            Some ("mapping-function " + full + ": occupies no bits on the wire; the value is provided by the function at run time")
+        else
+            Some ("mapping-function " + full + ": the encoded value is transformed by this function on encoding and decoding")
+
 let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
                                      (lm:LanguageMacros)
                                      (codec:CommonTypes.Codec)
@@ -202,7 +215,13 @@ let createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot)
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, bValIsUnReferenced, bBsIsUnReferenced, encOutcome) ->
+            // A mapped integer (mapping-function in the ACN properties) says so
+            // in the ICD: the value on the wire is not the value of the field.
+            // The note is a row comment so it reaches every dump (icdRaw JSON
+            // and the ICD tables) without a new field on IcdRow.
             let icdFnc fieldName sPresent comments =
+                let mappedNote = icdMappingFunctionNote soMF soMFM acnMinSizeInBits acnMaxSizeInBits
+                let comments = comments @ (mappedNote |> Option.toList)
                 [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType "INTEGER"); sConstraint=sAsn1Constraints; minLengthInBits = acnMinSizeInBits ;maxLengthInBits=icdMaxSizeWithoutAlignment acnAlignment acnMaxSizeInBits;sUnits=unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = "INTEGER"; rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None}
             Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= bValIsUnReferenced; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr = resultExpr; auxiliaries = []; userDefinedFunctions=userDefinedFunctions; icdResult=Some icd; encOutcome = encodeOutcomeOf codec encOutcome})
