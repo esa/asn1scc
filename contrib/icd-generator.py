@@ -55,6 +55,33 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Optional
 
+REQUIRED_DEPENDENCIES = [
+    ("openpyxl", "openpyxl"),
+]
+
+
+def check_dependencies() -> None:
+    """Verify that all required third-party Python packages are installed."""
+    if any(arg in sys.argv[1:] for arg in ("-h", "--help")):
+        return
+
+    missing = []
+    for module_name, pip_name in REQUIRED_DEPENDENCIES:
+        try:
+            __import__(module_name)
+        except ImportError:
+            missing.append(pip_name)
+
+    if missing:
+        sys.stderr.write(
+            "[-] Error: Missing required Python dependency:\n"
+            + "".join(f"[-]   - {pkg}\n" for pkg in missing)
+            + "[-] Please install missing dependencies using pip:\n"
+            + f"[-]     pip install {' '.join(missing)}\n\n"
+        )
+        sys.exit(1)
+
+
 LEAF_KINDS = {
     "INTEGER", "REAL", "IA5String", "NumericString", "OCTET_STRING", "NULL",
     "BIT_STRING", "BOOLEAN", "ENUMERATED", "ObjectIdentifier",
@@ -1975,6 +2002,481 @@ def render_document(doc: IcdDocument, model: Optional[GrammarModel], root_names:
 
 
 # ---------------------------------------------------------------------------
+# Excel rendering
+# ---------------------------------------------------------------------------
+
+def make_unique_sheet_name(name: str, existing_names: set[str]) -> str:
+    cleaned = re.sub(r"[\/\\*?\[\]:]", "_", name)
+    shortened = cleaned[:31] if len(cleaned) <= 31 else cleaned[:28] + "..."
+    if shortened.lower() not in existing_names:
+        existing_names.add(shortened.lower())
+        return shortened
+    counter = 1
+    while True:
+        suffix = f"_{counter}"
+        avail = 31 - len(suffix)
+        candidate = cleaned[:avail] + suffix
+        if candidate.lower() not in existing_names:
+            existing_names.add(candidate.lower())
+            return candidate
+        counter += 1
+
+
+def style_range(ws, min_row: int, min_col: int, max_row: int, max_col: int,
+                font=None, fill=None, border=None, alignment=None, value=None):
+    for r in range(min_row, max_row + 1):
+        for c in range(min_col, max_col + 1):
+            cell = ws.cell(row=r, column=c)
+            if font is not None:
+                cell.font = font
+            if fill is not None:
+                cell.fill = fill
+            if border is not None:
+                cell.border = border
+            if alignment is not None:
+                cell.alignment = alignment
+    if value is not None:
+        ws.cell(row=min_row, column=min_col).value = value
+    if min_row != max_row or min_col != max_col:
+        ws.merge_cells(start_row=min_row, start_column=min_col,
+                       end_row=max_row, end_column=max_col)
+
+
+def render_excel_compact_diagram(ws, start_row: int, title: str, rows: list[IcdRow],
+                                 is_root: bool, is_choice: bool,
+                                 table_comments: Optional[list[str]] = None) -> int:
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+    border_color = "1F5FA8" if is_root else "D93025"
+    thin_border = Border(
+        left=Side(style="thin", color=border_color),
+        right=Side(style="thin", color=border_color),
+        top=Side(style="thin", color=border_color),
+        bottom=Side(style="thin", color=border_color),
+    )
+
+    if is_choice:
+        selector_name = "ChoiceIndex"
+        for row in rows:
+            if strip_html(row.field).lower() == "choiceindex":
+                selector_name = strip_html(row.field)
+                break
+        deduced_from = "deduced from ChoiceIndex"
+        for comment in (table_comments or []):
+            m = re.search(r"determined by ACN using the field:\s*'([^']+)'", strip_html(comment))
+            if m:
+                selector_name = m.group(1)
+                deduced_from = "deduced from " + m.group(1)
+                break
+
+        style_range(ws, start_row, 1, start_row, 6,
+                    font=Font(name="Calibri", size=10, bold=True, color="FFFFFF"),
+                    fill=PatternFill(fill_type="solid", start_color="1F4E79" if is_root else "C65911"),
+                    border=thin_border,
+                    alignment=Alignment(horizontal="center", vertical="center"),
+                    value=f"Compact packet layout: {title}")
+        ws.row_dimensions[start_row].height = 20
+
+        style_range(ws, start_row + 1, 1, start_row + 1, 3,
+                    font=Font(name="Calibri", size=9.5, bold=True, color="000000"),
+                    fill=PatternFill(fill_type="solid", start_color="D9E1F2" if is_root else "FCE4D6"),
+                    border=thin_border,
+                    alignment=Alignment(horizontal="center", vertical="center"),
+                    value=selector_name)
+        style_range(ws, start_row + 2, 1, start_row + 2, 3,
+                    font=Font(name="Calibri", size=9, italic=True, color="555555"),
+                    fill=PatternFill(fill_type="solid", start_color="F2F4F8" if is_root else "FFF2CC"),
+                    border=thin_border,
+                    alignment=Alignment(horizontal="center", vertical="center"),
+                    value="choice selector")
+
+        style_range(ws, start_row + 1, 4, start_row + 1, 6,
+                    font=Font(name="Calibri", size=9.5, bold=True, color="000000"),
+                    fill=PatternFill(fill_type="solid", start_color="D9E1F2" if is_root else "FCE4D6"),
+                    border=thin_border,
+                    alignment=Alignment(horizontal="center", vertical="center"),
+                    value="selected alternative")
+        style_range(ws, start_row + 2, 4, start_row + 2, 6,
+                    font=Font(name="Calibri", size=9, italic=True, color="555555"),
+                    fill=PatternFill(fill_type="solid", start_color="F2F4F8" if is_root else "FFF2CC"),
+                    border=thin_border,
+                    alignment=Alignment(horizontal="center", vertical="center"),
+                    value=deduced_from)
+        ws.row_dimensions[start_row + 1].height = 24
+        ws.row_dimensions[start_row + 2].height = 20
+        return start_row + 4
+
+    nodes = build_compact_nodes(prepare_compact_rows(rows))
+    if not nodes:
+        return start_row
+
+    def assign_cols(node_list, start_col=1):
+        curr = start_col
+        for n in node_list:
+            if not n["children"]:
+                n["col_start"] = curr
+                n["col_end"] = curr
+                curr += 1
+            else:
+                curr = assign_cols(n["children"], curr)
+                n["col_start"] = n["children"][0]["col_start"]
+                n["col_end"] = n["children"][-1]["col_end"]
+        return curr
+
+    assign_cols(nodes, 1)
+    total_cols = nodes[-1]["col_end"]
+
+    def get_max_group_depth(node_list):
+        def depth(n):
+            if not n["children"]:
+                return 0
+            return 1 + max(depth(c) for c in n["children"])
+        return max((depth(n) for n in node_list), default=0)
+
+    max_gd = get_max_group_depth(nodes)
+
+    banner_end_col = max(total_cols, 10)
+    style_range(ws, start_row, 1, start_row, banner_end_col,
+                font=Font(name="Calibri", size=10, bold=True, color="FFFFFF"),
+                fill=PatternFill(fill_type="solid", start_color="1F4E79" if is_root else "C65911"),
+                border=thin_border,
+                alignment=Alignment(horizontal="center", vertical="center"),
+                value=f"Compact packet layout: {title}")
+    ws.row_dimensions[start_row].height = 20
+
+    top_row = start_row + 1
+    leaf_name_row = top_row + max_gd
+    leaf_type_row = leaf_name_row + 1
+    leaf_meta_row = leaf_name_row + 2
+    footer_row = leaf_name_row + 3
+
+    for r in range(top_row, leaf_name_row):
+        ws.row_dimensions[r].height = 22
+    ws.row_dimensions[leaf_name_row].height = 26
+    ws.row_dimensions[leaf_type_row].height = 20
+    ws.row_dimensions[leaf_meta_row].height = 18
+    ws.row_dimensions[footer_row].height = 18
+
+    group_fill = PatternFill(fill_type="solid", start_color="BDD7EE" if is_root else "F8CBAD")
+    group_font = Font(name="Calibri", size=10, bold=True, color="1F4E79" if is_root else "C00000")
+    leaf_name_fill = PatternFill(fill_type="solid", start_color="D9E1F2" if is_root else "FCE4D6")
+    leaf_type_fill = PatternFill(fill_type="solid", start_color="F2F4F8" if is_root else "FFF2CC")
+    leaf_meta_fill = PatternFill(fill_type="solid", start_color="FFFFFF")
+    footer_fill = PatternFill(fill_type="solid", start_color="EAEEF3" if is_root else "FDF2E9")
+
+    cols_with_footer: set[int] = set()
+
+    def render_node(n, current_depth=0):
+        r: IcdRow = n["row"]
+        if n["children"]:
+            row = top_row + current_depth
+            val = strip_html(r.field)
+            style_range(ws, row, n["col_start"], row, n["col_end"],
+                        font=group_font, fill=group_fill, border=thin_border,
+                        alignment=Alignment(horizontal="center", vertical="center"),
+                        value=val)
+            if current_depth == 0 and r.bits_meta():
+                style_range(ws, footer_row, n["col_start"], footer_row, n["col_end"],
+                            font=Font(name="Calibri", size=9, italic=True, color="333333"),
+                            fill=footer_fill, border=thin_border,
+                            alignment=Alignment(horizontal="center", vertical="center"),
+                            value=r.bits_meta())
+                for c in range(n["col_start"], n["col_end"] + 1):
+                    cols_with_footer.add(c)
+            for c in n["children"]:
+                render_node(c, current_depth + 1)
+        else:
+            col = n["col_start"]
+            name_val = strip_html(r.field)
+            r_start = top_row + current_depth
+            style_range(ws, r_start, col, leaf_name_row, col,
+                        font=Font(name="Calibri", size=9.5, bold=True, color="000000"),
+                        fill=leaf_name_fill, border=thin_border,
+                        alignment=Alignment(horizontal="center", vertical="center", wrap_text=True),
+                        value=name_val)
+            type_val = r.compact_type()
+            style_range(ws, leaf_type_row, col, leaf_type_row, col,
+                        font=Font(name="Calibri", size=9, color="000000"),
+                        fill=leaf_type_fill, border=thin_border,
+                        alignment=Alignment(horizontal="center", vertical="center", wrap_text=True),
+                        value=type_val)
+            meta_items = []
+            if "optional" in str(r.present).lower() or str(r.present).strip().lower().startswith("when"):
+                meta_items.append("optional")
+            if r.repeat_label:
+                meta_items.append(r.repeat_label)
+            if r.mapping_note:
+                meta_items.append("* " + r.mapping_note)
+            bits = r.bits_meta()
+            if bits:
+                meta_items.append(bits)
+
+            m_end = footer_row if col not in cols_with_footer else leaf_meta_row
+            style_range(ws, leaf_meta_row, col, m_end, col,
+                        font=Font(name="Calibri", size=8.5, italic=True, color="555555"),
+                        fill=leaf_meta_fill, border=thin_border,
+                        alignment=Alignment(horizontal="center", vertical="center", wrap_text=True),
+                        value="\n".join(meta_items))
+
+    for n in nodes:
+        render_node(n, 0)
+
+    return footer_row + 2
+
+
+def render_excel_detailed_table(ws, start_row: int, title: str, kind_name: str,
+                                min_size: str, max_size: str, rows: list[IcdRow],
+                                is_root: bool) -> int:
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+    thin_border = Border(
+        left=Side(style="thin", color="CCCCCC"),
+        right=Side(style="thin", color="CCCCCC"),
+        top=Side(style="thin", color="CCCCCC"),
+        bottom=Side(style="thin", color="CCCCCC"),
+    )
+
+    banner_fill = PatternFill(fill_type="solid", start_color="1F4E79" if is_root else "833C0C")
+    banner_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+
+    style_range(ws, start_row, 1, start_row, 6, font=banner_font, fill=banner_fill,
+                alignment=Alignment(horizontal="left", vertical="center"),
+                value=f"  {title} ({kind_name})")
+    size_str = f"Min: {min_size} bits{bits_and_bytes(min_size)}   Max: {max_size} bits{bits_and_bytes(max_size)}  "
+    style_range(ws, start_row, 7, start_row, 10, font=banner_font, fill=banner_fill,
+                alignment=Alignment(horizontal="right", vertical="center"),
+                value=size_str)
+    ws.row_dimensions[start_row].height = 24
+
+    header_fill = PatternFill(fill_type="solid", start_color="D9E1F2" if is_root else "FCE4D6")
+    header_font = Font(name="Calibri", size=10, bold=True, color="000000")
+    headers = ["#", "Field", "Comment", "Present", "Type", "Constraint", "Offset", "Min Bits", "Max Bits", "Unit"]
+    for c_idx, h_text in enumerate(headers, start=1):
+        cell = ws.cell(row=start_row + 1, column=c_idx, value=h_text)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = thin_border
+        align = "center" if c_idx in (1, 4, 10) else ("right" if c_idx in (7, 8, 9) else "left")
+        cell.alignment = Alignment(horizontal=align, vertical="center")
+    ws.row_dimensions[start_row + 1].height = 22
+
+    curr_r = start_row + 2
+    for idx, row in enumerate(rows):
+        if row.kind == "section":
+            row_fill = PatternFill(fill_type="solid", start_color="D9EAD3")
+            row_font = Font(name="Calibri", size=10, bold=True, color="000000")
+        elif row.kind == "title":
+            row_fill = PatternFill(fill_type="solid", start_color="EEF5FF")
+            row_font = Font(name="Calibri", size=10, bold=True, color="000000")
+        elif row.kind in ("choice-link", "type-link"):
+            row_fill = PatternFill(fill_type="solid", start_color="FFF2CC")
+            row_font = Font(name="Calibri", size=10, bold=True, color="000000")
+        else:
+            row_fill = PatternFill(fill_type="solid", start_color="F9FAFB" if idx % 2 == 1 else "FFFFFF")
+            row_font = Font(name="Calibri", size=10, color="000000")
+
+        tree_prefix = ("   " * min(row.level, 8)) + ("├── " if row.kind != "section" else "")
+        field_text = tree_prefix + strip_html(row.field)
+        if row.mapping_note:
+            field_text += " *"
+
+        comment_text = re.sub(r"<br\s*/?>", "\n", row.comment or "")
+        comment_text = re.sub(r"<[^>]+>", "", comment_text).strip()
+        if row.mapping_note:
+            starred = "* " + row.mapping_note
+            comment_text = (comment_text + "\n" + starred) if comment_text else starred
+
+        values = [
+            row.number,
+            field_text,
+            comment_text,
+            strip_html(row.present),
+            strip_html(row.typ),
+            strip_html(row.constraint),
+            strip_html(row.offset),
+            strip_html(row.min_bits),
+            strip_html(row.max_bits),
+            strip_html(row.unit),
+        ]
+
+        for c_idx, val in enumerate(values, start=1):
+            cell = ws.cell(row=curr_r, column=c_idx, value=val)
+            cell.font = row_font
+            cell.fill = row_fill
+            cell.border = thin_border
+            align = "center" if c_idx in (1, 4, 10) else ("right" if c_idx in (7, 8, 9) else "left")
+            wrap = c_idx == 3 or "\n" in str(val)
+            cell.alignment = Alignment(horizontal=align, vertical="center", wrap_text=wrap)
+
+        curr_r += 1
+
+    return curr_r + 2
+
+
+def render_excel_constants(ws, model: GrammarModel, grammar: GrammarRenderer) -> None:
+    if not model.constants:
+        return
+
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+    thin_border = Border(
+        left=Side(style="thin", color="CCCCCC"),
+        right=Side(style="thin", color="CCCCCC"),
+        top=Side(style="thin", color="CCCCCC"),
+        bottom=Side(style="thin", color="CCCCCC"),
+    )
+
+    banner_fill = PatternFill(fill_type="solid", start_color="1F4E79")
+    banner_font = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
+    style_range(ws, 1, 1, 1, 5, font=banner_font, fill=banner_fill,
+                alignment=Alignment(horizontal="left", vertical="center"),
+                value=f"  ASN.1 Constants ({len(model.constants)})")
+    ws.row_dimensions[1].height = 28
+
+    headers = ["Module", "Constant Name", "Type", "Value", "Comment"]
+    header_fill = PatternFill(fill_type="solid", start_color="D9E1F2")
+    header_font = Font(name="Calibri", size=10, bold=True, color="000000")
+    for c_idx, h_text in enumerate(headers, start=1):
+        cell = ws.cell(row=3, column=c_idx, value=h_text)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal="center" if c_idx == 1 else "left", vertical="center")
+    ws.row_dimensions[3].height = 22
+
+    curr_r = 4
+    for idx, c in enumerate(sorted(model.constants, key=lambda x: (x.module, x.name.lower()))):
+        row_fill = PatternFill(fill_type="solid", start_color="F9FAFB" if idx % 2 == 1 else "FFFFFF")
+        type_str = strip_html(grammar.render_type(c.concrete, asn_node=c.asn_node)) if c.concrete is not None else ""
+        val_str = format_asn1_value(c.value_node)
+        comment_str = re.sub(r"<[^>]+>", "", re.sub(r"<br\s*/?>", "\n", c.comment or "")).strip()
+
+        row_vals = [c.module, c.name, type_str, val_str, comment_str]
+        for c_idx, val in enumerate(row_vals, start=1):
+            cell = ws.cell(row=curr_r, column=c_idx, value=val)
+            if c_idx == 2:
+                cell.font = Font(name="Calibri", size=10, bold=True, color="000000")
+            elif c_idx == 4:
+                cell.font = Font(name="Consolas", size=9.5, color="000000")
+            else:
+                cell.font = Font(name="Calibri", size=10, color="000000")
+            cell.fill = row_fill
+            cell.border = thin_border
+            align = "center" if c_idx == 1 else "left"
+            cell.alignment = Alignment(horizontal=align, vertical="center", wrap_text=(c_idx in (4, 5)))
+        curr_r += 1
+
+    ws.column_dimensions["A"].width = 22
+    ws.column_dimensions["B"].width = 36
+    ws.column_dimensions["C"].width = 30
+    ws.column_dimensions["D"].width = 50
+    ws.column_dimensions["E"].width = 35
+
+
+def render_excel_document(doc: IcdDocument, model: Optional[GrammarModel],
+                          root_names: Optional[list[str]], output_path: str) -> None:
+    try:
+        import openpyxl
+        from openpyxl.styles import Alignment, Font, PatternFill
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        raise SystemExit("openpyxl is required for Excel output. Install it with: pip install openpyxl")
+
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)  # remove default sheet
+
+    plan = doc.render_plan(root_names)
+    nested_mode = bool(root_names)
+    rendered_ids = {table.id for table, _ in plan}
+
+    for table in doc.tables.values():
+        table.rows = [doc.resolve_row(row, rendered_ids) for row in table.rows]
+    grammar = GrammarRenderer(model, visible_anchors(doc, rendered_ids)) if model is not None else None
+
+    existing_sheet_names: set[str] = set()
+    pdu_tables = [t for t, is_root in plan if is_root] if root_names else [t for t, _ in plan]
+
+    for root_table in pdu_tables:
+        sheet_name = make_unique_sheet_name(root_table.name, existing_sheet_names)
+        ws = wb.create_sheet(sheet_name)
+        ws.views.sheetView[0].showGridLines = True
+
+        min_bits_s, max_bits_s = str(root_table.min_bytes * 8), str(root_table.max_bytes * 8)
+        header_comment = "<br/>".join(c for c in root_table.comments if c)
+        section = _SectionRow(number="", level=0, field=root_table.name, comment=header_comment,
+                              comment_html=bool(header_comment), present="", typ=root_table.kind,
+                              constraint="", offset="0", min_bits=min_bits_s, max_bits=max_bits_s, unit="")
+        if nested_mode:
+            expanded = doc.expand_rows(root_table.rows, rendered_ids=rendered_ids)
+        else:
+            expanded = list(root_table.rows)
+        rows = [section] + expanded
+        compact_rows = [section] + doc.expand_rows(root_table.rows, rendered_ids=rendered_ids)
+
+        # Main PDU Header Banner
+        banner_end_col = 10
+        style_range(ws, 1, 1, 1, banner_end_col,
+                    font=Font(name="Calibri", size=14, bold=True, color="FFFFFF"),
+                    fill=PatternFill(fill_type="solid", start_color="1F4E79"),
+                    alignment=Alignment(horizontal="left", vertical="center"),
+                    value=f"  ICD: {root_table.name} ({root_table.kind})")
+        ws.row_dimensions[1].height = 28
+
+        size_banner = f"  Total Wire Size: Min: {min_bits_s} bits{bits_and_bytes(min_bits_s)}   Max: {max_bits_s} bits{bits_and_bytes(max_bits_s)}"
+        style_range(ws, 2, 1, 2, banner_end_col,
+                    font=Font(name="Calibri", size=10, italic=True, color="FFFFFF"),
+                    fill=PatternFill(fill_type="solid", start_color="2F5597"),
+                    alignment=Alignment(horizontal="left", vertical="center"),
+                    value=size_banner)
+        ws.row_dimensions[2].height = 20
+
+        curr_row = 4
+
+        # 1. Compact packet layout
+        curr_row = render_excel_compact_diagram(ws, curr_row, root_table.name, compact_rows,
+                                               is_root=True, is_choice=root_table.kind.upper() == "CHOICE",
+                                               table_comments=root_table.comments)
+
+        # 2. Detailed Table
+        curr_row = render_excel_detailed_table(ws, curr_row, root_table.name, root_table.kind,
+                                              min_bits_s, max_bits_s, rows, is_root=True)
+
+        # 3. Subtables belonging to this root PDU (if in root mode)
+        if nested_mode:
+            c_set, n_set = doc._analyze([root_table])
+            subtables = [doc.tables[tid] for tid in doc.order if tid in n_set and tid != root_table.id and tid in doc.tables]
+            for sub_table in subtables:
+                s_min_bits, s_max_bits = str(sub_table.min_bytes * 8), str(sub_table.max_bytes * 8)
+                s_header_comment = "<br/>".join(c for c in sub_table.comments if c)
+                s_section = _SectionRow(number="", level=0, field=sub_table.name, comment=s_header_comment,
+                                        comment_html=bool(s_header_comment), present="", typ=sub_table.kind,
+                                        constraint="", offset="0", min_bits=s_min_bits, max_bits=s_max_bits, unit="")
+                s_rows = [s_section] + list(sub_table.rows)
+                s_compact_rows = [s_section] + doc.expand_rows(sub_table.rows, rendered_ids=rendered_ids)
+
+                curr_row = render_excel_compact_diagram(ws, curr_row, sub_table.name, s_compact_rows,
+                                                       is_root=False, is_choice=sub_table.kind.upper() == "CHOICE",
+                                                       table_comments=sub_table.comments)
+                curr_row = render_excel_detailed_table(ws, curr_row, sub_table.name, sub_table.kind,
+                                                      s_min_bits, s_max_bits, s_rows, is_root=False)
+
+        default_widths = {1: 8, 2: 34, 3: 42, 4: 16, 5: 26, 6: 18, 7: 14, 8: 12, 9: 12, 10: 12}
+        max_col_used = max(ws.max_column, 10)
+        for col_idx in range(1, max_col_used + 1):
+            letter = get_column_letter(col_idx)
+            ws.column_dimensions[letter].width = default_widths.get(col_idx, 16)
+
+    # Render Constants Tab
+    if model and model.constants and grammar:
+        constants_sheet_name = make_unique_sheet_name("Constants", existing_sheet_names)
+        ws_const = wb.create_sheet(constants_sheet_name)
+        ws_const.views.sheetView[0].showGridLines = True
+        render_excel_constants(ws_const, model, grammar)
+
+    wb.save(output_path)
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -1987,7 +2489,8 @@ XML_EXTENSIONS = {".xml"}
 def find_asn1scc() -> str:
     """Locate the asn1scc executable.
 
-    The ASN1SCC environment variable takes precedence, then the PATH, then the
+    The ASN1SCC environment variable takes precedence, then the same directory
+    as this script (when bundled in a release tarball), then the PATH, then the
     binary built inside this repository (contrib/../asn1scc/bin).
     """
     from_env = os.environ.get("ASN1SCC")
@@ -1995,6 +2498,12 @@ def find_asn1scc() -> str:
         if not Path(from_env).exists():
             raise SystemExit(f"asn1scc not found at ASN1SCC={from_env}")
         return from_env
+
+    script_dir = Path(__file__).resolve().parent
+    for exe_name in ("asn1scc", "asn1scc.exe"):
+        candidate = script_dir / exe_name
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
 
     found = shutil.which("asn1scc")
     if found:
@@ -2071,19 +2580,23 @@ def load_input(args_files: list[str], root_names: Optional[list[str]]) -> tuple[
 
 
 def main() -> None:
+    check_dependencies()
+
     parser = argparse.ArgumentParser(
-        description="Generate an ICD HTML document from ASN.1/ACN files (or from an existing -icdRaw dump).",
+        description="Generate an ICD document (HTML or Excel) from ASN.1/ACN files (or from an existing -icdRaw dump).",
         epilog=(
             "asn1scc is called internally with -icdRaw: the ICD tables it produces already "
             "contain all implicit encoding fields (array lengths, presence bits, choice "
             "discriminants, patterns, padding). When --root is omitted, every type of the "
             "model gets its own table, in declaration order. "
             "Examples: icd-generator.py -o out.html model.asn model.acn | "
-            "icd-generator.py --root Packet -o out.html model.asn model.acn"
+            "icd-generator.py -t excel -o out.xlsx --root Packet model.asn model.acn"
         ),
     )
-    parser.add_argument("-o", "--output", required=True, metavar="icd.html",
-                        help="output HTML file")
+    parser.add_argument("-o", "--output", required=True, metavar="FILE",
+                        help="output file path (.html or .xlsx)")
+    parser.add_argument("-t", "--type", choices=["excel", "html"], default="html",
+                        help="output format: html (default) or excel")
     parser.add_argument("--root", action="append", default=None, metavar="TYPE",
                         help="root type name to document (default: every type, sequentially); "
                              "repeat --root for multiple root tables")
@@ -2092,10 +2605,17 @@ def main() -> None:
                              "dump (.json)")
     args = parser.parse_args()
 
+    out_ext = Path(args.output).suffix.lower()
+    is_excel = args.type == "excel" or out_ext in (".xlsx", ".xlsm")
+
     icd_data, xml_root = load_input(args.files, args.root)
     doc = make_document(icd_data)
     model = GrammarModel(xml_root) if xml_root is not None else None
-    Path(args.output).write_text(render_document(doc, model, args.root), encoding="utf-8")
+
+    if is_excel:
+        render_excel_document(doc, model, args.root, args.output)
+    else:
+        Path(args.output).write_text(render_document(doc, model, args.root), encoding="utf-8")
 
 
 if __name__ == "__main__":
