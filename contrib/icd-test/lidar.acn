@@ -1,0 +1,36 @@
+LIDAR-EGSE-DATAVIEW DEFINITIONS ::= BEGIN
+
+Header[] {
+   laser-num NULL [size 8, pattern '20'H],
+   block-num NULL [size 8, pattern '08'H],
+   first-block-return [size 8, encoding pos-int],
+   dis-unit NULL [size 8, pattern '04'H],
+   return-number [size 8, encoding pos-int, encode-values],
+   udp-seq-reserved  NULL [size 7, pattern '0000000'B],
+   udp-seq []
+}
+
+Blocks [] {
+   azimuth [size 16, endianness little, encoding pos-int],
+   channels []
+}
+
+Single-Channel [] {
+   distance [size 16, endianness little, encoding pos-int],
+   reflectivity [],
+   reserved NULL [size 8, pattern '00000000'B]
+}
+
+Tail[] {
+   reserved NULL [size 72, pattern '000000000000000000'H],
+   high-temperature-flag [size 8, encoding pos-int],
+   return-mode [size 8, encoding pos-int, encode-values],
+   motor-speed [],
+   date-and-time [],
+   timestamp [size 32, encoding pos-int], -- endianness not specified
+   factory-information NULL [size 8, pattern '42'H]
+}
+Packet []
+
+END
+

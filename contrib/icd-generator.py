@@ -421,12 +421,14 @@ class IcdRow:
         return f"{mn_i}..{mx_i} bits"
 
     def compact_type(self) -> str:
-        """Type text in the compact diagram: 'bool' for BOOLEAN, 'int' for INTEGER."""
+        """Type text in the compact diagram: 'bool' for BOOLEAN, 'int' for INTEGER, 'enum' for ENUMERATED."""
         typ = strip_html(self.typ)
         if typ.startswith("BOOLEAN"):
             return "bool" + typ[len("BOOLEAN"):]
         if typ.startswith("INTEGER"):
             return "int" + typ[len("INTEGER"):]
+        if typ.startswith("ENUMERATED"):
+            return "enum" + typ[len("ENUMERATED"):]
         return typ
 
     @property
@@ -537,12 +539,12 @@ class IcdDocument:
                 # resolved later: ref_kind carries the target's kind.
                 if "SEQUENCE OF" in target.typ or target.ref_kind == "SEQUENCE OF":
                     target.length_field = row.field
-        # 2. rename anonymous encoded determinants N / N2 / ...
+        # 2. rename anonymous encoded determinants N / N1 / ...
         counter = 0
         for row in table.rows:
             if row.is_length_det:
                 counter += 1
-                row.field = "N" if counter == 1 else f"N{counter}"
+                row.field = "N" if counter == 1 else f"N{counter - 1}"
         # 3. Collapse repeated SEQUENCE OF element instances: the dump
         #    shows the first instance, dots, then the last one
         #    (a[1], ..., a[15] / Item #1, ..., Item #7). The element must
@@ -935,6 +937,7 @@ class IcdDocument:
         first/last element of a SEQUENCE OF); the visited set only guards
         against cycles.
         """
+        is_top = visited is None
         if visited is None:
             visited = set()
         if rendered_ids is None:
@@ -991,6 +994,17 @@ class IcdDocument:
                     expanded.append(replace(row, typ=html_escape(label), typ_html=False))
             else:
                 expanded.append(row)
+        if is_top:
+            counter = 0
+            renumbered: list[IcdRow] = []
+            for r in expanded:
+                if r.is_length_det:
+                    counter += 1
+                    name = "N" if counter == 1 else f"N{counter - 1}"
+                    renumbered.append(replace(r, field=name))
+                else:
+                    renumbered.append(r)
+            return renumbered
         return expanded
 
 
@@ -1274,9 +1288,9 @@ def implicit_array_det_bits(header: IcdRow) -> str:
 
 
 def next_array_det_name(out: list[IcdRow]) -> str:
-    """N for the first array of the diagram, N2, N3, ... for the next ones."""
+    """N for the first array of the diagram, N1, N2, ... for the next ones."""
     count = sum(1 for r in out if r.is_length_det)
-    return "N" if count == 0 else f"N{count + 1}"
+    return "N" if count == 0 else f"N{count}"
 
 
 def element_type_name(first_instance: list[IcdRow], header: IcdRow) -> str:
@@ -1342,19 +1356,21 @@ def normalize_count(text: str) -> str:
     return re.sub(r"\s*\.\.\s*", "..", t)
 
 
-def prepare_compact_rows(rows: list[IcdRow]) -> list[IcdRow]:
+def prepare_compact_rows(rows: list[IcdRow], det_counter: Optional[list[int]] = None) -> list[IcdRow]:
     """Transform expanded rows for the compact diagram.
 
     Arrays (SEQU OF): the element is shown ONCE - the header row becomes
-    '<elem> \u00d7 <count>' - and the element instance rows (SubItemRow
+    '<elem>' - and the element instance rows (SubItemRow
     smpl[1]/smpl[10], the dots, the expanded composite 'Item #n' instances)
     are dropped; a composite element keeps only its fields, grouped under
     the element cell. The length determinant becomes its own cell BEFORE
-    the element (N, N2, ... per diagram), EXCEPT for the external-field
+    the element (N, N1, ... per diagram), EXCEPT for the external-field
     arrays (ACN [size f]): that field is already a cell of the table, and
     for deduced arrays no determinant is encoded at all. The element cell
     carries the footer 'Repeated <N|field|count|deduced> times'.
     """
+    if det_counter is None:
+        det_counter = [0]
     out: list[IcdRow] = []
     i = 0
     while i < len(rows):
@@ -1369,40 +1385,23 @@ def prepare_compact_rows(rows: list[IcdRow]) -> list[IcdRow]:
         while j < len(rows) and rows[j].level > header.level:
             instance_rows.append(rows[j])
             j += 1
-        # First instance only: up to the dots, or to the next composite
-        # instance title ('Item #2'), whichever comes first. A collapsed
-        # leaf element ('smpl[1..10]') IS the instance: keep it for the
-        # type lookup, but its cells are not rendered.
-        first_instance: list[IcdRow] = []
-        seen_title = False
-        for er in instance_rows:
-            if er.is_repeat_summary:
-                if not seen_title:
-                    # Leaf element collapsed to a single instance row.
-                    first_instance.append(er)
-                break
-            if er.row_type == "ThreeDOTs":
-                break
-            if er.kind == "title":
-                if seen_title:
-                    break
-                seen_title = True
-            first_instance.append(er)
-        # The encoded determinant: either the child table's own Length row
-        # (composite element, inlined by expand_rows) or the uPER default
-        # embedded in the array row's min bits.
-        det_row = next((r for r in first_instance if r.is_length_det), None)
+
+        det_row = next((r for r in instance_rows if r.is_length_det and r.level == header.level + 1), None)
         count_text = normalize_count(header.constraint)
         deduced = "deduced" in strip_html(header.comment).lower()
-        composite = any(r.kind == "title" for r in first_instance)
-        # Determinant cell (N / N2...), never for external or deduced.
+
+        # Determinant cell (N / N1...), never for external or deduced.
         det_name = ""
         if header.length_field:
             pass                     # external: the field has its own cell
         elif deduced:
             pass                     # nothing is encoded
         elif det_row is not None:
-            det_name = next_array_det_name(out)
+            det_name = det_row.field
+            m = re.match(r"^N(\d*)$", det_name)
+            if m:
+                idx = int(m.group(1)) if m.group(1) else 0
+                det_counter[0] = max(det_counter[0], idx + 1)
             det_bits = implicit_array_det_bits(det_row) or det_row.bits_meta()
             out.append(replace(header, field=det_name, typ=count_text, constraint="",
                                min_bits=str(to_int(det_bits) or ""), max_bits=str(to_int(det_bits) or ""),
@@ -1410,23 +1409,27 @@ def prepare_compact_rows(rows: list[IcdRow]) -> list[IcdRow]:
                                ref_id="", ref_kind="", anchor="", repeat_label="",
                                length_field="", is_length_det=True))
         elif count_text and ".." in count_text:
-            det_name = next_array_det_name(out)
+            det_idx = det_counter[0]
+            det_counter[0] += 1
+            det_name = "N" if det_idx == 0 else f"N{det_idx}"
             det_bits = implicit_array_det_bits(header)
             out.append(replace(header, field=det_name, typ=count_text, constraint="",
                                min_bits=det_bits, max_bits=det_bits, comment="",
                                comment_html=False, kind_override="", ref_id="",
                                ref_kind="", anchor="", repeat_label="",
                                length_field="", is_length_det=True))
-        # Element cell: '<elem> \u00d7 <count>' + repeated footer.
+
+        # Element cell: '<elem>' + repeated footer.
         element_typ = strip_html(header.typ).replace("SEQUENCE OF", "").strip()
         if element_typ.startswith("(") and element_typ.endswith(")"):
             element_typ = element_typ[1:-1].strip()
-        if not element_typ:
-            element_typ = element_type_name(first_instance, header)
-        # The compact cell shows the FIELD name ('instructions'), never
-        # the child table's synthesized name ('ASW-...-GENERIC-instructions').
+
+        # The compact cell shows the FIELD name ('instructions', 'content'), never
+        # the child table's synthesized name ('ASW-...-GENERIC-instructions')
+        # and without '× count' (which is already in the repeat footer).
         field_name = element_field_name(header)
-        element_name = (field_name + " \u00d7 " + count_text) if count_text else field_name
+        element_name = field_name
+
         if header.length_field:
             repeat_text = f"Repeated {header.length_field} times"
         elif deduced:
@@ -1437,26 +1440,46 @@ def prepare_compact_rows(rows: list[IcdRow]) -> list[IcdRow]:
             repeat_text = f"Repeated {det_name or 'N'} times"
         else:
             repeat_text = f"Repeated {count_text} times"
-        elem_row = replace(header, field=element_name, typ="SEQUENCE OF", constraint="",
-                           repeat_label=repeat_text, anchor="")
+
+        # Find first instance and its children in instance_rows
+        first_inst_idx = next(
+            (k for k, r in enumerate(instance_rows) if not r.is_length_det and r.row_type != "ThreeDOTs"),
+            None
+        )
+
+        children: list[IcdRow] = []
+        first_inst: Optional[IcdRow] = None
+        if first_inst_idx is not None:
+            first_inst = instance_rows[first_inst_idx]
+            inst_level = first_inst.level
+            if not element_typ:
+                t = strip_html(first_inst.typ).strip()
+                if t and t != "SEQUENCE OF":
+                    element_typ = re.sub(r"\s*\(\s*[^)]*\)$", "", t).strip()
+            k = first_inst_idx + 1
+            while k < len(instance_rows) and instance_rows[k].level > inst_level:
+                children.append(instance_rows[k])
+                k += 1
+
+        is_choice = row_is_choice(first_inst) if first_inst else False
+        elem_row = replace(
+            header,
+            field=element_name,
+            typ=element_typ or "SEQUENCE OF",
+            constraint="",
+            repeat_label=repeat_text,
+            anchor="",
+            is_choice_link=is_choice,
+        )
         out.append(elem_row)
-        # Composite element: its fields nest under the element cell (the
-        # 'Item #1' title row and the determinant row are dropped); a leaf
-        # element is fully represented by the element cell.
-        if composite:
-            title_level = None
-            children: list[IcdRow] = []
-            for er in first_instance:
-                if er.is_length_det:
-                    continue
-                if er.kind == "title":
-                    title_level = er.level
-                    continue
-                if title_level is not None and er.level > title_level:
-                    children.append(er)
-            shift = (title_level - header.level) if title_level is not None else 0
+
+        # Composite element: its fields nest under the element cell;
+        # a leaf element has no children.
+        if children:
+            shift = inst_level - header.level
             remapped = [replace(r, level=r.level - shift) for r in children]
-            out.extend(prepare_compact_rows(remapped))
+            out.extend(prepare_compact_rows(remapped, det_counter=det_counter))
+
         i = j
     return out
 
@@ -1495,11 +1518,7 @@ def compact_node_html(node: dict) -> str:
     if row_is_choice(row):
         return '<div class="packetCell packetChoice"><div class="packetFieldName">' + html_escape(name) + '</div><div class="packetFieldType">' + html_escape(compact_choice_reference(row)) + '</div>' + meta_html + '</div>'
     if node["children"]:
-        # An array element group (title '<elem> × <count>' + its subfields)
-        # must occupy the width of a single cell, like the parent row: the
-        # subfield cells wrap inside it.
-        group_class = "packetGroup packetElementGroup" if row.repeat_label else "packetGroup"
-        return '<div class="' + group_class + '"><div class="packetGroupTitle">' + html_escape(name) + '</div><div class="packetGroupChildren">' + "".join(compact_node_html(c) for c in node["children"]) + '</div>' + meta_html + '</div>'
+        return '<div class="packetGroup"><div class="packetGroupTitle">' + html_escape(name) + '</div><div class="packetGroupChildren">' + "".join(compact_node_html(c) for c in node["children"]) + '</div>' + meta_html + '</div>'
     return '<div class="packetCell"><div class="packetFieldName">' + html_escape(name) + '</div><div class="packetFieldType">' + html_escape(typ) + '</div>' + meta_html + '</div>'
 
 
@@ -1730,7 +1749,7 @@ def render_document(doc: IcdDocument, model: Optional[GrammarModel], root_names:
         navigation += [("ASN1_GRAMMAR", "ASN.1 grammar", "normal"), ("ACN_GRAMMAR", "ACN grammar", "normal")]
 
     css = """
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#222;display:flex;height:100vh}.nav-pane{width:270px;background:#f4f4f4;padding:15px;overflow-y:auto;position:fixed;height:100vh;border-right:2px solid #ccc}.content{margin-left:270px;padding:20px;overflow-y:auto;height:100vh;flex-grow:1}.nav-pane a{display:block;padding:5px;text-decoration:none;color:#333;border-bottom:1px solid #ddd;font-size:14px}.nav-pane a.root{font-weight:bold;background-color:#e4e4e4;margin-top:8px}.nav-pane a:hover{background:#ddd}#navFilterInput{width:100%;padding:8px;margin-bottom:12px;border:1px solid #ccc;border-radius:4px}.block{border:1px solid #ccc;border-radius:4px;margin:8px 0 14px 0;padding:0;background:#fff}.block>summary{cursor:pointer;background:#eee;padding:7px 10px;font-weight:700}table{border-collapse:collapse;width:100%;font-size:13px;margin:0 0 18px 0}th,td{border:1px solid #777;padding:5px 7px;vertical-align:top}th{background:#e6e6e6;text-align:left}.typeRow td{background:#cfd8e6;font-weight:900;font-size:15px}.sectionRow td{background:#d9ead3;font-weight:900;font-size:14px}.titleRow td{background:#eef5ff;font-weight:900;font-size:14px}.choiceLinkRow td{background:#fff2cc;font-weight:800}.c0,.c7,.c8{text-align:right;white-space:nowrap}.c1{white-space:nowrap}.c6{font-family:Consolas,"Courier New",monospace;white-space:nowrap}.level{display:inline-block}.level0{padding-left:0}.level1{padding-left:1.5em}.level2{padding-left:3em}.level3{padding-left:4.5em}.level4{padding-left:6em}.enumeration{margin:0;padding-left:18px}.enumeration_name{font-weight:bold}.choiceOptions{margin:4px 0 0 18px;padding:0}.packetDiagram{margin:10px}.packetDiagramTitle{font-weight:bold;margin:4px 0 6px 0;color:#000}.packetMap{display:flex;align-items:stretch;flex-wrap:wrap;gap:0}.packetCell{min-width:105px;max-width:180px;text-align:center;display:flex;flex-direction:column;color:#000}.packetFieldName{padding:8px 6px;min-height:54px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#000}.packetFieldType{padding:5px 4px;min-height:30px;background:rgba(255,255,255,.35);font-size:11px;display:flex;align-items:center;justify-content:center;flex-grow:1;color:#000}.packetGroup{display:flex;flex-direction:column;min-width:150px;color:#000}.packetElementGroup{max-width:180px}.packetElementGroup .packetGroupChildren{flex-wrap:wrap}.packetElementGroup .packetCell{min-width:90px}.packetGroupTitle{text-align:center;font-weight:700;padding:7px;color:#000}.packetGroupChildren{display:flex;align-items:stretch}.packetMeta{font-size:10px;font-style:italic;border-top:1px solid #999;background:#fff;padding:1px 2px;text-align:center;color:#000}.rootCompact .packetCell,.rootCompact .packetGroup{border:1px solid #1f5fa8;background:#9eb9d8}.rootCompact .packetFieldName,.rootCompact .packetGroupTitle{border-bottom:1px solid #1f5fa8;background:#9eb9d8}.rootCompact .packetFieldType{background:rgba(255,255,255,.28)}.otherCompact .packetCell,.otherCompact .packetGroup{border:1px solid #d93025;background:#f9c08e}.otherCompact .packetFieldName,.otherCompact .packetGroupTitle{border-bottom:1px solid #d93025;background:#f7bd88}.packetChoice{font-style:italic}.grammar{background:#fbfbfb;border:1px solid #ccc;padding:12px;white-space:pre-wrap;font-family:Consolas,"Courier New",monospace;margin:0}.localGrammar{border:0}.grammar b{color:#5F9EA0}.grammar font{color:#008000}.fileLink{font-size:11px;margin-left:6px}a{color:#0645ad}.mapFnStar{color:#c0392b;font-weight:bold;text-decoration:none;cursor:help}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#222;display:flex;height:100vh}.nav-pane{width:270px;background:#f4f4f4;padding:15px;overflow-y:auto;position:fixed;height:100vh;border-right:2px solid #ccc}.content{margin-left:270px;padding:20px;overflow-y:auto;height:100vh;flex-grow:1}.nav-pane a{display:block;padding:5px;text-decoration:none;color:#333;border-bottom:1px solid #ddd;font-size:14px}.nav-pane a.root{font-weight:bold;background-color:#e4e4e4;margin-top:8px}.nav-pane a:hover{background:#ddd}#navFilterInput{width:100%;padding:8px;margin-bottom:12px;border:1px solid #ccc;border-radius:4px}.block{border:1px solid #ccc;border-radius:4px;margin:8px 0 14px 0;padding:0;background:#fff}.block>summary{cursor:pointer;background:#eee;padding:7px 10px;font-weight:700}table{border-collapse:collapse;width:100%;font-size:13px;margin:0 0 18px 0}th,td{border:1px solid #777;padding:5px 7px;vertical-align:top}th{background:#e6e6e6;text-align:left}.typeRow td{background:#cfd8e6;font-weight:900;font-size:15px}.sectionRow td{background:#d9ead3;font-weight:900;font-size:14px}.titleRow td{background:#eef5ff;font-weight:900;font-size:14px}.choiceLinkRow td{background:#fff2cc;font-weight:800}.c0,.c7,.c8{text-align:right;white-space:nowrap}.c1{white-space:nowrap}.c6{font-family:Consolas,"Courier New",monospace;white-space:nowrap}.level{display:inline-block}.level0{padding-left:0}.level1{padding-left:1.5em}.level2{padding-left:3em}.level3{padding-left:4.5em}.level4{padding-left:6em}.enumeration{margin:0;padding-left:18px}.enumeration_name{font-weight:bold}.choiceOptions{margin:4px 0 0 18px;padding:0}.packetDiagram{margin:10px}.packetDiagramTitle{font-weight:bold;margin:4px 0 6px 0;color:#000}.packetMap{display:flex;align-items:stretch;flex-wrap:wrap;gap:0}.packetCell{min-width:105px;max-width:180px;text-align:center;display:flex;flex-direction:column;color:#000}.packetFieldName{padding:8px 6px;min-height:54px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#000}.packetFieldType{padding:5px 4px;min-height:30px;background:rgba(255,255,255,.35);font-size:11px;display:flex;align-items:center;justify-content:center;flex-grow:1;color:#000}.packetGroup{display:flex;flex-direction:column;min-width:150px;color:#000}.packetGroupTitle{text-align:center;font-weight:700;padding:7px;color:#000}.packetGroupChildren{display:flex;align-items:stretch}.packetMeta{font-size:10px;font-style:italic;border-top:1px solid #999;background:#fff;padding:1px 2px;text-align:center;color:#000}.rootCompact .packetCell,.rootCompact .packetGroup{border:1px solid #1f5fa8;background:#9eb9d8}.rootCompact .packetFieldName,.rootCompact .packetGroupTitle{border-bottom:1px solid #1f5fa8;background:#9eb9d8}.rootCompact .packetFieldType{background:rgba(255,255,255,.28)}.otherCompact .packetCell,.otherCompact .packetGroup{border:1px solid #d93025;background:#f9c08e}.otherCompact .packetFieldName,.otherCompact .packetGroupTitle{border-bottom:1px solid #d93025;background:#f7bd88}.packetChoice{font-style:italic}.grammar{background:#fbfbfb;border:1px solid #ccc;padding:12px;white-space:pre-wrap;font-family:Consolas,"Courier New",monospace;margin:0}.localGrammar{border:0}.grammar b{color:#5F9EA0}.grammar font{color:#008000}.fileLink{font-size:11px;margin-left:6px}a{color:#0645ad}.mapFnStar{color:#c0392b;font-weight:bold;text-decoration:none;cursor:help}
 """.strip()
 
     javascript = """
