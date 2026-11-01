@@ -60,7 +60,7 @@ echo "run -icdPdus checks (C)"
 ./scripts/runIcdPdusTests.sh || exit 1
 
 echo "run ICD tests (-icdAcn)"
-python3 ./scripts/runIcdTests.py || exit 1
+python3 ./scripts/runIcdTests.py --require-excel || exit 1
 
 echo "run c tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l c -ws 4 -s false -p 48 || exit 1

@@ -40,7 +40,9 @@ Usage details: v4Tests/icd-tests/README.md
 
 import argparse
 import difflib
+import importlib.util
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -57,8 +59,17 @@ DEFAULT_COMPILER = V4TESTS_DIR.parent / "asn1scc" / "bin" / "Debug" / "net10.0" 
 CHECK_NAMES = [
     "golden", "json-structure", "nav-labels", "presence-mask",
     "choice-alts", "c-macros", "tas-coverage", "html-anchors",
-    "v2-parity",
+    "v2-parity", "mapping-fns", "generator",
 ]
+
+# The HTML / Excel ICD generator (contrib/icd-generator.py) is run on every
+# test case by the 'generator' check.
+ICD_GENERATOR = V4TESTS_DIR.parent / "contrib" / "icd-generator.py"
+
+# Row comment that asn1scc puts on an INTEGER with an ACN mapping-function
+# (BackendAst/Acn/AcnPrimitives.fs, icdMappingFunctionNote).
+MAPPING_NOTE_RE = re.compile(r"^mapping-function ([\w.]+): (.*)$")
+MAPPING_NO_BITS = "occupies no bits on the wire"
 
 # A test dir opts into the legacy-vs-v2 ICD comparison by containing this
 # (empty) marker file.  --acn-v2 is C-only, so only grammars that compile in
@@ -308,6 +319,78 @@ def check_html_anchors(html_path):
             for t, n in sorted(missing.items())]
 
 
+def mapping_notes(icd):
+    """(table id, field name, function, note text, max bits) of every row that
+    carries the mapping-function comment."""
+    notes = []
+    for table in icd.get("tables", []):
+        for row in table.get("rows", []):
+            for comment in row.get("comments") or []:
+                m = MAPPING_NOTE_RE.match(comment)
+                if m:
+                    notes.append((table.get("id", "?"), row.get("fieldName", ""),
+                                  m.group(1), m.group(2), row.get("maxLengthInBits")))
+    return notes
+
+
+def check_mapping_fns(icd, ast_root):
+    """The mapping-functions of the -x AST (attribute on INTEGER and on ACN
+    INTEGER fields) are exactly those named by the -icdRaw row notes, and the
+    note says 'no bits on the wire' exactly for the rows of size 0."""
+    errors = []
+    in_xml = {e.get("mapping-function") for e in ast_root.iter()
+              if e.get("mapping-function")}
+    notes = mapping_notes(icd)
+    in_icd = {fn for _, _, fn, _, _ in notes}
+    for fn in sorted(in_xml - in_icd):
+        errors.append(f"mapping-function '{fn}' is in the AST xml but on no ICD row")
+    for fn in sorted(in_icd - in_xml):
+        errors.append(f"mapping-function '{fn}' is on an ICD row but not in the AST xml")
+    for table_id, field, fn, text, max_bits in notes:
+        if (MAPPING_NO_BITS in text) != (str(max_bits) == "0"):
+            errors.append(f"{table_id} / {field}: note of '{fn}' does not match its "
+                          f"size ({max_bits} bits): '{text}'")
+    return errors
+
+
+def run_icd_generator(compiler, out_path, out_type, inputs):
+    cmd = [sys.executable, "-I", str(ICD_GENERATOR), "-t", out_type,
+           "-o", str(out_path)] + [str(f) for f in inputs]
+    env = dict(os.environ, ASN1SCC=str(compiler))
+    proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    if proc.returncode != 0 or not out_path.exists():
+        return [f"icd-generator.py failed (exit {proc.returncode}): {' '.join(cmd)}\n"
+                f"{proc.stdout}{proc.stderr}".rstrip()]
+    return []
+
+
+def check_generator(compiler, asn1_files, acn_files, json_path, icd, temp_dir,
+                    require_excel):
+    """contrib/icd-generator.py renders the test case: HTML from the grammar
+    and from the -icdRaw dump, and Excel when openpyxl is installed.  The HTML
+    must have no dead internal link and must show every mapping-function."""
+    errors = []
+    html_path = temp_dir / "generator.html"
+    errors += run_icd_generator(compiler, html_path, "html", asn1_files + acn_files)
+    if not errors:
+        errors += check_html_anchors(html_path)
+        html = html_path.read_text(encoding="utf-8", errors="replace")
+        for fn in sorted({fn for _, _, fn, _, _ in mapping_notes(icd)}):
+            if fn not in html:
+                errors.append(f"generator.html does not show mapping-function '{fn}'")
+    errors += run_icd_generator(compiler, temp_dir / "generator-from-json.html", "html",
+                                [json_path])
+    if importlib.util.find_spec("openpyxl") is not None:
+        errors += run_icd_generator(compiler, temp_dir / "generator.xlsx", "excel",
+                                    asn1_files + acn_files)
+    elif require_excel:
+        errors.append("openpyxl is not installed: Excel output cannot be checked "
+                      "(--require-excel)")
+    else:
+        print("    note: openpyxl not installed, Excel output of the generator not checked")
+    return errors
+
+
 def check_v2_parity(test_dir, compiler, asn1_files, acn_files, legacy_json_path,
                     keep_temp):
     """Compile with --acn-v2 and diff the -icdRaw JSON against the legacy one.
@@ -366,7 +449,7 @@ def load_xfails(test_dir):
 # Test-case driver
 # ---------------------------------------------------------------------------
 
-def run_test_case(test_dir, compiler, update_goldens, keep_temp):
+def run_test_case(test_dir, compiler, update_goldens, keep_temp, require_excel):
     name = re.sub(r"^\d+-", "", test_dir.name)
     asn1_files = sorted(test_dir.glob("*.asn1"))
     acn_files = sorted(test_dir.glob("*.acn"))
@@ -413,6 +496,9 @@ def run_test_case(test_dir, compiler, update_goldens, keep_temp):
         "html-anchors": check_html_anchors(new_html_path),
         "v2-parity": check_v2_parity(test_dir, compiler, asn1_files, acn_files,
                                      json_path, keep_temp),
+        "mapping-fns": check_mapping_fns(icd, ast_root),
+        "generator": check_generator(compiler, asn1_files, acn_files, json_path, icd,
+                                     temp_dir, require_excel),
     }
 
     failed = False
@@ -458,6 +544,9 @@ def main():
                              "compiler behavior instead of diffing against them")
     parser.add_argument("--keep-temp", action="store_true",
                         help="keep the per-test temporary output directories")
+    parser.add_argument("--require-excel", action="store_true",
+                        help="fail the 'generator' check when openpyxl is missing "
+                             "(by default the Excel output is then not checked)")
     args = parser.parse_args()
 
     if not args.compiler.exists():
@@ -475,7 +564,8 @@ def main():
 
     for test_dir in test_dirs:
         print(f"{test_dir.name}:")
-        run_test_case(test_dir, args.compiler, args.update_goldens, args.keep_temp)
+        run_test_case(test_dir, args.compiler, args.update_goldens, args.keep_temp,
+                      args.require_excel)
     print(f"{GREEN}All {len(test_dirs)} ICD test case(s) passed.{RESET}")
 
 

@@ -48,7 +48,7 @@ In mission-critical and space systems, Protocol Data Units (PDUs) are frequently
                           │
                           ▼
                ┌──────────────────────┐
-               │       asn1scc        │  (Calls asn1scc -icd <tmp.json>)
+               │       asn1scc        │  (Calls asn1scc -icdRaw <tmp.json> -x <tmp.xml>)
                └──────────┬───────────┘
                           │
                           ▼
@@ -73,17 +73,17 @@ The generator is located in `contrib/icd-generator.py`.
 ### Synopsis
 
 ```bash
-python3 contrib/icd-generator.py [-h] [-o OUTPUT] [-t {html,excel}] [--root ROOT] [--dump-json DUMP_JSON] <asn1_file> [<acn_file> ...]
+python3 contrib/icd-generator.py [-h] -o OUTPUT [-t {html,excel}] [--root ROOT] <asn1_file> [<acn_file> ...]
+python3 contrib/icd-generator.py [-h] -o OUTPUT [-t {html,excel}] <icdRaw_dump.json>
 ```
 
 ### Options
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-o, --output` | `icd.html` (or `icd.xlsx`) | Path of the generated output file. |
+| `-o, --output` | (required) | Path of the generated output file. An `.xlsx` / `.xlsm` extension selects the Excel backend even without `-t excel`. |
 | `-t, --type` | `html` | Output backend: `html` for interactive HTML or `excel` for an Excel workbook (`.xlsx`). |
 | `--root` | None (all PDUs) | Filter to generate documentation only for specified root PDU type name(s). |
-| `--dump-json` | None | Save the intermediate JSON emitted by `asn1scc -icd` to a file for debugging or testing. |
 | `-h, --help` | | Display help message and exit. |
 
 ### Examples
@@ -108,7 +108,7 @@ python3 contrib/icd-generator.py --root Packet -o packet-icd.html model.asn mode
 ## Architecture and Operation
 
 1. **Compilation Phase**:
-   `icd-generator.py` invokes the `asn1scc` compiler with the `-icd <temp_json>` flag. During this step, `asn1scc` computes exact layout ranges, bit offsets, sizes, determinants, comments, and AST metadata.
+   `icd-generator.py` invokes the `asn1scc` compiler with `-icdRaw <temp_json> -x <temp_xml>` (plus `-icdPdus` when `--root` is given) in a temporary directory. During this step, `asn1scc` computes exact layout ranges, bit offsets, sizes, determinants and comments (the JSON dump) and the AST used for the grammar blocks (the XML). A pre-generated `-icdRaw` dump can be passed instead of the `.asn`/`.acn` files; the grammar blocks are then omitted, since they need the XML AST.
 2. **Intermediate Representation (IR) Processing**:
    The Python script parses the generated JSON representation into structured objects:
    - **AST Types**: Sequence, Choice, Sequence Of, Enumerated, Integer, Octet String, etc.
@@ -298,7 +298,7 @@ From the generated ICD, the binary budget of the `Packet` structure is calculate
 
 ### Python Dependencies (pip)
 
-The tool relies on the following Python package:
+HTML output needs only the Python standard library. The Excel backend needs one third-party package:
 
 | Package | Purpose | Installation |
 |---------|---------|--------------|
@@ -309,15 +309,12 @@ To install all dependencies:
 pip install openpyxl
 ```
 
-### Automatic Startup Dependency Verification
+### Missing openpyxl
 
-When `icd-generator.py` is executed, it automatically verifies at startup that all required Python dependencies are present. If a dependency is missing, the tool prints an error message specifying the exact `pip` command to install it:
+`openpyxl` is imported only when Excel output is requested. Without it, `-t excel` stops with:
 
 ```text
-[-] Error: Missing required Python dependency:
-[-]   - openpyxl
-[-] Please install missing dependencies using pip:
-[-]     pip install openpyxl
+openpyxl is required for Excel output. Install it with: pip install openpyxl
 ```
 
 ### Optional Tools

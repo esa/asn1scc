@@ -27,7 +27,7 @@ ENV DOTNET_ROOT=/usr/share/dotnet
 RUN set -xe \
     && apt-get update -y \
     && apt-get install -y libfontconfig1 libdbus-1-3 libx11-6 libx11-xcb-dev cppcheck htop \
-        python3 python3-pytest gcc g++ make libgit2-dev libssl-dev curl wget git unzip zip \
+        python3 python3-pytest python3-openpyxl gcc g++ make libgit2-dev libssl-dev curl wget git unzip zip \
         gcc-13 gnat gnat-13 gprbuild \
     && gnatmake --version | head -1 && gprbuild --version | head -1 \
     && rm -rf /var/lib/apt/lists/* \

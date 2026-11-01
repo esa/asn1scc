@@ -19,6 +19,7 @@ icd-tests/
   04-choice13/
   05-pus15/
   06-presentwhen/
+  07-mapping/
 ```
 
 The initial five cases are the sample grammars used by the ICD analysis
@@ -28,7 +29,10 @@ SEQUENCE, the issue-#379 nested CHOICE with present-when determinants, and a
 PUS parameter-passing CHOICE with parameterized types. `06-presentwhen`
 (from `test-cases/acn/21-PresentWhenExpression/001`) covers an optional
 field governed by a `present-when` boolean *expression*, whose condition
-must render in ACN syntax in the Present column.
+must render in ACN syntax in the Present column. `07-mapping` covers ACN
+`mapping-function`s: mapped INTEGER types with and without a module, a mapped
+SEQUENCE OF element, and a size-0 ACN length determinant whose value the
+mapping-function supplies at run time.
 
 ## Running
 
@@ -41,8 +45,10 @@ cd v4Tests
 ```
 
 The compiler defaults to `../asn1scc/bin/Debug/net10.0/asn1scc` (same
-convention as `runTests.py`); override with `--compiler`. Python 3 only,
-no third-party packages. Like `runTests.py`, the run stops at the first
+convention as `runTests.py`); override with `--compiler`. Python 3; the
+optional `openpyxl` package lets the `generator` check also render Excel
+(without it that part is skipped with a note; `--require-excel`, used by CI and
+`local-build.sh`, makes it a failure). Like `runTests.py`, the run stops at the first
 unexpected failure and leaves that test's temporary output directory in
 place for inspection.
 
@@ -61,6 +67,8 @@ For each test case the grammar is compiled once with C output, `-icdAcn`,
 | `c-macros`       | each TAS table's max bytes equals the `<TAS>_REQUIRED_BYTES_FOR_ACN_ENCODING` macro in the generated C header, and BYTES == ceil(BITS/8) |
 | `tas-coverage`   | every TAS that received `REQUIRED_*` macros in the C headers has an ICD table (catches zero-bit types vanishing from the document) |
 | `html-anchors`   | every `href="#..."` in the `_new.html` resolves to an anchor in the same file |
+| `mapping-fns`    | the ACN mapping-functions of the AST xml (`mapping-function` attribute) are exactly those named by the `mapping-function <fn>: ...` row notes of the `-icdRaw` JSON, and the note says "occupies no bits on the wire" exactly on the rows of size 0 |
+| `generator`      | `contrib/icd-generator.py` renders the case without error: HTML from the grammar (no dead `#` link, every mapping-function shown), HTML from the `-icdRaw` dump, and Excel when `openpyxl` is installed |
 | `v2-parity`      | opt-in (see below): the `-icdRaw` JSON produced with `--acn-v2` is byte-identical to the legacy one, so closure conversion / deferred patching does not leak into the ICD (roadmap B8) |
 
 The invariant checks (everything except `golden`) are grammar-independent:

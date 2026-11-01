@@ -55,33 +55,6 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Optional
 
-REQUIRED_DEPENDENCIES = [
-    ("openpyxl", "openpyxl"),
-]
-
-
-def check_dependencies() -> None:
-    """Verify that all required third-party Python packages are installed."""
-    if any(arg in sys.argv[1:] for arg in ("-h", "--help")):
-        return
-
-    missing = []
-    for module_name, pip_name in REQUIRED_DEPENDENCIES:
-        try:
-            __import__(module_name)
-        except ImportError:
-            missing.append(pip_name)
-
-    if missing:
-        sys.stderr.write(
-            "[-] Error: Missing required Python dependency:\n"
-            + "".join(f"[-]   - {pkg}\n" for pkg in missing)
-            + "[-] Please install missing dependencies using pip:\n"
-            + f"[-]     pip install {' '.join(missing)}\n\n"
-        )
-        sys.exit(1)
-
-
 LEAF_KINDS = {
     "INTEGER", "REAL", "IA5String", "NumericString", "OCTET_STRING", "NULL",
     "BIT_STRING", "BOOLEAN", "ENUMERATED", "ObjectIdentifier",
@@ -2580,7 +2553,9 @@ def load_input(args_files: list[str], root_names: Optional[list[str]]) -> tuple[
 
 
 def main() -> None:
-    check_dependencies()
+    # openpyxl is needed by the Excel backend only: render_excel_document
+    # imports it lazily and stops with an install hint when it is missing,
+    # so HTML output works without third-party packages.
 
     parser = argparse.ArgumentParser(
         description="Generate an ICD document (HTML or Excel) from ASN.1/ACN files (or from an existing -icdRaw dump).",
