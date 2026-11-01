@@ -897,13 +897,14 @@ type LangGeneric_c() =
         // What the C encode templates write to ret (coverage step 12b; checked by step12/tools/gate12b.py).
         override _.encodeTemplateOutcome t =
             match t with
-            | EncRtlWritesOnly | EncPresenceBits | EncBitStringFixedSize | EncBitStringVarSize | EncStringFixedSize
-            | EncStringVarSize | EncStringVarSizeUper | EncSequenceOfFixedSize | EncSequenceOfVarSize | EncFragmentation
+            // C: the length check stays for both VarSizeLengthCheck cases (the C typedef does not bound nCount)
+            | EncRtlWritesOnly | EncPresenceBits | EncBitStringFixedSize | EncBitStringVarSize _ | EncStringFixedSize
+            | EncStringVarSize | EncStringVarSizeUper | EncSequenceOfFixedSize | EncSequenceOfVarSize _ | EncFragmentation
             | EncSequenceOfOtherLoop | EncLoopWithoutInvariant  -> EncodeOutcome.noWrite
             // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid value (coverage step 12d)
             | EncEnumerated                                     -> {canFail = true; writes = SometimesWrites; callee = None}
             // BitStream_EncodeOctetString_no_length returns FALSE for a buffer too short (left open, step 12 Q6)
-            | EncOctetStringFixedSize | EncOctetStringVarSize
+            | EncOctetStringFixedSize | EncOctetStringVarSize _
             | EncOctetStringNoLength                            -> {canFail = true; writes = AlwaysWrites; callee = None}
             | EncPresentWhenCheck | EncDeferredPatch
             | EncChoiceAbsentArm                                -> {canFail = true; writes = AlwaysWrites; callee = None}

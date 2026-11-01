@@ -777,6 +777,20 @@ let private sizeEnforcedByTypedef (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:A
         | Some _ -> false
         | None   -> consAreOneInterval
 
+/// Coverage step 14b2: the length check of a variable-size OCTET / BIT STRING or SEQUENCE OF encoder
+/// (Length >= checkedMin AND Length <= checkedMax) cannot fail when the value's own typedef declares Length with exactly
+/// that range: a new typedef (not a subtype of a wider one, which keeps the parent's Length range) declares it as
+/// typeMin .. typeMax, the type's uPER SIZE range (Define_new_octet_string / _bit_string / _sequence_of).
+let varSizeLengthCheck (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (typeMin:BigInteger, typeMax:BigInteger) (checkedMin:BigInteger, checkedMax:BigInteger) =
+    match l.lg.typedefConstraintModel, declaringTypedef r l t typeDefinition with
+    | TypedefsAreBaseTypes, _
+    | TypedefsEnforceRanges, None   -> LengthChecked
+    | TypedefsEnforceRanges, Some td ->
+        match td.baseType with
+        | Some _                                                        -> LengthChecked
+        | None when typeMin = checkedMin && typeMax = checkedMax        -> LengthEnforcedByTypedef
+        | None                                                          -> LengthChecked
+
 /// ENUMERATED: every item is valid, and an Ada enumeration holds only its items.
 let private enumEnforcedByTypedef (l:LanguageMacros) (o:Asn1AcnAst.Enumerated) =
     match l.lg.typedefConstraintModel with

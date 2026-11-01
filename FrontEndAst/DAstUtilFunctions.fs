@@ -1022,6 +1022,12 @@ let rec GetMySelfAndChildren3 visitChildPredicate (t:Asn1Type) =
     } |> Seq.toList
 
 
+/// The bLengthEnforced argument of the variable-size encode macros (coverage step 14b2).
+let lengthEnforced (lengthCheck:VarSizeLengthCheck) =
+    match lengthCheck with
+    | LengthChecked             -> false
+    | LengthEnforcedByTypedef   -> true
+
 let nestItems joinItems2 children =
     let printChild (content:string) (soNestedContent:string option) =
         match soNestedContent with

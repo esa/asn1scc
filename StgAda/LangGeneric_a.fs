@@ -518,9 +518,12 @@ type LangGeneric_a() =
             | EncSequenceOfOtherLoop                                                -> EncodeOutcome.noWrite
             // a loop without pragma Loop_Invariant (result.Success): the encoder could not prove Post => result.Success
             | EncLoopWithoutInvariant                                               -> EncodeOutcome.unknown
-            // result.Success := Length >= min AND Length <= max (may become a pragma Assert later, as in 11b)
-            | EncOctetStringVarSize | EncBitStringVarSize | EncStringVarSize
-            | EncSequenceOfVarSize                                                  -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // result.Success := Length >= min AND Length <= max
+            | EncOctetStringVarSize LengthChecked | EncBitStringVarSize LengthChecked | EncStringVarSize
+            | EncSequenceOfVarSize LengthChecked                                    -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // the Length subtype of the typedef holds that range: a pragma Assert instead of the check (coverage step 14b2)
+            | EncOctetStringVarSize LengthEnforcedByTypedef | EncBitStringVarSize LengthEnforcedByTypedef
+            | EncSequenceOfVarSize LengthEnforcedByTypedef                          -> EncodeOutcome.noWrite
             | EncPresentWhenCheck | EncDeferredPatch | EncChoiceAbsentArm           -> {canFail = true; writes = AlwaysWrites; callee = None}
             // result.Success := nStringLength >= min AND ...: a component write, so result must be initialised before
             | EncStringVarSizeUper                                                  -> {canFail = true; writes = ReadsFirst; callee = None}

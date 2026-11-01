@@ -219,6 +219,13 @@ module EncodeOutcome =
             | _                                                             -> SometimesWrites
         {canFail = all |> List.exists (fun a -> a.canFail); writes = writes; callee = None}
 
+/// The length check of a variable-size OCTET / BIT STRING or SEQUENCE OF encoder (coverage step 14b2): whether the
+/// language type of the value already holds the length in the checked range (Ada: the Length subtype of the type's own
+/// typedef, DastValidate2.varSizeLengthCheck), so that the template asserts the range instead of checking it.
+type VarSizeLengthCheck =
+    | LengthChecked
+    | LengthEnforcedByTypedef
+
 /// The encode templates whose writes to ret / result differ between languages (coverage step 12b): the part of the
 /// template itself, without the parts nested in it (elements, children). ILangGeneric.encodeTemplateOutcome maps
 /// each to what its text writes.
@@ -227,15 +234,15 @@ type EncodeTemplate =
     | EncPresenceBits           // the presence bits of a SEQUENCE
     | EncEnumerated             // the value -> index / encoded value map
     | EncOctetStringFixedSize
-    | EncOctetStringVarSize     // incl. the length
+    | EncOctetStringVarSize of VarSizeLengthCheck   // incl. the length
     | EncOctetStringNoLength    // ACN: the bytes of an external-field / deduced size (C: the RTL call returns a flag)
     | EncBitStringFixedSize
-    | EncBitStringVarSize
+    | EncBitStringVarSize of VarSizeLengthCheck
     | EncStringFixedSize        // IA5String, NumericString
     | EncStringVarSize
     | EncStringVarSizeUper      // uPER IA5String / NumericString with a length (Ada: writes result.Success only, coverage 14b)
     | EncSequenceOfFixedSize    // the loop, without the element
-    | EncSequenceOfVarSize      // the length and the loop, without the element
+    | EncSequenceOfVarSize of VarSizeLengthCheck    // the length and the loop, without the element
     | EncFragmentation          // uPER fragmented SEQUENCE OF / OCTET / BIT STRING / IA5String, without the element
     | EncSequenceOfOtherLoop    // ACN external-field / null-terminated / deduced SEQUENCE OF, without the element
     | EncLoopWithoutInvariant   // such a loop whose element writes result: Ada has no loop invariant on result there, so

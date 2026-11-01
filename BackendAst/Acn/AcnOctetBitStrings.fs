@@ -42,13 +42,14 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                 Some(fncBody, [errCode],[], EncOctetStringFixedSize)
 
             | SZ_EC_LENGTH_EMBEDDED lenSize ->
-                let fncBody = varSize sType pp access (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName codec
+                let lengthCheck = DastValidate2.varSizeLengthCheck r lm t typeDefinition (o.minSize.uper, o.maxSize.uper) (o.minSize.acn, o.maxSize.acn)
+                let fncBody = varSize sType pp access (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName (lengthEnforced lengthCheck) codec
                 let nStringLength =
                     match codec with
                     | Encode -> []
                     | Decode -> [lm.lg.uper.count_var]
 
-                Some(fncBody, [errCode],nStringLength, EncOctetStringVarSize)
+                Some(fncBody, [errCode],nStringLength, EncOctetStringVarSize lengthCheck)
             | SZ_EC_ExternalField _ ->
                 let extField = getExternalField lm r deps t.id
                 let tp = getExternalFieldType r deps t.id
@@ -147,13 +148,14 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 raise(BugErrorException "'size deduced' is not applicable to BIT STRING (should have been rejected by the front-end)")
 
             | SZ_EC_LENGTH_EMBEDDED nSizeInBits ->
+                let lengthCheck = DastValidate2.varSizeLengthCheck r lm t typeDefinition (o.minSize.uper, o.maxSize.uper) (o.minSize.acn, o.maxSize.acn)
                 let fncBody =
-                    bitString_VarSize sType pp access o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits codec
+                    bitString_VarSize sType pp access o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits (lengthEnforced lengthCheck) codec
                 let nStringLength =
                     match codec with
                     | Encode -> []
                     | Decode -> [lm.lg.uper.count_var]
-                Some(fncBody, [errCode],nStringLength, EncBitStringVarSize)
+                Some(fncBody, [errCode],nStringLength, EncBitStringVarSize lengthCheck)
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables, encTemplate) ->

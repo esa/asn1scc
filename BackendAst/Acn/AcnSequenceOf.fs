@@ -163,11 +163,12 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                 | _ -> ii.funcBody
 
             // coverage step 12b: the part of the SEQUENCE OF itself (length, loop), then the element on some paths
+            let lengthCheck = DastValidate2.varSizeLengthCheck r lm t typeDefinition (o.minSize.uper, o.maxSize.uper) (o.minSize.acn, o.maxSize.acn)
             let ownTemplate =
                 match o.acnEncodingClass with
                 | SZ_EC_FIXED_SIZE                                                  -> EncSequenceOfFixedSize
                 | SZ_EC_LENGTH_EMBEDDED _ when o.isFixedSize                        -> EncSequenceOfFixedSize
-                | SZ_EC_LENGTH_EMBEDDED _                                           -> EncSequenceOfVarSize
+                | SZ_EC_LENGTH_EMBEDDED _                                           -> EncSequenceOfVarSize lengthCheck
                 | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> EncSequenceOfOtherLoop
             let ownOutcome = lm.lg.encodeTemplateOutcome ownTemplate
             // coverage step 12b: the loop does not test ret after an element that cannot fail (Ada: it states
@@ -204,7 +205,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         match o.isFixedSize with
                         | true  -> None
                         | false ->
-                            let funcBody = varSize pp access td (i level) (null : string) o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux sType (codec = Encode) false codec
+                            let funcBody = varSize pp access td (i level) (null : string) o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux sType (codec = Encode) false (lengthEnforced lengthCheck) codec
                             Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = (lv level)@nStringLength; userDefinedFunctions=[]; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd; encOutcome = encodeOutcomeOf codec ownOutcome})
 
                     | Some internalItem ->
@@ -214,7 +215,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let ret, localVariables =
                             match o.isFixedSize with
                             | true  -> fixedSize pp td (i level) internalItemBody o.minSize.acn child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux bItemCannotFail bItemWritesResult codec, nStringLength
-                            | false -> varSize pp access td (i level) internalItemBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux sType bItemCannotFail bItemWritesResult codec, nStringLength
+                            | false -> varSize pp access td (i level) internalItemBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux sType bItemCannotFail bItemWritesResult (lengthEnforced lengthCheck) codec, nStringLength
                         Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = (lv level)@(internalItem.localVariables@localVariables); userDefinedFunctions=internalItem.userDefinedFunctions; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=internalItem.auxiliaries @ auxiliaries; icdResult = Some icd; encOutcome = elemOutcome internalItem})
 
                 | SZ_EC_ExternalField _ ->

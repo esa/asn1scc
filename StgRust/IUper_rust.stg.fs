@@ -79,20 +79,20 @@ type IUper_rust() =
             uper_rust.str_VarSize  p sPIden sTasName i sInternalItem nSizeMin nSizeMax nSizeInBits nIntItemMinSize nIntItemMaxSize nAlignSize soInitExpr soCallAux sType sErrCode codec
         override this.seqOf_FixedSize  (p:string) (sTasName:string) (i:string) (sInternalItem:string) (nFixedSize:BigInteger) (nIntItemMinSize:BigInteger) (nIntItemMaxSize:BigInteger) (nAlignSize:BigInteger) (sChildInitExpr:string) (soCallAux:string option) (bItemCannotFail:bool) (bItemWritesResult:bool) (codec:Codec) =
             uper_rust.seqOf_FixedSize  p sTasName i sInternalItem nFixedSize nIntItemMinSize nIntItemMaxSize nAlignSize sChildInitExpr soCallAux bItemCannotFail bItemWritesResult codec
-        override this.seqOf_VarSize  (p:string) (sAcc:string) (sTasName:string) (i:string) (sInternalItem:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (nIntItemMinSize:BigInteger) (nIntItemMaxSize:BigInteger) (nAlignSize:BigInteger) (sChildInitExpr:string) (sErrCode:string) (nAbsOffset:BigInteger) (nRemainingMinBits:BigInteger) (nLevel:BigInteger) (nIx:BigInteger) (nOffset:BigInteger) (bIntroSnap:bool) (soCallAux:string option) (bItemCannotFail:bool) (bItemWritesResult:bool) (codec:Codec) =
-            uper_rust.seqOf_VarSize  p sAcc sTasName i sInternalItem nSizeMin nSizeMax nSizeInBits nIntItemMinSize nIntItemMaxSize nAlignSize sChildInitExpr sErrCode nAbsOffset nRemainingMinBits nLevel nIx nOffset bIntroSnap soCallAux bItemCannotFail bItemWritesResult codec
+        override this.seqOf_VarSize  (p:string) (sAcc:string) (sTasName:string) (i:string) (sInternalItem:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (nIntItemMinSize:BigInteger) (nIntItemMaxSize:BigInteger) (nAlignSize:BigInteger) (sChildInitExpr:string) (sErrCode:string) (nAbsOffset:BigInteger) (nRemainingMinBits:BigInteger) (nLevel:BigInteger) (nIx:BigInteger) (nOffset:BigInteger) (bIntroSnap:bool) (soCallAux:string option) (bItemCannotFail:bool) (bItemWritesResult:bool) (bLengthEnforced:bool) (codec:Codec) =
+            uper_rust.seqOf_VarSize  p sAcc sTasName i sInternalItem nSizeMin nSizeMax nSizeInBits nIntItemMinSize nIntItemMaxSize nAlignSize sChildInitExpr sErrCode nAbsOffset nRemainingMinBits nLevel nIx nOffset bIntroSnap soCallAux bItemCannotFail bItemWritesResult bLengthEnforced codec
         override this.octet_FixedSize  (sTypeDefName:string) (p:string) (sAcc:string) (nFixedSize:BigInteger) (sErrCode:string) (codec:Codec) =
             uper_rust.octet_FixedSize  sTypeDefName p sAcc nFixedSize sErrCode codec
-        override this.octet_VarSize  (sTypeDefName:string) (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (sErrCode:string) (codec:Codec) =
-            uper_rust.octet_VarSize  sTypeDefName p sAcc nSizeMin nSizeMax nSizeInBits sErrCode codec
+        override this.octet_VarSize  (sTypeDefName:string) (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (sErrCode:string) (bLengthEnforced:bool) (codec:Codec) =
+            uper_rust.octet_VarSize  sTypeDefName p sAcc nSizeMin nSizeMax nSizeInBits sErrCode bLengthEnforced codec
         override this.str_pad_to_typedef_size  (p:string) (nFrom:BigInteger) (nTo:BigInteger) =
             uper_rust.str_pad_to_typedef_size  p nFrom nTo 
         override this.sizeable_fixed_count_set  (p:string) (sAcc:string) (nFixedSize:BigInteger) =
             uper_rust.sizeable_fixed_count_set  p sAcc nFixedSize 
         override this.bitString_FixSize  (sTypeDefName:string) (p:string) (sAcc:string) (nFixedSize:BigInteger) (sErrCode:string) (codec:Codec) =
             uper_rust.bitString_FixSize  sTypeDefName p sAcc nFixedSize sErrCode codec
-        override this.bitString_VarSize  (sTypeDefName:string) (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (sErrCode:string) (nSizeInBits:BigInteger) (codec:Codec) =
-            uper_rust.bitString_VarSize  sTypeDefName p sAcc nSizeMin nSizeMax sErrCode nSizeInBits codec
+        override this.bitString_VarSize  (sTypeDefName:string) (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (sErrCode:string) (nSizeInBits:BigInteger) (bLengthEnforced:bool) (codec:Codec) =
+            uper_rust.bitString_VarSize  sTypeDefName p sAcc nSizeMin nSizeMax sErrCode nSizeInBits bLengthEnforced codec
         override this.FixedSize_Fragmentation_sqf_64K  (p:string) (sAcc:string) (sCurOffset:string) (sCurBlockSize:string) (sBlockIndex:string) (nBlocks64K:BigInteger) (sInternalItem:string) (sBLI:string) (sRemainingItemsVar:string) (bIsBitStringType:bool) (sErrCodeName:string) (codec:Codec) =
             uper_rust.FixedSize_Fragmentation_sqf_64K  p sAcc sCurOffset sCurBlockSize sBlockIndex nBlocks64K sInternalItem sBLI sRemainingItemsVar bIsBitStringType sErrCodeName codec
         override this.FixedSize_Fragmentation_sqf_small_block  (p:string) (sAcc:string) (sInternalItem:string) (nBlockSize:BigInteger) (sBlockId:string) (sCurOffset:string) (sCurBlockSize:string) (sBLI:string) (sRemainingItemsVar:string) (bIsBitStringType:bool) (sErrCodeName:string) (codec:Codec) =

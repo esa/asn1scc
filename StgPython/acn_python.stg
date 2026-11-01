@@ -805,12 +805,12 @@ else:
     raise Asn1InvalidValueException(f"External field size out of range (Error {cls.DecodeConstants.<sErrCode>})")
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType, bItemCannotFail, bItemWritesResult) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<
 codec.encode_constrained_whole_number(<p><sAcc>n_count, <nSizeMin>, <nSizeMax>)
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "n_count"])>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType, bItemCannotFail, bItemWritesResult) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<
 <if(bIntroSnap)>
 <endif>
 

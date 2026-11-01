@@ -516,13 +516,13 @@ seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSiz
 <p> = <sTasName>(<p>_arr)
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<
 res = codec.encode_constrained_whole_number(<p><sAcc>n_count, <nSizeMin>, <nSizeMax>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=p+sAcc+"n_count")>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<
 <if(bIntroSnap)>
 # @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -550,7 +550,7 @@ if not decoded_<sTypeDefName> or decoded_<sTypeDefName>.decoded_value is None:
 <p> = <sTypeDefName>(decoded_<sTypeDefName>.decoded_value)
 >>
 
-octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
+octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode, bLengthEnforced) ::= <<
 res = codec.encode_constrained_whole_number(<p><sAcc>n_count, <nSizeMin>, <nSizeMax>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 
@@ -558,7 +558,7 @@ res = codec.encode_octet_string_no_length_vec(<p><sAcc>arr, int(<p><sAcc>n_count
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
+octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode, bLengthEnforced) ::= <<
 # decode length
 decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 <CheckDecodeResult(p="instance_arr_n_count", sInp="decoded_length", sErrCode=sErrCode, sType="int")>
@@ -593,13 +593,13 @@ if not ret.success or ret.decoded_value is None:
 <p> = <sTypeDefName>(list(ret.decoded_value))
 >>
 
-bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
+bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits, bLengthEnforced) ::= <<
 res = codec.encode_constrained_whole_number(<p><sAcc>n_count, <nSizeMin>, <nSizeMax>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 <bitString_FixSize_encode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"n_count"], sErrCode=sErrCode)>
 >>
 
-bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
+bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits, bLengthEnforced) ::= <<
 decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 if not decoded_length.success or decoded_length.decoded_value is None:
     if decoded_length.error_code == ErrorCode.INSUFFICIENT_DATA:
