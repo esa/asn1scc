@@ -827,13 +827,13 @@ let octet_string_containing_deferred_func (p:string) (sFuncName:string) (sDetPar
     | Decode    ->
         ST.call "acn_rust" "octet_string_containing_deferred_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sDetParamName",(if sDetParamName = null then null else ST.StrHelper sDetParamName:>Object) );("sPatchFuncName",(if sPatchFuncName = null then null else ST.StrHelper sPatchFuncName:>Object) );("soMF",(if soMF.IsNone then null else ST.StrHelper soMF.Value:>Object) );("soMFM",(if soMFM.IsNone then null else ST.StrHelper soMFM.Value:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bDeducedContent",bDeducedContent :>Object)]
 
-let octet_string_containing_deferred_fixed_func (p:string) (sFuncName:string) codec =
+let octet_string_containing_deferred_fixed_func (p:string) (sFuncName:string) (nOctets:BigInteger) (sErrCode:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "octet_string_containing_deferred_fixed_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
+        ST.call "acn_rust" "octet_string_containing_deferred_fixed_func_encode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nOctets",nOctets :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
     | Decode    ->
-        ST.call "acn_rust" "octet_string_containing_deferred_fixed_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
+        ST.call "acn_rust" "octet_string_containing_deferred_fixed_func_decode" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("nOctets",nOctets :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
 
 let octet_string_containing_deferred_embedded_func (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) (bDeducedContent:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

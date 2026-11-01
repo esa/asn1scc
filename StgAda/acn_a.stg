@@ -1484,11 +1484,11 @@ declare
 begin
     <sFuncName>_aux(<p>, bs, result);
     if result.Success then
-        --  OCTET STRING contents occupy whole bytes: write zero padding up to the
-        --  next byte boundary, so the region is measured in whole octets and the
-        --  decoder resumes right after it
-        if bs.Current_Bit_Pos mod 8 /= 0 then
-            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False); -- COVERAGE_IGNORE
+        --  OCTET STRING contents occupy whole octets: write zero padding up to a
+        --  whole number of octets from the region start (as legacy writes it, also
+        --  off a byte boundary), so the decoder resumes right after it
+        if (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8 /= 0 then
+            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8, False); -- COVERAGE_IGNORE
         end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
@@ -1559,12 +1559,24 @@ octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatch
 <octet_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent)>
 >>
 
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
-<sFuncName>_aux(<p>, bs, result);
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode) ::= <<
+declare
+    acn_data_start : constant Natural := bs.Current_Bit_Pos;
+begin
+    <sFuncName>_aux(<p>, bs, result);
+    --  the OCTET STRING holds <nOctets> whole octets: the padding up to them stays zero
+    bs.Current_Bit_Pos := acn_data_start + <nOctets> * 8;
+end;
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
-<sFuncName>_aux(<p>, bs, result);
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode) ::= <<
+declare
+    acn_data_start : constant Natural := bs.Current_Bit_Pos;
+begin
+    <sFuncName>_aux(<p>, bs, result);
+    --  skip the padding: the OCTET STRING holds <nOctets> whole octets from its first bit
+    bs.Current_Bit_Pos := acn_data_start + <nOctets> * 8;
+end;
 >>
 
 octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
@@ -1578,9 +1590,9 @@ begin
     acn_data_start := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     <sFuncName>_aux(<p>, bs, result);
     if result.Success then
-        --  OCTET STRING contents occupy whole bytes, including final padding.
-        if bs.Current_Bit_Pos mod 8 /= 0 then
-            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False); -- COVERAGE_IGNORE
+        --  OCTET STRING contents occupy whole octets from the region start, including final padding.
+        if (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8 /= 0 then
+            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8, False); -- COVERAGE_IGNORE
         end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
@@ -1651,11 +1663,11 @@ declare
 begin
     <sBody>
     if result.Success then
-        --  OCTET STRING contents occupy whole bytes: write zero padding up to the
-        --  next byte boundary, so the region is measured in whole octets and the
-        --  decoder resumes right after it
-        if bs.Current_Bit_Pos mod 8 /= 0 then
-            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - bs.Current_Bit_Pos mod 8, False); -- COVERAGE_IGNORE
+        --  OCTET STRING contents occupy whole octets: write zero padding up to a
+        --  whole number of octets from the region start (as legacy writes it, also
+        --  off a byte boundary), so the decoder resumes right after it
+        if (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8 /= 0 then
+            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8, False); -- COVERAGE_IGNORE
         end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);

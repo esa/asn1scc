@@ -1364,10 +1364,11 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
     if (ret) {
-        /*pad the contained encoding to the next byte boundary: the region is
-          measured in whole octets and the decoder resumes at a byte boundary*/
-        if (pBitStrm->currentBit != 0) {
-            BitStream_AppendNBitZero(pBitStrm, 8 - pBitStrm->currentBit); /*COVERAGE_IGNORE*/
+        /*pad the contained encoding to a whole number of octets from its start: the
+          region is measured in octets (as legacy writes it), also when it does not
+          start at a byte boundary*/
+        if (pBitStrm->currentBit != acn_data_start.currentBit) {
+            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/
         }
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
@@ -1384,27 +1385,54 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
 octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
-    if (!Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value)) {
+    /*the region is <sDetParamName>->value octets from the current bit; off a byte boundary it ends inside one more byte*/
+    if (!Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value) ||
+        (pBitStrm->currentBit != 0 && !Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value + 1))) {
         ret = FALSE; /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     } else {
         long acn_expected_end = pBitStrm->currentByte + (long)<sDetParamName>->value;
-        pBitStrm->count = acn_expected_end;
+        int acn_end_bit = pBitStrm->currentBit;
+        pBitStrm->count = acn_expected_end + (acn_end_bit != 0);
         ret = <sFuncName>(<p>, pBitStrm, pErrCode);
         pBitStrm->count = acn_saved_count;
         pBitStrm->currentByte = acn_expected_end;
-        pBitStrm->currentBit = 0;
+        pBitStrm->currentBit = acn_end_bit;
     }
 }
 >>
 
 /* CONTAINING with deferred patching, FIXED_SIZE: just call directly, no temp buffer */
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
-ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode) ::= <<
+{
+    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
+    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
+    if (ret) {
+        /*the OCTET STRING holds <nOctets> whole octets: pad the contained encoding with zeros up to them*/
+        long acn_nPad = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+        if (acn_nPad \> 0) {
+            BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad); /*COVERAGE_IGNORE*/
+        }
+    }
+}
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
-ret = <sFuncName>(<p>, pBitStrm, pErrCode);
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode) ::= <<
+{
+    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
+    ret = <sFuncName>(<p>, pBitStrm, pErrCode);
+    if (ret) {
+        /*skip the padding: the OCTET STRING holds <nOctets> whole octets from its first bit*/
+        long acn_end = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L;
+        if (acn_end \> pBitStrm->count * 8L) {
+            ret = FALSE; /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+        } else {
+            pBitStrm->currentByte = acn_end / 8;
+            pBitStrm->currentBit = (int)(acn_end % 8);
+        }
+    }
+}
 >>
 
 /* CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure + patch */
@@ -1415,10 +1443,10 @@ octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nM
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
     if (ret) {
-        /*pad the contained encoding to the next byte boundary (see the
-          ext-field variant above)*/
-        if (pBitStrm->currentBit != 0) {
-            BitStream_AppendNBitZero(pBitStrm, 8 - pBitStrm->currentBit); /*COVERAGE_IGNORE*/
+        /*pad the contained encoding to a whole number of octets from its start
+          (see the ext-field variant above)*/
+        if (pBitStrm->currentBit != acn_data_start.currentBit) {
+            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/
         }
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
@@ -1435,17 +1463,20 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
     *pErrCode = ret ? 0 : <sErrCode>;
     if (ret) {
-        if (acn_nCount \< 0 || !Acn_BitStream_HasNBytes(pBitStrm, (asn1SccUint)acn_nCount)) {
+        /*the region is acn_nCount octets from the current bit; off a byte boundary it ends inside one more byte*/
+        if (acn_nCount \< 0 || !Acn_BitStream_HasNBytes(pBitStrm, (asn1SccUint)acn_nCount) ||
+            (pBitStrm->currentBit != 0 && !Acn_BitStream_HasNBytes(pBitStrm, (asn1SccUint)acn_nCount + 1))) {
             ret = FALSE; /*COVERAGE_IGNORE*/
             *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
         } else {
             long acn_saved_count = pBitStrm->count;
             long acn_expected_end = pBitStrm->currentByte + (long)acn_nCount;
-            pBitStrm->count = acn_expected_end;
+            int acn_end_bit = pBitStrm->currentBit;
+            pBitStrm->count = acn_expected_end + (acn_end_bit != 0);
             ret = <sFuncName>(<p>, pBitStrm, pErrCode);
             pBitStrm->count = acn_saved_count;
             pBitStrm->currentByte = acn_expected_end;
-            pBitStrm->currentBit = 0;
+            pBitStrm->currentBit = acn_end_bit;
         }
     }
 }
@@ -1458,10 +1489,10 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     <sBody>
     if (ret) {
-        /*pad the contained encoding to the next byte boundary (see the
-          ext-field variant above)*/
-        if (pBitStrm->currentBit != 0) {
-            BitStream_AppendNBitZero(pBitStrm, 8 - pBitStrm->currentBit); /*COVERAGE_IGNORE*/
+        /*pad the contained encoding to a whole number of octets from its start
+          (see the ext-field variant above)*/
+        if (pBitStrm->currentBit != acn_data_start.currentBit) {
+            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/
         }
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
@@ -1477,16 +1508,19 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
 octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
-    if (!Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value)) {
+    /*the region is <sDetParamName>->value octets from the current bit; off a byte boundary it ends inside one more byte*/
+    if (!Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value) ||
+        (pBitStrm->currentBit != 0 && !Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value + 1))) {
         ret = FALSE; /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     } else {
         long acn_expected_end = pBitStrm->currentByte + (long)<sDetParamName>->value;
-        pBitStrm->count = acn_expected_end;
+        int acn_end_bit = pBitStrm->currentBit;
+        pBitStrm->count = acn_expected_end + (acn_end_bit != 0);
     <sBody>
         pBitStrm->count = acn_saved_count;
         pBitStrm->currentByte = acn_expected_end;
-        pBitStrm->currentBit = 0;
+        pBitStrm->currentBit = acn_end_bit;
     }
 }
 >>

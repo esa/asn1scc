@@ -1147,11 +1147,11 @@ octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatch
 // TODO: Scala deferred CONTAINING decode
 >>
 
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode) ::= <<
 // TODO: Scala deferred CONTAINING fixed encode
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode) ::= <<
 // TODO: Scala deferred CONTAINING fixed decode
 >>
 

@@ -1530,11 +1530,11 @@ octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatch
 >>
 
 /* CONTAINING with deferred patching, FIXED_SIZE: just call directly, no temp buffer */
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode) ::= <<
 ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode) ::= <<
 ret = <sFuncName>(&mut <p>, pBitStrm, pErrCode);
 >>
 
