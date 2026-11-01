@@ -79,12 +79,14 @@ type private DecodeSweepParts = {
     helper      : string
 }
 
-let private decodeSweepParts (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (modName:string) (funcName:string) (sTasName:string) (sEnc:string) (sAmber:string) (isValidFunc: IsValidFunction option) (decFunName:string option) (isLiveDeduced:bool) =
+// The encoder (soEncFunName) and the value (sVal) are for the truncation at a bit offset (14c1): the value is encoded
+// again from bit 1..7 of the buffer.
+let private decodeSweepParts (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (modName:string) (funcName:string) (sTasName:string) (sEnc:string) (sAmber:string) (sVal:string) (isValidFunc: IsValidFunction option) (soEncFunName:string option) (decFunName:string option) (isLiveDeduced:bool) =
     let soIsValid = isValidFunc |> Option.bind (fun f -> f.funcName)
     let parts bTruncate decName =
         {
-            DecodeSweepParts.statement = lm.atc.Codec_DecodeSweep modName funcName decName sTasName sEnc sAmber soIsValid bTruncate isLiveDeduced r.args.atcSweepBudget
-            adapter = lm.atc.Codec_DecodeSweep_adapter modName funcName decName sTasName sAmber soIsValid
+            DecodeSweepParts.statement = lm.atc.Codec_DecodeSweep modName funcName decName soEncFunName sTasName sEnc sAmber sVal soIsValid bTruncate isLiveDeduced r.args.atcSweepBudget
+            adapter = lm.atc.Codec_DecodeSweep_adapter modName funcName decName soEncFunName sTasName sAmber soIsValid
             helper = lm.atc.Codec_DecodeSweep_helper r.args.atcSweepBudget
         }
     match decFunName, lm.lg.atcDecodeSweep isLiveDeduced with
@@ -132,7 +134,7 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
     match funcName  with
     | None              -> None, us
     | Some funcName     ->
-        let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode isValidFunc (decFunc |> Option.bind (fun f -> f.funcName)) false
+        let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode varName isValidFunc (encFunc |> Option.bind (fun f -> f.funcName)) (decFunc |> Option.bind (fun f -> f.funcName)) false
 
         let printStatement stm sNestedContent =
             let content=
@@ -229,7 +231,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         match funcName  with
         | None              -> None, us
         | Some funcName     ->
-            let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode isValidFunc (decFunc |> Option.bind (fun f -> f.funcName)) (isLiveDeduced t)
+            let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode varName isValidFunc (encFunc |> Option.bind (fun f -> f.funcName)) (decFunc |> Option.bind (fun f -> f.funcName)) (isLiveDeduced t)
             let printStatement stm sNestedContent =
                 let content=
                     match stm with

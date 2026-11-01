@@ -34,8 +34,6 @@ package body adaasn1rtl.encoding.test_cases_aux is
    is
       nBytes    : constant Natural := (bs.Current_Bit_Pos + 7) / 8;
       Saved_Pos : constant Natural := bs.Current_Bit_Pos;
-      type Pattern_Array is array (1 .. 2) of Asn1Byte;
-      Patterns  : constant Pattern_Array := (16#00#, 16#FF#);
       Last_Head : Natural := 0;
 
       procedure Report (i : Positive; Pattern : Asn1Byte; What : String);
@@ -51,12 +49,19 @@ package body adaasn1rtl.encoding.test_cases_aux is
       end Report;
 
       procedure Try (i : Positive) is
-         Saved : constant Asn1Byte := bs.Buffer (i);
-         Res   : ASN1_RESULT;
-         Valid : Boolean;
+         Saved   : constant Asn1Byte := bs.Buffer (i);
+         Res     : ASN1_RESULT;
+         Valid   : Boolean;
+         Pattern : Asn1Byte;
       begin
-         for Pattern of Patterns loop
+         --  16#00#, 16#FF#, then the byte with each of its 8 bits flipped
+         for k in 1 .. 10 loop
             exit when not Result.Success;
+            Pattern :=
+              (case k is
+                  when 1      => 16#00#,
+                  when 2      => 16#FF#,
+                  when others => Saved xor Interfaces.Shift_Left (1, k - 3));
             if Saved /= Pattern then
                bs.Buffer (i) := Pattern;
                begin

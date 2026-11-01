@@ -5,7 +5,8 @@ package adaasn1rtl.encoding.test_cases_aux is
    --  Decode fault sweep of the automatic tests (asn1scc -atc, uPER and ACN).
    --  After a successful round trip, each byte of the encoded value
    --  (bytes 1 .. (bs.Current_Bit_Pos + 7) / 8) is set to 16#00#, then to
-   --  16#FF#, decoded, and restored. Decode must not raise an exception; it
+   --  16#FF#, then to itself with each of its 8 bits flipped, decoded, and
+   --  restored. Decode must not raise an exception; it
    --  must fail with a nonzero error code or succeed with a valid value.
    --  At most Sweep_Positions positions at each end of the encoding, and
    --  about Budget decoded bytes (asn1scc -atcSweepBudget); at least 2

@@ -102,10 +102,10 @@ if ret { err_code = 0; } else { err_code = 4; }
 Codec_DecodeSweep_helper(nBudget) ::= <<
 >>
 
-Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
+Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
 >>
 
-Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, sTasName, sEnc, sAmber, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sEnc, sAmber, sVal, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
 >>
 
 Codec_write_CharstreamToFile() ::= <<

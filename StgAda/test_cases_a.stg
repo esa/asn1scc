@@ -149,10 +149,10 @@ ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_EQUAL, S
 Codec_DecodeSweep_helper(nBudget) ::= <<
 >>
 
-Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
+Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
 >>
 
-Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, sTasName, sEnc, sAmber, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sEnc, sAmber, sVal, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
 --  Decode corrupted copies of the encoded value
 if ret.Success then
     declare
