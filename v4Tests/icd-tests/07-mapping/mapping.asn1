@@ -1,0 +1,19 @@
+-- ACN mapping-functions in the ICD (PR #431): a mapped INTEGER type with
+-- and without a module (Percent / Offset), a mapped SEQUENCE OF element, and
+-- a size-0 ACN length determinant whose value the decode mapping-function
+-- supplies (payload-len, not on the wire).
+MAPPING DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Percent ::= INTEGER (0..100)
+Offset ::= INTEGER (-50..50)
+PayloadData ::= OCTET STRING (SIZE(1..16))
+ReadingList ::= SEQUENCE (SIZE(0..4)) OF Percent
+
+Frame ::= SEQUENCE {
+    pct      Percent,
+    off      Offset,
+    payload  PayloadData,
+    readings ReadingList
+}
+
+END

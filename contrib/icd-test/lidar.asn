@@ -1,0 +1,53 @@
+LIDAR-EGSE-DATAVIEW DEFINITIONS ::=
+BEGIN
+
+-- Buffer to store encoded packets
+Encoded-Packet ::= OCTET STRING (SIZE (0..2000))
+
+Power-Command ::= ENUMERATED {power-on, power-off}
+
+Byte ::= INTEGER (0..255)
+
+Header ::= SEQUENCE {
+   first-block-return ENUMERATED {single-return, last-return-in-dual-return-mode},
+   return-number ENUMERATED {one-return(1), two-returns(2)},
+   udp-seq ENUMERATED {udp-sequence-off, udp-sequence-on}
+}
+
+
+Blocks ::= SEQUENCE {
+   azimuth INTEGER (0..65535),
+   channels SEQUENCE (SIZE (32)) OF Single-Channel
+}
+
+Single-Channel ::= SEQUENCE {
+   distance INTEGER (0..65535),
+   reflectivity INTEGER (0..255)  --{ percentage }--
+}
+
+Body ::= SEQUENCE (SIZE (8)) OF Blocks
+
+Tail ::= SEQUENCE {
+   high-temperature-flag INTEGER (0..1),
+   return-mode ENUMERATED { strongest-return-mode(55), last-return(56), dual-return(57)},
+   motor-speed INTEGER (0..65535), -- endianness not specified?
+   date-and-time SEQUENCE {  -- binary, 1 byte each
+      year Byte,
+      month Byte,
+      date Byte,
+      hour Byte,
+      minute Byte,
+      second Byte
+   },
+   timestamp INTEGER (0..1000000) --{ us }--
+}
+
+Packet ::= SEQUENCE {
+   hdr Header,
+   content Body,
+   post Tail
+}
+
+
+END
+

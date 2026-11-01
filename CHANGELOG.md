@@ -1,5 +1,21 @@
 # Change Log
 
+## 4.9.64 - Maintenance release
+- New ICD generator (contrib/icd-generator.py): renders an ICD in HTML from
+  the new `asn1scc -icdRaw` JSON dump, with an embedded asn1scc invocation
+  (the user passes the .asn/.acn files directly), optional `--root` for PDU-
+  focused documents or a sequential mode covering all types, a compact
+  bit-level representation of the encoding, nested tables with offsets
+  relative to the first item, type hyperlinks, units, and all implicit
+  fields (length/presence/choice determinants, padding).
+- ICD dumps now expose ACN mapping functions: a mapped INTEGER (e.g. a size-0
+  length determinant whose value is computed at run time) carries a note in
+  the ICD (`-icdRaw` row comments and the `-x` XML `mapping-function`
+  attribute), and the generator marks it with a star in the table and
+  compact views.
+- Example grammars and reference output in contrib/icd-test (CCSDS space
+  packet, flight software ASW).
+
 ## 4.5.0.12 - Maintenance release
 - Add Asn1Real_Equal function in the C backend to align with Ada
 

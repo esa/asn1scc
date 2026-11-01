@@ -131,7 +131,7 @@ def build_jobs():
     for k in range(1, C_SHARDS + 1):
         jobs[f"c-{k}"] = sharded(C_LEGS, k, C_SHARDS)
     jobs["c-1"] += [sh("./scripts/runWireTests.sh"), sh("./scripts/runIcdPdusTests.sh")]
-    jobs["c-2"] += [sh("python3 ./scripts/runIcdTests.py")]
+    jobs["c-2"] += [sh("python3 ./scripts/runIcdTests.py --require-excel")]
     jobs["python"] = [reg("-l python -ws 4 -s false"), reg("-l python -ws 8 -s false"),
                       sh("uvx --python=3.11 pytest tests -v", cwd="asn1python"),
                       sh("./tools/check_generated_code.sh", cwd="asn1python")]

@@ -30,6 +30,7 @@ mkdir -p "${LINUX_DIR}"
 
 cp -a asn1scc/bin/Release/net10.0/linux-x64/publish/* "${LINUX_DIR}/"
 cp -a lsp/Server/Server/bin/Release/net10.0/linux-x64/publish/* "${LINUX_DIR}/"
+cp -a contrib/icd-generator.py "${LINUX_DIR}/"
 
 echo "[-] Creating Windows release directory..."
 
@@ -37,6 +38,7 @@ mkdir -p "${WIN_DIR}"
 
 cp -a asn1scc/bin/Release/net10.0/win-x64/publish/* "${WIN_DIR}/"
 cp -a lsp/Server/Server/bin/Release/net10.0/win-x64/publish/* "${WIN_DIR}/"
+cp -a contrib/icd-generator.py "${WIN_DIR}/"
 
 VERSION="$("${LINUX_DIR}/asn1scc" -v | head -1 | awk '{print $NF}')"
 

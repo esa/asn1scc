@@ -351,6 +351,7 @@
             <xsd:attribute name="size" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="termination-pattern" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="encoding" use="optional"><xsd:simpleType><xsd:restriction base = "AcnIntEncoding"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="mapping-function" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
         </xsd:complexType>
     </xsd:element>
 
@@ -752,6 +753,7 @@
             <xsd:attribute name="size" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="termination-pattern" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="encoding" use="optional"><xsd:simpleType><xsd:restriction base = "AcnIntEncoding"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="mapping-function" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="align-to-next" use="optional"><xsd:simpleType><xsd:restriction base="AcnAlignment"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="pattern" use="optional"><xsd:simpleType><xsd:restriction base = "xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="true-value" use="optional"><xsd:simpleType><xsd:restriction base = "xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>

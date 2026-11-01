@@ -262,6 +262,16 @@ let exportAcnAlignment (a:AcnAlignment option) =
     | Some NextDWord     -> XAttribute(xname "align-to-next", "dword" )
     | None               -> null
 
+/// The mapping-function of an ACN integer as an XML attribute: "mod.fn" with
+/// the module when the ACN names one, bare "fn" otherwise.
+let exportAcnMappingFunction (a:MappingFunction option) =
+    match a with
+    | None -> []
+    | Some (MappingFunction (soMod, name)) ->
+        match soMod with
+        | Some m -> [XAttribute(xname "mapping-function", m.Value + "." + name.Value)]
+        | None  -> [XAttribute(xname "mapping-function", name.Value)]
+
 let exportAcnIntSizeProperty (a:AcnIntSizeProperty option) =
     match a with
     | None  -> []
@@ -375,6 +385,7 @@ let private exportType (t:Asn1Type) =
                         (exportAcnEndianness ti.acnProperties.endiannessProp),
                         (exportAcnIntSizeProperty ti.acnProperties.sizeProp),
                         (exportAcnIntEncoding ti.acnProperties.encodingProp),
+                        (exportAcnMappingFunction ti.acnProperties.mappingFunction),
                         XElement(xname constraintsTag, ti.cons |> List.map (printRangeConstraint printIntVal) ),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printRangeConstraint printIntVal ))
                         ), us )
@@ -529,6 +540,7 @@ let private exportType (t:Asn1Type) =
                     (exportAcnEndianness a.acnProperties.endiannessProp),
                     (exportAcnIntSizeProperty a.acnProperties.sizeProp),
                     (exportAcnIntEncoding a.acnProperties.encodingProp),
+                    (exportAcnMappingFunction a.acnProperties.mappingFunction),
                     (exportAcnAlignment a.acnAlignment),
                     (if ch.Comments.Length > 0 then (XElement (xname "AcnComment", (ch.Comments |> Seq.StrJoin "\n"))) else null)), us
             | AcnNullType (a)        ->
