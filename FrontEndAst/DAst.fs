@@ -251,6 +251,8 @@ type EncodeTemplate =
     | EncChoiceDefaultArm       // CHOICE: the arm of a selector without alternative (C: defensive default, ret = FALSE)
     | EncChoiceAbsentArm        // ACN CHOICE: the arm of an ALWAYS ABSENT alternative (writes a failure)
     | EncDeferredPatch          // --acn-v2: the PatchDet calls after a specialised body (write result, may fail)
+    | EncContainingDeferredWrapper  // --acn-v2: the end of a CONTAINING region around an inline body (checks the body's
+                                    // result, then the PatchDet of the region's size: reads result first, may fail)
     // coverage step 12c: the update of an ACN determinant (AcnDependencies), without the flag it may set
     | EncDeterminantAssign      // size / presence: an assignment
     | EncDeterminantRangeCheck  // IA5String size with a range check (Ada: result.Success := ..., a component write)

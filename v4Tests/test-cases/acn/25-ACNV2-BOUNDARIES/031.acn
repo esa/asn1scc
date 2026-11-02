@@ -1,0 +1,56 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Inner [] {
+    a [encoding pos-int, size 8],
+    b [encoding pos-int, size 2]
+}
+
+Inner2 <BOOLEAN:hasB> [] {
+    a [encoding pos-int, size 8],
+    b [present-when hasB]
+}
+
+MsgA [] {
+    flag    [encoding pos-int, size 3],
+    len     INTEGER [encoding pos-int, size 4],
+    payload [size len],
+    tail    [encoding pos-int, size 4]
+}
+
+MsgB [] {
+    flag    [encoding pos-int, size 3],
+    len     INTEGER [encoding pos-int, size 12],
+    payload [size len],
+    tail    [encoding pos-int, size 4]
+}
+
+MsgC [] {
+    len     INTEGER [encoding twos-complement, size 7],
+    payload [size len],
+    tail    [encoding pos-int, size 4]
+}
+
+MsgD [] {
+    hasB    BOOLEAN [],
+    len     INTEGER [encoding pos-int, size 5],
+    payload <hasB> [size len],
+    tail    [encoding pos-int, size 4]
+}
+
+MsgE [] {
+    kind    INTEGER [encoding pos-int, size 8],
+    len     INTEGER [encoding pos-int, size 6],
+    payload <kind, len> [],
+    tail    [encoding pos-int, size 4]
+}
+
+Inner3 [] {
+    x [encoding pos-int, size 3]
+}
+
+Pl <INTEGER:kind, INTEGER:len> [] {
+    v1 [present-when kind == 1, size len],
+    v2 [present-when kind == 2, size len]
+}
+
+END

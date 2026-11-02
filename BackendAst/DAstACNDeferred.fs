@@ -1033,8 +1033,14 @@ let private buildContainingClosureBody
                     getDeferredMappingFunction ctx.r ctx.lm ctx.deps ctx.codec prm.id
                 declarations)
             |> Option.defaultValue []
+        // the end of the region reads the body's result (q/issues.md Issue 63: a body that cannot fail writes none)
+        let encOutcome =
+            match containingSizePrm with
+            | Some _ -> EncodeOutcome.seq2 br.encOutcome (ctx.lm.lg.encodeTemplateOutcome EncContainingDeferredWrapper)
+            | None   -> br.encOutcome
         { br with
             funcBody = wrappedBody
+            encOutcome = encOutcome
             errCodes = br.errCodes @ [errCode]
             userDefinedFunctions = br.userDefinedFunctions @ mappingDeclarations
             localVariables = stripLocals br.localVariables }, ns2
@@ -1557,6 +1563,8 @@ let private createDeferredReferenceFunction
                                 bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName ctx.codec
                     { bodyResult with
                         funcBody = wrappedBody
+                        // the end of the region reads the body's result (q/issues.md Issue 63)
+                        encOutcome = EncodeOutcome.seq2 bodyResult.encOutcome (ctx.lm.lg.encodeTemplateOutcome EncContainingDeferredWrapper)
                         userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations }
                 | _ -> bodyResult
 

@@ -525,6 +525,8 @@ type LangGeneric_a() =
             | EncOctetStringVarSize LengthEnforcedByTypedef | EncBitStringVarSize LengthEnforcedByTypedef
             | EncSequenceOfVarSize LengthEnforcedByTypedef                          -> EncodeOutcome.noWrite
             | EncPresentWhenCheck | EncDeferredPatch | EncChoiceAbsentArm           -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // if result.Success then ... <PatchDet>(..., result) after the body of the region (q/issues.md Issue 63)
+            | EncContainingDeferredWrapper                                          -> {canFail = true; writes = ReadsFirst; callee = None}
             // result.Success := nStringLength >= min AND ...: a component write, so result must be initialised before
             | EncStringVarSizeUper                                                  -> {canFail = true; writes = ReadsFirst; callee = None}
             // an exhaustive case over the selector: no default arm

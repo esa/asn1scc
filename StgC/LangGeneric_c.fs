@@ -908,6 +908,8 @@ type LangGeneric_c() =
             | EncOctetStringNoLength                            -> {canFail = true; writes = AlwaysWrites; callee = None}
             | EncPresentWhenCheck | EncDeferredPatch
             | EncChoiceAbsentArm                                -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // if (ret) { ... ret = <PatchDet>(...); ... } after the body of the region (q/issues.md Issue 63)
+            | EncContainingDeferredWrapper                      -> {canFail = true; writes = ReadsFirst; callee = None}
             // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid selector (coverage step 12d)
             | EncChoiceDefaultArm                               -> {canFail = true; writes = SometimesWrites; callee = None}
             // determinant updates (coverage step 12c): assignments (the C size update has no range check)
