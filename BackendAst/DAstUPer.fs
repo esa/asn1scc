@@ -176,7 +176,9 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                 let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
 
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue) x.fieldPath)
-                let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) (bValInOut && not bVarNameIsUnreferenced) codec)
+                // coverage step 14c2a: a full-index CHOICE writes all of its `in out` val (DecodeOutcome.uperValInitUnused)
+                let bValInitUnused = bValInOut && not bVarNameIsUnreferenced && codec = Decode && DecodeOutcome.uperValInitUnused r lm t
+                let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) (bValInOut && not bVarNameIsUnreferenced) bValInitUnused codec)
                 // coverage step 12b: what a call of this encoder does, for the parents' joins (C calls it with
                 // bCheckConstraints = FALSE; Ada's call validates unless the encoder skips it)
                 let ns =
@@ -430,7 +432,12 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
             let items =
                 o.items |> List.mapi(fun i itm -> Enumerated_item pp (lm.lg.getNamedItemBackendName (Some typeDefinition) itm) (BigInteger i) nLastItemIndex codec)
             let nBits = (GetNumberOfBitsForNonNegativeInteger (nMax-nMin))
-            let funcBodyContent = Enumerated pp td items nMin nMax nBits errCode.errCodeName nLastItemIndex sFirstItemName codec
+            // coverage step 14c2a: 2^nBits items, the index is read with the _FullRange twin (DecodeOutcome.uperEnumFullIndex)
+            let funcBodyContent =
+                match codec, DecodeOutcome.uperEnumFullIndex r lm o with
+                | Decode, Some nFullBits -> lm.uper.Enumerated_fullIndex pp td items nFullBits
+                | Decode, None
+                | Encode, _              -> Enumerated pp td items nMin nMax nBits errCode.errCodeName nLastItemIndex sFirstItemName codec
             {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = aux; encOutcome = encodeOutcomeOf codec (lm.lg.encodeTemplateOutcome EncEnumerated)}
         | true ->
             let sEnumIndex = "nEnumIndex"
@@ -1181,7 +1188,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let childrenAuxiliaries = childrenContent3 |> List.collect(fun (_,_,_,a) -> a)
             let introSnap = nestingScope.nestingLevel = 0I
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
-            let ret = choice pp (lm.lg.getAccess p.accessPath) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits introSnap codec
+            // coverage step 14c2a: 2^nIndexSizeInBits alternatives that cannot fail (DecodeOutcome.uperChoiceFullIndex)
+            let ret =
+                match codec, DecodeOutcome.uperChoiceFullIndex r lm o with
+                | Decode, Some (nFullBits, _) -> lm.uper.choice_fullIndex pp (lm.lg.getAccess p.accessPath) childrenContent sChoiceIndexName td nFullBits
+                | Decode, None
+                | Encode, _                   -> choice pp (lm.lg.getAccess p.accessPath) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits introSnap codec
             let ret = lm.lg.generateChoiceProof r UPER t o ret p.accessPath codec
             Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; encOutcome = encOutcome})
         | Some baseFuncName ->

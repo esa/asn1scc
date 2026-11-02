@@ -18,7 +18,7 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 <sErrCode>:constant Integer := <nErrValue>;
 >>
 
-EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING:constant Integer := <nMaxBytesInPER>;
 <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING:constant Integer := <nMaxBitsInPER>;
@@ -31,12 +31,12 @@ procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleNam
 ;
 >>
 
-EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
-procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+<if(bValInitUnused)>-- val is in out (a CHOICE is a variant record: the discriminant of an out parameter is read at the call), and every path assigns all of it<\n>pragma Warnings (Off, "unused initial value of ""<sVarName>""");<\n><endif>procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
-;
+;<if(bValInitUnused)><\n>pragma Warnings (On, "unused initial value of ""<sVarName>""");<endif>
 >>
 
 
@@ -1080,6 +1080,28 @@ adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber_FullRange<sSsuffix>(b
 IntFullyConstraint_fullRange(p, nMin, nBits, sSsuffix) ::= <<
 -- cannot fail, no result to check: every bit pattern of the field is a valid value
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber_FullRange<sSsuffix>(bs, <p>, <nMin>, <nBits>);
+>>
+
+/* Coverage step 14c2a: decode of an ENUMERATED / CHOICE whose index fills its field (2^nBits items / alternatives):
+   the _FullRange twin cannot fail and its Post bounds the index, so the case needs no guard (DecodeOutcome.fullIndexBits). */
+Enumerated_fullIndex(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nBits) ::= <<
+declare
+    intVal:Asn1Int;
+begin
+    -- cannot fail, no result to check: every index of the field is an item
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber_FullRange(bs, intVal, 0, <nBits>);
+    case <td.index_range>(intVal) is
+        <arrsItem; separator="\n">
+    end case;
+end;
+>>
+
+choice_fullIndex(p, sAcc, arrsChildren, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
+-- cannot fail, no result to check: every index of the field is an alternative
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber_FullRange(bs, <sChoiceIndexName>, 0, <nIndexSizeInBits>);
+case <td.index_range>(<sChoiceIndexName>) is
+    <arrsChildren; separator="\n">
+end case;
 >>
 
 /* Coverage step 10b: start of a decoder none of whose mandatory parts assigns result.ErrorCode. */

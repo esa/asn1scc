@@ -565,6 +565,24 @@ ADA_RTL_DECODE = (r"\b(?:UPER_Dec_Constraint(?:Pos)?WholeNumber(?:U?Int(?:8|16|3
                   r"\s*result(?:\.Success)?\s*\)")
 
 
+# Coverage step 14c2a: the RTL _FullRange twins have no Result and cannot fail. UPER_Dec_Constraint[Pos]WholeNumber_FullRange
+# reads nBits bits and returns min + that value (min .. min + 2^nBits - 1); Acn_Dec_Int_PositiveInteger_ConstSize<w>_FullRange
+# reads the w bits of its width (the nBits argument of the form without width) and returns 0 .. 2^w - 1.
+ADA_RTL_FULLRANGE = (r"\b(?:UPER_Dec_Constraint(?:Pos)?WholeNumber_FullRange(?:U?Int(?:8|16|32))?"
+                     r"\s*\(\s*bs\s*,\s*{var}\s*,\s*(?P<min>-?\d+)\s*,\s*(?P<bits>\d+)\s*\)"
+                     r"|Acn_Dec_Int_PositiveInteger_ConstSize(?:_(?P<width>8)|_(?:big|little)_endian_(?P<ewidth>16|32|64))?"
+                     r"_FullRange(?:U?Int(?:8|16|32))?\s*\(\s*bs\s*,\s*{var}\s*(?:,\s*(?P<nbits>\d+)\s*)?\))")
+
+
+def full_range_bounds(found):
+    """min .. max returned by the _FullRange twin call `found` (ADA_RTL_FULLRANGE)."""
+    if found["bits"] is not None:
+        low = int(found["min"])
+        return low, low + 2 ** int(found["bits"]) - 1
+    bits = found["width"] or found["ewidth"] or found["nbits"]
+    return (0, 2 ** int(bits) - 1) if bits is not None else None
+
+
 def ada_code(text):
     """An Ada line without its comment."""
     return re.sub(r"--.*$", "", text)
@@ -573,8 +591,9 @@ def ada_code(text):
 def cov001_ada(lines, first):
     """ASN1SCC-COV-001 in Ada: the statement is in the `when others` arm of a
     `case X is` whose selector was just decoded by an RTL procedure with the
-    postcondition `Result and X in min .. max`, and whose own choices are
-    exactly min..max."""
+    postcondition `Result and X in min .. max` (the case in its success branch),
+    or by a _FullRange twin that cannot fail and returns min .. max (14c2a),
+    and whose own choices are exactly min..max."""
     others = None
     for number in range(first, max(first - 4, 0), -1):
         text = ada_code(lines[number - 1])
@@ -600,20 +619,25 @@ def cov001_ada(lines, first):
         return False
     var = match[1]
     decode = re.compile(ADA_RTL_DECODE.format(var=re.escape(var)), re.I)
+    full = re.compile(ADA_RTL_FULLRANGE.format(var=re.escape(var)), re.I)
     assigned = re.compile(r"(?<![\w.])" + re.escape(var) + r"\s*:=", re.I)
-    bounds = None
+    bounds, full_range = None, False
     for number in range(head - 1, max(head - 5, 0), -1):
         text = ada_code(lines[number - 1])
         found = decode.search(text)
         if found:
             bounds = int(found[1]), int(found[2])
             break
+        found = full.search(text)
+        if found:
+            bounds, full_range = full_range_bounds(found), True
+            break
         if assigned.search(text):
             return False
     if bounds is None:
         return False
-    # The case must sit in the success branch of that decode.
-    if not any(re.match(r"^\s*if\s+result\.Success\s+then\s*$", ada_code(lines[n - 1]), re.I)
+    # The case must sit in the success branch of that decode (a _FullRange twin cannot fail).
+    if not full_range and not any(re.match(r"^\s*if\s+result\.Success\s+then\s*$", ada_code(lines[n - 1]), re.I)
                for n in range(number + 1, head)):
         return False
     depth, labels = 0, []

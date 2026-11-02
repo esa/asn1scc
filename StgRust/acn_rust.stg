@@ -20,7 +20,7 @@ pub const <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING: usize = <nMaxBitsInACN>
 
 
 
-EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization) ::= <<
+EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 >>
 
@@ -56,7 +56,7 @@ pub fn <sFuncName>(<sVarName>: &<sTypeDefName><sStar>, pBitStrm: &mut BitStream,
 }
 >>
 
-EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization) ::= <<
+EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 >>
 
@@ -2170,6 +2170,8 @@ acn_deferred_det_init_expr() ::= "acn::AcnInsertedFieldRef::default()"
 
 /* Coverage step 10b, Ada only (never used here). */
 AcnIntFullRange(p, sKind, sWidth, sSsuffix, noBits) ::= ""
+EnumeratedEncValues_fullIndex(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sFirstItemName, sIntVal, soCovExempt) ::= ""
+Choice_fullIndex(p, sAcc, arrsChildren, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= ""
 
 sequence_presence_optChild_noErrCode(p, sChName, soExistVar) ::= ""
 

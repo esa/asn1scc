@@ -333,7 +333,9 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     List.groupBy (fun x -> x.errCodeName) |>
                     List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath}) |>
                     List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath) |> List.distinct
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits prms soSparkAnnotations (bValInOut && not bVarNameIsUnreferenced) false codec)
+                // coverage step 14c2a: a full-index CHOICE writes all of its `in out` val (DecodeOutcome.acnValInitUnused)
+                let bValInitUnused = bValInOut && not bVarNameIsUnreferenced && codec = Decode && DecodeOutcome.acnValInitUnused r lm t
+                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits prms soSparkAnnotations (bValInOut && not bVarNameIsUnreferenced) false bValInitUnused codec)
                 let ns2a =
                     match t.id.topLevelTas with
                     | None -> ns1a

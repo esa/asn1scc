@@ -85,6 +85,7 @@ switches on `v`. The switch has one `case` for every value `min..max`, plus a
 | `acn_c.stg` | `Choice_decode` | ACN CHOICE index (no determinant) |
 | `acn_c.stg` | `EnumeratedEncValues_decode` | ACN ENUMERATED value, **only** when the value is decoded with one of the two functions above and the item values fill `min..max` |
 | `StgAda/acn_a.stg` | `EnumeratedEncValues_decode` (`when others` arm) | ACN ENUMERATED value in Ada whose item values fill `min..max`, decoded with `UPER_Dec_ConstraintPosWholeNumber` or with a fixed-size `Acn_Dec_*_ConstSize*` procedure |
+| `StgAda/acn_a.stg` | `EnumeratedEncValues_fullIndex` (`when others` arm) | ACN ENUMERATED value in Ada whose item values are exactly the values of its field (`0..2^k-1` in `k` bits), decoded with a `_FullRange` procedure (asn1scc 4.9.70.0 and later) |
 
 For `EnumeratedEncValues_decode` the proof depends on the instance: an ACN
 ENUMERATED whose values leave gaps (e.g. `{a(0), b(5)}` in 3 bits) can deliver
@@ -218,6 +219,40 @@ The template passes the smallest and the largest item value as `minVal` and
 execute either. The choices must be exactly `min..max` (sparse values are
 reachable and tested). `classifyStatements.py` checks the Ada shape in the same
 way as the C one.
+
+Since asn1scc 4.9.70.0, an ACN ENUMERATED whose item values are exactly
+`0..2^k-1` and whose field is `k` bits wide (the uPER-like encoding, or a
+fixed-size `pos-int` encoding of `k` bits) is decoded with a `_FullRange`
+procedure, which has no `Result` and cannot fail: every value of the field is
+an item. The `case` then has no success branch around it, and the `when
+others` arm only keeps `val` defined:
+
+```ada
+-- cannot fail, no result to check: every bit pattern of the field is a valid value
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_FullRange(bs, intVal_val, 2);
+case intVal_val is
+    when 0 => val := red;
+    when 1 => val := green;
+    when 2 => val := blue;
+    when 3 => val := black;
+when others =>                        -- COVERAGE_IGNORE    <- exempted
+    -- unreachable: the read returns only the values of the field, each of them an item
+    val := red;                       -- COVERAGE_IGNORE
+end case;
+```
+
+`Acn_Dec_Int_PositiveInteger_ConstSize_FullRange` (and its fixed-width
+twins `..._ConstSize_8_FullRange`, `..._big_endian_16_FullRange`, ...)
+reads exactly the bits of the field and returns them as an unsigned value,
+so the value is in `0..2^k-1`; the postcondition states it
+(`IntVal < Shift_Left (1, nSizeInBits)`, `IntVal <= 16#FF#`, ...).
+`UPER_Dec_ConstraintPosWholeNumber_FullRange(bs, v, min, nBits)` returns
+`min` plus an `nBits`-bit value, `min..min+2^nBits-1` (postcondition
+`IntVal >= MinVal and IntVal - MinVal < Shift_Left (1, nBits)`). The variants
+for smaller target types (`...FullRangeUInt8`, ...) read the same bits. With
+choices `0..2^k-1` every value has a `when`. `classifyStatements.py` accepts
+this form when the selector was just decoded by such a call and the choices
+equal the values it returns.
 
 ---
 

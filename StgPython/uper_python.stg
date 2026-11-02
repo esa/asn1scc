@@ -25,7 +25,7 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 <sErrCode>_path = "<sFieldPath>"
 >>
 
-EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut, bValInitUnused) ::= <<
 <arrsErrcodes:{x|<x>}; separator="\n">
 REQUIRED_BYTES_FOR_ENCODING: int = <nMaxBytesInPER>
 REQUIRED_BITS_FOR_ENCODING: int = <nMaxBitsInPER>
@@ -47,7 +47,7 @@ def <sFuncName>(self, codec: UPEREncoder, check_constraints: bool = True) -> UPE
     <sContent>
 >>
 
-EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut, bValInitUnused) ::= <<
 <arrsErrcodes:{x|<x>}; separator="\n">
 >>
 
@@ -1006,6 +1006,8 @@ InternalItem_bit_str_decode(p, i, sErrCode) ::=<<
 IntFullyConstraintPos_fullRange(p, nMin, nBits, sSsuffix) ::= ""
 
 IntFullyConstraint_fullRange(p, nMin, nBits, sSsuffix) ::= ""
+Enumerated_fullIndex(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nBits) ::= ""
+choice_fullIndex(p, sAcc, arrsChildren, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= ""
 
 decode_result_init() ::= ""
 

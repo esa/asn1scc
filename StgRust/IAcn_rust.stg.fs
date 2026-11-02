@@ -15,8 +15,8 @@ type IAcn_rust() =
             acn_rust.EmitAcnParameter  sName sType sDefaultValue 
         override this.EmitEncodingSizeConstants  (sTypeDefName:string) (nMaxBytesInACN:BigInteger) (nMaxBitsInACN:BigInteger) =
             acn_rust.EmitEncodingSizeConstants  sTypeDefName nMaxBytesInACN nMaxBitsInACN 
-        override this.EmitTypeAssignment_primitive_def  (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) (bEmptyEncodingSpace:bool) (nMaxBytesInACN:BigInteger) (nMaxBitsInACN:BigInteger) (arrsAcnPrms:seq<string>) (soSparkAnnotations:string option) (bValInOut:bool) (bDeferredSpecialization:bool) (codec:Codec) =
-            acn_rust.EmitTypeAssignment_primitive_def  sVarName sStar sFuncName sTypeDefName arrsErrcodes bEmptyEncodingSpace nMaxBytesInACN nMaxBitsInACN arrsAcnPrms soSparkAnnotations bValInOut bDeferredSpecialization codec
+        override this.EmitTypeAssignment_primitive_def  (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) (bEmptyEncodingSpace:bool) (nMaxBytesInACN:BigInteger) (nMaxBitsInACN:BigInteger) (arrsAcnPrms:seq<string>) (soSparkAnnotations:string option) (bValInOut:bool) (bDeferredSpecialization:bool) (bValInitUnused:bool) (codec:Codec) =
+            acn_rust.EmitTypeAssignment_primitive_def  sVarName sStar sFuncName sTypeDefName arrsErrcodes bEmptyEncodingSpace nMaxBytesInACN nMaxBitsInACN arrsAcnPrms soSparkAnnotations bValInOut bDeferredSpecialization bValInitUnused codec
         override this.EmitTypeAssignment_primitive  (sVarName:string) (sStar:string) (sFuncName:string) (soIValidFuncName:string option) (sTypeDefName:string) (arrsLocalVariables:seq<string>) (sContent:string) (soSparkAnnotations:string option) (sInitialExp:string) (arrsAcnPrms:seq<string>) (arrsAcnParamNames:seq<string>) (bEmptyEncodingSpace:bool) (bBsIsUnreferenced:bool) (bVarNameIsUnreferenced:bool) (bHasAcnChildrenToReturn:bool) (soInitFuncName:string option) (arrsAnnots:seq<string>) (arrsPrecond:seq<string>) (arrsPostcond:seq<string>) (bDeferredSpecialization:bool) (bAlwaysSucceeds:bool) (bValInOut:bool) (bValidityCannotFail:bool) (codec:Codec) =
             acn_rust.EmitTypeAssignment_primitive  sVarName sStar sFuncName soIValidFuncName sTypeDefName arrsLocalVariables sContent soSparkAnnotations sInitialExp arrsAcnPrms arrsAcnParamNames bEmptyEncodingSpace bBsIsUnreferenced bVarNameIsUnreferenced bHasAcnChildrenToReturn soInitFuncName arrsAnnots arrsPrecond arrsPostcond bDeferredSpecialization bAlwaysSucceeds bValInOut bValidityCannotFail codec
         override this.acn_int_mapped_read  (p:string) (sWireRead:string) (sMF:string) (soMFM:string option) (sTmpType:string) (noMin:BigInteger option) (noMax:BigInteger option) (nFieldMin:BigInteger) =
@@ -359,6 +359,10 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_init_expr  () 
         override this.AcnIntFullRange  (p:string) (sKind:string) (sWidth:string) (sSsuffix:string) (noBits:BigInteger option) =
             acn_rust.AcnIntFullRange  p sKind sWidth sSsuffix noBits 
+        override this.EnumeratedEncValues_fullIndex  (p:string) (td:FE_EnumeratedTypeDefinition) (arrsItem:seq<string>) (sActualCodecFunc:string) (sFirstItemName:string) (sIntVal:string) (soCovExempt:string option) =
+            acn_rust.EnumeratedEncValues_fullIndex  p td arrsItem sActualCodecFunc sFirstItemName sIntVal soCovExempt 
+        override this.Choice_fullIndex  (p:string) (sAcc:string) (arrsChildren:seq<string>) (sChoiceIndexName:string) (td:FE_ChoiceTypeDefinition) (nIndexSizeInBits:BigInteger) =
+            acn_rust.Choice_fullIndex  p sAcc arrsChildren sChoiceIndexName td nIndexSizeInBits 
         override this.sequence_presence_optChild_noErrCode  (p:string) (sChName:string) (soExistVar:string option) =
             acn_rust.sequence_presence_optChild_noErrCode  p sChName soExistVar 
         override this.sparkAnnotationsAlwaysSucceeds  (sTypeDefName:string) =

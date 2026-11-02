@@ -101,6 +101,21 @@ ADA_ACN_ENUM = """\
         val := MyPDU_alpha;                             -- COVERAGE_IGNORE
     end if;"""
 
+# Coverage step 14c2a: the value read with a _FullRange twin (no Result, no success branch).
+ADA_ACN_ENUM_FULL = """\
+    result := adaasn1rtl.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    -- cannot fail, no result to check: every bit pattern of the field is a valid value
+    adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_FullRange(bs, intVal_val, 2);
+    case intVal_val is
+        when 0 => val := red;
+        when 1 => val := green;
+        when 2 => val := blue;
+        when 3 => val := black;
+    when others => pragma Annotate (Xcov, Exempt_On, "ASN1SCC-COV-001: x");    -- COVERAGE_IGNORE
+        -- unreachable: the read returns only the values of the field, each of them an item
+        val := red; pragma Annotate (Xcov, Exempt_Off);                       -- COVERAGE_IGNORE
+    end case;"""
+
 CHAR_GUARD = """\
 asn1SccSint charIndex = 0;
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charIndex, 0, 2);
@@ -239,6 +254,28 @@ class Cov001Ada(unittest.TestCase):
         self.assertIn("Exempt_On", source)
         self.assertEqual(check(source, self.ARM, language="Ada"), "ASN1SCC-COV-001")
         self.assertEqual(check(source, "result := adaasn1rtl", language="Ada"), "ASN1SCC-COV-001")
+
+    def test_full_range_twin_without_success_branch_is_proven(self):
+        arm = "val := red; pragma"
+        self.assertEqual(check(ADA_ACN_ENUM_FULL, arm, language="Ada"), "ASN1SCC-COV-001")
+        for twin in ("Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRange(bs, intVal_val)",
+                     "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRangeUInt16(bs, intVal_val)",
+                     "UPER_Dec_ConstraintPosWholeNumber_FullRange(bs, intVal_val, 0, 2)"):
+            source = ADA_ACN_ENUM_FULL.replace("Acn_Dec_Int_PositiveInteger_ConstSize_FullRange(bs, intVal_val, 2)", twin)
+            expected = "ASN1SCC-COV-001" if twin.startswith("UPER") else ""   # 8 / 16 bits: 4 choices do not cover them
+            self.assertEqual(check(source, arm, language="Ada"), expected, twin)
+
+    def test_full_range_twin_wider_than_choices_is_not_proven(self):
+        source = ADA_ACN_ENUM_FULL.replace("intVal_val, 2);", "intVal_val, 3);")
+        self.assertEqual(check(source, "val := red; pragma", language="Ada"), "")
+        source = ADA_ACN_ENUM_FULL.replace("UPER", "UPER").replace(
+            "Acn_Dec_Int_PositiveInteger_ConstSize_FullRange(bs, intVal_val, 2)",
+            "UPER_Dec_ConstraintPosWholeNumber_FullRange(bs, intVal_val, 1, 2)")
+        self.assertEqual(check(source, "val := red; pragma", language="Ada"), "")
+
+    def test_full_range_twin_of_another_variable_is_not_proven(self):
+        source = ADA_ACN_ENUM_FULL.replace("ConstSize_FullRange(bs, intVal_val, 2)", "ConstSize_FullRange(bs, other, 2)")
+        self.assertEqual(check(source, "val := red; pragma", language="Ada"), "")
 
     def test_failure_branch_is_not_exempted(self):
         self.assertEqual(check(ADA_ACN_ENUM, "val := MyPDU_alpha;", 3, language="Ada"), "")

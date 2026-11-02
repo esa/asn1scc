@@ -13,8 +13,8 @@ type IUper_rust() =
             uper_rust.call_superclass_func  p sFuncName codec
         override this.EmitTypeAssignment_def_err_code  (sErrCode:string) (nErrValue:BigInteger) (sFieldPath:string) =
             uper_rust.EmitTypeAssignment_def_err_code  sErrCode nErrValue sFieldPath 
-        override this.EmitTypeAssignment_def  (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) (bEmptyEncodingSpace:bool) (nMaxBytesInPER:BigInteger) (nMaxBitsInPER:BigInteger) (soSparkAnnotations:string option) (bReqBytesForEncodingIsZero:bool) (bValInOut:bool) (codec:Codec) =
-            uper_rust.EmitTypeAssignment_def  sVarName sStar sFuncName sTypeDefName arrsErrcodes bEmptyEncodingSpace nMaxBytesInPER nMaxBitsInPER soSparkAnnotations bReqBytesForEncodingIsZero bValInOut codec
+        override this.EmitTypeAssignment_def  (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) (bEmptyEncodingSpace:bool) (nMaxBytesInPER:BigInteger) (nMaxBitsInPER:BigInteger) (soSparkAnnotations:string option) (bReqBytesForEncodingIsZero:bool) (bValInOut:bool) (bValInitUnused:bool) (codec:Codec) =
+            uper_rust.EmitTypeAssignment_def  sVarName sStar sFuncName sTypeDefName arrsErrcodes bEmptyEncodingSpace nMaxBytesInPER nMaxBitsInPER soSparkAnnotations bReqBytesForEncodingIsZero bValInOut bValInitUnused codec
         override this.EmitTypeAssignment  (sVarName:string) (sStar:string) (sFuncName:string) (soIValidFuncName:string option) (sTypeDefName:string) (arrsLocalVariables:seq<string>) (sContent:string) (soSparkAnnotations:string option) (sInitialExp:string) (bReqBytesForEncodingIsZero:bool) (bBsIsUnreferenced:bool) (bVarNameIsUnreferenced:bool) (soInitFuncName:string option) (arrsAnnots:seq<string>) (arrsPrecond:seq<string>) (arrsPostcond:seq<string>) (bAlwaysSucceeds:bool) (bValInOut:bool) (bValidityCannotFail:bool) (codec:Codec) =
             uper_rust.EmitTypeAssignment  sVarName sStar sFuncName soIValidFuncName sTypeDefName arrsLocalVariables sContent soSparkAnnotations sInitialExp bReqBytesForEncodingIsZero bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName arrsAnnots arrsPrecond arrsPostcond bAlwaysSucceeds bValInOut bValidityCannotFail codec
         override this.InternalItem_oct_str  (p:string) (sAcc:string) (i:string) (sErrCode:string) (codec:Codec) =
@@ -125,6 +125,10 @@ type IUper_rust() =
             uper_rust.IntFullyConstraintPos_fullRange  p nMin nBits sSsuffix 
         override this.IntFullyConstraint_fullRange  (p:string) (nMin:BigInteger) (nBits:BigInteger) (sSsuffix:string) =
             uper_rust.IntFullyConstraint_fullRange  p nMin nBits sSsuffix 
+        override this.Enumerated_fullIndex  (p:string) (td:FE_EnumeratedTypeDefinition) (arrsItem:seq<string>) (nBits:BigInteger) =
+            uper_rust.Enumerated_fullIndex  p td arrsItem nBits 
+        override this.choice_fullIndex  (p:string) (sAcc:string) (arrsChildren:seq<string>) (sChoiceIndexName:string) (td:FE_ChoiceTypeDefinition) (nIndexSizeInBits:BigInteger) =
+            uper_rust.choice_fullIndex  p sAcc arrsChildren sChoiceIndexName td nIndexSizeInBits 
         override this.decode_result_init  () =
             uper_rust.decode_result_init  () 
         override this.sparkAnnotationsAlwaysSucceeds  (sTypeDefName:string) =

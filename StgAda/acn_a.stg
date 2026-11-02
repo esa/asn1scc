@@ -17,7 +17,7 @@ EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 subtype <sTypeDefName>_ACN_Stream is adaasn1rtl.encoding.Bitstream(<sTypeDefName>_ACN_STREAM_SIZE);
 >>
 
-EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization) ::= <<
+EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 
 <if(!bDeferredSpecialization)>procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);<\n><\n><endif>procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
@@ -74,11 +74,11 @@ end <sFuncName>_aux;
 
 
 
-EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization) ::= <<
+EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
-<if(!bDeferredSpecialization)>procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);<\n><\n><endif>procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
+<if(bValInitUnused)>-- val is in out (a CHOICE is a variant record: the discriminant of an out parameter is read at the call), and every path assigns all of it<\n>pragma Warnings (Off, "unused initial value of ""<sVarName>""");<\n><endif><if(!bDeferredSpecialization)>procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);<\n><\n><endif>procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 <soSparkAnnotations>
-;
+;<if(bValInitUnused)><\n>pragma Warnings (On, "unused initial value of ""<sVarName>""");<endif>
 >>
 
 EmitTypeAssignment_primitive_decodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
@@ -2598,6 +2598,28 @@ end;
 AcnIntFullRange(p, sKind, sWidth, sSsuffix, noBits) ::= <<
 -- cannot fail, no result to check: every bit pattern of the field is a valid value
 adaasn1rtl.encoding.acn.Acn_Dec_Int_<sKind>_ConstSize<sWidth>_FullRange<sSsuffix>(bs, <p><if(noBits)>, <noBits><endif>);
+>>
+
+/* Coverage step 14c2a: decode of an ACN ENUMERATED whose item values are exactly the values of the field (0 .. 2^k - 1,
+   read with a _FullRange twin): the read cannot fail; the `when others` (the case is on Asn1UInt) is unreachable and only
+   keeps val defined, it writes no result (DecodeOutcome.acnEnumFullIndex). */
+EnumeratedEncValues_fullIndex(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sFirstItemName, sIntVal, soCovExempt) ::= <<
+<sActualCodecFunc>
+case <sIntVal> is
+    <arrsItem; separator="\n">
+when others =><if(soCovExempt)> pragma Annotate (Xcov, Exempt_On, "<soCovExempt>");<endif>																				-- COVERAGE_IGNORE
+    -- unreachable: the read returns only the values of the field, each of them an item
+    <p> := <sFirstItemName>;<if(soCovExempt)> pragma Annotate (Xcov, Exempt_Off);<endif>																-- COVERAGE_IGNORE
+end case;
+>>
+
+/* Coverage step 14c2a: ACN CHOICE index (no determinant) that fills its field, see choice_fullIndex (uper_a.stg). */
+Choice_fullIndex(p, sAcc, arrsChildren, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
+-- cannot fail, no result to check: every index of the field is an alternative
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber_FullRange(bs, <sChoiceIndexName>, 0, <nIndexSizeInBits>);
+case <td.index_range>(<sChoiceIndexName>) is
+    <arrsChildren; separator="\n">
+end case;
 >>
 
 /* Coverage step 10b: presence bit in an ACN decoder, a part that cannot fail: no error code (DecodeOutcome.fs). */

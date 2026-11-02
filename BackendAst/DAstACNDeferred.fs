@@ -1300,6 +1300,7 @@ let private emitSpecializedFunctionDecl
             None  // soSparkAnnotations
             bValInOut
             true  // bDeferredSpecialization: no public wrapper (coverage step 13a), callers use the specialized body
+            (bValInOut && ctx.codec = Decode && DecodeOutcome.acnValInitUnused ctx.r ctx.lm ctx.o.resolvedType)  // coverage step 14c2a
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 

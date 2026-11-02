@@ -296,7 +296,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 | Decode, _, _                            -> None
             match ec with
             | CEC_uper        ->
-                choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
+                // coverage step 14c2a: 2^nIndexSizeInBits alternatives that cannot fail (DecodeOutcome.acnChoiceFullIndex)
+                match codec, DecodeOutcome.acnChoiceFullIndex r lm o with
+                | Decode, Some (nFullBits, _) -> lm.acn.Choice_fullIndex pp access childrenStatements sChoiceIndexName td nFullBits, resultExpr
+                | Decode, None
+                | Encode, _                   -> choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
             | CEC_enum   enm  ->
                 let extField = getExternalField lm r deps t.id
                 // In deferred mode the case discriminant is Asn1UInt (det.Value),
