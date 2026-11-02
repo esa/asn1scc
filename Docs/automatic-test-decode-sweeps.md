@@ -3,7 +3,7 @@
 Since version 4.9.33.0 the automatic tests (`-atc`) of the C and Ada backends also check how the uPER and
 ACN decoders handle damaged input. Each automatic test encodes a value, decodes it, validates the result
 and compares it with the original. When this round trip succeeds, the test now decodes damaged copies of
-the same encoding:
+the same encoding (the truncation at a bit offset and the single-bit flips since 4.9.67.0):
 
 | sweep | what is decoded | expected result | C | Ada |
 |---|---|---|---|---|
