@@ -1,0 +1,25 @@
+-- C_ADA_ONLY (a size field outside 0 .. Integer'Last: the automatic tests' corruption sweeps decode such values)
+-- Size fields (ACN [size len]) whose decoded value is negative (twos-complement) or above Integer'Last (pos-int
+-- 32 / 64 bits), for every kind of field they size: OCTET / BIT STRING, SEQUENCE OF, IA5String, OCTET / BIT STRING
+-- (CONTAINING), CONTAINING with 'size deduced' contents. The decoders must fail with an error code (Ada: no
+-- Constraint_Error); see v4Tests/security-regression/case9_ada_size_field_range. Both modes.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+Inner ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..3) }
+Dd ::= SEQUENCE { h INTEGER (0..255), d OCTET STRING (SIZE(0..10)) }
+
+COctT16 ::= SEQUENCE { v OCTET STRING (CONTAINING Inner), tail INTEGER (0..15) }
+COctP32 ::= SEQUENCE { v OCTET STRING (CONTAINING Inner), tail INTEGER (0..15) }
+CBitT16 ::= SEQUENCE { v BIT STRING (CONTAINING Inner), tail INTEGER (0..15) }
+CBitP32 ::= SEQUENCE { v BIT STRING (CONTAINING Inner), tail INTEGER (0..15) }
+DedT16  ::= SEQUENCE { v OCTET STRING (CONTAINING Dd), tail INTEGER (0..15) }
+DedP32  ::= SEQUENCE { v OCTET STRING (CONTAINING Dd), tail INTEGER (0..15) }
+OctT16  ::= SEQUENCE { v OCTET STRING (SIZE(0..10)), tail INTEGER (0..15) }
+BitT16  ::= SEQUENCE { v BIT STRING (SIZE(0..20)), tail INTEGER (0..15) }
+SqOfT16 ::= SEQUENCE { v SEQUENCE (SIZE(0..5)) OF INTEGER (0..255), tail INTEGER (0..15) }
+StrT16  ::= SEQUENCE { v IA5String (SIZE(0..10)), tail INTEGER (0..15) }
+StrP64  ::= SEQUENCE { v IA5String (SIZE(0..10)), tail INTEGER (0..15) }
+
+END
+
+--TCFS   032.acn

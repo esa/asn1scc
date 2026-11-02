@@ -357,6 +357,42 @@ let getExternalField (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst
 let getExternalFieldType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
     getExternalField0Type r deps asn1TypeIdWithDependency (fun z -> true)
 
+/// Whether the expression getExternalField gives for the size determinant of asn1TypeIdWithDependency has a signed
+/// type, so a decoded size may be negative and the decoder must check the lower bound also for SIZE(0..max)
+/// (q/issues.md Issue 64: a twos-complement size field passed `len <= max` with a negative value; Ada then raised
+/// Constraint_Error, or with -gnatp used the negative length). The local of a signed ACN INTEGER field (legacy follows
+/// the parameter chain to it, as getExternalField0 does); an --acn-v2 parameter is an AcnInsertedFieldRef whose value
+/// is unsigned (a negative field is stored as its two's complement and fails `<= max`).
+let extFieldMayBeNegative (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (asn1TypeIdWithDependency: ReferenceToType) : bool =
+    let rec rootField (det: Determinant) : Asn1AcnAst.AcnChild option =
+        match det with
+        | AcnChildDeterminant child -> Some child
+        | AcnParameterDeterminant prm ->
+            match r.args.acnDeferred with
+            | true  -> None
+            | false ->
+                deps.acnDependencies
+                |> List.tryPick (fun d ->
+                    match d.dependencyKind with
+                    | AcnDepRefTypeArgument p when p.id = prm.id -> Some d.determinant
+                    | _ -> None)
+                |> Option.bind rootField
+    match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = asn1TypeIdWithDependency) with
+    | None -> false
+    | Some dependency ->
+        match rootField dependency.determinant |> Option.map (fun c -> c.Type) with
+        | Some (AcnInsertedType.AcnInteger int) -> not int.isUnsigned
+        | Some (AcnInsertedType.AcnNullType _ | AcnInsertedType.AcnBoolean _ | AcnInsertedType.AcnReferenceToEnumerated _ | AcnInsertedType.AcnReferenceToIA5String _)
+        | None -> false
+
+/// The lower bound a decoder checks for a size read from an external field: the SIZE minimum, or 0 when the field may
+/// be negative (Issue 64); None when there is nothing to check.
+let extFieldSizeMin (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (asn1TypeIdWithDependency: ReferenceToType) (minSize: System.Numerics.BigInteger) : System.Numerics.BigInteger option =
+    match minSize = 0I, extFieldMayBeNegative r deps asn1TypeIdWithDependency with
+    | false, _    -> Some minSize
+    | true, true  -> Some 0I
+    | true, false -> None
+
 //The largest value the decoder can return for the size determinant of asn1TypeIdWithDependency,
 //or None when its encoding does not bound it. The bound comes from the encoding width, not from
 //the ASN.1 constraint of the determinant (uperRange): the C and Rust fixed-size integer decoders

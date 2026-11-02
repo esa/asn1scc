@@ -1392,11 +1392,11 @@ arr = bytearray(codec.get_bitstream_buffer())
 codec = _codec_save
 >>
 
-octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, nReqBytes, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 codec.encode_octet_string_no_length_vec(arr, int(<sExtField>))
 >>
 
-octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, nReqBytes, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 _decoded_bytes_result = codec.decode_octet_string_no_length_vec(<sExtField>)
 if not _decoded_bytes_result.success or _decoded_bytes_result.decoded_value is None:
     return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrCode>)
@@ -1406,11 +1406,11 @@ codec = ACNDecoder.from_buffer(bytearray(_decoded_bytes_result.decoded_value))
 codec = _codec_save
 >>
 
-bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
+bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nReqBits, sExtField, sErrCode) ::= <<
 codec.append_bits(arr, int(<sExtField>))
 >>
 
-bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
+bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nReqBits, sExtField, sErrCode) ::= <<
 #INVALID FOR PYTHON
 >>
 

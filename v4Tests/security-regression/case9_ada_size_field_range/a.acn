@@ -1,0 +1,18 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Inner [] { a [encoding pos-int, size 8], b [encoding pos-int, size 2] }
+Dd [] { h [encoding pos-int, size 8], d [size deduced] }
+
+COctT16 [] { len INTEGER [encoding twos-complement, size 16], v [size len], tail [encoding pos-int, size 4] }
+COctP32 [] { len INTEGER [encoding pos-int, size 32], v [size len], tail [encoding pos-int, size 4] }
+CBitT16 [] { len INTEGER [encoding twos-complement, size 16], v [size len], tail [encoding pos-int, size 4] }
+CBitP32 [] { len INTEGER [encoding pos-int, size 32], v [size len], tail [encoding pos-int, size 4] }
+DedT16  [] { len INTEGER [encoding twos-complement, size 16], v [size len], tail [encoding pos-int, size 4] }
+DedP32  [] { len INTEGER [encoding pos-int, size 32], v [size len], tail [encoding pos-int, size 4] }
+OctT16  [] { len INTEGER [encoding twos-complement, size 16], v [size len], tail [encoding pos-int, size 4] }
+BitT16  [] { len INTEGER [encoding twos-complement, size 16], v [size len], tail [encoding pos-int, size 4] }
+SqOfT16 [] { len INTEGER [encoding twos-complement, size 16], v [size len], tail [encoding pos-int, size 4] }
+StrT16  [] { len INTEGER [encoding twos-complement, size 16], v [size len], tail [encoding pos-int, size 4] }
+StrP64  [] { len INTEGER [encoding pos-int, size 64], v [size len], tail [encoding pos-int, size 4] }
+
+END

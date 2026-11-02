@@ -205,6 +205,10 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
         //'size deduced' contents must be decoded from a stream that ends with their region;
         //other contents are decoded from a stream as large as their largest encoding
         let bDeducedContent = isLiveDeduced o.resolvedType
+        //the values of the two constants above, as literals: a decoder checks the length read from the stream against
+        //them in the determinant's own type, before any conversion (q/issues.md Issue 64)
+        let nReqBitsForAcnEncoding = (GetActualTypeByName r o.modName o.tasName).acnMaxSizeInBits
+        let nReqBytesForAcnEncoding = System.Numerics.BigInteger (ceil ((double nReqBitsForAcnEncoding)/8.0))
 
         let octet_string_containing_func            = lm.acn.octet_string_containing_func
         let bit_string_containing_func              = lm.acn.bit_string_containing_func
@@ -241,7 +245,7 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                             | None  -> None, [], [], [], ns
                             | Some r -> Some r.funcBody, r.errCodes, r.localVariables, r.userDefinedFunctions, ns
 
-                    let fncBody = octet_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding extField errCode.errCodeName soInner bDeducedContent codec
+                    let fncBody = octet_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding nReqBytesForAcnEncoding extField errCode.errCodeName soInner bDeducedContent codec
 
                     let lvs =
                         let localVars2 = lm.lg.acn.getAcnContainingByLocVars sReqBytesForUperEncoding
@@ -250,7 +254,7 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                     fncBody, errCode::errCodes0,lvs, userDefinedFunctions, ns1
                 | SZ_EC_ExternalField    relPath    , ContainedInBitString  ->
                     let extField        = getExternalField lm r deps t.id
-                    let fncBody = bit_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding extField errCode.errCodeName codec
+                    let fncBody = bit_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nReqBitsForAcnEncoding extField errCode.errCodeName codec
                     fncBody, [errCode],[], [], us
                 | SZ_EC_FIXED_SIZE        , ContainedInOctString  ->
                     let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName bDeducedContent codec

@@ -239,8 +239,8 @@ type IAcn_rust() =
             acn_rust.checkAccessPath  arrsCheckPaths sUpdateStatement v sInitExpr 
         override this.SizeDependency_oct_str_containing  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (v:string) (bIsOctet:bool) (sInner:string) (sLocalVarType:string) (bSetInitFlag:bool) =
             acn_rust.SizeDependency_oct_str_containing  p sFuncName sReqBytesForUperEncoding v bIsOctet sInner sLocalVarType bSetInitFlag 
-        override this.octet_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sExtField:string) (sErrCode:string) (soInner:string option) (bDeducedContent:bool) (codec:Codec) =
-            acn_rust.octet_string_containing_ext_field_func  p sFuncName sReqBytesForUperEncoding sExtField sErrCode soInner bDeducedContent codec
+        override this.octet_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (nReqBytes:BigInteger) (sExtField:string) (sErrCode:string) (soInner:string option) (bDeducedContent:bool) (codec:Codec) =
+            acn_rust.octet_string_containing_ext_field_func  p sFuncName sReqBytesForUperEncoding nReqBytes sExtField sErrCode soInner bDeducedContent codec
         override this.octet_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (sValue:string) (soNBits:string option) (sErrCode:string) (bDeducedContent:bool) (codec:Codec) =
             acn_rust.octet_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName sValue soNBits sErrCode bDeducedContent codec
         override this.octet_string_containing_deferred_fixed_func  (p:string) (sFuncName:string) (nOctets:BigInteger) (sErrCode:string) (codec:Codec) =
@@ -257,8 +257,8 @@ type IAcn_rust() =
             acn_rust.bit_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits sErrCode codec
         override this.bit_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (sValue:string) (soNBits:string option) (sErrCode:string) (codec:Codec) =
             acn_rust.bit_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName sValue soNBits sErrCode codec
-        override this.bit_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sReqBitsForUperEncoding:string) (sExtField:string) (sErrCode:string) (codec:Codec) =
-            acn_rust.bit_string_containing_ext_field_func  p sFuncName sReqBytesForUperEncoding sReqBitsForUperEncoding sExtField sErrCode codec
+        override this.bit_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sReqBitsForUperEncoding:string) (nReqBits:BigInteger) (sExtField:string) (sErrCode:string) (codec:Codec) =
+            acn_rust.bit_string_containing_ext_field_func  p sFuncName sReqBytesForUperEncoding sReqBitsForUperEncoding nReqBits sExtField sErrCode codec
         override this.rtlModuleName  () =
             acn_rust.rtlModuleName  () 
         override this.sparkAnnotations  (sTypeDefName:string) (codec:Codec) =
