@@ -1065,8 +1065,11 @@ adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <n
 result.errorCode := <sErrCode>;
 if result.Success then
 	<p><sAcc>Length := nStringLength;
-	<bitString_FixSize_decode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "Length"], sErrCode=sErrCode)>
-end if;
+<if(bitStringAlignment)>
+	<bitString_FixSize_decode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "Length"], sErrCode=sErrCode)><\n><else>
+	adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<p><sAcc>Length), result.success);
+	-- no check: BitStream_ReadBitArray cannot fail (the stream holds the full size); proved by this Assert
+	pragma Assert (result.Success);<\n><endif>end if;
 >>
 
 

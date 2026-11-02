@@ -631,6 +631,13 @@ adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_64_big_endian(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
+/* Coverage step 14c2a (B3): IEEE 754 64-bit REAL decode where Asn1Real is Long_Float (only x86 boards, -fpWordSize 8):
+   the RTL Post states success and the call writes all of result, so no error code is set (DecodeOutcome.real64CannotFail). */
+Real_64_cannotFail(p, sEndianness) ::= <<
+-- cannot fail: Asn1Real is Long_Float, the RTL Post states success
+adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_64_<sEndianness>(bs, <p>, result);
+>>
+
 Real_32_little_endian_encode(p, sSuffix, sErrCode, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_32_little_endian(bs, <p>);"
 Real_32_little_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_32_little_endian<sSuffix>(bs, <p>, result);

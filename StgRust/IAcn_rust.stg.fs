@@ -359,6 +359,8 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_init_expr  () 
         override this.AcnIntFullRange  (p:string) (sKind:string) (sWidth:string) (sSsuffix:string) (noBits:BigInteger option) =
             acn_rust.AcnIntFullRange  p sKind sWidth sSsuffix noBits 
+        override this.Real_64_cannotFail  (p:string) (sEndianness:string) =
+            acn_rust.Real_64_cannotFail  p sEndianness 
         override this.EnumeratedEncValues_fullIndex  (p:string) (td:FE_EnumeratedTypeDefinition) (arrsItem:seq<string>) (sActualCodecFunc:string) (sFirstItemName:string) (sIntVal:string) (soCovExempt:string option) =
             acn_rust.EnumeratedEncValues_fullIndex  p td arrsItem sActualCodecFunc sFirstItemName sIntVal soCovExempt 
         override this.Choice_fullIndex  (p:string) (sAcc:string) (arrsChildren:seq<string>) (sChoiceIndexName:string) (td:FE_ChoiceTypeDefinition) (nIndexSizeInBits:BigInteger) =

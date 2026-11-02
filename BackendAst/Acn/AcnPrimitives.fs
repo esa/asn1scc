@@ -392,12 +392,18 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
         let castPp = DAstUPer.castRPp lm codec (o.getClass r.args) pp
         let sType = lm.lg.getLongTypedefNameBasedOnModule (lm.lg.getTypeDefinition t.FT_TypeDefinition) p.modName
 
+        // coverage step 14c2a (B3): an IEEE 754 64-bit decode that cannot fail writes all of result, no error code
+        let real64 (sEndianness:string) (macro: string -> string -> string -> Codec -> string) =
+            match codec, DecodeOutcome.real64CannotFail r lm with
+            | Decode, true          -> lm.acn.Real_64_cannotFail pp sEndianness
+            | Decode, false
+            | Encode, _             -> macro pp errCode.errCodeName sType codec
         let funcBodyContent =
             match o.acnEncodingClass with
             | Real_IEEE754_32_big_endian            -> Some (Real_32_big_endian castPp sSuffix errCode.errCodeName sType codec, [errCode], [], [])
-            | Real_IEEE754_64_big_endian            -> Some (Real_64_big_endian pp errCode.errCodeName sType codec, [errCode], [], [])
+            | Real_IEEE754_64_big_endian            -> Some (real64 "big_endian" Real_64_big_endian, [errCode], [], [])
             | Real_IEEE754_32_little_endian         -> Some (Real_32_little_endian castPp sSuffix errCode.errCodeName sType codec, [errCode], [], [])
-            | Real_IEEE754_64_little_endian         -> Some (Real_64_little_endian pp errCode.errCodeName sType codec, [errCode], [], [])
+            | Real_IEEE754_64_little_endian         -> Some (real64 "little_endian" Real_64_little_endian, [errCode], [], [])
             | Real_uPER                             -> uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, [], x.auxiliaries)
             | Real_ScaledInt intEncClass            -> scaledIntFuncBody intEncClass errCode acnArgs nestingScope p
         // coverage step 12b: RTL procedure calls (the uPER REAL too, DAstUPer.createRealFunction)

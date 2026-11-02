@@ -321,6 +321,19 @@ let acnIntegerFullRange (r:AstRoot) (lm:LanguageMacros) (uperRange:BigIntegerUpe
         | ASCII_ConstSize _ | ASCII_VarSize_NullTerminated _ | ASCII_UINT_ConstSize _ | ASCII_UINT_VarSize_NullTerminated _
         | BCD_ConstSize _ | BCD_VarSize_NullTerminated _ -> None
 
+/// 14c2a (B3): an ACN IEEE 754 64-bit REAL decode (Acn_Dec_Real_IEEE754_64_*: Post `if Asn1Real'Digits >= Long_Float'Digits
+/// then Result.Success`) cannot fail where Asn1Real is Long_Float. The board decides Asn1Real (x86: Long_Float; stm32,
+/// msp430: Float, ADA_RTL2/boards), so only when x86 is the only board generated (-t absent or x86), and with
+/// -fpWordSize 8 (George, 2026-11-01: MayFail on msp430).
+let real64CannotFail (r:AstRoot) (lm:LanguageMacros) : bool =
+    let onlyX86 =
+        match r.args.target with
+        | None | Some X86                               -> true
+        | Some Stm32 | Some Msp430 | Some AllBoards     -> false
+    match lm.lg.decodeReadFailureModel with
+    | ReadsCanFail      -> false
+    | ReadsCannotFail   -> onlyX86 && r.args.floatingPointSizeInBytes = 8I
+
 /// 14c2a: how the value of an ACN ENUMERATED whose item values are exactly 0 .. n - 1, n = 2^k, is read without a Result.
 type AcnEnumFullIndex =
     | EnumUperIndex of BigInteger       // Integer_uPER: UPER_Dec_ConstraintPosWholeNumber_FullRange, k bits
@@ -403,7 +416,13 @@ let rec acn (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : DecodeOutcome =
             match acnChoiceFullIndex r lm o with
             | Some (_, w) -> AlwaysSucceeds w
             | None       -> MayFail
-        | Real _ | IA5String _ | NumericString _ | NullType _ | TimeType _
+        | Real o ->
+            match o.acnEncodingClass with
+            | Real_IEEE754_64_big_endian
+            | Real_IEEE754_64_little_endian when real64CannotFail r lm -> AlwaysSucceeds WritesResult   // Real_64_cannotFail
+            | Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian
+            | Real_uPER | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian | Real_ScaledInt _ -> MayFail
+        | IA5String _ | NumericString _ | NullType _ | TimeType _
         | ObjectIdentifier _ | SequenceOf _ -> MayFail
 
 /// 14c2a: an ACN CHOICE decoded like uPER (no determinant, no present-when; AcnChoice CEC_uper) without ALWAYS ABSENT

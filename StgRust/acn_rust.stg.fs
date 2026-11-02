@@ -1195,6 +1195,10 @@ let AcnIntFullRange (p:string) (sKind:string) (sWidth:string) (sSsuffix:string) 
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "AcnIntFullRange" [("p",p :>Object);("sKind",(if sKind = null then null else ST.StrHelper sKind:>Object) );("sWidth",(if sWidth = null then null else ST.StrHelper sWidth:>Object) );("sSsuffix",(if sSsuffix = null then null else ST.StrHelper sSsuffix:>Object) );("noBits",(if noBits.IsNone then null else noBits.Value:>Object) )]
 
+let Real_64_cannotFail (p:string) (sEndianness:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "Real_64_cannotFail" [("p",p :>Object);("sEndianness",(if sEndianness = null then null else ST.StrHelper sEndianness:>Object) )]
+
 let EnumeratedEncValues_fullIndex (p:string) (td:FE_EnumeratedTypeDefinition) (arrsItem:seq<string>) (sActualCodecFunc:string) (sFirstItemName:string) (sIntVal:string) (soCovExempt:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "EnumeratedEncValues_fullIndex" [("p",p :>Object);("td",td :>Object);("arrsItem",(arrsItem|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sActualCodecFunc",(if sActualCodecFunc = null then null else ST.StrHelper sActualCodecFunc:>Object) );("sFirstItemName",(if sFirstItemName = null then null else ST.StrHelper sFirstItemName:>Object) );("sIntVal",(if sIntVal = null then null else ST.StrHelper sIntVal:>Object) );("soCovExempt",(if soCovExempt.IsNone then null else ST.StrHelper soCovExempt.Value:>Object) )]
