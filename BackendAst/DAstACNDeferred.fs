@@ -238,6 +238,26 @@ let private patchDetWireValue
     if uperMinOffset = 0I then mapped
     else lm.acn.acn_deferred_det_uper_offset_sub mapped (uperMinOffset.ToString())
 
+/// The PatchDet of the size determinant of a CONTAINING region, as the other PatchDet sites build it (q/issues.md
+/// Issue 62): the function, its width argument (the RTL functions of a ConstSize encoding of any width take one), the
+/// wire value of the measured length `acn_nCount` (the local of the CONTAINING templates) and the declarations of the
+/// field's mapping-function. Without the width a determinant of e.g. 4 bits called Acn_PatchDet_ConstSize with too few
+/// arguments.
+let private containingSizePatchDet
+        (r: Asn1AcnAst.AstRoot)
+        (lm: LanguageMacros)
+        (deps: Asn1AcnAst.AcnInsertedFieldDependencies)
+        (codec: CommonTypes.Codec)
+        (sizePrmId: ReferenceToType)
+        (patchFnWhenMissing: unit -> string) : string * string option * string * UserDefinedFunction list =
+    let _, _, mappingDeclarations = getDeferredMappingFunction r lm deps codec sizePrmId
+    match findDetFunctionsForParam lm deps sizePrmId with
+    | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
+        let determinant = findOriginalDeterminantForParam deps sizePrmId
+        let value = patchDetWireValue r lm determinant uperMinOffset "acn_nCount"
+        patchFn, nBitsOpt |> Option.map (fun nBits -> nBits.ToString()), value, mappingDeclarations
+    | None -> patchFnWhenMissing (), None, "acn_nCount", mappingDeclarations
+
 /// The declaration of the mapping-function encode a PatchDet of the field calls (C: extern), if it has one.
 let private patchDetMappingDeclarations (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (determinant: Asn1AcnAst.AcnChild option) =
     determinant
@@ -997,17 +1017,13 @@ let private buildContainingClosureBody
             match containingSizePrm with
             | Some sizePrm ->
                 let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
-                let mappingFunction, mappingModule, _ =
-                    getDeferredMappingFunction ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id
-                let patchFnName =
-                    match findDetFunctionsForParam ctx.lm ctx.deps sizePrm.id with
-                    | Some (_, patchFn, _, _) -> patchFn
-                    | None -> ""
+                let patchFnName, soNBits, sValue, _ =
+                    containingSizePatchDet ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id (fun () -> "")
                 match ctx.o.encodingOptions.Value.octOrBitStr with
                 | CommonTypes.ContainedInOctString ->
-                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) ctx.codec
+                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) ctx.codec
                 | CommonTypes.ContainedInBitString ->
-                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
+                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName ctx.codec
             | None ->
                 br.funcBody  // fallback: no wrapping if size param not found
         let mappingDeclarations =
@@ -1040,18 +1056,14 @@ let private buildContainingStandaloneBody
         | _ -> str
     let sizePrm = ctx.o.resolvedType.acnParameters.Head
     let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
-    let mappingFunction, mappingModule, mappingDeclarations =
-        getDeferredMappingFunction ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id
-    let patchFnName =
-        match findDetFunctionsForParam ctx.lm ctx.deps sizePrm.id with
-        | Some (_initFn, patchFn, _, _) -> patchFn
-        | None -> ""
+    let patchFnName, soNBits, sValue, mappingDeclarations =
+        containingSizePatchDet ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id (fun () -> "")
     let fncBody =
         match ctx.o.encodingOptions.Value.octOrBitStr with
         | CommonTypes.ContainedInOctString ->
-            ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName mappingFunction mappingModule errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) ctx.codec
+            ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) ctx.codec
         | CommonTypes.ContainedInBitString ->
-            ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
+            ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName ctx.codec
     { emptyBody ctx.lm with
         funcBody = fncBody
         errCodes = [errCode]
@@ -1532,20 +1544,17 @@ let private createDeferredReferenceFunction
                                 Asn1AcnAstUtilFunctions.isLiveDeduced rf.resolvedType
                             | _ -> false)
                     let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
-                    let mappingFunction, mappingModule, mappingDeclarations =
-                        getDeferredMappingFunction ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id
-                    let patchFnName =
-                        match findDetFunctionsForParam ctx.lm ctx.deps sizePrm.id with
-                        | Some (_, patchFn, _, _) -> patchFn
-                        | None -> failwithf "BUG: missing PatchDet function for CONTAINING CHOICE parameter %s" sizePrm.id.AsString
+                    let patchFnName, soNBits, sValue, mappingDeclarations =
+                        containingSizePatchDet ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id (fun () ->
+                            failwithf "BUG: missing PatchDet function for CONTAINING CHOICE parameter %s" sizePrm.id.AsString)
                     let wrappedBody =
                         match containing.encodingOptions.Value.octOrBitStr with
                         | CommonTypes.ContainedInOctString ->
                             ctx.lm.acn.octet_string_containing_deferred_wrapper
-                                bodyResult.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName bDeducedContent ctx.codec
+                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName bDeducedContent ctx.codec
                         | CommonTypes.ContainedInBitString ->
                             ctx.lm.acn.bit_string_containing_deferred_wrapper
-                                bodyResult.funcBody detParamName patchFnName mappingFunction mappingModule errCode.errCodeName ctx.codec
+                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName ctx.codec
                     { bodyResult with
                         funcBody = wrappedBody
                         userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations }

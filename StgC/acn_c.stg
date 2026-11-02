@@ -1359,7 +1359,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 >>
 
 /* CONTAINING with deferred patching: encode directly, PatchDet with measured distance */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
@@ -1372,7 +1372,7 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
         }
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>((asn1SccUint)<if(soMF)><soMF>_encode(acn_nCount)<else>acn_nCount<endif>, pBitStrm, <sDetParamName>, pErrCode);
+        ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);
         if (!ret) {
             *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
             return FALSE; /*COVERAGE_IGNORE*/
@@ -1382,7 +1382,7 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
 >>
 
 /* CONTAINING with deferred patching: limit stream view, decode directly */
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     /*the region is <sDetParamName>->value octets from the current bit; off a byte boundary it ends inside one more byte*/
@@ -1484,7 +1484,7 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 
 /* CONTAINING ExternalField wrapper: wraps an inline body with save-pos/measure/PatchDet
    Used when the contained type has ACN parameters (no standalone ACN function). */
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     <sBody>
@@ -1496,7 +1496,7 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
         }
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>((asn1SccUint)<if(soMF)><soMF>_encode(acn_nCount)<else>acn_nCount<endif>, pBitStrm, <sDetParamName>, pErrCode);
+        ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);
         if (!ret) {
             *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
             return FALSE; /*COVERAGE_IGNORE*/
@@ -1505,7 +1505,7 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
 }
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     /*the region is <sDetParamName>->value octets from the current bit; off a byte boundary it ends inside one more byte*/
@@ -1526,14 +1526,14 @@ octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFunc
 >>
 
 /* BIT STRING CONTAINING with deferred patching: encode directly, PatchDet with measured bit distance */
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
     if (ret) {
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>((asn1SccUint)<if(soMF)><soMF>_encode(acn_nCount)<else>acn_nCount<endif>, pBitStrm, <sDetParamName>, pErrCode);
+        ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);
         if (!ret) {
             *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
             return FALSE; /*COVERAGE_IGNORE*/
@@ -1543,7 +1543,7 @@ bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFu
 >>
 
 /* BIT STRING CONTAINING with deferred patching: limit stream view (bit-granular), decode directly */
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     asn1SccUint acn_nBits = <sDetParamName>->value;
@@ -1615,14 +1615,14 @@ bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMax
 >>
 
 /* BIT STRING CONTAINING ExternalField wrapper: wraps inline body with bit-granular measurement/limiting */
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     <sBody>
     if (ret) {
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>((asn1SccUint)<if(soMF)><soMF>_encode(acn_nCount)<else>acn_nCount<endif>, pBitStrm, <sDetParamName>, pErrCode);
+        ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);
         if (!ret) {
             *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
             return FALSE; /*COVERAGE_IGNORE*/
@@ -1631,7 +1631,7 @@ bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncNa
 }
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     asn1SccUint acn_nBits = <sDetParamName>->value;
