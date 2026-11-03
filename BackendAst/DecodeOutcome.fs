@@ -758,6 +758,11 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (acnFieldOutcome: 
                 // the region first
                 match acnDeferred, enc.acnEncodingClass with
                 | true, SZ_EC_FIXED_SIZE -> valWrite outcome acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
+                // 14c2b: a CONTAINING with ACN arguments is a call of a specialised function, whose val has the mode of
+                // the contained type (DAstACNDeferred: acnValWrite of resolvedType); an ACN field before it no longer
+                // hides this since its read cannot fail (25-ACNV2-BOUNDARIES/002: "unused initial value of val")
+                | true, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced) when not o.acnArguments.IsEmpty ->
+                    valWrite outcome acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
                 | true, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced)
                 | false, _ -> MayLeavePartial
         // a CHOICE is a variant record: the discriminant of an `out` parameter is read at the call, so the caller would
