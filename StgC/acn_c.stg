@@ -2025,8 +2025,8 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
    Only when the decode succeeded: a failed decode may return without
    writing tmp (BitStream_ReadBit does at end of stream), leaving it
    uninitialized. */
-acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= <<
+acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= <<
 if (ret) {
     <sDetAccess> = (asn1SccUint)<sTmpName>;
 }
@@ -2034,8 +2034,8 @@ if (ret) {
 
 /* Signed integer tmp variant: det.value holds the two's complement bits, so a negative
    size reaches the size checks as a large unsigned value and fails them. */
-acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= <<
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= <<
 if (ret) {
     <sDetAccess> = (asn1SccUint)<sTmpName>;
 }
@@ -2043,8 +2043,8 @@ if (ret) {
 
 /* Boolean tmp variant — C cast works as for int.  Kept as a distinct macro so
    strongly-typed backends (Ada) can emit a different conversion. */
-acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= <<
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= <<
 if (ret) {
     <sDetAccess> = (asn1SccUint)<sTmpName>;
 }
@@ -2052,8 +2052,8 @@ if (ret) {
 
 /* Enum tmp variant — same C output as int (enum→uint is implicit).  The
    sEnumTypeName parameter is unused in C; Ada needs it for 'Enum_Rep. */
-acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
-acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= <<
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= <<
 if (ret) {
     <sDetAccess> = (asn1SccUint)<sTmpName>;
 }
@@ -2063,8 +2063,8 @@ if (ret) {
    indexes, e.g. {a(1), b(5)} with the default encoding): det.value must hold what the
    field writes, so map each item. One case per item, from acn_deferred_det_enum_wire_case. */
 acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "        case <sItemName>: <sDetAccess> = <sValue>; break;"
-acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
-acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= <<
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= <<
 if (ret) {
     switch (<sTmpName>) {
 <arrsCases; separator="\n">

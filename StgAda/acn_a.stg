@@ -2398,56 +2398,86 @@ end if;
 acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
 
 /* Group C: Decode redirect — copy decoded temp to det.Value. */
-acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= <<
+acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= <<
+<if(bReadCannotFail)>
+-- no check: the read above cannot fail (every bit pattern of the field is a value)
+pragma Warnings (Off, "*redundant conversion*");
+<sDetAccess> := adaasn1rtl.Asn1UInt(<sTmpName>);
+pragma Warnings (On, "*redundant conversion*");
+<else>
 if result.Success then
     pragma Warnings (Off, "*redundant conversion*");
     <sDetAccess> := adaasn1rtl.Asn1UInt(<sTmpName>);
     pragma Warnings (On, "*redundant conversion*");
 end if;
+<endif>
 >>
 
 /* Signed integer tmp variant: Value holds the two's complement bits (a conversion to
    Asn1UInt would raise Constraint_Error for a negative value), so a negative size
    reaches the size checks as a large unsigned value and fails them. */
-acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= <<
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= <<
+<if(bReadCannotFail)>
+-- no check: the read above cannot fail (every bit pattern of the field is a value)
+pragma Warnings (Off, "*redundant conversion*");
+<sDetAccess> := adaasn1rtl.encoding.To_UInt(adaasn1rtl.Asn1Int(<sTmpName>));
+pragma Warnings (On, "*redundant conversion*");
+<else>
 if result.Success then
     pragma Warnings (Off, "*redundant conversion*");
     <sDetAccess> := adaasn1rtl.encoding.To_UInt(adaasn1rtl.Asn1Int(<sTmpName>));
     pragma Warnings (On, "*redundant conversion*");
 end if;
+<endif>
 >>
 
 /* Boolean tmp variant — Ada disallows direct Boolean→Asn1UInt cast, so use a
    conditional expression. */
-acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= <<
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= <<
+<if(bReadCannotFail)>
+-- no check: the read above cannot fail (every bit pattern of the field is a value)
+<sDetAccess> := (if <sTmpName> then 1 else 0);
+<else>
 if result.Success then
     <sDetAccess> := (if <sTmpName> then 1 else 0);
 end if;
+<endif>
 >>
 
 /* Enum tmp variant — Ada disallows direct enum→Asn1UInt cast.  Use the
    'Enum_Rep attribute on the enum type to obtain the integer value defined
    by the enum's representation clause (which the backend sets to match
    the ACN-encoded value). */
-acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
-acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= <<
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= <<
+<if(bReadCannotFail)>
+-- no check: the read above cannot fail (every bit pattern of the field is a value)
+<sDetAccess> := adaasn1rtl.Asn1UInt(<sEnumTypeName>'Enum_Rep(<sTmpName>));
+<else>
 if result.Success then
     <sDetAccess> := adaasn1rtl.Asn1UInt(<sEnumTypeName>'Enum_Rep(<sTmpName>));
 end if;
+<endif>
 >>
 
 /* Enum tmp variant whose field writes other values than the enum representation
    (item indexes): det.Value must hold what the field writes, so map each item. */
 acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "when <sItemName> => adaasn1rtl.Asn1UInt(<sValue>)"
-acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
-acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= <<
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= <<
+<if(bReadCannotFail)>
+-- no check: the read above cannot fail (every bit pattern of the field is a value)
+<sDetAccess> := (case <sTmpName> is
+    <arrsCases; separator=",\n">);
+<else>
 if result.Success then
     <sDetAccess> := (case <sTmpName> is
         <arrsCases; separator=",\n">);
 end if;
+<endif>
 >>
 
 /* Group D: Access paths (codec-independent) */

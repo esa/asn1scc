@@ -780,9 +780,14 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     (presenceBits |> List.map (fun _ -> AlwaysSucceeds WritesResult)) @
                     (children |> List.map (fun c ->
                         match c with
-                        | AcnChild _     -> MayFail
+                        | AcnChild acn   ->
+                            // coverage step 14c2b: the outcome of the field's read (DecodeOutcome.acnInsertedFieldPart), from
+                            // the Asn1AcnAst field: in --acn-v2 the DAst child of a deferred field carries a dummy NULL type
+                            match o.children |> List.tryPick (fun x -> match x with Asn1AcnAst.AcnChild a when a.id = acn.id -> Some a.Type | Asn1AcnAst.AcnChild _ | Asn1AcnAst.Asn1Child _ -> None) with
+                            | Some acnType -> fst (DecodeOutcome.acnInsertedFieldPart r lm acnType)
+                            | None         -> MayFail
                         | Asn1Child asn1 ->
-                            match DecodeOutcome.acnChildPart r lm asn1.Optionality asn1.Type.toAsn1AcnAst with
+                            match DecodeOutcome.acnChildPart r deps lm asn1.Optionality asn1.Type.toAsn1AcnAst with
                             | Some (outcome, _) -> outcome
                             | None              -> MayFail))
                 let parts = List.zip allStmts partOutcomes |> List.choose (fun (stmt, o) -> stmt |> Option.map (fun s -> s, o))

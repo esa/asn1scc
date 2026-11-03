@@ -43,7 +43,12 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
 
             | SZ_EC_LENGTH_EMBEDDED lenSize ->
                 let lengthCheck = DastValidate2.varSizeLengthCheck r lm t typeDefinition (o.minSize.uper, o.maxSize.uper) (o.minSize.acn, o.maxSize.acn)
-                let fncBody = varSize sType pp access (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName (lengthEnforced lengthCheck) codec
+                // coverage step 14c2b (B2): the length fills its field (DecodeOutcome.varSizeStringCannotFail)
+                let fncBody =
+                    match codec, DecodeOutcome.varSizeStringCannotFail lm DecodeOutcome.FixedOctets o.isFixedSize o.minSize.acn o.maxSize.acn lenSize with
+                    | Decode, true  -> lm.uper.octet_VarSize_fullRange pp access o.minSize.acn lenSize
+                    | Decode, false
+                    | Encode, _     -> varSize sType pp access (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName (lengthEnforced lengthCheck) codec
                 let nStringLength =
                     match codec with
                     | Encode -> []
@@ -58,12 +63,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                     | Some (AcnInsertedType.AcnInteger int) -> int.isUnsigned
                     | Some (AcnInsertedType.AcnNullType _) -> true
                     | _ -> false
-                let detMaxOpt = getSizeDeterminantWireMax deps t.id
-                let noSizeMin = extFieldSizeMin r deps t.id o.minSize.acn
-                let noSizeMax =
-                    match detMaxOpt with
-                    | Some detMax when detMax <= o.maxSize.acn -> None
-                    | _ -> Some o.maxSize.acn
+                let noSizeMin, noSizeMax = SizeDeterminantBounds.externalSizeChecks r deps t.id o.minSize.acn o.maxSize.acn
                 let fncBody =
                     match o.isFixedSize with
                     | true  -> oct_external_field_fix_size sType pp access noSizeMin ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
@@ -113,12 +113,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match o.acnEncodingClass with
             | SZ_EC_ExternalField   _    ->
                 let extField = getExternalField lm r deps t.id
-                let detMaxOpt = getSizeDeterminantWireMax deps t.id
-                let noSizeMin = extFieldSizeMin r deps t.id o.minSize.acn
-                let noSizeMax =
-                    match detMaxOpt with
-                    | Some detMax when detMax <= o.maxSize.acn -> None
-                    | _ -> Some o.maxSize.acn
+                let noSizeMin, noSizeMax = SizeDeterminantBounds.externalSizeChecks r deps t.id o.minSize.acn o.maxSize.acn
                 let fncBody =
                     match o.minSize.uper = o.maxSize.uper with
                     | true  -> lm.acn.bit_string_external_field_fixed_size sType pp errCode.errCodeName access noSizeMin ( o.maxSize.acn) extField codec
@@ -149,8 +144,12 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
             | SZ_EC_LENGTH_EMBEDDED nSizeInBits ->
                 let lengthCheck = DastValidate2.varSizeLengthCheck r lm t typeDefinition (o.minSize.uper, o.maxSize.uper) (o.minSize.acn, o.maxSize.acn)
+                // coverage step 14c2b (B2): the length fills its field (DecodeOutcome.varSizeStringCannotFail)
                 let fncBody =
-                    bitString_VarSize sType pp access o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits (lengthEnforced lengthCheck) codec
+                    match codec, DecodeOutcome.varSizeStringCannotFail lm DecodeOutcome.FixedBits o.isFixedSize o.minSize.acn o.maxSize.acn nSizeInBits with
+                    | Decode, true  -> lm.uper.bitString_VarSize_fullRange pp access o.minSize.acn nSizeInBits
+                    | Decode, false
+                    | Encode, _     -> bitString_VarSize sType pp access o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits (lengthEnforced lengthCheck) codec
                 let nStringLength =
                     match codec with
                     | Encode -> []

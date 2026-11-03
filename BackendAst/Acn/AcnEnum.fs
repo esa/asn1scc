@@ -163,8 +163,8 @@ let createInvalidCodeStream (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                  codeVarType = (DAstTypeDefinition.getIntegerTypeByClass lm intTypeClass)()
                  encodeStatement = res.funcBody; localVariables = res.localVariables}))
 
-/// fullRangeUse: UseFullRange for an ASN.1 ENUMERATED (coverage step 14c2a, DecodeOutcome.acnEnumFullIndex),
-/// KeepCheckedCall for an ACN inserted field (its part stays MayFail in DecodeOutcome.acnChildPart).
+/// fullRangeUse: UseFullRange for an ASN.1 ENUMERATED (coverage step 14c2a, DecodeOutcome.acnEnumFullIndex) and, since
+/// 14c2b, for an ACN inserted field (DecodeOutcome.acnInsertedFieldPart decides the same).
 let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (o:Asn1AcnAst.Enumerated) (fullRangeUse: DecodeOutcome.FullRangeUse) (defOrRef:TypeDefinitionOrReference ) (typeDefinitionName:string) (icdStgFileName:string) sAsn1Constraints (acnAlignment: AcnGenericTypes.AcnAlignment option) acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure =
     let EnumeratedEncValues                 = lm.acn.EnumeratedEncValues
     let Enumerated_item                     = lm.acn.Enumerated_item
@@ -257,7 +257,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
 let createAcnEnumeratedFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (icdStgFileName:string) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToEnumerated)  (defOrRef:TypeDefinitionOrReference) (us:State)  =
     let td = lm.lg.getTypeDefinition (t.getType r).FT_TypeDefinition
     let typeDefinitionName = td.typeName
-    let funcBody = createEnumCommon r deps lm codec typeId t.enumerated DecodeOutcome.KeepCheckedCall defOrRef typeDefinitionName icdStgFileName None t.acnAlignment t.enumerated.acnMinSizeInBits t.enumerated.acnMaxSizeInBits None
+    let funcBody = createEnumCommon r deps lm codec typeId t.enumerated (DecodeOutcome.acnInsertedFieldFullRangeUse (Asn1AcnAst.AcnReferenceToEnumerated t)) defOrRef typeDefinitionName icdStgFileName None t.acnAlignment t.enumerated.acnMinSizeInBits t.enumerated.acnMaxSizeInBits None
     // ACN-inserted children referencing an ENUMERATED TAS keep that name on
     // the ICD row ("ENUMERATED (DeviceMode)", roadmap A4).  ACN children
     // bypass AcnFunctionWrapper's central suffixing, so it is applied here.

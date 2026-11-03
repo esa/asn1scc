@@ -359,6 +359,7 @@ let private createDeferredSequenceFunction
         (us:State) =
 
     let typePrefix = r.args.TypePrefix
+    let astRoot = r
     // The deferred determinants, matched by id (q/issues.md Issue 52): the direct
     // ACN children some ACN parameter stands for (collectDeferredDetIdsFromAst).
     // One the function exposes to an enclosing type is held in the formal
@@ -632,10 +633,16 @@ let private createDeferredSequenceFunction
                                             let detAccess =
                                                 if isOwnParam then lm.acn.acn_deferred_det_access_ptr detVarName
                                                 else lm.acn.acn_deferred_det_access_value detVarName
+                                            // coverage step 14c2b: after a read that cannot fail the copy needs no check
+                                            // (DecodeOutcome.acnInsertedFieldPart; only Ada drops it)
+                                            let readCannotFail =
+                                                match fst (DecodeOutcome.acnInsertedFieldPart astRoot lm ac.Type) with
+                                                | AlwaysSucceeds _ -> true
+                                                | MayFail          -> false
                                             let assignStmt =
                                                 match ac.Type with
                                                 | Asn1AcnAst.AcnInsertedType.AcnBoolean _ ->
-                                                    lm.acn.acn_deferred_det_copy_bool_tmp detAccess tmpName CommonTypes.Codec.Decode
+                                                    lm.acn.acn_deferred_det_copy_bool_tmp detAccess tmpName readCannotFail CommonTypes.Codec.Decode
                                                 | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm
                                                         when enm.enumerated.items |> List.forall (fun itm -> itm.acnEncodeValue = itm.definitionValue) ->
                                                     // For enum tmp, Ada needs <EnumType>'Enum_Rep(tmp).
@@ -643,7 +650,7 @@ let private createDeferredSequenceFunction
                                                     // ac.typeDefinitionBodyWithinSeq as the enum type
                                                     // name; reuse it here.
                                                     let enumTypeName = ac.typeDefinitionBodyWithinSeq
-                                                    lm.acn.acn_deferred_det_copy_enum_tmp detAccess tmpName enumTypeName CommonTypes.Codec.Decode
+                                                    lm.acn.acn_deferred_det_copy_enum_tmp detAccess tmpName enumTypeName readCannotFail CommonTypes.Codec.Decode
                                                 | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                                                     // det.value holds what the field writes (its acnEncodeValue, e.g.
                                                     // the item index), which here differs from the enum value: map it.
@@ -652,7 +659,7 @@ let private createDeferredSequenceFunction
                                                         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = programUnit; typedefName = ToC (typePrefix + enm.tasName.Value); definedInRtl = false}
                                                     let cases = enm.enumerated.items |> List.map (fun itm ->
                                                         lm.acn.acn_deferred_det_enum_wire_case (lm.lg.getNamedItemBackendName (Some defOrRef) itm) detAccess (itm.acnEncodeValue.ToString()))
-                                                    lm.acn.acn_deferred_det_copy_enum_wire_tmp detAccess tmpName cases CommonTypes.Codec.Decode
+                                                    lm.acn.acn_deferred_det_copy_enum_wire_tmp detAccess tmpName cases readCannotFail CommonTypes.Codec.Decode
                                                 | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
                                                     // det.value is unsigned: a signed determinant is copied with
                                                     // its two's complement bits
@@ -662,15 +669,15 @@ let private createDeferredSequenceFunction
                                                     | Asn1AcnAst.ASN1SCC_Int32 _
                                                     | Asn1AcnAst.ASN1SCC_Int64 _
                                                     | Asn1AcnAst.ASN1SCC_Int _ ->
-                                                        lm.acn.acn_deferred_det_copy_signed_tmp detAccess tmpName CommonTypes.Codec.Decode
+                                                        lm.acn.acn_deferred_det_copy_signed_tmp detAccess tmpName readCannotFail CommonTypes.Codec.Decode
                                                     | Asn1AcnAst.ASN1SCC_UInt8 _
                                                     | Asn1AcnAst.ASN1SCC_UInt16 _
                                                     | Asn1AcnAst.ASN1SCC_UInt32 _
                                                     | Asn1AcnAst.ASN1SCC_UInt64 _
                                                     | Asn1AcnAst.ASN1SCC_UInt _ ->
-                                                        lm.acn.acn_deferred_det_copy_tmp detAccess tmpName CommonTypes.Codec.Decode
+                                                        lm.acn.acn_deferred_det_copy_tmp detAccess tmpName readCannotFail CommonTypes.Codec.Decode
                                                 | _ ->
-                                                    lm.acn.acn_deferred_det_copy_tmp detAccess tmpName CommonTypes.Codec.Decode
+                                                    lm.acn.acn_deferred_det_copy_tmp detAccess tmpName readCannotFail CommonTypes.Codec.Decode
                                             let extraLvars =
                                                 [tmpVarDecl] @
                                                 (if isOwnParam then []
@@ -1250,7 +1257,7 @@ let private emitSpecializedFunctionDecl
     // coverage step 10c: val is `in out` when the decoder may leave it partly written (DecodeOutcome.acnValWrite)
     let bValInOut =
         match ctx.codec with
-        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite ctx.r ctx.lm ctx.o.resolvedType) soValInitFuncName && not bVarNameIsUnreferenced
+        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite ctx.r ctx.deps ctx.lm ctx.o.resolvedType) soValInitFuncName && not bVarNameIsUnreferenced
         | Encode -> false
 
     // coverage step 12a / 12b: as AcnFunctionWrapper.createAcnFunction
@@ -1260,7 +1267,7 @@ let private emitSpecializedFunctionDecl
     // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
     let specBodyContent =
         match ctx.codec, ctx.lm.lg.decodeReadFailureModel with
-        | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit ctx.r ctx.lm ctx.o.resolvedType ->
+        | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit ctx.r ctx.deps ctx.lm ctx.o.resolvedType ->
             ctx.lm.uper.decode_result_init () + "\n" + finalBody.funcBody
         | Decode, ReadsCannotFail
         | Decode, ReadsCanFail -> finalBody.funcBody
@@ -1300,7 +1307,7 @@ let private emitSpecializedFunctionDecl
             None  // soSparkAnnotations
             bValInOut
             true  // bDeferredSpecialization: no public wrapper (coverage step 13a), callers use the specialized body
-            (bValInOut && ctx.codec = Decode && DecodeOutcome.acnValInitUnused ctx.r ctx.lm ctx.o.resolvedType)  // coverage step 14c2a
+            (bValInOut && ctx.codec = Decode && DecodeOutcome.acnValInitUnused ctx.r ctx.deps ctx.lm ctx.o.resolvedType)  // coverage step 14c2a
             ctx.codec
         |> ctx.lm.lg.wrapDeferredSpecBody
 

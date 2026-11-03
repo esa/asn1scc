@@ -129,6 +129,18 @@ type IUper_rust() =
             uper_rust.Enumerated_fullIndex  p td arrsItem nBits 
         override this.choice_fullIndex  (p:string) (sAcc:string) (arrsChildren:seq<string>) (sChoiceIndexName:string) (td:FE_ChoiceTypeDefinition) (nIndexSizeInBits:BigInteger) =
             uper_rust.choice_fullIndex  p sAcc arrsChildren sChoiceIndexName td nIndexSizeInBits 
+        override this.InternalItem_string_no_alpha_fullRange  (p:string) (i:string) =
+            uper_rust.InternalItem_string_no_alpha_fullRange  p i 
+        override this.InternalItem_string_with_alpha_fullRange  (p:string) (td:FE_StringTypeDefinition) (i:string) (nCharIndexSize:BigInteger) =
+            uper_rust.InternalItem_string_with_alpha_fullRange  p td i nCharIndexSize 
+        override this.str_FixedSize_fullRange  (p:string) (i:string) (sInternalItem:string) (nFixedSize:BigInteger) (nIntItemMaxSize:BigInteger) =
+            uper_rust.str_FixedSize_fullRange  p i sInternalItem nFixedSize nIntItemMaxSize 
+        override this.str_VarSize_fullRange  (p:string) (i:string) (sInternalItem:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (nIntItemMaxSize:BigInteger) =
+            uper_rust.str_VarSize_fullRange  p i sInternalItem nSizeMin nSizeMax nSizeInBits nIntItemMaxSize 
+        override this.octet_VarSize_fullRange  (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeInBits:BigInteger) =
+            uper_rust.octet_VarSize_fullRange  p sAcc nSizeMin nSizeInBits 
+        override this.bitString_VarSize_fullRange  (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeInBits:BigInteger) =
+            uper_rust.bitString_VarSize_fullRange  p sAcc nSizeMin nSizeInBits 
         override this.decode_result_init  () =
             uper_rust.decode_result_init  () 
         override this.sparkAnnotationsAlwaysSucceeds  (sTypeDefName:string) =

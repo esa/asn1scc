@@ -565,4 +565,23 @@ is
           Asn1Int (Shift_Left (Asn1UInt (1), nBits) - 1),
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
 
+   --  Coverage step 14c2b: the full-range twin of
+   --  UPER_Dec_ConstraintWholeNumberInt (lengths, character indexes),
+   --  for a range MinVal .. MinVal + 2**nBits - 1 that fills the field.
+   procedure UPER_Dec_ConstraintWholeNumberInt_FullRange
+     (bs : in out Bitstream; IntVal : out Integer; MinVal : Integer;
+      nBits : Integer) with
+      Pre => nBits >= 0 and then nBits <= 30
+      and then nBits <= Asn1UInt'Size - 2
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
+      and then Asn1Int (MinVal) <=
+        Asn1Int (Integer'Last) -
+          Asn1Int (Shift_Left (Asn1UInt (1), nBits) - 1),
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits
+      and then IntVal >= MinVal
+      and then Asn1Int (IntVal) <=
+        Asn1Int (MinVal) + Asn1Int (Shift_Left (Asn1UInt (1), nBits) - 1);
+
 end adaasn1rtl.encoding.uper;

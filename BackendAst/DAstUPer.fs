@@ -608,8 +608,19 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         let introSnap = nestingScope.nestingLevel = 0I
         let auxiliaries, callAux = lm.lg.generateSequenceOfLikeAuxiliaries r (if fromACN then ACN else UPER) (StrType o) sqfProofGen codec
 
+        // coverage step 14c2b (B2): length and character index fill their fields: the reads cannot fail, no check
+        // (DecodeOutcome.uperStringCannotFail decides the same)
+        let internalItemFullRange () =
+            match o.uperCharSet.Length = 128 with
+            | true  -> lm.uper.InternalItem_string_no_alpha_fullRange pp i
+            | false -> lm.uper.InternalItem_string_with_alpha_fullRange (p.accessPath.joined lm.lg) td i nBits
+        let cannotFail = codec = Decode && DecodeOutcome.uperStringCannotFail lm o
         let funcBodyContent,localVariables, encTemplate =
             match o.minSize with
+            | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper && cannotFail ->
+                lm.uper.str_FixedSize_fullRange pp i (internalItemFullRange ()) o.minSize.uper nBits, lv::charIndex@nStringLength, EncStringFixedSize
+            | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper && cannotFail ->
+                lm.uper.str_VarSize_fullRange pp i (internalItemFullRange ()) o.minSize.uper o.maxSize.uper nSizeInBits nBits, lv::charIndex@nStringLength, EncStringVarSizeUper
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper ->
                 str_FixedSize pp typeDefinitionName i internalItem o.minSize.uper nBits nBits 0I initExpr introSnap callAux codec, lv::charIndex@nStringLength, EncStringFixedSize
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper ->
@@ -666,6 +677,9 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
             | Decode, true -> lm.uper.octet_FixedSize_noCheck pp access minSize, nStringLength, EncOctetStringFixedSize
             | Decode, false
             | Encode, _    -> fixedSize td pp access minSize errCode.errCodeName codec, (if false then lv::nStringLength else nStringLength), EncOctetStringFixedSize
+        // coverage step 14c2b (B2): the length fills its field, the read cannot fail (DecodeOutcome.uperVarSizeCannotFail)
+        | _ when codec = Decode && DecodeOutcome.varSizeStringCannotFail lm DecodeOutcome.FixedOctets isFixedSize minSize maxSize nSizeInBits ->
+            lm.uper.octet_VarSize_fullRange pp access minSize nSizeInBits, nStringLength, EncOctetStringVarSize lengthCheck
         | _ when maxSize < 65536I && (not isFixedSize) -> varSize td pp access minSize maxSize nSizeInBits  errCode.errCodeName (lengthEnforced lengthCheck) codec, (if false  then lv::nStringLength else nStringLength), EncOctetStringVarSize lengthCheck
         | _ ->
             let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem nIntItemMaxSize false false
@@ -720,6 +734,9 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)
             | Decode, true -> lm.uper.bitString_FixSize_noCheck pp access minSize, nStringLength, EncBitStringFixedSize
             | Decode, false
             | Encode, _    -> bitString_FixSize td pp access minSize errCode.errCodeName codec, nStringLength, EncBitStringFixedSize
+        // coverage step 14c2b (B2): the length fills its field, the read cannot fail (DecodeOutcome.uperVarSizeCannotFail)
+        | _ when codec = Decode && DecodeOutcome.varSizeStringCannotFail lm DecodeOutcome.FixedBits isFixedSize minSize maxSize nSizeInBits ->
+            lm.uper.bitString_VarSize_fullRange pp access minSize nSizeInBits, nStringLength, EncBitStringVarSize lengthCheck
         | _ when maxSize < 65536I && (not isFixedSize) -> bitString_VarSize td pp access minSize maxSize errCode.errCodeName nSizeInBits (lengthEnforced lengthCheck) codec, nStringLength, EncBitStringVarSize lengthCheck
         | _ ->
             let funcBodyContent, fragmentationLvars = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem 1I true false

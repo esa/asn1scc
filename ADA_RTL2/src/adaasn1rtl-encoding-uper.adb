@@ -1247,4 +1247,15 @@ is
       IntVal := Integer_32 (v);
    end UPER_Dec_ConstraintWholeNumber_FullRangeInt32;
 
+   procedure UPER_Dec_ConstraintWholeNumberInt_FullRange
+     (bs : in out Bitstream; IntVal : out Integer; MinVal : Integer;
+      nBits : Integer)
+   is
+      v : Asn1Int;
+   begin
+      UPER_Dec_ConstraintWholeNumber_FullRange
+        (bs, v, Asn1Int (MinVal), nBits);
+      IntVal := Integer (v);
+   end UPER_Dec_ConstraintWholeNumberInt_FullRange;
+
 end adaasn1rtl.encoding.uper;

@@ -1655,21 +1655,21 @@ acn_deferred_det_fallback_value_with_size_decode(sPatchFuncName, sDefaultVal, nB
 acn_deferred_det_fallback_value_str_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= "# TODO"
 acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
 
-acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "# TODO"
+acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= "# TODO"
 
-acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= "# TODO"
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= "# TODO"
 
-acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "# TODO"
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= "# TODO"
 
-acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
-acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "# TODO"
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= "# TODO"
 
 acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "# TODO"
-acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
-acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= "# TODO"
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= "# TODO"
 
 acn_deferred_det_access_value(sDetName) ::= "# TODO"
 acn_deferred_det_access_ptr(sDetName) ::= "# TODO"

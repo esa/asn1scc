@@ -254,15 +254,18 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
     let errFieldPath = match typeId.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
     let errCode, ns = getNextValidErrorCode us errCodeName None errFieldPath
 
+    // coverage step 14c2b: a field whose bits all are values is read with the _FullRange twin (no Result); its
+    // consumer checks the value (DecodeOutcome.acnInsertedFieldPart decides the same)
+    let fullRangeUse = DecodeOutcome.acnInsertedFieldFullRangeUse (Asn1AcnAst.AcnInteger t)
     let uperFuncBody (errCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let acnPrimitiveTypeDef = ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = "int"; definedInRtl = false}
-        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId acnPrimitiveTypeDef errCode nestingScope p DecodeOutcome.KeepCheckedCall
+        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId acnPrimitiveTypeDef errCode nestingScope p fullRangeUse
     let soMapFunc, soMapFunMod = getMappingFunction r lm t.acnProperties.mappingFunction
 
     let sAsn1Constraints = constraintsToIcdStr (DAstAsn1.createAcnInteger (t.cons@t.withcons))
     let unitsOfMeasure = None
 
-    let funcBody = createAcnIntegerFunctionInternal r lm codec t.uperRange t.intClass t.acnEncodingClass DecodeOutcome.KeepCheckedCall uperFuncBody sAsn1Constraints t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits unitsOfMeasure typeName (soMapFunc, soMapFunMod) sType
+    let funcBody = createAcnIntegerFunctionInternal r lm codec t.uperRange t.intClass t.acnEncodingClass fullRangeUse uperFuncBody sAsn1Constraints t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits unitsOfMeasure typeName (soMapFunc, soMapFunMod) sType
     // ACN-inserted children declared via a named TAS (e.g. "crc MyUInt8 []")
     // record the referenced TAS in inheritInfo - keep that name on the ICD row
     // ("INTEGER (MyUInt8)", roadmap A4).  ACN children bypass
@@ -472,7 +475,13 @@ let createAcnBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
             let pp, resultExpr = adaptArgument lm codec p
             let Boolean         = lm.uper.Boolean
             let sType = ""
-            let funcBodyContent = Boolean pp errCode.errCodeName sType codec
+            // coverage step 14c2b: as an ASN.1 BOOLEAN (10b), the read cannot fail and leaves the error code alone
+            // (DecodeOutcome.acnInsertedFieldPart)
+            let funcBodyContent =
+                match codec, lm.lg.decodeReadFailureModel with
+                | Decode, ReadsCannotFail -> lm.uper.BooleanNoErrCode pp
+                | Decode, ReadsCanFail
+                | Encode, _               -> Boolean pp errCode.errCodeName sType codec
             let icd = AcnPrimitiveFactory.buildPrimitiveIcdAux o.acnAlignment "BOOLEAN" "BOOLEAN" None o.acnMinSizeInBits o.acnMaxSizeInBits None
             Some {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = Some icd; encOutcome = encodeOutcomeOf codec (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)})
 

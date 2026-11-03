@@ -2084,27 +2084,27 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
 /* Group C: Decode redirect */
 
 /* Assignment after temp-variable decode: det.value = (asn1SccUint)tmp; */
-acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> = <sTmpName> as u64;"
+acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= "<sDetAccess> = <sTmpName> as u64;"
 
 /* Signed integer tmp variant: the cast keeps the two's complement bits. */
-acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> = <sTmpName> as u64;"
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= "<sDetAccess> = <sTmpName> as u64;"
 
 /* Boolean tmp variant — C cast works as for int.  Kept as a distinct macro so
    strongly-typed backends (Ada) can emit a different conversion. */
-acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "<sDetAccess> = <sTmpName> as u64;"
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= "<sDetAccess> = <sTmpName> as u64;"
 
 /* Enum tmp variant — same C output as int (enum→uint is implicit).  The
    sEnumTypeName parameter is unused in C; Ada needs it for 'Enum_Rep. */
-acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
-acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "<sDetAccess> = <sTmpName> as u64;"
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= "<sDetAccess> = <sTmpName> as u64;"
 
 /* Enum tmp variant whose field writes other values than the enum discriminants. */
 acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "    <sItemName> => <sValue>,"
-acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
-acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= <<
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= <<
 <sDetAccess> = match <sTmpName> {
 <arrsCases; separator="\n">
 };

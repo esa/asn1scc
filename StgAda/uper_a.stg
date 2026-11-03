@@ -1107,6 +1107,64 @@ case <td.index_range>(<sChoiceIndexName>) is
 end case;
 >>
 
+/* Coverage step 14c2b (B2): decode of a string / OCTET STRING / BIT STRING whose length (and character index) fills its
+   field: UPER_Dec_ConstraintWholeNumberInt_FullRange cannot fail and its Post bounds the value, so no check follows
+   (DecodeOutcome.lengthFullRange / charIndexFullRange / stringCannotFail). */
+InternalItem_string_no_alpha_fullRange(p, i) ::=<<
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, charIndex, 0, 7);
+<p>(<i>) := Character'Val(charIndex);
+>>
+
+InternalItem_string_with_alpha_fullRange(p, td/*:FE_StringTypeDefinition*/, i, nCharIndexSize) ::=<<
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, charIndex, 0, <nCharIndexSize>);
+<p>(<i>) := <td.alpha_set>(charIndex+1);
+>>
+
+loopFixedItem_dec_fullRange(i, fixedSize, sInternalItem, nIntItemMaxSize)::= /*nogen*/<<
+while <i>\<= <fixedSize> loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
+    pragma Loop_Invariant (bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
+    <sInternalItem>
+    <i> := <i> + 1;
+end loop;
+>>
+
+str_FixedSize_fullRange(p, i, sInternalItem, nFixedSize, nIntItemMaxSize) ::= <<
+-- cannot fail, no result to check: every character index of the field is a character
+<i> := 1;
+<loopFixedItem_dec_fullRange(i=i, fixedSize=nFixedSize, sInternalItem=sInternalItem, nIntItemMaxSize=nIntItemMaxSize)>
+<p>(<nFixedSize> + 1) := adaasn1rtl.NUL;
+>>
+
+str_VarSize_fullRange(p, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMaxSize) ::= <<
+-- cannot fail, no result to check: every length and character index of the fields is valid
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, nStringLength, <nSizeMin>, <nSizeInBits>);
+<i> := 1;
+<loopFixedItem_dec_fullRange(i=i, fixedSize="nStringLength", sInternalItem=sInternalItem, nIntItemMaxSize=nIntItemMaxSize)>
+
+--add nulls until the end
+while <i>\<= <nSizeMax> + 1  loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeMax> + 1);
+    <p>(<i>) := adaasn1rtl.NUL;
+    <i> := <i> + 1;
+end loop;
+>>
+
+octet_VarSize_fullRange(p, sAcc, nSizeMin, nSizeInBits) ::= <<
+-- no check of the length: every bit pattern of its field is a valid length
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, nStringLength, <nSizeMin>, <nSizeInBits>);
+<p>.Length := nStringLength;
+adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length), result.success);
+>>
+
+bitString_VarSize_fullRange(p, sAcc, nSizeMin, nSizeInBits) ::= <<
+-- no check of the length: every bit pattern of its field is a valid length
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, nStringLength, <nSizeMin>, <nSizeInBits>);
+<p><sAcc>Length := nStringLength;
+adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<p><sAcc>Length), result.success);
+>>
+
 /* Coverage step 10b: start of a decoder none of whose mandatory parts assigns result.ErrorCode. */
 decode_result_init() ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);

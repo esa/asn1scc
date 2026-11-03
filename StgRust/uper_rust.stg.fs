@@ -443,6 +443,30 @@ let choice_fullIndex (p:string) (sAcc:string) (arrsChildren:seq<string>) (sChoic
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "uper_rust" "choice_fullIndex" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sChoiceIndexName",(if sChoiceIndexName = null then null else ST.StrHelper sChoiceIndexName:>Object) );("td",td :>Object);("nIndexSizeInBits",nIndexSizeInBits :>Object)]
 
+let InternalItem_string_no_alpha_fullRange (p:string) (i:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "InternalItem_string_no_alpha_fullRange" [("p",p :>Object);("i",i :>Object)]
+
+let InternalItem_string_with_alpha_fullRange (p:string) (td:FE_StringTypeDefinition) (i:string) (nCharIndexSize:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "InternalItem_string_with_alpha_fullRange" [("p",p :>Object);("td",td :>Object);("i",i :>Object);("nCharIndexSize",nCharIndexSize :>Object)]
+
+let str_FixedSize_fullRange (p:string) (i:string) (sInternalItem:string) (nFixedSize:BigInteger) (nIntItemMaxSize:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "str_FixedSize_fullRange" [("p",p :>Object);("i",i :>Object);("sInternalItem",(if sInternalItem = null then null else ST.StrHelper sInternalItem:>Object) );("nFixedSize",nFixedSize :>Object);("nIntItemMaxSize",nIntItemMaxSize :>Object)]
+
+let str_VarSize_fullRange (p:string) (i:string) (sInternalItem:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (nIntItemMaxSize:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "str_VarSize_fullRange" [("p",p :>Object);("i",i :>Object);("sInternalItem",(if sInternalItem = null then null else ST.StrHelper sInternalItem:>Object) );("nSizeMin",nSizeMin :>Object);("nSizeMax",nSizeMax :>Object);("nSizeInBits",nSizeInBits :>Object);("nIntItemMaxSize",nIntItemMaxSize :>Object)]
+
+let octet_VarSize_fullRange (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeInBits:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "octet_VarSize_fullRange" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nSizeMin",nSizeMin :>Object);("nSizeInBits",nSizeInBits :>Object)]
+
+let bitString_VarSize_fullRange (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeInBits:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "bitString_VarSize_fullRange" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nSizeMin",nSizeMin :>Object);("nSizeInBits",nSizeInBits :>Object)]
+
 let decode_result_init () =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "uper_rust" "decode_result_init" []

@@ -319,18 +319,18 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_fallback_value_with_size  sPatchFuncName sDefaultVal nBits sDetName codec
         override this.acn_deferred_det_fallback_value_str  (sPatchFuncName:string) (sDefaultVal:string) (nBits:BigInteger) (sDetName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_fallback_value_str  sPatchFuncName sDefaultVal nBits sDetName codec
-        override this.acn_deferred_det_copy_tmp  (sDetAccess:string) (sTmpName:string) (codec:Codec) =
-            acn_rust.acn_deferred_det_copy_tmp  sDetAccess sTmpName codec
-        override this.acn_deferred_det_copy_signed_tmp  (sDetAccess:string) (sTmpName:string) (codec:Codec) =
-            acn_rust.acn_deferred_det_copy_signed_tmp  sDetAccess sTmpName codec
-        override this.acn_deferred_det_copy_bool_tmp  (sDetAccess:string) (sTmpName:string) (codec:Codec) =
-            acn_rust.acn_deferred_det_copy_bool_tmp  sDetAccess sTmpName codec
-        override this.acn_deferred_det_copy_enum_tmp  (sDetAccess:string) (sTmpName:string) (sEnumTypeName:string) (codec:Codec) =
-            acn_rust.acn_deferred_det_copy_enum_tmp  sDetAccess sTmpName sEnumTypeName codec
+        override this.acn_deferred_det_copy_tmp  (sDetAccess:string) (sTmpName:string) (bReadCannotFail:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_copy_tmp  sDetAccess sTmpName bReadCannotFail codec
+        override this.acn_deferred_det_copy_signed_tmp  (sDetAccess:string) (sTmpName:string) (bReadCannotFail:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_copy_signed_tmp  sDetAccess sTmpName bReadCannotFail codec
+        override this.acn_deferred_det_copy_bool_tmp  (sDetAccess:string) (sTmpName:string) (bReadCannotFail:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_copy_bool_tmp  sDetAccess sTmpName bReadCannotFail codec
+        override this.acn_deferred_det_copy_enum_tmp  (sDetAccess:string) (sTmpName:string) (sEnumTypeName:string) (bReadCannotFail:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_copy_enum_tmp  sDetAccess sTmpName sEnumTypeName bReadCannotFail codec
         override this.acn_deferred_det_enum_wire_case  (sItemName:string) (sDetAccess:string) (sValue:string) =
             acn_rust.acn_deferred_det_enum_wire_case  sItemName sDetAccess sValue 
-        override this.acn_deferred_det_copy_enum_wire_tmp  (sDetAccess:string) (sTmpName:string) (arrsCases:seq<string>) (codec:Codec) =
-            acn_rust.acn_deferred_det_copy_enum_wire_tmp  sDetAccess sTmpName arrsCases codec
+        override this.acn_deferred_det_copy_enum_wire_tmp  (sDetAccess:string) (sTmpName:string) (arrsCases:seq<string>) (bReadCannotFail:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_copy_enum_wire_tmp  sDetAccess sTmpName arrsCases bReadCannotFail codec
         override this.acn_deferred_det_access_value  (sDetName:string) =
             acn_rust.acn_deferred_det_access_value  sDetName 
         override this.acn_deferred_det_access_ptr  (sDetName:string) =

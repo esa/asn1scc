@@ -92,7 +92,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
     // test it (DecodeOutcome.acn)
     let decodeOutcome =
         match codec with
-        | Decode -> DecodeOutcome.acn r lm t
+        | Decode -> DecodeOutcome.acn r deps lm t
         | Encode -> MayFail
     let bAlwaysSucceeds =
         match decodeOutcome with
@@ -106,7 +106,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
         | None   -> Some (typeDefinitionName + lm.init.methodNameSuffix())
     let bValInOut =
         match codec with
-        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite r lm t) soValInitFuncName
+        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite r deps lm t) soValInitFuncName
         | Encode -> false
     let soSparkAnnotations =
         match codec, decodeOutcome with
@@ -267,7 +267,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         // error code (DecodeOutcome.acnNeedsResultInit)
                         let body =
                             match codec, lm.lg.decodeReadFailureModel with
-                            | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit r lm t ->
+                            | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit r deps lm t ->
                                 lm.uper.decode_result_init () + "\n" + bodyResult.funcBody
                             | Decode, ReadsCannotFail
                             | Decode, ReadsCanFail      -> bodyResult.funcBody
@@ -334,7 +334,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath}) |>
                     List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath) |> List.distinct
                 // coverage step 14c2a: a full-index CHOICE writes all of its `in out` val (DecodeOutcome.acnValInitUnused)
-                let bValInitUnused = bValInOut && not bVarNameIsUnreferenced && codec = Decode && DecodeOutcome.acnValInitUnused r lm t
+                let bValInitUnused = bValInOut && not bVarNameIsUnreferenced && codec = Decode && DecodeOutcome.acnValInitUnused r deps lm t
                 let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits prms soSparkAnnotations (bValInOut && not bVarNameIsUnreferenced) false bValInitUnused codec)
                 let ns2a =
                     match t.id.topLevelTas with

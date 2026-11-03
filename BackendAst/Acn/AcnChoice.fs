@@ -297,7 +297,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             match ec with
             | CEC_uper        ->
                 // coverage step 14c2a: 2^nIndexSizeInBits alternatives that cannot fail (DecodeOutcome.acnChoiceFullIndex)
-                match codec, DecodeOutcome.acnChoiceFullIndex r lm o with
+                match codec, DecodeOutcome.acnChoiceFullIndex r deps lm o with
                 | Decode, Some (nFullBits, _) -> lm.acn.Choice_fullIndex pp access childrenStatements sChoiceIndexName td nFullBits, resultExpr
                 | Decode, None
                 | Encode, _                   -> choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
