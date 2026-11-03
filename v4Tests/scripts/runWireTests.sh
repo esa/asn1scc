@@ -50,12 +50,12 @@ run_wire_test() {
     echo "wire $n$mode OK"
 }
 
-for n in 004 010 011 016 017 018 019 020 021 022 023 024 025 028 030; do
+for n in 004 010 011 016 017 018 019 020 021 022 023 024 025 028 030 033; do
     run_wire_test $n ""
 done
 
 # The fixes checked by these cases are not specific to --acn-v2.
-for n in 019 020 022 023 024 025 030; do
+for n in 019 020 022 023 024 025 030 033; do
     run_wire_test $n -legacy
 done
 

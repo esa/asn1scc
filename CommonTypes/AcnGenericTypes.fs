@@ -396,6 +396,23 @@ with
         | TrueValueEncoding tv -> tv.Value.Length
         | FalseValueEncoding fv -> fv.Value.Length
         | TrueFalseValueEncoding (tv,_) -> tv.Value.Length
+    /// The pattern is the bit of a uPER BOOLEAN (true '1', false '0'): an ACN inserted BOOLEAN with it is encoded as one
+    /// bit, like a BOOLEAN without pattern (q/issues.md Issue 65: every other pattern is written as given).
+    member this.isUperLike =
+        match this with
+        | TrueValueEncoding tv              -> tv.Value = "1"
+        | FalseValueEncoding fv             -> fv.Value = "0"
+        | TrueFalseValueEncoding (tv, fv)   -> tv.Value = "1" && fv.Value = "0"
+    /// The bits written for true and for false, as unsigned integers of bitValLength bits, most significant bit first: a
+    /// true-value pattern writes its complement for false, a false-value pattern its complement for true (the encoders of
+    /// AcnPrimitives.createBooleanFunction). Used by the --acn-v2 PatchDet of a BOOLEAN determinant (Issue 65).
+    member this.wireValues : System.Numerics.BigInteger * System.Numerics.BigInteger =
+        let toInt (bits:string) = bits |> Seq.fold (fun (acc:System.Numerics.BigInteger) c -> acc * 2I + (if c = '1' then 1I else 0I)) 0I
+        let all = System.Numerics.BigInteger.Pow (2I, this.bitValLength) - 1I
+        match this with
+        | TrueValueEncoding tv              -> toInt tv.Value, all - toInt tv.Value
+        | FalseValueEncoding fv             -> all - toInt fv.Value, toInt fv.Value
+        | TrueFalseValueEncoding (tv, fv)   -> toInt tv.Value, toInt fv.Value
 
 type BooleanAcnProperties = {
     encodingPattern: AcnBooleanEncoding option

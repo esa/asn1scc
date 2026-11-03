@@ -213,6 +213,17 @@ let private getDeferredMappingFunction
     | Some (name, mappingModule, declaration) -> Some name, mappingModule, [declaration]
     | None -> None, None, []
 
+/// q/issues.md Issue 65: the true and false wire values of a BOOLEAN field whose pattern is not the uPER bit (its
+/// PatchDet is Acn_PatchDet_ConstSize of the pattern length, ILangGeneric.getDeferredDetFunctions).
+let private boolPatternWireValues (determinant: Asn1AcnAst.AcnChild option) : (BigInteger * BigInteger) option =
+    match determinant |> Option.map (fun d -> d.Type) with
+    | Some (Asn1AcnAst.AcnBoolean b) ->
+        match b.acnProperties.encodingPattern with
+        | Some pattern when not pattern.isUperLike -> Some pattern.wireValues
+        | Some _ | None -> None
+    | Some (Asn1AcnAst.AcnInteger _ | Asn1AcnAst.AcnNullType _ | Asn1AcnAst.AcnReferenceToEnumerated _ | Asn1AcnAst.AcnReferenceToIA5String _)
+    | None -> None
+
 /// The value a PatchDet writes for the field: the value of the field mapped by its mapping-function encode, as the
 /// field's own encoder would write it (q/issues.md Issue 59), less the offset of a uPER-encoded field.
 let private patchDetWireValue
@@ -234,7 +245,11 @@ let private patchDetWireValue
                 | Some (Asn1AcnAst.AcnNullType _ | Asn1AcnAst.AcnBoolean _ | Asn1AcnAst.AcnReferenceToEnumerated _ | Asn1AcnAst.AcnReferenceToIA5String _)
                 | None -> lm.typeDef.Declare_PosInteger ()
             lm.acn.acn_deferred_det_mapped_value valueExpr name mappingModule sRtlType
-        | None                          -> valueExpr
+        | None                          ->
+            // q/issues.md Issue 65: a BOOLEAN with a pattern other than the uPER bit writes its true- or false-pattern
+            match boolPatternWireValues determinant with
+            | Some (vTrue, vFalse) -> lm.acn.acn_deferred_det_bool_pattern_value valueExpr (vTrue.ToString()) (vFalse.ToString())
+            | None                 -> valueExpr
     if uperMinOffset = 0I then mapped
     else lm.acn.acn_deferred_det_uper_offset_sub mapped (uperMinOffset.ToString())
 
@@ -702,8 +717,14 @@ let private createDeferredSequenceFunction
                         }
                         DAst.AcnChild modifiedAcnChild
                     | None ->
-                        // Determinant type not supported for deferred patching — keep original
-                        child
+                        match ac.Type with
+                        | Asn1AcnAst.AcnInsertedType.AcnBoolean b when b.acnProperties.encodingPattern |> Option.exists (fun pt -> pt.bitValLength > 32) ->
+                            // q/issues.md Issue 65: kept as is it would reach its consumers unset (broken code)
+                            raise (SemanticError (ac.Name.Location,
+                                    sprintf "--acn-v2: the BOOLEAN determinant '%s' has a pattern longer than 32 bits, which a deferred determinant does not support (use a pattern of at most 32 bits)." ac.Name.Value))
+                        | _ ->
+                            // Determinant type not supported for deferred patching — keep original
+                            child
                 | _ -> child)
 
         // Determinants that live inside a child reference type are declared
@@ -865,9 +886,10 @@ let private createDeferredSequenceFunction
                                     let value = lm.lg.computeDeferredFallbackValue acType uperMinOffset
                                     // a field with a mapping-function carries the mapped value of its default (Issue 59)
                                     let field = localPatchedField acId
-                                    match field |> Option.bind (fieldMappingFunction r lm codec) with
-                                    | Some _ -> patchDetWireValue r lm field uperMinOffset value
-                                    | None   -> value
+                                    match field |> Option.bind (fieldMappingFunction r lm codec), boolPatternWireValues field with
+                                    | Some _, _            -> patchDetWireValue r lm field uperMinOffset value
+                                    | None, Some (_, vFalse) -> vFalse.ToString()    // Issue 65: the false-pattern
+                                    | None, None           -> value
                                 Some (detVarName, patchFn, nBitsOpt, defaultVal, acType)
                             | Some _, _
                             | None, None -> None)

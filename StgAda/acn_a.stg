@@ -2505,6 +2505,12 @@ acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
    Asn1UInt, would otherwise be "redundant conversions" (-gnatwr) when they already have the type */
 acn_deferred_det_mapped_value(sValue, sMF, soMFM, sRtlType) ::= "<sRtlType>'Base(<soMFM>.<sMF>_encode(<sRtlType>'Base(<sValue>)))"
 
+/* q/issues.md Issue 65: the value a PatchDet writes for a BOOLEAN with an ACN pattern: the bits of its true- or
+   false-pattern as an integer (Acn_PatchDet_ConstSize writes nBits of it). Through the base type as
+   acn_deferred_det_mapped_value: the patch converts the result to Asn1UInt */
+acn_deferred_det_bool_pattern_value(sValue, sTrueValue, sFalseValue) ::= "adaasn1rtl.Asn1UInt'Base (if adaasn1rtl.Asn1UInt'Base (<sValue>) /= 0 then <sTrueValue> else <sFalseValue>)"
+
+
 /* Wrap a preBlock (declarations) and patchCall in an Ada declare/begin/end block.
    The preBlock is emitted in the declarative part; the patchCall in the body. */
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<

@@ -347,6 +347,8 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_uper_offset_sub  sValue sOffset 
         override this.acn_deferred_det_mapped_value  (sValue:string) (sMF:string) (soMFM:string option) (sRtlType:string) =
             acn_rust.acn_deferred_det_mapped_value  sValue sMF soMFM sRtlType 
+        override this.acn_deferred_det_bool_pattern_value  (sValue:string) (sTrueValue:string) (sFalseValue:string) =
+            acn_rust.acn_deferred_det_bool_pattern_value  sValue sTrueValue sFalseValue 
         override this.acn_deferred_det_preblock_wrap  (sPreBlock:string) (sPatchCall:string) =
             acn_rust.acn_deferred_det_preblock_wrap  sPreBlock sPatchCall 
         override this.acn_deferred_det_optional_producer_check  (sParent:string) (sAcc:string) (sProducer:string) (sConsumer:string) (sErrCode:string) =

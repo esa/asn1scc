@@ -2102,6 +2102,11 @@ acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
 /* The value of a field mapped by its mapping-function encode (PatchDet writes what the field's encoder would) */
 acn_deferred_det_mapped_value(sValue, sMF, soMFM, sRtlType) ::= "<sMF>_encode(<sValue>)"
 
+/* q/issues.md Issue 65: the value a PatchDet writes for a BOOLEAN with an ACN pattern: the bits of its true- or
+   false-pattern as an integer (Acn_PatchDet_ConstSize writes nBits of it) */
+acn_deferred_det_bool_pattern_value(sValue, sTrueValue, sFalseValue) ::= "((<sValue>) ? <sTrueValue>U : <sFalseValue>U)"
+
+
 /* Wrap a preBlock and patchCall in braces */
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<
 {

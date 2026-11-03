@@ -469,38 +469,75 @@ let nestChildItems (lm:LanguageMacros) (codec:CommonTypes.Codec) children =
     DAstUtilFunctions.nestItems lm.isvalid.JoinItems2 children
 
 
+/// The encode / decode statements of a BOOLEAN with an ACN pattern: an ASN.1 BOOLEAN, and since q/issues.md Issue 65 an
+/// ACN inserted BOOLEAN whose pattern is not the uPER bit (AcnBooleanEncoding.isUperLike). Returns the statements and
+/// the result expression (decodingKind Copy).
+let private booleanPatternContent (lm:LanguageMacros) (codec:CommonTypes.Codec) (p:CodegenScope) (pattern:AcnBooleanEncoding) (errCode:ErrorCode) (sType:string) =
+    let acnBoolean      = lm.acn.Boolean
+    let BooleanTrueFalse = lm.acn.BooleanTrueFalse
+    let pvalue, ptr, resultExpr =
+        match codec, lm.lg.decodingKind with
+        | Decode, Copy ->
+            let resExpr = p.accessPath.asIdentifier lm.lg
+            resExpr, resExpr, Some resExpr
+        | _ -> lm.lg.getValue p.accessPath, lm.lg.getPointer p.accessPath, None
+    match pattern with
+    | TrueValueEncoding pattern  ->
+        let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+        let arrTrueValueAsByteArray = bitStringValueToByteArray pattern
+        let arrFalseValueAsByteArray = arrTrueValueAsByteArray |> Array.map (~~~)
+        let nSize = pattern.Value.Length
+        // coverage step 10b: the pattern call cannot fail and sets result: no error code (DecodeOutcome.fs)
+        match codec, lm.lg.decodeReadFailureModel with
+        | Decode, ReadsCannotFail -> lm.acn.BooleanPatternNoErrCode pvalue true arrBits, resultExpr
+        | Decode, ReadsCanFail
+        | Encode, _               -> acnBoolean pvalue ptr true (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName sType codec, resultExpr
+    | FalseValueEncoding pattern ->
+        let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+        let arrFalseValueAsByteArray = bitStringValueToByteArray pattern
+        let arrTrueValueAsByteArray = arrFalseValueAsByteArray |> Array.map (~~~)
+        let nSize = pattern.Value.Length
+        // coverage step 10b: the pattern call cannot fail and sets result: no error code (DecodeOutcome.fs)
+        match codec, lm.lg.decodeReadFailureModel with
+        | Decode, ReadsCannotFail -> lm.acn.BooleanPatternNoErrCode pvalue false arrBits, resultExpr
+        | Decode, ReadsCanFail
+        | Encode, _               -> acnBoolean pvalue ptr false (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName sType codec, resultExpr
+    | TrueFalseValueEncoding(trPattern, fvPatten) ->
+        let arrTrueBits = trPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+        let arrFalseBits = fvPatten.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+        let arrTrueValueAsByteArray = bitStringValueToByteArray trPattern
+        let arrFalseValueAsByteArray = bitStringValueToByteArray fvPatten
+        let nSize = trPattern.Value.Length
+        BooleanTrueFalse pvalue ptr (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrTrueBits arrFalseBits errCode.errCodeName sType codec, resultExpr
+
 let createAcnBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec)  (typeId : ReferenceToType) (o:Asn1AcnAst.AcnBoolean)  (us:State)  =
     AcnPrimitiveFactory.createAcnOnlyPrimitive lm codec typeId us (fun errCode ->
         fun (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) ->
             let pp, resultExpr = adaptArgument lm codec p
             let Boolean         = lm.uper.Boolean
             let sType = ""
-            // coverage step 14c2b: as an ASN.1 BOOLEAN (10b), the read cannot fail and leaves the error code alone
-            // (DecodeOutcome.acnInsertedFieldPart)
-            let funcBodyContent =
-                match codec, lm.lg.decodeReadFailureModel with
-                | Decode, ReadsCannotFail -> lm.uper.BooleanNoErrCode pp
-                | Decode, ReadsCanFail
-                | Encode, _               -> Boolean pp errCode.errCodeName sType codec
+            let funcBodyContent, resultExpr =
+                match o.acnProperties.encodingPattern with
+                // q/issues.md Issue 65: a pattern other than the uPER bit is written as given (it was one bit before)
+                | Some pattern when not pattern.isUperLike -> booleanPatternContent lm codec p pattern errCode sType
+                | Some _ | None ->
+                    // coverage step 14c2b: as an ASN.1 BOOLEAN (10b), the read cannot fail and leaves the error code alone
+                    // (DecodeOutcome.acnInsertedFieldPart)
+                    match codec, lm.lg.decodeReadFailureModel with
+                    | Decode, ReadsCannotFail -> lm.uper.BooleanNoErrCode pp, resultExpr
+                    | Decode, ReadsCanFail
+                    | Encode, _               -> Boolean pp errCode.errCodeName sType codec, resultExpr
             let icd = AcnPrimitiveFactory.buildPrimitiveIcdAux o.acnAlignment "BOOLEAN" "BOOLEAN" None o.acnMinSizeInBits o.acnMaxSizeInBits None
             Some {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = Some icd; encOutcome = encodeOutcomeOf codec (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)})
 
 let createBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : AcnFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
         let Boolean         = lm.uper.Boolean
-        let acnBoolean      = lm.acn.Boolean
-        let BooleanTrueFalse = lm.acn.BooleanTrueFalse
 
         let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
         let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
 
         let funcBodyContent, resultExpr=
-            let pvalue, ptr, resultExpr =
-                match codec, lm.lg.decodingKind with
-                | Decode, Copy ->
-                    let resExpr = p.accessPath.asIdentifier lm.lg
-                    resExpr, resExpr, Some resExpr
-                | _ -> lm.lg.getValue p.accessPath, lm.lg.getPointer p.accessPath, None
             match o.acnProperties.encodingPattern with
             | None ->
                 let pp, resultExpr = adaptArgument lm codec p
@@ -509,33 +546,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
                 | Decode, ReadsCannotFail -> lm.uper.BooleanNoErrCode pp, resultExpr
                 | Decode, ReadsCanFail
                 | Encode, _               -> Boolean pp errCode.errCodeName sType codec, resultExpr
-            | Some (TrueValueEncoding pattern)  ->
-                let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-                let arrTrueValueAsByteArray = bitStringValueToByteArray pattern
-                let arrFalseValueAsByteArray = arrTrueValueAsByteArray |> Array.map (~~~)
-                let nSize = pattern.Value.Length
-                // coverage step 10b: the pattern call cannot fail and sets result: no error code (DecodeOutcome.fs)
-                match codec, lm.lg.decodeReadFailureModel with
-                | Decode, ReadsCannotFail -> lm.acn.BooleanPatternNoErrCode pvalue true arrBits, resultExpr
-                | Decode, ReadsCanFail
-                | Encode, _               -> acnBoolean pvalue ptr true (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName sType codec, resultExpr
-            | Some (FalseValueEncoding pattern) ->
-                let arrBits = pattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-                let arrFalseValueAsByteArray = bitStringValueToByteArray pattern
-                let arrTrueValueAsByteArray = arrFalseValueAsByteArray |> Array.map (~~~)
-                let nSize = pattern.Value.Length
-                // coverage step 10b: the pattern call cannot fail and sets result: no error code (DecodeOutcome.fs)
-                match codec, lm.lg.decodeReadFailureModel with
-                | Decode, ReadsCannotFail -> lm.acn.BooleanPatternNoErrCode pvalue false arrBits, resultExpr
-                | Decode, ReadsCanFail
-                | Encode, _               -> acnBoolean pvalue ptr false (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrBits errCode.errCodeName sType codec, resultExpr
-            | Some (TrueFalseValueEncoding(trPattern, fvPatten)) ->
-                let arrTrueBits = trPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-                let arrFalseBits = fvPatten.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-                let arrTrueValueAsByteArray = bitStringValueToByteArray trPattern
-                let arrFalseValueAsByteArray = bitStringValueToByteArray fvPatten
-                let nSize = trPattern.Value.Length
-                BooleanTrueFalse pvalue ptr (BigInteger nSize) arrTrueValueAsByteArray arrFalseValueAsByteArray arrTrueBits arrFalseBits errCode.errCodeName sType codec, resultExpr
+            | Some pattern -> booleanPatternContent lm codec p pattern errCode sType
         let sAsn1Constraints = constraintsToIcdStr (DAstAsn1.createBoolFunction r t o)
         let icd = AcnPrimitiveFactory.buildPrimitiveIcdAux t.acnAlignment (getASN1Name t) (getASN1Name t) sAsn1Constraints o.acnMinSizeInBits o.acnMaxSizeInBits t.unitsOfMeasure
         let aux = lm.lg.generateBooleanAuxiliaries r ACN t o nestingScope p.accessPath codec

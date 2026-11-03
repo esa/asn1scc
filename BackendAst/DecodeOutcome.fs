@@ -432,7 +432,14 @@ let acnInsertedFieldPart (r:AstRoot) (lm:LanguageMacros) (o:AcnInsertedType) : D
         | ReadsCannotFail, (AcnNullType _ | AcnBoolean _ | AcnReferenceToIA5String _), UseFullRange -> false
     match lm.lg.decodeReadFailureModel, o with
     | ReadsCanFail, _                                   -> MayFail, leaf true
-    | ReadsCannotFail, AcnBoolean _                     -> AlwaysSucceeds WritesResult, leaf false
+    | ReadsCannotFail, AcnBoolean b                     ->
+        // AcnPrimitives.createAcnBooleanFunction: the uPER bit (no error code), or since Issue 65 the pattern templates
+        // of an ASN.1 BOOLEAN (the `acn` / acnErrorCodeSummary rules of Boolean)
+        match b.acnProperties.encodingPattern with
+        | None                                              -> AlwaysSucceeds WritesResult, leaf false
+        | Some pattern when pattern.isUperLike              -> AlwaysSucceeds WritesResult, leaf false
+        | Some (TrueValueEncoding _ | FalseValueEncoding _) -> AlwaysSucceeds WritesResult, leaf true  // BooleanPatternNoErrCode
+        | Some (TrueFalseValueEncoding _)                   -> MayFail, leaf true
     | ReadsCannotFail, AcnNullType n when n.acnProperties.encodingPattern.IsNone -> AlwaysSucceeds NoResultWrite, leaf false
     | ReadsCannotFail, (AcnInteger _ | AcnReferenceToEnumerated _ | AcnNullType _ | AcnReferenceToIA5String _) ->
         match cannotFail with
