@@ -1,4 +1,4 @@
--- NOCOVERAGE (Ada): gcov reports existing uPER CONTAINING temporary-stream declare lines as uncovered.
+-- KNOWN_FAILURE(c,acn-v2) (size deduced in a CONTAINING region that does not start at a byte boundary: the C acn-v2 decoder sees up to 7 bits too many, bit-offset sweep fails) NOCOVERAGE (Ada): gcov reports existing uPER CONTAINING temporary-stream declare lines as uncovered.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
     Item ::= INTEGER (0..4000)

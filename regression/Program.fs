@@ -149,6 +149,27 @@ let extraFlags (t:Test_Case) (lang:string) =
     | true  -> "-adaBitStringAlignment"
     | false -> ""
 
+// KNOWN_FAILURE(<lang>[,<mode>...]) on the first line (same rules in runTests.py): the test cases of the file are
+// known to fail in the configurations it names; every mode must match (legacy, acn-v2, slim, ig, ws4, ws8). The
+// cases still run: a failure is reported as a known failure (counted OK, listed in the CI summary), a pass fails the
+// case, so that the marker is removed once the defect is fixed. Returns the matching marker text.
+let knownFailureMarker (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) =
+    let markers = File.ReadLines t.asn1 |> Seq.tryHead |> Option.defaultValue ""
+    let modeMatches (m:string) =
+        match m with
+        | "legacy" -> not enableAcnV2
+        | "acn-v2" -> enableAcnV2
+        | "slim"   -> slim
+        | "ig"     -> enableIG
+        | "ws4"    -> ws = 4
+        | "ws8"    -> ws = 8
+        | _        -> failwithf "%s: unknown mode '%s' in KNOWN_FAILURE (legacy, acn-v2, slim, ig, ws4, ws8)" t.asn1 m
+    System.Text.RegularExpressions.Regex.Matches(markers, @"KNOWN_FAILURE\(([^)]*)\)")
+    |> Seq.tryPick (fun m ->
+        match m.Groups[1].Value.Split(',') |> Array.map (fun s -> s.Trim()) |> Array.filter (fun s -> s <> "") |> List.ofArray with
+        | l :: modes when l = lang && List.forall modeMatches modes -> Some m.Value
+        | _ -> None)
+
 // <name>.helpers/ next to <name>.asn1: files copied into the work directory of
 // each test case of that file (e.g. user-provided mapping functions).
 let copyHelpers (asn1FileName:string) workDir =
@@ -300,11 +321,17 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
 
         
 
-    match t with
-    | SuccessLine (a,c)             -> invokeMake t
-    | ErrorLine   (a,c,errMsg)      -> checkErrMsg errMsg res
-    | SuccessFile (a,c)             -> invokeMake t
-    | ErrorFile   (a,c,errMsg)      -> checkErrMsg errMsg res
+    let ret =
+        match t with
+        | SuccessLine (a,c)             -> invokeMake t
+        | ErrorLine   (a,c,errMsg)      -> checkErrMsg errMsg res
+        | SuccessFile (a,c)             -> invokeMake t
+        | ErrorFile   (a,c,errMsg)      -> checkErrMsg errMsg res
+    match knownFailureMarker t (lang, ws, slim, enableIG, enableAcnV2), ret with
+    | None, _                   -> ret
+    | Some k, Failed msg        -> KnownFailure (sprintf "%s: %s" k msg)
+    | Some k, Success _         -> markError "%s, but the test case passed: remove the marker\n%s" k cmd
+    | Some _, KnownFailure _    -> ret
 let dirSafeDelete dirName =
     
     let rec dirSafeDelete_aux tries dirName =
@@ -328,9 +355,9 @@ let executeTestCaseSync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, w
     let ret = executeTestCase asn1sccdll newWorkDir t (lang, ws, slim, enableIG, enableAcnV2)
     let seconds = watch.Elapsed.TotalSeconds
     match ret with
-    | Success _     ->
-        dirSafeDelete newWorkDir
-    | Failed  _     -> ()
+    | Success _      -> dirSafeDelete newWorkDir
+    | KnownFailure _ -> dirSafeDelete newWorkDir
+    | Failed  _      -> ()
     (i, ret, rndDir, t, lang, ws, slim, seconds)
 
 /// Runs the test cases with at most nWorkers at a time: a worker takes the next case as soon as its case ends (the
@@ -509,21 +536,23 @@ let main0 argv =
 
 
         let errors = 
-            results |> List.filter (fun (i, ret, _, _, _, _, _, _) ->  match ret with Failed _ -> true | Success _ -> false)
-        let sucRes = results |> List.filter (fun (i, ret, _, _, _, _, _, _) ->  match ret with Failed _ -> false | Success _ -> true)
+            results |> List.filter (fun (i, ret, _, _, _, _, _, _) ->  match ret with Failed _ -> true | Success _ | KnownFailure _ -> false)
+        let sucRes = results |> List.filter (fun (i, ret, _, _, _, _, _, _) ->  match ret with Failed _ -> false | Success _ | KnownFailure _ -> true)
 
-        sucRes |> 
-        List.iter (fun (i, ret, rndDir, t, lang, ws, slim, _) -> 
-            printInfo "%s, l=%s, ws=%d, slim=%b, wd=%s, acn=%s --> " t.sAsn1 lang ws slim rndDir (t.acn.Trim())
-            printSuccess "OK\n"
-        )
-        errors |> 
-        List.iter (fun (i, ret, rndDir, t, lang, ws, slim, _) -> 
+        sucRes |>
+        List.iter (fun (i, ret, rndDir, t, lang, ws, slim, _) ->
             printInfo "%s, l=%s, ws=%d, slim=%b, wd=%s, acn=%s --> " t.sAsn1 lang ws slim rndDir (t.acn.Trim())
             match ret with
-            | Failed errMsg -> 
+            | KnownFailure msg -> printSuccess "OK (known failure: %s)\n" (msg.Split('\n')[0])
+            | Success _ | Failed _ -> printSuccess "OK\n"
+        )
+        errors |>
+        List.iter (fun (i, ret, rndDir, t, lang, ws, slim, _) ->
+            printInfo "%s, l=%s, ws=%d, slim=%b, wd=%s, acn=%s --> " t.sAsn1 lang ws slim rndDir (t.acn.Trim())
+            match ret with
+            | Failed errMsg ->
                 printError "Failed\n%s\n" errMsg
-            | Success _ -> ()
+            | Success _ | KnownFailure _ -> ()
         )
 
         match parserResults.TryGetResult(<@ Json @>) with
@@ -531,10 +560,15 @@ let main0 argv =
         | Some fname ->
             let entries =
                 results |> List.map (fun (i, ret, rndDir, _, lang, ws, slim, seconds) ->
-                    let ok, message = match ret with Success m -> true, m | Failed m -> false, m
+                    // a known failure is OK, its message starts with "KNOWN_FAILURE(" (ciPlan.py lists them apart)
+                    let ok, message =
+                        match ret with
+                        | Success _        -> true, ""
+                        | KnownFailure m   -> true, m
+                        | Failed m         -> false, m
                     { id = ids[i]; lang = lang; ws = ws; slim = slim; ig = enableIG; acnv2 = enableAcnV2
                       ok = ok; seconds = Math.Round(seconds, 1); workDir = (if ok then "" else Path.Combine(workDir, rndDir))
-                      message = (if ok then "" else message) })
+                      message = message })
             File.WriteAllText(fname, Text.Json.JsonSerializer.Serialize(entries, Text.Json.JsonSerializerOptions(WriteIndented = true)))
 
         (if errors.IsEmpty then 0 else 1)

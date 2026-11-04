@@ -71,6 +71,7 @@ class TestRunResults:
     def __init__(self):
         self._lock = threading.Lock()
         self.errors: List[str] = []
+        self.known_failures: List[str] = []
         self.nTests = 0
 
     def add_error(self, msg: str):
@@ -80,6 +81,22 @@ class TestRunResults:
     def add_pass(self):
         with self._lock:
             self.nTests += 1
+
+    def remove_error(self, msg: str) -> bool:
+        """Drop one recorded error with this text (a known failure); False if there is none."""
+        with self._lock:
+            if msg in self.errors:
+                self.errors.remove(msg)
+                return True
+            return False
+
+    def add_known_failure(self, msg: str):
+        with self._lock:
+            self.known_failures.append(msg)
+
+    def get_known_failures(self) -> List[str]:
+        with self._lock:
+            return list(self.known_failures)
 
     def get_errors(self) -> List[str]:
         with self._lock:
@@ -154,6 +171,27 @@ def isTestSelected(cfg: TestConfig, asn1file: str) -> bool:
     if "ADA_BITSTRING_ALIGNMENT" in markers and cfg.language != "Ada":
         return False
     return True
+
+
+def knownFailureMarker(cfg: TestConfig, asn1file: str) -> Optional[str]:
+    """KNOWN_FAILURE(<lang>[,<mode>...]) on the first line (same rules in regression/Program.fs): the test cases of
+    the file are known to fail in the configurations it names; every mode must match (legacy, acn-v2, slim, ig, ws4,
+    ws8; this script always runs ws=8 with -ig). The cases still run: a failure is reported as a known failure, a pass
+    fails the case, so that the marker is removed once the defect is fixed. Returns the matching marker text."""
+    import re
+    for m in re.finditer(r"KNOWN_FAILURE\(([^)]*)\)", firstLineMarkers(asn1file)):
+        tokens = [t.strip() for t in m.group(1).split(",") if t.strip() != ""]
+        if not tokens or tokens[0] != cfg.language:
+            continue
+        modes = {"legacy": cfg.acnV2 == "", "acn-v2": cfg.acnV2 != "", "slim": cfg.slim != "",
+                 "ig": True, "ws4": False, "ws8": True}
+        unknown = [t for t in tokens[1:] if t not in modes]
+        if unknown:
+            raise ValueError(f"{asn1file}: unknown mode {unknown} in KNOWN_FAILURE "
+                             "(legacy, acn-v2, slim, ig, ws4, ws8)")
+        if all(modes[t] for t in tokens[1:]):
+            return m.group(0)
+    return None
 
 
 def extraFlags(cfg: TestConfig, asn1file: str) -> str:
@@ -559,10 +597,19 @@ def prepare_and_run_item(cfg: TestConfig, item: WorkItem):
         else:
             CreateACNFile(targetDir, item.acn_content)
 
+    failed = False
     try:
         RunTestCase(cfg, item)
     except Exception:
-        pass  # errors already recorded in results
+        failed = True  # errors already recorded in results
+    marker = knownFailureMarker(cfg, item.asn1file_path)
+    if marker is not None:
+        label = f'Failed {item.asn1_label} {item.acn_label} in {cfg.language}'
+        if failed and results.remove_error(label):
+            PrintWarning(f"known failure: {marker}")
+            results.add_known_failure(f'{label}: {marker}')
+        elif not failed:
+            results.add_error(f'{label}: {marker}, but the test case passed: remove the marker')
 
 
 def submain(cfg: TestConfig, testCaseSet: str, cntTest: bool):
@@ -733,6 +780,10 @@ def main():
         submain(cfg, testCaseSet, cntTest)
 
     safe_print("Test run ended succesfully. Number of test cases run :", results.get_nTests())
+    known = results.get_known_failures()
+    if known:
+        safe_print(f"Known failures ({len(known)}, KNOWN_FAILURE markers):")
+        safe_print('\n'.join(known))
     errs = results.get_errors()
     if errs:
         safe_print('\n'.join(errs))

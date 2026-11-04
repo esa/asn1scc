@@ -250,6 +250,13 @@ def summary(results_dir, expected_file, trx_dir):
     total_ok = sum(1 for _, e in all_entries if e["ok"])
     out += ["", f"Total: {len(all_entries)} cases run, {total_ok} OK "
                 f"(the `--> OK` lines of the sequential flow)."]
+    # cases that failed in a configuration their file marks KNOWN_FAILURE(...): counted OK, listed here
+    known = [(key, e) for key, e in all_entries if e["ok"] and (e.get("message") or "").startswith("KNOWN_FAILURE(")]
+    if known:
+        out += ["", f"## Known failures ({len(known)}, KNOWN_FAILURE markers: counted OK)", ""]
+        for key, e in known:
+            msg = e["message"].strip().splitlines()
+            out.append(f"- **{e['id']}** ({key}): `{msg[0][:300]}`")
 
     if trx_dir is not None:
         expected_methods = collections.Counter(pusc_methods())

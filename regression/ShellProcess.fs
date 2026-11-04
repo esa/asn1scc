@@ -10,6 +10,8 @@ type ProcessResult = {
 type TestCaseResult =
     | Success of string
     | Failed  of string
+    /// The case failed in a configuration its file marks KNOWN_FAILURE (counted as OK, listed apart).
+    | KnownFailure of string
 
 
 let markError fmt = Printf.kprintf (fun str ->  Failed str) fmt
