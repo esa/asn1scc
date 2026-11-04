@@ -1,4 +1,4 @@
--- KNOWN_FAILURE(c,acn-v2) (size deduced in a CONTAINING region that does not start at a byte boundary: the C acn-v2 decoder sees up to 7 bits too many, bit-offset sweep fails) NOCOVERAGE (Ada): gnatcov/gcov reports the 'declare' line of blocks that create a Bitstream object as uncovered (same pre-existing artifact as 23-CONTAINING/003 and /009, which hit it through the uPER CONTAINING temp streams)
+-- NOCOVERAGE (Ada): gnatcov/gcov reports the 'declare' line of blocks that create a Bitstream object as uncovered (same pre-existing artifact as 23-CONTAINING/003 and /009, which hit it through the uPER CONTAINING temp streams)
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
     MyInt12 ::= INTEGER (0..4000)
@@ -6,9 +6,8 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
     -- odd min/max element counts x 12 bits: the contained region is not a
     -- whole number of bytes, exercising the byte-padding of the region.
     -- SIZE(1..100) keeps the embedded length determinant of the containers
-    -- at exactly 8 bits: under --acn-v2 the contained region must start on
-    -- a byte boundary (pre-existing acn-v2 CONTAINING limitation with
-    -- sub-byte embedded length determinants, see q/issues.md)
+    -- at exactly 8 bits, so the contained regions start on a byte boundary
+    -- (008 covers regions that do not)
     TLVList ::= SEQUENCE (SIZE(1..100)) OF MyInt12
 
     MyPDU ::= SEQUENCE {

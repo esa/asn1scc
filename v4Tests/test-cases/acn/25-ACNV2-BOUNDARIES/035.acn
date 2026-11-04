@@ -1,0 +1,15 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    Item9 [encoding pos-int, size 9]
+    List9 [size deduced]
+    ExtPdu [] {
+        hdr     [encoding pos-int, size 4],
+        len     INTEGER [encoding pos-int, size 16],
+        payload [size len],
+        tail    [encoding pos-int, size 8]
+    }
+    EmbPdu [] {
+        hdr     [encoding pos-int, size 4],
+        payload [],
+        tail    [encoding pos-int, size 8]
+    }
+END

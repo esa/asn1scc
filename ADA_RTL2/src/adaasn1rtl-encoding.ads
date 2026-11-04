@@ -27,6 +27,11 @@ is
       Current_Bit_Pos : Natural;
       pushDataPrm     : Integer := 0;
       fetchDataPrm    : Integer := 0;
+      --  first bit after the end of the decoding region: Size_In_Bytes * 8
+      --  (BitStream_init), only the 'size deduced' decoders read it; an
+      --  --acn-v2 OCTET STRING CONTAINING region sets it to its own end while
+      --  its contents are decoded (the region need not end on a byte boundary)
+      End_Bit_Pos     : Natural;
 
    end record;
    pragma Warnings (On, "comes too early and was moved down");
@@ -115,7 +120,8 @@ is
      (Bitstream_Size_In_Bytes : Positive) return Bitstream with
       Pre  => Bitstream_Size_In_Bytes < Positive'Last / 8,
       Post => BitStream_init'Result.Current_Bit_Pos = 0 and
-      BitStream_init'Result.Size_In_Bytes = Bitstream_Size_In_Bytes;
+      BitStream_init'Result.Size_In_Bytes = Bitstream_Size_In_Bytes and
+      BitStream_init'Result.End_Bit_Pos = Bitstream_Size_In_Bytes * 8;
 
    function BitStream_current_length_in_bytes
      (bs : Bitstream) return Natural is

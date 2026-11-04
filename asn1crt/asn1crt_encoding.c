@@ -69,6 +69,7 @@ void BitStream_Init(BitStream* pBitStrm, unsigned char* buf, long count)
 	pBitStrm->currentBit = 0;
 	pBitStrm->pushDataPrm = NULL;
 	pBitStrm->fetchDataPrm = NULL;
+	pBitStrm->unusedTailBits = 0;
 }
 
 void BitStream_Init2(BitStream* pBitStrm, unsigned char* buf, long count,  void* pushDataPrm, void* fetchDataPrm)
@@ -86,6 +87,7 @@ void BitStream_AttachBuffer(BitStream* pBitStrm, unsigned char* buf, long count)
 	pBitStrm->currentBit = 0;
 	pBitStrm->pushDataPrm = NULL;
 	pBitStrm->fetchDataPrm = NULL;
+	pBitStrm->unusedTailBits = 0;
 }
 
 void BitStream_AttachBuffer2(BitStream* pBitStrm, unsigned char* buf, long count, void* pushDataPrm, void* fetchDataPrm)

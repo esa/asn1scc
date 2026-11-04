@@ -767,7 +767,7 @@ if (ret && (checkBitPatternPresentResult == 0)) {
 str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= "Acn_Enc_String_Ascii_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>);"
 str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= <<
 {
-	long ded_avail_bits = (pBitStrm->count * 8L - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+	long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
 	asn1SccSint ded_count = ded_avail_bits / 8;
 	ret = (ded_avail_bits \>= 0) && (ded_count \<= <nAsn1Max>);
 	<A(sErrCode)>
@@ -784,7 +784,7 @@ ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCo
 
 oct_deduced_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= <<
 {
-	long ded_avail_bits = (pBitStrm->count * 8L - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+	long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
 	asn1SccSint ded_count = ded_avail_bits / 8;
 	ret = (ded_avail_bits \>= 0) && <if(noSizeMin)>(<noSizeMin> \<= ded_count) && <endif>(ded_count \<= <nSizeMax>);
 	<A(sErrCode)>
@@ -802,7 +802,7 @@ sqf_deduced_fix_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, 
 
 sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= <<
 {
-	long ded_avail_bits = (pBitStrm->count * 8L - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+	long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
 	asn1SccSint ded_count = ded_avail_bits / <nIntItemSize>;
 	ret = (ded_avail_bits \>= 0) && (ded_avail_bits - ded_count * <nIntItemSize> \< 8) && <if(noSizeMin)>(<noSizeMin> \<= ded_count) && <endif>(ded_count \<= <nSizeMax>);
 	<A(sErrCode)>
@@ -819,7 +819,7 @@ sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, 
 
 sqf_deduced_var_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= <<
 {
-	long ded_budget_end = pBitStrm->count * 8L - <nTrailingBits>;
+	long ded_budget_end = pBitStrm->count * 8L - pBitStrm->unusedTailBits - <nTrailingBits>;
 	long ded_pos = pBitStrm->currentByte * 8L + pBitStrm->currentBit;
 	<i> = 0;
 	ret = (ded_pos \<= ded_budget_end);
@@ -1404,10 +1404,10 @@ octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatch
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     } else {
         long acn_expected_end = pBitStrm->currentByte + (long)<sDetParamName>->value;
-        int acn_end_bit = pBitStrm->currentBit;
-        pBitStrm->count = acn_expected_end + (acn_end_bit != 0);
+        int acn_end_bit = pBitStrm->currentBit;<if(bDeducedContent)><\n>        int acn_saved_tail_bits = pBitStrm->unusedTailBits;<endif>
+        pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>        /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
         ret = <sFuncName>(<p>, pBitStrm, pErrCode);
-        pBitStrm->count = acn_saved_count;
+        pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>        pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif>
         pBitStrm->currentByte = acn_expected_end;
         pBitStrm->currentBit = acn_end_bit;
     }
@@ -1483,10 +1483,10 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
         } else {
             long acn_saved_count = pBitStrm->count;
             long acn_expected_end = pBitStrm->currentByte + (long)acn_nCount;
-            int acn_end_bit = pBitStrm->currentBit;
-            pBitStrm->count = acn_expected_end + (acn_end_bit != 0);
+            int acn_end_bit = pBitStrm->currentBit;<if(bDeducedContent)><\n>            int acn_saved_tail_bits = pBitStrm->unusedTailBits;<endif>
+            pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>            /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>            pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
             ret = <sFuncName>(<p>, pBitStrm, pErrCode);
-            pBitStrm->count = acn_saved_count;
+            pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>            pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif>
             pBitStrm->currentByte = acn_expected_end;
             pBitStrm->currentBit = acn_end_bit;
         }
@@ -1527,10 +1527,10 @@ octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFunc
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     } else {
         long acn_expected_end = pBitStrm->currentByte + (long)<sDetParamName>->value;
-        int acn_end_bit = pBitStrm->currentBit;
-        pBitStrm->count = acn_expected_end + (acn_end_bit != 0);
+        int acn_end_bit = pBitStrm->currentBit;<if(bDeducedContent)><\n>        int acn_saved_tail_bits = pBitStrm->unusedTailBits;<endif>
+        pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>        /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
     <sBody>
-        pBitStrm->count = acn_saved_count;
+        pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>        pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif>
         pBitStrm->currentByte = acn_expected_end;
         pBitStrm->currentBit = acn_end_bit;
     }

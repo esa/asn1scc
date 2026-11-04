@@ -158,7 +158,9 @@ is
      (Bitstream_Size_In_Bytes : Positive) return Bitstream is
      (Bitstream'
         (Size_In_Bytes => Bitstream_Size_In_Bytes, Current_Bit_Pos => 0,
-         pushDataPrm   => 0, fetchDataPrm => 0, Buffer => (others => 0)));
+         pushDataPrm   => 0, fetchDataPrm => 0,
+         End_Bit_Pos   => Bitstream_Size_In_Bytes * 8,
+         Buffer        => (others => 0)));
 
    procedure BitStream_AppendBit (bs : in out Bitstream; Bit_Value : BIT) is
       Current_Byte : constant Integer :=

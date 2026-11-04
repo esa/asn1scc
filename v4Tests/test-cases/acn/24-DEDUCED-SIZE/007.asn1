@@ -1,9 +1,10 @@
--- KNOWN_FAILURE(c,acn-v2) (size deduced in a CONTAINING region that does not start at a byte boundary: the C acn-v2 decoder sees up to 7 bits too many, bit-offset sweep fails) NOCOVERAGE (Ada): gcov reports existing uPER CONTAINING temporary-stream declare lines as uncovered.
+-- NOCOVERAGE (Ada): gcov reports existing uPER CONTAINING temporary-stream declare lines as uncovered.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
     Item ::= INTEGER (0..4000)
     -- Include empty and odd-sized contents. The maximum makes embedded lengths
-    -- eight bits wide, so deferred CONTAINING regions start on byte boundaries.
+    -- eight bits wide, so CONTAINING regions start on byte boundaries (008
+    -- covers regions that do not).
     Items ::= SEQUENCE (SIZE(0..101)) OF Item
 
     ExternalPdu ::= SEQUENCE {
