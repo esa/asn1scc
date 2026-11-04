@@ -1,0 +1,14 @@
+-- --acn-v2 writes the embedded length of an OCTET STRING CONTAINING region again after
+-- the contents: the write must keep the bits after it in the same byte
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    -- 1..60 bytes: a 6-bit embedded length; after a 4-bit field it is written at bit 4
+    -- and ends in the next byte, which already holds the first bits of the contents
+    Bytes ::= SEQUENCE (SIZE(1..60)) OF INTEGER (0..255)
+    Pdu ::= SEQUENCE {
+        hdr     INTEGER (0..15),
+        payload OCTET STRING (CONTAINING Bytes),
+        tail    INTEGER (0..255)
+    }
+    pdu1 Pdu ::= { hdr 5, payload { 255, 129 }, tail 165 }
+END
+--TCLS Pdu [] { hdr [encoding pos-int, size 4], payload [], tail [encoding pos-int, size 8] }

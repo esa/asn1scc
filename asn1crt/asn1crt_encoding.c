@@ -526,7 +526,8 @@ void BitStream_AppendPartialByte(BitStream* pBitStrm, byte v, byte nbits, flag n
 		pBitStrm->buf[pBitStrm->currentByte] &= mask1;
 		pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> totalBitsForNextByte);
 		bitstream_push_data_if_required(pBitStrm);
-		byte mask = (byte)~masksb[8 - totalBitsForNextByte];
+		/*keep the bits after the written ones: an --acn-v2 encoder writes a length again over the data that follows it*/
+		byte mask = masksb[8 - totalBitsForNextByte];
 		pBitStrm->buf[pBitStrm->currentByte] &= mask;
 		pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << (8 - totalBitsForNextByte));
 		pBitStrm->currentBit = totalBitsForNextByte;

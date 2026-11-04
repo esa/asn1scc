@@ -346,7 +346,9 @@ is
             if totalBitsForNextByte > 0 then
                Current_Byte := Current_Byte + 1;
 
-               mask := not MASKSB (8 - totalBitsForNextByte);
+               --  keep the bits after the written ones: an --acn-v2 encoder
+               --  writes a determinant again over data that follows it
+               mask := MASKSB (8 - totalBitsForNextByte);
 
                bs.Buffer (Current_Byte) := bs.Buffer (Current_Byte) and mask;
                bs.Buffer (Current_Byte) :=
