@@ -243,8 +243,9 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                 else
                     markSuccess "pytest OK"
         else
-            let bRunCodeCoverage = not (asn1Lines |> Seq.exists(fun l -> l.Contains "NOCOVERAGE"))
-            //ShellProcess.printDebug "bRunCodeCoverage %b" bRunCodeCoverage
+            // NOCOVERAGE (first line, as in runTests.py) skips only the line gate on the .gcov file:
+            // the coverage target still runs the automatic tests, and RUN_SPARK still proves.
+            let bCheckLineCoverage = not ((asn1Lines |> Seq.tryHead |> Option.defaultValue "").Contains "NOCOVERAGE")
             let bRunSpark = (lang = "Ada") && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
             let ada_target =
                 if ws = 4 then
@@ -255,12 +256,12 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
             let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else (ada_target + "/debug/test_case.adb.gcov")))
             let covLinesToIgnore = ["}";"default:";"break;";"end";"declare"] |> Set.ofList
 
-            let makeCommand = sprintf "make%s" (if bNoAtc || not bRunCodeCoverage then "" else " coverage")
+            let makeCommand = sprintf "make%s" (if bNoAtc then "" else " coverage")
             let res = executeBashScript workDir makeCommand
             if res.ExitCode <> 0 then
                 markError "Error code is %d\n%s\n%s" res.ExitCode res.StdErr cmd
             else
-                if (bNoAtc || not bRunCodeCoverage) then
+                if bNoAtc then
                     markSuccess "Make OK"
                 elif lang = "Rust" then
                     // Rust coverage uses cargo build + cargo run (tarpaulin optional);
@@ -270,11 +271,15 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                     let restoreSrcLine (l:string) =
                         ((l.Split(':')[2..]) |> StrJoin ":").Trim()
                     let covLines =
-                        File.ReadAllLines coverageFile |>
-                        Seq.filter(fun l -> l.Contains("###")) |>
-                        Seq.filter(fun l -> not (l.Contains "COVERAGE_IGNORE")) |>
-                        Seq.filter(fun l -> not (covLinesToIgnore.Contains (restoreSrcLine l))) |>
-                        Seq.toList
+                        match bCheckLineCoverage with
+                        | false -> []
+                        | true  ->
+                            File.ReadAllLines coverageFile |>
+                            Seq.filter(fun l -> l.Contains("###")) |>
+                            Seq.filter(fun l -> not (l.Contains "COVERAGE_IGNORE")) |>
+                            Seq.filter(fun l -> not (covLinesToIgnore.Contains (restoreSrcLine l))) |>
+                            Seq.toList
+                    let coverageText = if bCheckLineCoverage then "Code Coverage OK" else "tests OK (NOCOVERAGE: no line gate)"
                     if not (List.isEmpty covLines) then
                         markError "Code Coverage Failed. See %s\n%s\n%s" coverageFile covLines.Head cmd
                     else
@@ -287,10 +292,10 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                                 markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
                             else
                                 match sparkProblems workDir (File.ReadLines sparkLogFname |> Seq.toList) with
-                                | []       -> markSuccess "Make OK, Code Coverage OK and SPARK OK"
+                                | []       -> markSuccess "Make OK, %s and SPARK OK" coverageText
                                 | problems -> markError "SPARK Failed. See %s\n%s\n%s" sparkLogFname (problems |> List.truncate 10 |> String.concat "\n") cmd
                         else
-                            markSuccess "Make and Code Coverage OK"
+                            markSuccess "Make and %s" coverageText
 
 
         
