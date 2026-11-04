@@ -32,7 +32,6 @@ flag Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode)
 	}
 	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
 }
-
 void Acn_Dec_AlignToNextByte(BitStream* pBitStrm)
 {
 	/* The byte alignment of a decoder (coverage step 14c3). It reads nothing, so it has nothing to check: when the
@@ -47,7 +46,6 @@ void Acn_Dec_AlignToNextByte(BitStream* pBitStrm)
 		bitstream_fetch_data_if_required(pBitStrm);
 	}
 }
-
 flag Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode)
 {
 	if (bEncode)
