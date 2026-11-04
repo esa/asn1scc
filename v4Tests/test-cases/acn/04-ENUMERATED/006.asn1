@@ -1,0 +1,24 @@
+-- q/issues.md Issue 66: an ENUMERATED value given as a reference to another value
+-- assignment (colorG2 ::= colorG ::= green), also in a SEQUENCE value, must not be
+-- reported as "does not conform to its type constraints" (it was compared with the
+-- item names). runTests.py fails a case whose compiler stderr is not warnings only.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+   Color ::= ENUMERATED { red, green, blue }
+   Pair ::= SEQUENCE { c Color, d Color }
+
+   MyPDU ::= SEQUENCE {
+      pair  Pair,
+      color Color
+   }
+
+   colorG  Color ::= green
+   colorG2 Color ::= colorG
+   colorB  Color ::= blue
+   pair1   Pair  ::= { c colorG2, d colorB }
+   pdu1    MyPDU ::= { pair pair1, color colorG }
+
+END
+
+--TCLS     MyPDU[]
+--TCLS     MyPDU[] { pair [] { c [encoding pos-int, size 8], d [] }, color [encoding pos-int, size 2] }
