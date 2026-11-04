@@ -1,3 +1,5 @@
+-- C_ADA_ONLY (Rust: the value constants are defined in test_case.rs and test_caseDef.rs -> E0659 ambiguous, as in
+-- 22-modules/009; Python: a value that references another value (colorG2, pair1) is not emitted -> AttributeError)
 -- q/issues.md Issue 66: an ENUMERATED value given as a reference to another value
 -- assignment (colorG2 ::= colorG ::= green), also in a SEQUENCE value, must not be
 -- reported as "does not conform to its type constraints" (it was compared with the
