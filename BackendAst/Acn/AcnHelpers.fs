@@ -119,6 +119,7 @@ let covExemptJustification (id:string) =
     | "ASN1SCC-COV-003" -> "ASN1SCC-COV-003: every value of the decoded bit width has an item, see Docs/statement-coverage-exemptions.md"
     | "ASN1SCC-COV-004" -> "ASN1SCC-COV-004: an earlier switch of this function on the same selector rejected every other value, see Docs/statement-coverage-exemptions.md"
     | "ASN1SCC-COV-005" -> "ASN1SCC-COV-005: every update of the determinant assigns an item, see Docs/statement-coverage-exemptions.md"
+    | "ASN1SCC-COV-008" -> "ASN1SCC-COV-008: the determinant decoded earlier in this function holds an item, see Docs/statement-coverage-exemptions.md"
     | _ -> raise (BugErrorException ("unknown coverage exemption " + id))
 
 /// Coverage step 12e: the key of a CHOICE selector in NestingScope.checkedSelectors / AcnChildUpdate.checkedSelectors

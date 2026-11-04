@@ -144,13 +144,25 @@ for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++)
 
 
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 Acn_AlignTo<sAlignmentValue>(pBitStrm, TRUE);
 <sMainBody>
 >>
 
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
+<if(bByteAlignment)><alignToNextByte_noCheck(sMainBody=sMainBody)><else><alignToNext_checked(sMainBody=sMainBody, sAlignmentValue=sAlignmentValue)><endif>
+>>
+
+/* Coverage step 14c3: the byte alignment of a decoder reads nothing and cannot fail (Acn_Dec_AlignToNextByte). */
+alignToNextByte_noCheck(sMainBody) /*nogen*/ ::= <<
+/* byte alignment: reads nothing and cannot pass the end of the stream, so it is not checked */
+Acn_Dec_AlignToNextByte(pBitStrm);
+<sMainBody>
+>>
+
+/* A word / double word alignment fails when the stream ends before the boundary. */
+alignToNext_checked(sMainBody, sAlignmentValue) /*nogen*/ ::= <<
 ret = Acn_AlignTo<sAlignmentValue>(pBitStrm, FALSE);
 *pErrCode = ret ? 0 : ERR_INSUFFICIENT_DATA;
 if (ret) {
@@ -1193,9 +1205,9 @@ Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefiniti
 switch(<sEnmExtFld>)
 {
     <arrsChildren; separator="\n">
-default:
+default:<if(soCovExempt)>                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
     *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/
+    ret = FALSE;                    /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif>
 }
 >>
 

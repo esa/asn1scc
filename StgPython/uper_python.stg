@@ -1028,3 +1028,7 @@ sequence_presence_bit_noErrCode(p, sChName) ::= ""
 octet_FixedSize_noCheck(p, sAcc, nFixedSize) ::= ""
 
 bitString_FixSize_noCheck(p, sAcc, nFixedSize) ::= ""
+
+/* Coverage step 14c3, C only (ILangGeneric.decodeOneValueWithoutRead; never used here). */
+one_value_assign(p, sValue) ::= ""
+choice_one_alternative(p, sAcc, sChildID, sChildContent) ::= ""

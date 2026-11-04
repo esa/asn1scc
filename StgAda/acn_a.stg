@@ -208,7 +208,7 @@ MappingFunctionDeclaration_decode(sTypeName, sMF) ::= <<
 >>
 
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 --align to next <sAlignmentValue>
 if (bs.Current_Bit_Pos mod <nAlignmentValue>) /= 0 then
     bs.Current_Bit_Pos := bs.Current_Bit_Pos + (<nAlignmentValue> - (bs.Current_Bit_Pos mod <nAlignmentValue>));
@@ -217,7 +217,7 @@ end if;
 >>
 
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 --align to next <sAlignmentValue>
 if (bs.Current_Bit_Pos mod <nAlignmentValue>) /= 0 then
     bs.Current_Bit_Pos := bs.Current_Bit_Pos + (<nAlignmentValue> - (bs.Current_Bit_Pos mod <nAlignmentValue>));

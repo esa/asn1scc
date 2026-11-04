@@ -151,10 +151,11 @@ let private handleAsn1Child
         | None -> None, us
     // coverage step 12e: a mandatory SEQUENCE child encoded inline in this function ran its determinant updates on every
     // path that reaches the next children (a call of its own encoder leaves the list empty)
+    // coverage step 14c3: in decode, the ENUMERATED determinants it decoded (ASN1SCC-COV-008)
     let checkedInChild =
         match codec, child.Optionality, child.Type.ActualType.Kind with
-        | Encode, None, Sequence _  -> ns1.acnSequenceCheckedSelectors
-        | _                         -> []
+        | (Encode | Decode), None, Sequence _  -> ns1.acnSequenceCheckedSelectors
+        | _                                    -> []
 
     //handle present-when acn property
     let presentWhenStmts, presentWhenLvs, presentWhenErrs, existVar, ns2 =
@@ -455,7 +456,17 @@ let private handleAcnChild
     let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult; bsReferenced=childEncDecStatement.IsSome; encOutcome=partEncOutcome}
     // coverage step 12e: the CHOICE selectors the update rejected unless valid, for the CHOICEs encoded after it
     let checkedByUpdate = update |> Option.map (fun u -> u.checkedSelectors |> List.map (fun sel -> sel, "ASN1SCC-COV-004")) |> Option.defaultValue []
-    let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits; checkedSelectors=checkedByUpdate @ s.checkedSelectors}
+    // coverage step 14c3: the decoder of an ENUMERATED field assigns its local an item on every path that keeps ret TRUE
+    // (a switch with an assignment per item and a failing default arm, or the item of a one-item type), for the CHOICE
+    // decoded after it that switches on the local (ASN1SCC-COV-008). Not the switch-free encoding (-eee); in --acn-v2 a
+    // deferred field has a dummy NULL type here and its CHOICE receives it as a parameter.
+    let decodedSelectors =
+        match codec, acnChild.Type, childEncDecStatement with
+        | Decode, AcnReferenceToEnumerated e, Some _ when not (ctx.r.args.isEnumEfficientEnabled e.enumerated.items.Length) ->
+            [lm.lg.getValue childP.accessPath, "ASN1SCC-COV-008"]
+        | Decode, (AcnReferenceToEnumerated _ | AcnInteger _ | AcnNullType _ | AcnBoolean _ | AcnReferenceToIA5String _), _
+        | Encode, _, _ -> []
+    let newAcc = {us=ns2; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits; acnAccBits=s.acnAccBits + acnChild.Type.acnMaxSizeInBits; checkedSelectors=decodedSelectors @ checkedByUpdate @ s.checkedSelectors}
     res, newAcc
 
 // Top-level dispatcher: hand the per-child work to the right helper based
@@ -798,6 +809,23 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                 // coverage step 12b: no check after a part that cannot fail (DAstUtilFunctions.nestEncodeParts)
                 let parts = List.zip allStmts partEncOutcomes |> List.choose (fun (stmt, o) -> stmt |> Option.map (fun s -> s, o))
                 let before = saveInitialBitStrmStatements |> List.map (fun s -> s, lm.lg.encodeTemplateOutcome EncRtlWritesOnly)
+                let after = (fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> List.map (fun s -> s, EncodeOutcome.unknown)
+                (before @ parts @ after) |> nestEncodeParts lm
+            | CheckEveryPart when codec = Decode && lm.lg.decodeJoinsByWrites ->
+                // coverage step 14c3: no check after a part that writes no ret (DecodeOutcome.decodeChildPartWrites): an
+                // ALWAYS ABSENT child, a one-value type or ACN field decoded in place
+                let partOutcomes =
+                    (presenceBits |> List.map (fun _ -> EncodeOutcome.unknown)) @
+                    (children |> List.map (fun c ->
+                        match c with
+                        | AcnChild acn   ->
+                            // from the Asn1AcnAst field: in --acn-v2 the DAst child of a deferred field carries a dummy NULL type
+                            match o.children |> List.tryPick (fun x -> match x with Asn1AcnAst.AcnChild a when a.id = acn.id -> Some a.Type | Asn1AcnAst.AcnChild _ | Asn1AcnAst.Asn1Child _ -> None) with
+                            | Some acnType when DecodeOutcome.acnInsertedFieldOneValue r lm acnType -> EncodeOutcome.noWrite
+                            | Some _ | None -> EncodeOutcome.unknown
+                        | Asn1Child asn1 -> DecodeOutcome.decodeChildPartWrites (DecodeOutcome.acnOneValue r lm) asn1.Optionality asn1.Type.toAsn1AcnAst))
+                let parts = List.zip allStmts partOutcomes |> List.choose (fun (stmt, o) -> stmt |> Option.map (fun s -> s, o))
+                let before = saveInitialBitStrmStatements |> List.map (fun s -> s, EncodeOutcome.unknown)
                 let after = (fallbackStmts@(post_encoding_function |> Option.map fst |> Option.toList)@seqBuild@proof) |> List.map (fun s -> s, EncodeOutcome.unknown)
                 (before @ parts @ after) |> nestEncodeParts lm
             | CheckEveryPart ->

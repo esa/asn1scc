@@ -120,13 +120,13 @@ while <i> \< (<fixedSize> as usize) && ret {
 
 
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 acn::acn_align_to<sAlignmentValue>(pBitStrm, true);
 <sMainBody>
 >>
 
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 acn::acn_align_to<sAlignmentValue>(pBitStrm, false);
 <sMainBody>
 >>

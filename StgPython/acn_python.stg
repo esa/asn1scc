@@ -98,13 +98,13 @@ MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
 MappingFunctionDeclaration_decode(sTypeName, sMF) ::= <<
 >>
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 codec.align_to_<sAlignmentValue>()
 # BitStream validation would go here
 <sMainBody>
 >>
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 codec.align_to_<sAlignmentValue>()
 # BitStream validation would go here
 <sMainBody>

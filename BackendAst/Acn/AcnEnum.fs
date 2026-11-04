@@ -201,27 +201,32 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                 let resultExpr, errCodes, auxiliaries =
                     intAcnFuncBdResult.resultExpr, intAcnFuncBdResult.errCodes, intAcnFuncBdResult.auxiliaries
                 let mainContent, localVariables =
-                    match r.args.isEnumEfficientEnabled o.items.Length  with
-                    | false ->
-                        let arrItems =
-                            o.items |>
-                            List.map(fun it ->
-                                let enumClassName = lm.lg.extractEnumClassName "" it.scala_name it.Name.Value
-                                Enumerated_item (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
-                        // coverage step 12e: the encoder of a determinant local that its update set to an item
-                        let soCovExempt =
-                            match codec with
-                            | Decode -> decodeDefaultArmExemption lm o
-                            | Encode -> nestingScope.selectorExemption (lm.lg.getValue p.accessPath) "ASN1SCC-COV-005" |> Option.map covExemptJustification
-                        let mainContent =
-                            match fullIndex with
-                            | Some _    -> lm.acn.EnumeratedEncValues_fullIndex (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody sFirstItemName intVal soCovExempt
-                            | None      -> EnumeratedEncValues (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal soCovExempt codec
-                        mainContent, localVar@intAcnFuncBdResult.localVariables
-                    | true ->
-                        let sEnumIndex = "nEnumIndex"
-                        let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
-                        Enumerated_no_switch (lm.lg.getValue p.accessPath) td intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName  intVal   sEnumIndex nLastItemIndex o.encodeValues   codec, enumIndexVar::localVar@intAcnFuncBdResult.localVariables
+                    // coverage step 14c3: one item, uPER-like: nothing to read (DecodeOutcome.acnEnumOneItem)
+                    match codec, DecodeOutcome.acnEnumOneItem r lm o with
+                    | Decode, true  -> lm.uper.one_value_assign (lm.lg.getValue p.accessPath) sFirstItemName, []
+                    | Decode, false
+                    | Encode, _     ->
+                        match r.args.isEnumEfficientEnabled o.items.Length  with
+                        | false ->
+                            let arrItems =
+                                o.items |>
+                                List.map(fun it ->
+                                    let enumClassName = lm.lg.extractEnumClassName "" it.scala_name it.Name.Value
+                                    Enumerated_item (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
+                            // coverage step 12e: the encoder of a determinant local that its update set to an item
+                            let soCovExempt =
+                                match codec with
+                                | Decode -> decodeDefaultArmExemption lm o
+                                | Encode -> nestingScope.selectorExemption (lm.lg.getValue p.accessPath) "ASN1SCC-COV-005" |> Option.map covExemptJustification
+                            let mainContent =
+                                match fullIndex with
+                                | Some _    -> lm.acn.EnumeratedEncValues_fullIndex (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody sFirstItemName intVal soCovExempt
+                                | None      -> EnumeratedEncValues (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal soCovExempt codec
+                            mainContent, localVar@intAcnFuncBdResult.localVariables
+                        | true ->
+                            let sEnumIndex = "nEnumIndex"
+                            let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
+                            Enumerated_no_switch (lm.lg.getValue p.accessPath) td intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName  intVal   sEnumIndex nLastItemIndex o.encodeValues   codec, enumIndexVar::localVar@intAcnFuncBdResult.localVariables
                 // coverage step 12b: the value -> encoded value map, then the integer encoding inside it
                 let encOutcome = EncodeOutcome.sequence [lm.lg.encodeTemplateOutcome EncEnumerated; intAcnFuncBdResult.encOutcome]
                 Some (mainContent, resultExpr, errCodes, localVariables, auxiliaries, encOutcome)
@@ -233,7 +238,8 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                 let newComments = comments@[enumComment icdStgFileName o]
                 [{IcdRow.fieldName = fieldName; comments = newComments; sPresent=sPresent;sType=(IcdPlainType "ENUMERATED"); sConstraint=sAsn1Constraints; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=icdMaxSizeWithoutAlignment acnAlignment o.acnMaxSizeInBits;sUnits=unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = "ENUMERATED"; rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None;}
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; userDefinedFunctions=[]; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult=Some icd; encOutcome = encodeOutcomeOf codec encOutcome})
+            let bBsIsUnReferenced = codec = Decode && DecodeOutcome.acnEnumOneItem r lm o
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; userDefinedFunctions=[]; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult=Some icd; encOutcome = encodeOutcomeOf codec encOutcome})
     funcBody
 
 

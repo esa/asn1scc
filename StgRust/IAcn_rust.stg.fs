@@ -23,8 +23,8 @@ type IAcn_rust() =
             acn_rust.acn_int_mapped_read  p sWireRead sMF soMFM sTmpType noMin noMax nFieldMin 
         override this.MappingFunctionDeclaration  (sTypeName:string) (sMF:string) (codec:Codec) =
             acn_rust.MappingFunctionDeclaration  sTypeName sMF codec
-        override this.alignToNext  (sMainBody:string) (sAlignmentValue:string) (nAlignmentValue:BigInteger) (nAbsOffset:BigInteger) (nRemainingMinBits:BigInteger) (nLevel:BigInteger) (nIx:BigInteger) (nOffset:BigInteger) (codec:Codec) =
-            acn_rust.alignToNext  sMainBody sAlignmentValue nAlignmentValue nAbsOffset nRemainingMinBits nLevel nIx nOffset codec
+        override this.alignToNext  (sMainBody:string) (sAlignmentValue:string) (nAlignmentValue:BigInteger) (nAbsOffset:BigInteger) (nRemainingMinBits:BigInteger) (nLevel:BigInteger) (nIx:BigInteger) (nOffset:BigInteger) (bByteAlignment:bool) (codec:Codec) =
+            acn_rust.alignToNext  sMainBody sAlignmentValue nAlignmentValue nAbsOffset nRemainingMinBits nLevel nIx nOffset bByteAlignment codec
         override this.PositiveInteger_ConstSize  (p:string) (sSsuffix:string) (sErrCode:string) (nFixedSize:BigInteger) (soMF:string option) (soMFM:string option) (nUperMin:BigInteger) (nUperMax:BigInteger) (sType:string) (codec:Codec) =
             acn_rust.PositiveInteger_ConstSize  p sSsuffix sErrCode nFixedSize soMF soMFM nUperMin nUperMax sType codec
         override this.PositiveInteger_ConstSize_8  (p:string) (sSsuffix:string) (sErrCode:string) (soMF:string option) (soMFM:string option) (nUperMin:BigInteger) (nUperMax:BigInteger) (sType:string) (codec:Codec) =

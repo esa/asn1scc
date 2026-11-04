@@ -111,7 +111,7 @@ loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
 }).invariant(0 \<= <i> && <i> \<= <fixedSize>.toInt)
 >>
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 locally {
     @ghost val unalignedCodec = snapshot(codec)
     codec.base.bitStream.alignTo<sAlignmentValue>()
@@ -123,7 +123,7 @@ locally {
 <sMainBody>
 >>
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 locally {
     @ghost val unalignedCodec = snapshot(codec)
     codec.base.bitStream.alignTo<sAlignmentValue>()

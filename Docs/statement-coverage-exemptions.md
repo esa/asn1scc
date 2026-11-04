@@ -51,7 +51,7 @@ covered nor proven.
 
   For the templates whose proof depends on the instance (ACN ENUMERATED, see
   ASN1SCC-COV-001 and -003; the CHOICE and determinant switches of
-  ASN1SCC-COV-004 and -005) the compiler emits the region only when the
+  ASN1SCC-COV-004, -005 and -008) the compiler emits the region only when the
   conditions of the entry hold; otherwise the arm is reachable and is covered
   by an automatic test. The asn1scc test suite checks that every region it
   measures is exactly the set of statements whose precondition
@@ -554,3 +554,94 @@ MISRA C:2012 Rule 16.4.
 
 **Ada.** No exemption needed: the Ada encoding is an exhaustive `case`
 statement without `when others`.
+
+---
+
+## ASN1SCC-COV-008: default arm of a CHOICE decoded after its ENUMERATED determinant in the same decoder (C)
+
+**Code.** An ACN SEQUENCE has an inserted field of an ENUMERATED type that
+selects a CHOICE component (`<field>` given as the CHOICE's determinant). The
+decoder of the SEQUENCE decodes the field into a local, then decodes the CHOICE
+with a switch on that local that has a `case` for every item of the field and a
+failing `default:` arm. The `default:` arm cannot execute. This is the decoding
+twin of ASN1SCC-COV-004 / -005.
+
+**Template**: `StgC/acn_c.stg`, macro `Choice_Enum_decode`, for the CHOICEs
+whose determinant the same function decoded before (an inserted field of the
+SEQUENCE being decoded, or of a mandatory SEQUENCE component decoded in the
+same function), and whose alternatives cover every item of the field (none
+ALWAYS ABSENT).
+
+**Example** (`AcceptanceFailureCode ::= ENUMERATED {error1, error2}`, a CHOICE
+`AcceptanceFailureData` with the alternatives `error1` and `error2`,
+`AcceptanceFailureNotice ::= SEQUENCE { data AcceptanceFailureData }`, ACN
+`AcceptanceFailureNotice [] { code AcceptanceFailureCode [encoding pos-int, size 8], data <code> [] }`):
+
+```c
+ASN1SCC_AcceptanceFailureCode AcceptanceFailureNotice_code;
+...
+/*Decode AcceptanceFailureNotice_code */
+ret = Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm, (&(intVal_AcceptanceFailureNotice_code)));
+*pErrCode = ret ? 0 : ERR_ACN_DECODE_ACCEPTANCEFAILURENOTICE_CODE;
+if (ret) {
+    switch (intVal_AcceptanceFailureNotice_code) {
+        case 0:
+            AcceptanceFailureNotice_code = AcceptanceFailureCode_error1;
+            break;
+        case 1:
+            AcceptanceFailureNotice_code = AcceptanceFailureCode_error2;
+            break;
+    default:                                    /*COVERAGE_IGNORE*/
+        ret = FALSE;                            /*COVERAGE_IGNORE*/
+        *pErrCode = ERR_ACN_DECODE_ACCEPTANCEFAILURENOTICE_CODE;                 /*COVERAGE_IGNORE*/
+    }
+} /*COVERAGE_IGNORE*/
+if (ret) {
+    /*Decode data */
+    switch(AcceptanceFailureNotice_code)
+    {
+        case AcceptanceFailureCode_error1:
+            /* ... */
+            break;
+        case AcceptanceFailureCode_error2:
+            /* ... */
+            break;
+    default:                                    /*COVERAGE_IGNORE*/    /* <- exempted */
+        *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+        ret = FALSE;                    /*COVERAGE_IGNORE*/
+    }
+}   /*COVERAGE_IGNORE*/
+```
+
+When the ENUMERATED type has one item and the uPER-like encoding, nothing is on
+the wire and the decoder assigns the item instead of the first switch
+(`AcceptanceFailureNotice_code = AcceptanceFailureCode_error1;`).
+
+**Proof.** The local is declared without an initializer and every assignment of
+it in the decoder stores an item of the field's type, which has a `case` in the
+CHOICE switch. The CHOICE switch reads the local only after an assignment: either
+after an assignment in the same block or an enclosing one (one item), or inside
+an `if (ret)` block opened after the field's decoding switch, which assigns the
+local in every `case` and sets `ret = FALSE` in its `default:` arm; between the
+two, every statement that could set `ret` back to TRUE runs only inside an
+`if (ret)` block, with the same argument as ASN1SCC-COV-004. So the local holds
+one of the `case` labels.
+
+**Conditions** (checked by `classifyStatements.py` on the generated code): the
+switch is in a decoder and its selector is a local declared without an
+initializer in that decoder; every assignment of the local is a label of the
+switch; and one of the two forms of "read only after an assignment" above holds.
+The compiler emits the region only for a CHOICE whose determinant is an
+ENUMERATED field decoded earlier in the same function (not with the switch-free
+encoding `-eee`), and whose alternatives are exactly the items of the field.
+
+Not exempted: a CHOICE that receives its determinant as a parameter (a reference
+to a CHOICE type with an ACN parameter, and the `--acn-v2` specialised functions,
+which switch on the value of an `AcnInsertedFieldRef`): the proof would need
+every caller.
+
+**Why the code stays.** The same template decodes CHOICEs whose determinant is
+a parameter, where the arm is not proven, and MISRA C:2012 Rule 16.4.
+
+**Ada.** No exemption needed: the Ada decoding is an exhaustive `case` statement
+on the ENUMERATED local, without `when others`.

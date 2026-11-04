@@ -153,3 +153,7 @@ type IUper_rust() =
             uper_rust.octet_FixedSize_noCheck  p sAcc nFixedSize 
         override this.bitString_FixSize_noCheck  (p:string) (sAcc:string) (nFixedSize:BigInteger) =
             uper_rust.bitString_FixSize_noCheck  p sAcc nFixedSize 
+        override this.one_value_assign  (p:string) (sValue:string) =
+            uper_rust.one_value_assign  p sValue 
+        override this.choice_one_alternative  (p:string) (sAcc:string) (sChildID:string) (sChildContent:string) =
+            uper_rust.choice_one_alternative  p sAcc sChildID sChildContent 

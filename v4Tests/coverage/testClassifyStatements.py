@@ -685,6 +685,138 @@ class Cov005(unittest.TestCase):
         self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
 
 
+# Coverage step 14c3: the decoder of a SEQUENCE decodes the ENUMERATED determinant into a local, then the CHOICE
+# switches on it (legacy PUS-C ErrorCodes shape, two items in 8 bits).
+DECODE_CHOICE_DET = """flag ASN1SCC_Notice_ACN_Decode(ASN1SCC_Notice* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	ASN1SCC_Code Notice_code;
+	asn1SccUint intVal_Notice_code;
+
+	/*Decode Notice_code */
+	ret = Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm, (&(intVal_Notice_code)));
+	*pErrCode = ret ? 0 : ERR_ACN_DECODE_NOTICE_CODE;
+	if (ret) {
+	    switch (intVal_Notice_code) {
+	        case 0:
+	            Notice_code = Code_a;
+	            break;
+	        case 1:
+	            Notice_code = Code_b;
+	            break;
+	    default:                                    /*COVERAGE_IGNORE*/
+	        ret = FALSE;                            /*COVERAGE_IGNORE*/
+	        *pErrCode = ERR_ACN_DECODE_NOTICE_CODE;                 /*COVERAGE_IGNORE*/
+	    }
+	} /*COVERAGE_IGNORE*/
+	if (ret) {
+	    /*Decode data */
+	    switch(Notice_code)
+	    {
+	        case Code_a:
+	        	pVal->data.kind = Data_a_PRESENT;
+	        	ret = BitStream_ReadBit(pBitStrm, (&(pVal->data.u.a)));
+	        	break;
+	        case Code_b:
+	        	pVal->data.kind = Data_b_PRESENT;
+	        	ret = BitStream_ReadBit(pBitStrm, (&(pVal->data.u.b)));
+	        	break;
+	    default:                                    /*COVERAGE_IGNORE*/
+	        *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+	        ret = FALSE;                    /*COVERAGE_IGNORE*/
+	    }
+	}   /*COVERAGE_IGNORE*/
+
+    return ret;
+}"""
+
+# One item, uPER-like: nothing on the wire, the item is assigned (no check after it).
+DECODE_ONE_ITEM = """flag ASN1SCC_Notice_ACN_Decode(ASN1SCC_Notice* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	ASN1SCC_Code Notice_code;
+
+	/*Decode Notice_code */
+	/* one possible value: nothing on the wire */
+	Notice_code = Code_a;
+	/* no check of ret after a part that does not write it */
+	/*Decode data */
+	switch(Notice_code)
+	{
+	    case Code_a:
+	    	pVal->data.kind = Data_a_PRESENT;
+	    	ret = BitStream_ReadBit(pBitStrm, (&(pVal->data.u.a)));
+	    	break;
+	default:                                    /*COVERAGE_IGNORE*/
+	    *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+	    ret = FALSE;                    /*COVERAGE_IGNORE*/
+	}
+
+    return ret;
+}"""
+
+
+class Cov008(unittest.TestCase):
+    def test_choice_after_the_determinant_switch_is_proven(self):
+        self.assertEqual(check(DECODE_CHOICE_DET, CHOICE_ARM), "ASN1SCC-COV-008")
+
+    def test_choice_after_a_one_item_assignment_is_proven(self):
+        self.assertEqual(check(DECODE_ONE_ITEM, CHOICE_ARM), "ASN1SCC-COV-008")
+
+    def test_the_determinant_switch_itself_is_not_exempted(self):
+        self.assertEqual(check(DECODE_CHOICE_DET, "*pErrCode = ERR_ACN_DECODE_NOTICE_CODE;                 /*COVERAGE_IGNORE*/"), "")
+
+    def test_item_without_a_case_is_not_proven(self):
+        source = DECODE_CHOICE_DET.replace("\t        case Code_b:\n\t        \tpVal->data.kind = Data_b_PRESENT;\n"
+                                           "\t        \tret = BitStream_ReadBit(pBitStrm, (&(pVal->data.u.b)));\n\t        \tbreak;\n", "")
+        self.assertNotEqual(source, DECODE_CHOICE_DET)
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_determinant_switch_without_a_failing_default_is_not_proven(self):
+        source = DECODE_CHOICE_DET.replace("\t        ret = FALSE;                            /*COVERAGE_IGNORE*/\n", "")
+        self.assertNotEqual(source, DECODE_CHOICE_DET)
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_choice_switch_not_under_ret_is_not_proven(self):
+        source = DECODE_CHOICE_DET.replace("\tif (ret) {\n\t    /*Decode data */", "\t{\n\t    /*Decode data */")
+        self.assertNotEqual(source, DECODE_CHOICE_DET)
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_conditional_one_item_assignment_is_not_proven(self):
+        source = DECODE_ONE_ITEM.replace("\tNotice_code = Code_a;\n", "\tif (pVal->x) {\n\t    Notice_code = Code_a;\n\t}\n")
+        self.assertNotEqual(source, DECODE_ONE_ITEM)
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_determinant_parameter_is_not_proven(self):
+        source = DECODE_ONE_ITEM.replace("\tASN1SCC_Code Notice_code;\n", "").replace("\tNotice_code = Code_a;\n", "").replace(
+            "int* pErrCode)", "int* pErrCode, ASN1SCC_Code Notice_code)")
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_value_that_is_not_a_label_is_not_proven(self):
+        source = DECODE_ONE_ITEM.replace("\tNotice_code = Code_a;\n", "\tNotice_code = Code_c;\n")
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_determinant_of_an_inline_sequence_under_ret_is_proven(self):
+        # the field is decoded inside the `if (ret)` of an inline SEQUENCE component (09-CHOICE/007 header): when that
+        # block is not entered, ret stays FALSE and the CHOICE switch does not run either
+        source = DECODE_CHOICE_DET.replace(
+            "\t/*Decode Notice_code */\n",
+            "\tret = BitStream_ReadBit(pBitStrm, (&(pVal->h.a)));\n\tif (ret) {\n\t/*Decode Notice_code */\n").replace(
+            "\t} /*COVERAGE_IGNORE*/\n\tif (ret) {\n\t    /*Decode data */",
+            "\t} /*COVERAGE_IGNORE*/\n\t}   /*COVERAGE_IGNORE*/\n\tif (ret) {\n\t    /*Decode data */")
+        self.assertEqual(source.count("if (ret) {"), 3)
+        self.assertIn("\t}   /*COVERAGE_IGNORE*/\n\tif (ret) {\n\t    /*Decode data */", source)
+        self.assertEqual(check(source, CHOICE_ARM), "ASN1SCC-COV-008")
+
+    def test_encoder_is_not_proven(self):
+        source = DECODE_ONE_ITEM.replace("_ACN_Decode(", "_ACN_Encode(")
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+
 class FunctionKind(unittest.TestCase):
     def test_ber_needs_the_encoding_suffix(self):
         self.assertEqual(function_kind("ASN1SCC_TC_number_of_cycles_Decode"), "uper-decode")

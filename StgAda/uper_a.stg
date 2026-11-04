@@ -1190,3 +1190,7 @@ adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data
 bitString_FixSize_noCheck(p, sAcc, nFixedSize) ::= <<
 adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
 >>
+
+/* Coverage step 14c3, C only (ILangGeneric.decodeOneValueWithoutRead; never used here). */
+one_value_assign(p, sValue) ::= ""
+choice_one_alternative(p, sAcc, sChildID, sChildContent) ::= ""

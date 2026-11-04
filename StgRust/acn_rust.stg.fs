@@ -51,13 +51,13 @@ let MappingFunctionDeclaration (sTypeName:string) (sMF:string) codec =
     | Decode    ->
         ST.call "acn_rust" "MappingFunctionDeclaration_decode" [("sTypeName",(if sTypeName = null then null else ST.StrHelper sTypeName:>Object) );("sMF",(if sMF = null then null else ST.StrHelper sMF:>Object) )]
 
-let alignToNext (sMainBody:string) (sAlignmentValue:string) (nAlignmentValue:BigInteger) (nAbsOffset:BigInteger) (nRemainingMinBits:BigInteger) (nLevel:BigInteger) (nIx:BigInteger) (nOffset:BigInteger) codec =
+let alignToNext (sMainBody:string) (sAlignmentValue:string) (nAlignmentValue:BigInteger) (nAbsOffset:BigInteger) (nRemainingMinBits:BigInteger) (nLevel:BigInteger) (nIx:BigInteger) (nOffset:BigInteger) (bByteAlignment:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "acn_rust" "alignToNext_encode" [("sMainBody",(if sMainBody = null then null else ST.StrHelper sMainBody:>Object) );("sAlignmentValue",(if sAlignmentValue = null then null else ST.StrHelper sAlignmentValue:>Object) );("nAlignmentValue",nAlignmentValue :>Object);("nAbsOffset",nAbsOffset :>Object);("nRemainingMinBits",nRemainingMinBits :>Object);("nLevel",nLevel :>Object);("nIx",nIx :>Object);("nOffset",nOffset :>Object)]
+        ST.call "acn_rust" "alignToNext_encode" [("sMainBody",(if sMainBody = null then null else ST.StrHelper sMainBody:>Object) );("sAlignmentValue",(if sAlignmentValue = null then null else ST.StrHelper sAlignmentValue:>Object) );("nAlignmentValue",nAlignmentValue :>Object);("nAbsOffset",nAbsOffset :>Object);("nRemainingMinBits",nRemainingMinBits :>Object);("nLevel",nLevel :>Object);("nIx",nIx :>Object);("nOffset",nOffset :>Object);("bByteAlignment",bByteAlignment :>Object)]
     | Decode    ->
-        ST.call "acn_rust" "alignToNext_decode" [("sMainBody",(if sMainBody = null then null else ST.StrHelper sMainBody:>Object) );("sAlignmentValue",(if sAlignmentValue = null then null else ST.StrHelper sAlignmentValue:>Object) );("nAlignmentValue",nAlignmentValue :>Object);("nAbsOffset",nAbsOffset :>Object);("nRemainingMinBits",nRemainingMinBits :>Object);("nLevel",nLevel :>Object);("nIx",nIx :>Object);("nOffset",nOffset :>Object)]
+        ST.call "acn_rust" "alignToNext_decode" [("sMainBody",(if sMainBody = null then null else ST.StrHelper sMainBody:>Object) );("sAlignmentValue",(if sAlignmentValue = null then null else ST.StrHelper sAlignmentValue:>Object) );("nAlignmentValue",nAlignmentValue :>Object);("nAbsOffset",nAbsOffset :>Object);("nRemainingMinBits",nRemainingMinBits :>Object);("nLevel",nLevel :>Object);("nIx",nIx :>Object);("nOffset",nOffset :>Object);("bByteAlignment",bByteAlignment :>Object)]
 
 let PositiveInteger_ConstSize (p:string) (sSsuffix:string) (sErrCode:string) (nFixedSize:BigInteger) (soMF:string option) (soMFM:string option) (nUperMin:BigInteger) (nUperMax:BigInteger) (sType:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

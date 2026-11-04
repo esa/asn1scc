@@ -482,6 +482,7 @@ type LangGeneric_c() =
                 "BitStream_checkBitPatternPresent"
                 "BitStream_ReadBits_nullterminated"
                 "Acn_AlignToNextByte"
+                "Acn_Dec_AlignToNextByte"
                 "Acn_AlignToNextWord"
                 "Acn_AlignToNextDWord"
                 "Acn_Enc_Int_PositiveInteger_ConstSize"
@@ -935,6 +936,9 @@ type LangGeneric_c() =
         override _.atcInvalidStreamPackages = ["asn1crt_encoding_acn"]
         // every read primitive of the C RTL checks the view, so a prefix of a valid encoding must be rejected
         override _.atcDecodeSweep _ = TruncationAndCorruptionSweep
+        // coverage step 14c3: no read of a one-value type, no `if (ret)` after a decode part that writes no ret
+        override _.decodeOneValueWithoutRead = true
+        override _.decodeJoinsByWrites = true
 
         override this.getDirInfo (target:Targets option) rootDir =
             {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}

@@ -21,6 +21,7 @@ d8'          `8b  `"Y8888Y"'   88      `888           88        `"YbbdP'Y8  88  
 */
 
 flag Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode);
+void Acn_Dec_AlignToNextByte(BitStream* pBitStrm);   /* the byte alignment of a decoder: cannot fail */
 flag Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode);
 flag Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode);
 

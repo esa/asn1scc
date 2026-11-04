@@ -110,23 +110,24 @@ let handleAlignmentForAsn1Types (r:Asn1AcnAst.AstRoot)
     match acnAlignment with
     | None      -> funcBody
     | Some al   ->
-        let alStr, nAlignmentVal =
+        // coverage step 14c3: a byte alignment cannot fail in decode (C: Acn_Dec_AlignToNextByte, no check)
+        let alStr, nAlignmentVal, bByteAlignment =
             match al with
             | AcnGenericTypes.NextByte ->
-                lm.lg.getAlignmentByteTypeName, 8I
+                lm.lg.getAlignmentByteTypeName, 8I, true
             | AcnGenericTypes.NextWord ->
-                lm.lg.getAlignmentWordTypeName, 16I
+                lm.lg.getAlignmentWordTypeName, 16I, false
             | AcnGenericTypes.NextDWord ->
-                lm.lg.getAlignmentDWordTypeName, 32I
+                lm.lg.getAlignmentDWordTypeName, 32I, false
         let newFuncBody st errCode prms nestingScope p =
             let content, ns1a = funcBody st errCode prms nestingScope p
             let newContent =
                 match content with
                 | Some bodyResult   ->
-                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
+                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset bByteAlignment codec
                     Some {bodyResult with funcBody  = funcBodyStr; bBsIsUnReferenced = false; icdResult = prependAlignmentPaddingRow (Some al) bodyResult.icdResult}
                 | None              ->
-                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
+                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset bByteAlignment codec
                     // Aligned zero-bit type (pattern-less NULL / empty SEQUENCE):
                     // icdResult stays None here and AcnFunctionWrapper synthesizes
                     // the 0-bit row (zeroBitIcdResult) and prepends the padding row
@@ -144,20 +145,21 @@ let handleAlignmentForAcnTypes (r:Asn1AcnAst.AstRoot)
     match acnAlignment with
     | None      -> funcBody
     | Some al   ->
-        let alStr, nAlignmentVal =
+        // coverage step 14c3: a byte alignment cannot fail in decode (C: Acn_Dec_AlignToNextByte, no check)
+        let alStr, nAlignmentVal, bByteAlignment =
             match al with
-            | AcnGenericTypes.NextByte   -> lm.lg.getAlignmentByteTypeName, 8I
-            | AcnGenericTypes.NextWord   -> lm.lg.getAlignmentWordTypeName, 16I
-            | AcnGenericTypes.NextDWord  -> lm.lg.getAlignmentDWordTypeName, 32I
+            | AcnGenericTypes.NextByte   -> lm.lg.getAlignmentByteTypeName, 8I, true
+            | AcnGenericTypes.NextWord   -> lm.lg.getAlignmentWordTypeName, 16I, false
+            | AcnGenericTypes.NextDWord  -> lm.lg.getAlignmentDWordTypeName, 32I, false
         let newFuncBody (codec:CommonTypes.Codec) (prms: (RelativePath * AcnParameter) list) (nestingScope: NestingScope) (p: CodegenScope) (lvName:string) =
             let content = funcBody codec prms nestingScope p lvName
             let newContent =
                 match content with
                 | Some bodyResult   ->
-                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
+                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset bByteAlignment codec
                     Some {bodyResult with funcBody  = funcBodyStr; bBsIsUnReferenced = false; icdResult = prependAlignmentPaddingRow (Some al) bodyResult.icdResult}
                 | None              ->
-                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset codec
+                    let funcBodyStr = alignToNext "" alStr nAlignmentVal nestingScope.acnOffset (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) (nestingScope.nestingLevel - 1I) nestingScope.nestingIx nestingScope.acnRelativeOffset bByteAlignment codec
                     // The wrapped ACN child encodes 0 bits (pattern-less ACN NULL)
                     // but the alignment itself still emits up to alignment-1 padding
                     // bits - give the parent table a padding-only row so its rows

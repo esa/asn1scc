@@ -33,6 +33,21 @@ flag Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode)
 	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
 }
 
+void Acn_Dec_AlignToNextByte(BitStream* pBitStrm)
+{
+	/* The byte alignment of a decoder (coverage step 14c3). It reads nothing, so it has nothing to check: when the
+	   current byte was partly read (currentBit != 0), that byte exists (currentByte < count), so the next byte boundary
+	   is at most the end of the stream (count * 8). A stream position already past the end (which no RTL read that
+	   succeeded leaves) is not checked here: the next read fails on its own bounds check. In streaming mode the move to
+	   the end of the buffer fetches the next one, as every read does. */
+	if (pBitStrm->currentBit != 0)
+	{
+		pBitStrm->currentBit = 0;
+		pBitStrm->currentByte++;
+		bitstream_fetch_data_if_required(pBitStrm);
+	}
+}
+
 flag Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode)
 {
 	if (bEncode)

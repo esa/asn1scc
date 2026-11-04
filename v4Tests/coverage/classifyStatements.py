@@ -343,7 +343,10 @@ def runs_after(stacks, first_head, first_end, later_head):
         if g is None:
             continue
         if g == ("ret",):
-            if not sticky(stacks, block[0], check):
+            # when the block `if (ret)` is not entered, nothing in it runs and ret is FALSE at its end
+            # (coverage step 14c3: a decoder's determinant inside an inline SEQUENCE's `if (ret)`)
+            block_end = max(n for n, st in stacks.items() if n != "lines" and block in st)
+            if not sticky(stacks, block_end, check):
                 return False
             continue
         later = [c for y in b for c in conjuncts(guard(y)) if c]
@@ -556,6 +559,41 @@ def cov005(lines, first):
     return False
 
 
+def cov008(lines, first):
+    """ASN1SCC-COV-008: the statement is in the `default:` arm of a switch on a local
+    of the decoder that every assignment sets to a label of that switch, and the switch
+    reads it only after it was assigned: after an assignment in the same block or an
+    enclosing one (the item of a one-item determinant), or after a construct that
+    assigns it on every exit with ret TRUE (the determinant's decoding switch, whose
+    default arm fails)."""
+    head = owning_switch(lines, first)
+    region = function_region(lines, first)
+    if head is None or region is None:
+        return False
+    start, end = region
+    if "_Decode" not in lines[start - 1]:
+        return False
+    body = switch_body(lines, head, end)
+    if body is None or not re.fullmatch(r"[A-Za-z_]\w*", body[0]) or body[0] == "pVal":
+        return False
+    name, labels = body[0], set(body[3])
+    if not any(re.match(r"^\s*[\w]+\s+" + re.escape(name) + r"\s*;", lines[n - 1]) for n in range(start, head)):
+        return False
+    assignments = local_assignments(lines, start, end, name)
+    if not assignments or any(value not in labels for _, value in assignments):
+        return False
+    stacks = block_stacks(lines, start, end)
+    stacks["lines"] = lines
+    for n, _ in assignments:
+        if n < head and stacks[n] == stacks[head][:len(stacks[n])]:
+            return True
+    for number in range(start + 1, head):
+        last = assigns_on_every_exit(lines, stacks, end, number, name)
+        if last is not None and last < head and runs_after(stacks, number, last, head):
+            return True
+    return False
+
+
 # RTL decoders whose postcondition bounds the value on success: the uPER
 # constrained whole numbers (Result and IntVal in MinVal .. MaxVal) and the ACN
 # fixed-size integers (Result.Success and IntVal in minVal .. maxVal).
@@ -671,6 +709,8 @@ def proven_unreachable(language, lines, first, src):
         return "ASN1SCC-COV-004"
     if cov005(lines, first):
         return "ASN1SCC-COV-005"
+    if cov008(lines, first):
+        return "ASN1SCC-COV-008"
     return ""
 
 

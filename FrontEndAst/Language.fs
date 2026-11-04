@@ -823,6 +823,18 @@ type ILangGeneric () =
     abstract member decodeReadFailureModel : ReadFailureModel
     default _.decodeReadFailureModel = ReadsCanFail
 
+    /// Coverage step 14c3: a decoder reads nothing for a type with one possible value (ENUMERATED with one item, CHOICE
+    /// with one alternative, uPER and ACN uPER-like encodings): it assigns the value, as IntNoneRequired does for
+    /// INTEGER (5..5); the RTL read of 0 bits and its check could never fail. C only; the others keep the read.
+    abstract member decodeOneValueWithoutRead : bool
+    default _.decodeOneValueWithoutRead = false
+
+    /// Coverage step 14c3: a decoder SEQUENCE joins its parts by what they write, as the encoders do
+    /// (DAstUtilFunctions.nestEncodeParts): after a part that writes no ret (an ALWAYS ABSENT child, a one-value part)
+    /// the rest follows without `if (ret)`. C only (Ada joins its decode parts by DecodeOutcome).
+    abstract member decodeJoinsByWrites : bool
+    default _.decodeJoinsByWrites = false
+
     /// Whether the IsConstraintValid of an inline child type is still emitted when its parent no longer calls it
     /// (coverage step 11b: the child cannot be invalid). Scala: the ACN encoders of OPTIONAL children call it too.
     /// Elsewhere only the parent called it, and an uncalled function would be dead code (C line-coverage gate).

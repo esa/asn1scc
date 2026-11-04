@@ -433,12 +433,14 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                 o.items |> List.mapi(fun i itm -> Enumerated_item pp (lm.lg.getNamedItemBackendName (Some typeDefinition) itm) (BigInteger i) nLastItemIndex codec)
             let nBits = (GetNumberOfBitsForNonNegativeInteger (nMax-nMin))
             // coverage step 14c2a: 2^nBits items, the index is read with the _FullRange twin (DecodeOutcome.uperEnumFullIndex)
-            let funcBodyContent =
-                match codec, DecodeOutcome.uperEnumFullIndex r lm o with
-                | Decode, Some nFullBits -> lm.uper.Enumerated_fullIndex pp td items nFullBits
-                | Decode, None
-                | Encode, _              -> Enumerated pp td items nMin nMax nBits errCode.errCodeName nLastItemIndex sFirstItemName codec
-            {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = aux; encOutcome = encodeOutcomeOf codec (lm.lg.encodeTemplateOutcome EncEnumerated)}
+            // coverage step 14c3: one item, nothing to read (DecodeOutcome.uperEnumOneItem)
+            let funcBodyContent, bBsIsUnReferenced =
+                match codec, DecodeOutcome.uperEnumFullIndex r lm o, DecodeOutcome.uperEnumOneItem r lm o with
+                | Decode, _, true           -> lm.uper.one_value_assign pp sFirstItemName, true
+                | Decode, Some nFullBits, false -> lm.uper.Enumerated_fullIndex pp td items nFullBits, false
+                | Decode, None, false
+                | Encode, _, _              -> Enumerated pp td items nMin nMax nBits errCode.errCodeName nLastItemIndex sFirstItemName codec, false
+            {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries = aux; encOutcome = encodeOutcomeOf codec (lm.lg.encodeTemplateOutcome EncEnumerated)}
         | true ->
             let sEnumIndex = "nEnumIndex"
             let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
@@ -1102,6 +1104,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                     (childrenStatements00 |> List.map (fun c -> c.encOutcome))
                 let parts = List.zip allStmts partOutcomes |> List.choose (fun (stmt, o) -> stmt |> Option.map (fun s -> s, o))
                 (parts @ ((seqBuild@proof) |> List.map (fun s -> s, EncodeOutcome.unknown))) |> nestEncodeParts lm
+            | Decode, ReadsCanFail when lm.lg.decodeJoinsByWrites ->
+                // coverage step 14c3: no check after a part that writes no ret (DecodeOutcome.decodeChildPartWrites)
+                let partOutcomes =
+                    (presenceBits |> List.map (fun _ -> EncodeOutcome.unknown)) @
+                    (nonAcnChildren |> List.map (fun c -> DecodeOutcome.decodeChildPartWrites (DecodeOutcome.uperOneValue r lm) c.Optionality c.Type.toAsn1AcnAst))
+                let parts = List.zip allStmts partOutcomes |> List.choose (fun (stmt, o) -> stmt |> Option.map (fun s -> s, o))
+                (parts @ ((seqBuild@proof) |> List.map (fun s -> s, EncodeOutcome.unknown))) |> nestEncodeParts lm
             | Decode, ReadsCanFail
             | Encode, _               -> (childrenStatements@seqBuild@proof) |> nestChildItems lm codec
         // coverage step 12b: the parts of the body in order, an OPTIONAL child's on some paths only
@@ -1132,10 +1141,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
     let baseFuncName =  match baseTypeUperFunc  with None -> None | Some baseFunc -> baseFunc.funcName
     let sChoiceIndexName = (lm.lg.getLongTypedefName typeDefinition) + "_index_tmp"
+    // coverage step 14c3: one alternative, the index is not read (DecodeOutcome.choiceOneAlternative)
+    let bOneAlternative = codec = CommonTypes.Decode && DecodeOutcome.choiceOneAlternative lm o
     let localVariables =
-        match codec with
-        | CommonTypes.Encode  -> []
-        | CommonTypes.Decode  -> [(Asn1SIntLocalVariable (sChoiceIndexName, None))]
+        match codec, bOneAlternative with
+        | CommonTypes.Encode, _         -> []
+        | CommonTypes.Decode, true      -> []
+        | CommonTypes.Decode, false     -> [(Asn1SIntLocalVariable (sChoiceIndexName, None))]
 
     let typeDefinitionName = typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
 
@@ -1145,7 +1157,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         let acnSiblingMaxSize = children |> List.map (fun c -> c.chType.acnMaxSizeInBits) |> List.max
         let uperSiblingMaxSize = children |> List.map (fun c -> c.chType.uperMaxSizeInBits) |> List.max
 
-        let handleChild (nIndexSizeInBits: BigInteger) (i: int) (child: ChChildInfo): (string * LocalVariable list * ErrorCode list * string list) * EncodeOutcome =
+        let handleChild (nIndexSizeInBits: BigInteger) (i: int) (child: ChChildInfo): (string * LocalVariable list * ErrorCode list * string list) * EncodeOutcome * bool =
             let childNestingScope =
                 {nestingScope with
                     nestingLevel = nestingScope.nestingLevel + 1I
@@ -1172,7 +1184,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
             let mk_choice_child (childContent: string): string =
                 let childContent = lm.lg.adaptFuncBodyChoice child.chType.Kind codec lm.uper UPER childContent sChildTypeDef sChildName
-                choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sChildInitExpr isSequence isEnum codec
+                match bOneAlternative with
+                | true  -> lm.uper.choice_one_alternative (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) childContent
+                | false -> choice_child (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sChildInitExpr isSequence isEnum codec
 
             match uperChildRes with
             | None              ->
@@ -1186,17 +1200,19 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                         | Sequence _    -> lm.uper.decode_empty_sequence_emptySeq childp.accessPath.rootId
                         | _             -> lm.lg.createSingleLineComment "no encoding/decoding is required"
                     | true   -> lm.lg.createSingleLineComment "no encoding/decoding is required"
-                (mk_choice_child childContent, [], [], []), lm.lg.encodeTemplateOutcome EncRtlWritesOnly
+                (mk_choice_child childContent, [], [], []), lm.lg.encodeTemplateOutcome EncRtlWritesOnly, true
             | Some childContent ->
                 // coverage step 12b: the arm writes the index, then encodes the child
                 (mk_choice_child childContent.funcBody, childContent.localVariables, childContent.errCodes, childContent.auxiliaries),
-                    EncodeOutcome.sequence [lm.lg.encodeTemplateOutcome EncRtlWritesOnly; childContent.encOutcome]
+                    EncodeOutcome.sequence [lm.lg.encodeTemplateOutcome EncRtlWritesOnly; childContent.encOutcome], childContent.bBsIsUnReferenced
 
         let aux = lm.lg.generateChoiceAuxiliaries r UPER t o nestingScope p.accessPath codec
         match baseFuncName with
         | None ->
             let nIndexSizeInBits = (GetNumberOfBitsForNonNegativeInteger (BigInteger (children.Length - 1)))
-            let childrenContent3, armOutcomes = children |> List.mapi (handleChild nIndexSizeInBits) |> List.unzip
+            let childrenContent3, armOutcomes, armsBsUnReferenced = children |> List.mapi (handleChild nIndexSizeInBits) |> List.unzip3
+            // coverage step 14c3: without the index read, the decoder reads the stream only in its alternative
+            let bBsIsUnReferenced = bOneAlternative && List.forall id armsBsUnReferenced
             // coverage step 12b: one arm runs, then (C) the default arm of an invalid selector
             let encOutcome = encodeOutcomeOf codec (EncodeOutcome.sequence [EncodeOutcome.alternatives true armOutcomes; lm.lg.encodeTemplateOutcome EncChoiceDefaultArm])
             let childrenContent = childrenContent3 |> List.map(fun (s,_,_,_) -> s)
@@ -1207,12 +1223,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
             // coverage step 14c2a: 2^nIndexSizeInBits alternatives that cannot fail (DecodeOutcome.uperChoiceFullIndex)
             let ret =
-                match codec, DecodeOutcome.uperChoiceFullIndex r lm o with
-                | Decode, Some (nFullBits, _) -> lm.uper.choice_fullIndex pp (lm.lg.getAccess p.accessPath) childrenContent sChoiceIndexName td nFullBits
-                | Decode, None
-                | Encode, _                   -> choice pp (lm.lg.getAccess p.accessPath) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits introSnap codec
+                match codec, bOneAlternative, DecodeOutcome.uperChoiceFullIndex r lm o with
+                | Decode, true, _                    -> childrenContent.Head
+                | Decode, false, Some (nFullBits, _) -> lm.uper.choice_fullIndex pp (lm.lg.getAccess p.accessPath) childrenContent sChoiceIndexName td nFullBits
+                | Decode, false, None
+                | Encode, _, _                       -> choice pp (lm.lg.getAccess p.accessPath) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits introSnap codec
             let ret = lm.lg.generateChoiceProof r UPER t o ret p.accessPath codec
-            Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; encOutcome = encOutcome})
+            Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; encOutcome = encOutcome})
         | Some baseFuncName ->
             let pp, resultExpr = adaptArgumentPtr lm codec p
             let funcBodyContent = callBaseTypeFunc lm pp baseFuncName codec

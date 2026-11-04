@@ -491,3 +491,11 @@ let bitString_FixSize_noCheck (p:string) (sAcc:string) (nFixedSize:BigInteger) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "uper_rust" "bitString_FixSize_noCheck" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nFixedSize",nFixedSize :>Object)]
 
+let one_value_assign (p:string) (sValue:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "one_value_assign" [("p",p :>Object);("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) )]
+
+let choice_one_alternative (p:string) (sAcc:string) (sChildID:string) (sChildContent:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "choice_one_alternative" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sChildID",(if sChildID = null then null else ST.StrHelper sChildID:>Object) );("sChildContent",(if sChildContent = null then null else ST.StrHelper sChildContent:>Object) )]
+

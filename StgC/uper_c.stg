@@ -1013,3 +1013,17 @@ sequence_presence_bit_noErrCode(p, sChName) ::= ""
 octet_FixedSize_noCheck(p, sAcc, nFixedSize) ::= ""
 
 bitString_FixSize_noCheck(p, sAcc, nFixedSize) ::= ""
+
+/* Coverage step 14c3 (ILangGeneric.decodeOneValueWithoutRead): a type with one possible value (ENUMERATED with one
+   item, uPER and ACN uPER-like) is not read: its value is assigned. The RTL read of 0 bits could never fail. */
+one_value_assign(p, sValue) ::= <<
+/* one possible value: nothing on the wire */
+<p> = <sValue>;
+>>
+
+/* Coverage step 14c3: a CHOICE with one alternative (uPER, ACN uPER-like index): the index is not read. */
+choice_one_alternative(p, sAcc, sChildID, sChildContent) ::= <<
+/* one alternative: nothing on the wire */
+<p><sAcc>kind = <sChildID>;
+<sChildContent>
+>>

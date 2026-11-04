@@ -116,6 +116,68 @@ let uperEnumFullIndex (r:AstRoot) (lm:LanguageMacros) (o:Enumerated) : BigIntege
     | true  -> None
     | false -> fullIndexBits lm o.items.Length
 
+/// Coverage step 14c3 (ILangGeneric.decodeOneValueWithoutRead, C): a uPER ENUMERATED with one item is not read, the
+/// decoder assigns the item (DAstUPer.createEnumeratedFunction, macro one_value_assign); the RTL read of 0 bits could
+/// never fail. Not for the switch-free encoding (-eee).
+let uperEnumOneItem (r:AstRoot) (lm:LanguageMacros) (o:Enumerated) : bool =
+    lm.lg.decodeOneValueWithoutRead && o.items.Length = 1 && not (r.args.isEnumEfficientEnabled o.items.Length)
+
+/// 14c3: the same for an ACN ENUMERATED with the uPER-like encoding (AcnEnum.createEnumCommon); any other encoding
+/// reads its field.
+let acnEnumOneItem (r:AstRoot) (lm:LanguageMacros) (o:Enumerated) : bool =
+    match o.acnEncodingClass with
+    | Integer_uPER -> uperEnumOneItem r lm o
+    | PositiveInteger_ConstSize_8
+    | PositiveInteger_ConstSize_big_endian_16 | PositiveInteger_ConstSize_little_endian_16
+    | PositiveInteger_ConstSize_big_endian_32 | PositiveInteger_ConstSize_little_endian_32
+    | PositiveInteger_ConstSize_big_endian_64 | PositiveInteger_ConstSize_little_endian_64
+    | PositiveInteger_ConstSize _
+    | TwosComplement_ConstSize_8
+    | TwosComplement_ConstSize_big_endian_16 | TwosComplement_ConstSize_little_endian_16
+    | TwosComplement_ConstSize_big_endian_32 | TwosComplement_ConstSize_little_endian_32
+    | TwosComplement_ConstSize_big_endian_64 | TwosComplement_ConstSize_little_endian_64
+    | TwosComplement_ConstSize _
+    | ASCII_ConstSize _ | ASCII_UINT_ConstSize _ | BCD_ConstSize _
+    | ASCII_VarSize_NullTerminated _ | ASCII_UINT_VarSize_NullTerminated _ | BCD_VarSize_NullTerminated _ -> false
+
+/// 14c3: a CHOICE with one alternative whose index is coded (uPER, ACN without determinant): the index is not read,
+/// the decoder selects the alternative (macro choice_one_alternative).
+let choiceOneAlternative (lm:LanguageMacros) (o:Choice) : bool =
+    lm.lg.decodeOneValueWithoutRead && o.children.Length = 1
+
+/// 14c3 (ILangGeneric.decodeJoinsByWrites, C): what the decode part of a SEQUENCE child writes, for the joins of the
+/// parts (DAstUtilFunctions.nestEncodeParts): nothing for a child that is not read (ALWAYS ABSENT: its presence flag
+/// only; a one-value type decoded in place: an assignment); unknown otherwise, so the check after it stays. An
+/// OPTIONAL child stays unknown (conservative: present-when conditions).
+let decodeChildPartWrites (oneValue: Asn1Type -> bool) (optionality: Asn1Optionality option) (childType:Asn1Type) : EncodeOutcome =
+    match optionality with
+    | Some AlwaysAbsent                 -> EncodeOutcome.noWrite
+    | Some (Optional _)                 -> EncodeOutcome.unknown
+    | None | Some AlwaysPresent         ->
+        match oneValue childType with
+        | true  -> EncodeOutcome.noWrite
+        | false -> EncodeOutcome.unknown
+
+/// 14c3: a type decoded in place without a read (uPER).
+let uperOneValue (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : bool =
+    match t.Kind with
+    | Enumerated o -> uperEnumOneItem r lm o
+    | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | NullType _ | BitString _ | Boolean _
+    | SequenceOf _ | Sequence _ | Choice _ | ObjectIdentifier _ | TimeType _ | ReferenceType _ -> false
+
+/// 14c3: a type decoded in place without a read (ACN).
+let acnOneValue (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : bool =
+    match t.Kind with
+    | Enumerated o -> acnEnumOneItem r lm o
+    | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | NullType _ | BitString _ | Boolean _
+    | SequenceOf _ | Sequence _ | Choice _ | ObjectIdentifier _ | TimeType _ | ReferenceType _ -> false
+
+/// 14c3: an ACN inserted field decoded without a read (an ENUMERATED field with one item, uPER-like).
+let acnInsertedFieldOneValue (r:AstRoot) (lm:LanguageMacros) (o:AcnInsertedType) : bool =
+    match o with
+    | AcnReferenceToEnumerated e -> acnEnumOneItem r lm e.enumerated
+    | AcnInteger _ | AcnNullType _ | AcnBoolean _ | AcnReferenceToIA5String _ -> false
+
 /// The outcome of a part made of several parts (a SEQUENCE body): MayFail if one part may fail; otherwise
 /// WritesResult when one part writes result on every path (a presence bit, a mandatory child that writes result),
 /// NoResultWrite when no part touches result.
