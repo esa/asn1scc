@@ -474,9 +474,11 @@ class IcdTable:
 class IcdDocument:
     """Parses the -icdRaw JSON dump into tables and provides row conversion."""
 
-    def __init__(self, data: dict, anchors: dict[str, str]):
+    def __init__(self, data: dict, anchors: dict[str, str], xml_root: Optional[ET.Element] = None):
         self.data = data
         self.anchors = anchors                      # table id -> html anchor
+        self.xml_root = xml_root
+        self.units_by_path, self.units_by_tas_field, self.units_by_type = self._build_units_map(xml_root)
         self.tables: dict[str, IcdTable] = {}
         self.inlined_ids: set[str] = set()
         # child table id -> the parent row referencing it (first one wins)
@@ -496,7 +498,8 @@ class IcdDocument:
             self.tables[parsed.id] = parsed
             raw_rows[parsed.id] = list(table.get("rows", []))
         for table_id, rows in raw_rows.items():
-            self.tables[table_id].rows = [self._parse_row(r) for r in rows]
+            current_table = self.tables[table_id]
+            self.tables[table_id].rows = [self._parse_row(r, current_table) for r in rows]
             # Referrer map: child table id -> the parent row referencing it.
             # A collapsed child SEQUENCE OF table carries the repetition
             # range on its referrer row in the parent table.
@@ -512,6 +515,69 @@ class IcdDocument:
         for t in self.tables.values():
             if t.is_type_assignment():
                 self.by_type_name.setdefault(t.tas_name or t.name, t)
+
+    @staticmethod
+    def _build_units_map(root: Optional[ET.Element]) -> tuple[dict[str, str], dict[tuple[str, str], str], dict[str, str]]:
+        if root is None:
+            return {}, {}, {}
+        units_by_path: dict[str, str] = {}
+        units_by_tas_field: dict[tuple[str, str], str] = {}
+        units_by_type: dict[str, str] = {}
+
+        def extract_unit(el: Optional[ET.Element]) -> str:
+            if el is None:
+                return ""
+            u = el.attrib.get("unitsOfMeasure", "").strip()
+            if u:
+                return u
+            for child_node in el:
+                if child_node.tag == "Asn1Type" and "unitsOfMeasure" in child_node.attrib:
+                    return child_node.attrib["unitsOfMeasure"].strip()
+                if child_node.tag == "REFERENCE_TYPE":
+                    ref_asn = child_node.find("Asn1Type")
+                    if ref_asn is not None and "unitsOfMeasure" in ref_asn.attrib:
+                        return ref_asn.attrib["unitsOfMeasure"].strip()
+            return ""
+
+        for mod in root.findall(".//Module"):
+            mod_name = mod.attrib.get("Name", "")
+            for tas in mod.findall(".//TypeAssignments/TypeAssignment"):
+                tas_name = tas.attrib.get("Name", "")
+                tas_asn = tas.find("Asn1Type")
+                u = extract_unit(tas_asn)
+                if u:
+                    units_by_type[tas_name] = u
+                    units_by_type[f"{mod_name}.{tas_name}"] = u
+                    if tas_asn is not None and "id" in tas_asn.attrib:
+                        units_by_path[tas_asn.attrib["id"]] = u
+
+                for comp in tas.findall(".//SEQUENCE_COMPONENT"):
+                    c_name = comp.attrib.get("Name", "")
+                    c_asn = comp.find("Asn1Type")
+                    cu = extract_unit(c_asn)
+                    if cu:
+                        units_by_tas_field[(tas_name, c_name)] = cu
+                        units_by_tas_field[(f"{mod_name}.{tas_name}", c_name)] = cu
+                        if c_asn is not None and "id" in c_asn.attrib:
+                            units_by_path[c_asn.attrib["id"]] = cu
+
+                for comp in tas.findall(".//CHOICE_ALTERNATIVE"):
+                    c_name = comp.attrib.get("Name", "")
+                    c_asn = comp.find("Asn1Type")
+                    cu = extract_unit(c_asn)
+                    if cu:
+                        units_by_tas_field[(tas_name, c_name)] = cu
+                        units_by_tas_field[(f"{mod_name}.{tas_name}", c_name)] = cu
+                        if c_asn is not None and "id" in c_asn.attrib:
+                            units_by_path[c_asn.attrib["id"]] = cu
+
+        for node in root.iter("Asn1Type"):
+            u = node.attrib.get("unitsOfMeasure", "").strip()
+            cid = node.attrib.get("id", "")
+            if u and cid:
+                units_by_path[cid] = u
+
+        return units_by_path, units_by_tas_field, units_by_type
 
     def _postprocess_rows(self, table: IcdTable) -> None:
         """Per-table pass for the array length determinants.
@@ -687,7 +753,7 @@ class IcdDocument:
         # Raw text: the caller escapes the joined table comments once.
         return "ACN parameters: <" + ", ".join(items) + ">"
 
-    def _parse_row(self, row: dict) -> IcdRow:
+    def _parse_row(self, row: dict, table: Optional[IcdTable] = None) -> IcdRow:
         row_type = row.get("rowType", "FieldRow")
         s_type = row.get("sType") or {}
         # The type column of a reference row is resolved in render_plan: the
@@ -723,6 +789,26 @@ class IcdDocument:
             field_name = "value"
         ref_id = (s_type.get("id") or "") if s_type.get("kind") == "reference" else ""
         target = self.tables.get(ref_id) if ref_id else None
+        if not unit:
+            if table is not None and table.usage_path and field_name:
+                unit = self.units_by_path.get(f"{table.usage_path}.{field_name}", "")
+            if not unit and table is not None and field_name:
+                if table.tas_name:
+                    unit = self.units_by_tas_field.get((table.tas_name, field_name), "")
+                if not unit and table.name:
+                    unit = self.units_by_tas_field.get((table.name, field_name), "")
+            if not unit:
+                m = re.search(r"\(([A-Za-z][\w-]*)\)", typ) if "(" in typ else None
+                ref_type_name = m.group(1) if m else None
+                if not ref_type_name and ref_id and target:
+                    ref_type_name = target.tas_name or target.name
+                if ref_type_name:
+                    unit = self.units_by_type.get(ref_type_name, "")
+            if not unit and table is not None:
+                if table.tas_name:
+                    unit = self.units_by_type.get(table.tas_name, "")
+                if not unit and table.name:
+                    unit = self.units_by_type.get(table.name, "")
         # Array length determinant: the external ACN/uPER field that carries
         # the element count ('Length is determined by the external field: n').
         length_field = ""
@@ -1768,12 +1854,12 @@ def table_html(anchor: str, title: str, kind_name: str, min_size: str, max_size:
     return f'<h2 id="{html_escape(anchor)}">{html_escape(title)}</h2>' + local_asn + local_acn + compact + collapsible("Detailed table", table)
 
 
-def make_document(data: dict) -> IcdDocument:
+def make_document(data: dict, xml_root: Optional[ET.Element] = None) -> IcdDocument:
     """Build the IcdDocument and its id->anchor map (anchors need all ids)."""
     ids = [t.get("id", "") for t in data.get("tables", [])]
     order = [i for i in data.get("navOrder", []) if i in set(ids)]
     anchors = build_anchors(ids, order, data)
-    return IcdDocument(data, anchors)
+    return IcdDocument(data, anchors, xml_root=xml_root)
 
 
 def build_anchors(ids: list[str], order: list[str], data: dict) -> dict[str, str]:
@@ -2517,7 +2603,7 @@ def run_asn1scc(files: list[str], root_names: Optional[list[str]]) -> tuple[dict
     with tempfile.TemporaryDirectory(prefix="icd-generator-") as work_dir:
         json_path = Path(work_dir) / "icd.json"
         xml_path = Path(work_dir) / "model.xml"
-        command = [executable, "-icdRaw", str(json_path), "-x", str(xml_path), "-ACN"]
+        command = [executable, "-icdRaw", str(json_path), "-x", str(xml_path), "-ACN", "-fp", "AUTO"]
         if root_names:
             command += ["-icdPdus", ",".join(root_names)]
         command += asn1_files + acn_files
@@ -2584,7 +2670,7 @@ def main() -> None:
     is_excel = args.type == "excel" or out_ext in (".xlsx", ".xlsm")
 
     icd_data, xml_root = load_input(args.files, args.root)
-    doc = make_document(icd_data)
+    doc = make_document(icd_data, xml_root=xml_root)
     model = GrammarModel(xml_root) if xml_root is not None else None
 
     if is_excel:

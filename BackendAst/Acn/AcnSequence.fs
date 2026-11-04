@@ -596,11 +596,15 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             match childIcdTas.canBeEmbedded   with
             | true  ->
                 let chRows, _ = childIcdTas.createRowsFunc c.Name.Value optionality comments
-                chRows, []
+                let chRowsWithUnits =
+                    match c.Type.unitsOfMeasure with
+                    | None -> chRows
+                    | Some u -> chRows |> List.map (fun r -> if r.sUnits.IsNone then {r with sUnits = Some u} else r)
+                chRowsWithUnits, []
             | false ->
                 let sType = TypeHash childIcdTas.hash
                 let sConstraint = constraintsToIcdStr c.Type.ConstraintsAsn1Str
-                [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=sConstraint; minLengthInBits = c.Type.acnMinSizeInBits; maxLengthInBits=c.Type.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}], [childIcdTas]
+                [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=sConstraint; minLengthInBits = c.Type.acnMinSizeInBits; maxLengthInBits=c.Type.acnMaxSizeInBits;sUnits=c.Type.unitsOfMeasure; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}], [childIcdTas]
         | None ->
             [], []
 
