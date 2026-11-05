@@ -49,5 +49,15 @@ int main(void)
     assert(Msg2_ACN_Decode(&out2, &stream, &error));
     assert(Msg2_Equal(&in2, &out2));
 
+    /* len 1, but Inner takes 10 bits: its decoder reads 2 bits past the 1-octet region (into the rest of the
+       region's last byte). The decoder must reject it; the --acn-v2 C decoder accepted it (a = 0xAB, b = 2, tail
+       decoded from bit 19). */
+    {
+        static byte overrun[] = {0xA0, 0x35, 0x72, 0x00};
+        Msg2_Initialize(&out2);
+        BitStream_AttachBuffer(&stream, overrun, sizeof overrun);
+        assert(!Msg2_ACN_Decode(&out2, &stream, &error));
+    }
+
     return 0;
 }

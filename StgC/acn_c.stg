@@ -1408,6 +1408,11 @@ octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatch
         pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>        /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
         ret = <sFuncName>(<p>, pBitStrm, pErrCode);
         pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>        pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif>
+        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {
+            /*the contents read past the end of the region (into the rest of its last byte)*/
+            ret = FALSE; /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+        }
         pBitStrm->currentByte = acn_expected_end;
         pBitStrm->currentBit = acn_end_bit;
     }
@@ -1487,6 +1492,11 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
             pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>            /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>            pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
             ret = <sFuncName>(<p>, pBitStrm, pErrCode);
             pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>            pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif>
+            if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {
+                /*the contents read past the end of the region (into the rest of its last byte)*/
+                ret = FALSE; /*COVERAGE_IGNORE*/
+                *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+            }
             pBitStrm->currentByte = acn_expected_end;
             pBitStrm->currentBit = acn_end_bit;
         }
@@ -1531,6 +1541,11 @@ octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFunc
         pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>        /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
     <sBody>
         pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>        pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif>
+        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {
+            /*the contents read past the end of the region (into the rest of its last byte)*/
+            ret = FALSE; /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+        }
         pBitStrm->currentByte = acn_expected_end;
         pBitStrm->currentBit = acn_end_bit;
     }
@@ -1569,6 +1584,11 @@ bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFu
         pBitStrm->count = acn_end_byte + (acn_end_bit != 0);
         ret = <sFuncName>(<p>, pBitStrm, pErrCode);
         pBitStrm->count = acn_saved_count;
+        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_end_byte * 8L + acn_end_bit) {
+            /*the contents read past the end of the region (into the rest of its last byte)*/
+            ret = FALSE; /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+        }
         pBitStrm->currentByte = acn_end_byte;
         pBitStrm->currentBit = acn_end_bit;
     }
@@ -1619,6 +1639,11 @@ bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMax
             pBitStrm->count = acn_end_byte + (acn_end_bit != 0);
             ret = <sFuncName>(<p>, pBitStrm, pErrCode);
             pBitStrm->count = acn_saved_count;
+            if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_end_byte * 8L + acn_end_bit) {
+                /*the contents read past the end of the region (into the rest of its last byte)*/
+                ret = FALSE; /*COVERAGE_IGNORE*/
+                *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+            }
             pBitStrm->currentByte = acn_end_byte;
             pBitStrm->currentBit = acn_end_bit;
         }
@@ -1657,6 +1682,11 @@ bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncNa
         pBitStrm->count = acn_end_byte + (acn_end_bit != 0);
     <sBody>
         pBitStrm->count = acn_saved_count;
+        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_end_byte * 8L + acn_end_bit) {
+            /*the contents read past the end of the region (into the rest of its last byte)*/
+            ret = FALSE; /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+        }
         pBitStrm->currentByte = acn_end_byte;
         pBitStrm->currentBit = acn_end_bit;
     }
