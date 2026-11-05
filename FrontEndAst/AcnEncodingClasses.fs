@@ -281,7 +281,14 @@ let GetBooleanEncodingClass (alignment: AcnAlignment option) errLoc (p  : Boolea
     sz, sz + getAlignmentSize alignment
 
 
-let GetChoiceEncodingClass  (children : ChChildInfo list) (alignment: AcnAlignment option) errLoc (p  : ChoiceAcnProperties) =
+let GetChoiceEncodingClass  (allChildren : ChChildInfo list) (alignment: AcnAlignment option) errLoc (p  : ChoiceAcnProperties) =
+    // The encoding has no index and no contents for an ALWAYS ABSENT alternative (WITH COMPONENTS {x ABSENT}),
+    // as the backend encodes it (AcnChoice.isAcnChild): counting it made the sizes one bit too large, and the
+    // trailing constant of a 'size deduced' field before such a CHOICE wrong.
+    let children =
+        match allChildren |> List.filter (fun c -> c.Optionality <> Some ChoiceAlwaysAbsent) with
+        | []       -> allChildren
+        | encoded  -> encoded
     let maxChildSize = children |> List.map(fun c -> c.Type.acnMaxSizeInBits) |> Seq.max
     let minChildSize = children |> List.map(fun c -> c.Type.acnMinSizeInBits) |> Seq.min
 
