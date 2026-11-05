@@ -1,3 +1,4 @@
+-- KNOWN_FAILURE(Rust): the Rust validator compares a value-constrained BIT STRING with bit_string_equal, which is FALSE when the value array (capacity) and the constant array differ in length, so every value of Allowed is rejected
 -- BIT STRING lengths in values: the length of a variable-size BIT STRING value is
 -- its number of bits, in a value assignment (C wrote the number of bytes: 2 instead of 10, below SIZE(4..20)) and in
 -- the automatic test values of a value-constrained BIT STRING (both languages wrote the minimum size, 1).
