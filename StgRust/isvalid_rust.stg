@@ -139,7 +139,7 @@ GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch)
 >>
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpStringEqual(sExp1, sExp2, nLen) ::= "(<sExp1> == <sExp2>)"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"

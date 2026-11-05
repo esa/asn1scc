@@ -91,9 +91,9 @@ let ExpEqual (sExp1:string) (sExp2:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "ExpEqual" [("sExp1",(if sExp1 = null then null else ST.StrHelper sExp1:>Object) );("sExp2",(if sExp2 = null then null else ST.StrHelper sExp2:>Object) )]
 
-let ExpStringEqual (sExp1:string) (sExp2:string) =
+let ExpStringEqual (sExp1:string) (sExp2:string) (nLen:BigInteger) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "isvalid_rust" "ExpStringEqual" [("sExp1",(if sExp1 = null then null else ST.StrHelper sExp1:>Object) );("sExp2",(if sExp2 = null then null else ST.StrHelper sExp2:>Object) )]
+    ST.call "isvalid_rust" "ExpStringEqual" [("sExp1",(if sExp1 = null then null else ST.StrHelper sExp1:>Object) );("sExp2",(if sExp2 = null then null else ST.StrHelper sExp2:>Object) );("nLen",nLen :>Object)]
 
 let ExpGt (sExp1:string) (sExp2:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

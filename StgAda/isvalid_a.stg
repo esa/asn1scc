@@ -59,7 +59,9 @@ GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch)
 
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> = <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> = <sExp2>)"
+/* nLen = number of characters of the literal: the Ada string is padded with NUL up to its array length, so only
+   the first nLen characters are compared (a whole-array comparison with a shorter literal is always False) */
+ExpStringEqual(sExp1, sExp2, nLen) ::= "(<rtlModuleName()>.getStringSize(<sExp1>) = <nLen> and then <sExp1>(1 .. <nLen>) = <sExp2>)"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"

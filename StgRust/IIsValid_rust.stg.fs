@@ -49,8 +49,8 @@ type IIsValid_rust() =
             isvalid_rust.GetEnumIndexByName  sEnumValuesArray sEnumValuesArrayCount sExp bBinarySearch 
         override this.ExpEqual  (sExp1:string) (sExp2:string) =
             isvalid_rust.ExpEqual  sExp1 sExp2 
-        override this.ExpStringEqual  (sExp1:string) (sExp2:string) =
-            isvalid_rust.ExpStringEqual  sExp1 sExp2 
+        override this.ExpStringEqual  (sExp1:string) (sExp2:string) (nLen:BigInteger) =
+            isvalid_rust.ExpStringEqual  sExp1 sExp2 nLen 
         override this.ExpGt  (sExp1:string) (sExp2:string) =
             isvalid_rust.ExpGt  sExp1 sExp2 
         override this.ExpGte  (sExp1:string) (sExp2:string) =

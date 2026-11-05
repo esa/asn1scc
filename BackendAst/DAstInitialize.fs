@@ -387,16 +387,37 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
     let strTypeDef = lm.lg.getStrTypeDefinition o.typeDef
 
 
-    let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
+    let initWithValue (p:CodegenScope) vl =
         let resVar = (p.accessPath.asIdentifier lm.lg)
-        let vl =
-            match v.ActualValue with
-            | StringValue iv   ->
-                iv
-            | _                 -> raise(BugErrorException "UnexpectedValue")
         let tlLit = DAstVariables.convertStringValue2TargetLangStringLiteral lm (int (typedefMaxSize r t)) vl
         let tlLit = lm.lg.wrapIA5StringValue (lm.lg.definitionOrRef t.typeDefinitionOrReference) (ToC t.id.ModName) tlLit
         initIA5String (lm.lg.getValue p.accessPath) tlLit p.accessPath.isOptional resVar
+
+    let funcBody (p:CodegenScope) (v:Asn1ValueKind) =
+        match v.ActualValue with
+        | StringValue iv   -> initWithValue p iv
+        | _                 -> raise(BugErrorException "UnexpectedValue")
+
+    // The values of single-value constraints (Word ::= IA5String ("it""s" | "a\b")): the generated test values
+    // ("ABC...") would violate them, so the automatic tests take these values (those within the size and alphabet).
+    let rec singleValues (c:Asn1AcnAst.IA5StringConstraint) =
+        match c with
+        | Asn1AcnAst.StrUnionConstraint (_, c1, c2, _)      -> singleValues c1 @ singleValues c2
+        | Asn1AcnAst.StrIntersectionConstraint (_, c1, c2)  -> singleValues c1 @ singleValues c2
+        | Asn1AcnAst.StrRootConstraint2 (_, c1, c2)         -> singleValues c1 @ singleValues c2
+        | Asn1AcnAst.StrRootConstraint (_, c1)              -> singleValues c1
+        | Asn1AcnAst.StrExceptConstraint (_, c1, _)         -> singleValues c1
+        | Asn1AcnAst.StrAllExceptConstraint _               -> []
+        | Asn1AcnAst.StrSingleValueConstraint (_, v)        -> [v]
+        | Asn1AcnAst.StrSizeConstraint _                    -> []
+        | Asn1AcnAst.AlphabetConstraint _                   -> []
+    let constraintValues =
+        (o.cons @ o.withcons)
+        |> List.collect singleValues
+        |> List.distinct
+        |> List.filter (fun v ->
+            BigInteger v.Length >= o.minSize.uper && BigInteger v.Length <= o.maxSize.uper &&
+            v |> Seq.forall (fun ch -> Array.contains ch o.uperCharSet))
 
     //let ii = t.id.SequenceOfLevel + 1
     //let i = sprintf "i%d" ii
@@ -409,7 +430,15 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
         match firstPrintableAsciiCode with
         | Some c  -> lm.lg.charLiteral (char (int c))
         | None    -> lm.lg.charLiteral '\000'
+    let valueCase (v:string) =
+        let initTestCaseFunc (p:CodegenScope) =
+            let resVar = (p.accessPath.asIdentifier lm.lg)
+            {InitFunctionResult.funcBody = initWithValue p ([CStringValue v], emptyLocation); resultVar = resVar; localVariables = []}
+        {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue (BigInteger v.Length))]; variants = []}
     let testCaseFuncs =
+      match constraintValues with
+      | _ :: _ -> constraintValues |> List.map valueCase
+      | []     ->
         let seqOfCase (nSize:BigInteger)  =
             let initTestCaseFunc (p:CodegenScope) =
                 let ii = p.accessPath.SequenceOfLevel + 1
