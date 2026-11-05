@@ -474,9 +474,12 @@ class IcdTable:
 class IcdDocument:
     """Parses the -icdRaw JSON dump into tables and provides row conversion."""
 
-    def __init__(self, data: dict, anchors: dict[str, str]):
+    def __init__(self, data: dict, anchors: dict[str, str], xml_root: Optional[ET.Element] = None):
         self.data = data
         self.anchors = anchors                      # table id -> html anchor
+        self.xml_root = xml_root
+        # Units from the XML AST, for rows whose icdRaw entry has none.
+        self.units_by_path = self._build_units_map(xml_root)
         self.tables: dict[str, IcdTable] = {}
         self.inlined_ids: set[str] = set()
         # child table id -> the parent row referencing it (first one wins)
@@ -496,7 +499,8 @@ class IcdDocument:
             self.tables[parsed.id] = parsed
             raw_rows[parsed.id] = list(table.get("rows", []))
         for table_id, rows in raw_rows.items():
-            self.tables[table_id].rows = [self._parse_row(r) for r in rows]
+            current_table = self.tables[table_id]
+            self.tables[table_id].rows = [self._parse_row(r, current_table) for r in rows]
             # Referrer map: child table id -> the parent row referencing it.
             # A collapsed child SEQUENCE OF table carries the repetition
             # range on its referrer row in the parent table.
@@ -512,6 +516,27 @@ class IcdDocument:
         for t in self.tables.values():
             if t.is_type_assignment():
                 self.by_type_name.setdefault(t.tas_name or t.name, t)
+
+    @staticmethod
+    def _build_units_map(root: Optional[ET.Element]) -> dict[str, str]:
+        """Unit of measure of every ASN.1 node of the XML AST, by node id.
+
+        The id of a node is the usage path of the icdRaw tables plus the
+        field name ('Mod.Root.deltaAngle'), so a row is matched exactly.
+        A reference node holds the referenced type's node with the same id:
+        the outer node comes first in document order and carries the unit
+        written at the use site ('deltaAngle DeltaAngle --{deg}--'), which
+        wins over the referenced type's own unit.
+        """
+        units_by_path: dict[str, str] = {}
+        if root is None:
+            return units_by_path
+        for node in root.iter("Asn1Type"):
+            u = node.attrib.get("unitsOfMeasure", "").strip()
+            cid = node.attrib.get("id", "")
+            if u and cid:
+                units_by_path.setdefault(cid, u)
+        return units_by_path
 
     def _postprocess_rows(self, table: IcdTable) -> None:
         """Per-table pass for the array length determinants.
@@ -595,7 +620,7 @@ class IcdDocument:
                               typ=elem_row.typ, typ_html=elem_row.typ_html,
                               ref_id=elem_row.ref_id, ref_kind=elem_row.ref_kind,
                               kind_override="title", constraint="", present="always",
-                              unit="", offset="", comment="", comment_html=False,
+                              unit=elem_row.unit, offset="", comment="", comment_html=False,
                               is_repeat_summary=True)
             rows[i - 1:j + 1] = [summary]
             i = i - 1 + 1
@@ -687,7 +712,7 @@ class IcdDocument:
         # Raw text: the caller escapes the joined table comments once.
         return "ACN parameters: <" + ", ".join(items) + ">"
 
-    def _parse_row(self, row: dict) -> IcdRow:
+    def _parse_row(self, row: dict, table: Optional[IcdTable] = None) -> IcdRow:
         row_type = row.get("rowType", "FieldRow")
         s_type = row.get("sType") or {}
         # The type column of a reference row is resolved in render_plan: the
@@ -723,6 +748,12 @@ class IcdDocument:
             field_name = "value"
         ref_id = (s_type.get("id") or "") if s_type.get("kind") == "reference" else ""
         target = self.tables.get(ref_id) if ref_id else None
+        if not unit and table is not None and table.usage_path and field_name:
+            # asn1scc gives the unit of every row (sUnits) since 4.9.77.0; for
+            # an older asn1scc (ASN1SCC=...) take the unit of the ASN.1 node
+            # with exactly this path. Only an exact path: a match by field or
+            # type name alone would take the unit of another field.
+            unit = self.units_by_path.get(f"{table.usage_path}.{field_name}", "")
         # Array length determinant: the external ACN/uPER field that carries
         # the element count ('Length is determined by the external field: n').
         length_field = ""
@@ -1768,12 +1799,12 @@ def table_html(anchor: str, title: str, kind_name: str, min_size: str, max_size:
     return f'<h2 id="{html_escape(anchor)}">{html_escape(title)}</h2>' + local_asn + local_acn + compact + collapsible("Detailed table", table)
 
 
-def make_document(data: dict) -> IcdDocument:
+def make_document(data: dict, xml_root: Optional[ET.Element] = None) -> IcdDocument:
     """Build the IcdDocument and its id->anchor map (anchors need all ids)."""
     ids = [t.get("id", "") for t in data.get("tables", [])]
     order = [i for i in data.get("navOrder", []) if i in set(ids)]
     anchors = build_anchors(ids, order, data)
-    return IcdDocument(data, anchors)
+    return IcdDocument(data, anchors, xml_root=xml_root)
 
 
 def build_anchors(ids: list[str], order: list[str], data: dict) -> dict[str, str]:
@@ -2517,7 +2548,7 @@ def run_asn1scc(files: list[str], root_names: Optional[list[str]]) -> tuple[dict
     with tempfile.TemporaryDirectory(prefix="icd-generator-") as work_dir:
         json_path = Path(work_dir) / "icd.json"
         xml_path = Path(work_dir) / "model.xml"
-        command = [executable, "-icdRaw", str(json_path), "-x", str(xml_path), "-ACN"]
+        command = [executable, "-icdRaw", str(json_path), "-x", str(xml_path), "-ACN", "-fp", "AUTO"]
         if root_names:
             command += ["-icdPdus", ",".join(root_names)]
         command += asn1_files + acn_files
@@ -2584,7 +2615,7 @@ def main() -> None:
     is_excel = args.type == "excel" or out_ext in (".xlsx", ".xlsm")
 
     icd_data, xml_root = load_input(args.files, args.root)
-    doc = make_document(icd_data)
+    doc = make_document(icd_data, xml_root=xml_root)
     model = GrammarModel(xml_root) if xml_root is not None else None
 
     if is_excel:

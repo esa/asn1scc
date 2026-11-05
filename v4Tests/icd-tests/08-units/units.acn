@@ -1,0 +1,6 @@
+UNITS-TEST DEFINITIONS ::= BEGIN
+
+DeltaAngle    [encoding IEEE754-1985-32]
+DeltaVelocity [encoding IEEE754-1985-32]
+
+END

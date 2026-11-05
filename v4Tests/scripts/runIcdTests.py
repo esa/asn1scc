@@ -26,6 +26,13 @@ temporary directory and then runs:
                        conversion) is byte-identical to the legacy one, so the
                        internal transform does not leak into the ICD (roadmap
                        B8).  Skipped for test dirs without the marker.
+ 10. mapping-fns     - the ACN mapping-functions of the AST xml are those named
+                       by the row notes of the -icdRaw JSON
+ 11. generator       - contrib/icd-generator.py renders the case (HTML from
+                       the grammar and from the dump, Excel with openpyxl)
+ 12. units           - every value row carries the unit of measure of its
+                       ASN.1 node (the use-site unit first), and length /
+                       presence / choice-index / padding rows carry none
 
 Some checks FAIL today because of documented bugs (icd-analysis par.2: R1
 zero-bit dropout, R2 presence mask, R6 dead anchors, R7 duplicate names). A
@@ -59,7 +66,7 @@ DEFAULT_COMPILER = V4TESTS_DIR.parent / "asn1scc" / "bin" / "Debug" / "net10.0" 
 CHECK_NAMES = [
     "golden", "json-structure", "nav-labels", "presence-mask",
     "choice-alts", "c-macros", "tas-coverage", "html-anchors",
-    "v2-parity", "mapping-fns", "generator",
+    "v2-parity", "mapping-fns", "generator", "units",
 ]
 
 # The HTML / Excel ICD generator (contrib/icd-generator.py) is run on every
@@ -353,6 +360,59 @@ def check_mapping_fns(icd, ast_root):
     return errors
 
 
+def xml_units(ast_root):
+    """Unit of measure by node id. A reference repeats its id on the nested
+    node of the referenced type; the outer node comes first in document order
+    and carries the unit written at the use site ('a Angle --{deg}--'), which
+    wins over the referenced type's own unit."""
+    units = {}
+    for node in ast_root.iter("Asn1Type"):
+        unit = (node.get("unitsOfMeasure") or "").strip()
+        if unit and node.get("id"):
+            units.setdefault(node.get("id"), unit)
+    return units
+
+
+def value_row_node_id(usage_path, row):
+    """Id of the ASN.1 node of a value row of the table at 'usage_path':
+    a type's own single row (field name '') is the type itself, a field 'f'
+    is 'usage_path.f', an element row ('f[k]' collapsed into the parent,
+    'Item #k' in the SEQUENCE OF's own table) is the element node '.#'."""
+    field = row.get("fieldName", "")
+    if row.get("rowType") == "SubItemRow":
+        m = re.match(r"^(.*)\[\d+\]$", field)
+        return f"{usage_path}.{m.group(1)}.#" if m else None
+    if not field:
+        return usage_path
+    if re.match(r"^Item #\d+$", field):
+        return f"{usage_path}.#"
+    return f"{usage_path}.{field}"
+
+
+def check_units(icd, ast_root):
+    """Every value row (FieldRow, SubItemRow) has the unit of its ASN.1 node,
+    or none when the node has none; a length / presence / choice-index /
+    padding row has no unit (a LengthDeterminantRow that refers to a
+    composite type's table may carry the component's unit)."""
+    errors = []
+    units = xml_units(ast_root)
+    for table in icd.get("tables", []):
+        usage_path = table.get("usagePath", "")
+        for row in table.get("rows", []):
+            row_type = row.get("rowType")
+            got = (row.get("sUnits") or "").strip()
+            where = f"{table.get('name', '?')} / {row.get('fieldName', '')!r}"
+            if row_type in ("FieldRow", "SubItemRow"):
+                node_id = value_row_node_id(usage_path, row)
+                expected = units.get(node_id, "") if node_id else ""
+                if got != expected:
+                    errors.append(f"{where}: unit {got!r}, expected {expected!r} "
+                                  f"(AST node {node_id})")
+            elif (row.get("sType") or {}).get("kind") != "reference" and got:
+                errors.append(f"{where}: {row_type} carries the unit {got!r}")
+    return errors
+
+
 def run_icd_generator(compiler, out_path, out_type, inputs):
     cmd = [sys.executable, "-I", str(ICD_GENERATOR), "-t", out_type,
            "-o", str(out_path)] + [str(f) for f in inputs]
@@ -499,6 +559,7 @@ def run_test_case(test_dir, compiler, update_goldens, keep_temp, require_excel):
         "mapping-fns": check_mapping_fns(icd, ast_root),
         "generator": check_generator(compiler, asn1_files, acn_files, json_path, icd,
                                      temp_dir, require_excel),
+        "units": check_units(icd, ast_root),
     }
 
     failed = False

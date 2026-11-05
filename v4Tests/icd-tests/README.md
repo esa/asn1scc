@@ -20,6 +20,7 @@ icd-tests/
   05-pus15/
   06-presentwhen/
   07-mapping/
+  08-units/
 ```
 
 The initial five cases are the sample grammars used by the ICD analysis
@@ -32,7 +33,11 @@ field governed by a `present-when` boolean *expression*, whose condition
 must render in ACN syntax in the Present column. `07-mapping` covers ACN
 `mapping-function`s: mapped INTEGER types with and without a module, a mapped
 SEQUENCE OF element, and a size-0 ACN length determinant whose value the
-mapping-function supplies at run time.
+mapping-function supplies at run time. `08-units` covers units of measure (`--{deg}--`) on
+references (GitHub #433): the unit written at the use site replaces the
+referenced type's (`a1 Angle --{deg}--` with `Angle ... --{rad}--`), also on a
+CHOICE alternative, a type assignment that is a reference and the elements of
+a SEQUENCE OF, and never goes on the Length row of a variable-size string.
 
 ## Running
 
@@ -69,6 +74,7 @@ For each test case the grammar is compiled once with C output, `-icdAcn`,
 | `html-anchors`   | every `href="#..."` in the `_new.html` resolves to an anchor in the same file |
 | `mapping-fns`    | the ACN mapping-functions of the AST xml (`mapping-function` attribute) are exactly those named by the `mapping-function <fn>: ...` row notes of the `-icdRaw` JSON, and the note says "occupies no bits on the wire" exactly on the rows of size 0 |
 | `generator`      | `contrib/icd-generator.py` renders the case without error: HTML from the grammar (no dead `#` link, every mapping-function shown), HTML from the `-icdRaw` dump, and Excel when `openpyxl` is installed |
+| `units`          | every value row (`FieldRow`, `SubItemRow`) has the unit of measure of its ASN.1 node in the AST xml (node id = table `usagePath` + field name; the outer node of a reference, i.e. the unit written at the use site, first), or none when the node has none; length / presence / choice-index / padding rows have no unit |
 | `v2-parity`      | opt-in (see below): the `-icdRaw` JSON produced with `--acn-v2` is byte-identical to the legacy one, so closure conversion / deferred patching does not leak into the ICD (roadmap B8) |
 
 The invariant checks (everything except `golden`) are grammar-independent:
