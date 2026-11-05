@@ -1219,8 +1219,9 @@ class Decoder(Codec):
 
         result = Asn1ObjectIdentifier()
         result.n_count = 2
-        result.values[0] = si // 40
-        result.values[1] = si % 40
+        # X.690 8.19.4: arc1 = 2 for every first subidentifier from 80 (arc2 may exceed 39)
+        result.values[0] = si // 40 if si < 80 else 2
+        result.values[1] = si - result.values[0] * 40
 
         # Decode remaining subidentifiers
         while total_size > 0 and result.n_count < OBJECT_IDENTIFIER_MAX_LENGTH:

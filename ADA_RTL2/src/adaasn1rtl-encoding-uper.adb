@@ -631,8 +631,10 @@ is
            (bs, totalSize, si, Result);
          if Result.Success then
             val.Length     := 2;
-            val.values (1) := si / 40;
-            val.values (2) := si mod 40;
+            --  X.690 8.19.4: the first subidentifier is 40 * arc1 + arc2,
+            --  with arc1 = 2 for every value from 80 (arc2 may exceed 39)
+            val.values (1) := (if si < 80 then si / 40 else 2);
+            val.values (2) := si - val.values (1) * 40;
 
             while Result.Success and totalSize > 0 and
               val.Length < OBJECT_IDENTIFIER_MAX_LENGTH
