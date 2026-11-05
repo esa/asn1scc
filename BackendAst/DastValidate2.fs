@@ -256,9 +256,15 @@ let integerConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (lm:LanguageMac
     foldRangeTypeConstraint (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
         (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpEqual (lm.lg.getValue p.accessPath) (valToStrFunc  v))) ,s)
         (fun asn1 v1 v2  minIsIn maxIsIn s   ->
-            let exp1 = con_rangeConstraint_val_MAX  lm intClass.Min intClass.Max v1 minIsIn valToStrFunc p2StrFunc
-            let exp2 = con_rangeConstraint_MIN_val  lm intClass.Min intClass.Max v2 maxIsIn valToStrFunc p2StrFunc
-            con_and  lm asn1 exp1 exp2 s)
+            match v1 = v2 && minIsIn && maxIsIn with
+            | true  ->
+                // a range of one value (field (0..0)): an equality. With the lower bound dropped as the
+                // type's minimum, "x <= 0" on an Ada subtype 0..1 is a -gnatwc error ("can never be less than")
+                (fun p -> VCBExpression (lm.isvalid.ExpEqual (lm.lg.getValue p.accessPath) (valToStrFunc v1))), s
+            | false ->
+                let exp1 = con_rangeConstraint_val_MAX  lm intClass.Min intClass.Max v1 minIsIn valToStrFunc p2StrFunc
+                let exp2 = con_rangeConstraint_MIN_val  lm intClass.Min intClass.Max v2 maxIsIn valToStrFunc p2StrFunc
+                con_and  lm asn1 exp1 exp2 s)
         (fun _ v1 minIsIn s   -> con_rangeConstraint_val_MAX  lm intClass.Min intClass.Max v1 minIsIn valToStrFunc p2StrFunc, s)
         (fun _ v2 maxIsIn s   -> con_rangeConstraint_MIN_val  lm intClass.Min intClass.Max v2 maxIsIn valToStrFunc p2StrFunc, s)
         c

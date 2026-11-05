@@ -108,6 +108,17 @@ type private DepContext = {
 /// deferred backend (DAstACNDeferred), which computes determinant comments
 /// directly from the un-dealiased dependency list because its deferred ACN
 /// children carry no funcUpdateStatement to harvest them from (roadmap B8).
+/// Name of the type T of an OCTET / BIT STRING (CONTAINING T) as seen from module modName. Its
+/// <name>_REQUIRED_BYTES_FOR_ACN_ENCODING sizes the temporary stream (Ada tmpBs) of a legacy CONTAINING encoding,
+/// which the size determinant update and the encoding of the field share: both must name the same constant.
+let containedTypeName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (modName: string) (o: Asn1AcnAst.ReferenceType) =
+    match lm.lg.hasModules with
+    | false  -> ToC2(r.args.TypePrefix + o.tasName.Value)
+    | true   ->
+        match modName = o.modName.Value with
+        | true  -> ToC2(r.args.TypePrefix + o.tasName.Value)
+        | false -> lm.lg.constructCrossModuleFuncPrefix (ToC o.modName.Value) + ToC2(r.args.TypePrefix + o.tasName.Value)
+
 let icdCommentsForDependency (d: AcnDependency) : string list =
     match d.dependencyKind with
     | AcnDepRefTypeArgument acnPrm                    -> [sprintf "reference determinant for %s " (acnPrm.id.AsString)]
@@ -290,13 +301,7 @@ and private handleSizeDeterminant (ctx: DepContext) (minSize: SIZE) (maxSize: SI
 
 and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.ReferenceType) (us: State) =
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d
-    let baseTypeDefinitionName =
-        match lm.lg.hasModules with
-        | false  -> ToC2(r.args.TypePrefix + o.tasName.Value)
-        | true   ->
-            match m.Name.Value = o.modName.Value with
-            | true  -> ToC2(r.args.TypePrefix + o.tasName.Value)
-            | false -> lm.lg.constructCrossModuleFuncPrefix (ToC o.modName.Value) + ToC2(r.args.TypePrefix + o.tasName.Value)
+    let baseTypeDefinitionName = containedTypeName r lm m.Name.Value o
     let baseFncName = baseTypeDefinitionName + "_ACN" + (lm.lg.codecSuffix Encode)
     let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
     let asn1TypeD = us.newTypesMap[d.asn1Type] :?> Asn1Type

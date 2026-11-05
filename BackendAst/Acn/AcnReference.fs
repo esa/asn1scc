@@ -254,7 +254,8 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                     let fncBody = octet_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding nReqBytesForAcnEncoding extField errCode.errCodeName soInner bDeducedContent codec
 
                     let lvs =
-                        let localVars2 = lm.lg.acn.getAcnContainingByLocVars sReqBytesForUperEncoding
+                        // the same temporary stream as the size determinant's update (AcnDependencies)
+                        let localVars2 = lm.lg.acn.getAcnContainingByLocVars (sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" (AcnDependencies.containedTypeName r lm t.id.ModName o))
                         localVariables0@localVars2
 
                     fncBody, errCode::errCodes0,lvs, userDefinedFunctions, ns1

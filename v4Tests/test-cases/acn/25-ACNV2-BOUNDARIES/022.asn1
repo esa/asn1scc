@@ -1,4 +1,4 @@
--- C_ONLY (Ada: the field name `body` is not renamed in the CONTAINING encoder; acn-v2 BIT STRING round trip fails)
+-- C_ONLY (Ada legacy and acn-v2, Python, Rust: the round trip of the BIT STRING CONTAINING value OuterBits fails, the decoded value differs)
 --TCFS   022.acn
 -- An external determinant must not extend a CONTAINING region past the input.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
