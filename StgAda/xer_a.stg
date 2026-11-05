@@ -66,6 +66,12 @@ is
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
+    <if(soIValidFuncName)>
+    --  the decoded value must satisfy the constraints of its type
+    if ret.Success then
+        ret := <soIValidFuncName>(<sVarName>);
+    end if;
+    <endif>
 end <sFuncName>_aux;
 pragma Warnings (On, "unused initial value of ""val""");
 
@@ -306,9 +312,9 @@ if ret.Success then
     <sI> := 1;
     while ret.Success and  not adaasn1rtl.encoding.xer.Xer_NextEndElementIs(bs, <sTag>) loop
         if <sI> > <nSizeMax> then
-            ret.Success := False;
-            ret.ErrorCode := <sErrCode>;
-            exit;
+            ret.Success := False; -- COVERAGE_IGNORE
+            ret.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+            exit; -- COVERAGE_IGNORE
         end if;
 	    <sChildBody>
 	    <sI> := <sI> + 1;
@@ -323,7 +329,9 @@ end if;
 <if(soCheckExp)><soCheckExp><endif>
 
 <if(bFixedSize)>
-ret.ErrorCode := ( if ret.Success and then <sI> + 1 = <nSizeMax> then  0 else <sErrCode>);
+--  exactly <nSizeMax> items (<sI> is one past the last)
+ret.Success := ret.Success and then <sI> - 1 = <nSizeMax>;
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 
 <else>
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);

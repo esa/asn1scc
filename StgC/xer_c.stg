@@ -66,6 +66,11 @@ flag <sFuncName>_aux(<sTypeDefName><sStar> <sVarName>, const char* xmlTag, ByteS
 
 	<sContent>
 	if (!ret && *pErrCode == 0) *pErrCode = ERR_INVALID_XML_FILE;
+<if(soIValidFuncName)>
+	/*the decoded value must satisfy the constraints of its type, as the uPER and ACN decoders check*/
+	if (ret)
+	    ret = <soIValidFuncName>(<sVarName>, pErrCode);
+<endif>
 
 	return ret;
 }
@@ -285,9 +290,9 @@ if (ret) {
     while(ret && !Xer_NextEndElementIs(pByteStrm, <sTag>))
     {
         if (<sI> >= <nSizeMax>) {
-            ret = FALSE;
-            *pErrCode = <sErrCode>;
-            break;
+            ret = FALSE; /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+            break; /*COVERAGE_IGNORE*/
         }
 	    <sChildBody>
 	    <sI>++;

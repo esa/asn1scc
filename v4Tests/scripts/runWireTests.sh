@@ -64,6 +64,15 @@ done
 # 64-bit integer fields with -wordSize 4: sign extension in the upper bytes.
 run_wire_test 036 -ws4
 
+# XER: a decoded value outside the constraints of its type is rejected.
+out=$work/xer001
+mkdir "$out"
+run_compiler -c -XER -fp AUTO -equal -o "$out" "$root/test-cases/xer/02-constraints/001.asn1"
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -I "$out" \
+    "$out"/*.c "$root/test-cases/xer/02-constraints/001_decode_test.c" -o "$out/decode_test"
+"$out/decode_test"
+echo "xer 001 OK"
+
 # Decoding truncated input must not read a deferred determinant's temporary
 # that the failed read never wrote. UBSan's bool check reports that read.
 out=$work/truncated001

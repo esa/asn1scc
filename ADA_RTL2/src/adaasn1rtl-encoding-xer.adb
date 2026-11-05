@@ -585,6 +585,11 @@ package body adaasn1rtl.encoding.xer is
    is
       tok : Token;
    begin
+      --  an empty tag: no element (SEQUENCE OF items), as in the C runtime
+      if elementTag'Length = 0 then
+         Result := (Success => True, ErrorCode => 0);
+         return;
+      end if;
       Result := (Success => False, ErrorCode => ERR_INCORRECT_STREAM);
 
       NT (Strm, tok);
@@ -624,6 +629,11 @@ package body adaasn1rtl.encoding.xer is
    is
       tok : Token;
    begin
+      --  an empty tag: no element (SEQUENCE OF items), as in the C runtime
+      if elementTag'Length = 0 then
+         Result := (Success => True, ErrorCode => 0);
+         return;
+      end if;
       Result := (Success => False, ErrorCode => ERR_INCORRECT_STREAM);
 
       NT (Strm, tok);
@@ -957,6 +967,11 @@ package body adaasn1rtl.encoding.xer is
       Result :    out ASN1_RESULT; level : in Integer)
    is
    begin
+      --  an empty tag: no element (SEQUENCE OF items), as in the C runtime
+      if elementTag'Length = 0 then
+         Result := (Success => True, ErrorCode => 0);
+         return;
+      end if;
       BS_PutSpace (Strm, level, Result);
       if not Result.Success then
          return;
@@ -975,6 +990,11 @@ package body adaasn1rtl.encoding.xer is
       Result :    out ASN1_RESULT; level : in Integer)
    is
    begin
+      --  an empty tag: no element (SEQUENCE OF items), as in the C runtime
+      if elementTag'Length = 0 then
+         Result := (Success => True, ErrorCode => 0);
+         return;
+      end if;
       BS_PutSpace (Strm, level, Result);
       if not Result.Success then
          return;
