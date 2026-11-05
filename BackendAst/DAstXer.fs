@@ -46,7 +46,8 @@ let private aux (s:string) = 2 * (s.Length + 1) + 1 |> BigInteger
 let getMaxSizeInBytesForXER_boolean ()  =  BigInteger ("<false/>".Length)  //<>
 let getMaxSizeInBytesForXER_Integer ()  =  BigInteger (System.Int64.MinValue.ToString().Length)
 let getMaxSizeInBytesForXER_Enumerated (itemNames : string list) =
-    let maxName = itemNames |>  Seq.max
+    // the longest name (Seq.max took the name that sorts last: zlib before reserved, GitHub #272)
+    let maxName = itemNames |> Seq.maxBy String.length
     aux maxName
 let getMaxSizeInBytesForXER_BitString   maxSize = maxSize * 8I
 let getMaxSizeInBytesForXER_OctetString maxSize = maxSize * 2I
