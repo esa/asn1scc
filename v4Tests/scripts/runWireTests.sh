@@ -73,6 +73,14 @@ cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -I "$out" \
 "$out/decode_test"
 echo "xer 001 OK"
 
+# XER, Ada: a length outside the SIZE of an OCTET / BIT STRING is an error code, not Constraint_Error.
+out=$work/xer002
+mkdir "$out"
+run_compiler -Ada -XER -o "$out" "$root/test-cases/xer/02-constraints/002.asn1"
+cp "$root/test-cases/xer/02-constraints/002_decode_test.adb" "$out/decode_test.adb"
+(cd "$out" && gnatmake -q -gnat2012 -gnata decode_test.adb && ./decode_test)
+echo "xer 002 (Ada) OK"
+
 # Decoding truncated input must not read a deferred determinant's temporary
 # that the failed read never wrote. UBSan's bool check reports that read.
 out=$work/truncated001

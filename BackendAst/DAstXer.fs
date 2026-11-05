@@ -258,7 +258,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_OctetString o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = OctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = OctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.minSize.uper o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
@@ -270,7 +270,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_BitString o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = BitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = BitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.minSize.uper o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us

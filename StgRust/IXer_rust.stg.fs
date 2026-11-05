@@ -33,10 +33,10 @@ type IXer_rust() =
             xer_rust.Enumerated_item  p sTag nLevel sItemID sXerValue sErrCode bFirst codec
         override this.Enumerated  (p:string) (sTag:string) (nLevel:BigInteger) (arrsItems:seq<string>) (soCheckExp:string option) (sErrCode:string) (codec:Codec) =
             xer_rust.Enumerated  p sTag nLevel arrsItems soCheckExp sErrCode codec
-        override this.OctetString  (p:string) (sAcc:string) (sTag:string) (nLevel:BigInteger) (nSizeMax:BigInteger) (bIsFixedSize:bool) (soCheckExp:string option) (sErrCode:string) (codec:Codec) =
-            xer_rust.OctetString  p sAcc sTag nLevel nSizeMax bIsFixedSize soCheckExp sErrCode codec
-        override this.BitString  (p:string) (sAcc:string) (sTag:string) (nLevel:BigInteger) (nSizeMax:BigInteger) (bIsFixedSize:bool) (soCheckExp:string option) (sErrCode:string) (codec:Codec) =
-            xer_rust.BitString  p sAcc sTag nLevel nSizeMax bIsFixedSize soCheckExp sErrCode codec
+        override this.OctetString  (p:string) (sAcc:string) (sTag:string) (nLevel:BigInteger) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (bIsFixedSize:bool) (soCheckExp:string option) (sErrCode:string) (codec:Codec) =
+            xer_rust.OctetString  p sAcc sTag nLevel nSizeMin nSizeMax bIsFixedSize soCheckExp sErrCode codec
+        override this.BitString  (p:string) (sAcc:string) (sTag:string) (nLevel:BigInteger) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (bIsFixedSize:bool) (soCheckExp:string option) (sErrCode:string) (codec:Codec) =
+            xer_rust.BitString  p sAcc sTag nLevel nSizeMin nSizeMax bIsFixedSize soCheckExp sErrCode codec
         override this.SequenceOf  (p:string) (sAcc:string) (sTag:string) (nLevel:BigInteger) (sI:string) (nSizeMax:BigInteger) (sChildBody:string) (bFixedSize:bool) (soCheckExp:string option) (sErrCode:string) (sElemTypeDef:string) (codec:Codec) =
             xer_rust.SequenceOf  p sAcc sTag nLevel sI nSizeMax sChildBody bFixedSize soCheckExp sErrCode sElemTypeDef codec
         override this.Sequence_mandatory_child  (sChName:string) (sChildContent:string) (sChildTag:string) (sChildTypeDef:string) (codec:Codec) =

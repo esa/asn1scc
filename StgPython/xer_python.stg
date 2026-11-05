@@ -155,11 +155,11 @@ else:
 >>
 
 
-OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+OctetString_encode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 codec.encode_octet_string(<sTag>, bytes(<p><sAcc>arr), <if(!bIsFixedSize)><p><sAcc>n_count<else><nSizeMax><endif>, <nLevel>)
 >>
 
-OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+OctetString_decode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 _os = codec.decode_octet_string(<sTag>)
 <if(!bIsFixedSize)>
 <p> = cls(n_count=len(_os), arr=list(_os))
@@ -170,12 +170,12 @@ _os = codec.decode_octet_string(<sTag>)
 >>
 
 
-BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+BitString_encode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 _bs_bits = ''.join(f'{_b:08b}' for _b in <p><sAcc>arr)[:<if(!bIsFixedSize)><p><sAcc>n_count<else><nSizeMax><endif>]
 codec.encode_bit_string(<sTag>, _bs_bits, <if(!bIsFixedSize)><p><sAcc>n_count<else><nSizeMax><endif>, <nLevel>)
 >>
 
-BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+BitString_decode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 _bs = codec.decode_bit_string(<sTag>)
 _bs_n_count = <if(!bIsFixedSize)>len(_bs)<else><nSizeMax><endif>
 _bs_padded = _bs.ljust((_bs_n_count + 7) // 8 * 8, '0')
