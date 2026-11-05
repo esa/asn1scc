@@ -1,0 +1,19 @@
+-- A fixed-size subtype of a NumericString / IA5String: the Ada type of the subtype declared no alphabet
+-- (Num3_alpha_set), which its automatic tests use, so the Ada test files did not compile.
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    Num   ::= NumericString (SIZE(1..5))
+    Num3  ::= Num (SIZE(3))
+    Name  ::= IA5String (SIZE(1..8))
+    Name4 ::= Name (SIZE(4))
+
+    MyPDU ::= SEQUENCE {
+        a  Num,
+        b  Num3,
+        c  Name4
+    }
+
+END
+
+--TCLS     MyPDU[]
