@@ -43,7 +43,8 @@ let printBitStringValueAsCompoundLiteral  (lm:LanguageMacros) curProgramUnitName
     let td = (lm.lg.getSizeableTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules curProgramUnitName lm.lg.constructCrossModuleTypeDefPrefix
     let bytes = lm.lg.bitStringValueToByteArray v |> Seq.toList
     let bytes = if lm.lg.padByteArraysToMaxSize then padBytes bytes (int ((o.maxSize.uper + 7I) / 8I)) else bytes
-    printOct td (o.minSize.uper = o.maxSize.uper) bytes o.minSize.uper
+    // nCount of a BIT STRING is the number of bits of the value (Issue 36)
+    printOct td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger v.Length)
 
 let convertStringValue2TargetLangStringLiteral (lm:LanguageMacros) mxSizeUper (v:StringValue) =
     let (parts,_) = v
