@@ -81,6 +81,15 @@ cp "$root/test-cases/xer/02-constraints/002_decode_test.adb" "$out/decode_test.a
 (cd "$out" && gnatmake -q -gnat2012 -gnata decode_test.adb && ./decode_test)
 echo "xer 002 (Ada) OK"
 
+# XER: <T>_REQUIRED_BYTES_FOR_XER_ENCODING of an ENUMERATED holds its longest item (GitHub #272).
+out=$work/xer003
+mkdir "$out"
+run_compiler -c -XER -o "$out" "$root/test-cases/xer/02-constraints/003.asn1"
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -I "$out" \
+    "$out"/*.c "$root/test-cases/xer/02-constraints/003_size_test.c" -o "$out/size_test"
+"$out/size_test"
+echo "xer 003 OK"
+
 # 036 in Ada on the 32-bit board msp430: sign extension in the upper bytes of 64-bit fields
 # (compiled with -gnata: the RTL's pragma Assume are checked too).
 out=$work/ada036

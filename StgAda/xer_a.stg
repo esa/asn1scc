@@ -194,10 +194,10 @@ begin
     if ret.Success then
         <arrsItems; separator="\n">
 	    else
-		    ret.ErrorCode := <sErrCode>;
+		    ret.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
 	    end if;
     else
-	    ret.ErrorCode := <sErrCode>;
+	    ret.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
     end if;
 
 end;
