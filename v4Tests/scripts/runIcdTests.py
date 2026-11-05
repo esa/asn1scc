@@ -523,13 +523,13 @@ def run_test_case(test_dir, compiler, update_goldens, keep_temp, require_excel):
     new_html_path = temp_dir / "icd_new.html"
     ast_path = temp_dir / "ast.xml"
 
-    # Output paths are relative and the compiler runs with cwd=temp_dir: the
-    # -x export prepends 'backend_' to the given path (breaks with absolute
-    # paths).
+    # The compiler runs with cwd=temp_dir. -x takes the absolute path: with C
+    # output the backend AST goes to backend_<name> in the same directory
+    # (before 4.9.78.0 the compiler prefixed the whole path and crashed).
     cmd = [str(compiler), "-c", "-ACN",
            "-icdAcn", html_path.name,
            "-icdRaw", json_path.name,
-           "-x", ast_path.name,
+           "-x", str(ast_path),
            "-o", "."]
     cmd += [str(f) for f in asn1_files] + [str(f) for f in acn_files]
     proc = subprocess.run(cmd, capture_output=True, text=True, cwd=temp_dir)

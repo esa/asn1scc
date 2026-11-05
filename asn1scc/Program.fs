@@ -590,7 +590,11 @@ let main0 argv =
                 TL "GenerateRTL.exportRTL" (fun () -> GenerateRTL.exportRTL dirInfo r.lang args lm generatedContent)
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
-                | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)
+                | xmlFile ->
+                    // backend_<name> next to the front-end file (prefixing the whole path
+                    // made "-x <dir>/ast.xml" fail with "Could not find a part of the path")
+                    let backendXmlFile = Path.Combine(Path.GetDirectoryName xmlFile, "backend_" + Path.GetFileName xmlFile)
+                    DAstExportToXml.exportFile r acnDeps backendXmlFile
                 )
 
 
