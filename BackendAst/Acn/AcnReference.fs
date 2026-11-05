@@ -56,7 +56,13 @@ let buildReferenceIcdArgAux
                 match baseType.icdTas with
                 | Some baseTypeIcdTas ->
                     let icdFnc fieldName sPresent comments  =
-                        baseTypeIcdTas.createRowsFunc fieldName sPresent comments
+                        let rows, compChildren = baseTypeIcdTas.createRowsFunc fieldName sPresent comments
+                        // The reference's own unit (GitHub #433). Only for embedded rows: a
+                        // composite type keeps its own table, whose rows are the referenced
+                        // type's fields; its unit goes on the parent's row of the component.
+                        match baseTypeIcdTas.canBeEmbedded with
+                        | true  -> withUnitsOfMeasure t.unitsOfMeasure rows, compChildren
+                        | false -> rows, compChildren
                     // A plain reference inherits the referenced type's embeddability,
                     // so a reference to a collapsible SEQUENCE OF (roadmap D2) inlines
                     // it into the parent just as an inline SEQUENCE OF child does

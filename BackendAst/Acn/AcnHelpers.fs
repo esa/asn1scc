@@ -39,6 +39,24 @@ let determinantEnumItems (deps: AcnInsertedFieldDependencies) (determinant: Dete
 
 let THREE_DOTS = {IcdRow.fieldName = ""; comments = []; sPresent="";sType= IcdPlainType ""; sConstraint=None; minLengthInBits = 0I; maxLengthInBits=0I;sUnits=None; rowType = IcdRowType.ThreeDOTs; idxOffset = None}
 
+/// The unit of measure written on a reference (`deltaAngle DeltaAngle --{deg}--`) applies to the
+/// value rows of the referenced type's embedded rows and replaces their unit: the unit written at
+/// the use site is the more specific one (the old ICD pipeline, GenerateUperIcd.getUnits, does the
+/// same). Length, presence, padding and choice-index rows carry no unit.
+let withUnitsOfMeasure (unitsOfMeasure: string option) (rows: IcdRow list) : IcdRow list =
+    match unitsOfMeasure with
+    | None   -> rows
+    | Some u ->
+        rows |> List.map (fun row ->
+            match row.rowType with
+            | IcdRowType.FieldRow
+            | IcdRowType.SubItemRow                  -> {row with sUnits = Some u}
+            | IcdRowType.ReferenceToCompositeTypeRow
+            | IcdRowType.LengthDeterminantRow
+            | IcdRowType.PresentDeterminantRow
+            | IcdRowType.PaddingRow
+            | IcdRowType.ThreeDOTs                   -> row)
+
 /// Assign the "No" (index) column of a parent SEQUENCE/CHOICE's flattened rows.
 /// Every real row advances a single top-level counter; SubItemRow rows (the
 /// collapsed SEQUENCE OF elements of roadmap D2) keep their own element index

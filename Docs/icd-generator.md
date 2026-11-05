@@ -144,7 +144,7 @@ The detailed table provides an exhaustive listing of every element in the packet
 | **Constraint** | Value range constraints (e.g. `0 .. 65535`, size constraints). |
 | **Offset (bits)** | Exact bit offset from packet start (or `var` for dynamic/repeated fields). |
 | **Min Bits / Max Bits** | Minimum and maximum bit length occupied on the wire. |
-| **Unit** | Physical unit metadata extracted from ASN.1 comments (e.g. `--{ us }--`, `--{ percentage }--`). |
+| **Unit** | Physical unit metadata extracted from ASN.1 comments (e.g. `--{ us }--`, `--{ percentage }--`). A unit written on a component (`a1 Angle --{deg}--`) replaces the unit of the referenced type. |
 
 ### Implicit Encoding Fields
 

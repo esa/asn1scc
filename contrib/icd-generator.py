@@ -478,7 +478,8 @@ class IcdDocument:
         self.data = data
         self.anchors = anchors                      # table id -> html anchor
         self.xml_root = xml_root
-        self.units_by_path, self.units_by_tas_field, self.units_by_type = self._build_units_map(xml_root)
+        # Units from the XML AST, for rows whose icdRaw entry has none.
+        self.units_by_path = self._build_units_map(xml_root)
         self.tables: dict[str, IcdTable] = {}
         self.inlined_ids: set[str] = set()
         # child table id -> the parent row referencing it (first one wins)
@@ -517,67 +518,25 @@ class IcdDocument:
                 self.by_type_name.setdefault(t.tas_name or t.name, t)
 
     @staticmethod
-    def _build_units_map(root: Optional[ET.Element]) -> tuple[dict[str, str], dict[tuple[str, str], str], dict[str, str]]:
-        if root is None:
-            return {}, {}, {}
+    def _build_units_map(root: Optional[ET.Element]) -> dict[str, str]:
+        """Unit of measure of every ASN.1 node of the XML AST, by node id.
+
+        The id of a node is the usage path of the icdRaw tables plus the
+        field name ('Mod.Root.deltaAngle'), so a row is matched exactly.
+        A reference node holds the referenced type's node with the same id:
+        the outer node comes first in document order and carries the unit
+        written at the use site ('deltaAngle DeltaAngle --{deg}--'), which
+        wins over the referenced type's own unit.
+        """
         units_by_path: dict[str, str] = {}
-        units_by_tas_field: dict[tuple[str, str], str] = {}
-        units_by_type: dict[str, str] = {}
-
-        def extract_unit(el: Optional[ET.Element]) -> str:
-            if el is None:
-                return ""
-            u = el.attrib.get("unitsOfMeasure", "").strip()
-            if u:
-                return u
-            for child_node in el:
-                if child_node.tag == "Asn1Type" and "unitsOfMeasure" in child_node.attrib:
-                    return child_node.attrib["unitsOfMeasure"].strip()
-                if child_node.tag == "REFERENCE_TYPE":
-                    ref_asn = child_node.find("Asn1Type")
-                    if ref_asn is not None and "unitsOfMeasure" in ref_asn.attrib:
-                        return ref_asn.attrib["unitsOfMeasure"].strip()
-            return ""
-
-        for mod in root.findall(".//Module"):
-            mod_name = mod.attrib.get("Name", "")
-            for tas in mod.findall(".//TypeAssignments/TypeAssignment"):
-                tas_name = tas.attrib.get("Name", "")
-                tas_asn = tas.find("Asn1Type")
-                u = extract_unit(tas_asn)
-                if u:
-                    units_by_type[tas_name] = u
-                    units_by_type[f"{mod_name}.{tas_name}"] = u
-                    if tas_asn is not None and "id" in tas_asn.attrib:
-                        units_by_path[tas_asn.attrib["id"]] = u
-
-                for comp in tas.findall(".//SEQUENCE_COMPONENT"):
-                    c_name = comp.attrib.get("Name", "")
-                    c_asn = comp.find("Asn1Type")
-                    cu = extract_unit(c_asn)
-                    if cu:
-                        units_by_tas_field[(tas_name, c_name)] = cu
-                        units_by_tas_field[(f"{mod_name}.{tas_name}", c_name)] = cu
-                        if c_asn is not None and "id" in c_asn.attrib:
-                            units_by_path[c_asn.attrib["id"]] = cu
-
-                for comp in tas.findall(".//CHOICE_ALTERNATIVE"):
-                    c_name = comp.attrib.get("Name", "")
-                    c_asn = comp.find("Asn1Type")
-                    cu = extract_unit(c_asn)
-                    if cu:
-                        units_by_tas_field[(tas_name, c_name)] = cu
-                        units_by_tas_field[(f"{mod_name}.{tas_name}", c_name)] = cu
-                        if c_asn is not None and "id" in c_asn.attrib:
-                            units_by_path[c_asn.attrib["id"]] = cu
-
+        if root is None:
+            return units_by_path
         for node in root.iter("Asn1Type"):
             u = node.attrib.get("unitsOfMeasure", "").strip()
             cid = node.attrib.get("id", "")
             if u and cid:
-                units_by_path[cid] = u
-
-        return units_by_path, units_by_tas_field, units_by_type
+                units_by_path.setdefault(cid, u)
+        return units_by_path
 
     def _postprocess_rows(self, table: IcdTable) -> None:
         """Per-table pass for the array length determinants.
@@ -661,7 +620,7 @@ class IcdDocument:
                               typ=elem_row.typ, typ_html=elem_row.typ_html,
                               ref_id=elem_row.ref_id, ref_kind=elem_row.ref_kind,
                               kind_override="title", constraint="", present="always",
-                              unit="", offset="", comment="", comment_html=False,
+                              unit=elem_row.unit, offset="", comment="", comment_html=False,
                               is_repeat_summary=True)
             rows[i - 1:j + 1] = [summary]
             i = i - 1 + 1
@@ -789,26 +748,12 @@ class IcdDocument:
             field_name = "value"
         ref_id = (s_type.get("id") or "") if s_type.get("kind") == "reference" else ""
         target = self.tables.get(ref_id) if ref_id else None
-        if not unit:
-            if table is not None and table.usage_path and field_name:
-                unit = self.units_by_path.get(f"{table.usage_path}.{field_name}", "")
-            if not unit and table is not None and field_name:
-                if table.tas_name:
-                    unit = self.units_by_tas_field.get((table.tas_name, field_name), "")
-                if not unit and table.name:
-                    unit = self.units_by_tas_field.get((table.name, field_name), "")
-            if not unit:
-                m = re.search(r"\(([A-Za-z][\w-]*)\)", typ) if "(" in typ else None
-                ref_type_name = m.group(1) if m else None
-                if not ref_type_name and ref_id and target:
-                    ref_type_name = target.tas_name or target.name
-                if ref_type_name:
-                    unit = self.units_by_type.get(ref_type_name, "")
-            if not unit and table is not None:
-                if table.tas_name:
-                    unit = self.units_by_type.get(table.tas_name, "")
-                if not unit and table.name:
-                    unit = self.units_by_type.get(table.name, "")
+        if not unit and table is not None and table.usage_path and field_name:
+            # asn1scc gives the unit of every row (sUnits) since 4.9.77.0; for
+            # an older asn1scc (ASN1SCC=...) take the unit of the ASN.1 node
+            # with exactly this path. Only an exact path: a match by field or
+            # type name alone would take the unit of another field.
+            unit = self.units_by_path.get(f"{table.usage_path}.{field_name}", "")
         # Array length determinant: the external ACN/uPER field that carries
         # the element count ('Length is determined by the external field: n').
         length_field = ""

@@ -595,12 +595,10 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         | Some childIcdTas ->
             match childIcdTas.canBeEmbedded   with
             | true  ->
+                // A component's own unit is set by its type's rows: a reference
+                // (`deltaAngle DeltaAngle --{deg}--`) applies it in AcnReference.
                 let chRows, _ = childIcdTas.createRowsFunc c.Name.Value optionality comments
-                let chRowsWithUnits =
-                    match c.Type.unitsOfMeasure with
-                    | None -> chRows
-                    | Some u -> chRows |> List.map (fun r -> if r.sUnits.IsNone then {r with sUnits = Some u} else r)
-                chRowsWithUnits, []
+                chRows, []
             | false ->
                 let sType = TypeHash childIcdTas.hash
                 let sConstraint = constraintsToIcdStr c.Type.ConstraintsAsn1Str
