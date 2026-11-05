@@ -1,0 +1,10 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+MyPDU [] {
+    sb [encoding twos-complement, size 64, endianness big],
+    sl [encoding twos-complement, size 64, endianness little],
+    ub [encoding pos-int, size 64, endianness big],
+    ul [encoding pos-int, size 64, endianness little]
+}
+
+END

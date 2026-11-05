@@ -238,8 +238,17 @@ flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(BitStream* pBitStrm, as
 
 flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(BitStream* pBitStrm, asn1SccUint* pIntVal)
 {
-    pBitStrm->currentByte += (8 - WORD_SIZE);
-
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes must be 0: a larger value does not fit in asn1SccUint */
+    int i;
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        byte b = 0;
+        if (!BitStream_ReadByte(pBitStrm, &b) || b != 0) {
+            *pIntVal = 0;
+            return FALSE;
+        }
+    }
+#endif
 	return Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N(pBitStrm, pIntVal, WORD_SIZE);
 }
 
@@ -278,12 +287,19 @@ flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(BitStream* pBitStrm,
 
 flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(BitStream* pBitStrm, asn1SccUint* pIntVal)
 {
-    flag ret;
-	ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, pIntVal, WORD_SIZE);
-    /* the upper 8 - WORD_SIZE bytes are skipped, but they must be in the stream (from a bit offset other than 0
-       they end inside the next byte) */
-    ret = ret && (pBitStrm->currentByte + (8 - WORD_SIZE)) * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
-    pBitStrm->currentByte += (8 - WORD_SIZE);
+#if WORD_SIZE!=8
+    int i;
+#endif
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, pIntVal, WORD_SIZE);
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes must be 0: a larger value does not fit in asn1SccUint */
+    for (i = 0; ret && i < 8 - WORD_SIZE; i++) {
+        byte b = 0;
+        ret = BitStream_ReadByte(pBitStrm, &b) && b == 0;
+    }
+    if (!ret)
+        *pIntVal = 0;
+#endif
     return ret;
 }
 
@@ -377,7 +393,16 @@ void Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32(BitStream* pBitStrm, asn
 
 void Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64(BitStream* pBitStrm, asn1SccSint intVal)
 {
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes are the sign extension of the value (0xFF for a negative value) */
+    int i;
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        BitStream_AppendByte0(pBitStrm, intVal < 0 ? 0xFF : 0x00);
+    }
+    Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_B(pBitStrm, int2uint(intVal), WORD_SIZE);
+#else
     Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, int2uint(intVal));
+#endif
 }
 
 void Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16(BitStream* pBitStrm, asn1SccSint intVal)
@@ -392,7 +417,16 @@ void Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32(BitStream* pBitStrm, 
 
 void Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(BitStream* pBitStrm, asn1SccSint intVal)
 {
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes are the sign extension of the value (0xFF for a negative value) */
+    int i;
+    Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, int2uint(intVal), WORD_SIZE);
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        BitStream_AppendByte0(pBitStrm, intVal < 0 ? 0xFF : 0x00);
+    }
+#else
 	Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, int2uint(intVal));
+#endif
 }
 
 
@@ -457,10 +491,31 @@ flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(BitStream* pBitStrm, asn
 flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(BitStream* pBitStrm, asn1SccSint* pIntVal)
 {
 	asn1SccUint tmp = 0;
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes must be the sign extension of the value: else it does not fit in asn1SccSint */
+    byte ext[8 - WORD_SIZE];
+    int i;
+    *pIntVal = 0;
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        if (!BitStream_ReadByte(pBitStrm, &ext[i]))
+            return FALSE;
+    }
+	if (!Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N(pBitStrm, &tmp, WORD_SIZE))
+		return FALSE;
+	*pIntVal = uint2int(tmp, WORD_SIZE);
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        if (ext[i] != (*pIntVal < 0 ? 0xFF : 0x00)) {
+            *pIntVal = 0;
+            return FALSE;
+        }
+    }
+	return TRUE;
+#else
 	if (!Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, &tmp))
 		return FALSE;
 	*pIntVal = uint2int(tmp, WORD_SIZE);
 	return TRUE;
+#endif
 }
 
 flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(BitStream* pBitStrm, asn1SccSint* pIntVal)
@@ -484,10 +539,26 @@ flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(BitStream* pBitStrm, 
 flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(BitStream* pBitStrm, asn1SccSint* pIntVal)
 {
 	asn1SccUint tmp = 0;
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes must be the sign extension of the value: else it does not fit in asn1SccSint */
+    int i;
+	if (!Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, &tmp, WORD_SIZE))
+		return FALSE;
+	*pIntVal = uint2int(tmp, WORD_SIZE);
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        byte b = 0;
+        if (!BitStream_ReadByte(pBitStrm, &b) || b != (*pIntVal < 0 ? 0xFF : 0x00)) {
+            *pIntVal = 0;
+            return FALSE;
+        }
+    }
+	return TRUE;
+#else
 	if (!Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, &tmp))
 		return FALSE;
 	*pIntVal = uint2int(tmp, WORD_SIZE);
 	return TRUE;
+#endif
 }
 
 

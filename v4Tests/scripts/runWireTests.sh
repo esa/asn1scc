@@ -31,6 +31,8 @@ run_wire_test() {
     mkdir "$out"
     if [ "$mode" = -legacy ]; then
         run_compiler -c -ACN -fp AUTO -equal -o "$out" "$cases/$n.asn1" "$cases/$n.acn"
+    elif [ "$mode" = -ws4 ]; then
+        run_compiler -c -ACN -fp AUTO -equal -wordSize 4 -fpWordSize 4 -o "$out" "$cases/$n.asn1" "$cases/$n.acn"
     else
         run_compiler -c -ACN --acn-v2 -fp AUTO -equal -o "$out" "$cases/$n.asn1" "$cases/$n.acn"
     fi
@@ -50,14 +52,17 @@ run_wire_test() {
     echo "wire $n$mode OK"
 }
 
-for n in 004 010 011 016 017 018 019 020 021 022 023 024 025 028 030 033 035; do
+for n in 004 010 011 016 017 018 019 020 021 022 023 024 025 028 030 033 035 036; do
     run_wire_test $n ""
 done
 
 # The fixes checked by these cases are not specific to --acn-v2.
-for n in 019 020 022 023 024 025 030 033 035; do
+for n in 019 020 022 023 024 025 030 033 035 036; do
     run_wire_test $n -legacy
 done
+
+# 64-bit integer fields with -wordSize 4: sign extension in the upper bytes.
+run_wire_test 036 -ws4
 
 # Decoding truncated input must not read a deferred determinant's temporary
 # that the failed read never wrote. UBSan's bool check reports that read.

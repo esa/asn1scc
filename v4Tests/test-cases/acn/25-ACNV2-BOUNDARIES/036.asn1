@@ -1,0 +1,17 @@
+-- 64-bit ACN integer fields with -wordSize 4 (checked byte by byte by 036_wire_test.c, also with -wordSize 4): the
+-- upper 4 bytes hold the sign extension of the value (0xFF for a negative two's complement value), and a decoder
+-- rejects a field whose upper bytes do not, since the value does not fit in 32 bits.
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    S ::= INTEGER (-2147483648 .. 2147483647)
+    U ::= INTEGER (0 .. 4294967295)
+
+    MyPDU ::= SEQUENCE {
+        sb S,
+        sl S,
+        ub U,
+        ul U
+    }
+
+END
