@@ -613,7 +613,9 @@ is
          Ret := Ret + Asn1UInt (ByteVal);
 
       end loop;
-      if total_bytes < 8 then
+      --  only below the width of Asn1UInt: on a 32-bit board 256**4 is 0
+      --  (modular), and the assumption was False for total_bytes = 4
+      if total_bytes < Asn1UInt'Size / 8 then
          pragma Assume (Ret < 256**total_bytes);
       end if;
 

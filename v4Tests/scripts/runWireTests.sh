@@ -81,6 +81,15 @@ cp "$root/test-cases/xer/02-constraints/002_decode_test.adb" "$out/decode_test.a
 (cd "$out" && gnatmake -q -gnat2012 -gnata decode_test.adb && ./decode_test)
 echo "xer 002 (Ada) OK"
 
+# 036 in Ada on the 32-bit board msp430: sign extension in the upper bytes of 64-bit fields
+# (compiled with -gnata: the RTL's pragma Assume are checked too).
+out=$work/ada036
+mkdir "$out"
+run_compiler -Ada -ACN -t msp430 -wordSize 4 -fpWordSize 4 -o "$out" "$cases/036.asn1" "$cases/036.acn"
+cp "$cases/036_decode_test_msp430.adb" "$out/decode_test.adb"
+(cd "$out" && gnatmake -q -gnat2012 -gnata -aIasn1rtl -aIsrc -aIboards/msp430 decode_test.adb && ./decode_test)
+echo "wire 036 (Ada msp430) OK"
+
 # Decoding truncated input must not read a deferred determinant's temporary
 # that the failed read never wrote. UBSan's bool check reports that read.
 out=$work/truncated001

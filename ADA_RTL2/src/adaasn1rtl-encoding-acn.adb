@@ -1022,12 +1022,18 @@ is
      (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
       maxVal :        Asn1UInt; Result : out ASN1_RESULT)
    is
+      --  bytes of the 64-bit field above Asn1UInt: 4 on a 32-bit board, else 0
+      Upper_Bytes    : constant Integer  := 8 - Asn1UInt'Size / 8;
+      Upper          : Asn1UInt;
+      Upper_Ok       : Boolean;
    begin
       Result.ErrorCode   := 0;
-      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      --  the upper bytes must be 0: a larger value does not fit in Asn1UInt
+      Dec_UInt (bs, Upper_Bytes, Upper, Upper_Ok);
       Dec_UInt (bs, Asn1UInt'Size / 8, IntVal, Result.Success);
       Result.Success :=
-        Result.Success and then IntVal >= minVal and then IntVal <= maxVal;
+        Result.Success and then Upper_Ok and then Upper = 0
+        and then IntVal >= minVal and then IntVal <= maxVal;
       if not Result.Success then
          IntVal           := minVal;
          Result.ErrorCode := ERR_INCORRECT_STREAM;
@@ -1108,10 +1114,23 @@ is
      (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
       maxVal :        Asn1UInt; Result : out ASN1_RESULT)
    is
+      --  bytes of the 64-bit field above Asn1UInt: 4 on a 32-bit board, else 0
+      Upper_Bytes    : constant Integer  := 8 - Asn1UInt'Size / 8;
+      Upper          : Asn1UInt;
+      Upper_Ok       : Boolean;
    begin
-      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N
-        (bs, IntVal, minVal, maxVal, Result, Asn1UInt'Size / 8);
-      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      Result.ErrorCode := 0;
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0
+        (bs, IntVal, Asn1UInt'Size / 8);
+      --  the upper bytes must be 0: a larger value does not fit in Asn1UInt
+      Dec_UInt (bs, Upper_Bytes, Upper, Upper_Ok);
+      Result.Success :=
+        Upper_Ok and then Upper = 0 and then IntVal >= minVal
+        and then IntVal <= maxVal;
+      if not Result.Success then
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
    end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64;
 
    procedure Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded
@@ -1196,13 +1215,26 @@ is
       maxVal :        Asn1Int; Result : out ASN1_RESULT)
    is
       encVal : Asn1UInt;
+      --  bytes of the 64-bit field above Asn1UInt: 4 on a 32-bit board, else 0
+      Upper_Bytes    : constant Integer  := 8 - Asn1UInt'Size / 8;
+      Upper          : Asn1UInt;
+      Upper_Ok       : Boolean;
+      --  the upper bytes of a negative value: all bits set (none on a
+      --  64-bit board)
+      Upper_Negative : constant Asn1UInt :=
+        (if Upper_Bytes = 0 then 0 else Asn1UInt'Last);
    begin
       Result.ErrorCode   := 0;
-      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      Dec_UInt (bs, Upper_Bytes, Upper, Upper_Ok);
       Dec_UInt (bs, Asn1UInt'Size / 8, encVal, Result.Success);
       pragma Assert (Result.Success);
       IntVal         := To_Int (encVal);
-      Result.Success := IntVal >= minVal and IntVal <= maxVal;
+      --  the upper bytes must be the sign extension of the value: else it
+      --  does not fit in Asn1Int
+      Result.Success :=
+        Upper_Ok
+        and then Upper = (if IntVal < 0 then Upper_Negative else 0)
+        and then IntVal >= minVal and then IntVal <= maxVal;
       if not Result.Success then
          IntVal           := minVal;
          Result.ErrorCode := ERR_INCORRECT_STREAM;
@@ -1262,10 +1294,31 @@ is
      (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
       maxVal :        Asn1Int; Result : out ASN1_RESULT)
    is
+      encVal : Asn1UInt;
+      --  bytes of the 64-bit field above Asn1UInt: 4 on a 32-bit board, else 0
+      Upper_Bytes    : constant Integer  := 8 - Asn1UInt'Size / 8;
+      Upper          : Asn1UInt;
+      Upper_Ok       : Boolean;
+      --  the upper bytes of a negative value: all bits set (none on a
+      --  64-bit board)
+      Upper_Negative : constant Asn1UInt :=
+        (if Upper_Bytes = 0 then 0 else Asn1UInt'Last);
    begin
-      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_N
-        (bs, IntVal, minVal, maxVal, Result, Asn1UInt'Size / 8);
-      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      Result.ErrorCode := 0;
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0
+        (bs, encVal, Asn1UInt'Size / 8);
+      IntVal := To_Int (encVal);
+      Dec_UInt (bs, Upper_Bytes, Upper, Upper_Ok);
+      --  the upper bytes must be the sign extension of the value: else it
+      --  does not fit in Asn1Int
+      Result.Success :=
+        Upper_Ok
+        and then Upper = (if IntVal < 0 then Upper_Negative else 0)
+        and then IntVal >= minVal and then IntVal <= maxVal;
+      if not Result.Success then
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
    end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64;
 
    procedure Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded
