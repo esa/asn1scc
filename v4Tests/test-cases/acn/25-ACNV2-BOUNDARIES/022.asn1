@@ -1,4 +1,4 @@
--- C_ONLY (Ada legacy and acn-v2, Python, Rust: the round trip of the BIT STRING CONTAINING value OuterBits fails, the decoded value differs)
+-- C_ADA_ONLY (Python, Rust: the round trip of the BIT STRING CONTAINING value OuterBits fails: the region of the size deduced contents is not bounded)
 --TCFS   022.acn
 -- An external determinant must not extend a CONTAINING region past the input.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN

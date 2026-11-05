@@ -1689,8 +1689,12 @@ if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
 then
     declare --COVERAGE_IGNORE
         acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(<sDetParamName>.Value);
+        acn_saved_end : constant Natural := bs.End_Bit_Pos;
     begin
+        --  the contents end with the region ('size deduced' contents read up to End_Bit_Pos)
+        bs.End_Bit_Pos := acn_expected_end;
         <sBody>
+        bs.End_Bit_Pos := acn_saved_end;
         --  the contents must not have read past their region
         if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
             result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
@@ -1787,6 +1791,8 @@ begin
 	if result.success then
 		adaasn1rtl.encoding.BitStream_ReadBits(bs, tmpBs.Buffer, Integer(<sExtField>), result.success);
 		if result.success then
+			--  the contents end with the region ('size deduced' contents read up to End_Bit_Pos)
+			tmpBs.End_Bit_Pos := Integer(<sExtField>);
 			<sFuncName>_aux(<p>, tmpBs, result);
 		end if;
 	end if;
