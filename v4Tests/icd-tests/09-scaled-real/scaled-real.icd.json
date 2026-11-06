@@ -1,0 +1,306 @@
+{
+  "navOrder": [
+    "DeltaAngle@SCALED.DeltaAngle",
+    "GnssAccuracy@SCALED.GnssAccuracy",
+    "BodyRate@SCALED.BodyRate",
+    "Ratio@SCALED.Ratio",
+    "MyPDU@SCALED.MyPDU"
+  ],
+  "tables": [
+    {
+      "id": "DeltaAngle@SCALED.DeltaAngle",
+      "name": "DeltaAngle",
+      "kind": "REAL",
+      "tasInfo": {
+        "modName": "SCALED",
+        "tasName": "DeltaAngle"
+      },
+      "module": "SCALED",
+      "usagePath": "SCALED.DeltaAngle",
+      "usageSites": [
+        "SCALED.DeltaAngle"
+      ],
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 4,
+      "maxLengthInBytes": 4,
+      "comments": [
+        " 32 bits: scale 0.5/(2^32-1)"
+      ],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [
+            "scaled integer encoding: real value = -0.25 + (encoded integer - (-2147483648)) * 1.1641532185403987E-10"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL"
+          },
+          "sConstraint": "(-0.25 .. 0.25)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "GnssAccuracy@SCALED.GnssAccuracy",
+      "name": "GnssAccuracy",
+      "kind": "REAL",
+      "tasInfo": {
+        "modName": "SCALED",
+        "tasName": "GnssAccuracy"
+      },
+      "module": "SCALED",
+      "usagePath": "SCALED.GnssAccuracy",
+      "usageSites": [
+        "SCALED.GnssAccuracy"
+      ],
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 2,
+      "comments": [
+        " 16 bits: scale 0.01"
+      ],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [
+            "scaled integer encoding: real value = 0 + (encoded integer - (0)) * 0.01"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL"
+          },
+          "sConstraint": "(0 .. 655.35)",
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "BodyRate@SCALED.BodyRate",
+      "name": "BodyRate",
+      "kind": "REAL",
+      "tasInfo": {
+        "modName": "SCALED",
+        "tasName": "BodyRate"
+      },
+      "module": "SCALED",
+      "usagePath": "SCALED.BodyRate",
+      "usageSites": [
+        "SCALED.BodyRate"
+      ],
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 4,
+      "maxLengthInBytes": 4,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [
+            "scaled integer encoding: real value = -450 + (encoded integer - (-2147483648)) * 2.0954757933727176E-07"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL"
+          },
+          "sConstraint": "(-450 .. 450)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Ratio@SCALED.Ratio",
+      "name": "Ratio",
+      "kind": "REAL",
+      "tasInfo": {
+        "modName": "SCALED",
+        "tasName": "Ratio"
+      },
+      "module": "SCALED",
+      "usagePath": "SCALED.Ratio",
+      "usageSites": [
+        "SCALED.Ratio"
+      ],
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 1,
+      "maxLengthInBytes": 1,
+      "comments": [
+        " 8 bits: scale 1/255"
+      ],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [
+            "scaled integer encoding: real value = 0 + (encoded integer - (0)) * 0.00392156862745098"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL"
+          },
+          "sConstraint": "(0 .. 1)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "MyPDU@SCALED.MyPDU",
+      "name": "MyPDU",
+      "kind": "SEQUENCE",
+      "tasInfo": {
+        "modName": "SCALED",
+        "tasName": "MyPDU"
+      },
+      "module": "SCALED",
+      "usagePath": "SCALED.MyPDU",
+      "usageSites": [
+        "SCALED.MyPDU"
+      ],
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 11,
+      "maxLengthInBytes": 11,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "angle",
+          "comments": [
+            "scaled integer encoding: real value = -0.25 + (encoded integer - (-2147483648)) * 1.1641532185403987E-10"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL (DeltaAngle)"
+          },
+          "sConstraint": "(-0.25 .. 0.25)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "acc",
+          "comments": [
+            "scaled integer encoding: real value = 0 + (encoded integer - (0)) * 0.01"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL (GnssAccuracy)"
+          },
+          "sConstraint": "(0 .. 655.35)",
+          "minLengthInBits": 16,
+          "maxLengthInBits": 16,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 32,
+            "maxBits": 32,
+            "display": "32"
+          }
+        },
+        {
+          "idxOffset": 3,
+          "fieldName": "rate",
+          "comments": [
+            "scaled integer encoding: real value = -450 + (encoded integer - (-2147483648)) * 2.0954757933727176E-07"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL (BodyRate)"
+          },
+          "sConstraint": "(-450 .. 450)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 48,
+            "maxBits": 48,
+            "display": "48"
+          }
+        },
+        {
+          "idxOffset": 4,
+          "fieldName": "fill",
+          "comments": [
+            "scaled integer encoding: real value = 0 + (encoded integer - (0)) * 0.00392156862745098"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL (Ratio)"
+          },
+          "sConstraint": "(0 .. 1)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 80,
+            "maxBits": 80,
+            "display": "80"
+          }
+        }
+      ]
+    }
+  ]
+}

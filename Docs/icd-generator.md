@@ -126,9 +126,10 @@ python3 contrib/icd-generator.py --root Packet -o packet-icd.html model.asn mode
 
 Both backends include a horizontal diagram showing the sequence of packet fields on the wire.
 
-- **Hierarchical Nesting**: Nested sequence fields appear grouped under their parent field header.
+- **Hierarchical Nesting**: Nested sequence fields appear grouped under their parent field header, sized flush with their subfields.
 - **Array (`SEQUENCE OF`) Representation**: Instead of displaying only an opaque `SEQUENCE OF` block or appending a redundant multiplier (`<name> x N`) to the title, the compact layout shows the component name, nests the inner element structure, and displays a clean footer band indicating `"Repeated N times"`.
-- **Concise Type Badges**: Field types are rendered using concise keywords: `int`, `bool`, `enum`, `fixed pattern`, etc.
+- **Concise Type Badges**: Field types are rendered using concise keywords: `int`, `bool`, `enum`, `fixed pattern`, etc. In HTML mode, type badges vertically expand to eliminate unused white space inside cells while keeping bit counts aligned at the bottom.
+- **Responsive Wrapping and Continuation Indicators**: When a long packet or composite structure exceeds the view width, it wraps cleanly across multiple lines with dedicated inter-line spacing. Clear continuation dots (`•••`) mark the end of wrapped lines to signify packet flow to the following line.
 
 ### Detailed Field Tables
 
@@ -246,7 +247,7 @@ The generated HTML document contains a sidebar filter, Table of Contents, and co
 
 #### Compact Packet Layout
 
-The compact layout for `Packet` illustrates how arrays are displayed: the `content` block contains `azimuth` and the repeated `channels` group, with "Repeated 32 times" and "Repeated 8 times" markers:
+The compact layout for `Packet` illustrates how nested sequences and arrays are displayed: `hdr` and `content` are placed side by side, `content` contains `azimuth` and the repeated `channels` group with "Repeated 32 times" and "Repeated 8 times" markers, and trailing continuation dots (`•••`) indicate the line break before the `post` block:
 
 ![Compact Packet Layout](images/icd-lidar-html-compact.png)
 

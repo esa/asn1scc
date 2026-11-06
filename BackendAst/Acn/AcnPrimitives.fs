@@ -418,8 +418,12 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
                 match o.acnEncodingClass with
                 | Real_ScaledInt intEncClass ->
                     let low, scale, intMin, _, _ = getScaledIntMapping o intEncClass
+                    // "R" = shortest string that parses back to the same double: compact (-0.25, not
+                    // -2.5000000000000000000E-001) and exact, so a reader rebuilds the decoder from the ICD
+                    // (a 3-digit scale such as 1.16E-10 for REAL(-0.25..0.25) in 32 bits is off by 0.36%)
+                    let exact (v:double) = v.ToString("R", CultureInfo.InvariantCulture)
                     [sprintf "scaled integer encoding: real value = %s + (encoded integer - (%s)) * %s"
-                        (lm.lg.doubleValueToString low) (intMin.ToString()) (lm.lg.doubleValueToString scale)]
+                        (exact low) (intMin.ToString()) (exact scale)]
                 | Real_uPER
                 | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian
                 | Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian -> []
