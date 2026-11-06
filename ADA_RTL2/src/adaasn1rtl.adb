@@ -9,7 +9,7 @@ is
    begin
       for i in str'Range loop
          pragma Loop_Invariant (length = length'Loop_Entry + (i - str'First));
-         exit when str (i) = Standard.Ascii.NUL;
+         exit when str (i) = Standard.ASCII.NUL;
          length := length + 1;
       end loop;
 
