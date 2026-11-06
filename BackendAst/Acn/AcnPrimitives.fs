@@ -419,7 +419,9 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
                 | Real_ScaledInt intEncClass ->
                     let low, scale, intMin, _, _ = getScaledIntMapping o intEncClass
                     [sprintf "scaled integer encoding: real value = %s + (encoded integer - (%s)) * %s"
-                        (lm.lg.doubleValueToString low) (intMin.ToString()) (lm.lg.doubleValueToString scale)]
+                        (low.ToString("0.##E+0", CultureInfo.InvariantCulture))
+                        (intMin.ToString())
+                        (scale.ToString("0.##E+0", CultureInfo.InvariantCulture))]
                 | Real_uPER
                 | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian
                 | Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian -> []
