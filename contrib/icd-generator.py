@@ -293,26 +293,25 @@ def enumeration_comment(concrete_type: Optional[ET.Element]) -> str:
 
 
 def compact_real_str(val_str: str) -> str:
-    """Format a real number string compactly in scientific notation (e.g. -2.5E-1, 1.16E-10)."""
+    """Format a real number string compactly but exactly (e.g. -2.5E-1 -> -0.25).
+
+    repr() of a float is the shortest string that parses back to the same
+    double, i.e. the same rule as .NET's "R" format used by asn1scc for these
+    comments: an ICD reader must be able to rebuild the decoder from the
+    printed coefficients, so they are never rounded (1.16E-10 for the scale
+    of REAL (-0.25 .. 0.25) in 32 bits would be off by 0.36%).
+    """
     try:
-        v = float(val_str)
-        formatted = f"{v:.2E}"
-        m = re.match(r"^([+-]?\d+(?:\.\d+)?)[eE]([+-])0*(\d+)$", formatted)
-        if m:
-            mantissa = m.group(1).rstrip("0").rstrip(".")
-            sign = m.group(2)
-            exp = m.group(3)
-            return f"{mantissa}E{sign}{exp}"
-        return formatted
-    except Exception:
+        return repr(float(val_str)).upper()
+    except ValueError:
         return val_str
 
 
 def compact_scaled_integer_comment(text: str) -> str:
     """Format the real numbers in a 'scaled integer encoding: ...' comment compactly.
 
-    e.g. -2.5000000000000000000E-001 -> -2.5E-1
-         1.1641532185403986877E-010 -> 1.16E-10
+    e.g. -2.5000000000000000000E-001 -> -0.25
+         1.1641532185403986877E-010 -> 1.1641532185403987E-10
     """
     pattern = (
         r"(scaled integer encoding:\s*real value\s*=\s*)"

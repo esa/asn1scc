@@ -21,6 +21,7 @@ icd-tests/
   06-presentwhen/
   07-mapping/
   08-units/
+  09-scaled-real/
 ```
 
 The initial five cases are the sample grammars used by the ICD analysis
@@ -38,6 +39,10 @@ references (GitHub #433): the unit written at the use site replaces the
 referenced type's (`a1 Angle --{deg}--` with `Angle ... --{rad}--`), also on a
 CHOICE alternative, a type assignment that is a reference and the elements of
 a SEQUENCE OF, and never goes on the Length row of a variable-size string.
+`09-scaled-real` covers REALs encoded as scaled integers (`pos-int` /
+`twos-complement` of 8, 16 and 32 bits): the mapping comment prints the offset
+and the scale exactly, in the shortest form that parses back to the same double
+(e.g. `1.1641532185403987E-10`), never a rounded value (PR #436).
 
 ## Running
 

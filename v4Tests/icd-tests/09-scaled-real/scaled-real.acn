@@ -1,0 +1,10 @@
+SCALED DEFINITIONS ::= BEGIN
+
+    DeltaAngle   [encoding twos-complement, size 32]
+    GnssAccuracy [encoding pos-int, size 16]
+    BodyRate     [encoding twos-complement, size 32, endianness little]
+    Ratio        [encoding pos-int, size 8]
+
+    MyPDU []
+
+END
