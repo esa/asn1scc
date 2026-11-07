@@ -594,6 +594,195 @@ def cov008(lines, first):
     return False
 
 
+# ASN1SCC-COV-009 (coverage step 14e, E4): the default arm of the switch of an --acn-v2
+# specialised CHOICE decoder on the value of its AcnInsertedFieldRef parameter.
+
+ENUM_CONSTANT = re.compile(r"^\s*([A-Za-z_]\w*)\s*=\s*(-?\d+)\s*,?\s*$")
+
+
+def enum_values(sources):
+    """{constant: value} of the C enum constants written `Name = N,` in the given files."""
+    values = {}
+    for lines in sources:
+        for text in lines:
+            match = ENUM_CONSTANT.match(code_only(text))
+            if match:
+                values[match[1]] = match[2]
+    return values
+
+
+def split_args(text):
+    """The comma separated top-level arguments of an argument list text."""
+    args, depth, current = [], 0, ""
+    for char in text:
+        if char == "," and depth == 0:
+            args.append(current)
+            current = ""
+            continue
+        depth += {"(": 1, ")": -1}.get(char, 0)
+        current += char
+    return [norm(a) for a in args + [current]]
+
+
+def call_arguments(text, name):
+    """The arguments of the (first) call of `name` on a line, or None."""
+    match = re.search(r"(?<![\w.>])" + re.escape(name) + r"\s*\(", text)
+    if not match:
+        return None
+    depth, start = 1, match.end()
+    for index in range(start, len(text)):
+        depth += {"(": 1, ")": -1}.get(text[index], 0)
+        if depth == 0:
+            return split_args(text[start:index])
+    return None
+
+
+def ref_parameters(header):
+    """(function name, [parameter names]) of a C definition line, or None."""
+    match = re.match(r"^\s*flag\s+(\w+)\s*\((.*)\)\s*$", code_only(header))
+    if not match:
+        return None
+    names = [re.sub(r".*?(\w+)\s*$", r"\1", p) for p in split_args(match[2])]
+    return match[1], names
+
+
+def assigned_before(lines, stacks, start, end, name, head):
+    """`name` was assigned before line `head` on every path that reaches it with ret TRUE: an
+    assignment in the same or an enclosing block, or a construct that assigns it on every exit
+    with ret TRUE (the decoding switch of an ENUMERATED field, whose default arm fails)."""
+    for n, _ in local_assignments(lines, start, end, name):
+        if n < head and stacks[n] == stacks[head][:len(stacks[n])]:
+            return True
+    for number in range(start + 1, head):
+        last = assigns_on_every_exit(lines, stacks, end, number, name)
+        if last is not None and last < head and runs_after(stacks, number, last, head):
+            return True
+    return False
+
+
+def holds_only(lines, start, end, name, allowed):
+    """The local `name` (declared without initializer) is assigned only values of `allowed`."""
+    if not any(re.match(r"^\s*[\w]+\s+" + re.escape(name) + r"\s*;", lines[n - 1]) for n in range(start, end + 1)):
+        return False
+    assignments = local_assignments(lines, start, end, name)
+    return bool(assignments) and all(value in allowed for _, value in assignments)
+
+
+def precedes_unconditionally(lines, stacks, start, first_head, first_end, later):
+    """The construct first_head .. first_end ran before line `later` on every path that reaches
+    it: it ends before `later`, and each block holding it that does not hold `later` is an
+    `if (ret)` that nothing before it in the function can have set FALSE (ret is still the TRUE
+    of its declaration), as after the one-item decoding of a determinant (coverage step 14c3)."""
+    if first_end >= later:
+        return False
+    shared = {x[0] for x in stacks[later]}
+    for block in stacks[first_head]:
+        if block[0] in shared:
+            continue
+        if guard(block) != ("ret",):
+            return False
+        if any(RET_SET.search(code_only(lines[n - 1])) and not re.search(r"\bflag\s+ret\s*=", lines[n - 1])
+               for n in range(start + 1, block[0])):
+            return False
+    return True
+
+
+def ref_holds_labels(lines, enums, call, arg, labels, depth):
+    """At the call on line `call`, the AcnInsertedFieldRef argument `arg` holds one of `labels`:
+    `&L` with L a local ref of the caller whose every value assignment stores a label after
+    the determinant's local was decoded (`L.value = (asn1SccUint)T;` with T holding only enum
+    items whose values are labels, or a `switch (T)` with a case per value of T storing a label),
+    the call running after it with ret TRUE; or a ref parameter of the caller, for which every
+    call of the caller is checked the same way."""
+    region = function_region(lines, call)
+    if region is None or depth > 8:
+        return False
+    start, end = region
+    stacks = block_stacks(lines, start, end)
+    stacks["lines"] = lines
+    local = re.fullmatch(r"&\(?(\w+)\)?", arg)
+    if local is None:
+        params = ref_parameters(lines[start - 1])
+        if params is None or arg not in params[1] or not re.search(r"AcnInsertedFieldRef\s*\*\s*" + re.escape(arg) + r"\b",
+                                                                     lines[start - 1]):
+            return False
+        return all_calls_hold_labels(lines, enums, params[0], params[1].index(arg), labels, depth + 1)
+    ref = local[1]
+    if not any(re.match(r"^\s*AcnInsertedFieldRef\s+" + re.escape(ref) + r"\s*=\s*\{\s*0\s*\}\s*;", lines[n - 1])
+               for n in range(start, call)):
+        return False
+    stores = local_assignments(lines, start, end, ref + ".value")
+    if not stores:
+        return False
+    item_constants = {c for c, v in enums.items() if v in labels}
+    for n, value in stores:
+        cast = re.fullmatch(r"\(asn1SccUint\)\(?(\w+)\)?", norm(value))
+        if cast:
+            source = cast[1]
+            if not holds_only(lines, start, end, source, item_constants):
+                return False
+            if not assigned_before(lines, stacks, start, end, source, n):
+                return False
+            if not (runs_after(stacks, n, n, call) or precedes_unconditionally(lines, stacks, start, n, n, call)):
+                return False
+            continue
+        if value not in labels:
+            return False
+        # a case of `switch (T)` that stores a literal: every value T can hold has a case, every case stores a label
+        head = next((h for h in range(n - 1, start, -1) if re.match(r"^\s*switch\s*\(", lines[h - 1])), None)
+        body = switch_body(lines, head, end) if head else None
+        if body is None or not re.fullmatch(r"\w+", body[0]) or body[2] < n:
+            return False
+        source, cases = body[0], body[3]
+        possible = {v for _, v in local_assignments(lines, start, end, source)}
+        if not possible or not possible <= set(cases) or not holds_only(lines, start, end, source, set(cases)):
+            return False
+        stored = {v for m, v in stores if head < m <= body[2]}
+        if not stored <= labels or not assigned_before(lines, stacks, start, end, source, head):
+            return False
+        if not (runs_after(stacks, head, body[2], call) or precedes_unconditionally(lines, stacks, start, head, body[2], call)):
+            return False
+    return True
+
+
+def all_calls_hold_labels(lines, enums, name, index, labels, depth):
+    """Every call of the function `name` in the file passes, as argument `index`, a ref that
+    holds one of `labels` (ref_holds_labels); at least one call."""
+    calls = [n for n, text in enumerate(lines, 1)
+             if not text.startswith("flag ") and call_arguments(code_only(text), name) is not None]
+    if not calls:
+        return False
+    for n in calls:
+        args = call_arguments(code_only(lines[n - 1]), name)
+        if args is None or index >= len(args) or not ref_holds_labels(lines, enums, n, args[index], labels, depth):
+            return False
+    return True
+
+
+def cov009(lines, first, headers=()):
+    """ASN1SCC-COV-009: the statement is in the `default:` arm of a switch on `P->value`, P an
+    AcnInsertedFieldRef parameter of an --acn-v2 specialised decoder, and every call of the
+    decoder in the file passes a ref that holds one of the switch's integer labels
+    (all_calls_hold_labels): its determinant was decoded as an ENUMERATED item before the call."""
+    head = owning_switch(lines, first)
+    region = function_region(lines, first)
+    if head is None or region is None:
+        return False
+    start, end = region
+    header = lines[start - 1]
+    if "_Decode" not in header or "AcnInsertedFieldRef" not in header:
+        return False
+    body = switch_body(lines, head, end)
+    selector = re.fullmatch(r"(\w+)->value", body[0]) if body else None
+    params = ref_parameters(header)
+    if selector is None or params is None or selector[1] not in params[1]:
+        return False
+    labels = set(body[3])
+    if not labels or not all(re.fullmatch(r"\d+", label) for label in labels):
+        return False
+    enums = enum_values(list(headers) + [lines])
+    return all_calls_hold_labels(lines, enums, params[0], params[1].index(selector[1]), labels, 0)
+
 # RTL decoders whose postcondition bounds the value on success: the uPER
 # constrained whole numbers (Result and IntVal in MinVal .. MaxVal) and the ACN
 # fixed-size integers (Result.Success and IntVal in minVal .. maxVal).
@@ -695,7 +884,7 @@ def cov001_ada(lines, first):
     return depth == 0 and covers(sorted(labels), bounds)
 
 
-def proven_unreachable(language, lines, first, src):
+def proven_unreachable(language, lines, first, src, headers=()):
     """ID of the documented exemption that proves the statement unreachable, or ''."""
     if language != "c":
         return "ASN1SCC-COV-001" if cov001_ada(lines, first) else ""
@@ -711,6 +900,8 @@ def proven_unreachable(language, lines, first, src):
         return "ASN1SCC-COV-005"
     if cov008(lines, first):
         return "ASN1SCC-COV-008"
+    if cov009(lines, first, headers):
+        return "ASN1SCC-COV-009"
     return ""
 
 
@@ -769,6 +960,8 @@ def classify(run):
             if not source.is_file():
                 raise SystemExit(f"{run}: missing generated source {source}")
             lines = source.read_text(errors="replace").splitlines()
+            # ASN1SCC-COV-009 reads the values of the enum constants in the unit's C headers
+            headers = [h.read_text(errors="replace").splitlines() for h in sorted(work.glob("*.h"))] if language == "c" else []
             starts = function_starts(lines, "c" if language == "c" else "Ada")
             for obligation in data["obligations"]:
                 if obligation["status"] != "-":
@@ -781,7 +974,7 @@ def classify(run):
                              "line": first, "function": function,
                              "function_kind": function_kind(function),
                              "statement_kind": statement_kind(src, lines, first, last),
-                             "proven": proven_unreachable(language, lines, first, src),
+                             "proven": proven_unreachable(language, lines, first, src, headers),
                              "exempted": obligation.get("exempted"), "src": src[:200]})
         units.append(entry)
     return name, rows, units

@@ -310,6 +310,26 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     match itemNames = childNames with
                     | true  -> nestingScope.selectorExemption (getExternalField lm r deps t.id) "ASN1SCC-COV-008" |> Option.map covExemptJustification
                     | false -> None
+                // coverage step 14e (E4): an --acn-v2 specialised CHOICE decoder receives its determinant as an
+                // AcnInsertedFieldRef. When the field is an ACN ENUMERATED field (decoded by a switch with a failing
+                // default arm, or assigned its only item; not -eee) of a SEQUENCE that holds this CHOICE, every caller
+                // decoded it before the call (the front end requires the field before its dependent; an ACN field is
+                // never optional) and stored the value of an item; every item has an alternative here
+                | Decode, CEC_enum (enm, determinant), [] when isDeferredDeterminant determinant ->
+                    let itemNames = determinantEnumItems deps determinant enm.enm |> List.map (fun itm -> itm.Name.Value) |> Set.ofList
+                    let childNames = children |> List.map (fun c -> c.Name.Value) |> Set.ofList
+                    let fieldDecodedBefore =
+                        match originalDeterminantField deps determinant with
+                        | Some ({Type = AcnReferenceToEnumerated fe} as field) when not (r.args.isEnumEfficientEnabled fe.enumerated.items.Length) ->
+                            let fieldPath = field.id.ToScopeNodeList
+                            let holder = List.take (fieldPath.Length - 1) fieldPath
+                            let choicePath = t.id.ToScopeNodeList
+                            holder.Length < choicePath.Length && List.take holder.Length choicePath = holder
+                        | Some _
+                        | None -> false
+                    match itemNames = childNames && fieldDecodedBefore with
+                    | true  -> Some (covExemptJustification "ASN1SCC-COV-009")
+                    | false -> None
                 | Encode, (CEC_enum _ | CEC_presWhen), _ :: _
                 | Encode, CEC_uper, _
                 | Decode, _, _                            -> None

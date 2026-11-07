@@ -817,6 +817,159 @@ class Cov008(unittest.TestCase):
         self.assertEqual(check(source, CHOICE_ARM), "")
 
 
+SPEC_CHOICE = """flag ASN1SCC_P_data_ACN_Decode(ASN1SCC_Data* pVal, BitStream* pBitStrm, int* pErrCode, AcnInsertedFieldRef* P_data_code)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	(void)P_data_code;
+
+	switch(P_data_code->value)
+	{
+	    case 0:
+	    	pVal->kind = Data_a_PRESENT;
+	    	ret = BitStream_ReadBit(pBitStrm, (&(pVal->u.a)));
+	    	break;
+	    case 1:
+	    	pVal->kind = Data_b_PRESENT;
+	    	ret = BitStream_ReadBit(pBitStrm, (&(pVal->u.b)));
+	    	break;
+	default:                                    /*COVERAGE_IGNORE*/
+	    *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+	    ret = FALSE;                    /*COVERAGE_IGNORE*/
+	}
+
+    return ret;
+}
+"""
+
+CALLER_CAST = """flag ASN1SCC_P_ACN_Decode(ASN1SCC_P* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	ASN1SCC_Code P_code_tmp;
+	AcnInsertedFieldRef code = {0};
+	asn1SccUint intVal_P_code_tmp;
+
+	/*Decode P_code */
+	ret = Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm, (&(intVal_P_code_tmp)));
+	*pErrCode = ret ? 0 : ERR_ACN_DECODE_P_CODE;
+	if (ret) {
+	    switch (intVal_P_code_tmp) {
+	        case 0:
+	            P_code_tmp = Code_a;
+	            break;
+	        case 1:
+	            P_code_tmp = Code_b;
+	            break;
+	    default:                                    /*COVERAGE_IGNORE*/
+	        ret = FALSE;                            /*COVERAGE_IGNORE*/
+	        *pErrCode = ERR_ACN_DECODE_P_CODE;                 /*COVERAGE_IGNORE*/
+	    }
+	} /*COVERAGE_IGNORE*/
+	if (ret) {
+	    code.value = (asn1SccUint)P_code_tmp;
+	}
+	if (ret) {
+	    /*Decode data */
+	    ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+	}   /*COVERAGE_IGNORE*/
+
+    return ret && ASN1SCC_P_IsConstraintValid(pVal, pErrCode);
+}
+"""
+
+CALLER_ONE_ITEM = """flag ASN1SCC_P_ACN_Decode(ASN1SCC_P* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	ASN1SCC_Code P_code_tmp;
+	AcnInsertedFieldRef code = {0};
+
+	/*Decode P_code */
+	/* one possible value: nothing on the wire */
+	P_code_tmp = Code_a;
+	if (ret) {
+	    switch (P_code_tmp) {
+	        case Code_a: code.value = 0; break;
+	    }
+	}
+	/* no check of ret after a part that does not write it */
+	/*Decode data */
+	ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+
+    return ret && ASN1SCC_P_IsConstraintValid(pVal, pErrCode);
+}
+"""
+
+PASS_THROUGH = """flag ASN1SCC_P_w_ACN_Decode(ASN1SCC_W* pVal, BitStream* pBitStrm, int* pErrCode, AcnInsertedFieldRef* P_w_code)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	(void)P_w_code;
+
+	/*Decode data */
+	ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, P_w_code);
+
+    return ret;
+}
+"""
+
+CODE_ENUM = ["typedef enum {", "    Code_a = 0,", "    Code_b = 1", "} ASN1SCC_Code;"]
+
+
+def check009(source, headers=(CODE_ENUM,)):
+    lines = source.splitlines()
+    return proven_unreachable("c", lines, line_of(lines, CHOICE_ARM), CHOICE_ARM, list(headers))
+
+
+class Cov009(unittest.TestCase):
+    def test_caller_stores_the_decoded_item(self):
+        self.assertEqual(check009(SPEC_CHOICE + CALLER_CAST), "ASN1SCC-COV-009")
+
+    def test_one_item_determinant(self):
+        self.assertEqual(check009(SPEC_CHOICE + CALLER_ONE_ITEM), "ASN1SCC-COV-009")
+
+    def test_ref_passed_through_a_parameter(self):
+        source = SPEC_CHOICE + PASS_THROUGH + CALLER_CAST.replace("ASN1SCC_P_data_ACN_Decode((&(pVal->data))",
+                                                                  "ASN1SCC_P_w_ACN_Decode((&(pVal->w))")
+        self.assertEqual(check009(source), "ASN1SCC-COV-009")
+
+    def test_enum_values_unknown(self):
+        self.assertEqual(check009(SPEC_CHOICE + CALLER_CAST, headers=()), "")
+
+    def test_item_value_without_case(self):
+        header = ["typedef enum {", "    Code_a = 0,", "    Code_b = 5", "} ASN1SCC_Code;"]
+        self.assertEqual(check009(SPEC_CHOICE + CALLER_CAST, headers=(header,)), "")
+
+    def test_call_may_run_after_a_failed_decode(self):
+        source = CALLER_CAST.replace("""	if (ret) {
+	    /*Decode data */
+	    ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+	}   /*COVERAGE_IGNORE*/""", """	/*Decode data */
+	ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);""")
+        self.assertEqual(check009(SPEC_CHOICE + source), "")
+
+    def test_store_under_a_presence_condition(self):
+        source = CALLER_CAST.replace("""	if (ret) {
+	    code.value = (asn1SccUint)P_code_tmp;
+	}""", """	if (pVal->exist.x) {
+	    code.value = (asn1SccUint)P_code_tmp;
+	}""")
+        self.assertEqual(check009(SPEC_CHOICE + source), "")
+
+    def test_other_caller_stores_a_wire_value(self):
+        other = CALLER_CAST.replace("ASN1SCC_P_ACN_Decode(", "ASN1SCC_Q_ACN_Decode(").replace(
+            "code.value = (asn1SccUint)P_code_tmp;", "code.value = intVal_P_code_tmp;")
+        self.assertEqual(check009(SPEC_CHOICE + CALLER_CAST + other), "")
+
+    def test_no_caller(self):
+        self.assertEqual(check009(SPEC_CHOICE), "")
+
+
 class FunctionKind(unittest.TestCase):
     def test_ber_needs_the_encoding_suffix(self):
         self.assertEqual(function_kind("ASN1SCC_TC_number_of_cycles_Decode"), "uper-decode")

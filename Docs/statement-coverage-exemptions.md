@@ -635,13 +635,110 @@ The compiler emits the region only for a CHOICE whose determinant is an
 ENUMERATED field decoded earlier in the same function (not with the switch-free
 encoding `-eee`), and whose alternatives are exactly the items of the field.
 
-Not exempted: a CHOICE that receives its determinant as a parameter (a reference
-to a CHOICE type with an ACN parameter, and the `--acn-v2` specialised functions,
-which switch on the value of an `AcnInsertedFieldRef`): the proof would need
-every caller.
+Not exempted here: a CHOICE that receives its determinant as a parameter (a
+reference to a CHOICE type with an ACN parameter, and the `--acn-v2` specialised
+functions, which switch on the value of an `AcnInsertedFieldRef`): the proof needs
+every caller; for the `--acn-v2` specialised functions it is ASN1SCC-COV-009.
 
 **Why the code stays.** The same template decodes CHOICEs whose determinant is
 a parameter, where the arm is not proven, and MISRA C:2012 Rule 16.4.
 
 **Ada.** No exemption needed: the Ada decoding is an exhaustive `case` statement
 on the ENUMERATED local, without `when others`.
+
+## ASN1SCC-COV-009: default arm of an `--acn-v2` specialised CHOICE decoder whose callers decoded its ENUMERATED determinant (C)
+
+**Code.** With `--acn-v2`, a CHOICE whose determinant is an ACN inserted field
+of an enclosing SEQUENCE is decoded by a specialised function that receives the
+field as an `AcnInsertedFieldRef` parameter and switches on its value, with a
+`case` per alternative (the value the field writes for that item) and a failing
+`default:` arm. The decoder of the SEQUENCE that holds the field decodes the
+field (as for ASN1SCC-COV-008: a switch over the wire values with a failing
+`default:` arm, or the only item of a one-item type), stores the item's value in
+the reference, and calls the specialised function only afterwards. The
+`default:` arm cannot execute.
+
+**Template**: `StgC/acn_c.stg`, macro `Choice_Enum_decode`, for the specialised
+CHOICE decoders of `--acn-v2` whose determinant is an ACN inserted ENUMERATED
+field (not with the switch-free encoding `-eee`) of a SEQUENCE that holds the
+CHOICE, and whose alternatives are exactly the items of the field.
+
+**Example** (`Code ::= ENUMERATED {a, b}`, a CHOICE `Data` with the alternatives
+`a` and `b`, ACN `P [] { code Code [encoding pos-int, size 8], data <code> [] }`):
+
+```c
+flag ASN1SCC_P_data_ACN_Decode(ASN1SCC_Data* pVal, BitStream* pBitStrm, int* pErrCode, AcnInsertedFieldRef* P_data_code)
+{
+    ...
+    switch(P_data_code->value)
+    {
+        case 0: /* ... */ break;
+        case 1: /* ... */ break;
+    default:                                    /*COVERAGE_IGNORE*/    /* <- exempted */
+        *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+        ret = FALSE;                    /*COVERAGE_IGNORE*/
+    }
+    ...
+}
+
+flag ASN1SCC_P_ACN_Decode(ASN1SCC_P* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    ASN1SCC_Code P_code_tmp;
+    AcnInsertedFieldRef code = {0};
+    ...
+    if (ret) {
+        switch (intVal_P_code_tmp) {
+            case 0: P_code_tmp = Code_a; break;
+            case 1: P_code_tmp = Code_b; break;
+        default:                                    /*COVERAGE_IGNORE*/
+            ret = FALSE;                            /*COVERAGE_IGNORE*/
+            *pErrCode = ERR_ACN_DECODE_P_CODE;      /*COVERAGE_IGNORE*/
+        }
+    }
+    if (ret) {
+        code.value = (asn1SccUint)P_code_tmp;
+    }
+    if (ret) {
+        ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+    }
+    ...
+}
+```
+
+When the field's values differ from the C enum values (e.g. `encode-values`), the
+store is a switch over the local with one `case` per item
+(`case Code_a: code.value = 0; break;`); for a one-item type the local is assigned
+its item without a read, and the store and the call follow without a check of
+`ret`, which nothing has set before.
+
+**Proof.** The reference is a local of the caller initialised to zero; in
+decoding it is written only by the store after the field's decoding (the PatchDet
+calls of `--acn-v2` run only in encoding). The field's local holds an item, as in
+ASN1SCC-COV-008, so the store writes the value of an item, which is a `case`
+label of the specialised decoder. The call runs only after the store: inside an
+`if (ret)` block opened after it, with `ret` unable to turn TRUE again on the way
+(the argument of ASN1SCC-COV-004), or after an `if (ret)` block that nothing
+before it in the function can have skipped. A specialised function that passes
+its own reference parameter on to the CHOICE decoder is covered when every call
+of it satisfies the same condition. ACN inserted fields are never optional and
+the front end requires a determinant before its dependent, so a field of a
+SEQUENCE that holds the CHOICE is always decoded before it.
+
+**Conditions** (checked by `classifyStatements.py` on the generated code): the
+switch is in a decoder with an `AcnInsertedFieldRef` parameter, its selector is
+that parameter's `value` and its labels are integers; every call of the decoder
+in the file passes either `&L`, a local reference of the caller whose every
+`value` assignment stores a label as above (the casted local holding only enum
+items whose values, read from the unit's C headers, are labels; or a switch on
+such a local with a `case` for each value the local can hold), with the call
+after the store; or a reference parameter of the caller, for which every call of
+the caller is checked the same way. At least one call must exist.
+
+**Why the code stays.** The same template decodes CHOICEs whose determinant is
+a parameter not covered here (a field exposed by a referenced type, or `-eee`),
+and MISRA C:2012 Rule 16.4.
+
+**Ada.** Not exempted yet: the Ada specialised decoders have the same
+`when others` arm (the selector is an `Asn1UInt`), but the classifier checks this
+condition on C only.
+
