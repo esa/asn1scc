@@ -1507,7 +1507,7 @@ end if;
    BIT STRING handling below also uses the original stream and advances to its
    recorded end. */
 
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1523,11 +1523,7 @@ begin
         end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
-        <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);
-        if not result.Success then
-            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
-            return; -- COVERAGE_IGNORE
-        end if;
+        <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>        -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>        pragma Assume (result.Success);<else><\n>        if not result.Success then<\n>            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>            return; -- COVERAGE_IGNORE<\n>        end if;<endif>
     end if;
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
@@ -1555,7 +1551,7 @@ else
 end if;
 >>
 
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail) ::= <<
 <octet_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent)>
 >>
 
@@ -1631,7 +1627,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1647,20 +1643,16 @@ begin
         end if;
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
-        <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);
-        if not result.Success then
-            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
-            return; -- COVERAGE_IGNORE
-        end if;
+        <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>        -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>        pragma Assume (result.Success);<else><\n>        if not result.Success then<\n>            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>            return; -- COVERAGE_IGNORE<\n>        end if;<endif>
     end if;
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail) ::= <<
 <octet_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent)>
 >>
 
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1670,11 +1662,7 @@ begin
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
-        <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);
-        if not result.Success then
-            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
-            return; -- COVERAGE_IGNORE
-        end if;
+        <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>        -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>        pragma Assume (result.Success);<else><\n>        if not result.Success then<\n>            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>            return; -- COVERAGE_IGNORE<\n>        end if;<endif>
     end if;
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
@@ -1706,7 +1694,7 @@ else
 end if;
 >>
 
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
 <bit_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode)>
 >>
 
@@ -1753,7 +1741,7 @@ begin
 end;
 >>
 
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1763,16 +1751,12 @@ begin
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
-        <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);
-        if not result.Success then
-            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
-            return; -- COVERAGE_IGNORE
-        end if;
+        <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>        -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>        pragma Assume (result.Success);<else><\n>        if not result.Success then<\n>            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>            return; -- COVERAGE_IGNORE<\n>        end if;<endif>
     end if;
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
 <bit_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode)>
 >>
 

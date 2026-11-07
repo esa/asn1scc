@@ -1046,6 +1046,14 @@ type private DeferredRefCtx = {
     refIcd:         IcdArgAux option
 }
 
+/// Coverage step 14e (E3): the PatchDet of the size field of a CONTAINING region cannot fail when it is the field's only
+/// patch (13b, isOnlyPatchOfField) or its first one since the InitDet (14d, isFirstPatchOfField); the wrapper templates
+/// then call it without checking (C) / with pragma Assume (Ada), as the other PatchDet sites do.
+let private containingSizePatchCannotFail (ctx: DeferredRefCtx) (sizePrm: AcnGenericTypes.AcnParameter) : bool =
+    let fieldId = AcnExternalField.paramIdentity ctx.r ctx.deps sizePrm
+    AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
+    AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id sizePrm.id
+
 
 /// CONTAINING ExternalField, base type has NO standalone function (parameterized
 /// type): use funcBody closure + CONTAINING wrapper.  The CONTAINING size
@@ -1076,9 +1084,9 @@ let private buildContainingClosureBody
                     containingSizePatchDet ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id (fun () -> "")
                 match ctx.o.encodingOptions.Value.octOrBitStr with
                 | CommonTypes.ContainedInOctString ->
-                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) ctx.codec
+                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) ctx.codec
                 | CommonTypes.ContainedInBitString ->
-                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName ctx.codec
+                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) ctx.codec
             | None ->
                 br.funcBody  // fallback: no wrapping if size param not found
         let mappingDeclarations =
@@ -1122,9 +1130,9 @@ let private buildContainingStandaloneBody
     let fncBody =
         match ctx.o.encodingOptions.Value.octOrBitStr with
         | CommonTypes.ContainedInOctString ->
-            ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) ctx.codec
+            ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) ctx.codec
         | CommonTypes.ContainedInBitString ->
-            ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName ctx.codec
+            ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) ctx.codec
     { emptyBody ctx.lm with
         funcBody = fncBody
         errCodes = [errCode]
@@ -1613,10 +1621,10 @@ let private createDeferredReferenceFunction
                         match containing.encodingOptions.Value.octOrBitStr with
                         | CommonTypes.ContainedInOctString ->
                             ctx.lm.acn.octet_string_containing_deferred_wrapper
-                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName bDeducedContent ctx.codec
+                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName bDeducedContent (containingSizePatchCannotFail ctx sizePrm) ctx.codec
                         | CommonTypes.ContainedInBitString ->
                             ctx.lm.acn.bit_string_containing_deferred_wrapper
-                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName ctx.codec
+                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) ctx.codec
                     { bodyResult with
                         funcBody = wrappedBody
                         // the end of the region reads the body's result (q/issues.md Issue 63)
