@@ -1269,10 +1269,14 @@ let private appendPatchDetCalls
                     | true  -> PatchUnchecked
                     | false -> PatchChecked
                 // The PatchDet calls write the result: after a body that may fail they run only when it succeeded,
-                // else a failed body would return success (Issue 48)
-                match bodyOutcome.canFail with
-                | true  -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded, mappingDeclarations, check
-                | false -> body + "\n" + patchCode, guarded, mappingDeclarations, check
+                // else a failed body would return success (Issue 48). After a body that cannot fail and writes the
+                // result, the join reads it (Ada: pragma Assume, the body is a specialised one, without contract; step
+                // 14e E1), else the PatchDet would overwrite a result nobody read (gnatprove flow "set ... but not used").
+                match bodyOutcome.canFail, bodyOutcome.writes with
+                | true, _        -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded, mappingDeclarations, check
+                | false, NoWrite -> body + "\n" + patchCode, guarded, mappingDeclarations, check
+                | false, (AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown) ->
+                    ctx.lm.isvalid.JoinItemsCannotFail body patchCode None true, guarded, mappingDeclarations, check
 
 
 /// Step 3 — build the specialized function's deferred-determinant formal
@@ -1672,12 +1676,15 @@ let private createDeferredReferenceFunction
                         | true  -> EncodeOutcome.conditional (ctx.lm.lg.encodeTemplateOutcome (EncDeferredPatch patchCheck))
                     let b = bodyResult.encOutcome
                     match body = bodyResult.funcBody, b.canFail, b.writes, patch.writes with
-                    | true, _, _, _                                                     -> b
-                    | false, true, _, _                                                 -> EncodeOutcome.seq2 b patch
-                    // step 14e (E1): unchecked C patches write nothing, the body's writes stand
-                    | false, false, w, NoWrite                                          -> {canFail = patch.canFail; writes = w; callee = None}
-                    | false, false, (NoWrite | SometimesWrites | AlwaysWrites), AlwaysWrites -> {canFail = patch.canFail; writes = AlwaysWrites; callee = None}
-                    | false, false, _, _                                                -> {canFail = patch.canFail; writes = (if b.writes = ReadsFirst && patch.writes = AlwaysWrites then ReadsFirst else WritesUnknown); callee = None}
+                    | true, _, _, _                                     -> b
+                    | false, true, _, _                                 -> EncodeOutcome.seq2 b patch
+                    // a body that cannot fail and writes nothing: the patches follow it unchecked (C unchecked patches
+                    // write nothing either, step 14e E1)
+                    | false, false, NoWrite, NoWrite                    -> {canFail = patch.canFail; writes = NoWrite; callee = None}
+                    | false, false, NoWrite, AlwaysWrites               -> {canFail = patch.canFail; writes = AlwaysWrites; callee = None}
+                    | false, false, NoWrite, _                          -> {canFail = patch.canFail; writes = WritesUnknown; callee = None}
+                    // a body that cannot fail and writes the result: joined by JoinItemsCannotFail, which reads it
+                    | false, false, (AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown), _ -> EncodeOutcome.seq2 b patch
                 { bodyResult with funcBody = body; encOutcome = encOutcome
                                   userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations }
 

@@ -345,7 +345,7 @@ JoinItemsNoCheck(sPart, sNestedPart) ::= <<
    (an encoder whose contract states Post => result.Success). */
 JoinItemsCannotFail(sPart, sNestedPart, soCallee, bAssumed) ::= <<
 <sPart>
-<if(bAssumed)>-- no check: <soCallee> cannot fail (compiler analysis of the specialised body, no contract)<\n>pragma Assume (result.Success);<else><if(soCallee)>-- no check: <soCallee> cannot fail (Post => result.Success)<else>-- no check: the part above cannot fail<endif><\n>pragma Assert (result.Success);<endif>
+<if(bAssumed)><if(soCallee)>-- no check: <soCallee> cannot fail (compiler analysis of the specialised body, no contract)<else>-- no check: the part above cannot fail (compiler analysis of this specialised body, no contract)<endif><\n>pragma Assume (result.Success);<else><if(soCallee)>-- no check: <soCallee> cannot fail (Post => result.Success)<else>-- no check: the part above cannot fail<endif><\n>pragma Assert (result.Success);<endif>
 <sNestedPart>
 >>
 
