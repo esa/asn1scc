@@ -27,9 +27,9 @@ let JoinItemsNoCheck (sPart:string) (sNestedPart:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "JoinItemsNoCheck" [("sPart",(if sPart = null then null else ST.StrHelper sPart:>Object) );("sNestedPart",(if sNestedPart = null then null else ST.StrHelper sNestedPart:>Object) )]
 
-let JoinItemsCannotFail (sPart:string) (sNestedPart:string) (soCallee:string option) =
+let JoinItemsCannotFail (sPart:string) (sNestedPart:string) (soCallee:string option) (bAssumed:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "isvalid_rust" "JoinItemsCannotFail" [("sPart",(if sPart = null then null else ST.StrHelper sPart:>Object) );("sNestedPart",(if sNestedPart = null then null else ST.StrHelper sNestedPart:>Object) );("soCallee",(if soCallee.IsNone then null else ST.StrHelper soCallee.Value:>Object) )]
+    ST.call "isvalid_rust" "JoinItemsCannotFail" [("sPart",(if sPart = null then null else ST.StrHelper sPart:>Object) );("sNestedPart",(if sNestedPart = null then null else ST.StrHelper sNestedPart:>Object) );("soCallee",(if soCallee.IsNone then null else ST.StrHelper soCallee.Value:>Object) );("bAssumed",bAssumed :>Object)]
 
 let JoinItemsNoWrite (sPart:string) (sNestedPart:string) (bComment:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

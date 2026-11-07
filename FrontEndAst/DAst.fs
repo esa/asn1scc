@@ -153,7 +153,19 @@ type ResultWrites =
 type EncodeOutcome = {
     canFail : bool
     writes  : ResultWrites
-    callee  : string option
+    callee  : EncodeCallee option
+}
+
+/// Why a called encoder cannot fail (coverage step 14e, E1): its contract states it (Ada `Post => result.Success`, the
+/// caller asserts it), or the compiler's analysis of the body of an --acn-v2 specialised function, which has no
+/// contract (the caller assumes it: Ada `pragma Assume`, as 13b does for the only PatchDet of a field).
+and CannotFailBasis =
+    | ByContract
+    | ByCompilerAnalysis
+
+and EncodeCallee = {
+    name  : string
+    basis : CannotFailBasis
 }
 
 [<RequireQualifiedAccess>]
@@ -163,7 +175,10 @@ module EncodeOutcome =
     /// RTL procedures only: cannot fail, no write.
     let noWrite = {canFail = false; writes = NoWrite; callee = None}
     /// A call of an encoder, which sets ret / result on every path.
-    let call (sFuncName:string) (canFail:bool) = {canFail = canFail; writes = AlwaysWrites; callee = Some sFuncName}
+    let call (sFuncName:string) (canFail:bool) = {canFail = canFail; writes = AlwaysWrites; callee = Some {name = sFuncName; basis = ByContract}}
+    /// A call of an --acn-v2 specialised function, whose outcome comes from the analysis of its body (step 14e, E1).
+    let specialisedCall (sFuncName:string) (canFail:bool) =
+        {canFail = canFail; writes = AlwaysWrites; callee = Some {name = sFuncName; basis = ByCompilerAnalysis}}
     /// A call of an encoder whose outcome is not recorded (coverage step 14b; e.g. an --acn-v2 specialised function):
     /// it may fail, but it sets ret / result on every path (Ada: an out parameter).
     let unknownCall = {canFail = true; writes = AlwaysWrites; callee = None}
@@ -229,6 +244,12 @@ type VarSizeLengthCheck =
 /// The encode templates whose writes to ret / result differ between languages (coverage step 12b): the part of the
 /// template itself, without the parts nested in it (elements, children). ILangGeneric.encodeTemplateOutcome maps
 /// each to what its text writes.
+/// Whether the PatchDet calls of an --acn-v2 encode part are checked (coverage steps 13b / 14d / 14e: the only or first
+/// patch of a field since its InitDet cannot fail and is not checked).
+type DeferredPatchCheck =
+    | PatchChecked
+    | PatchUnchecked
+
 type EncodeTemplate =
     | EncRtlWritesOnly          // INTEGER, REAL, BOOLEAN, NULL, OBJECT IDENTIFIER, TIME (uPER): RTL writes
     | EncPresenceBits           // the presence bits of a SEQUENCE
@@ -250,9 +271,11 @@ type EncodeTemplate =
     | EncPresentWhenCheck       // ACN: the presence flag of an OPTIONAL child must match its present-when expression
     | EncChoiceDefaultArm       // CHOICE: the arm of a selector without alternative (C: defensive default, ret = FALSE)
     | EncChoiceAbsentArm        // ACN CHOICE: the arm of an ALWAYS ABSENT alternative (writes a failure)
-    | EncDeferredPatch          // --acn-v2: the PatchDet calls after a specialised body (write result, may fail)
-    | EncContainingDeferredWrapper  // --acn-v2: the end of a CONTAINING region around an inline body (checks the body's
-                                    // result, then the PatchDet of the region's size: reads result first, may fail)
+    | EncDeferredPatch of DeferredPatchCheck  // --acn-v2: the PatchDet calls after a specialised body (write result;
+                                              // checked: may fail; all unchecked (13b / 14d): cannot fail)
+    | EncContainingDeferredWrapper of DeferredPatchCheck  // --acn-v2: the end of a CONTAINING region around an inline
+                                    // body (checks the body's result, then the PatchDet of the region's size: reads
+                                    // result first; may fail unless that PatchDet is unchecked, step 14e E3)
     // coverage step 12c: the update of an ACN determinant (AcnDependencies), without the flag it may set
     | EncDeterminantAssign      // size / presence: an assignment
     | EncDeterminantRangeCheck  // IA5String size with a range check (Ada: result.Success := ..., a component write)

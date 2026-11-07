@@ -17,8 +17,8 @@ type IIsValid_rust() =
             isvalid_rust.JoinItemsAssert  sPart sNestedPart 
         override this.JoinItemsNoCheck  (sPart:string) (sNestedPart:string) =
             isvalid_rust.JoinItemsNoCheck  sPart sNestedPart 
-        override this.JoinItemsCannotFail  (sPart:string) (sNestedPart:string) (soCallee:string option) =
-            isvalid_rust.JoinItemsCannotFail  sPart sNestedPart soCallee 
+        override this.JoinItemsCannotFail  (sPart:string) (sNestedPart:string) (soCallee:string option) (bAssumed:bool) =
+            isvalid_rust.JoinItemsCannotFail  sPart sNestedPart soCallee bAssumed 
         override this.JoinItemsNoWrite  (sPart:string) (sNestedPart:string) (bComment:bool) =
             isvalid_rust.JoinItemsNoWrite  sPart sNestedPart bComment 
         override this.validation_comment  (sText:string) =

@@ -1146,7 +1146,13 @@ let nestEncodeParts (lm:LanguageMacros) (parts: (string * EncodeOutcome) list) :
                 | true, _       -> Some (lm.isvalid.JoinItems2 content sNested)
                 | false, NoWrite -> Some (lm.isvalid.JoinItemsNoWrite content sNested (firstNoWriteJoin = Some i))
                 | false, (AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown) ->
-                    Some (lm.isvalid.JoinItemsCannotFail content sNested o.callee)
+                    let soCallee = o.callee |> Option.map (fun c -> c.name)
+                    let bAssumed =
+                        match o.callee with
+                        | Some {basis = ByCompilerAnalysis} -> true
+                        | Some {basis = ByContract}
+                        | None                              -> false
+                    Some (lm.isvalid.JoinItemsCannotFail content sNested soCallee bAssumed)
     printFrom 0
 
 let nestItems_ret (lm:LanguageMacros) children =

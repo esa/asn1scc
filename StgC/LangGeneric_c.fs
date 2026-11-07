@@ -904,10 +904,14 @@ type LangGeneric_c() =
             // BitStream_EncodeOctetString_no_length returns FALSE for a buffer too short (left open, step 12 Q6)
             | EncOctetStringFixedSize | EncOctetStringVarSize _
             | EncOctetStringNoLength                            -> {canFail = true; writes = AlwaysWrites; callee = None}
-            | EncPresentWhenCheck | EncDeferredPatch
+            | EncPresentWhenCheck | EncDeferredPatch PatchChecked
             | EncChoiceAbsentArm                                -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // (void)<PatchDet>(...): the only / first patch of each field (13b / 14d), ret not written
+            | EncDeferredPatch PatchUnchecked                   -> EncodeOutcome.noWrite
             // if (ret) { ... ret = <PatchDet>(...); ... } after the body of the region (q/issues.md Issue 63)
-            | EncContainingDeferredWrapper                      -> {canFail = true; writes = ReadsFirst; callee = None}
+            | EncContainingDeferredWrapper PatchChecked         -> {canFail = true; writes = ReadsFirst; callee = None}
+            // ... the same with the only / first patch of the size field, which cannot fail (step 14e, E3)
+            | EncContainingDeferredWrapper PatchUnchecked       -> {canFail = false; writes = ReadsFirst; callee = None}
             // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid selector (coverage step 12d)
             | EncChoiceDefaultArm                               -> {canFail = true; writes = SometimesWrites; callee = None}
             // determinant updates (coverage step 12c): assignments (the C size update has no range check)

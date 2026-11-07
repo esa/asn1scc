@@ -43,7 +43,7 @@ if (ret) {
 
 /* Coverage step 12b (DAstUtilFunctions.nestEncodeParts): the encode part before cannot fail and sets ret (a call
    with bCheckConstraints = FALSE of an encoder without a failing part), so ret is still TRUE. */
-JoinItemsCannotFail(sPart, sNestedPart, soCallee) ::= <<
+JoinItemsCannotFail(sPart, sNestedPart, soCallee, bAssumed) ::= <<
 <sPart>
 <if(soCallee)>/* no check of ret: <soCallee>() cannot fail */<else>/* no check of ret: the part above cannot fail */<endif>
 <sNestedPart>

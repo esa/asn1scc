@@ -521,9 +521,13 @@ type LangGeneric_a() =
             // the Length subtype of the typedef holds that range: a pragma Assert instead of the check (coverage step 14b2)
             | EncOctetStringVarSize LengthEnforcedByTypedef | EncBitStringVarSize LengthEnforcedByTypedef
             | EncSequenceOfVarSize LengthEnforcedByTypedef                          -> EncodeOutcome.noWrite
-            | EncPresentWhenCheck | EncDeferredPatch | EncChoiceAbsentArm           -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncPresentWhenCheck | EncDeferredPatch PatchChecked | EncChoiceAbsentArm -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // <PatchDet>(..., result); pragma Assume (result.Success): the only / first patch of each field (13b / 14d)
+            | EncDeferredPatch PatchUnchecked                                       -> {canFail = false; writes = AlwaysWrites; callee = None}
             // if result.Success then ... <PatchDet>(..., result) after the body of the region (q/issues.md Issue 63)
-            | EncContainingDeferredWrapper                                          -> {canFail = true; writes = ReadsFirst; callee = None}
+            | EncContainingDeferredWrapper PatchChecked                             -> {canFail = true; writes = ReadsFirst; callee = None}
+            // ... the same with the only / first patch of the size field and pragma Assume (step 14e, E3)
+            | EncContainingDeferredWrapper PatchUnchecked                           -> {canFail = false; writes = ReadsFirst; callee = None}
             // result.Success := nStringLength >= min AND ...: a component write, so result must be initialised before
             | EncStringVarSizeUper                                                  -> {canFail = true; writes = ReadsFirst; callee = None}
             // an exhaustive case over the selector: no default arm

@@ -1054,6 +1054,13 @@ let private containingSizePatchCannotFail (ctx: DeferredRefCtx) (sizePrm: AcnGen
     AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
     AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id sizePrm.id
 
+/// The encode outcome of the end of a CONTAINING region (EncContainingDeferredWrapper): it cannot fail when the PatchDet
+/// of the size field is unchecked (step 14e, E1 / E3).
+let private containingWrapperOutcome (ctx: DeferredRefCtx) (sizePrm: AcnGenericTypes.AcnParameter) : EncodeOutcome =
+    match containingSizePatchCannotFail ctx sizePrm with
+    | true  -> ctx.lm.lg.encodeTemplateOutcome (EncContainingDeferredWrapper PatchUnchecked)
+    | false -> ctx.lm.lg.encodeTemplateOutcome (EncContainingDeferredWrapper PatchChecked)
+
 
 /// CONTAINING ExternalField, base type has NO standalone function (parameterized
 /// type): use funcBody closure + CONTAINING wrapper.  The CONTAINING size
@@ -1099,7 +1106,7 @@ let private buildContainingClosureBody
         // the end of the region reads the body's result (q/issues.md Issue 63: a body that cannot fail writes none)
         let encOutcome =
             match containingSizePrm with
-            | Some _ -> EncodeOutcome.seq2 br.encOutcome (ctx.lm.lg.encodeTemplateOutcome EncContainingDeferredWrapper)
+            | Some sizePrm -> EncodeOutcome.seq2 br.encOutcome (containingWrapperOutcome ctx sizePrm)
             | None   -> br.encOutcome
         { br with
             funcBody = wrappedBody
@@ -1175,12 +1182,12 @@ let private appendPatchDetCalls
         (isContainingExternalField: bool)
         (baseHasStandaloneFunc: bool)
         (bodyOutcome: EncodeOutcome)
-        (body: string) : string * bool * UserDefinedFunction list =
+        (body: string) : string * bool * UserDefinedFunction list * DeferredPatchCheck =
     match isContainingExternalField, not baseHasStandaloneFunc with
-    | true, false -> body, false, []  // old approach: PatchDet is in STG template
+    | true, false -> body, false, [], PatchChecked  // old approach: PatchDet is in STG template
     | _ ->
         match ctx.codec with
-        | CommonTypes.Codec.Decode -> body, false, []
+        | CommonTypes.Codec.Decode -> body, false, [], PatchChecked
         | CommonTypes.Codec.Encode ->
             // Identify CONTAINING size param to exclude from step 2b.  Always
             // check (not just when isContainingExternalField) because named
@@ -1249,18 +1256,23 @@ let private appendPatchDetCalls
                                     | None ->
                                         ctx.lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch bCannotFail ctx.codec
                             Some (guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty,
-                                  patchDetMappingDeclarations ctx.r ctx.lm field))
+                                  patchDetMappingDeclarations ctx.r ctx.lm field, bCannotFail))
             match patchCalls with
-            | [] -> body, false, []
+            | [] -> body, false, [], PatchChecked
             | calls ->
-                let patchCode = calls |> List.map (fun (code, _, _) -> code) |> String.concat "\n"
-                let guarded = calls |> List.exists (fun (_, guarded, _) -> guarded)
-                let mappingDeclarations = calls |> List.collect (fun (_, _, declarations) -> declarations)
+                let patchCode = calls |> List.map (fun (code, _, _, _) -> code) |> String.concat "\n"
+                let guarded = calls |> List.exists (fun (_, guarded, _, _) -> guarded)
+                let mappingDeclarations = calls |> List.collect (fun (_, _, declarations, _) -> declarations)
+                // step 14e (E1): the patches cannot fail when every one is the only / first patch of its field
+                let check =
+                    match calls |> List.forall (fun (_, _, _, bCannotFail) -> bCannotFail) with
+                    | true  -> PatchUnchecked
+                    | false -> PatchChecked
                 // The PatchDet calls write the result: after a body that may fail they run only when it succeeded,
                 // else a failed body would return success (Issue 48)
                 match bodyOutcome.canFail with
-                | true  -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded, mappingDeclarations
-                | false -> body + "\n" + patchCode, guarded, mappingDeclarations
+                | true  -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded, mappingDeclarations, check
+                | false -> body + "\n" + patchCode, guarded, mappingDeclarations, check
 
 
 /// Step 3 — build the specialized function's deferred-determinant formal
@@ -1370,6 +1382,17 @@ let private emitSpecializedFunctionDecl
     finalBody.auxiliaries @ [specFuncDef; specFuncBody]
 
 
+/// Coverage step 14e (E1): what a call of the specialised function does, for the caller's joins: as for the call of a
+/// type assignment's encoder (AcnFunctionWrapper.createAcnFunction), it cannot fail when its body cannot fail and it
+/// calls no validity function that may fail (a language whose encoders validate their value, encodeCallValidates).
+/// Its basis is the compiler's analysis (EncodeOutcome.specialisedCall): specialised functions have no contract.
+let private specialisedCallOutcome (ctx: DeferredRefCtx) (specFuncName: string) (finalBody: AcnFuncBodyResult) : EncodeOutcome =
+    let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t bodyOutcome
+    let isValidFuncName = match ctx.isValidFunc with None -> None | Some f -> f.funcName
+    let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
+    EncodeOutcome.specialisedCall specFuncName (bodyOutcome.canFail || (ctx.lm.lg.encodeCallValidates && bValidityCalled))
+
 /// Step 5 — build the caller's funcBody (a simple call to the specialized
 /// function with &det actual parameters), record the cross-TAS function-call
 /// dependency, and wrap the result in an AcnFunction via createAcnFunction.
@@ -1378,6 +1401,7 @@ let private buildCallerWrapper
         (specFuncName: string)
         (allAuxiliaries: string list)
         (udfcs: UserDefinedFunction list)
+        (callOutcome: EncodeOutcome)
         (ns: State)
         : AcnFunction option * State =
     let callerFuncBody (callerUs:State) (callerErrCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (_nestingScope: NestingScope) (p:CodegenScope) =
@@ -1439,8 +1463,8 @@ let private buildCallerWrapper
                bBsIsUnReferenced = false
                resultExpr = resultExpr
                auxiliaries = allAuxiliaries
-               // coverage step 14b: the outcome of the specialised function is not recorded, but the call sets the result
-               icdResult = ctx.refIcd; encOutcome = encodeOutcomeOf ctx.codec EncodeOutcome.unknownCall}), callerUs
+               // coverage step 14e (E1): the outcome of the specialised function, from its body (specialisedCallOutcome)
+               icdResult = ctx.refIcd; encOutcome = encodeOutcomeOf ctx.codec callOutcome}), callerUs
 
     // Record the function-call dependency (caller → callee)
     let ns3 =
@@ -1628,13 +1652,13 @@ let private createDeferredReferenceFunction
                     { bodyResult with
                         funcBody = wrappedBody
                         // the end of the region reads the body's result (q/issues.md Issue 63)
-                        encOutcome = EncodeOutcome.seq2 bodyResult.encOutcome (ctx.lm.lg.encodeTemplateOutcome EncContainingDeferredWrapper)
+                        encOutcome = EncodeOutcome.seq2 bodyResult.encOutcome (containingWrapperOutcome ctx sizePrm)
                         userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations }
                 | _ -> bodyResult
 
             // Step 2b: append PatchDet calls (encode only) onto the body.
             let finalBody =
-                let body, bPatchGuarded, mappingDeclarations =
+                let body, bPatchGuarded, mappingDeclarations, patchCheck =
                     appendPatchDetCalls ctx specP
                         isContainingExternalField (not baseAcnFunc.funcName.IsNone) bodyResult.encOutcome bodyResult.funcBody
                 // coverage step 12b: the PatchDet calls write the result (they may fail); after a body that may fail
@@ -1644,14 +1668,16 @@ let private createDeferredReferenceFunction
                     // a patch under the checks of its consumer's path (q/issues.md Issue 50) may not run
                     let patch =
                         match bPatchGuarded with
-                        | false -> ctx.lm.lg.encodeTemplateOutcome EncDeferredPatch
-                        | true  -> EncodeOutcome.conditional (ctx.lm.lg.encodeTemplateOutcome EncDeferredPatch)
+                        | false -> ctx.lm.lg.encodeTemplateOutcome (EncDeferredPatch patchCheck)
+                        | true  -> EncodeOutcome.conditional (ctx.lm.lg.encodeTemplateOutcome (EncDeferredPatch patchCheck))
                     let b = bodyResult.encOutcome
                     match body = bodyResult.funcBody, b.canFail, b.writes, patch.writes with
                     | true, _, _, _                                                     -> b
                     | false, true, _, _                                                 -> EncodeOutcome.seq2 b patch
-                    | false, false, (NoWrite | SometimesWrites | AlwaysWrites), AlwaysWrites -> {canFail = true; writes = AlwaysWrites; callee = None}
-                    | false, false, _, _                                                -> {canFail = true; writes = (if b.writes = ReadsFirst && patch.writes = AlwaysWrites then ReadsFirst else WritesUnknown); callee = None}
+                    // step 14e (E1): unchecked C patches write nothing, the body's writes stand
+                    | false, false, w, NoWrite                                          -> {canFail = patch.canFail; writes = w; callee = None}
+                    | false, false, (NoWrite | SometimesWrites | AlwaysWrites), AlwaysWrites -> {canFail = patch.canFail; writes = AlwaysWrites; callee = None}
+                    | false, false, _, _                                                -> {canFail = patch.canFail; writes = (if b.writes = ReadsFirst && patch.writes = AlwaysWrites then ReadsFirst else WritesUnknown); callee = None}
                 { bodyResult with funcBody = body; encOutcome = encOutcome
                                   userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations }
 
@@ -1667,7 +1693,7 @@ let private createDeferredReferenceFunction
 
             // Step 5: build the caller's funcBody, record the cross-TAS call,
             // and wrap into an AcnFunction.
-            buildCallerWrapper ctx specFuncName allAuxiliaries finalBody.userDefinedFunctions ns2
+            buildCallerWrapper ctx specFuncName allAuxiliaries finalBody.userDefinedFunctions (specialisedCallOutcome ctx specFuncName finalBody) ns2
 
 
 // ---------------------------------------------------------------------------

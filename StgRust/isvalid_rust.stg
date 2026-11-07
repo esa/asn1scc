@@ -43,7 +43,7 @@ if ret {
 >>
 
 /* Coverage step 12b, C and Ada only (encode outcomes are unknown here: never used); kept identical to JoinItems2. */
-JoinItemsCannotFail(sPart, sNestedPart, soCallee) ::= <<
+JoinItemsCannotFail(sPart, sNestedPart, soCallee, bAssumed) ::= <<
 <sPart>
 if ret {
     <sNestedPart>
