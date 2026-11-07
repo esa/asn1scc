@@ -107,12 +107,15 @@ isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)>"
 AssignTrue() ::= "ret = TRUE;"
 
 /* Fixed size: the F# knows whether there are whole bytes (bFullBytes) and trailing bits (bTrailingBits), so
-   neither part has a condition that is constant (coverage step 14a). */
+   neither part has a condition that is constant (coverage step 14a).
+   Variable size: the trailing bits are compared as `nCount % 8 == 0 || (...)`, not as a conditional expression
+   `nCount % 8 > 0 ? (...) : TRUE`, which has the same value but which GNATcoverage 26.2 measures wrongly as a condition
+   (https://github.com/AdaCore/gnatcoverage/issues/20). */
 isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize, bFullBytes, bTrailingBits) ::= <<
 <if(!bIsFixedSize)>
     (<p1>nCount == <p2>nCount) &&
     (memcmp(<p1>arr, <p2>arr, <p1>nCount/8) == 0) &&
-    (<p1>nCount % 8 > 0 ? (<p1>arr[<p1>nCount/8] \>> (8-<p1>nCount % 8) == <p2>arr[<p1>nCount/8]\>>(8-<p1>nCount % 8) ) : TRUE)
+    (<p1>nCount % 8 == 0 || (<p1>arr[<p1>nCount/8] \>> (8-<p1>nCount % 8) == <p2>arr[<p1>nCount/8]\>>(8-<p1>nCount % 8) ))
 
 <else>
     <if(bFullBytes)>(memcmp(<p1>arr, <p2>arr, <nFixedSize>/8) == 0)<if(bTrailingBits)> &&<\n><endif><endif><if(bTrailingBits)>(<p1>arr[<nFixedSize>/8]\>>(8-<nFixedSize> % 8) == <p2>arr[<nFixedSize>/8]\>>(8-<nFixedSize> % 8))<endif><if(!bFullBytes)><if(!bTrailingBits)>TRUE<endif><endif>
