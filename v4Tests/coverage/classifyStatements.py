@@ -671,18 +671,22 @@ def holds_only(lines, start, end, name, allowed):
 def precedes_unconditionally(lines, stacks, start, first_head, first_end, later):
     """The construct first_head .. first_end ran before line `later` on every path that reaches
     it: it ends before `later`, and each block holding it that does not hold `later` is an
-    `if (ret)` that nothing before it in the function can have set FALSE (ret is still the TRUE
-    of its declaration), as after the one-item decoding of a determinant (coverage step 14c3)."""
+    `if (ret)` that nothing can have set FALSE since ret was last known TRUE (its declaration,
+    or the opening of the innermost `if (ret)` holding both), as after the one-item decoding of
+    a determinant (coverage step 14c3)."""
     if first_end >= later:
         return False
     shared = {x[0] for x in stacks[later]}
+    # ret is TRUE at the start of the function and inside the innermost shared `if (ret)` block
+    anchors = [x[0] for x in stacks[first_head] if x[0] in shared and guard(x) == ("ret",)]
+    anchor = anchors[-1] if anchors else start
     for block in stacks[first_head]:
         if block[0] in shared:
             continue
         if guard(block) != ("ret",):
             return False
         if any(RET_SET.search(code_only(lines[n - 1])) and not re.search(r"\bflag\s+ret\s*=", lines[n - 1])
-               for n in range(start + 1, block[0])):
+               for n in range(anchor + 1, block[0])):
             return False
     return True
 

@@ -938,6 +938,20 @@ class Cov009(unittest.TestCase):
                                                                   "ASN1SCC_P_w_ACN_Decode((&(pVal->w))")
         self.assertEqual(check009(source), "ASN1SCC-COV-009")
 
+    def test_one_item_inside_an_outer_check(self):
+        source = CALLER_ONE_ITEM.replace("""	/*Decode P_code */""", """	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->id)), 0, 255);
+	if (ret) {
+	/*Decode P_code */""").replace("""	ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+""", """	ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+	}
+""")
+        self.assertEqual(check009(SPEC_CHOICE + source), "ASN1SCC-COV-009")
+
+    def test_one_item_after_a_write_of_ret(self):
+        source = CALLER_ONE_ITEM.replace("""	/*Decode P_code */""", """	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->id)), 0, 255);
+	/*Decode P_code */""")
+        self.assertEqual(check009(SPEC_CHOICE + source), "")
+
     def test_enum_values_unknown(self):
         self.assertEqual(check009(SPEC_CHOICE + CALLER_CAST, headers=()), "")
 
