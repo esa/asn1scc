@@ -323,35 +323,58 @@ let private childrenPassArguments (children: SeqChildInfo list) : bool =
 //  Deferred SEQUENCE function
 // ---------------------------------------------------------------------------
 
-/// Coverage step 13c: whether the consumer dependency dep patches its field on every path of the SEQUENCE t, i.e.
-/// whenever the encoding of t's body succeeds: the node whose encoding patches (the dependent, or for a presence
-/// flag its parent SEQUENCE) is reached from t through mandatory SEQUENCE components only, references included
-/// (no OPTIONAL component, CHOICE alternative or SEQUENCE OF element on the way). Then the fallback PatchDet of the
-/// field at the end of t can never run.
-let private consumerOnEveryPath (t: Asn1AcnAst.Asn1Type) (dep: Asn1AcnAst.AcnDependency) : bool =
+/// Coverage step 13c: the consumers of a field that patch it on every path of the SEQUENCE t, i.e. whenever the
+/// encoding of t's body succeeds; None when no such set exists. The node whose encoding patches (the dependent, or for
+/// a presence flag its parent SEQUENCE) must be reached from t through mandatory SEQUENCE components (references
+/// included; no OPTIONAL component or SEQUENCE OF element on the way), or through a CHOICE whose every alternative
+/// (ALWAYS ABSENT ones included, conservatively) reaches a consumer by the same rule (step 14e, E2:
+/// 15-PUS-ParameterPassing/004, a CHOICE of CONTAINING alternatives each sizing the field). Then the fallback PatchDet
+/// of the field at the end of t can never run.
+let private consumersOnEveryPath (t: Asn1AcnAst.Asn1Type) (consumers: Asn1AcnAst.AcnDependency list) : Asn1AcnAst.AcnDependency list option =
     let parentPath = t.id.ToScopeNodeList
-    let depPath = dep.asn1Type.ToScopeNodeList
-    let patchingNode =
-        match dep.dependencyKind with
-        | AcnDepPresenceBool -> List.take (depPath.Length - 1) depPath
-        | _ -> depPath
-    let rec mandatory (kind: Asn1AcnAst.Asn1TypeKind) (rel: ScopeNode list) =
-        match rel, kind with
-        | [], _ -> true
-        | _, Asn1AcnAst.ReferenceType rt -> mandatory rt.resolvedType.Kind rel
-        | SEQ_CHILD (name, _) :: rest, Asn1AcnAst.Sequence sq ->
-            sq.children |> List.exists (fun c ->
-                match c with
-                | Asn1AcnAst.Asn1Child ch when ch.Name.Value = name ->
-                    match ch.Optionality with
-                    | None
-                    | Some Asn1AcnAst.AlwaysPresent -> mandatory ch.Type.Kind rest
-                    | Some Asn1AcnAst.AlwaysAbsent
-                    | Some (Asn1AcnAst.Optional _) -> false
-                | Asn1AcnAst.Asn1Child _
-                | Asn1AcnAst.AcnChild _ -> false)
-        | _ -> false
-    isScopePrefix parentPath patchingNode && mandatory t.Kind (List.skip parentPath.Length patchingNode)
+    let relativePatchingNode (dep: Asn1AcnAst.AcnDependency) =
+        let depPath = dep.asn1Type.ToScopeNodeList
+        let patchingNode =
+            match dep.dependencyKind with
+            | AcnDepPresenceBool -> List.take (depPath.Length - 1) depPath
+            | _ -> depPath
+        if isScopePrefix parentPath patchingNode then Some (List.skip parentPath.Length patchingNode, dep) else None
+    let rec cover (kind: Asn1AcnAst.Asn1TypeKind) (cands: (ScopeNode list * Asn1AcnAst.AcnDependency) list) =
+        match cands |> List.tryFind (fun (rel, _) -> rel.IsEmpty) with
+        | Some (_, dep) -> Some [dep]
+        | None ->
+            let below (step: ScopeNode -> string option) (name: string) =
+                cands |> List.choose (fun (rel, dep) ->
+                    match rel with
+                    | node :: rest when step node = Some name -> Some (rest, dep)
+                    | _ -> None)
+            match kind with
+            | Asn1AcnAst.ReferenceType rt -> cover rt.resolvedType.Kind cands
+            | Asn1AcnAst.Sequence sq ->
+                sq.children |> List.tryPick (fun c ->
+                    match c with
+                    | Asn1AcnAst.Asn1Child ch ->
+                        match ch.Optionality with
+                        | None
+                        | Some Asn1AcnAst.AlwaysPresent ->
+                            match below (function SEQ_CHILD (n, _) -> Some n | _ -> None) ch.Name.Value with
+                            | [] -> None
+                            | sub -> cover ch.Type.Kind sub
+                        | Some Asn1AcnAst.AlwaysAbsent
+                        | Some (Asn1AcnAst.Optional _) -> None
+                    | Asn1AcnAst.AcnChild _ -> None)
+            | Asn1AcnAst.Choice ch ->
+                let perAlternative =
+                    ch.children |> List.map (fun alt ->
+                        match below (function CH_CHILD (n, _, _) -> Some n | _ -> None) alt.Name.Value with
+                        | [] -> None
+                        | sub -> cover alt.Type.Kind sub)
+                match perAlternative with
+                | [] -> None
+                | _ when perAlternative |> List.forall Option.isSome -> Some (perAlternative |> List.choose id |> List.concat)
+                | _ -> None
+            | _ -> None
+    cover t.Kind (consumers |> List.choose relativePatchingNode)
 
 /// Deferred version of createSequenceFunction.
 /// Pre-processes the children list: for direct ACN children that are deferred
@@ -871,11 +894,14 @@ let private createDeferredSequenceFunction
             | CommonTypes.Codec.Encode ->
                 // coverage step 13c: no fallback when a consumer patches the field on every path (comment instead)
                 let alwaysPatchedBy (acId: ReferenceToType) =
-                    AcnExternalField.consumersOfField r deps acId |> List.tryFind (consumerOnEveryPath t)
+                    consumersOnEveryPath t (AcnExternalField.consumersOfField r deps acId)
                 let omitted =
                     localPatchedDets |> List.choose (fun (acId, _) ->
-                        alwaysPatchedBy acId |> Option.map (fun dep ->
-                            let consumer = dep.asn1Type.AcnAbsPath |> List.skip (parentPath.Length) |> String.concat "."
+                        alwaysPatchedBy acId |> Option.map (fun covering ->
+                            let consumer =
+                                covering
+                                |> List.map (fun dep -> dep.asn1Type.AcnAbsPath |> List.skip (parentPath.Length) |> String.concat ".")
+                                |> List.distinct |> String.concat " or "
                             lm.acn.acn_deferred_det_fallback_omitted (deferredDetRefName r lm acId) consumer))
                 let fallbackDets =
                     localPatchedDets |> List.choose (fun (acId, acType) ->
