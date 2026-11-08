@@ -165,7 +165,8 @@ Codec_DecodeSweep_helper(nBudget) ::= <<
      from bit s (the decoder must succeed with a valid value), then the first k bytes are decoded from bit s
      as above. A field that lies inside one byte without starting it ends the stream only at an offset;
    - corruption: byte i set to 0x00, then to 0xFF, then with each of its 8 bits flipped (restored after each
-     decode); the decoder must fail with a nonzero error code or succeed with a valid value.
+     decode); the decoder must fail with a nonzero error code or succeed with a valid value. Also on the copies
+     encoded from bit 1..7 (they share one more budget).
    At most ASN1SCC_SWEEP_POSITIONS positions at each end of the encoding, and about ASN1SCC_SWEEP_BUDGET
    decoded bytes per sweep (asn1scc -atcSweepBudget; the offsets 1..7 share one more budget); at least 2
    positions at each end. */
@@ -234,7 +235,44 @@ static int asn1scc_sweep_truncated(const char* sTestName, const byte* buf, long 
     return 0;
 }
 
-/* Returns 0, 6 (a truncated copy was accepted, or rejected without an error code), 7 (a corrupted copy was
+/* Decodes buf (nBytes bytes, the value from bit nOffset) with byte positions[j] set to 0x00, then 0xFF, then with each of
+   its 8 bits flipped (restored after each decode); a violation is printed and returns 7. */
+static int asn1scc_sweep_corrupted(const char* sTestName, byte* buf, long nBytes, int nOffset, const long* positions,
+                                   int nPositions, void* pDecoded, asn1scc_sweep_decoder decode)
+{
+    int j;
+    int pattern;
+    int errCode;
+    flag ok;
+    flag valid;
+    BitStream sweepStrm;
+    for (j = 0; j \< nPositions; j++) {
+        long i = positions[j];
+        for (pattern = 0; pattern \< 10; pattern++) {
+            byte saved = buf[i];
+            byte value = pattern == 0 ? (byte)0x00 : pattern == 1 ? (byte)0xFF : (byte)(saved ^ (1u \<\< (pattern - 2)));
+            if (saved == value) {
+                continue;
+            }
+            buf[i] = value;
+            BitStream_AttachBuffer(&sweepStrm, buf, nBytes);
+            sweepStrm.currentBit = nOffset;
+            errCode = 0;
+            valid = TRUE;
+            ok = decode(pDecoded, &sweepStrm, &errCode, &valid);
+            buf[i] = saved;
+            if (ok ? (errCode != 0 || !valid) : errCode == 0) {
+                printf("%s: decoding from bit %d with byte %ld of %ld set to 0x%02X returned %s with error code %d%s\n", sTestName,
+                       nOffset, i, nBytes, value, ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
+                return 7;
+            }
+        }
+    }
+    return 0;
+}
+
+/* Returns 0, 6 (a truncated copy was accepted, or rejected without an error code), 7 (a corrupted copy, also one
+   encoded from bit 1..7, was
    accepted with an invalid value, or rejected without an error code) or 8 (the value encoded from bit 1..7 did
    not decode to a valid value); stops at the first violation. */
 static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long nBytes, void* pDecoded,
@@ -244,7 +282,6 @@ static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long
     long positions[2 * ASN1SCC_SWEEP_POSITIONS];
     int nPositions;
     int j;
-    int pattern;
     int errCode;
     flag ok;
     flag valid;
@@ -295,32 +332,21 @@ static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long
                     return rc;
                 }
             }
+            /* corruption from bit nOffset too (coverage step 14e, E5): a region that starts inside a byte ends inside one,
+               so contents that a corrupted length cuts short can read into the rest of that byte */
+            nPositions = asn1scc_sweep_positions(positions, nOffsetBytes, TRUE, 7);
+            {
+                int rc = asn1scc_sweep_corrupted(sTestName, offsetBuff, nOffsetBytes, nOffset, positions, nPositions, pDecoded, decode);
+                if (rc != 0) {
+                    free(offsetBuff);
+                    return rc;
+                }
+            }
             free(offsetBuff);
         }
     }
     nPositions = asn1scc_sweep_positions(positions, nBytes, TRUE, 1);
-    for (j = 0; j \< nPositions; j++) {
-        long i = positions[j];
-        for (pattern = 0; pattern \< 10; pattern++) {
-            byte saved = encBuff[i];
-            byte value = pattern == 0 ? (byte)0x00 : pattern == 1 ? (byte)0xFF : (byte)(saved ^ (1u \<\< (pattern - 2)));
-            if (saved == value) {
-                continue;
-            }
-            encBuff[i] = value;
-            BitStream_AttachBuffer(&sweepStrm, encBuff, nBytes);
-            errCode = 0;
-            valid = TRUE;
-            ok = decode(pDecoded, &sweepStrm, &errCode, &valid);
-            encBuff[i] = saved;
-            if (ok ? (errCode != 0 || !valid) : errCode == 0) {
-                printf("%s: decoding with byte %ld of %ld set to 0x%02X returned %s with error code %d%s\n", sTestName, i, nBytes,
-                       value, ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
-                return 7;
-            }
-        }
-    }
-    return 0;
+    return asn1scc_sweep_corrupted(sTestName, encBuff, nBytes, 0, positions, nPositions, pDecoded, decode);
 }
 
 >>
