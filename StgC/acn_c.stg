@@ -1373,7 +1373,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 /* CONTAINING with deferred patching: encode directly, PatchDet with measured distance.
    soFixedOctets (also in the _embedded_ and _wrapper_ variants): every encoding of the contents takes that many whole
    octets, so the zero padding to whole octets is never needed and is omitted (coverage step 14e, E3). */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
@@ -1386,7 +1386,7 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
 >>
 
 /* CONTAINING with deferred patching: limit stream view, decode directly */
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     /*the region is <sDetParamName>->value octets from the current bit; off a byte boundary it ends inside one more byte*/
@@ -1399,7 +1399,7 @@ octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatch
         int acn_end_bit = pBitStrm->currentBit;<if(bDeducedContent)><\n>        int acn_saved_tail_bits = pBitStrm->unusedTailBits;<endif>
         pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>        /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
         ret = <sFuncName>(<p>, pBitStrm, pErrCode);
-        pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>        pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif><if(soFixedOctets)><\n>        /*no check that the contents stayed in the region: they always read <soFixedOctets> whole octet(s), and the view ends with the byte where the region ends (a read past it fails)*/<else><\n>        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {<\n>            /*the contents read past the end of the region (into the rest of its last byte)*/<\n>            ret = FALSE; /*COVERAGE_IGNORE*/<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>        }<endif>
+        pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>        pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif><if(soFixedOctets)><\n>        /*no check that the contents stayed in the region: they always read <soFixedOctets> whole octet(s), and the view ends with the byte where the region ends (a read past it fails)*/<else><\n>        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {<\n>            /*the contents read past the end of the region (into the rest of its last byte)*/<\n>            ret = FALSE; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif><\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif><\n>        }<endif>
         pBitStrm->currentByte = acn_expected_end;
         pBitStrm->currentBit = acn_end_bit;
     }
@@ -1419,7 +1419,7 @@ octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCo
 >>
 
 /* CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure + patch */
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt) ::= <<
 {
     AcnBitStreamPos acn_len_pos = Acn_BitStream_GetPos(pBitStrm);
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nMinSize>, <nMinSize>, <nMaxSize>);
@@ -1435,7 +1435,7 @@ octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nM
 }
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt) ::= <<
 {
     asn1SccSint acn_nCount;
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
@@ -1452,7 +1452,7 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
             int acn_end_bit = pBitStrm->currentBit;<if(bDeducedContent)><\n>            int acn_saved_tail_bits = pBitStrm->unusedTailBits;<endif>
             pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>            /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>            pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
             ret = <sFuncName>(<p>, pBitStrm, pErrCode);
-            pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>            pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif><if(soFixedOctets)><\n>            /*no check that the contents stayed in the region: they always read <soFixedOctets> whole octet(s), and the view ends with the byte where the region ends (a read past it fails)*/<else><\n>            if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {<\n>                /*the contents read past the end of the region (into the rest of its last byte)*/<\n>                ret = FALSE; /*COVERAGE_IGNORE*/<\n>                *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>            }<endif>
+            pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>            pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif><if(soFixedOctets)><\n>            /*no check that the contents stayed in the region: they always read <soFixedOctets> whole octet(s), and the view ends with the byte where the region ends (a read past it fails)*/<else><\n>            if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {<\n>                /*the contents read past the end of the region (into the rest of its last byte)*/<\n>                ret = FALSE; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif><\n>                *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif><\n>            }<endif>
             pBitStrm->currentByte = acn_expected_end;
             pBitStrm->currentBit = acn_end_bit;
         }
@@ -1462,7 +1462,7 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 
 /* CONTAINING ExternalField wrapper: wraps an inline body with save-pos/measure/PatchDet
    Used when the contained type has ACN parameters (no standalone ACN function). */
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     <sBody>
@@ -1474,7 +1474,7 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
 }
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     /*the region is <sDetParamName>->value octets from the current bit; off a byte boundary it ends inside one more byte*/
@@ -1487,7 +1487,7 @@ octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFunc
         int acn_end_bit = pBitStrm->currentBit;<if(bDeducedContent)><\n>        int acn_saved_tail_bits = pBitStrm->unusedTailBits;<endif>
         pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>        /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
     <sBody>
-        pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>        pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif><if(soFixedOctets)><\n>        /*no check that the contents stayed in the region: they always read <soFixedOctets> whole octet(s), and the view ends with the byte where the region ends (a read past it fails)*/<else><\n>        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {<\n>            /*the contents read past the end of the region (into the rest of its last byte)*/<\n>            ret = FALSE; /*COVERAGE_IGNORE*/<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>        }<endif>
+        pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>        pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif><if(soFixedOctets)><\n>        /*no check that the contents stayed in the region: they always read <soFixedOctets> whole octet(s), and the view ends with the byte where the region ends (a read past it fails)*/<else><\n>        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {<\n>            /*the contents read past the end of the region (into the rest of its last byte)*/<\n>            ret = FALSE; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif><\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif><\n>        }<endif>
         pBitStrm->currentByte = acn_expected_end;
         pBitStrm->currentBit = acn_end_bit;
     }

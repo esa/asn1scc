@@ -984,6 +984,181 @@ class Cov009(unittest.TestCase):
         self.assertEqual(check009(SPEC_CHOICE), "")
 
 
+# ASN1SCC-COV-010 (coverage step 14e, E5 B): the region check after 'size deduced' contents
+REGION_C = """flag ASN1SCC_P_ACN_Decode(ASN1SCC_P* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    {
+        long acn_saved_count = pBitStrm->count;
+        long acn_expected_end = pBitStrm->currentByte + (long)acn_nCount;
+        int acn_end_bit = pBitStrm->currentBit;
+        int acn_saved_tail_bits = pBitStrm->unusedTailBits;
+        pBitStrm->count = acn_expected_end + (acn_end_bit != 0);
+        /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/
+        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;
+        ret = ASN1SCC_List_ACN_Decode((&(pVal->payload)), pBitStrm, pErrCode);
+        pBitStrm->count = acn_saved_count;
+        pBitStrm->unusedTailBits = acn_saved_tail_bits;
+        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {
+            /*the contents read past the end of the region (into the rest of its last byte)*/
+            ret = FALSE; /*COVERAGE_IGNORE*/
+            *pErrCode = ERR_ACN_DECODE_P_PAYLOAD_2; /*COVERAGE_IGNORE*/
+        }
+        pBitStrm->currentByte = acn_expected_end;
+    }
+    return ret;
+}
+"""
+DEDUCED_C = """flag ASN1SCC_List_ACN_Decode(ASN1SCC_List* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    {
+        long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - 0) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+        ret = ASN1SCC_Item_ACN_Decode((&(pVal->arr[0])), pBitStrm, pErrCode);
+    }
+    return ret;
+}
+"""
+PLAIN_C = """flag ASN1SCC_List_ACN_Decode(ASN1SCC_List* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    ret = Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm, (&(pVal->a)));
+    return ret;
+}
+"""
+NESTED_C = """flag ASN1SCC_List_ACN_Decode(ASN1SCC_List* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    {
+        pBitStrm->count = acn_end_byte + (acn_end_bit != 0);
+        ret = ASN1SCC_Inner_ACN_Decode((&(pVal->b)), pBitStrm, pErrCode);
+        pBitStrm->count = acn_saved_count;
+    }
+    return ret;
+}
+flag ASN1SCC_Inner_ACN_Decode(ASN1SCC_Inner* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - 0) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+    return ret;
+}
+"""
+REGION_ADA = """procedure ASN1SCC_P_ACN_Decode_aux(val: in out ASN1SCC_P; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+begin
+    declare --COVERAGE_IGNORE
+        acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8;
+        acn_saved_end : constant Natural := bs.End_Bit_Pos;
+    begin
+        --  'size deduced' contents end with the region
+        bs.End_Bit_Pos := acn_expected_end;
+        ASN1SCC_List_ACN_Decode_aux(val.payload, bs, result);
+        bs.End_Bit_Pos := acn_saved_end;
+        if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_P_PAYLOAD_2);  --COVERAGE_IGNORE (corrupted input only)
+        end if;
+        bs.Current_Bit_Pos := acn_expected_end;
+    end;
+end ASN1SCC_P_ACN_Decode_aux;
+"""
+DEDUCED_ADA = """procedure ASN1SCC_List_ACN_Decode_aux(val: in out ASN1SCC_List; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+begin
+    declare
+        Ded_Avail_Bits : constant Integer := (bs.End_Bit_Pos - 0) - bs.Current_Bit_Pos;
+    begin
+        null;
+    end;
+end ASN1SCC_List_ACN_Decode_aux;
+"""
+
+
+def check010(language, source, others=()):
+    lines = source.splitlines()
+    check = next(i for i, line in enumerate(lines, 1)
+                 if "8L + acn_end_bit) {" in line or "Current_Bit_Pos > acn_expected_end then" in line)
+    first = next(i for i, line in enumerate(lines, 1) if i > check and
+                 ("ret = FALSE;" in line or "result := adaasn1rtl.ASN1_RESULT'(Success => False" in line))
+    return proven_unreachable(language, lines, first, lines[first - 1],
+                              sources=[o.splitlines() for o in others])
+
+
+class Cov010(unittest.TestCase):
+    def test_deduced_contents_in_the_same_file(self):
+        self.assertEqual(check010("c", REGION_C + DEDUCED_C), "ASN1SCC-COV-010")
+
+    def test_deduced_contents_in_another_source(self):
+        self.assertEqual(check010("c", REGION_C, [DEDUCED_C]), "ASN1SCC-COV-010")
+
+    def test_inline_deduced_contents(self):
+        inline = REGION_C.replace(
+            "ret = ASN1SCC_List_ACN_Decode((&(pVal->payload)), pBitStrm, pErrCode);",
+            "long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - 8) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);")
+        self.assertEqual(check010("c", inline), "ASN1SCC-COV-010")
+
+    def test_contents_without_deduced_part(self):
+        self.assertEqual(check010("c", REGION_C + PLAIN_C), "")
+
+    def test_deduced_part_only_inside_a_nested_region(self):
+        self.assertEqual(check010("c", REGION_C + NESTED_C), "")
+
+    def test_region_without_deduced_end(self):
+        source = REGION_C.replace("        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;\n", "")
+        self.assertEqual(check010("c", source + DEDUCED_C), "")
+
+    def test_other_check_is_not_proven(self):
+        source = REGION_C.replace("acn_expected_end * 8L + acn_end_bit) {", "acn_end_byte * 8L + acn_end_bit) {")
+        self.assertEqual(check010("c", source + DEDUCED_C), "")
+
+    def test_ada_deduced_contents(self):
+        self.assertEqual(check010("Ada", REGION_ADA + DEDUCED_ADA), "ASN1SCC-COV-010")
+
+    def test_ada_marked_shape(self):
+        marked = REGION_ADA.replace(
+            "then\n            result :=",
+            "then\n            pragma Annotate (Xcov, Exempt_On, \"ASN1SCC-COV-010: x\");\n            result :=")
+        self.assertEqual(check010("Ada", marked + DEDUCED_ADA), "ASN1SCC-COV-010")
+
+    def test_ada_contents_without_deduced_part(self):
+        self.assertEqual(check010("Ada", REGION_ADA), "")
+
+    def _choice_region(self, second):
+        chain = """    if ((P_kind->value == 1)) {
+        pVal->kind = P_a_PRESENT;
+        ret = ASN1SCC_List_ACN_Decode((&(pVal->u.a)), pBitStrm, pErrCode);
+    }
+    else if ((P_kind->value == 2)) {
+        pVal->kind = P_b_PRESENT;
+        ret = %s((&(pVal->u.b)), pBitStrm, pErrCode);
+    }
+    else {
+        *pErrCode = ERR_ACN_DECODE_P_PAYLOAD;         /*COVERAGE_IGNORE*/
+        ret = FALSE;                    /*COVERAGE_IGNORE*/
+    }
+""" % second
+        return REGION_C.replace("        ret = ASN1SCC_List_ACN_Decode((&(pVal->payload)), pBitStrm, pErrCode);\n", chain)
+
+    def test_choice_region_every_alternative_deduced(self):
+        source = self._choice_region("ASN1SCC_List2_ACN_Decode")
+        self.assertEqual(check010("c", source + DEDUCED_C + DEDUCED_C.replace("ASN1SCC_List_", "ASN1SCC_List2_")),
+                         "ASN1SCC-COV-010")
+
+    def test_choice_region_one_alternative_not_deduced(self):
+        source = self._choice_region("ASN1SCC_Value_ACN_Decode")
+        self.assertEqual(check010("c", source + DEDUCED_C + PLAIN_C.replace("ASN1SCC_List_", "ASN1SCC_Value_")), "")
+
+    def test_ada_choice_region_one_alternative_not_deduced(self):
+        chain = """        if ((P_kind.Value = 1)) then
+          ASN1SCC_List_ACN_Decode_aux(val.a, bs, result);
+        elsif ((P_kind.Value = 4)) then
+          ASN1SCC_Value_ACN_Decode_aux(val.b, bs, result);
+        else
+            result := adaasn1rtl.ASN1_RESULT'(Success => false, ErrorCode => ERR_ACN_DECODE_P_PAYLOAD);		-- COVERAGE_IGNORE
+        end if;
+"""
+        source = REGION_ADA.replace("        ASN1SCC_List_ACN_Decode_aux(val.payload, bs, result);\n", chain)
+        value = DEDUCED_ADA.replace("ASN1SCC_List_", "ASN1SCC_Value_").replace(
+            "Ded_Avail_Bits : constant Integer := (bs.End_Bit_Pos - 0) - bs.Current_Bit_Pos;", "X : Integer := 0;")
+        self.assertEqual(check010("Ada", source + DEDUCED_ADA + value), "")
+        self.assertEqual(check010("Ada", source + DEDUCED_ADA + DEDUCED_ADA.replace("ASN1SCC_List_", "ASN1SCC_Value_")),
+                         "ASN1SCC-COV-010")
+
+
 class FunctionKind(unittest.TestCase):
     def test_ber_needs_the_encoding_suffix(self):
         self.assertEqual(function_kind("ASN1SCC_TC_number_of_cycles_Decode"), "uper-decode")

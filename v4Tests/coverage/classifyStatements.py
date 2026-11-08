@@ -888,10 +888,247 @@ def cov001_ada(lines, first):
     return depth == 0 and covers(sorted(labels), bounds)
 
 
-def proven_unreachable(language, lines, first, src, headers=()):
-    """ID of the documented exemption that proves the statement unreachable, or ''."""
+# ASN1SCC-COV-010 (coverage step 14e, E5 B): the "contents read past the region" check of an --acn-v2
+# OCTET STRING CONTAINING region decoder whose contents end with a 'size deduced' part. The region sets
+# the deduced end of the stream (C unusedTailBits, Ada End_Bit_Pos) around the contents; the contents
+# (inline, or decoders they call, in any source of the unit) contain a deduced decoding that reads it,
+# not inside a nested region. That the deduced part is on every path is the front end's rules R1-R3.
+COV010 = {
+    "c": {
+        "check": re.compile(r"^\s*if \(ret && pBitStrm->currentByte \* 8L \+ pBitStrm->currentBit > "
+                            r"acn_expected_end \* 8L \+ acn_end_bit\) \{"),
+        "set": re.compile(r"^\s*pBitStrm->unusedTailBits = \(8 - acn_end_bit\) % 8;"),
+        "restore": re.compile(r"^\s*pBitStrm->unusedTailBits = acn_saved_tail_bits;"),
+        "deduced": re.compile(r"\bded_(?:avail_bits|budget_end) = \(?pBitStrm->count \* 8L - pBitStrm->unusedTailBits"),
+        # a nested region (OCTET or BIT STRING CONTAINING) limits count and restores it
+        "nest_open": re.compile(r"^\s*pBitStrm->count = acn_(?:expected_end|end_byte) \+"),
+        "nest_close": re.compile(r"^\s*pBitStrm->count = acn_saved_count;"),
+        "call": re.compile(r"\b(\w+_ACN_Decode)\s*\("),
+        "inside": re.compile(r"^\s*(/\*.*\*/|ret = FALSE;.*|\*pErrCode = \w+;.*)$"),
+    },
+    "Ada": {
+        "check": re.compile(r"^\s*if result\.Success and then bs\.Current_Bit_Pos > acn_expected_end then", re.I),
+        "set": re.compile(r"^\s*bs\.End_Bit_Pos := acn_expected_end;"),
+        "restore": re.compile(r"^\s*bs\.End_Bit_Pos := acn_saved_end;"),
+        "deduced": re.compile(r"\bDed_(?:Avail_Bits|Budget_End) : constant Integer := \(?bs\.End_Bit_Pos"),
+        "nest_open": re.compile(r"^\s*bs\.End_Bit_Pos := acn_expected_end;"),
+        "nest_close": re.compile(r"^\s*bs\.End_Bit_Pos := acn_saved_end;"),
+        "call": re.compile(r"\b(\w+_ACN_Decode_aux)\s*\(", re.I),
+        "inside": re.compile(r"^\s*(--.*|pragma Annotate.*|result := \w+\.ASN1_RESULT'\(Success => False.*)$", re.I),
+    },
+}
+
+
+def function_bodies(sources, language):
+    """{name: lines of its body} of the decoders defined in the unit's sources."""
+    bodies = {}
+    for lines in sources:
+        name, start = None, 0
+        for number, line in enumerate(lines):
+            if language == "c":
+                match = re.match(r"^flag (\w+)\(.*\)\s*$", line)
+                if match:
+                    name, start = match[1], number
+                elif name and line.startswith("}"):
+                    bodies[name] = lines[start:number + 1]
+                    name = None
+            else:
+                match = re.match(r"^\s*procedure (\w+)\s*\(.*\)\s*$", line, re.I) or \
+                        re.match(r"^\s*procedure (\w+)\s*\(", line, re.I)
+                if match and not line.rstrip().endswith(";"):
+                    name, start = match[1], number
+                elif name and re.match(r"^\s*end\s+" + re.escape(name) + r"\s*;", line, re.I):
+                    bodies[name] = lines[start:number + 1]
+                    name = None
+    return bodies
+
+
+FAILS = re.compile(r"\bret = FALSE;|Success => [Ff]alse|^\s*\*pErrCode = ERR_\w+;")
+
+
+def c_top_statements(body):
+    """Top-level statements of a C block: ("line", [line]) or ("select", [arm lines, ...]) for an
+    if / else if / else chain with an else part or a switch (the arms' code, labels and braces left out)."""
+    out, i, n = [], 0, len(body)
+
+    def block(start):
+        # lines of the brace block opened on body[start] (or on the next line), and the index after it
+        depth, j, lines = 0, start, []
+        opened = False
+        while j < n:
+            text = body[j]
+            depth += text.count("{") - text.count("}")
+            if text.count("{"):
+                opened = True
+            if j != start:
+                lines.append(text)
+            j += 1
+            if opened and depth <= 0:
+                return lines[:-1] if lines and lines[-1].strip().startswith("}") else lines, j
+        return lines, j
+
+    while i < n:
+        text = body[i].strip()
+        if re.match(r"if\s*\(", text):
+            arms = []
+            lines, i = block(i)
+            arms.append(lines)
+            while i < n and re.match(r"(\}\s*)?else\b", body[i].strip()):
+                lines, i = block(i)
+                arms.append(lines)
+            if len(arms) == 1:
+                out += [("line", [x]) for x in arms[0]]
+            else:
+                out.append(("select", arms))
+        elif re.match(r"switch\s*\(", text):
+            lines, i = block(i)
+            arms, current = [], None
+            for x in lines:
+                if re.match(r"^\s*case\b.*:", x):
+                    current = []
+                    arms.append(current)
+                elif re.match(r"^\s*default\s*:", x):
+                    current = []
+                    arms.append(current)
+                elif current is not None:
+                    current.append(x)
+            out.append(("select", arms))
+        else:
+            out.append(("line", [body[i]]))
+            i += 1
+    return out
+
+
+def ada_top_statements(body):
+    """As c_top_statements for Ada: if / elsif / else chains with an else part and case statements."""
+    out, i, n = [], 0, len(body)
+    opener = re.compile(r"^\s*(if\b|case\b.*\bis\s*$|declare\b|(for|while)\b.*\bloop\s*$|loop\s*$)", re.I)
+    closer = re.compile(r"^\s*end(\s+(if|case|loop))?\s*;", re.I)
+
+    def code(x):
+        return ada_code(x).strip()
+
+    while i < n:
+        text = code(body[i])
+        if re.match(r"(if|case)\b", text, re.I):
+            is_case = text.lower().startswith("case")
+            arms, current, depth, j = [], [], 0, i
+            while j < n:
+                t = code(body[j])
+                if depth == 1 and not is_case and re.match(r"(elsif\b|else\b)", t, re.I):
+                    arms.append(current)
+                    current = []
+                elif depth == 1 and is_case and re.match(r"when\b", t, re.I):
+                    if j != i + 1 or current:
+                        arms.append(current)
+                    current = []
+                elif closer.match(t) and depth == 1:
+                    arms.append(current)
+                    j += 1
+                    break
+                else:
+                    if j != i:
+                        current.append(body[j])
+                    if opener.match(t) and not re.search(r"\bend\b", t, re.I):
+                        depth += 1
+                    elif closer.match(t):
+                        depth -= 1
+                if j == i:
+                    depth = 1
+                j += 1
+            i = j
+            arms = [a for a in arms if a or not is_case]
+            if is_case:
+                out.append(("select", arms[1:] if arms and not arms[0] else arms))
+            elif len(arms) == 1:
+                out += [("line", [x]) for x in arms[0]]
+            else:
+                out.append(("select", arms))
+        else:
+            out.append(("line", [body[i]]))
+            i += 1
+    return out
+
+
+def reads_deduced_end(body, pattern, bodies, depth, seen, language):
+    """A deduced decoding on every path of body that does not fail: in a top-level statement (or a
+    decoder it calls), or in every arm of a selection (CHOICE) that does not fail; code inside the
+    nested regions of body (another CONTAINING) does not count."""
+    nested = 0
+    statements = c_top_statements(body) if language == "c" else ada_top_statements(body)
+    for kind, parts in statements:
+        if kind == "select":
+            if nested == 0:
+                live = [arm for arm in parts if not (arm and all(FAILS.search(x) or not x.strip() or
+                                                                  x.strip().startswith(("/*", "--")) for x in arm))]
+                if live and all(reads_deduced_end(arm, pattern, bodies, depth, set(seen), language) for arm in live):
+                    return True
+            continue
+        line = parts[0]
+        if pattern["nest_open"].match(line):
+            nested += 1
+            continue
+        if pattern["nest_close"].match(line):
+            nested = max(nested - 1, 0)
+            continue
+        if nested:
+            continue
+        if pattern["deduced"].search(line):
+            return True
+        if depth > 0:
+            for callee in pattern["call"].findall(line):
+                if callee in bodies and callee not in seen:
+                    seen.add(callee)
+                    if reads_deduced_end(bodies[callee], pattern, bodies, depth - 1, seen, language):
+                        return True
+    return False
+
+
+def cov010(lines, first, language, sources=()):
+    """ASN1SCC-COV-010: the statement is in the block of the "contents read past the region"
+    check of an --acn-v2 OCTET STRING CONTAINING region decoder that sets the deduced end of the
+    stream around contents which read it (a 'size deduced' decoding, outside nested regions)."""
+    pattern = COV010["c" if language == "c" else "Ada"]
+    head = None
+    for number in range(first - 1, max(first - 5, 0), -1):
+        if pattern["check"].match(lines[number - 1]):
+            head = number
+            break
+        if not pattern["inside"].match(lines[number - 1]):
+            return False
+    if head is None:
+        return False
+    restore = next((n for n in range(head - 1, max(head - 4, 0), -1) if pattern["restore"].match(lines[n - 1])), None)
+    if restore is None:
+        return False
+    start = None
+    for number in range(restore - 1, 0, -1):
+        text = lines[number - 1]
+        if pattern["set"].match(text):
+            start = number
+            break
+        if pattern["restore"].match(text) or (language == "c" and C_FUNCTION.match(text) and not text[:1].isspace()):
+            return False
+    if start is None:
+        return False
+    bodies = function_bodies([list(lines)] + [list(s) for s in sources], "c" if language == "c" else "Ada")
+    # the contents between the set and the restore; a nested region inside them is skipped
     if language != "c":
-        return "ASN1SCC-COV-001" if cov001_ada(lines, first) else ""
+        # OCTET STRING regions only (a BIT STRING region is measured in bits: `... + Natural(len);`)
+        declaration = next((lines[n - 1] for n in range(start - 1, max(start - 8, 0), -1)
+                            if "acn_expected_end : constant Natural :=" in lines[n - 1]), "")
+        if not re.search(r"\* 8;", declaration):
+            return False
+    return reads_deduced_end(lines[start:restore - 1], pattern, bodies, 6, set(), "c" if language == "c" else "Ada")
+
+
+def proven_unreachable(language, lines, first, src, headers=(), sources=()):
+    """ID of the documented exemption that proves the statement unreachable, or ''.
+    sources: the lines of the unit's other source files (ASN1SCC-COV-010 follows calls into them)."""
+    if language != "c":
+        if cov001_ada(lines, first):
+            return "ASN1SCC-COV-001"
+        return "ASN1SCC-COV-010" if cov010(lines, first, "Ada", sources) else ""
     if cov001(lines, first):
         return "ASN1SCC-COV-001"
     if cov002(lines, first, src):
@@ -906,6 +1143,8 @@ def proven_unreachable(language, lines, first, src, headers=()):
         return "ASN1SCC-COV-008"
     if cov009(lines, first, headers):
         return "ASN1SCC-COV-009"
+    if cov010(lines, first, "c", sources):
+        return "ASN1SCC-COV-010"
     return ""
 
 
@@ -966,6 +1205,9 @@ def classify(run):
             lines = source.read_text(errors="replace").splitlines()
             # ASN1SCC-COV-009 reads the values of the enum constants in the unit's C headers
             headers = [h.read_text(errors="replace").splitlines() for h in sorted(work.glob("*.h"))] if language == "c" else []
+            # ASN1SCC-COV-010 follows the contents' decoders into the unit's other sources
+            others = [p.read_text(errors="replace").splitlines()
+                      for p in sorted(work.glob("*.c" if language == "c" else "*.adb")) if p.name != file_name]
             starts = function_starts(lines, "c" if language == "c" else "Ada")
             for obligation in data["obligations"]:
                 if obligation["status"] != "-":
@@ -978,7 +1220,7 @@ def classify(run):
                              "line": first, "function": function,
                              "function_kind": function_kind(function),
                              "statement_kind": statement_kind(src, lines, first, last),
-                             "proven": proven_unreachable(language, lines, first, src, headers),
+                             "proven": proven_unreachable(language, lines, first, src, headers, others),
                              "exempted": obligation.get("exempted"), "src": src[:200]})
         units.append(entry)
     return name, rows, units

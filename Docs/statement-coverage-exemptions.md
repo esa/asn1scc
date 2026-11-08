@@ -51,11 +51,12 @@ covered nor proven.
 
   For the templates whose proof depends on the instance (ACN ENUMERATED, see
   ASN1SCC-COV-001 and -003; the CHOICE and determinant switches of
-  ASN1SCC-COV-004, -005 and -008) the compiler emits the region only when the
-  conditions of the entry hold; otherwise the arm is reachable and is covered
-  by an automatic test. The asn1scc test suite checks that every region it
-  measures is exactly the set of statements whose precondition
-  `classifyStatements.py` confirms, and that no region is ever executed.
+  ASN1SCC-COV-004, -005, -008 and -009; the region checks of ASN1SCC-COV-010)
+  the compiler emits the region only when the conditions of the entry hold;
+  otherwise the arm is reachable and is covered by an automatic test. The
+  asn1scc test suite checks that every region it measures is exactly the set of
+  statements whose precondition `classifyStatements.py` confirms, and that no
+  region is ever executed.
 
 An exemption region records a claim; GNATcoverage does not check it. It reports
 the region as "exempted, with violations" while the code stays unexecuted and
@@ -742,3 +743,81 @@ and MISRA C:2012 Rule 16.4.
 `when others` arm (the selector is an `Asn1UInt`), but the classifier checks this
 condition on C only.
 
+
+## ASN1SCC-COV-010: "contents read past the region" check after `--acn-v2` OCTET STRING CONTAINING contents that end with a 'size deduced' part (C, Ada)
+
+**Code.** With `--acn-v2`, the contents of an OCTET STRING CONTAINING region
+are decoded in place. The region decoder computes the end of the region from
+its length (`acn_expected_end`, `acn_end_bit`), lets the contents see the stream
+only up to that end, decodes them, and fails if they ended after it:
+
+```c
+pBitStrm->count = acn_expected_end + (acn_end_bit != 0);
+/*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/
+pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;
+ret = ASN1SCC_TLVList_ACN_Decode((&(pVal->payload)), pBitStrm, pErrCode);
+pBitStrm->count = acn_saved_count;
+pBitStrm->unusedTailBits = acn_saved_tail_bits;
+if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {
+    /*the contents read past the end of the region (into the rest of its last byte)*/
+    ret = FALSE; /*COVERAGE_IGNORE*/                         /* <- exempted */
+    *pErrCode = ERR_ACN_DECODE_MYPDU2_PAYLOAD_2; /*COVERAGE_IGNORE*/   /* <- exempted */
+}
+```
+
+```ada
+bs.End_Bit_Pos := acn_expected_end;
+ASN1SCC_TLVList_ACN_Decode_aux(val.payload, bs, result);
+bs.End_Bit_Pos := acn_saved_end;
+if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
+    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_MYPDU2_PAYLOAD_2);   -- <- exempted
+end if;
+```
+
+**Template**: `StgC/acn_c.stg`, macros `octet_string_containing_deferred_func`,
+`_embedded_func` and `_wrapper` (decode); `StgAda/acn_a.stg`,
+`octet_string_containing_deferred_region_decode` (used by `_func` and `_wrapper`)
+and `octet_string_containing_deferred_embedded_func` (decode). The compiler emits
+the region when the decoding of the contents ends with a live 'size deduced' part
+(`isLiveDeduced`; for the region around a CHOICE whose alternatives share one size
+parameter, the contents of every alternative). Example `24-DEDUCED-SIZE/004`:
+`TLVList ::= SEQUENCE (SIZE(1..100)) OF MyInt12` with `TLVList [size deduced]`, the
+contents of `MyPDU2 { seqNr, payload OCTET STRING (CONTAINING TLVList) }`.
+
+**Proof.** The region decoder sets the end of the stream to the end of the region:
+C `count` and `unusedTailBits` (the view ends at bit `count * 8 - unusedTailBits` =
+`acn_expected_end * 8 + acn_end_bit`), Ada `bs.End_Bit_Pos := acn_expected_end`. The
+'size deduced' decoders (`sqf_deduced_fix_elem`, `sqf_deduced_var_elem`,
+`oct_deduced`, `str_ascii_deduced`) compute their budget from that end minus the
+compile-time size of the components after them (`nTrailingBits`):
+`ded_avail_bits = (count * 8 - unusedTailBits - nTrailingBits) - position`
+(Ada: `(bs.End_Bit_Pos - nTrailingBits) - bs.Current_Bit_Pos`). They fail when the
+budget is negative, that is when what was decoded before them already passed it;
+the fixed-size ones read `ded_count` elements with `ded_count * size <= ded_avail_bits`,
+the variable-size one fails as soon as an element ends after the budget end. The
+placement rules of `Docs/deduced-size-spec.md`, checked by the front end
+(`CheckLongReferences.checkDeducedSizePlacement`), make this hold on every decoding
+path of the contents: the deduced part sits only inside SEQUENCEs up to the region
+(R1: not inside a CHOICE alternative or a SEQUENCE OF element unless behind another
+CONTAINING) and is not optional (R3), so it is always decoded; every component after
+it, at every level up to the region, is mandatory, of a fixed ACN size and without
+`align-to-next` (R2), so the rest of the contents reads exactly `nTrailingBits` bits.
+When the deduced decoder succeeds, the contents therefore end at or before the end of
+the region, and the condition of the check is false.
+
+**Conditions** (checked by `classifyStatements.py` on the generated code): the
+statement is in the `if` block of the check above, inside a region decoder that sets
+the deduced end of the stream (C: `pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;`,
+Ada: `bs.End_Bit_Pos := acn_expected_end;`) before the contents and restores it after
+them, and the contents (the code between, or a decoder it calls, followed through the
+unit's sources) contain a 'size deduced' decoding that reads that end
+(`ded_avail_bits` / `ded_budget_end` from `pBitStrm->count * 8L - pBitStrm->unusedTailBits`,
+Ada `Ded_Avail_Bits` / `Ded_Budget_End` from `bs.End_Bit_Pos`). That the deduced part
+is on every path is guaranteed by the front-end rules R1–R3 above, not checked again on
+the generated text.
+
+**Why the code stays.** Defense in depth for a decoder of untrusted input, and the
+same templates decode contents without a 'size deduced' part, where the check is
+reachable with a corrupted length (Ada; C when the region starts inside a byte).
+For contents that always take the same whole number of octets C has no such check
+(the read past the region fails first; coverage step 14e).
