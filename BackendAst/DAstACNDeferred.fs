@@ -376,6 +376,40 @@ let private consumersOnEveryPath (t: Asn1AcnAst.Asn1Type) (consumers: Asn1AcnAst
             | _ -> None
     cover t.Kind (consumers |> List.choose relativePatchingNode)
 
+/// Coverage step 14e (E6 b): the deferred ACN fields of the mandatory SEQUENCE children (followed through references
+/// without CONTAINING, at any depth) must also get a consistent value from an automatic test value of the enclosing
+/// SEQUENCE. Such a field can be consumed by the enclosing SEQUENCE (`x [present-when b.more]`, `raw [size header.len]`),
+/// whose own ACN children do not include it, so without this an inconsistent variant (x present, y absent) looked valid
+/// and 14d's test_case_inconsistent_* never tested it. Not through OPTIONAL, CHOICE or SEQUENCE OF children: their part of
+/// the test value may be absent or ambiguous (several elements).
+let rec private nestedDeferredFieldsValid (children: SeqChildInfo list) (atc: AutomaticTestCase) : bool =
+    children |> List.forall (fun c ->
+        match c with
+        | AcnChild _ -> true
+        | Asn1Child ch ->
+            match ch.Optionality with
+            | Some _ -> true
+            | None   -> nestedTypeFieldsValid ch.Type atc)
+
+and private nestedTypeFieldsValid (t: Asn1Type) (atc: AutomaticTestCase) : bool =
+    match t.Kind with
+    | Sequence sq ->
+        let ownFields =
+            sq.children |> List.forall (fun c ->
+                match c with
+                | AcnChild ac ->
+                    match ac.deferredTestCaseFnc with
+                    | Some testCaseFnc -> (testCaseFnc atc).IsSome
+                    | None             -> true
+                | Asn1Child _ -> true)
+        ownFields && nestedDeferredFieldsValid sq.children atc
+    | ReferenceType rf ->
+        match rf.baseInfo.encodingOptions with
+        | Some _ -> true    // a CONTAINING region: its fields are its own
+        | None   -> nestedTypeFieldsValid rf.resolvedType atc
+    | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _ | BitString _ | Boolean _ | Enumerated _
+    | ObjectIdentifier _ | SequenceOf _ | Choice _ | TimeType _ -> true
+
 /// Deferred version of createSequenceFunction.
 /// Pre-processes the children list: for direct ACN children that are deferred
 /// determinants (collectDeferredDetIdsFromAst), replaces their encoding with
@@ -978,7 +1012,7 @@ let private createDeferredSequenceFunction
         // is patched by the consumers), so check the automatic test values against the original
         // children: CHOICEs sharing a determinant must select the same alternative.
         let acnFunction, ns = DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc modifiedChildren acnPrms epilogue us
-        {acnFunction with isTestVaseValid = DAstACN.isTestCaseValidForAcnChildren children}, ns
+        {acnFunction with isTestVaseValid = fun atc -> DAstACN.isTestCaseValidForAcnChildren children atc && nestedDeferredFieldsValid children atc}, ns
 
 
 // ---------------------------------------------------------------------------
