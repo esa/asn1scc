@@ -794,7 +794,21 @@ let private createDeferredSequenceFunction
                                     && isPrefix parentPath dep.asn1Type.ToScopeNodeList
                                     && not (isPrefix boundaryPath dep.asn1Type.ToScopeNodeList)
                                     && (match dep.dependencyKind with AcnDepRefTypeArgument _ -> false | _ -> true))
-                            let patches = consumers |> List.choose (fun dep ->
+                            // coverage step 14e (E6 a): the producer only reserves the field (InitDet in its encoder, no
+                            // consumer inside it) and every patch of the field is in this epilogue: the first one runs
+                            // first after the InitDet, so it cannot fail (an unset ref takes any value)
+                            let firstPatchCannotFail =
+                                let onField (d: AcnDependency) = d.determinant.id = determinant.id || d.determinant.id = parameter.id
+                                let links, others =
+                                    deps.acnDependencies |> List.filter onField |> List.partition (fun d ->
+                                        match d.dependencyKind with AcnDepRefTypeArgument _ -> true | _ -> false)
+                                let belowSequenceOf (d: AcnDependency) =
+                                    d.asn1Type.ToScopeNodeList |> List.skip parentPath.Length |> List.exists (function SQF -> true | _ -> false)
+                                links.Length = 1 &&
+                                others.Length = consumers.Length &&
+                                others |> List.forall (fun d -> consumers |> List.exists (fun c -> c.asn1Type = d.asn1Type)) &&
+                                not (consumers |> List.exists belowSequenceOf)
+                            let patches = consumers |> List.mapi (fun i dep -> i, dep) |> List.choose (fun (i, dep) ->
                                 match lm.lg.getDeferredDetFunctions determinant.Type with
                                 | None -> None
                                 | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
@@ -802,8 +816,9 @@ let private createDeferredSequenceFunction
                                     let valueExpr = patchDetWireValue r lm (Some determinant) uperMinOffset rawValueExpr
                                     let detName = deferredDetRefName r lm determinant.id
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
-                                    // coverage step 13b: the only patch of the field cannot fail
-                                    let bCannotFail = AcnExternalField.isOnlyPatchOfField r deps determinant.id
+                                    // coverage step 13b: the only patch of the field cannot fail; 14e (E6 a): nor the first one
+                                    // of the epilogue when the producer only reserves the field
+                                    let bCannotFail = AcnExternalField.isOnlyPatchOfField r deps determinant.id || (i = 0 && firstPatchCannotFail)
                                     let patchCall =
                                         if patchFn.Contains("IA5String") then
                                             match nBitsOpt with
