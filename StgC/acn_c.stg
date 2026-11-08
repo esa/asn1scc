@@ -1370,18 +1370,14 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 }
 >>
 
-/* CONTAINING with deferred patching: encode directly, PatchDet with measured distance */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail) ::= <<
+/* CONTAINING with deferred patching: encode directly, PatchDet with measured distance.
+   soFixedOctets (also in the _embedded_ and _wrapper_ variants): every encoding of the contents takes that many whole
+   octets, so the zero padding to whole octets is never needed and is omitted (coverage step 14e, E3). */
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
-    if (ret) {
-        /*pad the contained encoding to a whole number of octets from its start: the
-          region is measured in octets (as legacy writes it), also when it does not
-          start at a byte boundary*/
-        if (pBitStrm->currentBit != acn_data_start.currentBit) {
-            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/
-        }
+    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start: the<\n>          region is measured in octets (as legacy writes it), also when it does not<\n>          start at a byte boundary*/<\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif>
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>        if (!ret) {<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>            return FALSE; /*COVERAGE_IGNORE*/<\n>        }<endif>
@@ -1390,7 +1386,7 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
 >>
 
 /* CONTAINING with deferred patching: limit stream view, decode directly */
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     /*the region is <sDetParamName>->value octets from the current bit; off a byte boundary it ends inside one more byte*/
@@ -1416,21 +1412,13 @@ octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatch
 >>
 
 /* CONTAINING with deferred patching, FIXED_SIZE: just call directly, no temp buffer */
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode) ::= <<
-{
-    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
-    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
-    if (ret) {
-        /*the OCTET STRING holds <nOctets> whole octets: pad the contained encoding with zeros up to them*/
-        long acn_nPad = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
-        if (acn_nPad \> 0) {
-            BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad); /*COVERAGE_IGNORE*/
-        }
-    }
+/* soFixedOctets: every encoding of the contents takes all nOctets octets, so there is never padding (coverage step 14e, E3) */
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets) ::= <<
+{<if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents fills all <nOctets> octet(s) of the OCTET STRING*/<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);<else><\n>    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);<\n>    if (ret) {<\n>        /*the OCTET STRING holds <nOctets> whole octets: pad the contained encoding with zeros up to them*/<\n>        long acn_nPad = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);<\n>        if (acn_nPad \> 0) {<\n>            BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad); /*COVERAGE_IGNORE*/<\n>        }<\n>    }<endif>
 }
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode) ::= <<
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode);
@@ -1449,18 +1437,13 @@ octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCo
 >>
 
 /* CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure + patch */
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets) ::= <<
 {
     AcnBitStreamPos acn_len_pos = Acn_BitStream_GetPos(pBitStrm);
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nMinSize>, <nMinSize>, <nMaxSize>);
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
-    if (ret) {
-        /*pad the contained encoding to a whole number of octets from its start
-          (see the ext-field variant above)*/
-        if (pBitStrm->currentBit != acn_data_start.currentBit) {
-            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/
-        }
+    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start<\n>          (see the ext-field variant above)*/<\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif>
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         Acn_BitStream_SetPos(pBitStrm, acn_len_pos);
@@ -1470,7 +1453,7 @@ octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nM
 }
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets) ::= <<
 {
     asn1SccSint acn_nCount;
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
@@ -1502,16 +1485,11 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 
 /* CONTAINING ExternalField wrapper: wraps an inline body with save-pos/measure/PatchDet
    Used when the contained type has ACN parameters (no standalone ACN function). */
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     <sBody>
-    if (ret) {
-        /*pad the contained encoding to a whole number of octets from its start
-          (see the ext-field variant above)*/
-        if (pBitStrm->currentBit != acn_data_start.currentBit) {
-            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/
-        }
+    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start<\n>          (see the ext-field variant above)*/<\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif>
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>        if (!ret) {<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>            return FALSE; /*COVERAGE_IGNORE*/<\n>        }<endif>
@@ -1519,7 +1497,7 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
 }
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     /*the region is <sDetParamName>->value octets from the current bit; off a byte boundary it ends inside one more byte*/
