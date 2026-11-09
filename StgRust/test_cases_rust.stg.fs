@@ -163,6 +163,10 @@ let constraintViolationStringChar (sStr:string) (nIndex:BigInteger) (nChar:BigIn
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "constraintViolationStringChar" [("sStr",(if sStr = null then null else ST.StrHelper sStr:>Object) );("nIndex",nIndex :>Object);("nChar",nChar :>Object)]
 
+let constraintViolationEveryElement (sIdx:string) (sCount:string) (arrsGuards:seq<string>) (sSetInvalidValue:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "constraintViolationEveryElement" [("sIdx",(if sIdx = null then null else ST.StrHelper sIdx:>Object) );("sCount",(if sCount = null then null else ST.StrHelper sCount:>Object) );("arrsGuards",(arrsGuards|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sSetInvalidValue",(if sSetInvalidValue = null then null else ST.StrHelper sSetInvalidValue:>Object) )]
+
 let emitEqualityVariantTestCase (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sEqualFunc:string) (arrsVariantChecks:seq<string>) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "emitEqualityVariantTestCase" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sInitializeTcData",(if sInitializeTcData = null then null else ST.StrHelper sInitializeTcData:>Object) );("bStatic",bStatic :>Object);("sEqualFunc",(if sEqualFunc = null then null else ST.StrHelper sEqualFunc:>Object) );("arrsVariantChecks",(arrsVariantChecks|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]

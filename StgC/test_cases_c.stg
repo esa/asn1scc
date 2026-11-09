@@ -1038,6 +1038,20 @@ constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 <sStr>[<nIndex>] = (char)<nChar>;
 >>
 
+/* Coverage step 14f: a constraint violation that needs a selection inside a SEQUENCE OF element, set in every element
+   that makes the selection (arrsGuards: the CHOICE alternatives / OPTIONAL children on the way). */
+constraintViolationEveryElement(sIdx, sCount, arrsGuards, sSetInvalidValue) ::= <<
+for (<sIdx> = 0; <sIdx> \< <sCount>; <sIdx>++) {
+    <if(arrsGuards)>
+    if (<arrsGuards; separator=" && ">) {
+        <sSetInvalidValue>
+    }
+    <else>
+    <sSetInvalidValue>
+    <endif>
+}
+>>
+
 /* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
    changed must compare unequal, both ways. */
 emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<

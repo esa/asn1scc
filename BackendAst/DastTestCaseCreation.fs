@@ -355,6 +355,7 @@ type ConstraintViolation = {
     errCodeModule   : string                    // the program unit that defines it
     what            : string                    // what is changed, for the test's comment
     encoding        : ViolationEncoding         // whether the unchecked encoders are called too
+    localVariables  : LocalVariable list        // the statement's own locals (the element index of a loop, step 14f)
 }
 
 /// A violation of a referenced type or of a SEQUENCE OF element, seen from the enclosing type.
@@ -536,9 +537,32 @@ let private uniqueReferenceSites (r:DAst.AstRoot) (root:Asn1Type) : Set<string *
         | Enumerated _ | ObjectIdentifier _ | TimeType _ -> []
     sites false root |> List.groupBy fst |> List.filter (fun (_, xs) -> (xs |> List.sumBy snd) = 1) |> List.map fst |> Set.ofList
 
+/// Coverage step 14f: the conditions under which the node at the scope nodes `rest` below `t` (at `path`) exists in a
+/// value: the selected CHOICE alternatives and present OPTIONAL children on the way, down to the first reference or
+/// SEQUENCE OF (an inner SEQUENCE OF loops over its elements with guards of its own).
+let rec private selectionGuards (lm:LanguageMacros) (path:AccessPath) (t:Asn1Type) (rest:ScopeNode list) : string list =
+    match t.Kind, rest with
+    | Sequence sq, SEQ_CHILD (name, _) :: tl ->
+        match sq.children |> List.tryPick (fun c -> match c with Asn1Child ch when ch.Name.Value = name -> Some ch | _ -> None) with
+        | None    -> []
+        | Some ch ->
+            let chName = lm.lg.getAsn1ChildBackendName ch
+            let present =
+                match ch.Optionality with
+                | Some (Asn1AcnAst.Optional _) -> [lm.lg.getSeqChildIsPresent path chName]
+                | Some Asn1AcnAst.AlwaysPresent | Some Asn1AcnAst.AlwaysAbsent | None -> []
+            present @ selectionGuards lm (lm.lg.getSeqChild path chName ch.Type.isIA5String ch.Optionality.IsSome) ch.Type tl
+    | Choice chc, CH_CHILD (name, _, _) :: tl ->
+        match chc.children |> List.tryFind (fun c -> c.Name.Value = name) with
+        | None   -> []
+        | Some c ->
+            let selected = sprintf "%s%skind %s %s" (path.joined lm.lg) (lm.lg.getAccess path) lm.lg.eqOp (lm.lg.presentWhenName (Some t.typeDefinitionOrReference) c)
+            selected :: selectionGuards lm (lm.lg.getChChild path (lm.lg.getAsn1ChChildBackendName c) c.chType.isIA5String) c.chType tl
+    | _ -> []
+
 /// unique: the type assignments with one reference site in the tested value (uniqueReferenceSites).
 let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (unique:Set<string * string>) (path:AccessPath) (t:Asn1Type) : ConstraintViolation list =
-    let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; inAlternative = false; setInvalid = sSet; errCode = errCode; errCodeModule = ToC t.id.ModName; what = what; encoding = CheckedOnly}
+    let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; inAlternative = false; setInvalid = sSet; errCode = errCode; errCodeModule = ToC t.id.ModName; what = what; encoding = CheckedOnly; localVariables = []}
     let sizeViolations (minSize:BigInteger) (maxSize:BigInteger) (isPure:bool) =
         match lm.lg.typedefConstraintModel, ownErrCode t, isPure && minSize <> maxSize with
         | TypedefsAreBaseTypes, Some e, true ->
@@ -565,13 +589,45 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (unique:Set<st
     | BitString o   -> sizeViolations o.baseInfo.minSize.uper o.baseInfo.maxSize.uper (o.baseInfo.cons |> List.forall pureSize)
     | SequenceOf o  ->
         let own = sizeViolations o.baseInfo.minSize.uper o.baseInfo.maxSize.uper (o.baseInfo.cons |> List.forall pureSeqOfSize)
+        let needsSelection (v:ConstraintViolation) = v.inAlternative || not v.presentChildren.IsEmpty
         let elemPath = lm.lg.getArrayItem path (string lm.lg.ArrayStartIndex) o.childType.isIA5String
         let elems = constraintViolations r lm unique elemPath o.childType |>
                     // the elements get different test values, but the test value says only that one of them selects the
                     // alternative or has the OPTIONAL child present (element 0 is changed): no selection inside an element
-                    List.filter (fun v -> not v.inAlternative && v.presentChildren.IsEmpty) |>
+                    List.filter (needsSelection >> not) |>
                     List.map (fun v -> nested {v with nonEmptySeqOfs = t.id::v.nonEmptySeqOfs})
-        own @ elems
+        // Coverage step 14f (q/issues.md Issue 51): a violation that needs a selection is set in every element that makes
+        // it (a loop over the elements, guarded by the CHOICE alternatives / OPTIONAL children on the way to the node);
+        // the test value guarantees that one element does (the SEQUENCE OF merges the maps of its elements)
+        let everyElement =
+            let sIdx = sprintf "i%d" (path.SequenceOfLevel + 1)
+            let elemPathI = lm.lg.getArrayItem path sIdx o.childType.isIA5String
+            let sCount =
+                // the type's own typedef (a reference with a SIZE of its own shares the referenced one: ReferenceType branch)
+                match o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper with
+                | true  -> string o.baseInfo.maxSize.uper
+                | false -> lm.lg.Length (path.joined lm.lg) (lm.lg.getAccess path)
+            let elemPrefix = t.id.ToScopeNodeList @ [SQF]
+            let underElement (id:ReferenceToType) =
+                let nodes = id.ToScopeNodeList
+                nodes.Length > elemPrefix.Length && List.take elemPrefix.Length nodes = elemPrefix
+            constraintViolations r lm unique elemPathI o.childType |>
+            List.filter needsSelection |>
+            List.map (fun v ->
+                // the deepest node of the element's own tree on the way to the changed one (a reference site, or the
+                // node itself); a reference under a SEQUENCE OF never takes a selection (uniqueReferenceSites)
+                let target = v.nodeId :: v.contextNodes |> List.filter underElement |> List.sortByDescending (fun id -> id.ToScopeNodeList.Length) |> List.tryHead
+                let guards =
+                    match target with
+                    | Some id -> selectionGuards lm elemPathI o.childType (id.ToScopeNodeList |> List.skip elemPrefix.Length)
+                    | None    -> []
+                let sSet = lm.atc.constraintViolationEveryElement sIdx sCount guards v.setInvalid
+                nested {v with setInvalid = sSet; nonEmptySeqOfs = t.id::v.nonEmptySeqOfs
+                               what = (match v.what.EndsWith ", in every element that selects it" with
+                                       | true  -> v.what
+                                       | false -> v.what + ", in every element that selects it")
+                               localVariables = SequenceOfIndex (path.SequenceOfLevel + 1, None) :: v.localVariables})
+        own @ elems @ everyElement
     | Sequence sq ->
         let asn1Children = sq.children |> List.choose (fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
         let childPath (ch:Asn1Child) = lm.lg.getSeqChild path (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome
@@ -752,7 +808,7 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                     | Asn1Ast.MarkPresent, Some _ ->
                         [{ nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                            setInvalid = lm.init.initSequence_optionalChild (path.joined lm.lg) (lm.lg.getAccess path) chName absentFlag ""
-                           errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s absent, WITH COMPONENTS requires it" ch.Name.Value; encoding = CheckedOnly }]
+                           errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s absent, WITH COMPONENTS requires it" ch.Name.Value; encoding = CheckedOnly; localVariables = [] }]
                     | (Asn1Ast.MarkPresent | Asn1Ast.NoMark | Asn1Ast.MarkOptional | Asn1Ast.MarkAbsent), _ -> []
                 let values =
                     match nc.Constraint, ch.Type.ActualType.Kind with
@@ -763,7 +819,7 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                             let sv = lm.lg.intValueToString v o.baseInfo.intClass
                             { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                               setInvalid = lm.init.initInteger (lm.lg.getValue chPath) sv false "" ""
-                              errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s = %s, outside %s (WITH COMPONENTS)" ch.Name.Value sv ic.ASN1; encoding = CheckedOnly })
+                              errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s = %s, outside %s (WITH COMPONENTS)" ch.Name.Value sv ic.ASN1; encoding = CheckedOnly; localVariables = [] })
                     | _ -> []
                 absent @ values)
 
@@ -811,7 +867,7 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
                 fun idx ->
                     let sFuncName = sprintf "test_case_constraint_%06d" idx
                     let initStatement = atc.initTestCaseFunc p
-                    let arrsVars = initStatement.localVariables |> List.map(fun lv -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct |> Seq.toList
+                    let arrsVars = initStatement.localVariables @ v.localVariables |> List.map(fun lv -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct |> Seq.toList
                     let encAmper, _ = gAmber lm t
                     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
                     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition

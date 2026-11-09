@@ -347,6 +347,10 @@ constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmb
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 >>
 
+/* Coverage step 14f: C and Ada only (ILangGeneric.atcEmitsConstraintViolationTests). */
+constraintViolationEveryElement(sIdx, sCount, arrsGuards, sSetInvalidValue) ::= <<
+>>
+
 /* Coverage step 14a: C and Ada only (ILangGeneric.atcEmitsEqualityVariantTests). */
 emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<
 >>
