@@ -276,7 +276,8 @@ and private handleRefTypeArgument (ctx: DepContext) (acnPrm: AcnGenericTypes.Acn
         let updateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
             prmUpdateStatement.updateAcnChildFnc child nestingScope vTarget pSrcRoot bForceInitFlag
         let icdComments = icdCommentsForDependency ctx.d
-        Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=prmUpdateStatement.errCodes; testCaseFnc = prmUpdateStatement.testCaseFnc; localVariables=[]}), ns1
+        // the locals of the parameter's update (the temporary bitstream of a CONTAINING component, q/issues.md Issue 78)
+        Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=prmUpdateStatement.errCodes; testCaseFnc = prmUpdateStatement.testCaseFnc; localVariables=prmUpdateStatement.localVariables}), ns1
 
 and private handleSizeDeterminant (ctx: DepContext) (minSize: SIZE) (maxSize: SIZE) (us: State) =
     let r, lm, m, d = ctx.r, ctx.lm, ctx.m, ctx.d

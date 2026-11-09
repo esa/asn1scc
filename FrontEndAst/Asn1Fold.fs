@@ -436,6 +436,15 @@ let getSeqChildrenWithPriority (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (t
         List.choose(fun d ->
             match d.dependencyKind with
             | AcnDepSizeDeterminant_bit_oct_str_contain _ when d.asn1Type.AsString.StartsWith (id)  &&   d.determinant.id.AsString.StartsWith (id) && d.asn1Type.AsString.Length > id.Length + 1 && d.determinant.id.AsString.Length > id.Length + 1 &&                (getChildNameFromId d.asn1Type.AsString) <> (getChildNameFromId d.determinant.id.AsString) -> Some (getChildNameFromId d.asn1Type.AsString )
+            // q/issues.md Issue 78: a CONTAINING SEQUENCE component of a child reference whose size is a parameter of
+            // that reference (`wrap <len>`, `Inner <INTEGER:len> [] { p [size len] }`): the update of the field passed
+            // as argument encodes the component, so the child must be built before the ACN fields of this SEQUENCE
+            | AcnDepSizeDeterminant_bit_oct_str_contain _
+                when (match d.determinant, List.tryLast d.asn1Type.ToScopeNodeList with
+                      | AcnParameterDeterminant _, Some (CommonTypes.SEQ_CHILD _) -> true
+                      | _ -> false)
+                     && d.asn1Type.AsString.StartsWith (id + ".") && d.determinant.id.AsString.StartsWith (id + ".")
+                     && (getChildNameFromId d.asn1Type.AsString) = (getChildNameFromId d.determinant.id.AsString) -> Some (getChildNameFromId d.asn1Type.AsString)
             | _ -> None    )
 
     childrenWithPriority

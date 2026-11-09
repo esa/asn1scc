@@ -1,0 +1,28 @@
+-- ACNV2_ONLY (legacy cannot encode a value whose CHOICE selects the alternative that does not determine the field:
+-- "uninitialized")
+-- Issue 78, as 037: an OCTET STRING (CONTAINING X) component of a SEQUENCE sized by an ACN parameter of that
+-- SEQUENCE, here an alternative of a parameterized CHOICE: the field is patched by the region when the alternative is
+-- selected, else the fallback writes 0. scripts/runWireTests.sh checks the exact bytes (038_wire_test.c).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+Inner ::= SEQUENCE {
+    a INTEGER (0..255),
+    b INTEGER (0..3)
+}
+
+Wrap ::= SEQUENCE {
+    p OCTET STRING (CONTAINING Inner)
+}
+
+Ch ::= CHOICE {
+    s Wrap,
+    n INTEGER (0..15)
+}
+
+Msg ::= SEQUENCE {
+    c Ch
+}
+
+END
+
+--TCFS   038.acn
