@@ -122,6 +122,9 @@ let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*Langua
         TL "CheckLongReferences.checkDeducedSizePlacement" (fun () ->
             CheckLongReferences.checkDeducedSizePlacement acnAst)
 
+        TL "CheckLongReferences.checkSizeParameterRanges" (fun () ->
+            CheckLongReferences.checkSizeParameterRanges acnDeps)
+
         if not args.acnDeferred then
             TL "CheckLongReferences.checkLegacySequenceOfArguments" (fun () ->
                 CheckLongReferences.checkLegacySequenceOfArguments acnDeps)

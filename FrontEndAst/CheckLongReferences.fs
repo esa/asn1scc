@@ -640,3 +640,42 @@ let checkLegacySequenceOfArguments (deps:AcnInsertedFieldDependencies) =
             | AcnDepPresence _
             | AcnDepPresenceStr _
             | AcnDepChoiceDeterminant _ -> ())
+
+/// A size determinant passed as an ACN argument (`Inner <INTEGER:len> [] { p [size len] }`, `Outer [] { len INTEGER
+/// [size 8], w <len> [] }`) must hold the sizes of the dependent like a size field of the same SEQUENCE
+/// (`checkIntHasEnoughSpace` in sizeReference): every ACN field that reaches the parameter through RefTypeArgument links
+/// is checked against the dependent's SIZE range (q/issues.md Issue 78; before, the encoders wrote the low bits of a
+/// larger size). A parameter of the outermost type (no field passes it) is not checked.
+let checkSizeParameterRanges (deps:AcnInsertedFieldDependencies) =
+    let links =
+        deps.acnDependencies |> List.choose (fun d ->
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument prm -> Some (prm.id, d.determinant)
+            | _                         -> None)
+    let rec fieldsOf (seen:Set<ReferenceToType>) (prmId:ReferenceToType) : AcnChild list =
+        match seen.Contains prmId with
+        | true  -> []
+        | false ->
+            links |> List.filter (fun (p, _) -> p = prmId) |> List.collect (fun (_, det) ->
+                match det with
+                | AcnChildDeterminant ac      -> [ac]
+                | AcnParameterDeterminant prm -> fieldsOf (seen.Add prmId) prm.id)
+    deps.acnDependencies |> List.iter (fun d ->
+        let sizeRange =
+            match d.dependencyKind with
+            | AcnDepSizeDeterminant (minSize, maxSize, _)          -> Some (minSize.acn, maxSize.acn)
+            | AcnDepIA5StringSizeDeterminant (minSize, maxSize, _) -> Some (minSize.acn, maxSize.acn)
+            | AcnDepSizeDeterminant_bit_oct_str_contain o          -> o.encodingOptions |> Option.map (fun e -> e.minSize.acn, e.maxSize.acn)
+            | AcnDepRefTypeArgument _
+            | AcnDepPresenceBool
+            | AcnDepPresence _
+            | AcnDepPresenceStr _
+            | AcnDepChoiceDeterminant _                            -> None
+        match d.determinant, sizeRange with
+        | AcnParameterDeterminant prm, Some (minSize, maxSize) ->
+            fieldsOf Set.empty prm.id |> List.iter (fun ac ->
+                match ac.Type with
+                | AcnInteger ai -> ai.checkIntHasEnoughSpace minSize maxSize
+                | AcnBoolean _ | AcnNullType _ | AcnReferenceToEnumerated _ | AcnReferenceToIA5String _ -> ())
+        | AcnParameterDeterminant _, None
+        | AcnChildDeterminant _, _ -> ())
