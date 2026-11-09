@@ -1,0 +1,16 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Two [] {
+    l1 INTEGER [encoding pos-int, size 8],
+    l2 INTEGER [encoding pos-int, size 8],
+    p1 [size l1],
+    p2 [size l2]
+}
+
+One [] {
+    l INTEGER [encoding pos-int, size 8],
+    p1 [size l],
+    p2 [size l]
+}
+
+END

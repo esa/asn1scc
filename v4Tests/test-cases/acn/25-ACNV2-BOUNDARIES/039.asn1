@@ -1,0 +1,24 @@
+-- ACNV2_ONLY (legacy rejects the grammar: its CONTAINING components with an external size share one temporary buffer)
+-- Issue 80: two OCTET STRING (CONTAINING X) components with external size fields in one SEQUENCE, with a field each
+-- (Two) or one field for both (One). Legacy wrote a component with the bytes of the other and is now rejected
+-- (scripts/runWireTests.sh checks the error); acn-v2 encodes each region in place (039_wire_test.c checks the bytes).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+Big ::= SEQUENCE {
+    a    INTEGER (0..255),
+    data OCTET STRING (SIZE(1..3))
+}
+
+Two ::= SEQUENCE {
+    p1 OCTET STRING (CONTAINING Big),
+    p2 OCTET STRING (CONTAINING Big)
+}
+
+One ::= SEQUENCE {
+    p1 OCTET STRING (CONTAINING Big),
+    p2 OCTET STRING (CONTAINING Big)
+}
+
+END
+
+--TCFS   039.acn

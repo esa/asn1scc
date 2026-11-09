@@ -679,3 +679,52 @@ let checkSizeParameterRanges (deps:AcnInsertedFieldDependencies) =
                 | AcnBoolean _ | AcnNullType _ | AcnReferenceToEnumerated _ | AcnReferenceToIA5String _ -> ())
         | AcnParameterDeterminant _, None
         | AcnChildDeterminant _, _ -> ())
+
+/// Legacy ACN only (without --acn-v2), q/issues.md Issue 80: the update of the size field of an OCTET / BIT STRING
+/// (CONTAINING X) with an external size encodes the contents into one temporary buffer of the encoding function
+/// (C `arr` / `bitStrm`, Ada `tmpBs`), and the component copies it later. Two such components in one function (the
+/// fields of one type assignment, the parameterized types it passes them to are inlined) share the buffer: every
+/// update runs before the copies, so a component is written with the bytes of another. Rejected unless the components
+/// are alternatives of one CHOICE (only one is encoded). --acn-v2 encodes each region in place.
+let checkLegacyContainingSizeFields (deps:AcnInsertedFieldDependencies) =
+    let links =
+        deps.acnDependencies |> List.choose (fun d ->
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument prm -> Some (prm.id, d.determinant)
+            | _                         -> None)
+    let rec fieldsOf (seen:Set<ReferenceToType>) (det:Determinant) : AcnChild list =
+        match det with
+        | AcnChildDeterminant ac      -> [ac]
+        | AcnParameterDeterminant prm ->
+            match seen.Contains prm.id with
+            | true  -> []
+            | false -> links |> List.filter (fun (p, _) -> p = prm.id) |> List.collect (snd >> fieldsOf (seen.Add prm.id))
+    let typeAssignmentOf (id:ReferenceToType) = id.ToScopeNodeList |> List.truncate 2
+    // two components in different alternatives of one CHOICE are never encoded together
+    let exclusive (ReferenceToType a) (ReferenceToType b) =
+        List.zip (List.truncate (min a.Length b.Length) a) (List.truncate (min a.Length b.Length) b)
+        |> List.tryFind (fun (x, y) -> x <> y)
+        |> Option.exists (fun (x, y) ->
+            match x, y with
+            | CH_CHILD _, CH_CHILD _ -> true
+            | _                      -> false)
+    deps.acnDependencies
+    |> List.choose (fun d ->
+        match d.dependencyKind with
+        | AcnDepSizeDeterminant_bit_oct_str_contain o ->
+            match o.encodingOptions |> Option.map (fun e -> e.acnEncodingClass) with
+            | Some (SZ_EC_ExternalField _) -> Some d
+            | _                            -> None
+        | _ -> None)
+    |> List.collect (fun d -> fieldsOf Set.empty d.determinant |> List.map (fun ac -> typeAssignmentOf ac.id, d.asn1Type, ac))
+    |> List.groupBy (fun (tas, _, _) -> tas)
+    |> List.iter (fun (_, xs) ->
+        let components = xs |> List.distinctBy (fun (_, dependent, _) -> dependent) |> List.sortBy (fun (_, dependent, _) -> dependent.ToScopeNodeList |> List.map (fun n -> n.StrValue))
+        components |> List.iteri (fun i (_, dep2, field2) ->
+            match components |> List.take i |> List.tryFind (fun (_, dep1, _) -> not (exclusive dep1 dep2)) with
+            | None -> ()
+            | Some (_, dep1, _) ->
+                let name (id:ReferenceToType) = id.ToScopeNodeList |> List.skip 2 |> List.map (fun n -> n.StrValue) |> String.concat "."
+                let errMsg =
+                    sprintf "OCTET / BIT STRING (CONTAINING ...) components '%s' and '%s' take their sizes from ACN fields of one encoding function (here '%s'), which legacy ACN encodes through one shared temporary buffer. This is supported only with --acn-v2." (name dep1) (name dep2) field2.Name.Value
+                raise(SemanticError(field2.Name.Location, errMsg))))

@@ -128,6 +128,8 @@ let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*Langua
         if not args.acnDeferred then
             TL "CheckLongReferences.checkLegacySequenceOfArguments" (fun () ->
                 CheckLongReferences.checkLegacySequenceOfArguments acnDeps)
+            TL "CheckLongReferences.checkLegacyContainingSizeFields" (fun () ->
+                CheckLongReferences.checkLegacyContainingSizeFields acnDeps)
 
         // When acnDeferred is enabled, transform implicit cross-scope ACN references
         // into explicit acnParameters/acnArguments (closure conversion) and rewrite

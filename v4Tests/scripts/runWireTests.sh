@@ -52,7 +52,7 @@ run_wire_test() {
     echo "wire $n$mode OK"
 }
 
-for n in 004 010 011 016 017 018 019 020 021 022 023 024 025 028 030 033 035 036 037 038; do
+for n in 004 010 011 016 017 018 019 020 021 022 023 024 025 028 030 033 035 036 037 038 039; do
     run_wire_test $n ""
 done
 
@@ -140,5 +140,20 @@ if ! grep -qF "016.acn:8:4: error: ACN field 'len' is passed as an argument to t
     exit 1
 fi
 echo "legacy 016 rejection OK"
+
+# Without --acn-v2, two CONTAINING components with external sizes in one encoding function are rejected (Issue 80:
+# legacy encodes them through one shared temporary buffer).
+out=$work/legacy039
+mkdir "$out"
+if run_compiler -c -ACN -o "$out" "$cases/039.asn1" "$cases/039.acn" 2>"$out/stderr.txt"; then
+    echo "legacy 039 FAILED: accepted without --acn-v2"
+    exit 1
+fi
+if ! grep -qF "039.acn:11:4: error: OCTET / BIT STRING (CONTAINING ...) components 'p1' and 'p2' take their sizes from ACN fields of one encoding function (here 'l'), which legacy ACN encodes through one shared temporary buffer. This is supported only with --acn-v2." "$out/stderr.txt"; then
+    echo "legacy 039 FAILED, got:"
+    cat "$out/stderr.txt"
+    exit 1
+fi
+echo "legacy 039 rejection OK"
 
 echo "acn-v2 wire checks passed"
