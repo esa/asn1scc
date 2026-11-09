@@ -1571,7 +1571,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits) ::= <<
 declare
     acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1591,7 +1591,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits) ::= <<
 declare
     acn_nCount : Integer;
 begin
@@ -1612,8 +1612,8 @@ begin
                 end if;
                 bs.Current_Bit_Pos := acn_expected_end;
             end;
-        else
-            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => adaasn1rtl.ERR_INSUFFICIENT_DATA); --COVERAGE_IGNORE
+        else<if(soCovExemptFits)><\n>            pragma Annotate (Xcov, Exempt_On, "<soCovExemptFits>");<endif>
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => adaasn1rtl.ERR_INSUFFICIENT_DATA); --COVERAGE_IGNORE<if(soCovExemptFits)><\n>            pragma Annotate (Xcov, Exempt_Off);<endif>
         end if;
     end if;
 end;
@@ -1638,7 +1638,7 @@ octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFunc
 <octet_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent, soCovExempt=soCovExempt)>
 >>
 
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1657,7 +1657,7 @@ end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
    the rest of the stream before it is converted (q/issues.md Issue 64: Natural (<det>.Value) of a huge value raised
    Constraint_Error, and with -gnatp set the stream position to a value taken from the stream); the contents must not
    read past the region (as octet_string_containing_deferred_region_decode). */
-bit_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode) /*nogen*/ ::= <<
+bit_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode, soCovExempt) /*nogen*/ ::= <<
 if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
    <sDetParamName>.Value \<= adaasn1rtl.Asn1UInt(bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos)
 then
@@ -1670,8 +1670,8 @@ then
         <sBody>
         bs.End_Bit_Pos := acn_saved_end;
         --  the contents must not have read past their region
-        if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
-            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+        if result.Success and then bs.Current_Bit_Pos > acn_expected_end then<if(soCovExempt)><\n>            pragma Annotate (Xcov, Exempt_On, "<soCovExempt>");<endif>
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)<if(soCovExempt)><\n>            pragma Annotate (Xcov, Exempt_Off);<endif>
         end if;
         bs.Current_Bit_Pos := acn_expected_end;
     end; -- COVERAGE_IGNORE (GNAT 2021 gcov)
@@ -1680,8 +1680,8 @@ else
 end if;
 >>
 
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
-<bit_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode)>
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
+<bit_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, soCovExempt=soCovExempt)>
 >>
 
 bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
@@ -1727,7 +1727,7 @@ begin
 end;
 >>
 
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1742,8 +1742,8 @@ begin
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
-<bit_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode)>
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
+<bit_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, soCovExempt=soCovExempt)>
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nReqBits, sExtField, sErrCode) ::= <<

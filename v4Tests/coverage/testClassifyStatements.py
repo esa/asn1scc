@@ -1166,5 +1166,77 @@ class FunctionKind(unittest.TestCase):
         self.assertEqual(function_kind("T_XER_Encode"), "xer-encode")
 
 
+
+# ASN1SCC-COV-011 (coverage step 14e, E5 D, Ada): the "region does not fit the stream" arm after an embedded length
+EMBEDDED_ADA = """procedure ASN1SCC_P_ACN_Decode_aux(val: in out ASN1SCC_P; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+begin
+    declare
+        acn_nCount : Integer;
+    begin
+        result.ErrorCode := ERR_ACN_DECODE_P_2;
+        adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, 1, 3, 2, result.Success);
+        if result.Success then
+            if bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 and then
+               acn_nCount >= 0 and then acn_nCount <= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8
+            then
+                declare --COVERAGE_IGNORE
+                    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8;
+                begin
+                    ASN1SCC_Inner_ACN_Decode_aux(val, bs, result);
+                    bs.Current_Bit_Pos := acn_expected_end;
+                end;
+            else
+                result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => adaasn1rtl.ERR_INSUFFICIENT_DATA); --COVERAGE_IGNORE
+            end if;
+        end if;
+    end;
+end ASN1SCC_P_ACN_Decode_aux;
+"""
+
+
+def check011(source):
+    lines = source.splitlines()
+    first = next(i for i, line in enumerate(lines, 1) if "ERR_INSUFFICIENT_DATA" in line)
+    return proven_unreachable("Ada", lines, first, lines[first - 1])
+
+
+class Cov011(unittest.TestCase):
+    def test_embedded_length(self):
+        self.assertEqual(check011(EMBEDDED_ADA), "ASN1SCC-COV-011")
+
+    def test_marked_shape(self):
+        marked = EMBEDDED_ADA.replace(
+            "else\n                result :=",
+            "else\n                pragma Annotate (Xcov, Exempt_On, \"ASN1SCC-COV-011: x\");\n                result :=")
+        self.assertEqual(check011(marked), "ASN1SCC-COV-011")
+
+    def test_length_from_a_field_is_not_proven(self):
+        # an external size field (ext field / AcnInsertedFieldRef) may hold any value of its encoding
+        source = EMBEDDED_ADA.replace(
+            "        adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, 1, 3, 2, result.Success);\n",
+            "        adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8(bs, acn_nCount, result.Success);\n")
+        self.assertEqual(check011(source), "")
+
+    def test_assignment_between_read_and_check_is_not_proven(self):
+        source = EMBEDDED_ADA.replace("        if result.Success then\n            if bs.",
+                                      "        acn_nCount := acn_nCount * 2;\n        if result.Success then\n            if bs.")
+        self.assertEqual(check011(source), "")
+
+    def test_other_condition_is_not_proven(self):
+        source = EMBEDDED_ADA.replace("acn_nCount <= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8",
+                                      "acn_nCount <= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 16")
+        self.assertEqual(check011(source), "")
+
+
+class Cov010AdaBitString(unittest.TestCase):
+    def test_bit_string_region_with_deduced_contents(self):
+        bits = REGION_ADA.replace("Natural(acn_nCount) * 8;", "Natural(P_len.Value);")
+        self.assertEqual(check010("Ada", bits + DEDUCED_ADA), "ASN1SCC-COV-010")
+
+    def test_bit_string_region_without_deduced_contents(self):
+        bits = REGION_ADA.replace("Natural(acn_nCount) * 8;", "Natural(P_len.Value);")
+        self.assertEqual(check010("Ada", bits), "")
+
 if __name__ == "__main__":
     unittest.main()

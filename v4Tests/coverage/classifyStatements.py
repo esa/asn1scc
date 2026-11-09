@@ -1112,14 +1112,57 @@ def cov010(lines, first, language, sources=()):
     if start is None:
         return False
     bodies = function_bodies([list(lines)] + [list(s) for s in sources], "c" if language == "c" else "Ada")
-    # the contents between the set and the restore; a nested region inside them is skipped
-    if language != "c":
-        # OCTET STRING regions only (a BIT STRING region is measured in bits: `... + Natural(len);`)
-        declaration = next((lines[n - 1] for n in range(start - 1, max(start - 8, 0), -1)
-                            if "acn_expected_end : constant Natural :=" in lines[n - 1]), "")
-        if not re.search(r"\* 8;", declaration):
-            return False
+    # the contents between the set and the restore; a nested region inside them is skipped. Ada: OCTET and BIT
+    # STRING regions alike (both set End_Bit_Pos to the exact end bit of the region, coverage step 14e E5 D)
     return reads_deduced_end(lines[start:restore - 1], pattern, bodies, 6, set(), "c" if language == "c" else "Ada")
+
+
+# ASN1SCC-COV-011 (coverage step 14e, E5 D, Ada): the "region does not fit the stream" arm of an --acn-v2 OCTET
+# STRING CONTAINING region with an embedded length. The length is decoded right before the check within the SIZE
+# range of the region (UPER_Dec_ConstraintWholeNumberInt fails outside min .. max); that the stream holds the region
+# is the decoder precondition of the type assignment (stream of at least its maximum size, every part before the
+# region read at most its maximum), not checked again on the generated text.
+COV011_READ = re.compile(r"^\s*adaasn1rtl\.encoding\.uper\.UPER_Dec_ConstraintWholeNumberInt\(bs, acn_nCount, "
+                         r"(\d+), (\d+), \d+, result\.Success\);", re.I)
+COV011_FITS = (re.compile(r"^\s*if bs\.Current_Bit_Pos <= bs\.Size_In_Bytes \* 8 and then\s*$", re.I),
+               re.compile(r"^\s*acn_nCount >= 0 and then acn_nCount <= \(bs\.Size_In_Bytes \* 8 - "
+                          r"bs\.Current_Bit_Pos\) / 8\s*$", re.I))
+
+
+def cov011(lines, first):
+    """ASN1SCC-COV-011: the statement is in the else arm of the fits check that directly follows the decoding of
+    an embedded region length (acn_nCount) within min .. max, with nothing else assigning acn_nCount."""
+    indent = lambda text: len(text) - len(text.lstrip())
+    els = None
+    for number in range(first - 1, max(first - 4, 0), -1):
+        text = lines[number - 1]
+        if re.match(r"^\s*else\s*$", text, re.I):
+            els = number
+            break
+        if not re.match(r"^\s*(--.*|pragma Annotate.*)$", text, re.I):
+            return False
+    if els is None:
+        return False
+    level = indent(lines[els - 1])
+    head = None
+    for number in range(els - 1, 0, -1):
+        text = lines[number - 1]
+        if not text.strip():
+            continue
+        if indent(text) < level:
+            return False
+        if indent(text) == level and COV011_FITS[0].match(text):
+            head = number
+            break
+        if indent(text) == level and not re.match(r"^\s*(then|end;.*|declare.*|begin)\s*(--.*)?$", text, re.I):
+            return False
+    if head is None or head + 1 > len(lines) or not COV011_FITS[1].match(lines[head]):
+        return False
+    # `if result.Success then` right above, the read of acn_nCount right above that
+    if head < 3 or not re.match(r"^\s*if result\.Success then\s*$", lines[head - 2], re.I):
+        return False
+    read = COV011_READ.match(lines[head - 3])
+    return bool(read) and int(read[1]) >= 0 and int(read[1]) <= int(read[2])
 
 
 def proven_unreachable(language, lines, first, src, headers=(), sources=()):
@@ -1128,6 +1171,8 @@ def proven_unreachable(language, lines, first, src, headers=(), sources=()):
     if language != "c":
         if cov001_ada(lines, first):
             return "ASN1SCC-COV-001"
+        if cov011(lines, first):
+            return "ASN1SCC-COV-011"
         return "ASN1SCC-COV-010" if cov010(lines, first, "Ada", sources) else ""
     if cov001(lines, first):
         return "ASN1SCC-COV-001"

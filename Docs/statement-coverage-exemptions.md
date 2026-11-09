@@ -51,7 +51,7 @@ covered nor proven.
 
   For the templates whose proof depends on the instance (ACN ENUMERATED, see
   ASN1SCC-COV-001 and -003; the CHOICE and determinant switches of
-  ASN1SCC-COV-004, -005, -008 and -009; the region checks of ASN1SCC-COV-010)
+  ASN1SCC-COV-004, -005, -008 and -009; the region checks of ASN1SCC-COV-010 and -011)
   the compiler emits the region only when the conditions of the entry hold;
   otherwise the arm is reachable and is covered by an automatic test. The
   asn1scc test suite checks that every region it measures is exactly the set of
@@ -744,7 +744,7 @@ and MISRA C:2012 Rule 16.4.
 condition on C only.
 
 
-## ASN1SCC-COV-010: "contents read past the region" check after `--acn-v2` OCTET STRING CONTAINING contents that end with a 'size deduced' part (C, Ada)
+## ASN1SCC-COV-010: "contents read past the region" check after `--acn-v2` OCTET / BIT STRING CONTAINING contents that end with a 'size deduced' part (C, Ada)
 
 **Code.** With `--acn-v2`, the contents of an OCTET STRING CONTAINING region
 are decoded in place. The region decoder computes the end of the region from
@@ -776,8 +776,12 @@ end if;
 
 **Template**: `StgC/acn_c.stg`, macros `octet_string_containing_deferred_func`,
 `_embedded_func` and `_wrapper` (decode); `StgAda/acn_a.stg`,
-`octet_string_containing_deferred_region_decode` (used by `_func` and `_wrapper`)
-and `octet_string_containing_deferred_embedded_func` (decode). The compiler emits
+`octet_string_containing_deferred_region_decode` (used by `_func` and `_wrapper`),
+`octet_string_containing_deferred_embedded_func` (decode), and for BIT STRING
+regions `bit_string_containing_deferred_region_decode` (used by
+`bit_string_containing_deferred_func` and `_wrapper`; Ada only: the C BIT STRING
+region ends its view at a byte and sets no `unusedTailBits`, so its check is not
+exempted). The compiler emits
 the region when the decoding of the contents ends with a live 'size deduced' part
 (`isLiveDeduced`; for the region around a CHOICE whose alternatives share one size
 parameter, the contents of every alternative). Example `24-DEDUCED-SIZE/004`:
@@ -821,3 +825,56 @@ same templates decode contents without a 'size deduced' part, where the check is
 reachable with a corrupted length (Ada; C when the region starts inside a byte).
 For contents that always take the same whole number of octets C has no such check
 (the read past the region fails first; coverage step 14e).
+
+
+## ASN1SCC-COV-011: "region does not fit the stream" arm after an `--acn-v2` OCTET STRING CONTAINING length embedded in the encoding (Ada)
+
+**Code.** With `--acn-v2`, an OCTET STRING CONTAINING region whose length is
+embedded (no external size field) is decoded in place in Ada. The decoder reads
+the length, checks that the region fits the rest of the stream, and fails with
+`ERR_INSUFFICIENT_DATA` otherwise:
+
+```ada
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, 1, 3, 2, result.Success);
+if result.Success then
+    if bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 and then
+       acn_nCount >= 0 and then acn_nCount <= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8
+    then
+        ...                                   -- decode the contents in place
+    else
+        result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => adaasn1rtl.ERR_INSUFFICIENT_DATA);   -- <- exempted
+    end if;
+end if;
+```
+
+**Template**: `StgAda/acn_a.stg`, macro `octet_string_containing_deferred_embedded_func`
+(decode); the compiler emits the region for every embedded-length region
+(`SZ_EC_LENGTH_EMBEDDED`). Example `23-CONTAINING/007`: `MyPDU ::= OCTET STRING
+(SIZE(1..3)) (CONTAINING MySeqType)`, the length in 2 bits.
+
+**Proof.** (1) `UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, min, max, ...)`
+succeeds only with `acn_nCount` in `min .. max` (its postcondition), where `max` is
+the SIZE maximum of the region, so after it `0 <= acn_nCount <= max`.
+(2) The Ada decoder of a type assignment requires a stream that holds its maximum
+encoding from the current position (`Pre => bs.Current_Bit_Pos +
+<T>_REQUIRED_BITS_FOR_ACN_ENCODING <= bs.Size_In_Bytes * 8`); every decoding reached
+from it, including the `--acn-v2` specialised functions it calls, reads at most the
+maximum size of what it decodes ('size deduced' parts at most their SIZE maximum).
+The maximum size of the type assignment includes the maximum of everything before
+the region plus `max` octets for the region, so at the check at least `8 * max`
+bits are left: `bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8` and `acn_nCount <=
+(bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8` both hold, and the `else` arm
+cannot run.
+
+**Conditions** (checked by `classifyStatements.py` on the generated code): the
+statement is in the `else` arm of exactly that check, which directly follows
+`if result.Success then` and the decoding of `acn_nCount` with
+`UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, min, max, ...)`, `0 <= min <=
+max`. Part (2) rests on the decoder precondition and the maximum sizes computed by
+the compiler, not on the generated text.
+
+**Why the code stays.** Defense in depth: a caller that does not respect the
+precondition (a stream shorter than the maximum, with run-time checks disabled)
+still gets an error code instead of a read past the buffer. The C decoders work on
+streams of the encoded length, where the same check is reachable (truncated
+streams) and is not exempted.

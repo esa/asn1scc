@@ -1142,6 +1142,15 @@ let private choiceRegionFixedOctets (choiceType: Asn1AcnAst.Asn1Type) (ch: Asn1A
 let private cov010Justification =
     "ASN1SCC-COV-010: 'size deduced' contents end at or before the end of their region, see Docs/statement-coverage-exemptions.md"
 
+/// Coverage step 14e (E5 D): ASN1SCC-COV-011 (Ada). An embedded region length is decoded within the SIZE range of the
+/// region (UPER_Dec_ConstraintWholeNumberInt fails outside min .. max), and the decoder precondition of the type
+/// assignment whose decoding reaches the region gives a stream of at least its maximum size, every part before the
+/// region having read at most its own maximum: the region always fits the rest of the stream, the Ada `else`
+/// (ERR_INSUFFICIENT_DATA) cannot run. The C decoders work on streams of the encoded length and keep it reachable; the
+/// C template does not use the parameter.
+let private cov011Justification =
+    "ASN1SCC-COV-011: an embedded region length within the SIZE range fits the stream of the decoder precondition, see Docs/statement-coverage-exemptions.md"
+
 let private pastRegionExemption (contentsEndWithRegion: bool) : string option =
     match contentsEndWithRegion with
     | true  -> Some cov010Justification
@@ -1186,7 +1195,7 @@ let private buildContainingClosureBody
                 | CommonTypes.ContainedInOctString ->
                     ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) ctx.codec
                 | CommonTypes.ContainedInBitString ->
-                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) ctx.codec
+                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) ctx.codec
             | None ->
                 br.funcBody  // fallback: no wrapping if size param not found
         let mappingDeclarations =
@@ -1232,7 +1241,7 @@ let private buildContainingStandaloneBody
         | CommonTypes.ContainedInOctString ->
             ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) ctx.codec
         | CommonTypes.ContainedInBitString ->
-            ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) ctx.codec
+            ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) ctx.codec
     { emptyBody ctx.lm with
         funcBody = fncBody
         errCodes = [errCode]
@@ -1636,7 +1645,7 @@ let private createDeferredReferenceFunction
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInOctString ->
                 Some (makeContainingFuncBody (fun pp fncName errCode ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
-                    let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType) (containingFixedOctets o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType)) codec
+                    let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType) (containingFixedOctets o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType)) (Some cov011Justification) codec
                     Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = EncodeOutcome.unknown}), us))
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInBitString ->
                 Some (makeContainingFuncBody (fun pp fncName _ ->
@@ -1756,7 +1765,7 @@ let private createDeferredReferenceFunction
                                 (pastRegionExemption bDeducedEveryAlternative) ctx.codec
                         | CommonTypes.ContainedInBitString ->
                             ctx.lm.acn.bit_string_containing_deferred_wrapper
-                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) ctx.codec
+                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption bDeducedEveryAlternative) ctx.codec
                     { bodyResult with
                         funcBody = wrappedBody
                         // the end of the region reads the body's result (q/issues.md Issue 63)

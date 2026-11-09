@@ -1539,7 +1539,7 @@ ret = <sFuncName>(&mut <p>, pBitStrm, pErrCode);
 >>
 
 /* CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure + patch */
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits) ::= <<
 {
     let acn_len_pos = acn::acn_bit_stream_get_pos(pBitStrm);
     pBitStrm.encode_constraint_whole_number(<nMinSize> as i64, <nMinSize> as i64, <nMaxSize> as i64);
@@ -1560,7 +1560,7 @@ octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nM
 }
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits) ::= <<
 {
     let (acn_nCount, ok) = pBitStrm.decode_constraint_whole_number(<nMinSize> as i64, <nMaxSize> as i64);
     ret = ok;
@@ -1622,7 +1622,7 @@ octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFunc
 >>
 
 /* BIT STRING CONTAINING with deferred patching: encode directly, PatchDet with measured bit distance */
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
 {
     let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, false);
@@ -1639,7 +1639,7 @@ bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFu
 >>
 
 /* BIT STRING CONTAINING with deferred patching: limit stream view (bit-granular), decode directly */
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
 {
     let acn_n_bits = <sDetParamName>.value;
     if !pBitStrm.has_n_bits(acn_n_bits) {
@@ -1710,7 +1710,7 @@ bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMax
 >>
 
 /* BIT STRING CONTAINING ExternalField wrapper: wraps inline body with bit-granular measurement/limiting */
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
 {
     let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
     <sBody>
@@ -1726,7 +1726,7 @@ bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncNa
 }
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
 {
     let acn_n_bits = <sDetParamName>.value;
     if !pBitStrm.has_n_bits(acn_n_bits) {
