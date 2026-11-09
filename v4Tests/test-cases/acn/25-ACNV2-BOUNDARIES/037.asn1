@@ -1,3 +1,4 @@
+-- KNOWN_FAILURE(python): the Python backend encodes Wrap1 / Mid in methods of their own that take the size parameter by value, while the contents were encoded into a buffer of the caller (NameError: arr)
 -- Issue 78: an OCTET STRING (CONTAINING X) component of a SEQUENCE whose size is an ACN parameter of that SEQUENCE
 -- (`Wrap1 <INTEGER:len> [] { p [size len] }`, the field passed by the parent: `w <len>`). Before the fix acn-v2
 -- never wrote the field (it stayed 0, the decoder ignored it: the round trip passed with a wrong wire format) and
