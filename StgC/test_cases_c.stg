@@ -165,8 +165,8 @@ Codec_DecodeSweep_helper(nBudget) ::= <<
      from bit s (the decoder must succeed with a valid value), then the first k bytes are decoded from bit s
      as above. A field that lies inside one byte without starting it ends the stream only at an offset;
    - corruption: byte i set to 0x00, then to 0xFF, then with each of its 8 bits flipped (restored after each
-     decode); the decoder must fail with a nonzero error code or succeed with a valid value. Also on the copies
-     encoded from bit 1..7 (they share one more budget).
+     decode); the decoder must fail with a nonzero error code or succeed with a valid value. Also on the copy
+     encoded from bit 1 (one more budget).
    At most ASN1SCC_SWEEP_POSITIONS positions at each end of the encoding, and about ASN1SCC_SWEEP_BUDGET
    decoded bytes per sweep (asn1scc -atcSweepBudget; the offsets 1..7 share one more budget); at least 2
    positions at each end. */
@@ -271,8 +271,8 @@ static int asn1scc_sweep_corrupted(const char* sTestName, byte* buf, long nBytes
     return 0;
 }
 
-/* Returns 0, 6 (a truncated copy was accepted, or rejected without an error code), 7 (a corrupted copy, also one
-   encoded from bit 1..7, was
+/* Returns 0, 6 (a truncated copy was accepted, or rejected without an error code), 7 (a corrupted copy, also the one
+   encoded from bit 1, was
    accepted with an invalid value, or rejected without an error code) or 8 (the value encoded from bit 1..7 did
    not decode to a valid value); stops at the first violation. */
 static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long nBytes, void* pDecoded,
@@ -332,11 +332,14 @@ static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long
                     return rc;
                 }
             }
-            /* corruption from bit nOffset too (coverage step 14e, E5): a region that starts inside a byte ends inside one,
-               so contents that a corrupted length cuts short can read into the rest of that byte */
-            nPositions = asn1scc_sweep_positions(positions, nOffsetBytes, TRUE, 7);
-            {
-                int rc = asn1scc_sweep_corrupted(sTestName, offsetBuff, nOffsetBytes, nOffset, positions, nPositions, pDecoded, decode);
+            /* corruption from bit 1 too (coverage step 14e, E5): a region that starts inside a byte ends inside one,
+               so contents that a corrupted length cuts short can read into the rest of that byte (8 - offset bits:
+               most from bit 1). One offset only: at least 2 positions per end are decoded whatever the budget, and
+               each corrupted decode reads the whole value (PUS-C S12: 7 offsets made the run 4x slower) */
+            if (nOffset == 1) {
+                int rc;
+                nPositions = asn1scc_sweep_positions(positions, nOffsetBytes, TRUE, 1);
+                rc = asn1scc_sweep_corrupted(sTestName, offsetBuff, nOffsetBytes, nOffset, positions, nPositions, pDecoded, decode);
                 if (rc != 0) {
                     free(offsetBuff);
                     return rc;
