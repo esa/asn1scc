@@ -852,16 +852,19 @@ let private createDeferredSequenceFunction
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                                     // coverage step 13b: the only patch of the field cannot fail; 14e (E6 a): nor the first one
                                     // of the epilogue when the producer only reserves the field
-                                    let bCannotFail = AcnExternalField.isOnlyPatchOfField r deps determinant.id || (i = 0 && firstPatchCannotFail)
+                                    // E6-C (Issue 79): nor a patch of a field whose consumers all write the same value
+                                    let bFirstPatch = AcnExternalField.isOnlyPatchOfField r deps determinant.id || (i = 0 && firstPatchCannotFail)
+                                    let bSameValue = not bFirstPatch && AcnExternalField.consumersWriteOneValue r deps determinant.id
+                                    let bCannotFail = bFirstPatch || bSameValue
                                     let patchCall =
                                         if patchFn.Contains("IA5String") then
                                             match nBitsOpt with
-                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_str patchFn nBits valueExpr detName errCode bCannotFail codec
+                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_str patchFn nBits valueExpr detName errCode bCannotFail bSameValue codec
                                             | None -> failwithf "BUG: IA5String PatchDet requires nChars (nBits) parameter"
                                         else
                                             match nBitsOpt with
-                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_with_size patchFn nBits valueExpr detName errCode bCannotFail codec
-                                            | None -> lm.acn.acn_deferred_det_patch_value patchFn valueExpr detName errCode bCannotFail codec
+                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_with_size patchFn nBits valueExpr detName errCode bCannotFail bSameValue codec
+                                            | None -> lm.acn.acn_deferred_det_patch_value patchFn valueExpr detName errCode bCannotFail bSameValue codec
                                     Some (guardPatchBlock lm checks preBlock patchCall))
                             match patches with
                             | [] -> None
@@ -911,17 +914,20 @@ let private createDeferredSequenceFunction
                                     let valueExpr = patchDetWireValue r lm (localPatchedField acId) uperMinOffset rawValueExpr
                                     let detName = deferredDetRefName r lm acId
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
-                                    // coverage step 13b: the only patch of the field cannot fail
-                                    let bCannotFail = AcnExternalField.isOnlyPatchOfField r deps acId
+                                    // coverage step 13b: the only patch of the field cannot fail; E6-C (Issue 79): nor a patch of a
+                                    // field whose consumers all write the same value
+                                    let bFirstPatch = AcnExternalField.isOnlyPatchOfField r deps acId
+                                    let bSameValue = not bFirstPatch && AcnExternalField.consumersWriteOneValue r deps acId
+                                    let bCannotFail = bFirstPatch || bSameValue
                                     let patchCall =
                                         if patchFn.Contains("IA5String") then
                                             match nBitsOpt with
-                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_str patchFn nBits valueExpr detName errCode bCannotFail codec
+                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_str patchFn nBits valueExpr detName errCode bCannotFail bSameValue codec
                                             | None -> failwithf "BUG: IA5String PatchDet requires nChars (nBits) parameter"
                                         else
                                             match nBitsOpt with
-                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_with_size patchFn nBits valueExpr detName errCode bCannotFail codec
-                                            | None -> lm.acn.acn_deferred_det_patch_value patchFn valueExpr detName errCode bCannotFail codec
+                                            | Some nBits -> lm.acn.acn_deferred_det_patch_value_with_size patchFn nBits valueExpr detName errCode bCannotFail bSameValue codec
+                                            | None -> lm.acn.acn_deferred_det_patch_value patchFn valueExpr detName errCode bCannotFail bSameValue codec
                                     guardPatchBlock lm checks preBlock patchCall))
                 match patches with
                 | [] -> None
@@ -1338,25 +1344,28 @@ let private appendPatchDetCalls
                             let valueExpr = patchDetWireValue ctx.r ctx.lm field uperMinOffset rawValueExpr
                             let detParamName = DAstACN.getAcnDeterminantName prm.id
                             let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
-                            // coverage step 13b: the only patch of the field cannot fail; 14d: nor the first one
+                            // coverage step 13b: the only patch of the field cannot fail; 14d: nor the first one; E6-C: nor
+                            // one of a field whose consumers all write the same value
                             let fieldId = AcnExternalField.paramIdentity ctx.r ctx.deps prm
-                            let bCannotFail =
+                            let bFirstPatch =
                                 AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
                                 AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id
+                            let bSameValue = not bFirstPatch && AcnExternalField.consumersWriteOneValue ctx.r ctx.deps fieldId
+                            let bCannotFail = bFirstPatch || bSameValue
                             let isIA5StringDet = patchFn.Contains("IA5String")
                             let patchCall =
                                 if isIA5StringDet then
                                     match nBitsOpt with
                                     | Some nBits ->
-                                        ctx.lm.acn.acn_deferred_det_patch_ptr_str patchFn nBits valueExpr detParamName errCodePatch bCannotFail ctx.codec
+                                        ctx.lm.acn.acn_deferred_det_patch_ptr_str patchFn nBits valueExpr detParamName errCodePatch bCannotFail bSameValue ctx.codec
                                     | None ->
                                         failwithf "BUG: IA5String PatchDet requires nChars (nBits) parameter"
                                 else
                                     match nBitsOpt with
                                     | Some nBits ->
-                                        ctx.lm.acn.acn_deferred_det_patch_ptr_with_size patchFn nBits valueExpr detParamName errCodePatch bCannotFail ctx.codec
+                                        ctx.lm.acn.acn_deferred_det_patch_ptr_with_size patchFn nBits valueExpr detParamName errCodePatch bCannotFail bSameValue ctx.codec
                                     | None ->
-                                        ctx.lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch bCannotFail ctx.codec
+                                        ctx.lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch bCannotFail bSameValue ctx.codec
                             Some (guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty,
                                   patchDetMappingDeclarations ctx.r ctx.lm field, bCannotFail))
             match patchCalls with

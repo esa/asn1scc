@@ -141,6 +141,42 @@ let isOnlyPatchOfField (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependenci
         && (List.allPairs (List.indexed paths) (List.indexed paths)
             |> List.forall (fun ((i, a), (j, b)) -> i = j || exclusive a b))
 
+/// --acn-v2, coverage step 14e (E6-C, q/issues.md Issue 79): whether every consumer of the ACN field fieldId writes one
+/// and the same value, known at compile time: a size with SIZE min = max (not a CONTAINING length, which is measured),
+/// a presence (present-when) or CHOICE determinant whose alternatives all write the same value (e.g. a CHOICE with one
+/// alternative, an ENUMERATED field with one item). Then no PatchDet of the field can fail: Acn_PatchDet_* fails only on
+/// a ref already set with another value, and the fallback patches only a ref that is not set. Any consumer whose value
+/// the compiler does not know (a variable size, a presence flag, a measured length, a string length) keeps the checks.
+let consumersWriteOneValue (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : bool =
+    let presentWhenValues (relPath: RelativePath) (chc: Asn1AcnAst.Choice) =
+        chc.children |> List.map (fun ch ->
+            match ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath) with
+            | PresenceInt (_, intVal) -> intVal.Value.ToString()
+            | PresenceStr (_, strVal) -> "\"" + strVal.Value + "\"")
+    let valuesOf (d: AcnDependency) : string list option =
+        match d.dependencyKind with
+        | AcnDepSizeDeterminant (minSize, maxSize, _) when minSize.acn = maxSize.acn -> Some [minSize.acn.ToString()]
+        | AcnDepSizeDeterminant _                         -> None
+        | AcnDepPresence (relPath, chc)                   -> Some (presentWhenValues relPath chc)
+        | AcnDepPresenceStr (relPath, chc, _)             -> Some (presentWhenValues relPath chc)
+        | AcnDepChoiceDeterminant (enm, chc, _) ->
+            let items = AcnHelpers.determinantEnumItems deps d.determinant enm.enm
+            chc.children |> List.map (fun ch ->
+                items |> List.tryFind (fun itm -> itm.Name.Value = ch.Name.Value) |> Option.map (fun itm -> itm.acnEncodeValue.ToString()))
+            |> fun vs -> match vs |> List.forall Option.isSome with
+                         | true  -> Some (vs |> List.choose id)
+                         | false -> None
+        | AcnDepSizeDeterminant_bit_oct_str_contain _     -> None
+        | AcnDepIA5StringSizeDeterminant _                -> None
+        | AcnDepPresenceBool                              -> None
+        | AcnDepRefTypeArgument _                         -> None
+    match (fieldConsumers r deps).TryFind fieldId |> Option.defaultValue [] |> List.map valuesOf with
+    | [] -> false
+    | values ->
+        match values |> List.forall Option.isSome with
+        | true  -> (values |> List.choose id |> List.concat |> List.distinct).Length = 1
+        | false -> false
+
 /// The nodes of a type assignment in encoding order (preorder, ACN children included, references not entered).
 let private encodingOrderCache =
     System.Runtime.CompilerServices.ConditionalWeakTable<Asn1AcnAst.AstRoot, System.Collections.Generic.Dictionary<ReferenceToType, Map<ReferenceToType, int>>>()

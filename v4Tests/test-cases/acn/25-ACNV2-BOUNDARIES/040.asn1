@@ -1,0 +1,20 @@
+-- ACNV2_ONLY (the rule under test is the --acn-v2 deferred patching)
+-- One ACN field passed to two reference sites of a parameterized CHOICE (PUS-C S4 Statistics shape): the field's
+-- ENUMERATED type has one item and the CHOICE one alternative, so every consumer patches the same value and the
+-- second PatchDet needs no consistency check ("cannot fail: every consumer of ... writes the same value").
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+ParamId ::= ENUMERATED { param1 (0) }
+
+ParamValue ::= CHOICE {
+    param1 INTEGER (0..255)
+}
+
+Stats ::= SEQUENCE {
+    maxValue ParamValue,
+    minValue ParamValue
+}
+
+END
+
+--TCLS  ParamValue <ParamId:pid> [determinant pid] { param1 [encoding pos-int, size 8] } Stats [] { pid ParamId [encoding pos-int, size 8], maxValue <pid> [], minValue <pid> [] }

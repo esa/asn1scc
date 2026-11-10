@@ -2128,10 +2128,10 @@ acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
 >>
 
 /* Patch the value at the saved position (calls Acn_PatchDet_*). */
-acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, result);
 <if(bCannotFail)>
--- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
+-- cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif>
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2140,13 +2140,13 @@ if not result.Success then
 end if;
 <endif>
 >>
-acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 -- decode: no patch needed
 >>
-acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, result);
 <if(bCannotFail)>
--- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
+-- cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif>
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2155,7 +2155,7 @@ if not result.Success then
 end if;
 <endif>
 >>
-acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 -- decode: no patch needed
 >>
 
@@ -2172,10 +2172,10 @@ acn_deferred_det_init_ptr_with_size_encode(sInitFuncName, nBits, sDetName) ::= <
 acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
 -- decode: no init needed
 >>
-acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, <nBits>, result);
 <if(bCannotFail)>
--- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
+-- cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif>
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2184,13 +2184,13 @@ if not result.Success then
 end if;
 <endif>
 >>
-acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 -- decode: no patch needed
 >>
-acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 <sPatchFuncName>(adaasn1rtl.Asn1UInt(<sValue>), bs, <sDetName>, <nBits>, result);
 <if(bCannotFail)>
--- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
+-- cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif>
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2199,15 +2199,15 @@ if not result.Success then
 end if;
 <endif>
 >>
-acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 -- decode: no patch needed
 >>
 
 /* IA5String PatchDet variants: pass string value directly (no Asn1UInt cast). */
-acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 <sPatchFuncName>(<sValue>, bs, <nBits>, <sDetName>, result);
 <if(bCannotFail)>
--- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
+-- cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif>
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2216,13 +2216,13 @@ if not result.Success then
 end if;
 <endif>
 >>
-acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 -- decode: no patch needed
 >>
-acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 <sPatchFuncName>(<sValue>, bs, <nBits>, <sDetName>, result);
 <if(bCannotFail)>
--- cannot fail: the first patch of <sDetName> since its InitDet (an unset ref takes any value)
+-- cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif>
 pragma Assume (result.Success);
 <else>
 if not result.Success then
@@ -2231,7 +2231,7 @@ if not result.Success then
 end if;
 <endif>
 >>
-acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail) ::= <<
+acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 -- decode: no patch needed
 >>
 

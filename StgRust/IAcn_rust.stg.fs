@@ -275,22 +275,22 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_init_value  sInitFuncName sDetName codec
         override this.acn_deferred_det_init_ptr  (sInitFuncName:string) (sDetName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_init_ptr  sInitFuncName sDetName codec
-        override this.acn_deferred_det_patch_value  (sPatchFuncName:string) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (codec:Codec) =
-            acn_rust.acn_deferred_det_patch_value  sPatchFuncName sValue sDetName sErrCode bCannotFail codec
-        override this.acn_deferred_det_patch_ptr  (sPatchFuncName:string) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (codec:Codec) =
-            acn_rust.acn_deferred_det_patch_ptr  sPatchFuncName sValue sDetName sErrCode bCannotFail codec
+        override this.acn_deferred_det_patch_value  (sPatchFuncName:string) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (bSameValue:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_patch_value  sPatchFuncName sValue sDetName sErrCode bCannotFail bSameValue codec
+        override this.acn_deferred_det_patch_ptr  (sPatchFuncName:string) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (bSameValue:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_patch_ptr  sPatchFuncName sValue sDetName sErrCode bCannotFail bSameValue codec
         override this.acn_deferred_det_init_value_with_size  (sInitFuncName:string) (nBits:BigInteger) (sDetName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_init_value_with_size  sInitFuncName nBits sDetName codec
         override this.acn_deferred_det_init_ptr_with_size  (sInitFuncName:string) (nBits:BigInteger) (sDetName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_init_ptr_with_size  sInitFuncName nBits sDetName codec
-        override this.acn_deferred_det_patch_value_with_size  (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (codec:Codec) =
-            acn_rust.acn_deferred_det_patch_value_with_size  sPatchFuncName nBits sValue sDetName sErrCode bCannotFail codec
-        override this.acn_deferred_det_patch_ptr_with_size  (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (codec:Codec) =
-            acn_rust.acn_deferred_det_patch_ptr_with_size  sPatchFuncName nBits sValue sDetName sErrCode bCannotFail codec
-        override this.acn_deferred_det_patch_value_str  (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (codec:Codec) =
-            acn_rust.acn_deferred_det_patch_value_str  sPatchFuncName nBits sValue sDetName sErrCode bCannotFail codec
-        override this.acn_deferred_det_patch_ptr_str  (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (codec:Codec) =
-            acn_rust.acn_deferred_det_patch_ptr_str  sPatchFuncName nBits sValue sDetName sErrCode bCannotFail codec
+        override this.acn_deferred_det_patch_value_with_size  (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (bSameValue:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_patch_value_with_size  sPatchFuncName nBits sValue sDetName sErrCode bCannotFail bSameValue codec
+        override this.acn_deferred_det_patch_ptr_with_size  (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (bSameValue:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_patch_ptr_with_size  sPatchFuncName nBits sValue sDetName sErrCode bCannotFail bSameValue codec
+        override this.acn_deferred_det_patch_value_str  (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (bSameValue:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_patch_value_str  sPatchFuncName nBits sValue sDetName sErrCode bCannotFail bSameValue codec
+        override this.acn_deferred_det_patch_ptr_str  (sPatchFuncName:string) (nBits:BigInteger) (sValue:string) (sDetName:string) (sErrCode:string) (bCannotFail:bool) (bSameValue:bool) (codec:Codec) =
+            acn_rust.acn_deferred_det_patch_ptr_str  sPatchFuncName nBits sValue sDetName sErrCode bCannotFail bSameValue codec
         override this.acn_deferred_det_formal_param  (sDetName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_formal_param  sDetName codec
         override this.acn_deferred_det_actual_param  (sDetName:string) (codec:Codec) =
