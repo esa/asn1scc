@@ -529,6 +529,10 @@ and AtcVariant = {
     // the node and the testCaseTypeIDsMap of the test value written there, when the change is another test value of
     // the node (coverage step 14d: the ACN validity of the changed value); None for a toggle or a SEQUENCE OF element
     replaces    : (ReferenceToType * Map<ReferenceToType, TestCaseValue>) option
+    // coverage step 14e (E6-C): an inner node of a reference site that has node ids of its own (ACN fields or
+    // constraints at the site, 12d), lifted to the parent only for the step-14d tests (the referenced type's own
+    // equality tests change its inner nodes, so test_case_unequal_* keeps a reference as a whole)
+    inconsistencyOnly : bool
 }
 
 type InitProcedure0 = {

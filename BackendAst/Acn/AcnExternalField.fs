@@ -196,6 +196,10 @@ let private encodingOrder (r: Asn1AcnAst.AstRoot) (tasId: ReferenceToType) : Map
                     | Asn1AcnAst.AcnChild ac  -> ac.id :: acc) acc
             | Asn1AcnAst.Choice ch      -> ch.children |> List.fold (fun acc (c: Asn1AcnAst.ChChildInfo) -> walk c.Type acc) acc
             | Asn1AcnAst.SequenceOf sqf -> walk sqf.child acc
+            // coverage step 14e (E6-C): a reference site with node ids of its own (ACN fields or constraints at the
+            // site, 12d: the merged type is keyed by the site) is entered; any other reference holds the referenced
+            // type's ids, shared by every site
+            | Asn1AcnAst.ReferenceType rf when rf.resolvedType.id = t.id -> walk rf.resolvedType (List.tail acc)
             | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
             | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _
             | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.TimeType _ | Asn1AcnAst.ReferenceType _ -> acc

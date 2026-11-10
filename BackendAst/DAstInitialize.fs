@@ -254,7 +254,7 @@ let private toggleVariants (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (toggles:
                 | ToggleFirstChar                               -> ": character 0 changed"
                 | ToggleByte i                                  -> sprintf ": byte %A changed" i
                 | ToggleBit k                                   -> sprintf ": bit %A changed" k
-            {AtcVariant.nodeId = t.id; what = what; replaces = None
+            {AtcVariant.nodeId = t.id; what = what; replaces = None; inconsistencyOnly = false
              applyFnc = fun p ->
                 let sToggle = lm.lg.atcEqualityToggle toggle p.accessPath |> Option.defaultValue ""
                 {InitFunctionResult.funcBody = sToggle; resultVar = p.accessPath.asIdentifier lm.lg; localVariables = []}}))
@@ -271,9 +271,22 @@ let private liftVariants (sName:string) (childScope:CodegenScope -> CodegenScope
 /// (another alternative, another size, a toggle: the description starts with ':'), i.e. the reference as a whole. The
 /// referenced type's inner nodes are changed by the tests of its own type assignment, whose T_Equal the parent calls;
 /// a root change of a reference that consumes an ACN field gives the values of the step-14d tests.
+/// Coverage step 14e (E6-C): a reference site with node ids of its own (ACN fields or constraints at the site: merged
+/// type, 12d) also lifts the variants of its inner nodes (their nodeId is below the site), only for the step-14d tests:
+/// its test values are keyed by the site's ids, so the 11c pitfall (ids shared by every site) does not apply, and two
+/// consumers of one ACN field inside it can get different values (CFDP: source / destination entity id lengths).
 let private ownTreeVariants (child:Asn1Type) (atc:AutomaticTestCase) =
+    let belowSite (id:ReferenceToType) =
+        let site, node = child.id.ToScopeNodeList, id.ToScopeNodeList
+        site.Length < node.Length && List.take site.Length node = site
     match child.Kind with
-    | ReferenceType _ -> atc.variants |> List.filter (fun v -> v.what.StartsWith ":")
+    | ReferenceType _ ->
+        atc.variants |>
+        List.choose (fun v ->
+            match v.what.StartsWith ":", belowSite v.nodeId with
+            | true, _      -> Some v
+            | false, true  -> Some {v with inconsistencyOnly = true}
+            | false, false -> None)
     | _               -> atc.variants
 
 let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference)  =
@@ -893,7 +906,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                     match childAll.Length >= 2 with
                     | true  ->
                         let other = childAll.[(bundleStart + 1) % childAll.Length]
-                        [{AtcVariant.nodeId = childType.id; what = "[0]: another value"; applyFnc = (fun p -> other.initTestCaseFunc (elemScope p)); replaces = None}]
+                        [{AtcVariant.nodeId = childType.id; what = "[0]: another value"; applyFnc = (fun p -> other.initTestCaseFunc (elemScope p)); replaces = None; inconsistencyOnly = false}]
                     | false -> []
                 swap @ liftVariants "[0]" elemScope (ownTreeVariants childType childAll.[bundleStart])
         let seqOfCase (childAll : AutomaticTestCase list) (bundleStart:int) (childTestCases : AutomaticTestCase list) (nSize:BigInteger)  =
@@ -972,7 +985,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                 sized |>
                 List.map (fun (nSize, atc) ->
                     match sized |> List.tryFind (fun (n, _) -> n <> nSize) with
-                    | Some (n, other) -> {atc with variants = {AtcVariant.nodeId = t.id; what = sprintf ": %A elements instead of %A" n nSize; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap)} :: atc.variants}
+                    | Some (n, other) -> {atc with variants = {AtcVariant.nodeId = t.id; what = sprintf ": %A elements instead of %A" n nSize; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap); inconsistencyOnly = false} :: atc.variants}
                     | None            -> atc)
             seq {
                 match o.minSize.acn = o.maxSize.acn with
@@ -1191,7 +1204,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         childrenATCs |>
                         List.choose (fun (c, childCases, ln) ->
                             match ln >= 2 with
-                            | true  -> Some {AtcVariant.nodeId = c.Type.id; what = c.Name.Value + ": another value"; applyFnc = childCases.[(seqTestCaseIndex + 1) % ln].initTestCaseFunc; replaces = Some (c.Type.id, childCases.[(seqTestCaseIndex + 1) % ln].testCaseTypeIDsMap)}
+                            | true  -> Some {AtcVariant.nodeId = c.Type.id; what = c.Name.Value + ": another value"; applyFnc = childCases.[(seqTestCaseIndex + 1) % ln].initTestCaseFunc; replaces = Some (c.Type.id, childCases.[(seqTestCaseIndex + 1) % ln].testCaseTypeIDsMap); inconsistencyOnly = false}
                             | false -> None)
                     let variants = swaps @ (children_ith_testCase |> List.collect (fun atc -> atc.variants))
                     {AutomaticTestCase.initTestCaseFunc = testCaseFunc; testCaseTypeIDsMap = combinedTestCases; variants = variants })
@@ -1376,7 +1389,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             List.map (fun (ai, atc) ->
                 let other = [1 .. nAlts - 1] |> List.tryPick (fun d -> all |> List.tryFind (fun (aj, _) -> aj = (ai + d) % nAlts))
                 match other with
-                | Some (_, o) -> {atc with variants = {AtcVariant.nodeId = t.id; what = ": another alternative"; applyFnc = o.initTestCaseFunc; replaces = Some (t.id, o.testCaseTypeIDsMap)} :: atc.variants}
+                | Some (_, o) -> {atc with variants = {AtcVariant.nodeId = t.id; what = ": another alternative"; applyFnc = o.initTestCaseFunc; replaces = Some (t.id, o.testCaseTypeIDsMap); inconsistencyOnly = false} :: atc.variants}
                 | None        -> atc)
         let handleChild  (ch:ChChildInfo)  =
             let len = ch.chType.initFunction.automaticTestCases.Length
