@@ -313,15 +313,17 @@ let choiceEnumReference (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (cur
             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting ENUMERATED got %s "  (c.Type.AsString))))
         checkRelativePath tasPositions curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
 
-/// scopeStart: the number of parents outside the type assignment whose tree is being walked. The ACN parameters
-/// visible in a type are those of the enclosing types inside its own type assignment: when the walk enters the
-/// resolved type of a reference, the parameters of the types around the reference site are not visible (they are
-/// passed explicitly as arguments). Before (q/issues.md Issue 81), an argument or size path of a referenced type
-/// that named one of its own ACN fields resolved to a parameter of the same name of an enclosing type (wrong
-/// RefTypeArgument dependency: legacy read an unset SEQUENCE OF index, acn-v2 counted a consumer too many).
-let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (scopeStart:int) (parents: Asn1Type list) (curentPath : ScopeNode list) (t:Asn1Type) (curState:AcnInsertedFieldDependencies) =
-    let checkTypeInScope r tasPositions newScopeStart parents curentPath t curState = checkType r tasPositions newScopeStart parents curentPath t curState
-    let checkType r tasPositions = checkType r tasPositions scopeStart
+/// scopeStart / childScopeStart: the number of parents outside the type assignment whose tree is being walked, for
+/// this node / for its children. The ACN parameters visible in a type are those of the enclosing types inside its own
+/// type assignment: below the resolved type of a reference, the parameters of the types around the reference site are
+/// not visible (they are passed explicitly as arguments). The resolved type itself still sees the site's scope: the
+/// reference site's ACN properties (`p [size len]`) are merged into it. Before (q/issues.md Issue 81), an argument or
+/// size path of a referenced type that named one of its own ACN fields resolved to a parameter of the same name of an
+/// enclosing type (wrong RefTypeArgument dependency: legacy read an unset SEQUENCE OF index, acn-v2 counted a consumer
+/// too many).
+let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (scopeStart:int, childScopeStart:int) (parents: Asn1Type list) (curentPath : ScopeNode list) (t:Asn1Type) (curState:AcnInsertedFieldDependencies) =
+    let checkTypeInScope r tasPositions scopes parents curentPath t curState = checkType r tasPositions scopes parents curentPath t curState
+    let checkType r tasPositions = checkType r tasPositions (childScopeStart, childScopeStart)
     let visibleParameters =
         (parents@[t])
         |> List.skip scopeStart
@@ -465,7 +467,7 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (s
         | true  -> 
             let ziped = List.zip ref.acnArguments ref.resolvedType.acnParameters
             let ns = ziped |> List.fold(fun s c -> checkArgument s c) curState
-            checkTypeInScope r tasPositions parents.Length parents curentPath ref.resolvedType ns
+            checkTypeInScope r tasPositions (scopeStart, parents.Length) parents curentPath ref.resolvedType ns
 
         | false ->
             curState
@@ -505,7 +507,7 @@ let checkAst (r:AstRoot) =
         allTasses |>
         List.fold (fun ns (m,tas) ->
             let tasPositions = GetReferences tas.Type |> List.mapi(fun i ref -> (ref,i)) |> Map.ofList
-            checkType r tasPositions 0 [] [MD m.Name.Value; TA tas.Name.Value] tas.Type ns) emptyState
+            checkType r tasPositions (0, 0) [] [MD m.Name.Value; TA tas.Name.Value] tas.Type ns) emptyState
 
     result
 
