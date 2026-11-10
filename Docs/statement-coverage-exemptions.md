@@ -87,6 +87,7 @@ switches on `v`. The switch has one `case` for every value `min..max`, plus a
 | `acn_c.stg` | `EnumeratedEncValues_decode` | ACN ENUMERATED value, **only** when the value is decoded with one of the two functions above and the item values fill `min..max` |
 | `StgAda/acn_a.stg` | `EnumeratedEncValues_decode` (`when others` arm) | ACN ENUMERATED value in Ada whose item values fill `min..max`, decoded with `UPER_Dec_ConstraintPosWholeNumber` or with a fixed-size `Acn_Dec_*_ConstSize*` procedure |
 | `StgAda/acn_a.stg` | `EnumeratedEncValues_fullIndex` (`when others` arm) | ACN ENUMERATED value in Ada whose item values are exactly the values of its field (`0..2^k-1` in `k` bits), decoded with a `_FullRange` procedure (asn1scc 4.9.70.0 and later) |
+| `StgAda/acn_a.stg` | `ChoiceChildAlwaysAbsent_decode` (the `when N` arm of an ALWAYS ABSENT alternative) inside `Choice_decode` | ACN CHOICE index in Ada (asn1scc 4.9.99.0 and later): the `case` on the index type of the whole CHOICE needs an arm for every alternative, also for those a `WITH COMPONENTS ... ABSENT` excludes; they are numbered after the `nMax + 1` others and the `case` runs only under `if result.Success AND X >= 0 AND X <= nMax then`, so `N > nMax` |
 
 For `EnumeratedEncValues_decode` the proof depends on the instance: an ACN
 ENUMERATED whose values leave gaps (e.g. `{a(0), b(5)}` in 3 bits) can deliver

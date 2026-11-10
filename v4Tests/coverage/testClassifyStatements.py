@@ -1392,5 +1392,52 @@ end ASN1SCC_P_hdr_ACN_Decode_aux;
         source = SPEC_CHOICE_ADA.replace("case P_data_code.Value is", "case other.Value is")
         self.assertEqual(check009ada(source + CALLER_ADA), "")
 
+
+# ASN1SCC-COV-001 in Ada, ALWAYS ABSENT alternatives (coverage step 14g, K2)
+ABSENT_ADA = """procedure ASN1SCC_T_SubThing_ACN_Decode_aux(val: in out ASN1SCC_T_SubThing; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+    TEST_CASE_T_SubThing_index_tmp:adaasn1rtl.Asn1Int;
+begin
+    result.ErrorCode := ERR_ACN_DECODE_T_SUBTHING;
+    adaasn1rtl.encoding.Dec_ConstraintWholeNumber(bs, TEST_CASE_T_SubThing_index_tmp, 0, 1, 1, result.Success);
+    if result.Success AND TEST_CASE_T_SubThing_index_tmp >= 0 AND  TEST_CASE_T_SubThing_index_tmp <= 1 then
+        case ASN1SCC_T_SubThing_index_range(TEST_CASE_T_SubThing_index_tmp) is
+            when 0 =>
+              val := ASN1SCC_T_SubThing'(kind => T_Thing_field2_PRESENT, field2 => 0);
+              ASN1SCC_T_UInt8_ACN_Decode_aux(val.field2, bs, result);
+            when 1 =>
+              val := ASN1SCC_T_SubThing'(kind => T_Thing_field3_PRESENT, field3 => 0);
+              ASN1SCC_T_UInt8_ACN_Decode_aux(val.field3, bs, result);
+            when 2 =>
+                result := adaasn1rtl.ASN1_RESULT'(Success => false, ErrorCode => ERR_ACN_DECODE_T_SUBTHING);		-- COVERAGE_IGNORE
+        end case;
+    end if;
+end ASN1SCC_T_SubThing_ACN_Decode_aux;
+"""
+ABSENT_ARM = "result := adaasn1rtl.ASN1_RESULT'(Success => false, ErrorCode => ERR_ACN_DECODE_T_SUBTHING);"
+
+
+def check001absent(source):
+    lines = source.splitlines()
+    return proven_unreachable("Ada", lines, line_of(lines, ABSENT_ARM), ABSENT_ARM)
+
+
+class Cov001AdaAbsent(unittest.TestCase):
+    def test_arm_above_the_checked_range(self):
+        self.assertEqual(check001absent(ABSENT_ADA), "ASN1SCC-COV-001")
+
+    def test_arm_inside_the_checked_range(self):
+        self.assertEqual(check001absent(ABSENT_ADA.replace("<= 1 then", "<= 2 then")), "")
+
+    def test_no_range_check_above_the_case(self):
+        source = ABSENT_ADA.replace("""    if result.Success AND TEST_CASE_T_SubThing_index_tmp >= 0 AND  TEST_CASE_T_SubThing_index_tmp <= 1 then
+""", """    if result.Success then
+""")
+        self.assertEqual(check001absent(source), "")
+
+    def test_check_of_another_variable(self):
+        self.assertEqual(check001absent(ABSENT_ADA.replace("case ASN1SCC_T_SubThing_index_range(TEST_CASE_T_SubThing_index_tmp) is",
+                                                           "case ASN1SCC_T_SubThing_index_range(other_tmp) is")), "")
+
 if __name__ == "__main__":
     unittest.main()

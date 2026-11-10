@@ -185,8 +185,8 @@ type IAcn_rust() =
             acn_rust.sequence_call_post_encoding_function_prototype  sTypedefName sFncName sExtFuncsPositionsTypeName 
         override this.sequence_call_post_decoding_validator_prototype  (sTypedefName:string) (sFncName:string) (sExtFuncsPositionsTypeName:string) =
             acn_rust.sequence_call_post_decoding_validator_prototype  sTypedefName sFncName sExtFuncsPositionsTypeName 
-        override this.ChoiceChildAlwaysAbsent  (p:string) (sAcc:string) (sChildID:string) (nChildIndex:BigInteger) (sErrorCodeName:string) (sChoiceTypeName:string) (codec:Codec) =
-            acn_rust.ChoiceChildAlwaysAbsent  p sAcc sChildID nChildIndex sErrorCodeName sChoiceTypeName codec
+        override this.ChoiceChildAlwaysAbsent  (p:string) (sAcc:string) (sChildID:string) (nChildIndex:BigInteger) (sErrorCodeName:string) (sChoiceTypeName:string) (sCaseLabel:string) (soCovExempt:string option) (codec:Codec) =
+            acn_rust.ChoiceChildAlwaysAbsent  p sAcc sChildID nChildIndex sErrorCodeName sChoiceTypeName sCaseLabel soCovExempt codec
         override this.ChoiceChild  (p:string) (sAcc:string) (sChildID:string) (nChildIndex:BigInteger) (nIndexSizeInBits:BigInteger) (nLastItemIndex:BigInteger) (sChildContent:string) (sChildName:string) (sChildTypeDef:string) (sChoiceTypeName:string) (sChildInitExpr:string) (codec:Codec) =
             acn_rust.ChoiceChild  p sAcc sChildID nChildIndex nIndexSizeInBits nLastItemIndex sChildContent sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec
         override this.Choice  (p:string) (sAcc:string) (arrsChildren:seq<string>) (nLastItemIndex:BigInteger) (sChoiceIndexName:string) (td:FE_ChoiceTypeDefinition) (nIndexSizeInBits:BigInteger) (sErrCode:string) (codec:Codec) =

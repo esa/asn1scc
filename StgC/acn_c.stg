@@ -1082,14 +1082,14 @@ extern flag <sFncName>(const <sTypedefName>* pPDU, BitStream* pStartBitStrm, <sE
 
 
 /* Choice like uper*/
-ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 case <sChildID>:
     ret = FALSE;
     *pErrCode = <sErrorCodeName>;
 	break;
 >>
 
-ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 case <nChildIndex>:
     ret = FALSE;
     *pErrCode = <sErrorCodeName>;

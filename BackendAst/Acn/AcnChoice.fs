@@ -188,7 +188,35 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             let childBody =
                 let sChoiceTypeName = typeDefinitionName
                 match child.Optionality with
-                | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName sChoiceTypeName codec)
+                | Some (ChoiceAlwaysAbsent) ->
+                    // Only backends that keep the ALWAYS ABSENT alternatives (Ada, choice_handle_always_absent_child) get
+                    // here. Encode: an arm of the case on the kind. Decode: an arm of the case on what selects the
+                    // alternative (q/issues.md Issue 82): the decoded index (its value is idx), the ENUMERATED
+                    // determinant local (the item's name); none for a determinant received as an Asn1UInt ref (the case
+                    // has a `when others`) or present-when conditions (the if / elsif chain has an `else`).
+                    let absentArm sCaseLabel soCovExempt =
+                        Some (choiceChildAlwaysAbsent (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName sChoiceTypeName sCaseLabel soCovExempt codec)
+                    match codec, ec with
+                    | Encode, _         -> absentArm (idx.ToString()) None
+                    | Decode, CEC_uper  ->
+                        // coverage step 14g (K2): the index is decoded within 0 .. nMax and the case runs only when it is
+                        // in that range (Choice_decode); the ALWAYS ABSENT alternatives come after the nMax + 1 others,
+                        // so their arms cannot run. Not for the shapes without that check (one alternative, full index).
+                        let soCovExempt =
+                            match bOneAlternative, DecodeOutcome.acnChoiceFullIndex r deps lm o with
+                            | false, None       -> Some (covExemptJustification "ASN1SCC-COV-001")
+                            | false, Some _
+                            | true, _           -> None
+                        absentArm (idx.ToString()) soCovExempt
+                    | Decode, CEC_enum (enm, determinant) when not (isDeferredDeterminant determinant) ->
+                        let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = child.Name.Value)
+                        let enumDefOrRef =
+                            match p.modName = ToC enm.modName with
+                            | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + enm.tasName); definedInRtl = false}
+                            | false -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some (ToC enm.modName); typedefName = ToC (r.args.TypePrefix + enm.tasName); definedInRtl = false}
+                        absentArm (lm.lg.getNamedItemBackendName (Some enumDefOrRef) enmItem) None
+                    | Decode, CEC_enum _
+                    | Decode, CEC_presWhen -> None
                 | Some (ChoiceAlwaysPresent)
                 | None  ->
                     match ec with

@@ -1191,14 +1191,14 @@ sequence_call_post_decoding_validator_prototype(sTypedefName, sFncName, sExtFunc
 
 
 /* Choice like uper*/
-ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 <sChoiceTypeName>::<sChildID> => {
     ret = false;
     *pErrCode = <sErrorCodeName>;
 }
 >>
 
-ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 <nChildIndex> => {
     ret = false;
     *pErrCode = <sErrorCodeName>;

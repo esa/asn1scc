@@ -1235,14 +1235,14 @@ if result.Success AND <sChoiceIndexName> \>= 0 AND  <sChoiceIndexName> \<= <nLas
 end if;
 >>
 
-ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 when <sChildID> =>
     result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCodeName>);		-- COVERAGE_IGNORE
 >>
 
-ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
-when <nChildIndex> =>
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCodeName>);		-- COVERAGE_IGNORE
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
+when <sCaseLabel> =><if(soCovExempt)> pragma Annotate (Xcov, Exempt_On, "<soCovExempt>");<endif>
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCodeName>);<if(soCovExempt)> pragma Annotate (Xcov, Exempt_Off);<endif>		-- COVERAGE_IGNORE
 >>
 
 

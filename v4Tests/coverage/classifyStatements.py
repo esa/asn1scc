@@ -1125,6 +1125,38 @@ def ada_code(text):
     return re.sub(r"--.*$", "", text)
 
 
+def cov001_ada_absent(lines, first):
+    """ASN1SCC-COV-001 in Ada, ALWAYS ABSENT alternatives (coverage step 14g, K2): the statement is in an arm
+    `when N =>` of `case <index_range>(X) is`, entered only under `if result.Success AND X >= 0 AND X <= M then`
+    on the line above, with N > M."""
+    arm = None
+    for number in range(first, max(first - 3, 0), -1):
+        match = re.match(r"^\s*when\s+(\d+)\s*=>", ada_code(lines[number - 1]), re.I)
+        if match:
+            arm = (number, int(match[1]))
+            break
+        if number != first and ada_code(lines[number - 1]).strip():
+            return False
+    if arm is None:
+        return False
+    head, depth = arm[0] - 1, 0
+    while head > 0:
+        text = ada_code(lines[head - 1])
+        if re.match(r"^\s*end\s+case\s*;", text, re.I):
+            depth += 1
+        elif re.match(r"^\s*case\b.*\bis\s*$", text, re.I):
+            if depth == 0:
+                break
+            depth -= 1
+        head -= 1
+    case = re.match(r"^\s*case\s+\w+\((\w+)\)\s+is\s*$", ada_code(lines[head - 1]), re.I) if head > 1 else None
+    if not case:
+        return False
+    guard = re.match(r"^\s*if\s+result\.Success\s+AND\s+" + re.escape(case[1]) + r"\s*>=\s*0\s+AND\s+" +
+                     re.escape(case[1]) + r"\s*<=\s*(\d+)\s+then\s*$", ada_code(lines[head - 2]), re.I)
+    return bool(guard) and arm[1] > int(guard[1])
+
+
 def cov001_ada(lines, first):
     """ASN1SCC-COV-001 in Ada: the statement is in the `when others` arm of a
     `case X is` whose selector was just decoded by an RTL procedure with the
@@ -1475,7 +1507,7 @@ def proven_unreachable(language, lines, first, src, headers=(), sources=()):
     """ID of the documented exemption that proves the statement unreachable, or ''.
     sources: the lines of the unit's other source files (ASN1SCC-COV-010 follows calls into them)."""
     if language != "c":
-        if cov001_ada(lines, first):
+        if cov001_ada(lines, first) or cov001_ada_absent(lines, first):
             return "ASN1SCC-COV-001"
         if cov011(lines, first):
             return "ASN1SCC-COV-011"

@@ -1171,12 +1171,12 @@ if not res:
 
 
 /* Choice like uper */
-ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 if <p> == <sChildID>:
     return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 >>
 
-ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 if <p> == <nChildIndex>:
     return Asn1ConstraintValidResult(is_valid=False, error_code=<sErrorCodeName>)
 >>
