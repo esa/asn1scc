@@ -275,15 +275,25 @@ let private liftVariants (sName:string) (childScope:CodegenScope -> CodegenScope
 /// type, 12d) also lifts the variants of its inner nodes (their nodeId is below the site), only for the step-14d tests:
 /// its test values are keyed by the site's ids, so the 11c pitfall (ids shared by every site) does not apply, and two
 /// consumers of one ACN field inside it can get different values (CFDP: source / destination entity id lengths).
-let private ownTreeVariants (child:Asn1Type) (atc:AutomaticTestCase) =
+let private ownTreeVariants (r:Asn1AcnAst.AstRoot) (child:Asn1Type) (atc:AutomaticTestCase) =
     let belowSite (id:ReferenceToType) =
         let site, node = child.id.ToScopeNodeList, id.ToScopeNodeList
         site.Length < node.Length && List.take site.Length node = site
+    // --acn-v2 only: the legacy validity check reads the dependencies of a parameterized reference inside the site with
+    // the referenced type's ids, while the start value's map also holds the site's, so it saw two selections after the
+    // change and called valid values invalid (15-PUS-ParameterPassing/004 legacy: "manage-memory: another alternative").
+    // The written value's map must be keyed by the site too: a nested reference inside the site may still hold the
+    // ids of its referenced type (15-PUS-ParameterPassing/004: `manage-memory <pus-subtype>`), where the validity check
+    // cannot see the change
+    let siteKeyed (v:AtcVariant) =
+        match v.replaces with
+        | Some (node, written) -> belowSite node && written |> Map.forall (fun k _ -> belowSite k)
+        | None                 -> false
     match child.Kind with
     | ReferenceType _ ->
         atc.variants |>
         List.choose (fun v ->
-            match v.what.StartsWith ":", belowSite v.nodeId with
+            match v.what.StartsWith ":", r.args.acnDeferred && belowSite v.nodeId && siteKeyed v with
             | true, _      -> Some v
             | false, true  -> Some {v with inconsistencyOnly = true}
             | false, false -> None)
@@ -908,7 +918,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         let other = childAll.[(bundleStart + 1) % childAll.Length]
                         [{AtcVariant.nodeId = childType.id; what = "[0]: another value"; applyFnc = (fun p -> other.initTestCaseFunc (elemScope p)); replaces = None; inconsistencyOnly = false}]
                     | false -> []
-                swap @ liftVariants "[0]" elemScope (ownTreeVariants childType childAll.[bundleStart])
+                swap @ liftVariants "[0]" elemScope (ownTreeVariants r childType childAll.[bundleStart])
         let seqOfCase (childAll : AutomaticTestCase list) (bundleStart:int) (childTestCases : AutomaticTestCase list) (nSize:BigInteger)  =
                 match childTestCases with
                 | []    ->
@@ -1104,7 +1114,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         | true      -> atc.testCaseTypeIDsMap
                         | false     -> atc.testCaseTypeIDsMap.Add(ch.Type.id, TcvAnyValue)
                     let childScope (p:CodegenScope) = {p with accessPath = lm.lg.getSeqChild p.accessPath (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome}
-                    let variants = liftVariants ch.Name.Value childScope (ownTreeVariants ch.Type atc)
+                    let variants = liftVariants ch.Name.Value childScope (ownTreeVariants r ch.Type atc)
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase; variants = variants }
                 let nonPresenceFunc =
                     let initTestCaseFunc (p:CodegenScope) =
@@ -1431,7 +1441,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                     | true  -> []
                     | false ->
                         let altScope (p:CodegenScope) = {p with accessPath = lm.lg.getChChild p.accessPath sChildName ch.chType.isIA5String}
-                        liftVariants ch.Name.Value altScope (ownTreeVariants ch.chType atc)
+                        liftVariants ch.Name.Value altScope (ownTreeVariants r ch.chType atc)
                 {AutomaticTestCase.initTestCaseFunc = presentFunc; testCaseTypeIDsMap = combinedTestCase; variants = variants } )
 
         match r.args.generateAutomaticTestCases with
