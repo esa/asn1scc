@@ -410,6 +410,43 @@ and private nestedTypeFieldsValid (t: Asn1Type) (atc: AutomaticTestCase) : bool 
     | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _ | BitString _ | Boolean _ | Enumerated _
     | ObjectIdentifier _ | SequenceOf _ | Choice _ | TimeType _ -> true
 
+/// The ACN fields that a referenced child of the SEQUENCE parentPath exposes and a sibling consumes (patched in the
+/// epilogue of this SEQUENCE): the child's boundary path, the field and the child's parameter that stands for it.
+let private producerLinksOf (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (parentPath: ScopeNode list) =
+    deps.acnDependencies
+    |> List.choose (fun dep ->
+        match dep.dependencyKind, dep.determinant with
+        | AcnDepRefTypeArgument parameter, AcnChildDeterminant determinant ->
+            let boundaryPath = dep.asn1Type.ToScopeNodeList
+            if boundaryPath.Length = parentPath.Length + 1
+               && List.isPrefixOf parentPath boundaryPath then
+                Some (boundaryPath, determinant, parameter)
+            else None
+        | _ -> None)
+    |> List.distinctBy (fun (_, determinant, _) -> determinant.id)
+
+/// The consumers of a field exposed by the child at boundaryPath that are not inside the child.
+let private producerConsumersOf (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (parentPath: ScopeNode list) (boundaryPath: ScopeNode list) (parameter: AcnParameter) =
+    deps.acnDependencies |> List.filter (fun dep ->
+        dep.determinant.id = parameter.id
+        && List.isPrefixOf parentPath dep.asn1Type.ToScopeNodeList
+        && not (List.isPrefixOf boundaryPath dep.asn1Type.ToScopeNodeList)
+        && (match dep.dependencyKind with AcnDepRefTypeArgument _ -> false | _ -> true))
+
+/// The children of the SEQUENCE that consume a field of an OPTIONAL producer and are checked against its absence
+/// (acn_deferred_det_optional_producer_check): Some child for an OPTIONAL consumer, None for a mandatory one.
+let private optionalProducerCheckedConsumers (children: SeqChildInfo list) (consumers: AcnDependency list) : DAst.Asn1Child option list =
+    consumers
+    |> List.choose (fun dep ->
+        children |> List.tryPick (function
+            | DAst.Asn1Child child when child.Type.id = dep.asn1Type ->
+                match child.Optionality with
+                | Some AlwaysAbsent -> None
+                | Some (Optional _) -> Some (Some child)
+                | _ -> Some None
+            | _ -> None))
+    |> List.distinctBy (Option.map (fun c -> c.Type.id))
+
 /// Deferred version of createSequenceFunction.
 /// Pre-processes the children list: for direct ACN children that are deferred
 /// determinants (collectDeferredDetIdsFromAst), replaces their encoding with
@@ -798,21 +835,7 @@ let private createDeferredSequenceFunction
             | CommonTypes.Codec.Decode -> None
             | CommonTypes.Codec.Encode ->
                 let parentPath = t.id.ToScopeNodeList
-                let isPrefix (prefix: ScopeNode list) (full: ScopeNode list) =
-                    prefix.Length <= full.Length
-                    && List.take prefix.Length full = prefix
-                let producerLinks =
-                    deps.acnDependencies
-                    |> List.choose (fun dep ->
-                        match dep.dependencyKind, dep.determinant with
-                        | AcnDepRefTypeArgument parameter, AcnChildDeterminant determinant ->
-                            let boundaryPath = dep.asn1Type.ToScopeNodeList
-                            if boundaryPath.Length = parentPath.Length + 1
-                               && isPrefix parentPath boundaryPath then
-                                Some (boundaryPath, determinant, parameter)
-                            else None
-                        | _ -> None)
-                    |> List.distinctBy (fun (_, determinant, _) -> determinant.id)
+                let producerLinks = producerLinksOf deps parentPath
                 match producerLinks with
                 | [] -> None
                 | _ ->
@@ -822,12 +845,7 @@ let private createDeferredSequenceFunction
                                 children |> List.pick (function
                                     | DAst.Asn1Child child when child.Type.id.ToScopeNodeList = boundaryPath -> Some child
                                     | _ -> None)
-                            let consumers =
-                                deps.acnDependencies |> List.filter (fun dep ->
-                                    dep.determinant.id = parameter.id
-                                    && isPrefix parentPath dep.asn1Type.ToScopeNodeList
-                                    && not (isPrefix boundaryPath dep.asn1Type.ToScopeNodeList)
-                                    && (match dep.dependencyKind with AcnDepRefTypeArgument _ -> false | _ -> true))
+                            let consumers = producerConsumersOf deps parentPath boundaryPath parameter
                             // coverage step 14e (E6 a): the producer only reserves the field (InitDet in its encoder, no
                             // consumer inside it) and every patch of the field is in this epilogue: the first one runs
                             // first after the InitDet, so it cannot fail (an unset ref takes any value)
@@ -876,15 +894,8 @@ let private createDeferredSequenceFunction
                                     let access = lm.lg.getAccess root.accessPath
                                     let name = lm.lg.getAsn1ChildBackendName producer
                                     let checks =
-                                        consumers
-                                        |> List.choose (fun dep ->
-                                            children |> List.tryPick (function
-                                                | DAst.Asn1Child child when child.Type.id = dep.asn1Type ->
-                                                    match child.Optionality with
-                                                    | Some AlwaysAbsent -> None
-                                                    | Some (Optional _) -> Some (lm.lg.getAsn1ChildBackendName child)
-                                                    | _ -> Some ""
-                                                | _ -> None))
+                                        optionalProducerCheckedConsumers children consumers
+                                        |> List.map (Option.map lm.lg.getAsn1ChildBackendName >> Option.defaultValue "")
                                         |> List.distinct
                                         |> List.map (fun consumer ->
                                             lm.acn.acn_deferred_det_optional_producer_check parent access name consumer "ERR_ACN_DET_CONSISTENCY_MISMATCH")
@@ -1018,7 +1029,27 @@ let private createDeferredSequenceFunction
         // is patched by the consumers), so check the automatic test values against the original
         // children: CHOICEs sharing a determinant must select the same alternative.
         let acnFunction, ns = DAstACN.createSequenceFunction_inline r deps lm codec t o typeDefinition isValidFunc modifiedChildren acnPrms epilogue us
-        {acnFunction with isTestVaseValid = fun atc -> DAstACN.isTestCaseValidForAcnChildren children atc && nestedDeferredFieldsValid children atc}, ns
+        // coverage step 14e (E6-C): the encoder rejects a value whose OPTIONAL producer of a field is absent while a
+        // sibling that consumes the field is present (acn_deferred_det_optional_producer_check, epilogue above), so such a
+        // value is not ACN-valid (25-ACNV2-BOUNDARIES/021: b1 absent, b2 present)
+        let optionalProducerChecks =
+            let parentPath = t.id.ToScopeNodeList
+            producerLinksOf deps parentPath |> List.choose (fun (boundaryPath, determinant, parameter) ->
+                let producer =
+                    children |> List.pick (function
+                        | DAst.Asn1Child child when child.Type.id.ToScopeNodeList = boundaryPath -> Some child
+                        | _ -> None)
+                let consumers = producerConsumersOf deps parentPath boundaryPath parameter
+                match producer.Optionality, lm.lg.getDeferredDetFunctions determinant.Type, consumers with
+                | Some (Optional _), Some _, _ :: _ -> Some (producer, optionalProducerCheckedConsumers children consumers)
+                | _ -> None)
+        let producersConsistent (atc: AutomaticTestCase) =
+            optionalProducerChecks |> List.forall (fun (producer, checkedConsumers) ->
+                atc.testCaseTypeIDsMap.ContainsKey producer.Type.id
+                || checkedConsumers |> List.forall (function
+                    | None   -> false
+                    | Some c -> not (atc.testCaseTypeIDsMap.ContainsKey c.Type.id)))
+        {acnFunction with isTestVaseValid = fun atc -> DAstACN.isTestCaseValidForAcnChildren children atc && nestedDeferredFieldsValid children atc && producersConsistent atc}, ns
 
 
 // ---------------------------------------------------------------------------
