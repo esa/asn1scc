@@ -1238,5 +1238,159 @@ class Cov010AdaBitString(unittest.TestCase):
         bits = REGION_ADA.replace("Natural(acn_nCount) * 8;", "Natural(P_len.Value);")
         self.assertEqual(check010("Ada", bits), "")
 
+
+# ASN1SCC-COV-009 in Ada (coverage step 14g)
+SPEC_CHOICE_ADA = """procedure ASN1SCC_P_data_ACN_Decode_aux(val: in out ASN1SCC_Data; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT; P_data_code : in out adaasn1rtl.encoding.acn.AcnInsertedFieldRef)
+is
+begin
+    result := adaasn1rtl.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    case P_data_code.Value is
+        when 1 =>
+          val := ASN1SCC_Data'(kind => Data_a_PRESENT, a => 0);
+        when 5 =>
+          val := ASN1SCC_Data'(kind => Data_b_PRESENT, b => False);
+
+    when others => -- COVERAGE_IGNORE
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_P_DATA); -- COVERAGE_IGNORE
+    end case;
+end ASN1SCC_P_data_ACN_Decode_aux;
+"""
+
+ADA_ARM = "result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_P_DATA); -- COVERAGE_IGNORE"
+
+CALLER_ADA = """procedure ASN1SCC_P_ACN_Decode_aux(val: in out ASN1SCC_P; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+    P_code_tmp : ASN1SCC_Code;
+    code : adaasn1rtl.encoding.acn.AcnInsertedFieldRef := (others => <>);
+    intVal_P_code_tmp : adaasn1rtl.Asn1UInt;
+begin
+    adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8(bs, intVal_P_code_tmp, 1, 5, result);
+    result.ErrorCode := ERR_ACN_DECODE_P_CODE;
+    if result.Success then
+        case intVal_P_code_tmp is
+            when 1 => P_code_tmp := Code_a;
+            when 5 => P_code_tmp := Code_b;
+        when others =>
+            P_code_tmp := Code_a;
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_P_CODE);
+        end case;
+    else
+        P_code_tmp := Code_a;
+        result.ErrorCode := ERR_ACN_DECODE_P_CODE;
+    end if;
+    if result.Success then
+        code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));
+    end if;
+    if result.Success then
+        -- Decode data
+        ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);
+    end if;
+end ASN1SCC_P_ACN_Decode_aux;
+"""
+
+CODE_SPEC_ADA = ["type ASN1SCC_Code is (Code_a, Code_b) with Size => adaasn1rtl.Enumerated_Size;",
+                 "for ASN1SCC_Code use", "    (Code_a => 1, Code_b => 5);"]
+
+
+def check009ada(source, specs=(CODE_SPEC_ADA,), others=()):
+    lines = source.splitlines()
+    return proven_unreachable("Ada", lines, line_of(lines, ADA_ARM), ADA_ARM, list(specs),
+                              [o.splitlines() for o in others])
+
+
+class Cov009Ada(unittest.TestCase):
+    def test_enum_rep_store(self):
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + CALLER_ADA), "ASN1SCC-COV-009")
+
+    def test_caller_in_another_body(self):
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA, others=(CALLER_ADA.replace(
+            "        ASN1SCC_P_data_ACN_Decode_aux(", "        Other.ASN1SCC_P_data_ACN_Decode_aux("),)), "ASN1SCC-COV-009")
+
+    def test_case_expression_store(self):
+        source = CALLER_ADA.replace("code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));",
+                                    "code.Value := (case P_code_tmp is\n            when Code_a => adaasn1rtl.Asn1UInt(1),\n"
+                                    "            when Code_b => adaasn1rtl.Asn1UInt(5));")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source, specs=()), "ASN1SCC-COV-009")
+
+    def test_case_expression_value_not_a_label(self):
+        source = CALLER_ADA.replace("code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));",
+                                    "code.Value := (case P_code_tmp is\n            when Code_a => adaasn1rtl.Asn1UInt(1),\n"
+                                    "            when Code_b => adaasn1rtl.Asn1UInt(7));")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source, specs=()), "")
+
+    def test_unguarded_store_after_full_range_read(self):
+        source = CALLER_ADA.replace("""    if result.Success then
+        code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));
+    end if;
+    if result.Success then
+        -- Decode data
+        ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);
+    end if;""", """    code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));
+    -- Decode data
+    ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);""")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source), "ASN1SCC-COV-009")
+
+    def test_pass_through_parameter(self):
+        middle = """procedure ASN1SCC_P_w_ACN_Decode_aux(val: in out ASN1SCC_W; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT; P_w_code : in out adaasn1rtl.encoding.acn.AcnInsertedFieldRef)
+is
+begin
+    ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, P_w_code);
+end ASN1SCC_P_w_ACN_Decode_aux;
+"""
+        caller = CALLER_ADA.replace("ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);",
+                                    "ASN1SCC_P_w_ACN_Decode_aux(val.w, bs, result, code);")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + middle + caller), "ASN1SCC-COV-009")
+
+    def test_label_missing_in_representation(self):
+        spec = ["type ASN1SCC_Code is (Code_a, Code_b);", "for ASN1SCC_Code use", "    (Code_a => 1, Code_b => 6);"]
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + CALLER_ADA, specs=(spec,)), "")
+
+    def test_no_representation_clause_uses_positions(self):
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + CALLER_ADA, specs=(["type ASN1SCC_Code is (Code_a, Code_b);"],)), "")
+
+    def test_local_not_assigned_on_every_path(self):
+        source = CALLER_ADA.replace("""    else
+        P_code_tmp := Code_a;
+        result.ErrorCode := ERR_ACN_DECODE_P_CODE;
+    end if;""", """    else
+        result.ErrorCode := ERR_ACN_DECODE_P_CODE;
+    end if;""")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source), "")
+
+    def test_local_with_initializer(self):
+        source = CALLER_ADA.replace("P_code_tmp : ASN1SCC_Code;", "P_code_tmp : ASN1SCC_Code := Code_a;")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source), "")
+
+    def test_call_not_after_the_store(self):
+        source = CALLER_ADA.replace("""    if result.Success then
+        -- Decode data
+        ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);
+    end if;""", """    result := adaasn1rtl.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    if result.Success then
+        -- Decode data
+        ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);
+    end if;""")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source), "")
+
+    def test_ref_written_by_another_callee(self):
+        writer = """procedure ASN1SCC_P_hdr_ACN_Decode_aux(val: in out ASN1SCC_H; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT; P_hdr_code : in out adaasn1rtl.encoding.acn.AcnInsertedFieldRef)
+is
+begin
+    adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRange(bs, P_hdr_code.Value);
+end ASN1SCC_P_hdr_ACN_Decode_aux;
+"""
+        caller = CALLER_ADA.replace("""    if result.Success then
+        -- Decode data""", """    ASN1SCC_P_hdr_ACN_Decode_aux(val.hdr, bs, result, code);
+    if result.Success then
+        -- Decode data""")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + writer + caller), "")
+
+    def test_no_call(self):
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA), "")
+
+    def test_selector_not_a_parameter(self):
+        source = SPEC_CHOICE_ADA.replace("case P_data_code.Value is", "case other.Value is")
+        self.assertEqual(check009ada(source + CALLER_ADA), "")
+
 if __name__ == "__main__":
     unittest.main()

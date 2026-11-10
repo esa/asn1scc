@@ -1281,8 +1281,8 @@ end case;
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 case <sEnmExtFld> is
     <arrsChildren; separator="\n">
-    <if(bIsDeferred)>when others => -- COVERAGE_IGNORE
-        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>); -- COVERAGE_IGNORE<endif>
+    <if(bIsDeferred)>when others =><if(soCovExempt)> pragma Annotate (Xcov, Exempt_On, "<soCovExempt>");<endif> -- COVERAGE_IGNORE
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);<if(soCovExempt)> pragma Annotate (Xcov, Exempt_Off);<endif> -- COVERAGE_IGNORE<endif>
 end case;
 >>
 

@@ -647,7 +647,7 @@ a parameter, where the arm is not proven, and MISRA C:2012 Rule 16.4.
 **Ada.** No exemption needed: the Ada decoding is an exhaustive `case` statement
 on the ENUMERATED local, without `when others`.
 
-## ASN1SCC-COV-009: default arm of an `--acn-v2` specialised CHOICE decoder whose callers decoded its ENUMERATED determinant (C)
+## ASN1SCC-COV-009: default arm of an `--acn-v2` specialised CHOICE decoder whose callers decoded its ENUMERATED determinant (C, Ada)
 
 **Code.** With `--acn-v2`, a CHOICE whose determinant is an ACN inserted field
 of an enclosing SEQUENCE is decoded by a specialised function that receives the
@@ -739,9 +739,87 @@ the caller is checked the same way. At least one call must exist.
 a parameter not covered here (a field exposed by a referenced type, or `-eee`),
 and MISRA C:2012 Rule 16.4.
 
-**Ada.** Not exempted yet: the Ada specialised decoders have the same
-`when others` arm (the selector is an `Asn1UInt`), but the classifier checks this
-condition on C only.
+**Ada** (asn1scc 4.9.99.0 and later). The Ada specialised decoder has the same
+arm as `when others` of a `case` on the reference's `Value` (an `Asn1UInt`, so the
+`case` needs it; template `StgAda/acn_a.stg`, macro `Choice_Enum_decode`, the
+same instances as in C). The caller decodes the field into a local of the Ada
+enumeration type of the field and stores its value:
+
+```ada
+procedure ASN1SCC_P_data_ACN_Decode_aux(val: in out ASN1SCC_Data; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT; P_data_code : in out adaasn1rtl.encoding.acn.AcnInsertedFieldRef)
+is
+begin
+    result := adaasn1rtl.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    case P_data_code.Value is
+        when 1 =>
+            ...
+        when 5 =>
+            ...
+    when others => pragma Annotate (Xcov, Exempt_On, "ASN1SCC-COV-009: ...");   -- COVERAGE_IGNORE
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_P_DATA); pragma Annotate (Xcov, Exempt_Off); -- COVERAGE_IGNORE
+    end case;
+end ASN1SCC_P_data_ACN_Decode_aux;
+
+procedure ASN1SCC_P_ACN_Decode_aux(val: in out ASN1SCC_P; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+    P_code_tmp : ASN1SCC_Code;
+    code : adaasn1rtl.encoding.acn.AcnInsertedFieldRef := (others => <>);
+    intVal_P_code_tmp : adaasn1rtl.Asn1UInt;
+begin
+    adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8(bs, intVal_P_code_tmp, 1, 5, result);
+    result.ErrorCode := ERR_ACN_DECODE_P_CODE;
+    if result.Success then
+        case intVal_P_code_tmp is
+            when 1 => P_code_tmp := Code_a;
+            when 5 => P_code_tmp := Code_b;
+        when others =>
+            P_code_tmp := Code_a;
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_P_CODE);
+        end case;
+    else
+        P_code_tmp := Code_a;
+        result.ErrorCode := ERR_ACN_DECODE_P_CODE;
+    end if;
+    if result.Success then
+        code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));
+    end if;
+    if result.Success then
+        ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);
+    end if;
+end ASN1SCC_P_ACN_Decode_aux;
+```
+
+with `for ASN1SCC_Code use (Code_a => 1, Code_b => 5);` in the specification.
+When the field's values differ from the representation values, the store is a
+case expression over the local with one value per item
+(`code.Value := (case P_code_tmp is when Code_a => adaasn1rtl.Asn1UInt(0), ...);`);
+when the decoding cannot fail, store and call follow without `if result.Success`.
+
+*Proof (Ada).* The local has the enumeration type of the field and is assigned
+an item on every path of the field's decoding (every arm of the `case`, the
+`when others` arm and the `else` part), so it holds an item at the store, and
+`Enum_Rep` of an item is one of the values of the representation clause (or the
+case expression yields one of its literals). Those values are the `when` labels
+of the specialised decoder. The reference is written only by the store (its other
+uses are arguments of procedures that do not write its `Value`), and the call runs
+only after the store: inside the `if result.Success then` block that directly
+follows the store's own `if result.Success then` block (the store does not change
+`result`), or later in the same statement list when the store is not guarded. A
+caller that passes its own reference parameter on is covered when every call of
+it satisfies the same condition. The proof does not depend on what the reads can
+return.
+
+*Conditions (Ada)*, checked by `classifyStatements.py` on the generated code: the
+statement is in the `when others` arm of `case P.Value is` with integer labels, P
+an `AcnInsertedFieldRef` parameter of a decoder; every call of the decoder in the
+unit's bodies passes a reference parameter of its caller (checked recursively) or
+a local reference initialised with `(others => <>)` that is used only by stores of
+the two forms above with values among the labels (read from the representation
+clause in the unit's specifications, or the positions without one) and by calls of
+procedures that do not write its `Value`; the local of the store is declared
+without initializer and assigned on every path by the statements before the
+store's statement in the same list; and the call follows the store as above. At
+least one call must exist.
 
 
 ## ASN1SCC-COV-010: "contents read past the region" check after `--acn-v2` OCTET / BIT STRING CONTAINING contents that end with a 'size deduced' part (C, Ada)

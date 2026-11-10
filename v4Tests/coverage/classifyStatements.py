@@ -787,6 +787,312 @@ def cov009(lines, first, headers=()):
     enums = enum_values(list(headers) + [lines])
     return all_calls_hold_labels(lines, enums, params[0], params[1].index(selector[1]), labels, 0)
 
+# ASN1SCC-COV-009 in Ada (coverage step 14g, K3): the `when others` arm of the `case P.Value is` of an --acn-v2
+# specialised CHOICE decoder. The caller stores the value of an Ada ENUMERATED local (`R.Value :=
+# Asn1UInt(T'Enum_Rep(L))`, or a case expression over L with one value per item), L is assigned an item on every
+# path of the field's decoding, and the call runs only after the store.
+ADA_REF_TYPE = r"adaasn1rtl\.encoding\.acn\.AcnInsertedFieldRef"
+
+
+def ada_params(header):
+    """(name, [parameter names]) of a single-line Ada procedure header, or None."""
+    match = re.match(r"^\s*procedure\s+(\w+)\s*\((.*)\)\s*$", ada_code(header), re.I)
+    if not match:
+        return None
+    names = []
+    for part in match[2].split(";"):
+        names += [n.strip() for n in part.split(":")[0].split(",")]
+    return match[1], names
+
+
+def ada_ref_params(header):
+    """Names of the AcnInsertedFieldRef `in out` parameters of a procedure header."""
+    return re.findall(r"(\w+)\s*:\s*in out " + ADA_REF_TYPE, header, re.I)
+
+
+def ada_procedure_regions(lines):
+    """[(start, end, name)] of the procedure bodies of a source (line numbers of header and `end name;`)."""
+    regions, current = [], None
+    for number, line in enumerate(lines, 1):
+        match = re.match(r"^procedure\s+(\w+)\s*\(.*\)\s*$", line, re.I)
+        if match and number < len(lines) and lines[number].strip().lower() == "is":
+            current = (number, match[1])
+        elif current and re.match(r"^end\s+" + re.escape(current[1]) + r"\s*;", line, re.I):
+            regions.append((current[0], number, current[1]))
+            current = None
+    return regions
+
+
+def ada_call_arguments(text, name):
+    """The arguments of the call of `name` (possibly qualified with a package) on an Ada line, or None."""
+    match = re.search(r"(?<!\w)" + re.escape(name) + r"\s*\(", text, re.I)
+    if not match or re.match(r"^\s*procedure\b", text, re.I):
+        return None
+    depth, start = 1, match.end()
+    for index in range(start, len(text)):
+        depth += {"(": 1, ")": -1}.get(text[index], 0)
+        if depth == 0:
+            return split_args(text[start:index])
+    return None
+
+
+def ada_indent(text):
+    return len(text) - len(text.lstrip())
+
+
+def ada_statements(body):
+    """Statements of an Ada statement list: ("line", text), ("if", [arms], has_else) or ("case", [arms]),
+    each arm a statement list (raw lines); comments and blank lines left out."""
+    lines = [x for x in body if ada_code(x).strip()]
+    out, i = [], 0
+    while i < len(lines):
+        text = ada_code(lines[i]).strip()
+        compound = re.match(r"(if|case)\b", text, re.I) and (text.lower().endswith(" then") or text.lower().endswith(" is"))
+        if not compound:
+            out.append(("line", text))
+            i += 1
+            continue
+        level = ada_indent(lines[i])
+        is_case = text.lower().startswith("case")
+        arms, current, has_else, j = [], None, False, i + 1
+        if not is_case:
+            current = []
+        while j < len(lines):
+            t = ada_code(lines[j]).strip()
+            if ada_indent(lines[j]) <= level + (4 if is_case else 0) and re.match(r"(elsif|else|when|end\s+(if|case)\s*;)", t, re.I):
+                if re.match(r"end\s+(if|case)\s*;", t, re.I) and ada_indent(lines[j]) == level:
+                    if current is not None:
+                        arms.append(current)
+                    j += 1
+                    break
+                if is_case and re.match(r"when\b", t, re.I):
+                    if current is not None:
+                        arms.append(current)
+                    rest = re.sub(r"^when\b.*?=>", "", t, flags=re.I).strip()
+                    current = [rest] if rest else []
+                    j += 1
+                    continue
+                if not is_case and ada_indent(lines[j]) == level and re.match(r"(elsif|else)\b", t, re.I):
+                    arms.append(current)
+                    current = []
+                    has_else = has_else or t.lower() == "else"
+                    j += 1
+                    continue
+            if current is not None:
+                current.append(lines[j])
+            j += 1
+        out.append(("case", arms) if is_case else ("if", arms, has_else))
+        i = j
+    return out
+
+
+def ada_assigns(statements, name):
+    """The statement list assigns `name` on every path (an if needs an else; a case is complete in Ada)."""
+    for statement in statements:
+        if statement[0] == "line":
+            if re.match(r"^" + re.escape(name) + r"\s*:=", statement[1], re.I):
+                return True
+        elif statement[0] == "case" or statement[2]:
+            arms = statement[1]
+            if arms and all(ada_assigns(ada_statements(arm), name) for arm in arms):
+                return True
+    return False
+
+
+def ada_enum_values(specs, type_name):
+    """The representation values of the Ada enumeration type `type_name` (its `for T use (...)` clause, else the
+    positions), from the unit's sources; None when not found."""
+    text = "\n".join("\n".join(lines) for lines in specs)
+    name = re.escape(type_name)
+    rep = re.search(r"\bfor\s+" + name + r"\s+use\s*\((.*?)\)\s*;", text, re.I | re.S)
+    if rep:
+        return {v.strip() for v in re.findall(r"=>\s*(-?\d+)", rep[1])}
+    decl = re.search(r"\btype\s+" + name + r"\s+is\s*\((.*?)\)", text, re.I | re.S)
+    if decl:
+        return {str(i) for i in range(len([x for x in decl[1].split(",") if x.strip()]))}
+    return None
+
+
+def ada_never_writes(bodies, name, index, depth):
+    """The procedure `name` does not write the Value of its parameter number `index` (nor passes it to a
+    procedure that may)."""
+    body = bodies.get(name)
+    params = ada_params(body[0]) if body else None
+    if params is None or index >= len(params[1]) or depth > 8:
+        return False
+    param = params[1][index]
+    for text in body[1:]:
+        code = ada_code(text)
+        if re.search(r"(?<![\w.])" + re.escape(param) + r"\.Value\s*:=", code, re.I):
+            return False
+        if re.search(r"[(,]\s*" + re.escape(param) + r"\.Value\s*[,)]", code, re.I):
+            return False
+        for callee in re.findall(r"(\w+)\s*\(", code):
+            args = ada_call_arguments(code, callee)
+            if args and param in args and not ada_never_writes(bodies, callee, args.index(param), depth + 1):
+                return False
+    return True
+
+
+def ada_ref_holds_labels(sources, specs, bodies, src, call, arg, labels, depth):
+    """At the call on line `call` of source `src`, the ref argument `arg` holds one of `labels` (see above)."""
+    lines = sources[src]
+    region = next(((s, e, n) for s, e, n in ada_procedure_regions(lines) if s < call < e), None)
+    if region is None or depth > 8:
+        return False
+    start, end, caller = region
+    if arg in ada_ref_params(lines[start - 1]):
+        params = ada_params(lines[start - 1])
+        return ada_all_calls_hold_labels(sources, specs, bodies, caller, params[1].index(arg), labels, depth + 1)
+    begin = next((n for n in range(start + 1, end) if lines[n - 1].strip().lower() == "begin"), None)
+    if begin is None or not re.match(r"^\s*\w+\s*$", arg) or not any(
+            re.match(r"^\s*" + re.escape(arg) + r"\s*:\s*" + ADA_REF_TYPE + r"\s*:=\s*\(others => <>\)\s*;", lines[n - 1], re.I)
+            for n in range(start + 1, begin)):
+        return False
+    stores = []
+    for n in range(begin + 1, end):
+        code = ada_code(lines[n - 1])
+        if not re.search(r"(?<![\w.])" + re.escape(arg) + r"\b", code, re.I):
+            continue
+        if re.match(r"^\s*" + re.escape(arg) + r"\.Value\s*:=", code, re.I):
+            stores.append(n)
+            continue
+        # any other use: an argument of a call whose callee does not write its Value
+        callees = [c for c in re.findall(r"([\w.]*\w)\s*\(", code)]
+        used = False
+        for callee in callees:
+            short = callee.split(".")[-1]
+            args = ada_call_arguments(code, short)
+            if args and arg in args:
+                used = True
+                if not ada_never_writes(bodies, short, args.index(arg), 0):
+                    return False
+        if not used:
+            return False
+    if not stores:
+        return False
+    for n in stores:
+        # the stored values: Enum_Rep of an enumeration local, or a case expression over one with literal values
+        text, k = ada_code(lines[n - 1]).strip(), n
+        while not text.endswith(";") and k < end:
+            text += " " + ada_code(lines[k]).strip()
+            k += 1
+        rep = re.fullmatch(re.escape(arg) + r"\.Value := adaasn1rtl\.Asn1UInt\(([\w.]+)'Enum_Rep\((\w+)\)\);", text, re.I)
+        case = re.fullmatch(re.escape(arg) + r"\.Value := \(case (\w+) is (.*)\);", text, re.I)
+        if rep:
+            local, values = rep[2], ada_enum_values(specs + [lines], rep[1].split(".")[-1])
+        elif case:
+            local = case[1]
+            arms = [a.strip() for a in case[2].split(",")]
+            values = set()
+            for a in arms:
+                value = re.fullmatch(r"when [\w.]+ => adaasn1rtl\.Asn1UInt\((\d+)\)", a, re.I)
+                if not value:
+                    return False
+                values.add(value[1])
+        else:
+            return False
+        if values is None or not values or not values <= labels:
+            return False
+        # L is a local of the caller, declared without initializer with a type (an enumeration: Enum_Rep, case)
+        if not any(re.match(r"^\s*" + re.escape(local) + r"\s*:\s*[\w.]+\s*;", lines[m - 1], re.I) for m in range(start + 1, begin)):
+            return False
+        # the store's statement (alone in an `if result.Success then` block, or a plain line), the list holding it
+        indent = ada_indent(lines[n - 1])
+        guard_line = n - 1 if re.match(r"^\s*if result\.Success then\s*$", lines[n - 2], re.I) else None
+        if guard_line is not None:
+            close = next((m for m in range(n + 1, end) if ada_indent(lines[m - 1]) <= indent - 4 and ada_code(lines[m - 1]).strip()), None)
+            if close is None or not re.match(r"^\s*end if;\s*$", lines[close - 1], re.I):
+                return False
+            first_line, last_line, level = guard_line, close, ada_indent(lines[guard_line - 1])
+        else:
+            first_line, last_line, level = n, k if k > n else n, indent
+        # L is assigned before the statement on every path, by the statements before it in the same list
+        list_start = next((m for m in range(first_line - 1, begin, -1)
+                           if ada_code(lines[m - 1]).strip() and ada_indent(lines[m - 1]) < level), begin)
+        if not ada_assigns(ada_statements(lines[list_start:first_line - 1]), local):
+            return False
+        # the call runs only after the store: R1 (guarded store) the call is inside the `if result.Success then`
+        # block that follows the store's block directly; R2 (plain store) the call follows in the same list
+        nxt = next((m for m in range(last_line + 1, end) if ada_code(lines[m - 1]).strip()), None)
+        if nxt is None:
+            return False
+        if guard_line is not None:
+            if not (re.match(r"^\s*if result\.Success then\s*$", lines[nxt - 1], re.I) and ada_indent(lines[nxt - 1]) == level):
+                return False
+            block_end = next((m for m in range(nxt + 1, end) if ada_code(lines[m - 1]).strip() and ada_indent(lines[m - 1]) <= level), None)
+            if block_end is None or not (nxt < call < block_end):
+                return False
+        else:
+            if not (last_line < call and all(ada_indent(lines[m - 1]) >= level or not ada_code(lines[m - 1]).strip()
+                                              for m in range(last_line + 1, call + 1))):
+                return False
+            if any(re.match(r"^\s*(return|exit|goto)\b", ada_code(lines[m - 1]), re.I) for m in range(last_line + 1, call)):
+                return False
+    return True
+
+
+def ada_all_calls_hold_labels(sources, specs, bodies, name, index, labels, depth):
+    """Every call of the procedure `name` in the unit's sources passes, as argument `index`, a ref holding one
+    of `labels`; at least one call."""
+    found = False
+    for src, lines in enumerate(sources):
+        for number, text in enumerate(lines, 1):
+            args = ada_call_arguments(ada_code(text), name)
+            if args is None:
+                continue
+            found = True
+            if index >= len(args):
+                return False
+            if not ada_ref_holds_labels(sources, specs, bodies, src, number, args[index], labels, depth):
+                return False
+    return found
+
+
+def cov009_ada(lines, first, specs=(), sources=()):
+    """ASN1SCC-COV-009 in Ada: the statement is in the `when others` arm of `case P.Value is`, P an
+    AcnInsertedFieldRef parameter of an --acn-v2 specialised decoder with integer labels, and every call of the
+    decoder in the unit passes a ref holding one of the labels (ada_ref_holds_labels)."""
+    others = None
+    for number in range(first, max(first - 3, 0), -1):
+        text = ada_code(lines[number - 1])
+        if re.match(r"^\s*when\s+others\s*=>", text, re.I):
+            others = number
+            break
+        if number != first and ada_code(lines[number - 1]).strip():
+            return False
+    if others is None:
+        return False
+    head, depth, labels = others - 1, 0, set()
+    while head > 0:
+        text = ada_code(lines[head - 1])
+        if re.match(r"^\s*end\s+case\s*;", text, re.I):
+            depth += 1
+        elif re.match(r"^\s*case\b.*\bis\s*$", text, re.I):
+            if depth == 0:
+                break
+            depth -= 1
+        elif depth == 0:
+            arm = re.match(r"^\s*when\s+(.*?)\s*=>", text, re.I)
+            if arm:
+                labels |= {x.strip() for x in arm[1].split("|")}
+        head -= 1
+    selector = re.match(r"^\s*case\s+(\w+)\.Value\s+is\s*$", ada_code(lines[head - 1]), re.I) if head else None
+    region = next(((s, e, n) for s, e, n in ada_procedure_regions(lines) if s < first < e), None)
+    if selector is None or region is None or "_Decode" not in region[2]:
+        return False
+    if not labels or not all(re.fullmatch(r"\d+", label) for label in labels):
+        return False
+    refs = ada_ref_params(lines[region[0] - 1])
+    params = ada_params(lines[region[0] - 1])
+    if selector[1] not in refs or params is None:
+        return False
+    all_sources = [list(lines)] + [list(s) for s in sources]
+    bodies = function_bodies(all_sources, "Ada")
+    return ada_all_calls_hold_labels(all_sources, [list(s) for s in specs], bodies, region[2],
+                                     params[1].index(selector[1]), labels, 0)
+
+
 # RTL decoders whose postcondition bounds the value on success: the uPER
 # constrained whole numbers (Result and IntVal in MinVal .. MaxVal) and the ACN
 # fixed-size integers (Result.Success and IntVal in minVal .. maxVal).
@@ -1173,6 +1479,8 @@ def proven_unreachable(language, lines, first, src, headers=(), sources=()):
             return "ASN1SCC-COV-001"
         if cov011(lines, first):
             return "ASN1SCC-COV-011"
+        if cov009_ada(lines, first, headers, sources):
+            return "ASN1SCC-COV-009"
         return "ASN1SCC-COV-010" if cov010(lines, first, "Ada", sources) else ""
     if cov001(lines, first):
         return "ASN1SCC-COV-001"
@@ -1249,7 +1557,8 @@ def classify(run):
                 raise SystemExit(f"{run}: missing generated source {source}")
             lines = source.read_text(errors="replace").splitlines()
             # ASN1SCC-COV-009 reads the values of the enum constants in the unit's C headers
-            headers = [h.read_text(errors="replace").splitlines() for h in sorted(work.glob("*.h"))] if language == "c" else []
+            # (Ada: the representation clauses of the enumeration types in the unit's specs)
+            headers = [h.read_text(errors="replace").splitlines() for h in sorted(work.glob("*.h" if language == "c" else "*.ads"))]
             # ASN1SCC-COV-010 follows the contents' decoders into the unit's other sources
             others = [p.read_text(errors="replace").splitlines()
                       for p in sorted(work.glob("*.c" if language == "c" else "*.adb")) if p.name != file_name]
