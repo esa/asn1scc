@@ -542,6 +542,20 @@ type LangGeneric_a() =
             | EncDeterminantMulti                                                   -> {canFail = true; writes = ReadsFirst; callee = None}
         override _.atcEmitsConstraintViolationTests = true
         override _.atcEmitsEqualityVariantTests = true
+        // Coverage step 14i: the toggles of 14a where the Ada type holds the changed value. The content of a fixed-size
+        // OCTET / BIT STRING (Asn1Byte, BIT: modular, `not` gives another element) and of an IA5String (Character) can
+        // change; a scalar with one automatic test value is a one-value subtype / enumeration here (its Equal cannot
+        // return False). A BIT STRING has a byte toggle when it has at least 8 bits, else its last-bit toggle flips the
+        // first element too.
+        override this.atcEqualityToggle (toggle:EqualityToggle) (path:AccessPath) =
+            let v = path.joined this
+            let firstElement = sprintf "%s.Data(%s.Data'First) := not %s.Data(%s.Data'First);" v v v v
+            match toggle with
+            | ToggleInteger | ToggleReal | ToggleEnumerated -> None
+            | ToggleFirstChar   -> Some (sprintf "%s(%s'First) := (if %s(%s'First) = 'A' then 'B' else 'A');" v v v v)
+            | ToggleByte _      -> Some firstElement
+            | ToggleBit k when k < 8I -> Some firstElement
+            | ToggleBit _       -> None
 
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name
