@@ -739,7 +739,7 @@ the caller is checked the same way. At least one call must exist.
 a parameter not covered here (a field exposed by a referenced type, or `-eee`),
 and MISRA C:2012 Rule 16.4.
 
-**Ada** (asn1scc 4.9.99.0 and later). The Ada specialised decoder has the same
+**Ada** (asn1scc 4.9.100.0 and later). The Ada specialised decoder has the same
 arm as `when others` of a `case` on the reference's `Value` (an `Asn1UInt`, so the
 `case` needs it; template `StgAda/acn_a.stg`, macro `Choice_Enum_decode`, the
 same instances as in C). The caller decodes the field into a local of the Ada
