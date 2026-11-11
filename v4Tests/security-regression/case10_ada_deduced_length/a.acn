@@ -1,0 +1,5 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    Elem [] { a [encoding pos-int, size 8], b [] }
+    EList [size deduced]
+    Box [] { list [size deduced] }
+END

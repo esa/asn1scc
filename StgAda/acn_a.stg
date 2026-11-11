@@ -2544,10 +2544,12 @@ begin
         <i> := <i> + 1;
     end loop;
     if result.Success then
-        <p>.Length := <i> - 1;
-        if Ded_Budget_End - bs.Current_Bit_Pos \>= 8<if(noSizeMin)> or else <p>.Length \< <noSizeMin><endif> then
-            --  E2: at least one full byte of unaccounted data remains in the region
+        --  the count is checked before it is stored: Length has the subtype of SIZE (min .. max)
+        if Ded_Budget_End - bs.Current_Bit_Pos \>= 8<if(noSizeMin)> or else <i> - 1 \< <noSizeMin><endif> then
+            --  E2: at least one full byte of unaccounted data remains in the region (or too few elements)
             result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>); --COVERAGE_IGNORE
+        else
+            <p>.Length := <i> - 1;
         end if;
     end if;
 end;
