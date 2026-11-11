@@ -865,6 +865,13 @@ type ILangGeneric () =
     abstract member typedefConstraintModel : TypedefConstraintModel
     default _.typedefConstraintModel = TypedefsAreBaseTypes
 
+    /// True when the selector of a CHOICE value can only name one of its alternatives (Ada: the discriminant is an
+    /// enumeration of the alternatives, no `when others`), so a CHOICE without constraints of its own whose every
+    /// alternative cannot be invalid has a validator that cannot fail (coverage step 14i). C keeps the check: its
+    /// `kind` can hold NONE or any other integer.
+    abstract member choiceSelectorHoldsOnlyAlternatives : bool
+    default _.choiceSelectorHoldsOnlyAlternatives = false
+
     /// True when an OPTIONAL child whose encoder produces no statements must still be
     /// emitted through sequence_optional_child (Rust: the presence flag is assigned there).
     abstract member emitOptionalChildWithEmptyBody : bool

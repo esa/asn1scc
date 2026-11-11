@@ -502,6 +502,8 @@ type LangGeneric_a() =
         override _.decodeReadFailureModel = ReadsCannotFail
         // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.
         override _.typedefConstraintModel = TypedefsEnforceRanges
+        // The discriminant of a CHOICE is an enumeration of its alternatives (coverage step 14i).
+        override _.choiceSelectorHoldsOnlyAlternatives = true
         override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValidPrimitives

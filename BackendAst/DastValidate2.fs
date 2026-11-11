@@ -1159,20 +1159,57 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
 
     let childrenContent, ns1 =  children |> Asn1Fold.foldMap (fun us child -> handleChild child us) us
     let childrenContent = childrenContent |> List.choose id
-    // a CHOICE still calls every alternative's function: no check follows the call, so there is nothing to drop
+    // Coverage step 14i: when the selector can only name an alternative (Ada) and no alternative can be invalid, the
+    // CHOICE cannot be invalid either (no constraint of its own): the validator calls nothing and always succeeds, and
+    // the functions of inline alternatives that only it called are not emitted (as for a SEQUENCE child, 11b).
+    // Otherwise a CHOICE still calls every alternative's function.
+    let alternativeCannotBeInvalid (child:ChChildInfo) =
+        match child.chType.isValidFunction with
+        | None                                  -> true
+        | Some {IsValidFunction.outcome = AlwaysValid}  -> true
+        | Some {IsValidFunction.outcome = MayBeInvalid} -> false
+    let noAlternativeChecked =
+        match l.lg.choiceSelectorHoldsOnlyAlternatives with
+        | false -> false
+        | true  -> o.cons.IsEmpty && (children |> List.forall alternativeCannotBeInvalid)
+    let childrenContent =
+        match noAlternativeChecked with
+        | false -> childrenContent
+        | true  ->
+            List.zip children childrenContent |>
+            List.map (fun (child, z) ->
+                match z, child.chType.isValidFunction with
+                | IsValidProcCall c, _       -> IsValidNotCalled {|childName = l.lg.getAsn1ChChildBackendName child; chidIsValidFunction = c.chidIsValidFunction|}
+                | IsValidEmbedded _, _
+                | IsValidNotCalled _, _      -> z)
     let childrenErrCodes = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.childErrCodes | IsValidProcCall _ | IsValidNotCalled _ -> [])
     let alphaFuncs = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.alphaFuncs | IsValidProcCall _ | IsValidNotCalled _ -> []) //childrenContent |> List.collect(fun c -> c.alphaFuncs)
     let localVars = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.localVars | IsValidProcCall _ | IsValidNotCalled _ -> []) //childrenContent |> List.collect(fun c -> c.localVars)
-    let nonEmbeddedChildrenValidFuncs = childrenContent |> List.choose(fun s -> match s with IsValidEmbedded c -> None | IsValidProcCall c -> Some c.chidIsValidFunction | IsValidNotCalled c -> Some c.chidIsValidFunction)
+    let nonEmbeddedChildrenValidFuncs =
+        childrenContent |>
+        List.choose(fun s ->
+            match s with
+            | IsValidEmbedded c  -> None
+            | IsValidProcCall c  -> Some c.chidIsValidFunction
+            | IsValidNotCalled c ->
+                match noAlternativeChecked && not l.lg.keepsUncalledChildValidators with
+                | true  -> None
+                | false -> Some c.chidIsValidFunction)
     let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.ChValue) = VCBTrue
     let vcbs, ns2 =  o.cons |> Asn1Fold.foldMap(fun cs c -> choiceConstraint2ValidationCodeBlock r l t.id children valToStrFunc defOrRef  c cs) ns1
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
+      match noAlternativeChecked with
+      | true  ->
+        prependComment
+            (Some (l.isvalid.validation_comment "no alternative can hold an invalid value, and the selector can only name an alternative"))
+            (convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName)
+      | false ->
         let choice_switch_check, lv1 =
             let childrenChecks, lv1 =
                 childrenContent |>
                 List.choose(fun z ->
                     match z with
-                    | IsValidNotCalled _ -> None    // not produced for a CHOICE
+                    | IsValidNotCalled _ -> None    // only when no alternative is checked (that body is above)
                     | IsValidEmbedded c ->
                         match c.isValidStatement p with
                         | ValidationStatementTrue st
