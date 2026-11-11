@@ -895,7 +895,7 @@ result.ErrorCode := <sErrCode>;
 loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize, bItemCannotFail, bItemWritesResult)::= /*nogen*/<<
 <i> := 1;
 while <i>\<= <fixedSize><if(!bItemCannotFail)><if(bItemWritesResult)> and result.Success<endif><endif> loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);<if(bItemCannotFail)><if(bItemWritesResult)><\n>    pragma Loop_Invariant (result.Success);  -- the element's encoding cannot fail<endif><endif>
     pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
     pragma Loop_Invariant (bs.Current_Bit_Pos\<=bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
@@ -2519,7 +2519,7 @@ end;
 sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= <<
 <i> := 1;
 while <i> \<= <p>.Length<if(!bItemCannotFail)><if(bItemWritesResult)> and result.Success<endif><endif> loop
-    pragma Loop_Invariant (<i> \>= 1 and <i> \<= <p>.Length);
+    pragma Loop_Invariant (<i> \>= 1 and <i> \<= <p>.Length);<if(bItemCannotFail)><if(bItemWritesResult)><\n>    pragma Loop_Invariant (result.Success);  -- the element's encoding cannot fail<endif><endif>
     pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
     <sInternalItem>
     <i> := <i> + 1;

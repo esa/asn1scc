@@ -514,9 +514,9 @@ type LangGeneric_a() =
             | EncStringFixedSize | EncSequenceOfFixedSize                           -> EncodeOutcome.noWrite
             // the blocks are joined by checks of result before anything writes it
             | EncFragmentation                                                      -> EncodeOutcome.unknown
-            | EncSequenceOfOtherLoop                                                -> EncodeOutcome.noWrite
-            // a loop without pragma Loop_Invariant (result.Success): the encoder could not prove Post => result.Success
-            | EncLoopWithoutInvariant                                               -> EncodeOutcome.unknown
+            // since coverage step 14i the ACN external-field / null-terminated / deduced loops state
+            // pragma Loop_Invariant (result.Success) after an element that cannot fail, as the uPER loops do
+            | EncSequenceOfOtherLoop | EncLoopWithoutInvariant                      -> EncodeOutcome.noWrite
             // result.Success := Length >= min AND Length <= max
             | EncOctetStringVarSize LengthChecked | EncBitStringVarSize LengthChecked | EncStringVarSize
             | EncSequenceOfVarSize LengthChecked                                    -> {canFail = true; writes = AlwaysWrites; callee = None}
