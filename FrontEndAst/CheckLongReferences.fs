@@ -467,7 +467,21 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (s
         | true  -> 
             let ziped = List.zip ref.acnArguments ref.resolvedType.acnParameters
             let ns = ziped |> List.fold(fun s c -> checkArgument s c) curState
-            checkTypeInScope r tasPositions (scopeStart, parents.Length) parents curentPath ref.resolvedType ns
+            let ns2 = checkTypeInScope r tasPositions (scopeStart, parents.Length) parents curentPath ref.resolvedType ns
+            // Every ACN parameter of the referenced type must be used by the encoding of the resolved type, otherwise the
+            // argument passed for it has no consumer (backend: "Could not find dependency for parameter"). The ACN
+            // parameters of a type assignment are checked to be referenced in its own ACN spec, but a reference with a
+            // WITH COMPONENT(S) constraint takes its ACN spec only from the reference site, not from the referenced type
+            // (AcnCreateFromAntlr.mergeType, mantis 807), so the properties that used the parameter may be gone.
+            ziped |>
+            List.iter(fun ((RelativePath path), prm) ->
+                match ns2.acnDependencies |> List.exists(fun d -> d.determinant.id = prm.id) with
+                | true  -> ()
+                | false ->
+                    let loc = match path with x1::_ -> x1.Location | [] -> acnLoc
+                    let errMsg = sprintf "ACN parameter '%s' of type '%s' is not used by the encoding of this component. A reference with a WITH COMPONENT(S) constraint takes its ACN encoding properties only from the reference site, not from '%s': repeat at the reference site the properties that use '%s'." prm.name ref.tasName.Value ref.tasName.Value prm.name
+                    raise(SemanticError(loc, errMsg)))
+            ns2
 
         | false ->
             curState
