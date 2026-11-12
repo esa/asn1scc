@@ -265,6 +265,13 @@ constraintViolationEveryElement(sIdx, sCount, arrsGuards, sSetInvalidValue) ::= 
 >>
 
 /* Coverage step 14a: C and Ada only (ILangGeneric.atcEmitsEqualityVariantTests). */
+/* Coverage step 14j (task 0): C and Ada only (ILangGeneric.atcEmitsValidityTests). */
+emitValidityTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, bStatic, sIsValidFunc, arrsValueChecks) ::= <<
+>>
+
+validityCheck(sModName, sAmber, sInitializeTcData, sWhat, sIsValidFunc) ::= <<
+>>
+
 emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<
 >>
 

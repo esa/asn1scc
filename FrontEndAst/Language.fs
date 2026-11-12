@@ -789,6 +789,11 @@ type ILangGeneric () =
     abstract member atcEmitsEqualityVariantTests : bool
     default _.atcEmitsEqualityVariantTests = false
 
+    /// Automatic tests for a type assignment that has no test of its own (coverage step 14j task 0,
+    /// DastTestCaseCreation validityTestCases): IsConstraintValid must accept every automatic test value. C and Ada.
+    abstract member atcEmitsValidityTests : bool
+    default _.atcEmitsValidityTests = false
+
     /// The statement that changes the value at the path for the Equal tests (coverage step 14a), when the language
     /// can hold the changed value: C (its typedefs are base types); None elsewhere.
     abstract member atcEqualityToggle : EqualityToggle -> AccessPath -> string option

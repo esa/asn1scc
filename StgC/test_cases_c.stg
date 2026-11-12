@@ -1059,6 +1059,49 @@ for (<sIdx> = 0; <sIdx> \< <sCount>; <sIdx>++) {
 }
 >>
 
+/* Coverage step 14j (task 0): IsConstraintValid of a type assignment that has no test of its own (no encoding is tested,
+   e.g. its ACN encoding takes ACN parameters, with -ACN only): every automatic test value must be valid. */
+emitValidityTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, bStatic, sIsValidFunc, arrsValueChecks) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    const char* invalidFor = NULL;
+    int errCode = 0;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
+    <arrsValueChecks; separator="\n">
+    if (invalidFor == NULL) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed: <sIsValidFunc> rejected an automatic test value:");
+        output->report_failure_message(invalidFor);
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
+    output->report_case_end();
+}
+>>
+
+validityCheck(sModName, sAmber, sInitializeTcData, sWhat, sIsValidFunc) ::= <<
+/* <sWhat> */
+<sInitializeTcData>
+errCode = 0;
+if (!<sIsValidFunc>(<sAmber>tc_data, &errCode) || errCode != 0) {
+    invalidFor = "<sWhat>";
+}
+>>
+
 /* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
    changed must compare unequal, both ways. */
 emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<

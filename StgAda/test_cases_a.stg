@@ -630,6 +630,54 @@ while <sIdx> \<= <sCount> loop
 end loop;
 >>
 
+/* Coverage step 14j (task 0): IsConstraintValid of a type assignment that has no test of its own (no encoding is tested,
+   e.g. its ACN encoding takes ACN parameters, with -ACN only): every automatic test value must be valid. */
+emitValidityTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, bStatic, sIsValidFunc, arrsValueChecks) ::= <<
+procedure <sFuncName> ( totalErrors : in out Integer)
+is
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
+    result  : adaasn1rtl.ASN1_RESULT;
+    ok      : Boolean := True;
+    <arrsVars; separator="\n">
+	pragma Warnings (Off, "there are no others");
+    tc_data : <sModName>.<sTasName>;
+	pragma Warnings (On, "there are no others");
+begin
+	pragma Warnings (Off, "there are no others");
+	pragma Warnings (Off, "condition can only be True if invalid values present");
+	pragma Warnings (Off, "condition can only be False if invalid values present");
+	pragma Warnings (Off, "condition is always False");
+	pragma Warnings (Off, "condition is always True");
+	pragma Warnings (Off, "is always True at this point");
+	pragma Warnings (Off, "is always False at this point");
+    <arrsValueChecks; separator="\n">
+	pragma Warnings (On, "there are no others");
+	pragma Warnings (On, "condition can only be True if invalid values present");
+	pragma Warnings (On, "condition can only be False if invalid values present");
+	pragma Warnings (On, "condition is always False");
+	pragma Warnings (On, "condition is always True");
+	pragma Warnings (On, "is always True at this point");
+	pragma Warnings (On, "is always False at this point");
+    if ok then
+        Put_Line ("Test case '<sFuncName>' succeeded");
+    else
+        Put_Line ("Test case '<sFuncName>' failed: <sIsValidFunc> rejected an automatic test value.");
+        Put_Line ("========================================");
+        totalErrors := totalErrors + 1;
+    end if;
+end <sFuncName>;
+>>
+
+validityCheck(sModName, sAmber, sInitializeTcData, sWhat, sIsValidFunc) ::= <<
+--  <sWhat>
+<sInitializeTcData>
+result := <sModName>.<sIsValidFunc> (tc_data);
+if not result.Success or result.ErrorCode /= 0 then
+    ok := False;
+    Put_Line ("  invalid: <sWhat>");
+end if;
+>>
+
 /* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
    changed must compare unequal, both ways. */
 emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<

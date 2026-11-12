@@ -950,6 +950,32 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
     | true, None
     | false, _ -> []
 
+/// Coverage step 14j (task 0): IsConstraintValid of a type assignment without a test of its own (no encoding tested,
+/// e.g. ACN parameters with -ACN only: no ACN codec, so no _enc_dec test calls it, and a parent whose validator does not
+/// call an AlwaysValid child leaves it never executed). One test per type assignment: every automatic test value must be
+/// valid (they are ASN.1-valid by construction).
+let validityTestCases (lm:LanguageMacros) (t:Asn1Type) =
+    match lm.lg.atcEmitsValidityTests, t.isValidFunction |> Option.bind (fun f -> f.funcName), t.initFunction.automaticTestCases with
+    | true, Some sIsValidFunc, (_::_ as atcs) ->
+        [fun idx ->
+            let sFuncName = sprintf "test_case_valid_%06d" idx
+            let p = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
+            let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
+            let encAmper, _ = gAmber lm t
+            let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
+            let sTypeName = t.id.tasInfo |> Option.map (fun ti -> ti.tasName) |> Option.defaultValue td.typeName
+            let parts =
+                atcs |> List.mapi (fun i atc ->
+                    let initStatement = atc.initTestCaseFunc p
+                    let sWhat = sprintf "%s: automatic test value %d" sTypeName (i + 1)
+                    initStatement.localVariables, lm.atc.validityCheck td.programUnit encAmper initStatement.funcBody sWhat sIsValidFunc)
+            let arrsVars = parts |> List.collect fst |> List.map lm.lg.getLocalVariableDeclaration |> Seq.distinct |> Seq.toList
+            let func_body = lm.atc.emitValidityTestCase sFuncName arrsVars td.programUnit td.typeName encAmper bStatic sIsValidFunc (parts |> List.map snd)
+            (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)]
+    | true, Some _, []
+    | true, None, _
+    | false, _, _ -> []
+
 /// Coverage step 14d: values whose ACN fields disagree. A variant that writes another test value at one node
 /// (AtcVariant.replaces) of an ACN-valid automatic test value, after which the value is no longer ACN-valid
 /// (isTestVaseValid: the consumers of an ACN field disagree, e.g. CHOICEs sharing a determinant select different
@@ -1129,7 +1155,27 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                 | true, Some sEncFunc -> yield! inconsistentValueTestCases lm t.Type sEncFunc (GetEncodingString lm Asn1Encoding.ACN)
                 | true, None
                 | false, _ -> () ]
-    let tcFunctors = validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors @ equalityFunctors @ inconsistentFunctors
+    // Type assignments without a test of their own (coverage step 14j task 0): no encoding is tested (e.g. ACN
+    // parameters with -ACN only), so no test calls their validator or Equal. Their validity test, constraint violations
+    // (no encoder to check) and Equal variants come after all other tests, so the names of the existing ones do not change.
+    let untestedFunctors =
+        [ for m in r.Files |> List.collect(fun f -> f.Modules) do
+            for t in m.TypeAssignments do
+                let typeAssignmentInfo = t.Type.id.tasInfo.Value
+                let emitted ft = r.callersSet |> Set.contains {Caller.typeId = typeAssignmentInfo; funcType = ft}
+                let tested (e:Asn1Encoding) = (t.Type.getEncDecTestFunc e).IsSome && emitted (asn1EncodingMapping e)
+                match r.args.encodings |> List.exists tested with
+                | true  -> ()
+                | false ->
+                    match emitted IsValidFunctionType with
+                    | true  ->
+                        yield! validityTestCases lm t.Type
+                        yield! constraintViolationTestCases r lm t.Type []
+                    | false -> ()
+                    match r.args.GenerateEqualFunctions && emitted EqualFunctionType with
+                    | true  -> yield! equalityVariantTestCases lm t.Type
+                    | false -> () ]
+    let tcFunctors = validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors @ equalityFunctors @ inconsistentFunctors @ untestedFunctors
     let invalidStreamFunctorCount = invalidStreamFunctors.Count
     let maxTestCasesPerFile = 100.0
     let nMaxTestCasesPerFile = int maxTestCasesPerFile
