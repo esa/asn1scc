@@ -1,0 +1,8 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Str ::= IA5String (SIZE (1 .. 5))
+Str2 ::= IA5String (SIZE (1 .. 5)) (FROM ("A" .. "Z"))
+NumT ::= INTEGER (0 .. MAX)
+SNumT ::= INTEGER
+
+END

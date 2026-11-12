@@ -211,7 +211,7 @@ let GetStringEncodingClass (alignment: AcnAlignment option) errLoc (p  : StringA
         match  bAsciiEncoding, p.sizeProp with
         | false, None                                  ->       Acn_Enc_String_uPER charSizeInBits, uperMinSizeInBits, uperMaxSizeInBits
         | false, Some (StrExternalField longField)     ->       Acn_Enc_String_CharIndex_External_Field_Determinant (charSizeInBits, longField) , asn1Min*charSizeInBits,  asn1Max*charSizeInBits
-        | false, Some (StrNullTerminated b)            ->       raise(BugErrorException(sprintf "when a string type has the acn property 'size null-terminated' it must also have the acn property 'encoding ASCII'" ))
+        | false, Some (StrNullTerminated _)            ->       raise(SemanticError(errLoc, "'size null-terminated' on string types requires 'encoding ASCII'"))
         | false, Some StrDeduced                       ->       raise(SemanticError(errLoc, "'size deduced' on string types requires 'encoding ASCII'"))
         | true, None                                   ->       Acn_Enc_String_uPER_Ascii charSizeInBits, lengthDeterminantSize + asn1Min*charSizeInBits, lengthDeterminantSize + asn1Max*charSizeInBits
         | true, Some (StrExternalField longField)      ->       Acn_Enc_String_Ascii_External_Field_Determinant (charSizeInBits, longField), asn1Min*charSizeInBits,  asn1Max*charSizeInBits

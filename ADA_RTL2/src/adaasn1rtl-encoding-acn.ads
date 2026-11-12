@@ -1447,8 +1447,9 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
           (strVal'Length - 1 + null_characters'Length) * 8,
-      Post => Result.Success and
-      bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      --  fails (ERR_INCORRECT_STREAM) when strVal'Length - 1 characters are
+      --  not followed by the terminator, as the C decoder
+      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
           (strVal'Length - 1 + null_characters'Length) * 8;

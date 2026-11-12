@@ -1624,6 +1624,12 @@ is
            tmp (tmp'First .. tmp'First + (nullChars'Last - nullChars'First));
       end loop;
 
+      --  after Max_Int_Digits digits the next bytes must be the terminator
+      Result.Success :=
+        Result.Success
+        and then nullChars (nullChars'First .. nullChars'Last) =
+          tmp (tmp'First .. tmp'First + (nullChars'Last - nullChars'First));
+
       if not Result.Success then
          Result.ErrorCode := ERR_INCORRECT_STREAM;
       end if;
@@ -2363,6 +2369,15 @@ is
 
          I := I + 1;
       end loop;
+
+      --  after the longest string the next bytes must be the terminator
+      if null_characters (null_characters'First .. null_characters'Last) /=
+        tmp (tmp'First ..
+             tmp'First + (null_characters'Last - null_characters'First))
+      then
+         Result :=
+           ASN1_RESULT'(Success => False, ErrorCode => ERR_INCORRECT_STREAM);
+      end if;
 
       while I <= strVal'Last loop
          pragma Loop_Invariant (I >= strVal'First and I <= strVal'Last);

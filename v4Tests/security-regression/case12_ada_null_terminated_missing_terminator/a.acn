@@ -1,0 +1,8 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Str [encoding ASCII, size null-terminated]
+Str2 [encoding ASCII, size null-terminated, termination-pattern '0D0A'H]
+NumT [encoding ASCII, size null-terminated]
+SNumT [encoding ASCII, size null-terminated]
+
+END
