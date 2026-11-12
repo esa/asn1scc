@@ -1,0 +1,6 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Str [encoding ASCII]
+Sub [encoding ASCII]
+
+END

@@ -28,22 +28,30 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
         let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
         let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+        // A string subtype whose typedef is the longer array of its base type (Str (SIZE(3)) of Str = IA5String
+        // (SIZE(1..10)): an Ada String(1..11)) passes only its own characters + 1 to the ASCII RTL calls, which encode /
+        // decode up to strVal'Length - 1 characters; before, the fixed-size encoder wrote the typedef's 10 characters
+        // into a stream sized for 3 (Ada index check, out of bounds with -gnatp)
+        let ppSub (nMax:BigInteger) =
+            match typedefMaxSize r t > nMax with
+            | true  -> lm.acn.Acn_String_Ascii_FixSize_prefix pp nMax
+            | false -> pp
         let funcBodyContent, ns =
             match o.acnEncodingClass with
             | Acn_Enc_String_uPER  _ ->
                 uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables, x.auxiliaries, x.encOutcome), us
             | Acn_Enc_String_uPER_Ascii _ ->
                 match o.maxSize.uper = o.minSize.uper with
-                | true      ->  Some (Acn_String_Ascii_FixSize pp errCode.errCodeName ( o.maxSize.uper) codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncStringFixedSize)), us
+                | true      ->  Some (Acn_String_Ascii_FixSize (ppSub o.maxSize.uper) errCode.errCodeName ( o.maxSize.uper) codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncStringFixedSize)), us
                 | false     ->
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.acn - o.minSize.acn))
                     // (Ada checks the length first, as the uPER variable-size string)
-                    Some (Acn_String_Ascii_Internal_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) ( o.minSize.acn) nSizeInBits sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncStringVarSize)), us
+                    Some (Acn_String_Ascii_Internal_Field_Determinant (ppSub o.maxSize.acn) errCode.errCodeName ( o.maxSize.acn) ( o.minSize.acn) nSizeInBits sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncStringVarSize)), us
             | Acn_Enc_String_Ascii_Null_Terminated (_,nullChars) ->
-                Some (Acn_String_Ascii_Null_Terminated pp errCode.errCodeName ( o.maxSize.acn) nullChars sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
+                Some (Acn_String_Ascii_Null_Terminated (ppSub o.maxSize.acn) errCode.errCodeName ( o.maxSize.acn) nullChars sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
             | Acn_Enc_String_Ascii_External_Field_Determinant _ ->
                 let extField = getExternalField lm r deps t.id
-                Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) extField sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
+                Some(Acn_String_Ascii_External_Field_Determinant (ppSub o.maxSize.acn) errCode.errCodeName ( o.maxSize.acn) extField sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
             | Acn_Enc_String_CharIndex_External_Field_Determinant _ ->
                 let extField = getExternalField lm r deps t.id
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))

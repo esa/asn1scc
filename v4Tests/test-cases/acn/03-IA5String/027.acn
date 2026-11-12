@@ -1,0 +1,11 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+   Str [encoding ASCII]
+   SubExt [encoding ASCII]
+   MyPDU [] {
+      n INTEGER [encoding pos-int, size 8],
+      s [size n],
+      last []
+   }
+
+END

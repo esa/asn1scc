@@ -1,0 +1,6 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Str ::= IA5String (SIZE (1 .. 10))
+Sub ::= Str (SIZE (3))
+
+END

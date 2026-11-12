@@ -817,6 +817,11 @@ EnumeratedEncValues_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sAct
 
 
 
+/* A fixed-size string subtype, e.g. Str (SIZE(3)) of Str = IA5String (SIZE(1..10)), shares the longer typedef of its
+   base type (a String(1..11)); the fixed-size ACN ASCII calls take the subtype's characters + 1 (the RTL encodes and
+   decodes strVal'Length - 1 characters). */
+Acn_String_Ascii_FixSize_prefix(p, nAsn1Max) ::= "<p>(1 .. <nAsn1Max> + 1)"
+
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_FixSize(bs, <p>);"
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_FixSize(bs, <p>, result);

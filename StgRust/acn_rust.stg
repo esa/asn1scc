@@ -653,6 +653,9 @@ if ret {
 
 
 /* Strings */
+/* Ada only: a fixed-size string subtype that shares a longer typedef (the calls here take nAsn1Max). */
+Acn_String_Ascii_FixSize_prefix(p, nAsn1Max) ::= "<p>"
+
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "acn::acn_enc_string_ascii_fix_size(pBitStrm, <nAsn1Max>, &(<p>).arr);"
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 {

@@ -107,6 +107,8 @@ type IAcn_rust() =
             acn_rust.EnumeratedEncValues  p td arrsItem sActualCodecFunc sErrCode sFirstItemName sIntVal soCovExempt codec
         override this.EnumeratedEncValues_no_switch  (p:string) (td:FE_EnumeratedTypeDefinition) (sActualCodecFunc:string) (sErrCode:string) (sFirstItemName:string) (sIntVal:string) (sEnumIndex:string) (nLastItemIndex:BigInteger) (bEncodeValues:bool) (codec:Codec) =
             acn_rust.EnumeratedEncValues_no_switch  p td sActualCodecFunc sErrCode sFirstItemName sIntVal sEnumIndex nLastItemIndex bEncodeValues codec
+        override this.Acn_String_Ascii_FixSize_prefix  (p:string) (nAsn1Max:BigInteger) =
+            acn_rust.Acn_String_Ascii_FixSize_prefix  p nAsn1Max 
         override this.Acn_String_Ascii_FixSize  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (codec:Codec) =
             acn_rust.Acn_String_Ascii_FixSize  p sErrCode nAsn1Max codec
         override this.Acn_String_Ascii_Null_Terminated  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (arruNullBytes:seq<byte>) (sType:string) (codec:Codec) =

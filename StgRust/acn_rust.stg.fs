@@ -383,6 +383,10 @@ let EnumeratedEncValues_no_switch (p:string) (td:FE_EnumeratedTypeDefinition) (s
     | Decode    ->
         ST.call "acn_rust" "EnumeratedEncValues_no_switch_decode" [("p",p :>Object);("td",td :>Object);("sActualCodecFunc",(if sActualCodecFunc = null then null else ST.StrHelper sActualCodecFunc:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("sFirstItemName",(if sFirstItemName = null then null else ST.StrHelper sFirstItemName:>Object) );("sIntVal",(if sIntVal = null then null else ST.StrHelper sIntVal:>Object) );("sEnumIndex",(if sEnumIndex = null then null else ST.StrHelper sEnumIndex:>Object) );("nLastItemIndex",nLastItemIndex :>Object);("bEncodeValues",bEncodeValues :>Object)]
 
+let Acn_String_Ascii_FixSize_prefix (p:string) (nAsn1Max:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "Acn_String_Ascii_FixSize_prefix" [("p",p :>Object);("nAsn1Max",nAsn1Max :>Object)]
+
 let Acn_String_Ascii_FixSize (p:string) (sErrCode:string) (nAsn1Max:BigInteger) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with

@@ -478,6 +478,9 @@ EnumeratedEncValues_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sAct
 
 
 /* Strings */
+/* Ada only: a fixed-size string subtype that shares a longer typedef (the calls here take nAsn1Max). */
+Acn_String_Ascii_FixSize_prefix(p, nAsn1Max) ::= "<p>"
+
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "codec.enc_String_Ascii_FixSize(<nAsn1Max>, <p>)"
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 val <p> = codec.dec_String_Ascii_FixSize(<nAsn1Max>)

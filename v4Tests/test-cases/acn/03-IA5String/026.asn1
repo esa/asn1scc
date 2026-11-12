@@ -1,0 +1,22 @@
+--RUN_SPARK
+-- String subtypes with ACN 'encoding ASCII' that share the longer typedef of their base type (an Ada String(1..11)):
+-- fixed size, embedded length and null-terminated. The Ada RTL calls take only the subtype's characters + 1; before,
+-- the fixed-size encoder wrote the typedef's 10 characters into a stream sized for 3 (index check failure, out of
+-- bounds with -gnatp), and the other calls could not be proved.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Str ::= IA5String (SIZE(1..10))
+   SubFix ::= Str (SIZE(3))
+   SubVar ::= Str (SIZE(2..3))
+   SubNT ::= Str (SIZE(1..3))
+
+   MyPDU ::= SEQUENCE {
+      f      SubFix,
+      v      SubVar,
+      t      SubNT,
+      last   BOOLEAN
+   }
+
+END
+
+--TCFS     026.acn
