@@ -1,0 +1,26 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+	Single []
+
+	OneAlt []
+
+	MyPDU []
+
+	WithField [] {
+		kind Kind [],
+		x [],
+		alt [determinant kind] {
+			p []
+		}
+	}
+
+	WithField2 [] {
+		kind Kind2 [],
+		x [],
+		alt [determinant kind] {
+			p [],
+			q []
+		}
+	}
+
+END

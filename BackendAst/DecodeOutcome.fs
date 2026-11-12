@@ -97,15 +97,17 @@ let varSizeStringCannotFail (lm:LanguageMacros) (kind:FixedStringKind) (isFixedS
     not isFixedSize && maxSize < 65536I && lengthFullRange lm minSize maxSize nSizeInBits
     && (match kind with FixedOctets -> true | FixedBits -> not CommonTypes.bitStringAlignment)
 
-/// Coverage step 14c2a: an index (uPER ENUMERATED, CHOICE) that fills its field: n = 2^k items (k >= 1). The index is read
+/// Coverage step 14c2a: an index (uPER ENUMERATED, CHOICE) that fills its field: n = 2^k items. The index is read
 /// with the RTL twin UPER_Dec_ConstraintWholeNumber_FullRange (no Result; its Post bounds the index to 0 .. 2^k - 1), so
-/// the `case` on it needs no guard. Returns k.
+/// the `case` on it needs no guard. Returns k. Since 14j (G4) also k = 0 (one item / alternative): the twin reads 0 bits
+/// (its Pre allows nBits = 0, its Post gives the index 0); the value is still read, not assigned (C:
+/// decodeOneValueWithoutRead), so `bs` stays an argument of an RTL call.
 let fullIndexBits (lm:LanguageMacros) (n:int) : BigInteger option =
     match lm.lg.decodeReadFailureModel with
     | ReadsCanFail      -> None
     | ReadsCannotFail   ->
         let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (n - 1))
-        match n >= 2 && BigInteger n = BigInteger.Pow (2I, int nBits) with
+        match n >= 1 && BigInteger n = BigInteger.Pow (2I, int nBits) with
         | true  -> Some nBits
         | false -> None
 
