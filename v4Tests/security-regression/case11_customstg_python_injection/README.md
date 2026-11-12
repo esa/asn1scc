@@ -28,3 +28,12 @@ with `check.py` and checks that:
 Run it with `ASN1SCC=<compiler> ./reproduce_issue.sh` (the template next to the compiler is used; override with
 `PYTHON_STG=<path>`). With the template of a compiler without the fix the injection leg reports the `PROOF_DIR`,
 `PROOF_FILE` and `PROOF_VALUE` files and the special-character leg a file that does not compile.
+
+## xml.stg
+
+The other custom STG we ship, `StgVarious/xml.stg`, had the same defect for XML: the file path and names were
+placed unescaped in attributes and string values in `<![CDATA[$v$]]>`, so a `"` / `<` in a file name or a `]]>` in
+a value broke the document or injected elements (no code execution by itself). It now uses `format="xml"` for every
+attribute value and `format="cdata"` (splits `]]>` over two sections) for string values. The last leg of
+`reproduce_issue.sh` parses the output (`check_xml.py`; template override `XML_STG=<path>`) and checks the file path
+and a value containing `]]><Injected/>`.

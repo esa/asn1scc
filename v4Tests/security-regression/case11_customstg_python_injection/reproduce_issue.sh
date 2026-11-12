@@ -8,14 +8,19 @@ cd "$(dirname "$0")"
 case_dir="$PWD"
 compiler="${ASN1SCC:-asn1scc}"
 # OpenGEODE uses the python.stg installed next to the compiler
-stg="${PYTHON_STG:-$(dirname "$(readlink -f "$(command -v "$compiler")")")/python.stg}"
+compiler_dir="$(dirname "$(readlink -f "$(command -v "$compiler")")")"
+stg="${PYTHON_STG:-$compiler_dir/python.stg}"
+xml_stg="${XML_STG:-$compiler_dir/xml.stg}"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 # names with quotes cannot exist on Windows file systems: build them in a temporary Linux directory
 dir_name='d"+str(__import__("os").system("echo pwned>PROOF_DIR.txt"))+"d'
 file_name='f"+str(__import__("os").system("echo pwned>PROOF_FILE.txt"))+"f.asn'
-mkdir -p "$work/$dir_name"
+xml_dir='x"&<y'
+xml_file="f'<&>\".asn"
+mkdir -p "$work/$dir_name" "$work/$xml_dir"
 cp dataview.asn "$work/$dir_name/$file_name"
+cp xml.asn "$work/$xml_dir/$xml_file"
 status=0
 generate() {   # generate <output.py> <input file> [extra compiler options]
     local output="$1" input="$2"
@@ -37,4 +42,8 @@ printf 'PR DEFINITIONS AUTOMATIC TAGS ::= BEGIN\nT ::= SEQUENCE { a INTEGER (0..
 generate prefix.py prefix.asn -typePrefix 'P"+str(__import__("os").system("echo pwned>PROOF_PREFIX.txt"))+"'
 (cd "$work" && python3 -I -c 'import sys; exec(compile(open(sys.argv[1], "rb").read(), sys.argv[1], "exec"), {})' prefix.py) || { echo "FAIL: generated file does not run"; status=1; }
 if ls "$work"/PROOF* >/dev/null 2>&1; then echo "FAIL: injected code ran"; status=1; else echo "OK"; fi
+
+echo "== xml.stg: file name in XML attributes, ']]>' in a CDATA string value"
+(cd "$work" && "$compiler" -customStgAstVersion 4 -customStg "$xml_stg::out.xml" "$xml_dir/$xml_file")
+(cd "$work" && python3 -I "$case_dir/check_xml.py" out.xml "$xml_dir/$xml_file") || status=1
 exit $status

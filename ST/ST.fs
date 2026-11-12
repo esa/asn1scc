@@ -90,11 +90,22 @@ let pythonStringEscape (s:string) =
         i <- i + 1
     sb.ToString()
 
+/// XML attribute value or text content (custom STG xml.stg). Line breaks and tabs become character references,
+/// so that attribute-value normalization does not turn them into spaces.
+let xmlEscape (s:string) =
+    s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;")
+     .Replace("\n", "&#10;").Replace("\r", "&#13;").Replace("\t", "&#9;")
+
+/// Content of <![CDATA[...]]>: a "]]>" in the text would end the section, so it is split over two sections.
+let cdataEscape (s:string) = s.Replace("]]>", "]]]]><![CDATA[>")
+
 type StringFormatRenderer() =
     static member TS (o:Object) (format:string) =
         match format with
         // escaping for a target language, chosen by the template: $sName; format="python"$
         | "python" -> pythonStringEscape (o.ToString())
+        | "xml"    -> xmlEscape (o.ToString())
+        | "cdata"  -> cdataEscape (o.ToString())
         | _        ->
             let frmStr = "{0," + format + "}";
             String.Format(frmStr, o.ToString())
