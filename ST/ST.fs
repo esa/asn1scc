@@ -66,10 +66,38 @@ type BasicFormatRenderer2<'T when 'T :equality>() =
             String.Format(frmStr, (o :?> PrimitiveWithLocation<'T>).Value)
 
 
+/// Body of a Python 3 "..." / '...' string literal that evaluates back to s, whatever s contains
+/// (custom STG python.stg: its output is executed by OpenGEODE, ESACERT #75543). Printable ASCII is kept,
+/// everything else is escaped, so the generated file is plain ASCII.
+let pythonStringEscape (s:string) =
+    let sb = Text.StringBuilder(s.Length + 8)
+    let mutable i = 0
+    while i < s.Length do
+        let c = s.[i]
+        match c with
+        | '\\' -> sb.Append("\\\\") |> ignore
+        | '"'  -> sb.Append("\\\"") |> ignore
+        | '\'' -> sb.Append("\\'") |> ignore
+        | '\n' -> sb.Append("\\n") |> ignore
+        | '\r' -> sb.Append("\\r") |> ignore
+        | '\t' -> sb.Append("\\t") |> ignore
+        | _ when c >= ' ' && c < '\u007F' -> sb.Append(c) |> ignore
+        | _ when int c < 0x100 -> sb.AppendFormat("\\x{0:x2}", int c) |> ignore
+        | _ when Char.IsHighSurrogate c && i + 1 < s.Length && Char.IsLowSurrogate s.[i+1] ->
+            sb.AppendFormat("\\U{0:x8}", Char.ConvertToUtf32(c, s.[i+1])) |> ignore
+            i <- i + 1
+        | _ -> sb.AppendFormat("\\u{0:x4}", int c) |> ignore   // BMP character or lone surrogate
+        i <- i + 1
+    sb.ToString()
+
 type StringFormatRenderer() =
-    static member TS o format =
-        let frmStr = "{0," + format + "}";
-        String.Format(frmStr, o.ToString())
+    static member TS (o:Object) (format:string) =
+        match format with
+        // escaping for a target language, chosen by the template: $sName; format="python"$
+        | "python" -> pythonStringEscape (o.ToString())
+        | _        ->
+            let frmStr = "{0," + format + "}";
+            String.Format(frmStr, o.ToString())
     interface IAttributeRenderer with
         member this.ToString o = o.ToString()
         member this.ToString(o,format) = StringFormatRenderer.TS o format
@@ -77,7 +105,7 @@ type StringFormatRenderer() =
 type StringFormatRenderer2() =
     interface IAttributeRenderer with
         member this.ToString o = (o :?> StringLoc).Value.ToString()
-        member this.ToString(o,format) = StringFormatRenderer.TS (o :?> StringLoc).Value format
+        member this.ToString(o,format) = StringFormatRenderer.TS (box (o :?> StringLoc).Value) format
 
 
 type RealFormatRenderer() =

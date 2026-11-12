@@ -1,0 +1,16 @@
+SP DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+MyStr ::= IA5String (SIZE(0..200))
+
+-- backslash, both quotes, control characters and non-ASCII must survive the round trip
+-- (on a compiler without the fix the generated file does not even compile: raw LF / NUL inside "...")
+specialValue MyStr ::= {"a\b'c""d", lf, cr, ht, nul, "e-é-😀"}
+
+Inner ::= SEQUENCE { a MyStr, b MyStr }
+
+-- DEFAULT values were escaped with .EDQ (quotes only): a backslash before a quote closed the literal
+WithDefault ::= SEQUENCE {
+    x Inner DEFAULT {a "\", b ")+str(__import__('os').system('echo pwned>PROOF_DEFAULT.txt'))#"}
+}
+
+END
