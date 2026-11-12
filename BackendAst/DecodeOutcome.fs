@@ -817,19 +817,16 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (choiceAssigns: As
                     match c with
                     | AcnChild a  -> full, failedBefore || (acnChildrenDecoded && acnFieldOutcome a.Type = MayFail)
                     | Asn1Child c ->
-                        // 14j (G4): an inline CHOICE child (decoded in place, not a call) whose selection always reaches
-                        // an arm (choiceAssigns) writes the whole component: every arm starts with `val.c := T'(kind =>
+                        // 14j (G4): a CHOICE child decoded in place (inline, or a reference whose body is inlined; not a
+                        // call) whose selection always reaches an arm (choiceAssigns) writes the whole component: every arm starts with `val.c := T'(kind =>
                         // ..., x => init)`; a component is not a parameter, so its discriminant is not read. Before, a
                         // SEQUENCE with such a child (14c2a full index, or an ENUMERATED determinant field that 14c2b
                         // reads with a _FullRange twin) stayed `in out` and gnatprove flow reported "unused initial value
                         // of val". A failure inside the alternative comes after the assignment (outcome below).
                         let childWrite =
-                            match c.Type.Kind with
-                            | Choice _ ->
-                                match choiceAssigns c.Type with
-                                | true  -> FullWrite
-                                | false -> MayLeavePartial
-                            | _ -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm c.Type
+                            match choiceAssigns c.Type with
+                            | true  -> FullWrite
+                            | false -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm c.Type
                         let written =
                             c.Optionality.IsNone && hasStatement c.Type && not failedBefore && childWrite = FullWrite
                         full && written, failedBefore || outcome c.Type = MayFail) (true, false)
@@ -887,15 +884,44 @@ let acnChoiceSelectionAssigns (r:AstRoot) (deps:AcnInsertedFieldDependencies) (l
     | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
     | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | NullType _ | ReferenceType _ -> false
 
+/// 14j: a CHOICE child decoded in place (an inline CHOICE, or a reference whose body is inlined: the reference rules of
+/// acnValInitUnused) whose selection always reaches an arm (acnChoiceSelectionAssigns); a call passes val on.
+let rec acnChoiceChildAssigns (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : bool =
+    match t.Kind with
+    | Choice _ -> acnChoiceSelectionAssigns r deps lm t
+    | ReferenceType o ->
+        match o.encodingOptions, o.hasExtraConstrainsOrChildrenOrAcnArgs with
+        | Some _, _         -> false
+        | None, true when r.args.acnDeferred && not o.acnArguments.IsEmpty -> false     // call of a specialised function
+        | None, true        -> acnChoiceChildAssigns r deps lm o.resolvedType                // the base body inlined
+        | None, false       ->
+            match isLiveDeduced o.resolvedType with
+            | true  -> acnChoiceChildAssigns r deps lm o.resolvedType                        // inlined
+            | false -> false                                                            // call of T_ACN_Decode_aux
+    | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
+    | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | NullType _ -> false
+
 /// uPER *_Decode_aux: does it write all of val on every path?
 let uperValWrite (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
-    // a uPER CHOICE reaches an arm on every path only with a full index (choice_fullIndex: no guard)
-    let choiceAssigns (c:Asn1Type) = match c.Kind with Choice o -> (uperChoiceFullIndex r lm o).IsSome | _ -> false
+    // a uPER CHOICE decoded in place reaches an arm on every path only with a full index (choice_fullIndex: no guard);
+    // a reference is decoded in place when it is not equivalent to its type assignment (uperValInitUnused)
+    let rec choiceAssigns (c:Asn1Type) =
+        match c.Kind with
+        | Choice o -> (uperChoiceFullIndex r lm o).IsSome
+        | ReferenceType o ->
+            match o.encodingOptions with
+            | Some _ -> false
+            | None   ->
+                match TypesEquivalence.uperEquivalence (GetActualTypeByName r o.modName o.tasName) o.resolvedType with
+                | true  -> false                                                    // call of T_Decode_aux
+                | false -> choiceAssigns o.resolvedType                             // decoded in place
+        | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
+        | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | NullType _ -> false
     valWrite (uper r lm) choiceAssigns (fun _ -> MayFail) uperChildHasStatement false false lm t
 
 /// ACN *_ACN_Decode_aux (also the --acn-v2 specialised functions): does it write all of val on every path?
 let acnValWrite (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
-    valWrite (acn r deps lm) (acnChoiceSelectionAssigns r deps lm) (fun a -> fst (acnInsertedFieldPart r lm a)) acnHasDecodeContent true r.args.acnDeferred lm t
+    valWrite (acn r deps lm) (acnChoiceChildAssigns r deps lm) (fun a -> fst (acnInsertedFieldPart r lm a)) acnHasDecodeContent true r.args.acnDeferred lm t
 
 /// Coverage step 14c2a: a decoder whose body is a CHOICE with a full index writes all of val on every path (each arm
 /// assigns `val := T'(kind => ..., x => init)`), yet val stays `in out`: a CHOICE is a variant record, and the
