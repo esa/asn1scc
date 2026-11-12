@@ -798,7 +798,7 @@ type ValWrite =
     | FullWrite
     | MayLeavePartial
 
-let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (acnFieldOutcome: AcnInsertedType -> DecodeOutcome) (hasStatement: Asn1Type -> bool) (acnChildrenDecoded:bool) (acnDeferred:bool) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
+let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (choiceAssigns: Asn1Type -> bool) (acnFieldOutcome: AcnInsertedType -> DecodeOutcome) (hasStatement: Asn1Type -> bool) (acnChildrenDecoded:bool) (acnDeferred:bool) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
     match lm.lg.decodeReadFailureModel with
     | ReadsCanFail      -> FullWrite
     | ReadsCannotFail   ->
@@ -815,9 +815,21 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (acnFieldOutcome: 
                     match c with
                     | AcnChild a  -> full, failedBefore || (acnChildrenDecoded && acnFieldOutcome a.Type = MayFail)
                     | Asn1Child c ->
+                        // 14j (G4): an inline CHOICE child (decoded in place, not a call) whose selection always reaches
+                        // an arm (choiceAssigns) writes the whole component: every arm starts with `val.c := T'(kind =>
+                        // ..., x => init)`; a component is not a parameter, so its discriminant is not read. Before, a
+                        // SEQUENCE with such a child (14c2a full index, or an ENUMERATED determinant field that 14c2b
+                        // reads with a _FullRange twin) stayed `in out` and gnatprove flow reported "unused initial value
+                        // of val". A failure inside the alternative comes after the assignment (outcome below).
+                        let childWrite =
+                            match c.Type.Kind with
+                            | Choice _ ->
+                                match choiceAssigns c.Type with
+                                | true  -> FullWrite
+                                | false -> MayLeavePartial
+                            | _ -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm c.Type
                         let written =
-                            c.Optionality.IsNone && hasStatement c.Type && not failedBefore
-                            && valWrite outcome acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm c.Type = FullWrite
+                            c.Optionality.IsNone && hasStatement c.Type && not failedBefore && childWrite = FullWrite
                         full && written, failedBefore || outcome c.Type = MayFail) (true, false)
             // a SEQUENCE whose children are all NULL without a statement: decode_empty_sequence writes them
             let onlyNullFields =
@@ -830,18 +842,18 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (acnFieldOutcome: 
             | false -> MayLeavePartial
         | ReferenceType o ->
             match o.encodingOptions with
-            | None     -> valWrite outcome acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
+            | None     -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
             | Some enc ->                                                               // CONTAINING
                 // --acn-v2 decodes a fixed-size CONTAINING by a plain call of the contained type's decoder
                 // (DAstACNDeferred: octet / bit_string_containing_deferred_fixed_func); everything else checks
                 // the region first
                 match acnDeferred, enc.acnEncodingClass with
-                | true, SZ_EC_FIXED_SIZE -> valWrite outcome acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
+                | true, SZ_EC_FIXED_SIZE -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
                 // 14c2b: a CONTAINING with ACN arguments is a call of a specialised function, whose val has the mode of
                 // the contained type (DAstACNDeferred: acnValWrite of resolvedType); an ACN field before it no longer
                 // hides this since its read cannot fail (25-ACNV2-BOUNDARIES/002: "unused initial value of val")
                 | true, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced) when not o.acnArguments.IsEmpty ->
-                    valWrite outcome acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
+                    valWrite outcome choiceAssigns acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
                 | true, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced)
                 | false, _ -> MayLeavePartial
         // a CHOICE is a variant record: the discriminant of an `out` parameter is read at the call, so the caller would
@@ -850,13 +862,38 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (acnFieldOutcome: 
         | IA5String _ | NumericString _ | OctetString _ | BitString _ | TimeType _
         | SequenceOf _ | Choice _ -> MayLeavePartial
 
+/// 14j (G4): whether the ACN decoder of a CHOICE reaches an arm on every path, i.e. assigns the whole value
+/// (ChoiceChild_Enum_decode / ChoiceChild_decode start with `<p> := T'(kind => ..., x => init)`): a full index
+/// (Choice_fullIndex, no guard), or an ENUMERATED determinant held in a local of the enumeration type
+/// (Choice_Enum_decode without `when others`: not an --acn-v2 deferred ref, AcnChoice.isDeferredDeterminant) and no
+/// ALWAYS ABSENT alternative (its Ada arm only writes a failure). Choice_decode (guarded index) and present-when
+/// (else arm fails) may skip every arm.
+let acnChoiceSelectionAssigns (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : bool =
+    match t.Kind with
+    | Choice o ->
+        let noAlwaysAbsent = o.children |> List.forall (fun c -> c.Optionality <> Some ChoiceAlwaysAbsent)
+        match o.acnProperties.enumDeterminant with
+        | None   -> (acnChoiceFullIndex r deps lm o).IsSome
+        | Some _ ->
+            match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = t.id) with
+            | None   -> false
+            | Some d ->
+                match r.args.acnDeferred, d.determinant with
+                | true, AcnParameterDeterminant _   -> false                        // deferred ref: `when others` fails
+                | true, AcnChildDeterminant _
+                | false, _                          -> noAlwaysAbsent
+    | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
+    | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | NullType _ | ReferenceType _ -> false
+
 /// uPER *_Decode_aux: does it write all of val on every path?
 let uperValWrite (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
-    valWrite (uper r lm) (fun _ -> MayFail) uperChildHasStatement false false lm t
+    // a uPER CHOICE reaches an arm on every path only with a full index (choice_fullIndex: no guard)
+    let choiceAssigns (c:Asn1Type) = match c.Kind with Choice o -> (uperChoiceFullIndex r lm o).IsSome | _ -> false
+    valWrite (uper r lm) choiceAssigns (fun _ -> MayFail) uperChildHasStatement false false lm t
 
 /// ACN *_ACN_Decode_aux (also the --acn-v2 specialised functions): does it write all of val on every path?
 let acnValWrite (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
-    valWrite (acn r deps lm) (fun a -> fst (acnInsertedFieldPart r lm a)) acnHasDecodeContent true r.args.acnDeferred lm t
+    valWrite (acn r deps lm) (acnChoiceSelectionAssigns r deps lm) (fun a -> fst (acnInsertedFieldPart r lm a)) acnHasDecodeContent true r.args.acnDeferred lm t
 
 /// Coverage step 14c2a: a decoder whose body is a CHOICE with a full index writes all of val on every path (each arm
 /// assigns `val := T'(kind => ..., x => init)`), yet val stays `in out`: a CHOICE is a variant record, and the
