@@ -118,7 +118,7 @@ isObjectIdentifier_equal(p1, p2) ::= <<
 
 isEqual_Choice_Child(sChoiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= ""
 
-isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
+isEqual_Choice(p1,p2, sAccess, arrsChildren, bOneAlternative) ::= <<
 ret = <p1>.kind == <p2>.kind and <p1>.data == <p2>.data
 >>
 

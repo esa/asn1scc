@@ -738,31 +738,6 @@ let rec private seqOfSizeIsOneInterval (c:SequenceOfConstraint) : bool =
     | SeqOfSizeSingleValueConstraint _
     | SeqOfSeqWithComponentConstraint _          -> false
 
-/// The typedef that declares the value's Ada type: the type's own, or, for a type that resolves a reference to a
-/// type assignment without new constraints (inheritInfo), the type assignment's own (the type shares it, with the
-/// same constraints). None for an RTL type or anything else.
-let private declaringTypedef (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) : TypeDefinition option =
-    match typeDefinition, t.inheritInfo with
-    | TypeDefinition td, _                     -> Some td
-    | ReferenceToExistingDefinition rd, Some inh when not rd.definedInRtl && not inh.hasAdditionalConstraints ->
-        let tasDefinition =
-            r.modulesMap.TryFind inh.modName |>
-            Option.bind (fun m -> m.typeAssignmentsMap.TryFind inh.tasName) |>
-            Option.bind (fun tas ->
-                match tas.Type.Kind with
-                | Asn1AcnAst.Integer o      -> Some (l.lg.definitionOrRef o.definitionOrRef)
-                | Asn1AcnAst.OctetString o  -> Some (l.lg.definitionOrRef o.definitionOrRef)
-                | Asn1AcnAst.BitString o    -> Some (l.lg.definitionOrRef o.definitionOrRef)
-                | Asn1AcnAst.SequenceOf o   -> Some (l.lg.definitionOrRef o.definitionOrRef)
-                | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _ | Asn1AcnAst.NullType _
-                | Asn1AcnAst.Boolean _ | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.TimeType _
-                | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.ReferenceType _ -> None)
-        match tasDefinition with
-        | Some (TypeDefinition td)                   -> Some td
-        | Some (ReferenceToExistingDefinition _)
-        | None                                       -> None
-    | ReferenceToExistingDefinition _, _       -> None
-
 /// INTEGER: the typedef is a ranged subtype of the type's uPER range (DAstTypeDefinition.createInteger; a subtype
 /// narrows the range too).
 let private integerRangeEnforcedByTypedef (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (cons:IntegerTypeConstraint list) =

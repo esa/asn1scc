@@ -180,13 +180,21 @@ when <sNamePresent> =>
     <sInnerStatement>
 >>
 
-isEqual_Choice(p1, p2, sAccess, arrsChildren) ::= <<
+/* bOneAlternative (coverage step 14i, E2): the selector type has one literal, so the kinds are always equal */
+isEqual_Choice(p1, p2, sAccess, arrsChildren, bOneAlternative) ::= <<
+<if(bOneAlternative)>
+--  <p1>.kind: not compared, the CHOICE has one alternative
+case <p1>.kind is
+    <arrsChildren; separator="\n">
+end case;
+<else>
 ret := <p1>.kind = <p2>.kind;
 if ret then
     case <p1>.kind is
         <arrsChildren; separator="\n">
     end case;
 end if;
+<endif>
 >>
 
 

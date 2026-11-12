@@ -607,6 +607,13 @@ type EqualityToggle =
     | ToggleByte of BigInteger      // OCTET STRING: this byte; BIT STRING: the first bit of this byte
     | ToggleBit of BigInteger       // BIT STRING: this bit (0-based)
 
+/// What a SEQUENCE component contributes to the Equal function of its SEQUENCE (coverage step 14i, E2).
+type EqualChildPart =
+    | EqualChildCompares of string * LocalVariable list    // a comparison: writes ret
+    | EqualChildOmitted of string * (string * LocalVariable list)
+                                    // a comment instead of a comparison that cannot find a difference (writes no ret);
+                                    // the comparison is kept for a SEQUENCE that would compare nothing else
+
 type ValidationOutcome =
     | AlwaysValid       // no check, or only checks that the language type already enforces
     | MayBeInvalid
@@ -1179,7 +1186,7 @@ and Asn1Child = {
     _python_name                 : string
     _ada_name                   : string
     _rust_name                  : string
-    isEqualBodyStats            : CodegenScope -> CodegenScope -> (string*(LocalVariable list)) option
+    isEqualBodyStats            : CodegenScope -> CodegenScope -> EqualChildPart option
     Type                        : Asn1Type
     Optionality                 : Asn1AcnAst.Asn1Optionality option
     Comments                    : string array

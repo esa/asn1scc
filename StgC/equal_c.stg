@@ -145,7 +145,7 @@ case <sCid>:
 	break;
 >>
 
-isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
+isEqual_Choice(p1,p2, sAccess, arrsChildren, bOneAlternative) ::= <<
 ret = (<p1><sAccess>kind == <p2><sAccess>kind);
 if (ret) {
 	switch(<p1><sAccess>kind)

@@ -64,9 +64,12 @@ let isEqualBodyBitString  (lm:LanguageMacros) sMin sMax (v1:CodegenScope) (v2:Co
     Some (lm.equal.isEqual_BitString v1 v2 (sMin = sMax) sMax (sMax / 8I > 0I) (sMax % 8I > 0I), [])
 
 
-let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (newChild:Asn1Type) (v1:CodegenScope) (v2:CodegenScope)  =
+/// Coverage step 14i (E2): a component whose language type holds one value (typeHoldsOneValue: Ada `range a .. a`, an
+/// enumeration of one item) is not compared; a comment says why (an OPTIONAL one still compares its presence).
+let isEqualBodySequenceChild (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (newChild:Asn1Type) (v1:CodegenScope) (v2:CodegenScope)  =
     let c_name = lm.lg.getAsn1ChildBackendName0 o
     let callChildEqualFunc  = lm.equal.callChildEqualFunc
+    let sOneValueComment = lm.lg.createSingleLineComment (sprintf " %s: not compared, its type holds one value" c_name)
     let sInnerStatement =
         let chp1 = {v1 with accessPath = lm.lg.getSeqChild v1.accessPath c_name newChild.isIA5String o.Optionality.IsSome}
         let chp2 = {v2 with accessPath = lm.lg.getSeqChild v2.accessPath c_name newChild.isIA5String o.Optionality.IsSome}
@@ -80,11 +83,15 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
             | EqualBodyStatementList  func   -> func chp1 chp2
         | Some  fncName ->
             Some ((callChildEqualFunc (lm.lg.getPointerUnchecked chp1.accessPath FullAccess) (lm.lg.getPointerUnchecked chp2.accessPath FullAccess) fncName), [])
+    let presenceCompare soInner =
+        lm.equal.isEqual_Sequence_child (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) o.Optionality.IsSome c_name soInner
 
-    match sInnerStatement with
-    | None  when  o.Optionality.IsSome  -> Some (lm.equal.isEqual_Sequence_child (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) o.Optionality.IsSome c_name None, [])
-    | None                              -> None
-    | Some (sInnerStatement, lvars)     -> Some (lm.equal.isEqual_Sequence_child (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) o.Optionality.IsSome c_name (Some sInnerStatement), lvars)
+    match sInnerStatement, typeHoldsOneValue r lm o.Type, o.Optionality.IsSome with
+    | None, _, true                             -> Some (EqualChildCompares (presenceCompare None, []))
+    | None, _, false                            -> None
+    | Some _, true, true                        -> Some (EqualChildCompares (presenceCompare None + "\n" + sOneValueComment, []))
+    | Some (sInnerStatement, lvars), true, false -> Some (EqualChildOmitted (sOneValueComment, (presenceCompare (Some sInnerStatement), lvars)))
+    | Some (sInnerStatement, lvars), false, _   -> Some (EqualChildCompares (presenceCompare (Some sInnerStatement), lvars))
 
 
 let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:Asn1AcnAst.ChChildInfo) (newChild:Asn1Type) (v1:CodegenScope) (v2:CodegenScope)  =
@@ -263,25 +270,36 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:
 
 let createSequenceEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (children:SeqChildInfo list)  =
     let isEqualBodySequence  (lm:LanguageMacros) (children:SeqChildInfo list) (v1:CodegenScope) (v2:CodegenScope)  =
-        let printChild (content:string, lvars:LocalVariable list) (sNestedContent:string option) =
-            match sNestedContent with
-            | None  -> content, lvars
-            | Some c-> lm.equal.JoinItems content sNestedContent, lvars
-        let rec printChildren children : Option<string*list<LocalVariable>> =
+        // A comment (EqualChildOmitted) writes no ret: what follows it is not guarded by an `if ret`, and parts that
+        // are only comments are not put inside one (an Ada `if` needs a statement).
+        let rec printChildren (children:EqualChildPart list) : (string * LocalVariable list * bool) option =
             match children with
-            |[]     -> None
-            |x::xs  ->
-                match printChildren xs with
-                | None                          -> Some (printChild x  None)
-                | Some (childrenCont, lvars)    ->
-                    let content, lv = printChild x  (Some childrenCont)
-                    Some (content, lv@lvars)
+            | []     -> None
+            | x::xs  ->
+                let rest = printChildren xs
+                match x, rest with
+                | EqualChildCompares (content, lvars), None                         -> Some (content, lvars, true)
+                | EqualChildCompares (content, lvars), Some (cont, lv, true)        -> Some (lm.equal.JoinItems content (Some cont), lvars@lv, true)
+                | EqualChildCompares (content, lvars), Some (cont, lv, false)       -> Some (content + "\n" + cont, lvars@lv, true)
+                | EqualChildOmitted (sComment, _), None                             -> Some (sComment, [], false)
+                | EqualChildOmitted (sComment, _), Some (cont, lv, bCompares)       -> Some (sComment + "\n" + cont, lv, bCompares)
 
         let childrenConent =
             children |>
             List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None) |>
             List.choose(fun c -> c.isEqualBodyStats  v1 v2 )
-        printChildren childrenConent
+        // When every component is omitted, the first one is compared anyway: the function keeps a body that references
+        // both values, and no `if ret` follows it.
+        let comparesSomething = childrenConent |> List.exists (fun p -> match p with EqualChildCompares _ -> true | EqualChildOmitted _ -> false)
+        let childrenConent =
+            match comparesSomething, childrenConent with
+            | false, (EqualChildOmitted (_, compare))::rest  -> (EqualChildCompares compare)::rest
+            | false, (EqualChildCompares _)::_
+            | false, []
+            | true, _                                       -> childrenConent
+        match printChildren childrenConent with
+        | Some (content, lvars, _)  -> Some (content, lvars)
+        | None                      -> None
     let isEqualBody         = isEqualBodySequence lm children
     createEqualFunction_any r lm t typeDefinition (EqualBodyStatementList isEqualBody)
     //createCompositeEqualFunction r l lm  t typeDefinition isEqualBody (stgMacroCompDefFunc l)
@@ -293,7 +311,20 @@ let createChoiceEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
             List.map(fun c -> c.isEqualBodyStats v1 v2)  |>
             List.unzip
         let lvars = lvars |> List.collect id
-        Some(lm.equal.isEqual_Choice (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) childrenConent, lvars)
+        // Coverage step 14i (E2): when the selector can only name an alternative (Ada: an enumeration of the
+        // alternatives) and there is one alternative, the kinds of two values are always equal and are not compared.
+        // Only when that alternative compares something: else the case would not reference the second value.
+        let comparesValues (c:ChChildInfo) =
+            match c.chType.equalFunction.isEqualFuncName, c.chType.equalFunction.isEqualBody with
+            | Some _, _                         -> true
+            | None, EqualBodyExpression f       -> (f v1 v2).IsSome
+            | None, EqualBodyStatementList f    -> (f v1 v2).IsSome
+        let bOneAlternative =
+            match lm.lg.choiceSelectorHoldsOnlyAlternatives, children with
+            | true, [c] -> comparesValues c
+            | true, _
+            | false, _  -> false
+        Some(lm.equal.isEqual_Choice (v1.accessPath.joined lm.lg) (v2.accessPath.joined lm.lg) (lm.lg.getAccess v1.accessPath) childrenConent bOneAlternative, lvars)
     let isEqualBody         = isEqualBodyChoice typeDefinition lm children
     createEqualFunction_any r lm t typeDefinition (EqualBodyStatementList isEqualBody)
     //createCompositeEqualFunction r l lm  t typeDefinition isEqualBody (stgMacroCompDefFunc l)

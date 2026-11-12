@@ -45,8 +45,8 @@ type IEqual_rust() =
             equal_rust.isObjectIdentifier_equal  p1 p2 
         override this.isEqual_Choice_Child  (sChoiceTypeDefName:string) (sCid:string) (sInnerStatement:string) (sTmpVarName1:string) (sTmpVarName2:string) =
             equal_rust.isEqual_Choice_Child  sChoiceTypeDefName sCid sInnerStatement sTmpVarName1 sTmpVarName2 
-        override this.isEqual_Choice  (p1:string) (p2:string) (sAccess:string) (arrsChildren:seq<string>) =
-            equal_rust.isEqual_Choice  p1 p2 sAccess arrsChildren 
+        override this.isEqual_Choice  (p1:string) (p2:string) (sAccess:string) (arrsChildren:seq<string>) (bOneAlternative:bool) =
+            equal_rust.isEqual_Choice  p1 p2 sAccess arrsChildren bOneAlternative 
         override this.isEqual_Sequence_child  (p1:string) (p2:string) (sAcc:string) (bIsOptional:bool) (sChName:string) (soInnerStatement:string option) =
             equal_rust.isEqual_Sequence_child  p1 p2 sAcc bIsOptional sChName soInnerStatement 
         override this.isEqual_SequenceOf_var_size  (p1:string) (p2:string) (sAcc:string) (i:string) (soInnerStatement:string option) =

@@ -1230,6 +1230,51 @@ let calcIcdTypeAssHash (t1:IcdTypeAss) =
     calcIcdTypeAssHash_aux t1
 *)
 
+/// The typedef that declares the value's Ada type: the type's own, or, for a type that resolves a reference to a
+/// type assignment without new constraints (inheritInfo), the type assignment's own (the type shares it, with the
+/// same constraints). None for an RTL type or anything else.
+let declaringTypedef (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) : TypeDefinition option =
+    match typeDefinition, t.inheritInfo with
+    | TypeDefinition td, _                     -> Some td
+    | ReferenceToExistingDefinition rd, Some inh when not rd.definedInRtl && not inh.hasAdditionalConstraints ->
+        let tasDefinition =
+            r.modulesMap.TryFind inh.modName |>
+            Option.bind (fun m -> m.typeAssignmentsMap.TryFind inh.tasName) |>
+            Option.bind (fun tas ->
+                match tas.Type.Kind with
+                | Asn1AcnAst.Integer o      -> Some (l.lg.definitionOrRef o.definitionOrRef)
+                | Asn1AcnAst.OctetString o  -> Some (l.lg.definitionOrRef o.definitionOrRef)
+                | Asn1AcnAst.BitString o    -> Some (l.lg.definitionOrRef o.definitionOrRef)
+                | Asn1AcnAst.SequenceOf o   -> Some (l.lg.definitionOrRef o.definitionOrRef)
+                | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _ | Asn1AcnAst.NullType _
+                | Asn1AcnAst.Boolean _ | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.TimeType _
+                | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.ReferenceType _ -> None)
+        match tasDefinition with
+        | Some (TypeDefinition td)                   -> Some td
+        | Some (ReferenceToExistingDefinition _)
+        | None                                       -> None
+    | ReferenceToExistingDefinition _, _       -> None
+
+/// Coverage step 14i (E2): the language type of a value of this type holds exactly one value, so two values of it are
+/// always equal. Only where the typedefs enforce ranges (Ada): an INTEGER whose typedef is the ranged subtype
+/// `range a .. a` (DAstTypeDefinition.createInteger declares the uPER range; a subtype narrows it), an ENUMERATED type
+/// with one item (the enumeration has only that literal; a constrained subtype of a wider ENUMERATED keeps all items).
+let typeHoldsOneValue (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) =
+    match l.lg.typedefConstraintModel with
+    | TypedefsAreBaseTypes  -> false
+    | TypedefsEnforceRanges ->
+        let at = t.ActualType
+        match at.Kind with
+        | Asn1AcnAst.Integer o ->
+            match o.uperRange with
+            | Concrete (a, b) when a = b -> (declaringTypedef r l at (l.lg.definitionOrRef o.definitionOrRef)).IsSome
+            | Concrete _ | NegInf _ | PosInf _ | Full -> false
+        | Asn1AcnAst.Enumerated o -> o.items.Length = 1
+        | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _ | Asn1AcnAst.OctetString _
+        | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _ | Asn1AcnAst.ObjectIdentifier _
+        | Asn1AcnAst.TimeType _ | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _
+        | Asn1AcnAst.ReferenceType _ -> false
+
 let serializeIcdTasToText (icdTypeAss: IcdTypeAss) =
     let printRow (r:IcdRow) =
         sprintf """

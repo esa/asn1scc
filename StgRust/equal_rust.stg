@@ -145,7 +145,7 @@ isEqual_Choice_Child(sChoiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sT
 }
 >>
 
-isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
+isEqual_Choice(p1,p2, sAccess, arrsChildren, bOneAlternative) ::= <<
 match (<p1>, <p2>) {
 <arrsChildren: {ch|    <ch>}; separator="\n">
     _ => { ret = false; }

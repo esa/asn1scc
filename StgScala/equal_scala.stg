@@ -139,7 +139,7 @@ case (<sChoiceTypeDefName>.<sCid>(<sTmpVarName1>), <sChoiceTypeDefName>.<sCid>(<
     <sInnerStatement>
 >>
 
-isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
+isEqual_Choice(p1,p2, sAccess, arrsChildren, bOneAlternative) ::= <<
 (<p1>, <p2>) match {
     <arrsChildren: {ch|<ch>}; separator="\n">
     case (_, _) =>
