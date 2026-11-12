@@ -401,11 +401,17 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
             | Decode, true          -> lm.acn.Real_64_cannotFail pp sEndianness
             | Decode, false
             | Encode, _             -> macro pp errCode.errCodeName sType codec
+        // coverage step 14j (G2): the same for IEEE 754 32-bit into Asn1Real (not the _fp32 twin of -slim)
+        let real32 (sEndianness:string) (macro: string -> string -> string -> string -> Codec -> string) =
+            match codec, DecodeOutcome.real32CannotFail r lm o with
+            | Decode, true          -> lm.acn.Real_32_cannotFail castPp sEndianness
+            | Decode, false
+            | Encode, _             -> macro castPp sSuffix errCode.errCodeName sType codec
         let funcBodyContent =
             match o.acnEncodingClass with
-            | Real_IEEE754_32_big_endian            -> Some (Real_32_big_endian castPp sSuffix errCode.errCodeName sType codec, [errCode], [], [])
+            | Real_IEEE754_32_big_endian            -> Some (real32 "big_endian" Real_32_big_endian, [errCode], [], [])
             | Real_IEEE754_64_big_endian            -> Some (real64 "big_endian" Real_64_big_endian, [errCode], [], [])
-            | Real_IEEE754_32_little_endian         -> Some (Real_32_little_endian castPp sSuffix errCode.errCodeName sType codec, [errCode], [], [])
+            | Real_IEEE754_32_little_endian         -> Some (real32 "little_endian" Real_32_little_endian, [errCode], [], [])
             | Real_IEEE754_64_little_endian         -> Some (real64 "little_endian" Real_64_little_endian, [errCode], [], [])
             | Real_uPER                             -> uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, [], x.auxiliaries)
             | Real_ScaledInt intEncClass            -> scaledIntFuncBody intEncClass errCode acnArgs nestingScope p

@@ -443,6 +443,14 @@ let real64CannotFail (r:AstRoot) (lm:LanguageMacros) : bool =
     | ReadsCanFail      -> false
     | ReadsCannotFail   -> onlyX86 && r.args.floatingPointSizeInBytes = 8I
 
+/// Coverage step 14j (G2): an ACN IEEE 754 32-bit REAL decoded into Asn1Real (the RTL procedure without the _fp32 suffix,
+/// i.e. not the FP32 class of -slim): Asn1Real is Float or Long_Float on every board (ADA_RTL2/boards), the RTL Post states
+/// success. Ada only (ReadsCannotFail); producer AcnPrimitives (macro Real_32_cannotFail).
+let real32CannotFail (r:AstRoot) (lm:LanguageMacros) (o:Real) : bool =
+    match lm.lg.decodeReadFailureModel with
+    | ReadsCanFail      -> false
+    | ReadsCannotFail   -> lm.lg.getRealEncodingSuffix r.args.floatingPointSizeInBytes (o.getClass r.args) = ""
+
 /// 14c2a: how the value of an ACN ENUMERATED whose item values are exactly 0 .. n - 1, n = 2^k, is read without a Result.
 type AcnEnumFullIndex =
     | EnumUperIndex of BigInteger       // Integer_uPER: UPER_Dec_ConstraintPosWholeNumber_FullRange, k bits
@@ -600,6 +608,8 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
             match o.acnEncodingClass with
             | Real_IEEE754_64_big_endian
             | Real_IEEE754_64_little_endian when real64CannotFail r lm -> AlwaysSucceeds WritesResult   // Real_64_cannotFail
+            | Real_IEEE754_32_big_endian
+            | Real_IEEE754_32_little_endian when real32CannotFail r lm o -> AlwaysSucceeds WritesResult  // Real_32_cannotFail (14j G2)
             | Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian
             | Real_uPER | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian | Real_ScaledInt _ -> MayFail
         | IA5String o | NumericString o ->

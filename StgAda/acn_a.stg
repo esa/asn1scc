@@ -638,6 +638,14 @@ Real_64_cannotFail(p, sEndianness) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_64_<sEndianness>(bs, <p>, result);
 >>
 
+/* Coverage step 14j (G2): IEEE 754 32-bit REAL decode into Asn1Real (not -slim, whose FP32 class uses the _fp32 twin,
+   whose Post does not state success): Asn1Real is Float or Long_Float on every board, the RTL Post states success and the call
+   writes all of result, so no error code is set (DecodeOutcome.real32CannotFail). */
+Real_32_cannotFail(p, sEndianness) ::= <<
+-- cannot fail: the RTL Post states success
+adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_32_<sEndianness>(bs, <p>, result);
+>>
+
 Real_32_little_endian_encode(p, sSuffix, sErrCode, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_32_little_endian(bs, <p>);"
 Real_32_little_endian_decode(p, sSuffix, sErrCode, sType) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_32_little_endian<sSuffix>(bs, <p>, result);

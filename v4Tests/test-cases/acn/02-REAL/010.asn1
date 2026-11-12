@@ -1,0 +1,18 @@
+--RUN_SPARK
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	-- IEEE 754 32-bit REAL fields, big and little endian, in a SEQUENCE with a field after them: in Ada (not -slim) the
+	-- decode into Asn1Real cannot fail (the RTL Post states success), so the decoder sets no error code and checks no
+	-- result after them. The range limits are exact in 32 bits, so the automatic round trip compares equal.
+	Big ::= REAL (-8.0 .. 8.0)
+	Little ::= REAL (-8.0 .. 8.0)
+
+	MyPDU ::= SEQUENCE {
+		a	Big,
+		b	Little,
+		n	INTEGER (0 .. 255)
+	}
+
+END
+
+--TCFS     010.acn

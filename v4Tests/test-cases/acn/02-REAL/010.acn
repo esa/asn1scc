@@ -1,0 +1,9 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+	Big [encoding IEEE754-1985-32, endianness big]
+
+	Little [encoding IEEE754-1985-32, endianness little]
+
+	MyPDU []
+
+END
