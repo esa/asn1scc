@@ -492,12 +492,9 @@ type LangGeneric_a() =
         override _.atcInvalidStreamPackages = ["adaasn1rtl.encoding.uper"; "adaasn1rtl.encoding.acn"]
         // No truncation: a short stream violates the precondition of every Ada decoder
         // (Current_Bit_Pos + <T>_REQUIRED_BITS_FOR_..._ENCODING <= Size_In_Bytes * 8), it is not a test.
-        // A live 'size deduced' PDU is decoded from a second, exact-length stream inside
-        // Codec_Decode_exact_length: no sweep (C covers it).
-        override _.atcDecodeSweep isLiveDeduced =
-            match isLiveDeduced with
-            | true  -> NoDecodeSweep
-            | false -> CorruptionSweep
+        // A live 'size deduced' PDU is decoded with the view ending at the encoded length (End_Bit_Pos, buffer of
+        // the size the precondition requires); its sweep also shortens the view by 1 .. 8 bits (coverage step 14i).
+        override _.atcDecodeSweep _ = CorruptionSweep
         // The precondition of every Ada decoder guarantees a full-size stream: reads cannot fail.
         override _.decodeReadFailureModel = ReadsCannotFail
         // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.

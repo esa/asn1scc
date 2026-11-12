@@ -109,17 +109,13 @@ ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE, 
 
 Codec_Decode_exact_length(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 --  Decode value ('size deduced' PDU): the decoder derives element counts from
---  the end of the bitstream view, so it must see a stream whose Size_In_Bytes
---  equals the actual encoded length (not the worst-case size of 'stream')
+--  the end of the bitstream view (End_Bit_Pos), so the view ends at the encoded
+--  length; the buffer keeps the size the decoder's precondition requires
 declare
-    encLen    : constant Natural := adaasn1rtl.encoding.BitStream_current_length_in_bytes(stream);
-    decStream : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(Positive'Max(1, encLen));
+    decStream : adaasn1rtl.encoding.Bitstream := stream;
 begin
-    decStream.Buffer(1 .. encLen) := stream.Buffer(1 .. encLen);
-    if encLen = 0 then
-        --  empty PDU encoding: place the cursor at the end of the (1-byte) view
-        decStream.Current_Bit_Pos := 8;
-    end if;
+    decStream.End_Bit_Pos := adaasn1rtl.encoding.BitStream_current_length_in_bytes(stream) * 8;
+    decStream.Current_Bit_Pos := 0;
     <sModName>.<sFuncName>_aux(decodedPDU, decStream, result);
 end;
 ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE, Success => result.Success, ErrorCode => result.ErrorCode);
@@ -163,8 +159,14 @@ if ret.Success then
             Valid := <if(soIsValidFunc)>not Res.Success or else <sModName>.<soIsValidFunc>(decodedPDU).Success<else>True<endif>;
         end Sweep_Decode;
     begin
-        adaasn1rtl.encoding.test_cases_aux.Decode_Corruption_Sweep(stream, "<sFuncName>", <nBudget>, Sweep_Decode'Access, result);
-        ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE_CORRUPTED, Success => result.Success, ErrorCode => result.ErrorCode);
+<if(bDeduced)>
+        --  'size deduced' PDU: the view ends at the encoded length (coverage step 14i)
+        stream.End_Bit_Pos := adaasn1rtl.encoding.BitStream_current_length_in_bytes(stream) * 8;<\n><endif>        adaasn1rtl.encoding.test_cases_aux.Decode_Corruption_Sweep(stream, "<sFuncName>", <nBudget>, Sweep_Decode'Access, result);
+<if(bDeduced)>
+        if result.Success then
+            adaasn1rtl.encoding.test_cases_aux.Decode_View_End_Sweep(stream, "<sFuncName>", Sweep_Decode'Access, result);
+        end if;
+        stream.End_Bit_Pos := stream.Size_In_Bytes * 8;<\n><endif>        ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE_CORRUPTED, Success => result.Success, ErrorCode => result.ErrorCode);
     end;
 end if;
 >>

@@ -25,4 +25,17 @@ package adaasn1rtl.encoding.test_cases_aux is
          Valid : out Boolean);
       Result : out ASN1_RESULT);
 
+   --  'size deduced' PDUs (coverage step 14i): decode with the end of the view
+   --  (End_Bit_Pos) moved back by 1 .. 8 bits, so that the last part of the
+   --  value runs past it; the decoder must fail with an error code or return a
+   --  valid value, never raise.
+   procedure Decode_View_End_Sweep
+     (bs     : in out Bitstream;
+      Name   : String;
+      Decode : not null access procedure
+        (bs    : in out Bitstream;
+         Res   : out ASN1_RESULT;
+         Valid : out Boolean);
+      Result : out ASN1_RESULT);
+
 end adaasn1rtl.encoding.test_cases_aux;

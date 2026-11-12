@@ -109,4 +109,48 @@ package body adaasn1rtl.encoding.test_cases_aux is
       bs.Current_Bit_Pos := Saved_Pos;
    end Decode_Corruption_Sweep;
 
+   procedure Decode_View_End_Sweep
+     (bs     : in out Bitstream;
+      Name   : String;
+      Decode : not null access procedure
+        (bs    : in out Bitstream;
+         Res   : out ASN1_RESULT;
+         Valid : out Boolean);
+      Result : out ASN1_RESULT)
+   is
+      Saved_End : constant Natural := bs.End_Bit_Pos;
+      Saved_Pos : constant Natural := bs.Current_Bit_Pos;
+      Res       : ASN1_RESULT;
+      Valid     : Boolean;
+   begin
+      Result := (Success => True, ErrorCode => 0);
+      for k in 1 .. Natural'Min (8, Saved_End) loop
+         exit when not Result.Success;
+         bs.End_Bit_Pos := Saved_End - k;
+         begin
+            Decode (bs, Res, Valid);
+            if Res.Success and then not Valid then
+               Ada.Text_IO.Put_Line
+                 (Name & ": decoding with the view" & Integer'Image (k)
+                  & " bits shorter returned an invalid value");
+               Result := (Success => False, ErrorCode => 7);
+            elsif not Res.Success and then Res.ErrorCode = 0 then
+               Ada.Text_IO.Put_Line
+                 (Name & ": decoding with the view" & Integer'Image (k)
+                  & " bits shorter failed without an error code");
+               Result := (Success => False, ErrorCode => 7);
+            end if;
+         exception
+            when E : others =>
+               Ada.Text_IO.Put_Line
+                 (Name & ": decoding with the view" & Integer'Image (k)
+                  & " bits shorter raised "
+                  & Ada.Exceptions.Exception_Name (E));
+               Result := (Success => False, ErrorCode => 7);
+         end;
+      end loop;
+      bs.End_Bit_Pos := Saved_End;
+      bs.Current_Bit_Pos := Saved_Pos;
+   end Decode_View_End_Sweep;
+
 end adaasn1rtl.encoding.test_cases_aux;
