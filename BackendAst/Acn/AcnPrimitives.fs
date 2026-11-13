@@ -301,33 +301,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFi
 
 
 //the integer range of a scaled-integer encoding class: (intMin, intMax, isUnsigned)
-let getScaledIntRange (c: Asn1AcnAst.IntEncodingClass) : BigInteger * BigInteger * bool =
-    let unsignedRange (nBits:int) = 0I, BigInteger.Pow(2I, nBits) - 1I, true
-    let signedRange (nBits:int) = -BigInteger.Pow(2I, nBits-1), BigInteger.Pow(2I, nBits-1) - 1I, false
-    match c with
-    | Asn1AcnAst.PositiveInteger_ConstSize_8                   -> unsignedRange 8
-    | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_16       -> unsignedRange 16
-    | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_16    -> unsignedRange 16
-    | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_32       -> unsignedRange 32
-    | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_32    -> unsignedRange 32
-    | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_64       -> unsignedRange 64
-    | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_64    -> unsignedRange 64
-    | Asn1AcnAst.PositiveInteger_ConstSize bitSize             -> unsignedRange (int bitSize)
-    | Asn1AcnAst.TwosComplement_ConstSize_8                    -> signedRange 8
-    | Asn1AcnAst.TwosComplement_ConstSize_big_endian_16        -> signedRange 16
-    | Asn1AcnAst.TwosComplement_ConstSize_little_endian_16     -> signedRange 16
-    | Asn1AcnAst.TwosComplement_ConstSize_big_endian_32        -> signedRange 32
-    | Asn1AcnAst.TwosComplement_ConstSize_little_endian_32     -> signedRange 32
-    | Asn1AcnAst.TwosComplement_ConstSize_big_endian_64        -> signedRange 64
-    | Asn1AcnAst.TwosComplement_ConstSize_little_endian_64     -> signedRange 64
-    | Asn1AcnAst.TwosComplement_ConstSize bitSize              -> signedRange (int bitSize)
-    | Asn1AcnAst.Integer_uPER
-    | Asn1AcnAst.ASCII_ConstSize _
-    | Asn1AcnAst.ASCII_VarSize_NullTerminated _
-    | Asn1AcnAst.ASCII_UINT_ConstSize _
-    | Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated _
-    | Asn1AcnAst.BCD_ConstSize _
-    | Asn1AcnAst.BCD_VarSize_NullTerminated _                  -> raise(BugErrorException "getScaledIntRange: Real_ScaledInt can only contain a PositiveInteger_ConstSize* or TwosComplement_ConstSize* class")
+let getScaledIntRange (c: Asn1AcnAst.IntEncodingClass) : BigInteger * BigInteger * bool = DecodeOutcome.scaledIntRange c
 
 //the linear mapping parameters of a scaled-integer encoding: (low, scale, intMin, intMax, isUnsigned)
 let getScaledIntMapping (o:Asn1AcnAst.Real) (intEncClass: Asn1AcnAst.IntEncodingClass) =
@@ -375,7 +349,17 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
             | InPlace -> [GenericLocalVariable {GenericLocalVariable.name = intVal; varType = rtlIntType; arrSize = None; isStatic = false; initExp = None}]
         let pVal = {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.valueEmptyPath intVal}
         let uperIntStub _ _ _ _ : UPERFuncBodyResult option = raise(BugErrorException "Real_ScaledInt: unexpected uPER integer encoding class")
-        let intFuncBody = createAcnIntegerFunctionInternal r lm codec (Concrete (intMin, intMax)) intTypeClass intEncClass DecodeOutcome.KeepCheckedCall uperIntStub None t.acnAlignment o.acnMinSizeInBits o.acnMaxSizeInBits None typeName (None, None) typeName
+        // coverage step 14j (G3a): the integer fills its field, so Ada reads it with the _FullRange twin where one exists
+        // (DecodeOutcome.realScaledIntFullRange): no result to check
+        let cannotFail =
+            match codec with
+            | Decode -> (DecodeOutcome.realScaledIntFullRange r lm intEncClass).IsSome
+            | Encode -> false
+        let fullRangeUse =
+            match cannotFail with
+            | true  -> DecodeOutcome.UseFullRange
+            | false -> DecodeOutcome.KeepCheckedCall
+        let intFuncBody = createAcnIntegerFunctionInternal r lm codec (Concrete (intMin, intMax)) intTypeClass intEncClass fullRangeUse uperIntStub None t.acnAlignment o.acnMinSizeInBits o.acnMaxSizeInBits None typeName (None, None) typeName
         match intFuncBody errCode acnArgs nestingScope pVal with
         | None -> None
         | Some intRes ->
@@ -385,9 +369,11 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedField
             let sIntMin  = lm.lg.intValueToString intMin intTypeClass
             let sIntMax  = lm.lg.intValueToString intMax intTypeClass
             let mainBody =
-                match isUnsigned with
-                | true  -> Real_ScaledInt_uint sRealVal intVal intRes.funcBody sLow sScale sIntMax errCode.errCodeName codec
-                | false -> Real_ScaledInt_sint sRealVal intVal intRes.funcBody sLow sScale sIntMin sIntMax errCode.errCodeName codec
+                match isUnsigned, cannotFail with
+                | true, true    -> lm.acn.Real_ScaledInt_uint_cannotFail sRealVal intVal intRes.funcBody sLow sScale
+                | false, true   -> lm.acn.Real_ScaledInt_sint_cannotFail sRealVal intVal intRes.funcBody sLow sScale sIntMin
+                | true, false   -> Real_ScaledInt_uint sRealVal intVal intRes.funcBody sLow sScale sIntMax errCode.errCodeName codec
+                | false, false  -> Real_ScaledInt_sint sRealVal intVal intRes.funcBody sLow sScale sIntMin sIntMax errCode.errCodeName codec
             Some (mainBody, intRes.errCodes, localVars @ intRes.localVariables, intRes.auxiliaries)
 
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =

@@ -674,6 +674,18 @@ else
 end if;
 >>
 
+/* Coverage step 14j (G3a): the integer fills its field and is read with the _FullRange twin (no result): the decode cannot
+   fail (DecodeOutcome.realScaledIntFullRange). */
+Real_ScaledInt_uint_cannotFail(p, sTmpVar, sIntBody, sLow, sScale) ::= <<
+<sIntBody>
+<p> := adaasn1rtl.encoding.acn.Acn_ScaledUInt2Real(<sTmpVar>, <sLow>, <sScale>);
+>>
+
+Real_ScaledInt_sint_cannotFail(p, sTmpVar, sIntBody, sLow, sScale, sIntMin) ::= <<
+<sIntBody>
+<p> := adaasn1rtl.encoding.acn.Acn_ScaledSInt2Real(<sTmpVar>, <sLow>, <sScale>, <sIntMin>);
+>>
+
 Real_ScaledInt_sint_encode(p, sTmpVar, sIntBody, sLow, sScale, sIntMin, sIntMax, sErrCode) ::= <<
 <sTmpVar> := adaasn1rtl.encoding.acn.Acn_Real2ScaledSInt(<p>, <sLow>, <sScale>, <sIntMin>, <sIntMax>);
 <sIntBody>

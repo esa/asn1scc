@@ -1211,6 +1211,14 @@ let Real_32_cannotFail (p:string) (sEndianness:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "Real_32_cannotFail" [("p",p :>Object);("sEndianness",(if sEndianness = null then null else ST.StrHelper sEndianness:>Object) )]
 
+let Real_ScaledInt_uint_cannotFail (p:string) (sTmpVar:string) (sIntBody:string) (sLow:string) (sScale:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "Real_ScaledInt_uint_cannotFail" [("p",p :>Object);("sTmpVar",(if sTmpVar = null then null else ST.StrHelper sTmpVar:>Object) );("sIntBody",(if sIntBody = null then null else ST.StrHelper sIntBody:>Object) );("sLow",(if sLow = null then null else ST.StrHelper sLow:>Object) );("sScale",(if sScale = null then null else ST.StrHelper sScale:>Object) )]
+
+let Real_ScaledInt_sint_cannotFail (p:string) (sTmpVar:string) (sIntBody:string) (sLow:string) (sScale:string) (sIntMin:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "Real_ScaledInt_sint_cannotFail" [("p",p :>Object);("sTmpVar",(if sTmpVar = null then null else ST.StrHelper sTmpVar:>Object) );("sIntBody",(if sIntBody = null then null else ST.StrHelper sIntBody:>Object) );("sLow",(if sLow = null then null else ST.StrHelper sLow:>Object) );("sScale",(if sScale = null then null else ST.StrHelper sScale:>Object) );("sIntMin",(if sIntMin = null then null else ST.StrHelper sIntMin:>Object) )]
+
 let Acn_String_Ascii_FixSize_cannotFail (p:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "Acn_String_Ascii_FixSize_cannotFail" [("p",p :>Object)]

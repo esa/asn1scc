@@ -446,6 +446,51 @@ let acnIntegerFullRange (r:AstRoot) (lm:LanguageMacros) (uperRange:BigIntegerUpe
         | ASCII_ConstSize _ | ASCII_VarSize_NullTerminated _ | ASCII_UINT_ConstSize _ | ASCII_UINT_VarSize_NullTerminated _
         | BCD_ConstSize _ | BCD_VarSize_NullTerminated _ -> None
 
+/// The integer range of the scaled-integer encoding of a REAL (issue #339): (intMin, intMax, isUnsigned), the whole
+/// range of the field (AcnPrimitives.createRealFunction maps the REAL range linearly onto it).
+let scaledIntRange (c:IntEncodingClass) : BigInteger * BigInteger * bool =
+    let unsignedRange (nBits:int) = 0I, BigInteger.Pow(2I, nBits) - 1I, true
+    let signedRange (nBits:int) = -BigInteger.Pow(2I, nBits-1), BigInteger.Pow(2I, nBits-1) - 1I, false
+    match c with
+    | PositiveInteger_ConstSize_8                   -> unsignedRange 8
+    | PositiveInteger_ConstSize_big_endian_16       -> unsignedRange 16
+    | PositiveInteger_ConstSize_little_endian_16    -> unsignedRange 16
+    | PositiveInteger_ConstSize_big_endian_32       -> unsignedRange 32
+    | PositiveInteger_ConstSize_little_endian_32    -> unsignedRange 32
+    | PositiveInteger_ConstSize_big_endian_64       -> unsignedRange 64
+    | PositiveInteger_ConstSize_little_endian_64    -> unsignedRange 64
+    | PositiveInteger_ConstSize bitSize             -> unsignedRange (int bitSize)
+    | TwosComplement_ConstSize_8                    -> signedRange 8
+    | TwosComplement_ConstSize_big_endian_16        -> signedRange 16
+    | TwosComplement_ConstSize_little_endian_16     -> signedRange 16
+    | TwosComplement_ConstSize_big_endian_32        -> signedRange 32
+    | TwosComplement_ConstSize_little_endian_32     -> signedRange 32
+    | TwosComplement_ConstSize_big_endian_64        -> signedRange 64
+    | TwosComplement_ConstSize_little_endian_64     -> signedRange 64
+    | TwosComplement_ConstSize bitSize              -> signedRange (int bitSize)
+    | Integer_uPER
+    | ASCII_ConstSize _
+    | ASCII_VarSize_NullTerminated _
+    | ASCII_UINT_ConstSize _
+    | ASCII_UINT_VarSize_NullTerminated _
+    | BCD_ConstSize _
+    | BCD_VarSize_NullTerminated _                  -> raise(BugErrorException "getScaledIntRange: Real_ScaledInt can only contain a PositiveInteger_ConstSize* or TwosComplement_ConstSize* class")
+
+/// Coverage step 14j (G3a): the integer of a scaled-integer REAL always fills its field (scaledIntRange), so its read is
+/// the ACN _FullRange twin wherever one exists for the class (acnIntegerFullRange, with the integer class the producer
+/// uses: AcnPrimitives.createRealFunction); the decoder then cannot fail and writes no result (macros
+/// Real_ScaledInt_uint_cannotFail / _sint_cannotFail). None for C (ReadsCanFail).
+let realScaledIntFullRange (r:AstRoot) (lm:LanguageMacros) (encClass:IntEncodingClass) : AcnFullRangeInt option =
+    match lm.lg.decodeReadFailureModel with
+    | ReadsCanFail      -> None
+    | ReadsCannotFail   ->
+        let intMin, intMax, isUnsigned = scaledIntRange encClass
+        let intClass =
+            match isUnsigned with
+            | true  -> ASN1SCC_UInt (intMin, intMax)
+            | false -> ASN1SCC_Int (intMin, intMax)
+        acnIntegerFullRange r lm (Concrete (intMin, intMax)) intClass encClass false
+
 /// 14c2a (B3): an ACN IEEE 754 64-bit REAL decode (Acn_Dec_Real_IEEE754_64_*: Post `if Asn1Real'Digits >= Long_Float'Digits
 /// then Result.Success`) cannot fail where Asn1Real is Long_Float. The board decides Asn1Real (x86: Long_Float; stm32,
 /// msp430: Float, ADA_RTL2/boards), so only when x86 is the only board generated (-t absent or x86), and with
@@ -653,6 +698,7 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
             | Real_IEEE754_64_little_endian when real64CannotFail r lm -> AlwaysSucceeds WritesResult   // Real_64_cannotFail
             | Real_IEEE754_32_big_endian
             | Real_IEEE754_32_little_endian when real32CannotFail r lm o -> AlwaysSucceeds WritesResult  // Real_32_cannotFail (14j G2)
+            | Real_ScaledInt enc when (realScaledIntFullRange r lm enc).IsSome -> AlwaysSucceeds NoResultWrite  // 14j G3a
             | Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian
             | Real_uPER | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian | Real_ScaledInt _ -> MayFail
         | IA5String o | NumericString o ->
@@ -840,7 +886,12 @@ and acnErrorCodeSummary (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:Lang
         match o.acnEncodingClass with
         | Acn_Enc_String_uPER _ -> uperErrorCodeSummary r lm t                        // 14c2b: the uPER body
         | _                     -> leaf true
-    | Real _ | TimeType _ | ObjectIdentifier _
+    | Real o ->
+        match o.acnEncodingClass with
+        | Real_ScaledInt enc when (realScaledIntFullRange r lm enc).IsSome -> leaf false   // 14j G3a: _FullRange read
+        | Real_uPER | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian | Real_IEEE754_64_big_endian
+        | Real_IEEE754_64_little_endian | Real_ScaledInt _ -> leaf true
+    | TimeType _ | ObjectIdentifier _
     | SequenceOf _ -> leaf true
 
 /// An ACN decoder needs result := (true, 0) at its start (see uperErrorCodeSummary).

@@ -367,6 +367,10 @@ type IAcn_rust() =
             acn_rust.Real_64_cannotFail  p sEndianness 
         override this.Real_32_cannotFail  (p:string) (sEndianness:string) =
             acn_rust.Real_32_cannotFail  p sEndianness 
+        override this.Real_ScaledInt_uint_cannotFail  (p:string) (sTmpVar:string) (sIntBody:string) (sLow:string) (sScale:string) =
+            acn_rust.Real_ScaledInt_uint_cannotFail  p sTmpVar sIntBody sLow sScale 
+        override this.Real_ScaledInt_sint_cannotFail  (p:string) (sTmpVar:string) (sIntBody:string) (sLow:string) (sScale:string) (sIntMin:string) =
+            acn_rust.Real_ScaledInt_sint_cannotFail  p sTmpVar sIntBody sLow sScale sIntMin 
         override this.Acn_String_Ascii_FixSize_cannotFail  (p:string) =
             acn_rust.Acn_String_Ascii_FixSize_cannotFail  p 
         override this.EnumeratedEncValues_fullIndex  (p:string) (td:FE_EnumeratedTypeDefinition) (arrsItem:seq<string>) (sActualCodecFunc:string) (sFirstItemName:string) (sIntVal:string) (soCovExempt:string option) =
