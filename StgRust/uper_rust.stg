@@ -1077,6 +1077,7 @@ InternalItem_string_no_alpha_fullRange(p, i) ::= ""
 InternalItem_string_with_alpha_fullRange(p, td/*:FE_StringTypeDefinition*/, i, nCharIndexSize) ::= ""
 str_FixedSize_fullRange(p, i, sInternalItem, nFixedSize, nIntItemMaxSize) ::= ""
 str_VarSize_fullRange(p, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMaxSize) ::= ""
+seqOf_VarSize_fullRange(p, sAcc, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMaxSize, bItemWritesResult) ::= ""
 octet_VarSize_fullRange(p, sAcc, nSizeMin, nSizeInBits) ::= ""
 bitString_VarSize_fullRange(p, sAcc, nSizeMin, nSizeInBits) ::= ""
 

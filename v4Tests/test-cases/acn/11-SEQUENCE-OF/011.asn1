@@ -1,0 +1,29 @@
+--RUN_SPARK
+-- Variable-size SEQUENCE OF whose length fills its field (SIZE 1..4 in 2 bits, 0..7 in 3 bits) and whose element
+-- cannot fail: the Ada decoder reads the length with the _FullRange twin and the loop does not test result after
+-- each element, so the SEQUENCE OF cannot fail (uPER and the ACN embedded length). Nested: a SEQUENCE OF of such
+-- SEQUENCE OFs. 'NoFull' (SIZE 1..5 in 3 bits) and 'MayFailElem' (element 0..10 in 4 bits) keep their checks.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Pair ::= SEQUENCE { a INTEGER (0..15), b BOOLEAN }
+   Bytes4 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (0..255)
+   Flags ::= SEQUENCE (SIZE (0..7)) OF BOOLEAN
+   Pairs ::= SEQUENCE (SIZE (1..2)) OF Pair
+   Nested ::= SEQUENCE (SIZE (1..2)) OF Flags
+   NoFull ::= SEQUENCE (SIZE (1..5)) OF BOOLEAN
+   MayFailElem ::= SEQUENCE (SIZE (1..4)) OF INTEGER (0..10)
+
+   MyPDU ::= SEQUENCE {
+      b  Bytes4,
+      f  Flags,
+      p  Pairs,
+      n  Nested,
+      i  SEQUENCE (SIZE (0..3)) OF INTEGER (0..15),
+      nf NoFull,
+      m  MayFailElem,
+      z  BOOLEAN
+   }
+
+END
+
+--TCLS     MyPDU[]

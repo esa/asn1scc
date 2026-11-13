@@ -870,9 +870,15 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                     | Decode, AlwaysSucceeds WritesResult   -> true, true
                     | Decode, AlwaysSucceeds NoResultWrite  -> true, false
                     | Decode, MayFail                       -> false, true
+                // coverage step 14k (G1b): a variable size whose length fills its field and an element that cannot fail
+                let varFullRange =
+                    match codec, DecodeOutcome.uperSeqOfVarFullRangeElement r lm o with
+                    | Decode, AlwaysSucceeds w -> Some (w = WritesResult)
+                    | Decode, MayFail | Encode, _ -> None
                 let ret,localVariables =
                     match o.minSize with
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper -> fixedSize pp td i internalItemBody o.minSize.uper child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux bFixedItemCannotFail bFixedItemWritesResult codec, nStringLength
+                    | _ when varFullRange.IsSome -> lm.uper.seqOf_VarSize_fullRange pp access i internalItemBody o.minSize.uper o.maxSize.uper nSizeInBits nIntItemMaxSize varFullRange.Value, nStringLength
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper -> varSize pp access  td i internalItemBody o.minSize.uper o.maxSize.uper nSizeInBits child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux bItemCannotFail bItemWritesResult (lengthEnforced lengthCheck) codec, nStringLength
                     | _ -> handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItemBody nIntItemMaxSize false false
                 let ret = withFixedSizeCount r lm codec t o.isFixedSize o.minSize.uper p ret

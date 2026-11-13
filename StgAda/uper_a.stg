@@ -1151,6 +1151,18 @@ while <i>\<= <nSizeMax> + 1  loop
 end loop;
 >>
 
+/* Coverage step 14k (G1b): decode of a variable-size SEQUENCE OF whose length fills its field and whose element cannot
+   fail (DecodeOutcome.uperSeqOfVarFullRangeElement / acnSeqOfVarFullRangeElement; also the ACN embedded length). The
+   _FullRange Post bounds the length to the SIZE range before it is stored in Length (Issue 84). */
+seqOf_VarSize_fullRange(p, sAcc, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMaxSize, bItemWritesResult) ::= <<
+-- cannot fail: every bit pattern of the length field is a valid length and the element's decoding cannot fail
+result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, nStringLength, <nSizeMin>, <nSizeInBits>);
+<p>.Length := nStringLength;
+<i> := 1;
+<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize="0", nIntItemMinSize="0", nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail="true", bItemWritesResult=bItemWritesResult)>
+>>
+
 octet_VarSize_fullRange(p, sAcc, nSizeMin, nSizeInBits) ::= <<
 -- no check of the length: every bit pattern of its field is a valid length
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, nStringLength, <nSizeMin>, <nSizeInBits>);

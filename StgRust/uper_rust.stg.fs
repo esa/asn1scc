@@ -459,6 +459,10 @@ let str_VarSize_fullRange (p:string) (i:string) (sInternalItem:string) (nSizeMin
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "uper_rust" "str_VarSize_fullRange" [("p",p :>Object);("i",i :>Object);("sInternalItem",(if sInternalItem = null then null else ST.StrHelper sInternalItem:>Object) );("nSizeMin",nSizeMin :>Object);("nSizeMax",nSizeMax :>Object);("nSizeInBits",nSizeInBits :>Object);("nIntItemMaxSize",nIntItemMaxSize :>Object)]
 
+let seqOf_VarSize_fullRange (p:string) (sAcc:string) (i:string) (sInternalItem:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (nIntItemMaxSize:BigInteger) (bItemWritesResult:bool) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "seqOf_VarSize_fullRange" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("i",i :>Object);("sInternalItem",(if sInternalItem = null then null else ST.StrHelper sInternalItem:>Object) );("nSizeMin",nSizeMin :>Object);("nSizeMax",nSizeMax :>Object);("nSizeInBits",nSizeInBits :>Object);("nIntItemMaxSize",nIntItemMaxSize :>Object);("bItemWritesResult",bItemWritesResult :>Object)]
+
 let octet_VarSize_fullRange (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeInBits:BigInteger) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "uper_rust" "octet_VarSize_fullRange" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("nSizeMin",nSizeMin :>Object);("nSizeInBits",nSizeInBits :>Object)]

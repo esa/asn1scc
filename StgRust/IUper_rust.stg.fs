@@ -137,6 +137,8 @@ type IUper_rust() =
             uper_rust.str_FixedSize_fullRange  p i sInternalItem nFixedSize nIntItemMaxSize 
         override this.str_VarSize_fullRange  (p:string) (i:string) (sInternalItem:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (nIntItemMaxSize:BigInteger) =
             uper_rust.str_VarSize_fullRange  p i sInternalItem nSizeMin nSizeMax nSizeInBits nIntItemMaxSize 
+        override this.seqOf_VarSize_fullRange  (p:string) (sAcc:string) (i:string) (sInternalItem:string) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nSizeInBits:BigInteger) (nIntItemMaxSize:BigInteger) (bItemWritesResult:bool) =
+            uper_rust.seqOf_VarSize_fullRange  p sAcc i sInternalItem nSizeMin nSizeMax nSizeInBits nIntItemMaxSize bItemWritesResult 
         override this.octet_VarSize_fullRange  (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeInBits:BigInteger) =
             uper_rust.octet_VarSize_fullRange  p sAcc nSizeMin nSizeInBits 
         override this.bitString_VarSize_fullRange  (p:string) (sAcc:string) (nSizeMin:BigInteger) (nSizeInBits:BigInteger) =

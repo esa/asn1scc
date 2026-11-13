@@ -258,9 +258,11 @@ let rec uper (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : DecodeOutcome =
             | true  -> AlwaysSucceeds NoResultWrite                                 // 14c2b: full-range length and chars
             | false -> MayFail
         | SequenceOf o ->
-            match uperSeqOfFixedElement r lm o with                                 // 14j (G1): the fixed-size loop
-            | AlwaysSucceeds _ -> AlwaysSucceeds WritesResult                       // result := (true, 0) before the loop
-            | MayFail          -> MayFail
+            // 14j (G1): the fixed-size loop; 14k (G1b): a full-range length (seqOf_VarSize_fullRange)
+            match uperSeqOfFixedElement r lm o, uperSeqOfVarFullRangeElement r lm o with
+            | AlwaysSucceeds _, _
+            | _, AlwaysSucceeds _ -> AlwaysSucceeds WritesResult                    // result := (true, 0) before the loop
+            | MayFail, MayFail    -> MayFail
         | Real _ | NullType _ | TimeType _
         | ObjectIdentifier _ -> MayFail
 
@@ -271,6 +273,16 @@ let rec uper (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : DecodeOutcome =
 /// seqOf_FixedSize_decode sets result := (true, 0) before the loop, and the element keeps it TRUE.
 and uperSeqOfFixedElement (r:AstRoot) (lm:LanguageMacros) (o:SequenceOf) : DecodeOutcome =
     match o.maxSize.uper < 65536I && o.maxSize.uper = o.minSize.uper && uperChildHasStatement o.child with
+    | true  -> uper r lm o.child
+    | false -> MayFail
+
+/// Coverage step 14k (G1b): the decode outcome of the element of a variable-size uPER SEQUENCE OF (not fragmented) whose
+/// length fills its field (lengthFullRange: read with UPER_Dec_ConstraintWholeNumberInt_FullRange, whose Post bounds it to
+/// the SIZE range); MayFail for every other SEQUENCE OF. An element that cannot fail makes the SEQUENCE OF unable to fail
+/// (seqOf_VarSize_fullRange: result := (true, 0), then the loop without `AND result.Success`).
+and uperSeqOfVarFullRangeElement (r:AstRoot) (lm:LanguageMacros) (o:SequenceOf) : DecodeOutcome =
+    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (o.maxSize.uper - o.minSize.uper)
+    match o.maxSize.uper < 65536I && lengthFullRange lm o.minSize.uper o.maxSize.uper nSizeInBits && uperChildHasStatement o.child with
     | true  -> uper r lm o.child
     | false -> MayFail
 
@@ -707,9 +719,11 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
             | _ when acnStringAsciiFixSizeCannotFail lm o -> AlwaysSucceeds WritesResult   // Acn_String_Ascii_FixSize_cannotFail (14j G5)
             | _                     -> MayFail
         | SequenceOf o ->
-            match acnSeqOfFixedElement r deps lm o with                             // 14j (G1): the fixed-size loop
-            | AlwaysSucceeds _ -> AlwaysSucceeds WritesResult                       // result := (true, 0) before the loop
-            | MayFail          -> MayFail
+            // 14j (G1): the fixed-size loop; 14k (G1b): a full-range embedded length (seqOf_VarSize_fullRange)
+            match acnSeqOfFixedElement r deps lm o, acnSeqOfVarFullRangeElement r deps lm o with
+            | AlwaysSucceeds _, _
+            | _, AlwaysSucceeds _ -> AlwaysSucceeds WritesResult                    // result := (true, 0) before the loop
+            | MayFail, MayFail    -> MayFail
         | NullType _ | TimeType _
         | ObjectIdentifier _ -> MayFail
 
@@ -719,6 +733,15 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
 and acnSeqOfFixedElement (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (o:SequenceOf) : DecodeOutcome =
     match o.acnEncodingClass with
     | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ when o.isFixedSize && acnHasDecodeContent o.child -> acn r deps lm o.child
+    | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> MayFail
+
+/// Coverage step 14k (G1b): uperSeqOfVarFullRangeElement for an ACN SEQUENCE OF with an embedded length
+/// (AcnSequenceOf.createSequenceOfFunction: SZ_EC_LENGTH_EMBEDDED, variable size, read like uPER over the ACN SIZE range).
+and acnSeqOfVarFullRangeElement (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (o:SequenceOf) : DecodeOutcome =
+    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (o.maxSize.acn - o.minSize.acn)
+    match o.acnEncodingClass with
+    | SZ_EC_LENGTH_EMBEDDED _ when not o.isFixedSize && lengthFullRange lm o.minSize.acn o.maxSize.acn nSizeInBits && acnHasDecodeContent o.child ->
+        acn r deps lm o.child
     | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> MayFail
 
 /// 14c2a: an ACN CHOICE decoded like uPER (no determinant, no present-when; AcnChoice CEC_uper) without ALWAYS ABSENT
