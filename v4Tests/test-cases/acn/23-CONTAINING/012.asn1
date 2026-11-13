@@ -1,0 +1,24 @@
+-- Fixed-size OCTET STRING / BIT STRING CONTAINING (ACN 'size' of a constant) whose contents cannot fail: --acn-v2
+-- decodes the region by a plain call of the contents' decoder, so in Ada the region cannot fail either and the
+-- SEQUENCE joins the next part with pragma Assert. Legacy decodes through a temporary buffer (unchanged). Not RUN_SPARK:
+-- the Ada uPER CONTAINING functions of the same types are not provable (data_length precondition, pre-existing).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    Inner ::= SEQUENCE {
+        a INTEGER (0..255),
+        b BOOLEAN
+    }
+
+    OctBox ::= OCTET STRING (CONTAINING Inner)
+    BitBox ::= BIT STRING (CONTAINING Inner)
+
+    MyPDU ::= SEQUENCE {
+        x OctBox,
+        y BitBox,
+        z BOOLEAN
+    }
+
+END
+
+
+--TCLS     MyPDU[] { x[size 2], y[size 9], z[] }

@@ -598,6 +598,13 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
                 | _, _, _    -> combine (presenceBits @ acnParts @ (unconditional |> List.map snd)) (conditional |> List.map snd)
         | ReferenceType o ->
             match o.encodingOptions, o.hasExtraConstrainsOrChildrenOrAcnArgs with
+            // 14j (G7a): --acn-v2 decodes a fixed-size CONTAINING without ACN arguments by a plain call of the contained
+            // type assignment's T_ACN_Decode_aux (DAstACNDeferred: octet / bit_string_containing_deferred_fixed_func;
+            // the OCTET form then only moves the position past the padding): the outcome of that call
+            | Some enc, _ when r.args.acnDeferred && enc.acnEncodingClass = SZ_EC_FIXED_SIZE && o.acnArguments.IsEmpty ->
+                match acn r deps lm (GetActualTypeByName r o.modName o.tasName) with
+                | AlwaysSucceeds _ -> AlwaysSucceeds WritesResult
+                | MayFail          -> MayFail
             | Some _, _         -> MayFail                                          // CONTAINING
             | None, true when r.args.acnDeferred && not o.acnArguments.IsEmpty ->
                 MayFail                                                             // --acn-v2: call of a specialised function
