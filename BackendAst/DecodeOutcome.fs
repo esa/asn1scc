@@ -257,8 +257,22 @@ let rec uper (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : DecodeOutcome =
             match uperStringCannotFail lm o with
             | true  -> AlwaysSucceeds NoResultWrite                                 // 14c2b: full-range length and chars
             | false -> MayFail
+        | SequenceOf o ->
+            match uperSeqOfFixedElement r lm o with                                 // 14j (G1): the fixed-size loop
+            | AlwaysSucceeds _ -> AlwaysSucceeds WritesResult                       // result := (true, 0) before the loop
+            | MayFail          -> MayFail
         | Real _ | NullType _ | TimeType _
-        | ObjectIdentifier _ | SequenceOf _ -> MayFail
+        | ObjectIdentifier _ -> MayFail
+
+/// Coverage step 14j (G1): the decode outcome of the element of a uPER SEQUENCE OF decoded by the fixed-size loop
+/// (DAstUPer.createSequenceOfFunction: seqOf_FixedSize, size < 65536, i.e. not fragmented) whose element has a
+/// statement; MayFail for every other SEQUENCE OF (variable size, fragmentation). An element that cannot fail drops
+/// `AND result.Success` from the loop (loopFixedItem_dec, as the encoders since 12b) and the SEQUENCE OF cannot fail:
+/// seqOf_FixedSize_decode sets result := (true, 0) before the loop, and the element keeps it TRUE.
+and uperSeqOfFixedElement (r:AstRoot) (lm:LanguageMacros) (o:SequenceOf) : DecodeOutcome =
+    match o.maxSize.uper < 65536I && o.maxSize.uper = o.minSize.uper && uperChildHasStatement o.child with
+    | true  -> uper r lm o.child
+    | false -> MayFail
 
 /// 14c2a: a uPER CHOICE with 2^k alternatives that all cannot fail and treat result alike (each writes it on every path,
 /// or none touches it): the index is read with the _FullRange twin and the `case` is unguarded (choice_fullIndex). A
@@ -632,8 +646,20 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
             | Acn_Enc_String_uPER _ -> uper r lm t                                  // 14c2b: the uPER body (AcnStrings)
             | _ when acnStringAsciiFixSizeCannotFail lm o -> AlwaysSucceeds WritesResult   // Acn_String_Ascii_FixSize_cannotFail (14j G5)
             | _                     -> MayFail
+        | SequenceOf o ->
+            match acnSeqOfFixedElement r deps lm o with                             // 14j (G1): the fixed-size loop
+            | AlwaysSucceeds _ -> AlwaysSucceeds WritesResult                       // result := (true, 0) before the loop
+            | MayFail          -> MayFail
         | NullType _ | TimeType _
-        | ObjectIdentifier _ | SequenceOf _ -> MayFail
+        | ObjectIdentifier _ -> MayFail
+
+/// Coverage step 14j (G1): uperSeqOfFixedElement for an ACN SEQUENCE OF decoded by the fixed-size loop
+/// (AcnSequenceOf.createSequenceOfFunction: SZ_EC_FIXED_SIZE / SZ_EC_LENGTH_EMBEDDED with a fixed size, the uPER
+/// template seqOf_FixedSize) whose element has a statement.
+and acnSeqOfFixedElement (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (o:SequenceOf) : DecodeOutcome =
+    match o.acnEncodingClass with
+    | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ when o.isFixedSize && acnHasDecodeContent o.child -> acn r deps lm o.child
+    | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> MayFail
 
 /// 14c2a: an ACN CHOICE decoded like uPER (no determinant, no present-when; AcnChoice CEC_uper) without ALWAYS ABSENT
 /// alternatives (their arm writes a failure) whose 2^k alternatives all cannot fail and treat result alike: the index is

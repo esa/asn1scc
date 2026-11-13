@@ -862,9 +862,17 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                 let itemOutcome = encodeOutcomeOf codec internalItem.encOutcome
                 let bItemCannotFail = codec = Encode && not itemOutcome.canFail
                 let bItemWritesResult = itemOutcome.writes <> NoWrite
+                // coverage step 14j (G1): the decode loop of a fixed size does not test result after an element that
+                // cannot fail (Ada: Loop_Invariant (result.Success) when the element writes it)
+                let bFixedItemCannotFail, bFixedItemWritesResult =
+                    match codec, DecodeOutcome.uperSeqOfFixedElement r lm o with
+                    | Encode, _                             -> bItemCannotFail, bItemWritesResult
+                    | Decode, AlwaysSucceeds WritesResult   -> true, true
+                    | Decode, AlwaysSucceeds NoResultWrite  -> true, false
+                    | Decode, MayFail                       -> false, true
                 let ret,localVariables =
                     match o.minSize with
-                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper -> fixedSize pp td i internalItemBody o.minSize.uper child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux bItemCannotFail bItemWritesResult codec, nStringLength
+                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper -> fixedSize pp td i internalItemBody o.minSize.uper child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux bFixedItemCannotFail bFixedItemWritesResult codec, nStringLength
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper -> varSize pp access  td i internalItemBody o.minSize.uper o.maxSize.uper nSizeInBits child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux bItemCannotFail bItemWritesResult (lengthEnforced lengthCheck) codec, nStringLength
                     | _ -> handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItemBody nIntItemMaxSize false false
                 let ret = withFixedSizeCount r lm codec t o.isFixedSize o.minSize.uper p ret

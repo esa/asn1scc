@@ -486,9 +486,9 @@ end loop;
 >>
 
 
-loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<
-while <i>\<= <fixedSize> AND result.Success loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize, bItemCannotFail, bItemWritesResult)::= /*nogen*/<<
+while <i>\<= <fixedSize><if(!bItemCannotFail)> AND result.Success<endif> loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);<if(bItemCannotFail)><if(bItemWritesResult)><\n>    pragma Loop_Invariant (result.Success);  -- the element's decoding cannot fail<else><\n>    --  no check of result: the element's decoding cannot fail and does not write it<endif><endif>
     pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
     pragma Loop_Invariant (bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
@@ -653,7 +653,7 @@ seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSiz
 seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 <i> := 1;
-<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
 >>
 
 seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<

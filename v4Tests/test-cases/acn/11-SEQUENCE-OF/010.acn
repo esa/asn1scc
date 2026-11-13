@@ -1,0 +1,21 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+   Pair [] { a [encoding pos-int, size 8], b [] }
+   Octets [] { [encoding pos-int, size 8] }
+   Flags []
+   Pairs []
+   VarFlags []
+   TwoFlags []
+   Small [] { [encoding pos-int, size 4] }
+
+   MyPDU [] {
+      f1 [],
+      f2 [],
+      f3 [],
+      f4 [],
+      f5 [] { [] { x [], y [encoding pos-int, size 4] } },
+      f6 [],
+      last []
+   }
+
+END

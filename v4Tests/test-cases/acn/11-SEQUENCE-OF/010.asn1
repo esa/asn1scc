@@ -1,0 +1,28 @@
+--RUN_SPARK
+-- Fixed-size SEQUENCE OF whose element cannot fail: the Ada decode loop does not test result after each element
+-- (a loop invariant states it when the element writes result), and the SEQUENCE OF cannot fail. Elements: an ACN
+-- integer that fills its field (_FullRange read, no result), BOOLEAN, a referenced SEQUENCE, a fixed-size subtype of a
+-- variable-size SEQUENCE OF (shared typedef: the decoder sets Length); 'Small' (4-bit field, values 0..10) may fail.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Pair ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN }
+   Octets ::= SEQUENCE (SIZE(4)) OF INTEGER (0..255)
+   Flags ::= SEQUENCE (SIZE(3)) OF BOOLEAN
+   Pairs ::= SEQUENCE (SIZE(2)) OF Pair
+   VarFlags ::= SEQUENCE (SIZE(1..5)) OF BOOLEAN
+   TwoFlags ::= VarFlags (SIZE(2))
+   Small ::= SEQUENCE (SIZE(2)) OF INTEGER (0..10)
+
+   MyPDU ::= SEQUENCE {
+      f1     Octets,
+      f2     Flags,
+      f3     Pairs,
+      f4     TwoFlags,
+      f5     SEQUENCE (SIZE(2)) OF SEQUENCE { x BOOLEAN, y INTEGER (0..15) },
+      f6     Small,
+      last   BOOLEAN
+   }
+
+END
+
+--TCFS     010.acn
