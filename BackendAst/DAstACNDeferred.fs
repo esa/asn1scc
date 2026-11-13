@@ -1643,7 +1643,7 @@ let private createDeferredReferenceFunction
         (baseType:Asn1Type)
         (us:State) =
 
-    let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "_ACN" codec
+    let _baseTypeDefinitionName, baseFncName = getReferenceCallFuncName r lm typeDefinition o t "_ACN" codec
 
     // ICD this reference contributes to its parent.  Same construction as the
     // legacy inline path; without it the parent SEQUENCE drops the field row

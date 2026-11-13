@@ -1,0 +1,32 @@
+-- C_ADA_ONLY (Python and Rust --acn-v2 fail on this file, pre-existing: Python decode error 48, Rust E0308)
+-- A component, CHOICE alternative or SEQUENCE OF element whose type is an OCTET / BIT STRING (CONTAINING X) type
+-- assignment (directly or through an alias) is encoded with the octet / bit string of that type assignment, as an inline
+-- CONTAINING and the type assignment's own encoder do: before, the call was named after the shared typedef (X) and
+-- encoded X alone (no length, no padding), while REQUIRED_BITS and the ICD counted the octet string.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    Inner  ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN }
+    Var    ::= SEQUENCE { a INTEGER (0..255), s SEQUENCE (SIZE(0..20)) OF BOOLEAN }
+
+    OctBox ::= OCTET STRING (CONTAINING Inner)
+    VarBox ::= OCTET STRING (CONTAINING Var)
+    BitVar ::= BIT STRING (CONTAINING Var)
+    Alias  ::= VarBox
+
+    Ch ::= CHOICE { o OctBox, v VarBox, n BOOLEAN }
+    Boxes ::= SEQUENCE (SIZE(1..2)) OF VarBox
+
+    MyPDU ::= SEQUENCE {
+        f   OctBox,
+        v   VarBox,
+        bv  BitVar,
+        al  Alias,
+        ch  Ch,
+        so  Boxes,
+        inl OCTET STRING (CONTAINING Var),
+        z   BOOLEAN
+    }
+
+END
+
+--TCLS     MyPDU[]

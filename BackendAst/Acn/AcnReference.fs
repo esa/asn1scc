@@ -107,7 +107,7 @@ let buildReferenceIcdArgAux
 
 
 let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
-  let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "_ACN" codec
+  let baseTypeDefinitionName, baseFncName = getReferenceCallFuncName r lm typeDefinition o t "_ACN" codec
 
   let icd = buildReferenceIcdArgAux r t o baseType
 

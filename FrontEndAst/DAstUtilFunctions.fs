@@ -1189,6 +1189,43 @@ let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReferenc
     let baseTypeDefinitionName = getBaseTypeDefName lm typeDefinitionName0 moduleName t o
     baseTypeDefinitionName, lm.lg.constructFuncName baseTypeDefinitionName methodSuffix (lm.lg.codecSuffix codec)
 
+/// q/issues.md Issue 91 (step 14k): the function a reference site without encoding options of its own calls. A type
+/// assignment `OctBox ::= OCTET STRING (CONTAINING Inner)` shares the contents' typedef (`typedef Inner OctBox`), so
+/// getBaseFuncName names the call after Inner and the site (`x OctBox`, also a CHOICE alternative, a SEQUENCE OF element,
+/// an alias `Box2 ::= OctBox`) encoded Inner without the OCTET / BIT STRING that OctBox's own function writes (and that
+/// REQUIRED_BITS and the ICD count). When the chain of type assignments reaches a CONTAINING, call the referenced type
+/// assignment's own function; otherwise getBaseFuncName.
+let getReferenceCallFuncName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) (methodSuffix:string) (codec:CommonTypes.Codec) =
+    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t methodSuffix codec
+    let rec reachesContaining (modName:StringLoc) (tasName:StringLoc) (visited:Set<string*string>) =
+        let key = (modName.Value, tasName.Value)
+        match visited.Contains key with
+        | true  -> false
+        | false ->
+            let tas = (r.GetModuleByName modName).GetTypeAssignmentByName tasName r
+            match tas.Type.Kind with
+            | Asn1AcnAst.ReferenceType rf ->
+                match rf.encodingOptions with
+                | Some _ -> true
+                | None   -> reachesContaining rf.modName rf.tasName (visited.Add key)
+            | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
+            | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _
+            | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _
+            | Asn1AcnAst.Choice _ | Asn1AcnAst.TimeType _ -> false
+    match o.encodingOptions with
+    | Some _ -> baseTypeDefinitionName, baseFncName
+    | None   ->
+        match reachesContaining o.modName o.tasName Set.empty with
+        | false -> baseTypeDefinitionName, baseFncName
+        | true  ->
+            let tas = (r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r
+            let tasTypeDef = lm.lg.getTypeDefinition tas.Type.FT_TypeDefinition
+            let tasName =
+                match lm.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit with
+                | true  -> lm.lg.constructCrossModuleFuncPrefix tasTypeDef.programUnit + tasTypeDef.typeName
+                | false -> tasTypeDef.typeName
+            baseTypeDefinitionName, lm.lg.constructFuncName tasName methodSuffix (lm.lg.codecSuffix codec)
+
 
 let serializeIcdTasToXml (icdTypeAss: IcdTypeAss) =
     let serializer = XmlSerializer(typeof<IcdTypeAss>)
