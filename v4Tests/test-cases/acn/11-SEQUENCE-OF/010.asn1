@@ -1,4 +1,4 @@
---RUN_SPARK
+--RUN_SPARK C_ADA_ONLY (Python cannot decode the fixed-size SEQUENCE OF subtype TwoFlags of a variable-size type, pre-existing)
 -- Fixed-size SEQUENCE OF whose element cannot fail: the Ada decode loop does not test result after each element
 -- (a loop invariant states it when the element writes result), and the SEQUENCE OF cannot fail. Elements: an ACN
 -- integer that fills its field (_FullRange read, no result), BOOLEAN, a referenced SEQUENCE, a fixed-size subtype of a
