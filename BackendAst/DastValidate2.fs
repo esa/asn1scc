@@ -1320,7 +1320,11 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             let tas = (r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r
             let tasTypeDef = l.lg.getTypeDefinition tas.Type.FT_TypeDefinition
             if l.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit then
-                tasTypeDef.programUnit + "." + tasTypeDef.typeName
+                // Qualify with the language's cross-module function prefix: it is
+                // "<mod>." for Ada/C, but Rust functions live in the body module
+                // and must be reached as "crate::<mod>::" (a bare "DV." is not a
+                // Rust path and fails to compile with E0425).
+                l.lg.constructCrossModuleFuncPrefix tasTypeDef.programUnit + tasTypeDef.typeName
             else tasTypeDef.typeName
         else baseTypeDefinitionName
     let baseFncName = l.lg.constructReferenceFuncName checkedTypeDefinitionName "" (l.isvalid.methodNameSuffix())
