@@ -590,8 +590,15 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
                 let asn1Children = o.children |> List.choose (fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
                 let presenceBits = asn1Children |> List.filter acnHasPresenceBit |> List.map (fun _ -> AlwaysSucceeds WritesResult)
                 let parts = asn1Children |> List.choose (fun c -> acnChildPart r deps lm c.Optionality c.Type |> Option.map (fun (outcome, _) -> c, outcome))
+                // a present-when child writes result on every path (its presence statement, 14j G6)
                 let unconditional, conditional =
-                    parts |> List.partition (fun (c, _) -> match c.Optionality with Some (Optional _) -> false | None | Some AlwaysPresent | Some AlwaysAbsent -> true)
+                    parts |> List.partition (fun (c, _) ->
+                        match c.Optionality with
+                        | Some (Optional opt) ->
+                            match opt.acnPresentWhen with
+                            | Some _ -> true
+                            | None   -> false
+                        | None | Some AlwaysPresent | Some AlwaysAbsent -> true)
                 match presenceBits, parts, acnParts with
                 | [], [], [] -> AlwaysSucceeds WritesResult                         // decode_empty_sequence: result := (true, 0)
                 | [], [], _  -> MayFail                                             // only ACN fields: kept as before 14c2b
@@ -713,14 +720,19 @@ and acnChildPart (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMac
     match optionality, acnHasDecodeContent childType with
     | Some AlwaysAbsent, _                                      -> Some (AlwaysSucceeds WritesResult, leaf true)
     | Some AlwaysPresent, false                                 -> Some (AlwaysSucceeds NoResultWrite, leaf false)
-    | Some (Optional opt), false when opt.acnPresentWhen.IsSome -> Some (MayFail, leaf false)
+    // 14j (G6): the decoding of a present-when (AcnSequence: sequence_presence_optChild_pres_bool /
+    // _pres_acn_expression) only sets Exist from a decoded field or an expression and writes result.Success := true
+    // (not ErrorCode), then the child is decoded under `if Exist = 1`: the part cannot fail when the child cannot, and
+    // it writes result on every path
+    | Some (Optional opt), false when opt.acnPresentWhen.IsSome -> Some (AlwaysSucceeds WritesResult, leaf false)
     | Some (Optional _), false
     | None, false                                               -> None
     | Some (Optional opt), true ->
         let outcome =
-            match opt.acnPresentWhen with
-            | Some _ -> MayFail
-            | None   -> acn r deps lm childType
+            match opt.acnPresentWhen, acn r deps lm childType with
+            | Some _, AlwaysSucceeds _  -> AlwaysSucceeds WritesResult
+            | Some _, MayFail           -> MayFail
+            | None, childOutcome        -> childOutcome
         Some (outcome, { acnErrorCodeSummary r deps lm childType with writesE = false })
     | Some AlwaysPresent, true
     | None, true                -> Some (acn r deps lm childType, acnErrorCodeSummary r deps lm childType)

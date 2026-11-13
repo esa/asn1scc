@@ -1,0 +1,18 @@
+--RUN_SPARK
+-- present-when on decoded ACN BOOLEAN fields, with children that cannot fail: in Ada the presence statement only sets
+-- Exist and result.Success, so the part cannot fail and the SEQUENCE joins the next part with pragma Assert; the
+-- present-when child 'z' (4-bit field, values 0..10) may fail and keeps its check.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Item ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN }
+
+   MyPDU ::= SEQUENCE {
+      x      INTEGER (0..15) OPTIONAL,
+      y      Item OPTIONAL,
+      z      INTEGER (0..10) OPTIONAL,
+      last   BOOLEAN
+   }
+
+END
+
+--TCFS     003.acn
