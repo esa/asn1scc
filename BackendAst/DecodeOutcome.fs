@@ -63,14 +63,16 @@ let fixedStringCannotFail (lm:LanguageMacros) (kind:FixedStringKind) (fixedNotFr
     | ReadsCannotFail, FixedOctets  -> fixedNotFragmented
     | ReadsCannotFail, FixedBits    -> fixedNotFragmented && not CommonTypes.bitStringAlignment
 
-/// Coverage step 14c2b (B2): a length minSize .. maxSize (minSize < maxSize) whose field of nBits bits holds exactly its
-/// values (maxSize - minSize + 1 = 2^nBits): read with UPER_Dec_ConstraintWholeNumberInt_FullRange (Integer target, whose
-/// Pre allows nBits <= 30), so the read cannot fail and its Post bounds the length to the SIZE range.
+/// Coverage step 14c2b (B2): a length minSize .. maxSize whose field of nBits bits holds exactly its values (maxSize -
+/// minSize + 1 = 2^nBits): read with UPER_Dec_ConstraintWholeNumberInt_FullRange (Integer target, whose Pre allows nBits
+/// <= 30), so the read cannot fail and its Post bounds the length to the SIZE range. 14k (K5): also minSize = maxSize in 0
+/// bits, the length of a fixed-size type that shares a variable-size typedef (`Sub ::= Base (WITH COMPONENTS {c (SIZE(1))})`,
+/// ACN embedded length: the variable-size templates with a 0-bit length field), as fullIndexBits accepts one item (14j G4).
 let lengthFullRange (lm:LanguageMacros) (minSize:BigInteger) (maxSize:BigInteger) (nBits:BigInteger) : bool =
     match lm.lg.decodeReadFailureModel with
     | ReadsCanFail      -> false
     | ReadsCannotFail   ->
-        minSize >= 0I && minSize < maxSize && nBits <= 30I && maxSize - minSize + 1I = BigInteger.Pow (2I, int nBits)
+        minSize >= 0I && minSize <= maxSize && nBits <= 30I && maxSize - minSize + 1I = BigInteger.Pow (2I, int nBits)
 
 /// 14c2b (B2): the character index of a uPER string (0 .. n - 1 for an alphabet of n characters; the full 128-character
 /// set in 7 bits) fills its field when n is a power of two.
@@ -737,6 +739,9 @@ and acnSeqOfFixedElement (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:Lan
 
 /// Coverage step 14k (G1b): uperSeqOfVarFullRangeElement for an ACN SEQUENCE OF with an embedded length
 /// (AcnSequenceOf.createSequenceOfFunction: SZ_EC_LENGTH_EMBEDDED, variable size, read like uPER over the ACN SIZE range).
+/// `isFixedSize` follows the uPER sizes (the typedef) while the length field spans the ACN ones: a WITH COMPONENTS
+/// subtype that fixes the size has minSize.acn = maxSize.acn under a variable-size typedef (0-bit field, 14k K5); the
+/// ACN range is always within the uPER one.
 and acnSeqOfVarFullRangeElement (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (o:SequenceOf) : DecodeOutcome =
     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (o.maxSize.acn - o.minSize.acn)
     match o.acnEncodingClass with

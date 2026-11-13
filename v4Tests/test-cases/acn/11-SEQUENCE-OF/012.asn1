@@ -1,0 +1,24 @@
+-- C_ADA_ONLY (Python cannot decode fixed-size subtypes of variable-size types, pre-existing)
+-- A fixed size given by WITH COMPONENTS to the components of a variable-size SEQUENCE: the subtype shares the
+-- variable-size typedefs, so the ACN embedded lengths are decoded with the variable-size templates over a 0-bit field
+-- (SIZE (1), (10), (20)). The Ada decoder reads them with the _FullRange twin (it cannot fail: its Post gives the one
+-- value) and the SEQUENCE cannot fail. Not proved by SPARK in CI: the uPER functions of the subtype call the base
+-- type's, whose stream precondition is larger (pre-existing); the ACN functions prove at level 4.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Base ::= SEQUENCE {
+      cmds  SEQUENCE (SIZE (0 .. 10)) OF BOOLEAN,
+      buf   OCTET STRING (SIZE (0 .. 200)),
+      bits  BIT STRING (SIZE (0 .. 200))
+   }
+
+   Fixed ::= Base (WITH COMPONENTS { cmds (SIZE (1)), buf (SIZE (10)), bits (SIZE (20)) })
+
+   MyPDU ::= SEQUENCE {
+      f  Fixed,
+      z  BOOLEAN
+   }
+
+END
+
+--TCLS     MyPDU[]
