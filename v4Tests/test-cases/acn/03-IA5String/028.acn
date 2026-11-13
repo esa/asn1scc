@@ -1,0 +1,12 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+   Name [encoding ASCII]
+   Code [encoding ASCII]
+   MyPDU [] {
+      who [],
+      num [],
+      label [encoding ASCII],
+      flag []
+   }
+
+END

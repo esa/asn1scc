@@ -445,6 +445,19 @@ let real64CannotFail (r:AstRoot) (lm:LanguageMacros) : bool =
     | ReadsCanFail      -> false
     | ReadsCannotFail   -> onlyX86 && r.args.floatingPointSizeInBytes = 8I
 
+/// Coverage step 14j (G5): an ACN IA5String / NumericString with `encoding ASCII` and a fixed size
+/// (Acn_Enc_String_uPER_Ascii, the AcnStrings fixed-size branch): Acn_Dec_String_Ascii_FixSize reads one byte per
+/// character and accepts every byte (as the C twin, whose only reject is the end of the stream), its Post states
+/// success. Ada only (ReadsCannotFail); producer AcnStrings (macro Acn_String_Ascii_FixSize_cannotFail).
+let acnStringAsciiFixSizeCannotFail (lm:LanguageMacros) (o:StringType) : bool =
+    match lm.lg.decodeReadFailureModel with
+    | ReadsCanFail      -> false
+    | ReadsCannotFail   ->
+        match o.acnEncodingClass with
+        | Acn_Enc_String_uPER_Ascii _ -> o.maxSize.uper = o.minSize.uper
+        | Acn_Enc_String_uPER _ | Acn_Enc_String_Ascii_Null_Terminated _ | Acn_Enc_String_Ascii_External_Field_Determinant _
+        | Acn_Enc_String_CharIndex_External_Field_Determinant _ | Acn_Enc_String_Ascii_Deduced _ -> false
+
 /// Coverage step 14j (G2): an ACN IEEE 754 32-bit REAL decoded into Asn1Real (the RTL procedure without the _fp32 suffix,
 /// i.e. not the FP32 class of -slim): Asn1Real is Float or Long_Float on every board (ADA_RTL2/boards), the RTL Post states
 /// success. Ada only (ReadsCannotFail); producer AcnPrimitives (macro Real_32_cannotFail).
@@ -617,6 +630,7 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
         | IA5String o | NumericString o ->
             match o.acnEncodingClass with
             | Acn_Enc_String_uPER _ -> uper r lm t                                  // 14c2b: the uPER body (AcnStrings)
+            | _ when acnStringAsciiFixSizeCannotFail lm o -> AlwaysSucceeds WritesResult   // Acn_String_Ascii_FixSize_cannotFail (14j G5)
             | _                     -> MayFail
         | NullType _ | TimeType _
         | ObjectIdentifier _ | SequenceOf _ -> MayFail

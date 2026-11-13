@@ -42,7 +42,15 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables, x.auxiliaries, x.encOutcome), us
             | Acn_Enc_String_uPER_Ascii _ ->
                 match o.maxSize.uper = o.minSize.uper with
-                | true      ->  Some (Acn_String_Ascii_FixSize (ppSub o.maxSize.uper) errCode.errCodeName ( o.maxSize.uper) codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncStringFixedSize)), us
+                | true      ->
+                    // coverage step 14j (G5): the fixed-size ASCII decode cannot fail (every byte is a character) and
+                    // writes all of result: no error code
+                    let body =
+                        match codec, DecodeOutcome.acnStringAsciiFixSizeCannotFail lm o with
+                        | Decode, true          -> lm.acn.Acn_String_Ascii_FixSize_cannotFail (ppSub o.maxSize.uper)
+                        | Decode, false
+                        | Encode, _             -> Acn_String_Ascii_FixSize (ppSub o.maxSize.uper) errCode.errCodeName ( o.maxSize.uper) codec
+                    Some (body, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncStringFixedSize)), us
                 | false     ->
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.acn - o.minSize.acn))
                     // (Ada checks the length first, as the uPER variable-size string)

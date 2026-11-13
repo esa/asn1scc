@@ -828,6 +828,14 @@ adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_FixSize(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
+/* Coverage step 14j (G5): the fixed-size ASCII decode accepts every byte (as the C Acn_Dec_String_Ascii_FixSize), the
+   RTL Post states success and the call writes all of result, so no error code is set
+   (DecodeOutcome.acnStringAsciiFixSizeCannotFail). */
+Acn_String_Ascii_FixSize_cannotFail(p) ::= <<
+-- cannot fail: every byte is a character, the RTL Post states success
+adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_FixSize(bs, <p>, result);
+>>
+
 Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_Null_Terminated(bs, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">), <p>);"
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sType) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_Null_Terminated(bs, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), <p>, result);

@@ -1,0 +1,18 @@
+--RUN_SPARK
+-- Fixed-size IA5String / NumericString with ACN 'encoding ASCII' (one byte per character): the decoder accepts every
+-- byte, so in Ada it cannot fail and the SEQUENCE joins the next part with pragma Assert instead of a check.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Name ::= IA5String (SIZE(4))
+   Code ::= NumericString (SIZE(3))
+
+   MyPDU ::= SEQUENCE {
+      who      Name,
+      num      Code,
+      label    IA5String (SIZE(2)),
+      flag     BOOLEAN
+   }
+
+END
+
+--TCFS     028.acn
