@@ -705,6 +705,12 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
         | Choice o ->
             match acnChoiceFullIndex r deps lm o with
             | Some (_, w) -> AlwaysSucceeds w
+            | None when acnChoiceEnumLocal r deps t o ->
+                // 14k (K3): Choice_Enum_decode over a local of the enumeration type (no `when others`): an arm runs on
+                // every path, so the CHOICE cannot fail when its alternatives cannot (and treat result alike, 14c2a)
+                match o.children |> List.map (fun c -> acnChoiceAlternative r deps lm c.Type |> fst) with
+                | AlwaysSucceeds w :: rest when rest |> List.forall (fun x -> x = AlwaysSucceeds w) -> AlwaysSucceeds w
+                | _ -> MayFail
             | None       -> MayFail
         | Real o ->
             match o.acnEncodingClass with
@@ -753,6 +759,22 @@ and acnSeqOfVarFullRangeElement (r:AstRoot) (deps:AcnInsertedFieldDependencies) 
 /// alternatives (their arm writes a failure) whose 2^k alternatives all cannot fail and treat result alike: the index is
 /// read with the _FullRange twin, the `case` is unguarded (Choice_fullIndex). An alternative without ACN content is
 /// decode_nullType / decode_empty_sequence (result := (true, 0)). Returns k and the alternatives' ResultWrite.
+/// 14j (G4) / 14k (K3): an ACN CHOICE selected by an ENUMERATED determinant held in a local of the enumeration type
+/// (Choice_Enum_decode without `when others`: not an --acn-v2 deferred ref, AcnChoice.isDeferredDeterminant) and without
+/// ALWAYS ABSENT alternatives (their Ada arm only writes a failure, Issue 82): an arm runs on every path.
+and acnChoiceEnumLocal (r:AstRoot) (deps:AcnInsertedFieldDependencies) (t:Asn1Type) (o:Choice) : bool =
+    match o.acnProperties.enumDeterminant with
+    | None   -> false
+    | Some _ ->
+        let noAlwaysAbsent = o.children |> List.forall (fun c -> c.Optionality <> Some ChoiceAlwaysAbsent)
+        match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = t.id) with
+        | None   -> false
+        | Some d ->
+            match r.args.acnDeferred, d.determinant with
+            | true, AcnParameterDeterminant _   -> false                            // deferred ref: `when others` fails
+            | true, AcnChildDeterminant _
+            | false, _                          -> noAlwaysAbsent
+
 and acnChoiceFullIndex (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (o:Choice) : (BigInteger * ResultWrite) option =
     let selfSelected =
         o.acnProperties.enumDeterminant.IsNone
@@ -1008,17 +1030,9 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (choiceAssigns: As
 let acnChoiceSelectionAssigns (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : bool =
     match t.Kind with
     | Choice o ->
-        let noAlwaysAbsent = o.children |> List.forall (fun c -> c.Optionality <> Some ChoiceAlwaysAbsent)
         match o.acnProperties.enumDeterminant with
         | None   -> (acnChoiceFullIndex r deps lm o).IsSome
-        | Some _ ->
-            match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = t.id) with
-            | None   -> false
-            | Some d ->
-                match r.args.acnDeferred, d.determinant with
-                | true, AcnParameterDeterminant _   -> false                        // deferred ref: `when others` fails
-                | true, AcnChildDeterminant _
-                | false, _                          -> noAlwaysAbsent
+        | Some _ -> acnChoiceEnumLocal r deps t o
     | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
     | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | NullType _ | ReferenceType _ -> false
 
