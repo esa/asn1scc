@@ -404,7 +404,7 @@ sequence_mandatory_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, 
 <if(bIsPrimitive)>
 <sChildContent>
 <else>
-<p><sAcc><sChName>.encode_uper(codec, check_constraints)
+<sChildTypedef>.encode_uper(<p><sAcc><sChName>, codec, check_constraints)
 <endif>
 >>
 
@@ -423,7 +423,7 @@ if <p><sAcc><sChName> is not None:
     <if(bIsPrimitive)>
     <sChildContent>
     <else>
-    <p><sAcc><sChName>.encode_uper(codec, check_constraints)
+    <sChildTypedef>.encode_uper(<p><sAcc><sChName>, codec, check_constraints)
     <endif>
 >>
 
