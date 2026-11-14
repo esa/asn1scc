@@ -849,83 +849,100 @@ is
       end if;
    end BitStream_EncodeOctetString;
 
+   --  X.691 10.9.3.6 - 10.9.3.8: the header of the next part of a general
+   --  length: a fragment of 16K, 32K, 48K or 64K units (C1 .. C4), or the
+   --  last part, of n < 128 units (one octet) or n < 16K units (two
+   --  octets, 10xxxxxx). Other values (C0, C5 .. FF) are an error.
+   procedure Decode_Length_Part
+     (bs     : in out Bitstream; nUnits : out Integer; bLast : out Boolean;
+      success :   out Boolean);
+
+   procedure Decode_Length_Part
+     (bs     : in out Bitstream; nUnits : out Integer; bLast : out Boolean;
+      success :   out Boolean) with
+      SPARK_Mode => Off
+   is
+      nHeader : Integer := 0;
+      nLow    : Integer := 0;
+   begin
+      nUnits  := 0;
+      bLast   := True;
+      success := bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8;
+      if success then
+         UPER_Dec_ConstraintWholeNumberInt (bs, nHeader, 0, 255, 8, success);
+      end if;
+      if success then
+         case nHeader is
+            when 16#00# .. 16#7F# =>
+               nUnits := nHeader;
+            when 16#80# .. 16#BF# =>
+               success := bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8;
+               if success then
+                  UPER_Dec_ConstraintWholeNumberInt
+                    (bs, nLow, 0, 255, 8, success);
+                  nUnits := (nHeader - 16#80#) * 16#100# + nLow;
+               end if;
+            when 16#C1# =>
+               nUnits := 16#4000#;
+               bLast  := False;
+            when 16#C2# =>
+               nUnits := 16#8000#;
+               bLast  := False;
+            when 16#C3# =>
+               nUnits := 16#C000#;
+               bLast  := False;
+            when 16#C4# =>
+               nUnits := 16#10000#;
+               bLast  := False;
+            when others =>
+               success := False;
+         end case;
+      end if;
+   end Decode_Length_Part;
+
    procedure BitStream_DecodeOctetString_fragmentation
      (bs          : in out Bitstream; data : in out OctetBuffer;
       data_length : out Integer; asn1SizeMin : Integer; asn1SizeMax : Integer;
       success     :    out Boolean);
 
+   --  Every part is checked against asn1SizeMax, the size of data and the
+   --  rest of the stream before it is read.
    procedure BitStream_DecodeOctetString_fragmentation
      (bs          : in out Bitstream; data : in out OctetBuffer;
       data_length : out Integer; asn1SizeMin : Integer; asn1SizeMax : Integer;
       success     :    out Boolean) with
       SPARK_Mode => Off
    is
-      i1                  : Integer;
-      nLengthTmp1         : Integer := 0;
-      nRemainingItemsVar1 : Integer;
-      nCurBlockSize1      : Integer := 0;
-      nCurOffset1         : Integer;
+      nTotal : Integer := 0;
+      nPart  : Integer;
+      bLast  : Boolean := False;
    begin
-      --  decode blockSize
       data_length := asn1SizeMin;
-      UPER_Dec_ConstraintWholeNumberInt
-        (bs, nRemainingItemsVar1, 0, 255, 8, success);
-      nCurOffset1 := 1;
-
-      while success and
-        (nRemainingItemsVar1 = 16#C4# or nRemainingItemsVar1 = 16#C3# or
-         nRemainingItemsVar1 = 16#C2# or nRemainingItemsVar1 = 16#C1#)
-      loop
-         if nRemainingItemsVar1 = 16#C4# then
-            nCurBlockSize1 := 16#10000#;
-         elsif nRemainingItemsVar1 = 16#C3# then
-            nCurBlockSize1 := 16#C000#;
-         elsif nRemainingItemsVar1 = 16#C2# then
-            nCurBlockSize1 := 16#8000#;
-         else
-            nCurBlockSize1 := 16#4000#;
+      success     := True;
+      while success and not bLast loop
+         Decode_Length_Part (bs, nPart, bLast, success);
+         if success then
+            success := nPart <= asn1SizeMax - nTotal
+              and then nPart <= data'Length - nTotal
+              and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * nPart;
          end if;
-
-         nLengthTmp1 := nLengthTmp1 + nCurBlockSize1;
-         success     := nLengthTmp1 <= asn1SizeMax;
-         i1          := nCurOffset1;
-         while i1 <= nCurOffset1 + nCurBlockSize1 - 1 and success loop
-            BitStream_DecodeByte (bs, data (i1), success);
-            i1 := i1 + 1;
-         end loop;
-         nCurOffset1 := nCurOffset1 + nCurBlockSize1;
-         UPER_Dec_ConstraintWholeNumberInt
-           (bs, nRemainingItemsVar1, 0, 255, 8, success);
+         if success then
+            for i in 0 .. nPart - 1 loop
+               BitStream_DecodeByte
+                 (bs, data (data'First + nTotal + i), success);
+               exit when not success;
+            end loop;
+         end if;
+         if success then
+            nTotal := nTotal + nPart;
+         end if;
       end loop;
 
-      if nRemainingItemsVar1 >= 16#80# then
-         declare
-            len2 : Integer;
-         begin
-            nRemainingItemsVar1 := (nRemainingItemsVar1 - 16#80#) * 16#100#;
-            UPER_Dec_ConstraintWholeNumberInt (bs, len2, 0, 255, 8, success);
-            if success then
-               nRemainingItemsVar1 := nRemainingItemsVar1 + len2;
-            end if;
-         end;
-      end if;
-
-      if nCurOffset1 + nRemainingItemsVar1 - 1 <= asn1SizeMax then
-         i1 := nCurOffset1;
-         while i1 <= nCurOffset1 + nRemainingItemsVar1 - 1 loop
-            BitStream_DecodeByte (bs, data (i1), success);
-            i1 := i1 + 1;
-         end loop;
-         nLengthTmp1 := nLengthTmp1 + nRemainingItemsVar1;
-      end if;
-
-      if nLengthTmp1 >= asn1SizeMin and nLengthTmp1 <= asn1SizeMax then
-         data_length := nLengthTmp1;
-
+      if success and nTotal >= asn1SizeMin and nTotal <= asn1SizeMax then
+         data_length := nTotal;
       else
-         success := False;   --  COVERAGE_IGNORE
+         success := False;
       end if;
-
    end BitStream_DecodeOctetString_fragmentation;
 
    procedure BitStream_DecodeOctetString
@@ -1032,90 +1049,46 @@ is
       data_length : out Integer; asn1SizeMin : Integer; asn1SizeMax : Integer;
       success     :    out Boolean);
 
+   --  Every part is checked against asn1SizeMax, the size of data and the
+   --  rest of the stream before it is read. The fragments are multiples of
+   --  8 bits, so every part starts at the first bit of a byte of data.
    procedure BitStream_DecodeBitString_fragmentation
      (bs          : in out Bitstream; data : in out OctetBuffer;
       data_length : out Integer; asn1SizeMin : Integer; asn1SizeMax : Integer;
       success     :    out Boolean) with
       SPARK_Mode => Off
    is
-      nLengthTmp1         : Integer := 0;
-      nRemainingItemsVar1 : Integer;
-      nCurBlockSize1      : Integer := 0;
-      nCurOffset1         : Integer;
+      nTotal : Integer := 0;
+      nPart  : Integer;
+      bLast  : Boolean := False;
    begin
-
-      UPER_Dec_ConstraintWholeNumberInt
-        (bs, nRemainingItemsVar1, 0, 255, 8, success);
-      nCurOffset1 := 1;
-
-      while success and
-        (nRemainingItemsVar1 = 16#C4# or nRemainingItemsVar1 = 16#C3# or
-         nRemainingItemsVar1 = 16#C2# or nRemainingItemsVar1 = 16#C1#)
-      loop
-         if nRemainingItemsVar1 = 16#C4# then
-            nCurBlockSize1 := 16#10000#;
-         elsif nRemainingItemsVar1 = 16#C3# then
-            nCurBlockSize1 := 16#C000#;
-         elsif nRemainingItemsVar1 = 16#C2# then
-            nCurBlockSize1 := 16#8000#;
-         else
-            nCurBlockSize1 := 16#4000#;
-         end if;
-
-         BitStream_ReadBits
-           (bs,
-            data
-              (data'First + nCurOffset1 / 8 ..
-                   data'First + (nCurOffset1 + nCurBlockSize1) / 8 - 1),
-            nCurBlockSize1, success);
-
+      data_length := asn1SizeMin;
+      success     := True;
+      while success and not bLast loop
+         Decode_Length_Part (bs, nPart, bLast, success);
          if success then
-            nLengthTmp1 := nLengthTmp1 + nCurBlockSize1;
-            nCurOffset1 := nCurOffset1 + nCurBlockSize1;
-            UPER_Dec_ConstraintWholeNumberInt
-              (bs, nRemainingItemsVar1, 0, 255, 8, success);
+            success := nPart <= asn1SizeMax - nTotal
+              and then nPart <= data'Length * 8 - nTotal
+              and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nPart;
          end if;
-      end loop;
-
-      if success then
-
-         if nRemainingItemsVar1 >= 16#80# then
-            declare
-               len2 : Integer;
-            begin
-               nRemainingItemsVar1 := (nRemainingItemsVar1 - 16#80#) * 16#100#;
-               UPER_Dec_ConstraintWholeNumberInt
-                 (bs, len2, 0, 255, 8, success);
-               if success then
-                  nRemainingItemsVar1 := nRemainingItemsVar1 + len2;
-               end if;
-            end;
-         end if;
-
-         if success and nCurOffset1 + nRemainingItemsVar1 - 1 <= asn1SizeMax
-         then
-
+         if success and nPart > 0 then
             BitStream_ReadBits
               (bs,
                data
-                 (data'First + nCurOffset1 / 8 ..
-                      data'First + (nCurOffset1 + nRemainingItemsVar1) / 8 -
-                      1),
-               nRemainingItemsVar1, success);
-
-            nLengthTmp1 := nLengthTmp1 + nRemainingItemsVar1;
+                 (data'First + nTotal / 8 ..
+                      data'First + (nTotal + nPart + 7) / 8 - 1),
+               nPart, success);
          end if;
-
-         if success and nLengthTmp1 >= 1 and nLengthTmp1 <= asn1SizeMax then
-            data_length := nLengthTmp1;
-
-         else
-            data_length := asn1SizeMin;
-            success     := False;       --  COVERAGE_IGNORE
+         if success then
+            nTotal := nTotal + nPart;
          end if;
+      end loop;
 
+      if success and nTotal >= asn1SizeMin and nTotal <= asn1SizeMax then
+         data_length := nTotal;
+      else
+         success := False;
       end if;
-
    end BitStream_DecodeBitString_fragmentation;
 
 --     procedure BitStream_ReadBits

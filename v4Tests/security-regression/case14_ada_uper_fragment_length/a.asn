@@ -1,0 +1,8 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    -- contents of at most 72014 bits (> 64K): the BIT STRING length is fragmented
+    Big    ::= SEQUENCE { d OCTET STRING (SIZE(0..9000)) }
+    -- contents of at most 70003 octets (> 64K): the OCTET STRING length is fragmented
+    Large  ::= SEQUENCE { d OCTET STRING (SIZE(0..70000)) }
+    BitBox ::= SEQUENCE { b BIT STRING (CONTAINING Big) }
+    OctBox ::= SEQUENCE { o OCTET STRING (CONTAINING Large) }
+END
