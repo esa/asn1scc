@@ -90,6 +90,22 @@ cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -I "$out" \
 "$out/size_test"
 echo "xer 003 OK"
 
+# uPER OCTET / BIT STRING (CONTAINING X): the X.691 general length and the contents padded to whole octets (Issue 94),
+# bytes cross-checked with pycrate; C (with ASan / UBSan) and Ada (-gnata: the RTL contracts are checked too).
+out=$work/uper001
+mkdir "$out"
+run_compiler -c -uPER -equal -o "$out" "$root/test-cases/uper-wire/001.asn1"
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I "$out" "$out"/*.c "$root/test-cases/uper-wire/001_wire_test.c" -o "$out/wire_test"
+"$out/wire_test"
+echo "uper-wire 001 OK"
+out=$work/uper001ada
+mkdir "$out"
+run_compiler -Ada -uPER -equal -o "$out" "$root/test-cases/uper-wire/001.asn1"
+cp "$root/test-cases/uper-wire/001_wire_test.adb" "$out/wire_test.adb"
+(cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
+echo "uper-wire 001 (Ada) OK"
+
 # 036 in Ada on the 32-bit board msp430: sign extension in the upper bytes of 64-bit fields
 # (compiled with -gnata: the RTL's pragma Assume are checked too).
 out=$work/ada036

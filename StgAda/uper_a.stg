@@ -970,6 +970,10 @@ begin
 	adaasn1rtl.encoding.uper.BitStream_DecodeContainingOctets(bs, tmpBs.Buffer, data_length, <nMaxOctets>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+		--the contents must lie in the data_length octets of this region (the rest of tmpBs holds zeros)
+		if result.success and then tmpBs.Current_Bit_Pos > 8 * data_length then
+			result := (Success => False, ErrorCode => <sErrCode>);
+		end if;
 	else
 		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
@@ -1001,6 +1005,10 @@ begin
 	adaasn1rtl.encoding.uper.BitStream_DecodeContainingBits(bs, tmpBs.Buffer, data_length, <nMaxBits>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+		--the contents must lie in the octets of the data_length bits of this region (the rest of tmpBs holds zeros)
+		if result.success and then tmpBs.Current_Bit_Pos > 8 * ((data_length + 7) / 8) then
+			result := (Success => False, ErrorCode => <sErrCode>);
+		end if;
 	else
 		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
