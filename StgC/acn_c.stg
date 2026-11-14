@@ -1700,11 +1700,11 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAc
 	ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, <nMinSize>);
 
 	<else>
-	asn1SccSint nCount;
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>);
+	asn1SccSint nRegionLen;
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRegionLen, <nMinSize>, <nMaxSize>);
 	if (ret) {
-		BitStream_Init(&bitStrm, arr, (int)nCount);
-		ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, (int)nCount);
+		BitStream_Init(&bitStrm, arr, (int)nRegionLen);
+		ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, (int)nRegionLen);
 	}
 
 	<endif>
@@ -1758,15 +1758,15 @@ bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnE
 	}
 
 	<else>
-	asn1SccSint nCount;
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>);
+	asn1SccSint nRegionLen;
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRegionLen, <nMinSize>, <nMaxSize>);
 	if (ret) {
-		ret = BitStream_ReadBits(pBitStrm, arr, nCount);
+		ret = BitStream_ReadBits(pBitStrm, arr, nRegionLen);
 	}
 	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
-		/*the contents are decoded from the octets of the nCount bits of this region only*/
-		bitStrm.count = (nCount + 7) / 8;
+		/*the contents are decoded from the octets of the nRegionLen bits of this region only*/
+		bitStrm.count = (nRegionLen + 7) / 8;
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}
 

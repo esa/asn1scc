@@ -907,12 +907,12 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUp
 	static byte arr[<sReqBytesForUperEncoding>];
 	BitStream bitStrm;
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
-	int nCount;
-	ret = BitStream_DecodeOctetString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
+	int nRegionLen;
+	ret = BitStream_DecodeOctetString(pBitStrm, arr, &nRegionLen, <nMinSize>, <nMaxSize>);
 	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
-		/*the contents are decoded from the nCount octets of this region only*/
-		bitStrm.count = nCount;
+		/*the contents are decoded from the nRegionLen octets of this region only*/
+		bitStrm.count = nRegionLen;
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}
 }
@@ -941,12 +941,12 @@ bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUper
 	static byte arr[<sReqBytesForUperEncoding>];
 	BitStream bitStrm;
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
-	int nCount;
-	ret = BitStream_DecodeBitString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
+	int nRegionLen;
+	ret = BitStream_DecodeBitString(pBitStrm, arr, &nRegionLen, <nMinSize>, <nMaxSize>);
 	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
-		/*the contents are decoded from the octets of the nCount bits of this region only*/
-		bitStrm.count = (nCount + 7) / 8;
+		/*the contents are decoded from the octets of the nRegionLen bits of this region only*/
+		bitStrm.count = (nRegionLen + 7) / 8;
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}
 }

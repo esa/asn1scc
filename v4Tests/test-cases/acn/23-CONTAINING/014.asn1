@@ -1,0 +1,17 @@
+-- An inline OCTET / BIT STRING (CONTAINING X) decoded in a function that also decodes a variable-size SEQUENCE OF: the C
+-- decode block of the CONTAINING declared a length named like the function's SEQUENCE OF count, which the generated
+-- Makefile (-Werror=shadow) rejects.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    Var    ::= SEQUENCE { a INTEGER (0..255), s SEQUENCE (SIZE(0..20)) OF BOOLEAN }
+
+    MyPDU ::= SEQUENCE {
+        so  SEQUENCE (SIZE(1..2)) OF BOOLEAN,
+        inl OCTET STRING (CONTAINING Var),
+        bin BIT STRING (CONTAINING Var),
+        z   BOOLEAN
+    }
+
+END
+
+--TCLS     MyPDU[]
