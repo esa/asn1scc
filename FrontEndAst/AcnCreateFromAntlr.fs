@@ -1697,7 +1697,9 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 | Some  ContainedInBitString ->
                     let minSize = {SIZE.uper = resolvedType.uperMinSizeInBits; acn = resolvedType.acnMinSizeInBits}
                     let maxSize = {SIZE.uper = resolvedType.uperMaxSizeInBits; acn = resolvedType.acnMaxSizeInBits}
-                    let hasNCount = minSize.uper <> maxSize.uper
+                    // The ACN length of the contents follows their ACN sizes (Issue 96): before, it followed the uPER
+                    // sizes, so contents of a fixed uPER but a variable ACN size got no length.
+                    let hasNCount = minSize.acn <> maxSize.acn
                     let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 1I
                     let acnProperties =
                         match acnErrLoc with
@@ -1710,7 +1712,8 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 | Some  ContainedInOctString  ->
                     let minSize = {SIZE.uper = toByte resolvedType.uperMinSizeInBits; acn = toByte resolvedType.acnMinSizeInBits}
                     let maxSize = {SIZE.uper = toByte resolvedType.uperMaxSizeInBits; acn = toByte resolvedType.acnMaxSizeInBits}
-                    let hasNCount = (minSize.uper <> maxSize.uper) || (minSize.acn <> maxSize.acn)
+                    // ACN sizes only (Issue 96), as for BIT STRING.
+                    let hasNCount = minSize.acn <> maxSize.acn
                     let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 8I
 
                     let acnProperties =
