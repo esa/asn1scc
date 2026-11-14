@@ -973,7 +973,16 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
         let handleChild (s: SequenceChildState) (child:Asn1Child): SequenceChildResult * SequenceChildState =
             let childName =  TL "handleChild_01" (fun () -> lm.lg.getAsn1ChildBackendName child)
-            let childTypeDef = TL "handleChild_02" (fun () -> child.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName)
+            let childTypeDef = TL "handleChild_02" (fun () ->
+                // Issue 91: a child of a CONTAINING type assignment (whose typedef is the contents') is decoded by the
+                // type assignment's own function; only the Python templates use this name (`<class>.decode_uper`)
+                let typedefName () = child.Type.typeDefinitionOrReference.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName
+                match child.Type.Kind with
+                | ReferenceType rf ->
+                    match containingTasTypeName r lm rf.baseInfo t with
+                    | Some n -> n
+                    | None   -> typedefName ()
+                | _ -> typedefName ())
             let childNestingScope =
                 TL "handleChild_03" (fun () -> 
                 {nestingScope with
@@ -1310,23 +1319,25 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
             let octet_string_containing_func  = lm.uper.octet_string_containing_func
             let bit_string_containing_func  = lm.uper.bit_string_containing_func
             let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
+            // Issue 94: emitted also when X encodes nothing (NULL, an empty SEQUENCE): X.691 10.1.3 sends one zero octet
             let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
-                match (baseType.getUperFunction codec).funcBody nestingScope p fromACN with
-                | Some _ ->
-                    let pp, resultExpr =
-                        let str = lm.lg.getParamValue t p.accessPath codec
-                        match codec, lm.lg.decodingKind with
-                        | Decode, Copy ->
-                            let toc = ToC str
-                            toc, Some toc
-                        | _ -> str, None
-                    let nBits = GetNumberOfBitsForNonNegativeInteger (opts.maxSize.uper - opts.minSize.uper)
-                    let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ENCODING" baseTypeDefinitionName
-                    let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ENCODING" baseTypeDefinitionName
-                    let funcBodyContent =
-                        match opts.octOrBitStr with
-                        | ContainedInOctString  -> octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding nBits opts.minSize.uper opts.maxSize.uper errCode.errCodeName codec
-                        | ContainedInBitString  -> bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits opts.minSize.uper opts.maxSize.uper errCode.errCodeName codec
-                    Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []; encOutcome = EncodeOutcome.unknown}
-                | None -> None
+                let pp, resultExpr =
+                    let str = lm.lg.getParamValue t p.accessPath codec
+                    match codec, lm.lg.decodingKind with
+                    | Decode, Copy ->
+                        let toc = ToC str
+                        toc, Some toc
+                    | _ -> str, None
+                // Issue 94 (X.691 10.1.3, 9.3.16): general length, contents padded to whole octets, at least one octet.
+                // The decoder accepts 0 .. the maximum (octets, or bits for a BIT STRING).
+                let nContentsOctets = uPER.containingOctets o.resolvedType.uperMaxSizeInBits
+                let sBufferBytes =
+                    match o.resolvedType.uperMaxSizeInBits > 0I with
+                    | true  -> sprintf "%s_REQUIRED_BYTES_FOR_ENCODING" baseTypeDefinitionName
+                    | false -> "1"
+                let funcBodyContent =
+                    match opts.octOrBitStr with
+                    | ContainedInOctString  -> octet_string_containing_func pp baseFncName baseTypeDefinitionName sBufferBytes nContentsOctets errCode.errCodeName codec
+                    | ContainedInBitString  -> bit_string_containing_func pp baseFncName baseTypeDefinitionName sBufferBytes (nContentsOctets * 8I) errCode.errCodeName codec
+                Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []; encOutcome = EncodeOutcome.unknown}
             createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  [] us)

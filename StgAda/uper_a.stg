@@ -946,29 +946,28 @@ end if;
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
-    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
-	data_length : Integer;
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
 begin
 	--encode value to a temporary bit stream
 	<sFuncName>_aux(<p>, tmpBs, result);
 	if result.success then
-		data_length := adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs);
-		adaasn1rtl.encoding.uper.BitStream_EncodeOctetString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>);
+		--X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)
+		adaasn1rtl.encoding.uper.BitStream_EncodeContainingOctets(bs, tmpBs.Buffer, tmpBs.Current_Bit_Pos, <nMaxOctets>);
 	end if;
 end;
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
-    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
-	data_length : Integer;
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
+	data_length : Natural;
 begin
 	--decode to a temporary bitstream
-	adaasn1rtl.encoding.uper.BitStream_DecodeOctetString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>, result.success);
+	adaasn1rtl.encoding.uper.BitStream_DecodeContainingOctets(bs, tmpBs.Buffer, data_length, <nMaxOctets>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
 	else
@@ -978,29 +977,28 @@ end;
 >>
 
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
-    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
-	data_length : Integer;
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
 begin
 	--encode value to a temporary bit stream
 	<sFuncName>_aux(<p>, tmpBs, result);
 	if result.success then
-		data_length := tmpBs.Current_Bit_Pos;
-		adaasn1rtl.encoding.uper.BitStream_EncodeBitString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>);
+		--X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)
+		adaasn1rtl.encoding.uper.BitStream_EncodeContainingBits(bs, tmpBs.Buffer, tmpBs.Current_Bit_Pos, <nMaxBits>);
 	end if;
 end;
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
 --open new scope to declare some variables
 declare
-    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
-	data_length : Integer;
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
+	data_length : Natural;
 begin
 	--decode to a temporary bitstream
-	adaasn1rtl.encoding.uper.BitStream_DecodeBitString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>, result.success);
+	adaasn1rtl.encoding.uper.BitStream_DecodeContainingBits(bs, tmpBs.Buffer, data_length, <nMaxBits>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
 	else

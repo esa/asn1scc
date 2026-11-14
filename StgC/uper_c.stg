@@ -884,31 +884,31 @@ if (ret) {
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
-	static byte arr[<sReqBytesForUperEncoding>];
+	static byte arr[<sBufferBytes>];
 	BitStream bitStrm;
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
 	if (ret) {
-		int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
-		ret = BitStream_EncodeOctetString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
+		/*X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)*/
+		ret = BitStream_EncodeContainingOctets(pBitStrm, arr, bitStrm.currentByte * 8 + bitStrm.currentBit, <nMaxOctets>);
 	}
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/
-	static byte arr[<sReqBytesForUperEncoding>];
+	static byte arr[<sBufferBytes>];
 	BitStream bitStrm;
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 	int nRegionLen;
-	ret = BitStream_DecodeOctetString(pBitStrm, arr, &nRegionLen, <nMinSize>, <nMaxSize>);
+	ret = BitStream_DecodeContainingOctets(pBitStrm, arr, &nRegionLen, <nMaxOctets>);
 	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
 		/*the contents are decoded from the nRegionLen octets of this region only*/
@@ -918,31 +918,31 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUp
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
-	static byte arr[<sReqBytesForUperEncoding>];
+	static byte arr[<sBufferBytes>];
 	BitStream bitStrm;
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
 	if (ret) {
-		int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;
-		ret = BitStream_EncodeBitString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
+		/*X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)*/
+		ret = BitStream_EncodeContainingBits(pBitStrm, arr, bitStrm.currentByte * 8 + bitStrm.currentBit, <nMaxBits>);
 	}
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/
-	static byte arr[<sReqBytesForUperEncoding>];
+	static byte arr[<sBufferBytes>];
 	BitStream bitStrm;
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 	int nRegionLen;
-	ret = BitStream_DecodeBitString(pBitStrm, arr, &nRegionLen, <nMinSize>, <nMaxSize>);
+	ret = BitStream_DecodeContainingBits(pBitStrm, arr, &nRegionLen, <nMaxBits>);
 	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
 		/*the contents are decoded from the octets of the nRegionLen bits of this region only*/

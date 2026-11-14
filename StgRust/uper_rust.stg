@@ -965,29 +965,28 @@ if ret {
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
-    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
+    let mut arr: [u8; <sBufferBytes>] = [0; <sBufferBytes>];
     let mut bit_strm = BitStream::new(&mut arr);
 
     ret = <sFuncName>(&<p>, &mut bit_strm, pErrCode, false);
     if ret {
-        let n_count = if bit_strm.current_bit == 0 { bit_strm.current_byte } else { bit_strm.current_byte + 1 };
-        ret = pBitStrm.octet_string_encode(&arr, n_count as i32, <nMinSize>, <nMaxSize>);
+        /*X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)*/
+        let n_bits = bit_strm.current_byte * 8 + bit_strm.current_bit as i64;
+        ret = pBitStrm.encode_containing_octets(&arr, n_bits, <nMaxOctets>);
     }
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/
-    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
-    let n_count;
-    let (dec_count, ok) = pBitStrm.octet_string_decode(&mut arr, <nMinSize>, <nMaxSize>);
-    n_count = dec_count;
+    let mut arr: [u8; <sBufferBytes>] = [0; <sBufferBytes>];
+    let (n_count, ok) = pBitStrm.decode_containing_octets(&mut arr, <nMaxOctets>);
     ret = ok;
     *pErrCode = if ret { 0 } else { <sErrCode> };
     if ret {
@@ -997,29 +996,28 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUp
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
-    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
+    let mut arr: [u8; <sBufferBytes>] = [0; <sBufferBytes>];
     let mut bit_strm = BitStream::new(&mut arr);
 
     ret = <sFuncName>(&<p>, &mut bit_strm, pErrCode, false);
     if ret {
-        let n_count = bit_strm.current_byte * 8 + bit_strm.current_bit as i64;
-        ret = pBitStrm.bit_string_encode(&arr, n_count as i32, <nMinSize>, <nMaxSize>);
+        /*X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)*/
+        let n_bits = bit_strm.current_byte * 8 + bit_strm.current_bit as i64;
+        ret = pBitStrm.encode_containing_bits(&arr, n_bits, <nMaxBits>);
     }
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/
-    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
-    let n_count;
-    let (dec_count, ok) = pBitStrm.bit_string_decode(&mut arr, <nMinSize>, <nMaxSize>);
-    n_count = dec_count;
+    let mut arr: [u8; <sBufferBytes>] = [0; <sBufferBytes>];
+    let (n_count, ok) = pBitStrm.decode_containing_bits(&mut arr, <nMaxBits>);
     ret = ok;
     *pErrCode = if ret { 0 } else { <sErrCode> };
     if ret {

@@ -1933,6 +1933,95 @@ impl<'a> BitStream<'a> {
         (0, ret)
     }
 
+    /// X.691 10.9.3.8 general length of `n_count` units (`n_unit_bits`: 8 for octets, 1 for bits) in parts of 64K,
+    /// 48K, 32K or 16K units while 16K or more remain, then the length of the last part and its units.
+    /// Mirrors C `BitStream_EncodeGeneralLength`.
+    pub fn encode_general_length(&mut self, arr: &[u8], n_count: i32, n_unit_bits: i32) {
+        let mut n_offset: i32 = 0;
+        let mut n_remaining = n_count;
+        while n_remaining >= 0x4000 {
+            let n_blocks = if n_remaining >= 0x10000 { 4 } else { n_remaining / 0x4000 };
+            let n_part = n_blocks * 0x4000;
+            self.encode_constraint_whole_number((0xC0 + n_blocks) as Asn1SccSint, 0, 0xFF);
+            self.append_bits(&arr[((n_offset * n_unit_bits) / 8) as usize..], n_part * n_unit_bits);
+            n_offset += n_part;
+            n_remaining -= n_part;
+        }
+        if n_remaining <= 0x7F {
+            self.encode_constraint_whole_number(n_remaining as Asn1SccSint, 0, 0xFF);
+        } else {
+            self.append_bit(true);
+            self.encode_constraint_whole_number(n_remaining as Asn1SccSint, 0, 0x7FFF);
+        }
+        self.append_bits(&arr[((n_offset * n_unit_bits) / 8) as usize..], n_remaining * n_unit_bits);
+    }
+
+    /// Decode a general length (parts of 16K .. 64K units, then the last part, of a length below 128 in one octet or
+    /// 128 .. 16K - 1 in two); every part is checked against `n_max` units before it is read.
+    /// Mirrors C `BitStream_DecodeGeneralLength`.
+    pub fn decode_general_length(&mut self, arr: &mut [u8], n_max: i32, n_unit_bits: i32) -> (i32, bool) {
+        let mut n_offset: i32 = 0;
+        let mut b_last = false;
+        let mut ret = true;
+        while ret && !b_last {
+            let mut n_part: Asn1SccSint = 0;
+            let (n_header, ok) = self.decode_constraint_whole_number(0, 0xFF);
+            ret = ok;
+            if ret {
+                if n_header < 0x80 {
+                    n_part = n_header;
+                    b_last = true;
+                } else if n_header < 0xC0 {
+                    let (n_low, ok2) = self.decode_constraint_whole_number(0, 0xFF);
+                    n_part = ((n_header & 0x3F) << 8) | n_low;
+                    ret = ok2 && n_part >= 0x80;
+                    b_last = true;
+                } else {
+                    ret = (0xC1..=0xC4).contains(&n_header);
+                    n_part = (n_header & 0x07) * 0x4000;
+                }
+            }
+            ret = ret && n_part <= (n_max - n_offset) as Asn1SccSint;
+            if ret {
+                let start = ((n_offset * n_unit_bits) / 8) as usize;
+                ret = self.read_bits(&mut arr[start..], n_part as i32 * n_unit_bits);
+                n_offset += n_part as i32;
+            }
+        }
+        (n_offset, ret)
+    }
+
+    /// OCTET STRING (CONTAINING X), X.691 10.1.3: the `n_bits` of the encoding of X padded to whole octets (`arr`
+    /// holds zeros after them), an empty encoding as one zero octet; general length in octets.
+    pub fn encode_containing_octets(&mut self, arr: &[u8], n_bits: i64, n_max_octets: i32) -> bool {
+        let n_count = if n_bits > 0 { ((n_bits + 7) / 8) as i32 } else { 1 };
+        let ret = n_bits >= 0 && n_count <= n_max_octets;
+        if ret {
+            self.encode_general_length(arr, n_count, 8);
+        }
+        ret
+    }
+
+    /// Any length up to the maximum, also 0: the decoder of X decides on the contents.
+    pub fn decode_containing_octets(&mut self, arr: &mut [u8], n_max_octets: i32) -> (i32, bool) {
+        self.decode_general_length(arr, n_max_octets, 8)
+    }
+
+    /// BIT STRING (CONTAINING X): as for an OCTET STRING, the general length in bits.
+    pub fn encode_containing_bits(&mut self, arr: &[u8], n_bits: i64, n_max_bits: i32) -> bool {
+        let n_count = if n_bits > 0 { ((n_bits + 7) / 8) as i32 * 8 } else { 8 };
+        let ret = n_bits >= 0 && n_count <= n_max_bits;
+        if ret {
+            self.encode_general_length(arr, n_count, 1);
+        }
+        ret
+    }
+
+    /// Any number of bits up to the maximum, also one that is not a multiple of 8.
+    pub fn decode_containing_bits(&mut self, arr: &mut [u8], n_max_bits: i32) -> (i32, bool) {
+        self.decode_general_length(arr, n_max_bits, 1)
+    }
+
     /// Encode a constrained octet string.
     /// Mirrors C `BitStream_EncodeOctetString`.
     pub fn octet_string_encode(&mut self, arr: &[u8], n_count: i32, asn1_size_min: Asn1SccSint, asn1_size_max: Asn1SccSint) -> bool {

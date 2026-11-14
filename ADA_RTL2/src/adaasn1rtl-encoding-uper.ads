@@ -457,6 +457,76 @@ is
       bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       data_length >= asn1SizeMin and data_length <= asn1SizeMax;
 
+   --  OCTET / BIT STRING (CONTAINING X), X.691 10.1.3 and 10.9 (Issue 94):
+   --  a general length of n units (octets, or bits for a BIT STRING) and the
+   --  encoding of X padded to whole octets, one zero octet when it is empty.
+   --  data is the buffer of the encoding of X (data'First = 1); nMax*: the
+   --  most units (bits: a multiple of 8). The decoders accept 0 .. nMax*
+   --  units; the X decoder decides on the contents.
+
+   --  The most bits of a general length of up to nMax units: one octet below
+   --  128 units, two below 16K, from 16K one octet per part of 16K .. 64K
+   --  units and one or two for the last part.
+   function Containing_Length_Max_Bits (nMax : Natural) return Natural is
+     (if nMax < 128 then 8 elsif nMax < 16#4000# then 16
+      else (nMax / 16#10000# + 3) * 8);
+
+   procedure BitStream_EncodeContainingOctets
+     (bs         : in out Bitstream; data : OctetBuffer; nBits : Natural;
+      nMaxOctets :        Positive) with
+      Pre => data'First = 1 and then nMaxOctets <= data'Length
+      and then data'Length < Positive'Last / 16
+      and then nBits <= 8 * nMaxOctets
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 -
+        (8 * nMaxOctets + Containing_Length_Max_Bits (nMaxOctets)),
+      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos
+      and then bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos +
+        (8 * nMaxOctets + Containing_Length_Max_Bits (nMaxOctets));
+
+   procedure BitStream_DecodeContainingOctets
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length :    out Natural; nMaxOctets : Positive;
+      success     :    out Boolean) with
+      Pre => data'First = 1 and then nMaxOctets <= data'Length
+      and then data'Length < Positive'Last / 16
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 -
+        (8 * nMaxOctets + Containing_Length_Max_Bits (nMaxOctets)),
+      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos
+      and then bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos +
+        (8 * nMaxOctets + Containing_Length_Max_Bits (nMaxOctets))
+      and then (if success then data_length <= nMaxOctets);
+
+   procedure BitStream_EncodeContainingBits
+     (bs       : in out Bitstream; data : OctetBuffer; nBits : Natural;
+      nMaxBits :        Positive) with
+      Pre => data'First = 1 and then nMaxBits mod 8 = 0
+      and then data'Length < Positive'Last / 16
+      and then nMaxBits <= 8 * data'Length
+      and then nBits <= nMaxBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 -
+        (nMaxBits + Containing_Length_Max_Bits (nMaxBits)),
+      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos
+      and then bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos +
+        (nMaxBits + Containing_Length_Max_Bits (nMaxBits));
+
+   procedure BitStream_DecodeContainingBits
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length :    out Natural; nMaxBits : Positive;
+      success     :    out Boolean) with
+      Pre => data'First = 1 and then nMaxBits mod 8 = 0
+      and then data'Length < Positive'Last / 16
+      and then nMaxBits <= 8 * data'Length
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 -
+        (nMaxBits + Containing_Length_Max_Bits (nMaxBits)),
+      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos
+      and then bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos +
+        (nMaxBits + Containing_Length_Max_Bits (nMaxBits))
+      and then (if success then data_length <= nMaxBits);
+
    --  Full-range decoders (coverage step 10b): used instead of the checked
    --  procedures above when every bit pattern of the field is a valid
    --  value. The decode cannot fail, so they have no Result; the Post

@@ -913,55 +913,42 @@ if <sLengthTmp> \< <nSizeMin> or <sLengthTmp> \> <nSizeMax>:
 <endif>
 >>
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
 # Encode the contained value into a temporary buffer (unbound call on <p> so it
 # works whether <p> is the containing instance or a field of a parent).
-_inner_enc = UPEREncoder.of_size(<nMaxSize>)
+_inner_enc = UPEREncoder.of_size(<nMaxOctets>)
 <sContainedType>.<sFuncName>(<p>, _inner_enc, False)
-_inner_bytes = _inner_enc.get_bitstream_buffer()
-_n_count = (_inner_enc.bit_index + 7) // 8
-codec.encode_constrained_whole_number(_n_count, <nMinSize>, <nMaxSize>)
-_res = codec.encode_octet_string_no_length(_inner_bytes, _n_count)
+# X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)
+_res = codec.encode_containing(_inner_enc.get_bitstream_buffer(), _inner_enc.bit_index, <nMaxOctets>, 8)
 if not _res:
     raise Asn1Exception(f"CONTAINING encoding failed: {_res.error_message}")
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
 # Decode contained type from octet string
-_n_count_len_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
-if not _n_count_len_res or _n_count_len_res.decoded_value is None:
-    raise Asn1InvalidValueException("CONTAINING decode error: bad length")
-_n_count = int(_n_count_len_res.decoded_value)
-_inner_bytes_res = codec.read_byte_array(_n_count)
-if not _inner_bytes_res or _inner_bytes_res.decoded_value is None:
-    raise Asn1InvalidValueException("CONTAINING decode error: failed to read bytes")
-_inner_dec = UPERDecoder.from_buffer(_inner_bytes_res.decoded_value)
+_inner_res = codec.decode_general_length(<nMaxOctets>, 8)
+if not _inner_res or _inner_res.decoded_value is None:
+    raise Asn1InvalidValueException(f"CONTAINING decode error: {_inner_res.error_message}")
+_inner_dec = UPERDecoder.from_buffer(_inner_res.decoded_value)
 <p> = <sFuncName>(_inner_dec, False)
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
 # Encode the contained value into a temporary buffer (unbound call on <p>).
-_inner_enc = UPEREncoder.of_size((<nMaxSize> + 7) // 8)
+_inner_enc = UPEREncoder.of_size(<nMaxBits> // 8)
 <sContainedType>.<sFuncName>(<p>, _inner_enc, False)
-_inner_bits = _inner_enc.bit_index
-_inner_bytes = _inner_enc.get_bitstream_buffer()
-codec.encode_constrained_whole_number(_inner_bits, <nMinSize>, <nMaxSize>)
-_res = codec.append_bits(_inner_bytes, _inner_bits)
+# X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)
+_res = codec.encode_containing(_inner_enc.get_bitstream_buffer(), _inner_enc.bit_index, <nMaxBits>, 1)
 if not _res:
     raise Asn1Exception(f"CONTAINING encoding failed: {_res.error_message}")
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
 # Decode contained type from bit string
-_nBits_len_res = codec.decode_constrained_whole_number(<nMinSize>, <nMaxSize>)
-if not _nBits_len_res or _nBits_len_res.decoded_value is None:
-    raise Asn1InvalidValueException("CONTAINING decode error: bad bit length")
-_nBits = int(_nBits_len_res.decoded_value)
-_nBytes = (_nBits + 7) // 8
-_inner_bits_res = codec.read_bits(_nBits)
-if not _inner_bits_res or _inner_bits_res.decoded_value is None:
-    raise Asn1InvalidValueException("CONTAINING decode error: failed to read bits")
-_inner_dec = UPERDecoder.from_buffer(bytearray(_inner_bits_res.decoded_value))
+_inner_res = codec.decode_general_length(<nMaxBits>, 1)
+if not _inner_res or _inner_res.decoded_value is None:
+    raise Asn1InvalidValueException(f"CONTAINING decode error: {_inner_res.error_message}")
+_inner_dec = UPERDecoder.from_buffer(_inner_res.decoded_value)
 <p> = <sFuncName>(_inner_dec, False)
 
 >>

@@ -1675,9 +1675,71 @@ flag BitStream_DecodeOctetString_fragmentation(BitStream* pBitStrm, byte* arr, i
 
 	return ret;
 }
-
-
-
+void BitStream_EncodeGeneralLength(BitStream* pBitStrm, const byte* arr, int nCount, int nUnitBits) {
+	/* X.691 10.9.3.8: nCount units (octets: nUnitBits = 8, bits: 1) in parts of 64K, 48K, 32K or 16K units (header
+	   octets C4 .. C1) while 16K or more remain, then the length of the last part (one or two octets) and its units */
+	int nOffset = 0;
+	int nRemaining = nCount;
+	while (nRemaining >= 0x4000) {
+		int nBlocks = nRemaining >= 0x10000 ? 4 : nRemaining / 0x4000;
+		int nPart = nBlocks * 0x4000;
+		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC0 + nBlocks, 0, 0xFF);
+		BitStream_AppendBits(pBitStrm, &arr[(nOffset * nUnitBits) / 8], nPart * nUnitBits);
+		nOffset += nPart;
+		nRemaining -= nPart;
+	}
+	if (nRemaining <= 0x7F) {
+		BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemaining, 0, 0xFF);
+	} else {
+		BitStream_AppendBit(pBitStrm, 1);
+		BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemaining, 0, 0x7FFF);
+	}
+	BitStream_AppendBits(pBitStrm, &arr[(nOffset * nUnitBits) / 8], nRemaining * nUnitBits);
+}
+flag BitStream_DecodeGeneralLength(BitStream* pBitStrm, byte* arr, int* pCount, int nMax, int nUnitBits) {
+	/* X.691 10.9.3.8: parts of 16K .. 64K units (headers C1 .. C4), then the last part (length below 128 in one octet,
+	   128 .. 16K - 1 in two); every part is checked against the maximum (nMax units, the size of arr) before it is read */
+	int nOffset = 0;
+	flag bLast = FALSE;
+	flag ret = TRUE;
+	while (ret && !bLast) {
+		asn1SccSint nHeader = 0;
+		asn1SccSint nPart = 0;
+		ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nHeader, 0, 0xFF);
+		if (ret) {
+			if (nHeader < 0x80) {
+				nPart = nHeader;
+				bLast = TRUE;
+			} else if (nHeader < 0xC0) {
+				asn1SccSint nLow = 0;
+				ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nLow, 0, 0xFF);
+				nPart = ((nHeader & 0x3F) << 8) | nLow;
+				ret = ret && nPart >= 0x80; /* X.691 10.9.3.6: a shorter length takes one octet */
+				bLast = TRUE;
+			} else {
+				ret = nHeader >= 0xC1 && nHeader <= 0xC4;
+				nPart = (nHeader & 0x07) * 0x4000;
+			}
+		}
+		ret = ret && nPart <= nMax - nOffset;
+		if (ret) {
+			ret = BitStream_ReadBits(pBitStrm, &arr[(nOffset * nUnitBits) / 8], (int)nPart * nUnitBits);
+			nOffset += (int)nPart;
+		}
+	}
+	*pCount = nOffset;
+	return ret;
+}
+flag BitStream_EncodeContainingOctets(BitStream* pBitStrm, const byte* arr, int nBits, int nMaxOctets) {
+	/* OCTET STRING (CONTAINING X), X.691 10.1.3: the nBits of the encoding of X padded to whole octets (arr holds
+	   zeros after them), an empty encoding as one zero octet; general length in octets */
+	int nCount = nBits > 0 ? (nBits + 7) / 8 : 1;
+	flag ret = nBits >= 0 && nCount <= nMaxOctets;
+	if (ret) {
+		BitStream_EncodeGeneralLength(pBitStrm, arr, nCount, 8);
+	}
+	return ret;
+}
 flag BitStream_EncodeOctetString(BitStream* pBitStrm, const byte* arr, int nCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax) {
 	flag ret= (nCount >= asn1SizeMin && nCount <= asn1SizeMax);
 
@@ -1719,8 +1781,19 @@ flag BitStream_DecodeOctetString(BitStream* pBitStrm, byte* arr, int* nCount, as
 	}
 	return ret;
 }
-
-
+flag BitStream_DecodeContainingOctets(BitStream* pBitStrm, byte* arr, int* pCount, int nMaxOctets) {
+	/* any length up to the maximum, also 0: the decoder of X decides on the contents */
+	return BitStream_DecodeGeneralLength(pBitStrm, arr, pCount, nMaxOctets, 8);
+}
+flag BitStream_EncodeContainingBits(BitStream* pBitStrm, const byte* arr, int nBits, int nMaxBits) {
+	/* BIT STRING (CONTAINING X), X.691 10.1.3: as for an OCTET STRING, the general length in bits */
+	int nCount = (nBits > 0 ? (nBits + 7) / 8 : 1) * 8;
+	flag ret = nBits >= 0 && nCount <= nMaxBits;
+	if (ret) {
+		BitStream_EncodeGeneralLength(pBitStrm, arr, nCount, 1);
+	}
+	return ret;
+}
 flag BitStream_EncodeBitString(BitStream* pBitStrm, const byte* arr, int nCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax) {
 	if (asn1SizeMax < 65536) {
 		if (asn1SizeMin != asn1SizeMax) {
@@ -1861,7 +1934,10 @@ flag BitStream_DecodeBitString(BitStream* pBitStrm, byte* arr, int* pCount, asn1
 	}
 	return ret;
 }
-
+flag BitStream_DecodeContainingBits(BitStream* pBitStrm, byte* arr, int* pCount, int nMaxBits) {
+	/* any number of bits up to the maximum, also one that is not a multiple of 8 */
+	return BitStream_DecodeGeneralLength(pBitStrm, arr, pCount, nMaxBits, 1);
+}
 #ifdef ASN1SCC_STREAMING
 void bitstream_fetch_data_if_required(BitStream* pStrm) {
 	if (pStrm->currentByte == pStrm->count && pStrm->fetchDataPrm != NULL) {

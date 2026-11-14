@@ -829,6 +829,47 @@ class Decoder(Codec):
         """
         return self.decode_integer(min_val=min_val, max_val=max_val)
 
+    def decode_general_length(self, n_max: int, n_unit_bits: int) -> DecodeResult[bytearray]:
+        """
+        Decode a general length (parts of 16K .. 64K units, then the last part, of a length below 128 in one octet or
+        128 .. 16K - 1 in two) and its units (n_unit_bits: 8 for octets, 1 for bits); every part is checked against
+        n_max units before it is read. The value is the bytes read (MSB first, the last one may be partial).
+
+        Matches C: BitStream_DecodeGeneralLength
+        """
+        data = bytearray()
+        n_offset = 0
+        b_last = False
+        while not b_last:
+            res = self.decode_constrained_whole_number(0, 0xFF)
+            if not res or res.decoded_value is None:
+                return DecodeResult(success=False, error_code=ERROR_INSUFFICIENT_DATA, error_message="general length: header")
+            n_header = int(res.decoded_value)
+            if n_header < 0x80:
+                n_part = n_header
+                b_last = True
+            elif n_header < 0xC0:
+                res = self.decode_constrained_whole_number(0, 0xFF)
+                if not res or res.decoded_value is None:
+                    return DecodeResult(success=False, error_code=ERROR_INSUFFICIENT_DATA, error_message="general length: second octet")
+                n_part = ((n_header & 0x3F) << 8) | int(res.decoded_value)
+                if n_part < 0x80:
+                    return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="general length: a length below 128 in two octets")
+                b_last = True
+            elif 0xC1 <= n_header <= 0xC4:
+                n_part = (n_header & 0x07) * 0x4000
+            else:
+                return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=f"general length: header {n_header:#x}")
+            if n_part > n_max - n_offset:
+                return DecodeResult(success=False, error_code=ERROR_CONSTRAINT_VIOLATION, error_message=f"general length: above the maximum {n_max}")
+            if n_part > 0:
+                res_bits = self.read_bits(n_part * n_unit_bits)
+                if not res_bits or res_bits.decoded_value is None:
+                    return DecodeResult(success=False, error_code=ERROR_INSUFFICIENT_DATA, error_message="general length: contents")
+                data += res_bits.decoded_value
+            n_offset += n_part
+        return DecodeResult(success=True, error_code=DECODE_OK, decoded_value=data)
+
     def decode_constrained_whole_number(self, min_val: int, max_val: int) -> DecodeResult[int]:
         """
         Decode constrained whole number (signed).

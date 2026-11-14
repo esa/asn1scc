@@ -103,10 +103,10 @@ type IUper_rust() =
             uper_rust.FixedSize_Fragmentation_sqf  p sAcc arrsEncodingParts nFixedSize bIsBitStringType codec
         override this.Fragmentation_sqf  (p:string) (sAcc:string) (sInternalItem:string) (nIntItemMaxSize:BigInteger) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nRequiredBitsForUPerEncoding:BigInteger) (bIsVariableSize:bool) (sErrCodeName:string) (sRemainingItemsVar:string) (sCurBlockSize:string) (sBlockIndex:string) (sCurOffset:string) (sBLJ:string) (sBLI:string) (sLengthTmp:string) (bIsBitStringType:bool) (bIsAsciiString:bool) (codec:Codec) =
             uper_rust.Fragmentation_sqf  p sAcc sInternalItem nIntItemMaxSize nSizeMin nSizeMax nRequiredBitsForUPerEncoding bIsVariableSize sErrCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString codec
-        override this.octet_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (sErrCode:string) (codec:Codec) =
-            uper_rust.octet_string_containing_func  p sFuncName sContainedType sReqBytesForUperEncoding nBits nMinSize nMaxSize sErrCode codec
-        override this.bit_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForUperEncoding:string) (sReqBitsForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (sErrCode:string) (codec:Codec) =
-            uper_rust.bit_string_containing_func  p sFuncName sContainedType sReqBytesForUperEncoding sReqBitsForUperEncoding nBits nMinSize nMaxSize sErrCode codec
+        override this.octet_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sBufferBytes:string) (nMaxOctets:BigInteger) (sErrCode:string) (codec:Codec) =
+            uper_rust.octet_string_containing_func  p sFuncName sContainedType sBufferBytes nMaxOctets sErrCode codec
+        override this.bit_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sBufferBytes:string) (nMaxBits:BigInteger) (sErrCode:string) (codec:Codec) =
+            uper_rust.bit_string_containing_func  p sFuncName sContainedType sBufferBytes nMaxBits sErrCode codec
         override this.sparkAnnotations  (sTypeDefName:string) (codec:Codec) =
             uper_rust.sparkAnnotations  sTypeDefName codec
         override this.Null_declare  (p:string) (sType:string) =

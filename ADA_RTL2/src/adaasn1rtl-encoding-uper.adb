@@ -1129,6 +1129,267 @@ is
 
    end BitStream_DecodeBitString;
 
+   --  OCTET / BIT STRING (CONTAINING X), Issue 94. Lengths of 16K units or
+   --  more are written / read by the two procedures below, which are not
+   --  proved (SPARK_Mode Off): their contract is the callers' budget of bits
+   --  (nBudget = most units + Containing_Length_Max_Bits).
+
+   --  Parts of 64K, 48K, 32K or 16K units (X.691 10.9.3.8: the largest
+   --  first) while 16K or more remain, then the last part (one octet below
+   --  128 units, else two). nUnitBits: 8 (octets) or 1 (bits).
+   procedure Containing_Encode_Fragments
+     (bs        : in out Bitstream; data : OctetBuffer; nCount : Natural;
+      nUnitBits :        Positive; nBudget : Natural) with
+      Pre => nCount >= 16#4000# and then data'First = 1
+      and then (nUnitBits = 1 or else nUnitBits = 8)
+      and then data'Length < Positive'Last / 16
+      and then (if nUnitBits = 8 then nCount <= data'Length
+                else nCount <= 8 * data'Length)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBudget,
+      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos
+      and then bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + nBudget;
+
+   procedure Containing_Encode_Fragments
+     (bs        : in out Bitstream; data : OctetBuffer; nCount : Natural;
+      nUnitBits :        Positive; nBudget : Natural) with
+      SPARK_Mode => Off
+   is
+      pragma Unreferenced (nBudget);
+      nOffset    : Natural := 0;
+      nRemaining : Natural := nCount;
+      nBlocks    : Natural;
+      nPart      : Natural;
+   begin
+      while nRemaining >= 16#4000# loop
+         nBlocks :=
+           (if nRemaining >= 16#10000# then 4 else nRemaining / 16#4000#);
+         nPart := nBlocks * 16#4000#;
+         UPER_Enc_ConstraintPosWholeNumber
+           (bs, 16#C0# + Asn1UInt (nBlocks), 0, 8);
+         BitStream_AppendBits
+           (bs,
+            data (data'First + nOffset * nUnitBits / 8 ..
+                    data'First + (nOffset + nPart) * nUnitBits / 8 - 1),
+            nPart * nUnitBits);
+         nOffset    := nOffset + nPart;
+         nRemaining := nRemaining - nPart;
+      end loop;
+      if nRemaining < 128 then
+         UPER_Enc_ConstraintPosWholeNumber (bs, Asn1UInt (nRemaining), 0, 8);
+      else
+         UPER_Enc_ConstraintPosWholeNumber
+           (bs, 16#8000# + Asn1UInt (nRemaining), 0, 16);
+      end if;
+      BitStream_AppendBits
+        (bs,
+         data (data'First + nOffset * nUnitBits / 8 ..
+                 data'First +
+                 ((nOffset + nRemaining) * nUnitBits + 7) / 8 - 1),
+         nRemaining * nUnitBits);
+   end Containing_Encode_Fragments;
+
+   --  Parts of 16K .. 64K units (headers C1 .. C4), then the last part, of
+   --  n < 128 units in one octet or 128 <= n < 16K in two (a shorter length
+   --  in two octets is not a valid encoding, X.691 10.9.3.6). Every part is
+   --  checked against nMax, the bit budget and the rest of the stream before
+   --  it is read; on failure the stream position is restored.
+   procedure Containing_Decode_Fragments
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length :    out Natural; nMax : Natural; nUnitBits : Positive;
+      nBudget     :        Natural; success : out Boolean) with
+      Pre => data'First = 1 and then (nUnitBits = 1 or else nUnitBits = 8)
+      and then data'Length < Positive'Last / 16
+      and then (if nUnitBits = 8 then nMax <= data'Length
+                else nMax <= 8 * data'Length)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBudget,
+      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos
+      and then bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + nBudget
+      and then (if success then data_length <= nMax);
+
+   procedure Containing_Decode_Fragments
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length :    out Natural; nMax : Natural; nUnitBits : Positive;
+      nBudget     :        Natural; success : out Boolean) with
+      SPARK_Mode => Off
+   is
+      nStart  : constant Natural := bs.Current_Bit_Pos;
+      nTotal  : Natural          := 0;
+      nHeader : Integer          := 0;
+      nLow    : Integer          := 0;
+      nPart   : Integer          := 0;
+      bLast   : Boolean          := False;
+      function Fits (nBits : Natural) return Boolean is
+        (bs.Current_Bit_Pos - nStart + nBits <= nBudget
+         and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits);
+   begin
+      data_length := 0;
+      success     := True;
+      while success and not bLast loop
+         success := Fits (8);
+         if success then
+            UPER_Dec_ConstraintWholeNumberInt
+              (bs, nHeader, 0, 255, 8, success);
+         end if;
+         if success then
+            case nHeader is
+               when 16#00# .. 16#7F# =>
+                  nPart := nHeader;
+                  bLast := True;
+               when 16#80# .. 16#BF# =>
+                  success := Fits (8);
+                  if success then
+                     UPER_Dec_ConstraintWholeNumberInt
+                       (bs, nLow, 0, 255, 8, success);
+                     nPart   := (nHeader - 16#80#) * 16#100# + nLow;
+                     success := success and then nPart >= 128;
+                  end if;
+                  bLast := True;
+               when 16#C1# .. 16#C4# =>
+                  nPart := (nHeader - 16#C0#) * 16#4000#;
+               when others =>
+                  success := False;
+            end case;
+         end if;
+         if success then
+            success :=
+              nPart <= nMax - nTotal and then Fits (nPart * nUnitBits);
+         end if;
+         if success then
+            BitStream_ReadBits
+              (bs,
+               data (data'First + nTotal * nUnitBits / 8 ..
+                       data'First +
+                       ((nTotal + nPart) * nUnitBits + 7) / 8 - 1),
+               nPart * nUnitBits, success);
+            nTotal := nTotal + nPart;
+         end if;
+      end loop;
+      if success then
+         data_length := nTotal;
+      else
+         bs.Current_Bit_Pos := nStart;
+      end if;
+   end Containing_Decode_Fragments;
+
+   procedure BitStream_EncodeContainingOctets
+     (bs         : in out Bitstream; data : OctetBuffer; nBits : Natural;
+      nMaxOctets :        Positive)
+   is
+      --  X.691 10.1.3: padded to whole octets, at least one
+      nCount : constant Natural := (if nBits = 0 then 1 else (nBits + 7) / 8);
+   begin
+      if nCount < 128 then
+         UPER_Enc_ConstraintPosWholeNumber (bs, Asn1UInt (nCount), 0, 8);
+         BitStream_AppendBits (bs, data (1 .. nCount), 8 * nCount);
+      elsif nCount < 16#4000# then
+         UPER_Enc_ConstraintPosWholeNumber
+           (bs, 16#8000# + Asn1UInt (nCount), 0, 16);
+         BitStream_AppendBits (bs, data (1 .. nCount), 8 * nCount);
+      else
+         Containing_Encode_Fragments
+           (bs, data, nCount, 8,
+            8 * nMaxOctets + Containing_Length_Max_Bits (nMaxOctets));
+      end if;
+   end BitStream_EncodeContainingOctets;
+
+   procedure BitStream_DecodeContainingOctets
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length :    out Natural; nMaxOctets : Positive;
+      success     :    out Boolean)
+   is
+      nStart  : constant Natural := bs.Current_Bit_Pos;
+      nHeader : Integer;
+      nLow    : Integer;
+      nCount  : Integer := 0;
+   begin
+      data_length := 0;
+      UPER_Dec_ConstraintWholeNumberInt (bs, nHeader, 0, 255, 8, success);
+      if success then
+         if nHeader < 16#80# then
+            nCount  := nHeader;
+            success := nCount <= nMaxOctets;
+         elsif nHeader < 16#C0# then
+            UPER_Dec_ConstraintWholeNumberInt (bs, nLow, 0, 255, 8, success);
+            nCount  := (nHeader - 16#80#) * 16#100# + nLow;
+            success :=
+              success and then nCount >= 128 and then nCount <= nMaxOctets;
+         else
+            success := False;
+         end if;
+         if success then
+            BitStream_ReadBits (bs, data (1 .. nCount), 8 * nCount, success);
+            data_length := nCount;
+         elsif nHeader >= 16#C0# and then nMaxOctets >= 16#4000# then
+            bs.Current_Bit_Pos := nStart;
+            Containing_Decode_Fragments
+              (bs, data, data_length, nMaxOctets, 8,
+               8 * nMaxOctets + Containing_Length_Max_Bits (nMaxOctets),
+               success);
+         end if;
+      end if;
+   end BitStream_DecodeContainingOctets;
+
+   procedure BitStream_EncodeContainingBits
+     (bs       : in out Bitstream; data : OctetBuffer; nBits : Natural;
+      nMaxBits :        Positive)
+   is
+      --  X.691 10.1.3: padded to whole octets, at least one; length in bits
+      nCount : constant Natural :=
+        8 * (if nBits = 0 then 1 else (nBits + 7) / 8);
+   begin
+      if nCount < 128 then
+         UPER_Enc_ConstraintPosWholeNumber (bs, Asn1UInt (nCount), 0, 8);
+         BitStream_AppendBits (bs, data (1 .. nCount / 8), nCount);
+      elsif nCount < 16#4000# then
+         UPER_Enc_ConstraintPosWholeNumber
+           (bs, 16#8000# + Asn1UInt (nCount), 0, 16);
+         BitStream_AppendBits (bs, data (1 .. nCount / 8), nCount);
+      else
+         Containing_Encode_Fragments
+           (bs, data, nCount, 1,
+            nMaxBits + Containing_Length_Max_Bits (nMaxBits));
+      end if;
+   end BitStream_EncodeContainingBits;
+
+   procedure BitStream_DecodeContainingBits
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length :    out Natural; nMaxBits : Positive;
+      success     :    out Boolean)
+   is
+      nStart  : constant Natural := bs.Current_Bit_Pos;
+      nHeader : Integer;
+      nLow    : Integer;
+      nCount  : Integer := 0;
+   begin
+      data_length := 0;
+      UPER_Dec_ConstraintWholeNumberInt (bs, nHeader, 0, 255, 8, success);
+      if success then
+         if nHeader < 16#80# then
+            nCount  := nHeader;
+            success := nCount <= nMaxBits;
+         elsif nHeader < 16#C0# then
+            UPER_Dec_ConstraintWholeNumberInt (bs, nLow, 0, 255, 8, success);
+            nCount  := (nHeader - 16#80#) * 16#100# + nLow;
+            success :=
+              success and then nCount >= 128 and then nCount <= nMaxBits;
+         else
+            success := False;
+         end if;
+         if success then
+            BitStream_ReadBits
+              (bs, data (1 .. (nCount + 7) / 8), nCount, success);
+            data_length := nCount;
+         elsif nHeader >= 16#C0# and then nMaxBits >= 16#4000# then
+            bs.Current_Bit_Pos := nStart;
+            Containing_Decode_Fragments
+              (bs, data, data_length, nMaxBits, 1,
+               nMaxBits + Containing_Length_Max_Bits (nMaxBits), success);
+         end if;
+      end if;
+   end BitStream_DecodeContainingBits;
+
    procedure UPER_Dec_ConstraintPosWholeNumber_FullRange
      (bs : in out Bitstream; IntVal : out Asn1UInt; MinVal : Asn1UInt;
       nBits : Integer)

@@ -1195,8 +1195,9 @@ let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReferenc
 /// an alias `Box2 ::= OctBox`) encoded Inner without the OCTET / BIT STRING that OctBox's own function writes (and that
 /// REQUIRED_BITS and the ICD count). When the chain of type assignments reaches a CONTAINING, call the referenced type
 /// assignment's own function; otherwise getBaseFuncName.
-let getReferenceCallFuncName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) (methodSuffix:string) (codec:CommonTypes.Codec) =
-    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t methodSuffix codec
+/// The (module-qualified) type name of the type assignment a reference site without encoding options names when the
+/// chain of type assignments reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise.
+let containingTasTypeName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) =
     let rec reachesContaining (modName:StringLoc) (tasName:StringLoc) (visited:Set<string*string>) =
         let key = (modName.Value, tasName.Value)
         match visited.Contains key with
@@ -1213,18 +1214,28 @@ let getReferenceCallFuncName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeDef
             | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _
             | Asn1AcnAst.Choice _ | Asn1AcnAst.TimeType _ -> false
     match o.encodingOptions with
-    | Some _ -> baseTypeDefinitionName, baseFncName
+    | Some _ -> None
     | None   ->
         match reachesContaining o.modName o.tasName Set.empty with
-        | false -> baseTypeDefinitionName, baseFncName
+        | false -> None
         | true  ->
             let tas = (r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r
             let tasTypeDef = lm.lg.getTypeDefinition tas.Type.FT_TypeDefinition
-            let tasName =
-                match lm.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit with
-                | true  -> lm.lg.constructCrossModuleFuncPrefix tasTypeDef.programUnit + tasTypeDef.typeName
-                | false -> tasTypeDef.typeName
-            baseTypeDefinitionName, lm.lg.constructFuncName tasName methodSuffix (lm.lg.codecSuffix codec)
+            match lm.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit with
+            | true  -> Some (lm.lg.constructCrossModuleFuncPrefix tasTypeDef.programUnit + tasTypeDef.typeName)
+            | false -> Some tasTypeDef.typeName
+
+/// q/issues.md Issue 91 (step 14k): the function a reference site without encoding options of its own calls. A type
+/// assignment `OctBox ::= OCTET STRING (CONTAINING Inner)` shares the contents' typedef (`typedef Inner OctBox`), so
+/// getBaseFuncName names the call after Inner and the site (`x OctBox`, also a CHOICE alternative, a SEQUENCE OF element,
+/// an alias `Box2 ::= OctBox`) encoded Inner without the OCTET / BIT STRING that OctBox's own function writes (and that
+/// REQUIRED_BITS and the ICD count). When the chain of type assignments reaches a CONTAINING, call the referenced type
+/// assignment's own function; otherwise getBaseFuncName.
+let getReferenceCallFuncName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) (methodSuffix:string) (codec:CommonTypes.Codec) =
+    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t methodSuffix codec
+    match containingTasTypeName r lm o t with
+    | None         -> baseTypeDefinitionName, baseFncName
+    | Some tasName -> baseTypeDefinitionName, lm.lg.constructFuncName tasName methodSuffix (lm.lg.codecSuffix codec)
 
 
 let serializeIcdTasToXml (icdTypeAss: IcdTypeAss) =

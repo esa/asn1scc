@@ -846,62 +846,66 @@ else
 <endif>
 >>
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
 /*open new scope to declare some variables*/
+/*TODO Scala: not supported; the length must be the X.691 general length (see the C templates)*/
 {
     /*encode to a temporary bitstream*/
-    static byte arr[<sReqBytesForUperEncoding>];
+    static byte arr[<sBufferBytes>];
     BitStream bitStrm;
     BitStream_Init(&bitStrm, arr, sizeof(arr));
 
     ret = <sFuncName>(<p>, &bitStrm, false) // TODO call wrong
     if (ret) then {
         int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
-        ret = pBitStrm.encodeOctetString(arr, nCount, <nMinSize>, <nMaxSize>);
+        ret = pBitStrm.encodeOctetString(arr, nCount, 0, <nMaxOctets>);
     }
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
 /*open new scope to declare some variables*/
+/*TODO Scala: not supported; the length must be the X.691 general length (see the C templates)*/
 {
     /*decode to a temporary bitstream*/
-    static byte arr[<sReqBytesForUperEncoding>];
+    static byte arr[<sBufferBytes>];
     BitStream bitStrm;
     BitStream_Init(&bitStrm, arr, sizeof(arr));
     int nCount;
-    ret = pBitStrm.decodeOctetString(arr, &nCount, <nMinSize>, <nMaxSize>);
+    ret = pBitStrm.decodeOctetString(arr, &nCount, 0, <nMaxOctets>);
     if (ret) then{
         ret = <sFuncName>(<p>, &bitStrm);
     }
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
 /*open new scope to declare some variables*/
+/*TODO Scala: not supported; the length must be the X.691 general length (see the C templates)*/
 {
     /*encode to a temporary bitstream*/
-    static byte arr[<sReqBytesForUperEncoding>];
+    static byte arr[<sBufferBytes>];
     BitStream bitStrm;
     BitStream_Init(&bitStrm, arr, sizeof(arr));
 
     ret = <sFuncName>(<p>, &bitStrm, false)
     if (ret) then {
         int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;
-        ret = pBitStrm.encodeBitString(arr, nCount, <nMinSize>, <nMaxSize>);
+        ret = pBitStrm.encodeBitString(arr, nCount, 0, <nMaxBits>);
     }
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
 /*open new scope to declare some variables*/
+/*TODO Scala: not supported; the length must be the X.691 general length (see the C templates)*/
 {
     /*decode to a temporary bitstream*/
-    static byte arr[<sReqBytesForUperEncoding>];
+    static byte arr[<sBufferBytes>];
     BitStream bitStrm;
     BitStream_Init(&bitStrm, arr, sizeof(arr));
     int nCount;
-    ret = pBitStrm.decodeBitString(arr, &nCount, <nMinSize>, <nMaxSize>);
+    ret = pBitStrm.decodeBitString(arr, &nCount, 0, <nMaxBits>);
     if (ret) then {
         ret = <sFuncName>(<p>, &bitStrm)
     }
