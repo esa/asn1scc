@@ -1,4 +1,5 @@
--- C_ADA_ONLY (the mapping functions are in C and Ada: 025.helpers)
+-- C_ADA_ONLY (the mapping functions are in C and Ada: 025.helpers) KNOWN_FAILURE(Ada,slim): the Ada mapped decode assigns
+-- the 64-bit RTL value to the narrowed -slim field type without a conversion (does not compile)
 -- q/issues.md Issues 58 / 59: mapping-functions (C: <f>_encode / <f>_decode, Ada: in the package
 -- named by the ACN, test-mappers). Pct and Temperature are mapped types (unsigned and signed: the
 -- Ada decoder maps the wire value, then checks the range of the type). The length of d is not on the

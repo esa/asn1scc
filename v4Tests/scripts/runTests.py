@@ -390,7 +390,8 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
             results.add_error(f'Failed {asn1} {acn} in {language}')
             raise Exception('TestFailed')
         elif behavior == 0 and res == 0:
-            runSpark = "RUN_SPARK" in open(os.path.join(targetDir, "sample1.asn1"), 'r').readlines()[0]
+            # the RUN_SPARK proof runs without -slim only, as in the regression tool
+            runSpark = "RUN_SPARK" in open(os.path.join(targetDir, "sample1.asn1"), 'r').readlines()[0] and cfg.slim == ""
             if bRunCodeCoverage:
                 gcov_path = os.path.join(targetDir, "obj_x86", "debug", "test_case.adb.gcov")
                 try:

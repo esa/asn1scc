@@ -267,7 +267,8 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
             // NOCOVERAGE (first line, as in runTests.py) skips only the line gate on the .gcov file:
             // the coverage target still runs the automatic tests, and RUN_SPARK still proves.
             let bCheckLineCoverage = not ((asn1Lines |> Seq.tryHead |> Option.defaultValue "").Contains "NOCOVERAGE")
-            let bRunSpark = (lang = "Ada") && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
+            // the RUN_SPARK proof runs in the legs without -slim (the Ada -slim leg compiles and runs the tests only)
+            let bRunSpark = (lang = "Ada") && not slim && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
             let ada_target =
                 if ws = 4 then
                     "obj_msp430"
@@ -447,7 +448,7 @@ let main0 argv =
                 for l in languages do
                     for ws in [word_sizes] do
                         for sm in slim_modes do
-                            if not (l <> "c" && sm) then   // slim mode is C-only
+                            if not sm || l = "c" || l = "Ada" then   // slim mode: C and Ada
                                 yield (l,ws,sm, enableIG, enableAcnV2)
             } |> Seq.toList
         let isSparkFile (t:Test_Case) = File.ReadLines t.asn1 |> Seq.exists (fun l -> l.Contains "RUN_SPARK")

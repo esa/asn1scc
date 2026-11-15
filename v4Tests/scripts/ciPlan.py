@@ -124,6 +124,8 @@ def build_jobs():
     jobs["ada-rtl-x86"] = [sh("./scripts/proveAdaRtl.sh x86")]
     jobs["ada-rtl-msp430"] = [sh("./scripts/proveAdaRtl.sh msp430")]
     jobs["ada-ws4"] = [reg("-l Ada -ws 4 -s false"), reg("-l Ada -ws 4 -s false -acnv2")]
+    # -slim narrows the Ada types (Issues 99, 103 compiled in C but not in Ada); the RUN_SPARK proof runs without -slim
+    jobs["ada-ws8-slim"] = [reg("-l Ada -ws 8 -s true")]
     for suffix, leg in [("", "-l Ada -ws 8 -s false"), ("-acnv2", "-l Ada -ws 8 -s false -acnv2")]:
         for k in range(1, ADA_WS8_SHARDS + 1):
             jobs[f"ada-ws8{suffix}-{k}"] = [reg(leg, shard=f"{k}/{ADA_WS8_SHARDS}")]

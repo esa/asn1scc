@@ -77,13 +77,16 @@ echo "run c tests, with word-size=8, slim-mode=true"
 echo "run Ada tests, with word-size=8, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l Ada -ws 8 -s false -p 48 || exit 1
 
+echo "run Ada tests, with word-size=8, slim-mode=true"
+../regression/bin/Debug/net10.0/regression -l Ada -ws 8 -s true -p 48 || exit 1
+
 echo "run python tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l python -ws 4 -s false -p 48 || exit 1
 
 echo "run python tests, with word-size=8, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l python -ws 8 -s false -p 48 || exit 1
 
-# Rust tests (non-slim only; slim mode is C-only in the regression tool)
+# Rust tests (non-slim only; slim mode is C and Ada only in the regression tool)
 echo "run Rust tests, with word-size=4"
 ../regression/bin/Debug/net10.0/regression -l Rust -ws 4 -s false -p 12 || exit 1
 
