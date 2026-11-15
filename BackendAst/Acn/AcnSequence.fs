@@ -48,6 +48,7 @@ type private SequenceChildResult = {
     icdResult : ((IcdRow list) * (IcdTypeAss list))
     bsReferenced: bool      // the child's code uses the bitstream (e.g. a call of a NULL type's codec)
     encOutcome: EncodeOutcome   // coverage step 12b: the child's encode part (all its statements)
+    valReferenced: bool         // coverage step 14p: the child's code (or its presence handling) may read the value
 } with
     member this.joinedBodies (lm:LanguageMacros) (codec:CommonTypes.Codec): string option =
         this.stmts |> List.choose (fun s -> s.body) |> nestChildItems lm codec
@@ -334,7 +335,10 @@ let private handleAsn1Child
             | Some AlwaysPresent, Some c        -> c.encOutcome
             | Some (Optional _), Some c         -> EncodeOutcome.conditional c.encOutcome
         encodeOutcomeOf codec (EncodeOutcome.sequence (presentWhenOutcome @ [childOutcome]))
-    let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult; bsReferenced=bsReferenced; encOutcome=encOutcome}
+    let valReferenced =
+        presentWhenStmts.IsSome || child.Optionality.IsSome ||
+            (match childContentResult with Some c -> not c.bValIsUnReferenced | None -> false)
+    let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult; bsReferenced=bsReferenced; encOutcome=encOutcome; valReferenced=valReferenced}
     let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits; checkedSelectors=checkedInChild @ s.checkedSelectors}
     res, newAcc
 
@@ -453,7 +457,7 @@ let private handleAcnChild
     // Note: uperMaxSizeBits and uperAccBits here do not make sense since we are in ACN
     let props = {info=childInfo.toAsn1AcnAst; sel=childP.accessPath; uperMaxOffset=s.uperAccBits; acnMaxOffset=s.acnAccBits}
     let icdResult = ctx.icdAcnChild acnChild icdComments
-    let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult; bsReferenced=childEncDecStatement.IsSome; encOutcome=partEncOutcome}
+    let res =  {stmts=stmts; resultExpr=None; existVar=None; props=props; auxiliaries=auxiliaries; icdResult=icdResult; bsReferenced=childEncDecStatement.IsSome; encOutcome=partEncOutcome; valReferenced=true}
     // coverage step 12e: the CHOICE selectors the update rejected unless valid, for the CHOICEs encoded after it
     let checkedByUpdate = update |> Option.map (fun u -> u.checkedSelectors |> List.map (fun sel -> sel, "ASN1SCC-COV-004")) |> Option.defaultValue []
     // coverage step 14c3: the decoder of an ENUMERATED field assigns its local an item on every path that keeps ret TRUE
@@ -857,7 +861,12 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     | Some decodeEmptySeq ->
                         Some ({AcnFuncBodyResult.funcBody = decodeEmptySeq; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=true; resultExpr=Some decodeEmptySeq; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd; encOutcome = EncodeOutcome.unknown}), ns
             | Some ret ->
-                Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I) && not (childrenStatements00 |> List.exists (fun s -> s.bsReferenced)); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd; encOutcome = bodyEncOutcome}), ns
+                // coverage step 14p: as DAstUPer (an encoder without validity call whose children read nothing of val)
+                let bValIsUnReferenced =
+                    codec = Encode && List.isEmpty presenceBits && List.isEmpty saveInitialBitStrmStatements &&
+                        List.isEmpty fallbackStmts && post_encoding_function.IsNone && List.isEmpty seqBuild && List.isEmpty proof &&
+                        not (childrenStatements00 |> List.exists (fun c -> c.valReferenced))
+                Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; userDefinedFunctions=childrenUserDefFuncs; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= bValIsUnReferenced; bBsIsUnReferenced=(o.acnMaxSizeInBits = 0I) && not (childrenStatements00 |> List.exists (fun s -> s.bsReferenced)); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; icdResult = Some icd; encOutcome = bodyEncOutcome}), ns
 
         | errChild::_      ->
             raise(SemanticError(errChild.Name.Location, AcnClosureConversion.unusedAcnInsertedFieldMessage errChild.Name.Value errChild.Type))

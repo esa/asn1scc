@@ -909,6 +909,7 @@ type private SequenceChildResult = {
     auxiliaries: string list
     bsReferenced: bool      // the child's code uses the bitstream (e.g. a call of a NULL type's codec)
     encOutcome: EncodeOutcome   // coverage step 12b: the child's encode part (an OPTIONAL child's runs on some paths)
+    valReferenced: bool         // coverage step 14p: the child's code (or its presence handling) reads the value
 }
 
 /// Decoding a SEQUENCE whose children have no encoded content. A truly empty SEQUENCE gets
@@ -1023,7 +1024,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                     match codec, lm.lg.decodingKind with
                     | Decode, Copy -> Some (child.Type.initFunction.initExpressionFnc ())
                     | _ -> None)
-                {stmt=None; resultExpr=childResultExpr; props=props; auxiliaries = []; bsReferenced = false; encOutcome = EncodeOutcome.noWrite}, newAcc
+                {stmt=None; resultExpr=childResultExpr; props=props; auxiliaries = []; bsReferenced = false; encOutcome = EncodeOutcome.noWrite; valReferenced = child.Optionality.IsSome}, newAcc
             | Some childContent ->
                 let isPrimitiveType =
                     match lm.lg.getTypeDefinition child.Type.FT_TypeDefinition with
@@ -1080,6 +1081,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                         | Some Asn1AcnAst.AlwaysPresent     -> childContent.encOutcome
                         | Some Asn1AcnAst.AlwaysAbsent      -> EncodeOutcome.noWrite     // no encode statement
                         | Some (Asn1AcnAst.Optional _)      -> EncodeOutcome.conditional childContent.encOutcome
+                    valReferenced = child.Optionality.IsSome || not childContent.bValIsUnReferenced
                 }, newAcc)
 
         let presenceBits = TL "SQ_UPER_presenceBits" (fun () -> nonAcnChildren |> List.map printPresenceBit)
@@ -1149,7 +1151,13 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 | None -> None
                 | Some decodeEmptySeq -> Some ({UPERFuncBodyResult.funcBody = decodeEmptySeq; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=true; resultExpr=resultExpr; auxiliaries=[]; encOutcome = EncodeOutcome.unknown})
             | None, _ -> None
-            | Some ret, _ -> Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalVars; bValIsUnReferenced=false; bBsIsUnReferenced=(o.uperMaxSizeInBits = 0I) && not (childrenStatements00 |> List.exists (fun s -> s.bsReferenced)); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; encOutcome = encOutcome}))
+            | Some ret, _ ->
+                // coverage step 14p: an encoder that does not call its validator (12a) and whose children read nothing of
+                // the value (e.g. INTEGER (100), encoded in no bits) does not reference val (Ada: pragma Unreferenced)
+                let bValIsUnReferenced =
+                    codec = Encode && (presenceBits |> List.forall Option.isNone) && List.isEmpty seqBuild && List.isEmpty proof &&
+                        not (childrenStatements00 |> List.exists (fun c -> c.valReferenced))
+                Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalVars; bValIsUnReferenced=bValIsUnReferenced; bBsIsUnReferenced=(o.uperMaxSizeInBits = 0I) && not (childrenStatements00 |> List.exists (fun s -> s.bsReferenced)); resultExpr=resultExpr; auxiliaries=childrenAuxiliaries @ aux; encOutcome = encOutcome}))
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  [] us
