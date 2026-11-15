@@ -294,6 +294,13 @@ type DeterminantFlagModel =
     | FlagEveryDeterminant      // as before 12c
     | FlagMaybeUninitialized    // only where the update may leave the determinant unset (C, Ada)
 
+/// Whether a validation function can return FALSE for a value of its language type (coverage step 11b): a parent does
+/// not call the IsConstraintValid of an AlwaysValid child. Derived from the body the function emits
+/// (DastValidate2.createIsValidFunction), so the two cannot disagree.
+type ValidationOutcome =
+    | AlwaysValid       // no check, or only checks that the language type already enforces
+    | MayBeInvalid
+
 type State = {
     currErrorCode   : int
     curErrCodeNames : Set<String>
@@ -316,13 +323,18 @@ type State = {
     // the parent's join after the call knows whether it can fail. sortTypes creates the referenced type assignments
     // first; a function that is not in the map is EncodeOutcome.unknown.
     encodeCallOutcomes : Map<string, EncodeOutcome>
+    // coverage step 14p: the outcome of every IsConstraintValid function created so far, by its qualified name
+    // (DAstUtilFunctions.encodeCallKey), so that a reference decides from the function it calls, not from the copy of
+    // the referenced type at the site (whose inline children lose the typedef that enforces their ranges, 11b). The
+    // last function created under a name wins: a reference's function is created after its resolved type.
+    validatorOutcomes : Map<string, ValidationOutcome>
     // coverage step 12e: NestingScope.checkedSelectors at the end of the last SEQUENCE encoder body generated inline;
     // a parent SEQUENCE clears it before a child and reads it after a mandatory SEQUENCE child (same function)
     acnSequenceCheckedSelectors : (string * string) list
 }
 
 
-let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; acnSequenceCheckedSelectors=[]}
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; validatorOutcomes=Map.empty; acnSequenceCheckedSelectors=[]}
 
 /// Parent context passed from the fold's pre-functions to child callbacks.
 /// Allows seqAcnChildFunc to know about the parent SEQUENCE's deferred children.
@@ -585,9 +597,6 @@ type AnonymousVariable = {
     valKind             : Asn1ValueKind        // the value
 }
 
-/// Whether a validation function can return FALSE for a value of its language type (coverage step 11b): a parent does
-/// not call the IsConstraintValid of an AlwaysValid child. Derived from the body the function emits
-/// (DastValidate2.createIsValidFunction), so the two cannot disagree.
 /// Whether the typedef of a constrained type already enforces its range (coverage step 11b): Ada declares ranged
 /// subtypes (INTEGER, the Length of SIZE-constrained types) and enumerations, so a value of the type cannot violate
 /// those constraints and IsConstraintValid does not check them at run time; C, Scala, Python and Rust typedefs
@@ -613,10 +622,6 @@ type EqualChildPart =
     | EqualChildOmitted of string * (string * LocalVariable list)
                                     // a comment instead of a comparison that cannot find a difference (writes no ret);
                                     // the comparison is kept for a SEQUENCE that would compare nothing else
-
-type ValidationOutcome =
-    | AlwaysValid       // no check, or only checks that the language type already enforces
-    | MayBeInvalid
 
 /// Whether a type's encoder calls its IsConstraintValid when that function cannot fail (coverage step 12a): C and
 /// Ada skip the call and its check (a comment says why); Scala, Python and Rust keep it.
