@@ -458,7 +458,7 @@ let getRealEncodingClass (bSlim:bool) (acnEncodingClass:RealEncodingClass) =
 
 type Real             with
     member this.AllCons  = this.cons@this.withcons
-    member this.getClass (args:CommandLineSettings)  = getRealEncodingClass args.slim this.acnEncodingClass
+    member this.getClass (_:CommandLineSettings)  = this.storageClass
 
 
 type StringType       with

@@ -342,7 +342,30 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Langua
         uperMaxSizeInBits=uperMaxSizeInBits; acnEncodingClass = acnEncodingClass; intClass=intClass;  acnMinSizeInBits=acnMinSizeInBits;
         acnMaxSizeInBits = acnMaxSizeInBits; isUnsigned= isUnsigned; typeDef=typeDef; defaultInitVal="0"; definitionOrRef=definitionOrRef}, us1
 
-let private mergeReal (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*LanguageMacros) list) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
+/// The class of the typedef of a REAL type assignment (Issue 99): a type assignment that references another type has
+/// the referenced typedef (`typedef MyR0 MyR;`), so its class is the referenced one's; a REAL type assignment has a
+/// typedef of the class of its own ACN encoding (-slim: IEEE754-1985-32 -> 32-bit, IEEE754-1985-64 -> 64-bit).
+let rec private realTasStorageClass (asn1: Asn1Ast.AstRoot) (acn: AcnAst) (modName: string) (tasName: string) : RealClass option =
+    let tas =
+        asn1.Modules |> Seq.tryFind (fun m -> m.Name.Value = modName) |>
+        Option.bind (fun m -> m.TypeAssignments |> Seq.tryFind (fun t -> t.Name.Value = tasName))
+    match tas with
+    | None     -> None
+    | Some tas ->
+        match tas.Type.Kind with
+        | Asn1Ast.ReferenceType rf -> realTasStorageClass asn1 acn rf.modName.Value rf.tasName.Value
+        | Asn1Ast.Real             ->
+            let props =
+                acn.files |> List.collect (fun f -> f.modules) |> List.filter (fun m -> m.name.Value = modName) |>
+                List.collect (fun m -> m.typeAssignments) |> List.filter (fun t -> t.name.Value = tasName) |>
+                List.collect (fun t -> t.typeEncodingSpec.acnProperties)
+            match asn1.args.slim, tryGetProp props (fun x -> match x with ENCODING e -> Some e | _ -> None) with
+            | true, Some GP_IEEE754_32  -> Some ASN1SCC_FP32
+            | true, Some GP_IEEE754_64  -> Some ASN1SCC_FP64
+            | _                         -> Some ASN1SCC_REAL
+        | _                        -> None
+
+let private mergeReal (asn1: Asn1Ast.AstRoot) (acn: AcnAst) (lms:(ProgrammingLanguage*LanguageMacros) list) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let getRtlTypeName  (l:ProgrammingLanguage) = (asn1.args.getBasicLang l).getRealRtlTypeName
     //check for invalid properties
@@ -381,13 +404,37 @@ let private mergeReal (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Language
          | false -> ())
     | Real_uPER | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian
     | Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian                     -> ()
-    let typeDef, us1 = getPrimitiveTypeDefinition {tdarg with rtlFnc = Some getRtlTypeName} us
+    // With -slim an IEEE 754 32-bit encoding is decoded into a 32-bit float (the _fp32 RTL twins): a component needs a
+    // typedef of its own (Declare_Real32, as a type assignment gets in createReal_u), not the RTL REAL type (Issue 99).
+    let rtlFnc =
+        match Asn1AcnAstUtilFunctions.getRealEncodingClass asn1.args.slim acnEncodingClass with
+        | ASN1SCC_FP32                -> None
+        | ASN1SCC_REAL | ASN1SCC_FP64 -> Some getRtlTypeName
+    let ownClass = Asn1AcnAstUtilFunctions.getRealEncodingClass asn1.args.slim acnEncodingClass
+    let storageClass =
+        match getTypedefKind {tdarg with rtlFnc = rtlFnc} with
+        | FEI_NewTypeDefinition
+        | FEI_Reference2RTL                 -> ownClass
+        | FEI_NewSubTypeDefinition refId
+        | FEI_Reference2OtherType refId     ->
+            match refId.tasInfo with
+            | Some ti   -> realTasStorageClass asn1 acn ti.modName ti.tasName |> Option.defaultValue ownClass
+            | None      -> ownClass
+    // With -slim, a REAL type encoded as IEEE754-1985-32 is stored in 32 bits; a reference site (or a type assignment
+    // that references it) cannot change its encoding: there is no RTL decoder of a 64-bit IEEE 754 encoding into 32 bits
+    // (no _fp32 twin), and the Ada scaled-integer templates convert from / to Asn1Real only.
+    match storageClass, acnEncodingClass with
+    | ASN1SCC_FP32, (Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian | Real_ScaledInt _) ->
+        raise(SemanticError(acnErrLoc0, "With -slim, a REAL type encoded as IEEE754-1985-32 is stored in 32 bits and its encoding cannot be changed here"))
+    | ASN1SCC_FP32, (Real_uPER | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian)
+    | (ASN1SCC_REAL | ASN1SCC_FP64), _ -> ()
+    let typeDef, us1 = getPrimitiveTypeDefinition {tdarg with rtlFnc = rtlFnc} us
     let definitionOrRef = 
         lms |> List.map(fun (l,lm) ->
            (l, DAstTypeDefinition.createReal_u asn1.args lm (ReferenceToType tdarg.curPath) typeDef acnEncodingClass )) |> Map.ofList
 
     {Real.acnProperties = acnProperties; cons = cons; withcons = withcons; uperRange=uperRange; uperMaxSizeInBits=uperMaxSizeInBits;
-        uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits;
+        uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass; storageClass = storageClass; acnMinSizeInBits=acnMinSizeInBits;
         acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; definitionOrRef=definitionOrRef; defaultInitVal="0"}, us1
 
 
@@ -1134,7 +1181,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
         | Asn1Ast.Real                     ->
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t)
-            let o, us1 = mergeReal asn1 lms t.Location acnErrLoc combinedProperties cons wcons tfdArg us
+            let o, us1 = mergeReal asn1 acn lms t.Location acnErrLoc combinedProperties cons wcons tfdArg us
             Real o, us1
         | Asn1Ast.ObjectIdentifier
         | Asn1Ast.RelativeObjectIdentifier         ->

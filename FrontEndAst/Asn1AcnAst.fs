@@ -437,6 +437,10 @@ type Real = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : RealEncodingClass
+    /// The class of the type the value is stored in (its typedef), which selects the RTL variant of the codecs
+    /// (-slim: `_fp32`). It is the class of acnEncodingClass for a type with a typedef of its own, but the class of the
+    /// referenced type at a reference site, whose value has the referenced typedef (Issue 99).
+    storageClass        : RealClass
 
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
     definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
