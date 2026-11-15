@@ -106,6 +106,30 @@ cp "$root/test-cases/uper-wire/001_wire_test.adb" "$out/wire_test.adb"
 (cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
 echo "uper-wire 001 (Ada) OK"
 
+# ACN INTEGER as ASCII digits with a terminator: a value outside the range of the type, or a digit string beyond the
+# integer type, is an error code (Ada used to raise Constraint_Error, and accepted digit strings that wrapped around);
+# C, Ada x86 and Ada msp430 (-gnata: the RTL contracts are checked too).
+out=$work/acn001
+mkdir "$out"
+run_compiler -c -ACN -o "$out" "$root/test-cases/acn-wire/001.asn1" "$root/test-cases/acn-wire/001.acn"
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I "$out" "$out"/*.c "$root/test-cases/acn-wire/001_decode_test.c" -o "$out/decode_test"
+"$out/decode_test"
+echo "acn-wire 001 OK"
+out=$work/acn001ada
+mkdir "$out"
+run_compiler -Ada -ACN -o "$out" "$root/test-cases/acn-wire/001.asn1" "$root/test-cases/acn-wire/001.acn"
+cp "$root/test-cases/acn-wire/001_decode_test.adb" "$out/decode_test.adb"
+(cd "$out" && gnatmake -q -gnat2012 -gnata decode_test.adb && ./decode_test)
+echo "acn-wire 001 (Ada) OK"
+out=$work/acn001msp430
+mkdir "$out"
+run_compiler -Ada -ACN -t msp430 -wordSize 4 -fpWordSize 4 -o "$out" "$root/test-cases/acn-wire/001.asn1" \
+    "$root/test-cases/acn-wire/001.acn"
+cp "$root/test-cases/acn-wire/001_decode_test.adb" "$out/decode_test.adb"
+(cd "$out" && gnatmake -q -gnat2012 -gnata -aIasn1rtl -aIsrc -aIboards/msp430 decode_test.adb && ./decode_test)
+echo "acn-wire 001 (Ada msp430) OK"
+
 # 036 in Ada on the 32-bit board msp430: sign extension in the upper bytes of 64-bit fields
 # (compiled with -gnata: the RTL's pragma Assume are checked too).
 out=$work/ada036

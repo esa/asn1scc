@@ -1567,7 +1567,8 @@ is
    end Acn_Dec_UInt_ASCII_ConstSize;
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated
-     (bs : in out Bitstream; IntVal : out Asn1UInt; nullChars : OctetBuffer;
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; nullChars : OctetBuffer;
       Result :    out ASN1_RESULT)
    is
       digit    : Asn1Byte;
@@ -1613,8 +1614,12 @@ is
          Ch       := Character'Val (digit);
          intDigit := Character'Pos (Ch) - Character'Pos ('0');
 
+         --  IntVal * 10 + intDigit must not wrap around (Asn1UInt is
+         --  modular): 20 digits on x86, 10 on msp430 can exceed it
          Result.Success :=
-           intDigit >= 0 and intDigit <= 9 and IntVal < Powers_of_10 (i - 1);
+           intDigit >= 0 and then intDigit <= 9
+           and then IntVal < Powers_of_10 (i - 1)
+           and then IntVal <= (Asn1UInt'Last - Asn1UInt (intDigit)) / 10;
          if Result.Success then
             IntVal := IntVal * 10;
             IntVal := IntVal + Asn1UInt (intDigit);
@@ -1624,19 +1629,23 @@ is
            tmp (tmp'First .. tmp'First + (nullChars'Last - nullChars'First));
       end loop;
 
-      --  after Max_Int_Digits digits the next bytes must be the terminator
+      --  after Max_Int_Digits digits the next bytes must be the terminator;
+      --  the value must be in minVal .. maxVal (the range of the field)
       Result.Success :=
         Result.Success
         and then nullChars (nullChars'First .. nullChars'Last) =
-          tmp (tmp'First .. tmp'First + (nullChars'Last - nullChars'First));
+          tmp (tmp'First .. tmp'First + (nullChars'Last - nullChars'First))
+        and then IntVal >= minVal and then IntVal <= maxVal;
 
       if not Result.Success then
          Result.ErrorCode := ERR_INCORRECT_STREAM;
+         IntVal           := minVal;
       end if;
    end Acn_Dec_UInt_ASCII_VarSize_NullTerminated;
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated
-     (bs     : in out Bitstream; IntVal : out Asn1Int; nullChars : OctetBuffer;
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; nullChars : OctetBuffer;
       Result :    out ASN1_RESULT)
    is
       digitAscii : Asn1Byte;
@@ -1654,7 +1663,7 @@ is
       Result.Success := Result.Success and (Ch = '+' or Ch = '-');
       if Result.Success then
          Acn_Dec_UInt_ASCII_VarSize_NullTerminated
-           (bs, absIntVal, nullChars, Result);
+           (bs, absIntVal, 0, Asn1UInt'Last, nullChars, Result);
 
          if Result.Success then
             if absIntVal = 0 then
@@ -1671,6 +1680,13 @@ is
          end if;
       end if;
 
+      --  the value must be in minVal .. maxVal (the range of the field)
+      Result.Success :=
+        Result.Success and then IntVal >= minVal and then IntVal <= maxVal;
+      if not Result.Success then
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+         IntVal           := minVal;
+      end if;
    end Acn_Dec_Int_ASCII_VarSize_NullTerminated;
 
    function Float_to_OctetArray4 (x : Float) return OctetArray4;
@@ -3243,139 +3259,87 @@ is
    end Acn_Dec_UInt_ASCII_ConstSizeUInt32;
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt8
-     (bs : in out Bitstream; IntVal : out Integer_8;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Integer_8; minVal : Integer_8;
+      maxVal : Integer_8; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1Int;
    begin
-      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v,
-             nullChars, Result);
-      Result.Success := Result.Success and then
-        Asn1Int (Integer_8'First) <= v and then v <= Asn1Int (Integer_8'Last);
+      --  v is in minVal .. maxVal (Post), so it fits Integer_8
+      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v, Asn1Int (minVal),
+             Asn1Int (maxVal), nullChars, Result);
 
-      if Result.Success then
-         IntVal := Integer_8 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Integer_8 (v);
    end Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt8;
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt16
-     (bs : in out Bitstream; IntVal : out Integer_16;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Integer_16; minVal : Integer_16;
+      maxVal : Integer_16; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1Int;
    begin
-      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v,
-             nullChars, Result);
-      Result.Success := Result.Success and then
-        Asn1Int (Integer_16'First) <= v and then
-        v <= Asn1Int (Integer_16'Last);
+      --  v is in minVal .. maxVal (Post), so it fits Integer_16
+      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v, Asn1Int (minVal),
+             Asn1Int (maxVal), nullChars, Result);
 
-      if Result.Success then
-         IntVal := Integer_16 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Integer_16 (v);
    end Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt16;
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt32
-     (bs : in out Bitstream; IntVal : out Integer_32;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Integer_32; minVal : Integer_32;
+      maxVal : Integer_32; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1Int;
    begin
-      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v,
-                                                nullChars, Result);
-      pragma Warnings
-        (Off, "condition can only be False if invalid values present");
-      pragma Warnings
-        (Off, "condition is always True");
+      --  v is in minVal .. maxVal (Post), so it fits Integer_32
+      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v, Asn1Int (minVal),
+             Asn1Int (maxVal), nullChars, Result);
 
-      Result.Success := Result.Success and then
-        Asn1Int (Integer_32'First) <= v and then
-        v <= Asn1Int (Integer_32'Last);
-
-      pragma Warnings
-        (On, "condition can only be False if invalid values present");
-      pragma Warnings
-        (On, "condition is always True");
-
-      if Result.Success then
-         IntVal := Integer_32 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Integer_32 (v);
    end Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt32;
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8
-     (bs : in out Bitstream; IntVal : out Unsigned_8;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Unsigned_8; minVal : Unsigned_8;
+      maxVal : Unsigned_8; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1UInt;
    begin
-      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v,
-             nullChars, Result);
-      Result.Success := Result.Success and then
-        v <= Asn1UInt (Unsigned_8'Last);
+      --  v is in minVal .. maxVal (Post), so it fits Unsigned_8
+      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nullChars, Result);
 
-      if Result.Success then
-         IntVal := Unsigned_8 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Unsigned_8 (v);
    end Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8;
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16
-     (bs : in out Bitstream; IntVal : out Unsigned_16;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Unsigned_16; minVal : Unsigned_16;
+      maxVal : Unsigned_16; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1UInt;
    begin
-      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v,
-             nullChars, Result);
-      Result.Success := Result.Success and then
-         v <= Asn1UInt (Unsigned_16'Last);
+      --  v is in minVal .. maxVal (Post), so it fits Unsigned_16
+      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nullChars, Result);
 
-      if Result.Success then
-         IntVal := Unsigned_16 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Unsigned_16 (v);
    end Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16;
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32
-     (bs : in out Bitstream; IntVal : out Unsigned_32;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Unsigned_32; minVal : Unsigned_32;
+      maxVal : Unsigned_32; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1UInt;
    begin
-      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v,
-                                                 nullChars, Result);
-      pragma Warnings
-        (Off, "condition can only be False if invalid values present");
-      pragma Warnings
-        (Off, "condition is always True");
+      --  v is in minVal .. maxVal (Post), so it fits Unsigned_32
+      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nullChars, Result);
 
-      Result.Success := Result.Success and then
-        v <= Asn1UInt (Unsigned_32'Last);
-
-      pragma Warnings
-        (On, "condition can only be False if invalid values present");
-      pragma Warnings
-        (On, "condition is always True");
-
-      if Result.Success then
-         IntVal := Unsigned_32 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Unsigned_32 (v);
    end Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N_FullRange

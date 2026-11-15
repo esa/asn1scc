@@ -586,12 +586,12 @@ result.ErrorCode := <sErrCode>;
 ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">));"
 ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated<sSsuffix>(bs, <p>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
@@ -601,12 +601,12 @@ result.ErrorCode := <sErrCode>;
 ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_UInt_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">));"
 ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, 0, Asn1UInt'Last, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(bs, <p>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 
 <endif>

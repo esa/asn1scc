@@ -232,7 +232,8 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);
+      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8) and
+      IntVal <= MaxVal;
 
       --  REAL FUNCTIONS
 

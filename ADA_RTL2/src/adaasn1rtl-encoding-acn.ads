@@ -1084,9 +1084,11 @@ is
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated
-     (bs : in out Bitstream; IntVal : out Asn1UInt; nullChars : OctetBuffer;
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; nullChars : OctetBuffer;
       Result :    out ASN1_RESULT) with
-      Pre => nullChars'Length >= 1 and then nullChars'Length <= 10
+      Pre => minVal <= maxVal
+      and then nullChars'Length >= 1 and then nullChars'Length <= 10
       and then nullChars'First = 1
       and then bs.Current_Bit_Pos <
         Natural'Last - 8 * (Max_Int_Digits + nullChars'Length)
@@ -1095,12 +1097,17 @@ is
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length);
+        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length)
+      and
+      ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated
-     (bs     : in out Bitstream; IntVal : out Asn1Int; nullChars : OctetBuffer;
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; nullChars : OctetBuffer;
       Result :    out ASN1_RESULT) with
-      Pre => nullChars'Length >= 1 and then nullChars'Length < 10
+      Pre => minVal <= maxVal
+      and then nullChars'Length >= 1 and then nullChars'Length < 10
       and then nullChars'First = 1
       and then bs.Current_Bit_Pos <
         Natural'Last - 8 * (Max_Int_Digits + nullChars'Length + 1)
@@ -1109,7 +1116,10 @@ is
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length + 1),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1);
+        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1)
+      and
+      ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal));
 
    procedure Acn_Enc_Real_IEEE754_32_big_endian
      (bs : in out Bitstream; RealVal : Asn1Real) with
@@ -2274,9 +2284,11 @@ is
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt8
-     (bs : in out Bitstream; IntVal : out Integer_8;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT) with
-      Pre => nullChars'Length >= 1 and then nullChars'Length < 10
+     (bs     : in out Bitstream; IntVal : out Integer_8; minVal : Integer_8;
+      maxVal :        Integer_8; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT) with
+      Pre => minVal <= maxVal
+      and then nullChars'Length >= 1 and then nullChars'Length < 10
       and then nullChars'First = 1
       and then bs.Current_Bit_Pos <
         Natural'Last - 8 * (Max_Int_Digits + nullChars'Length + 1)
@@ -2285,12 +2297,17 @@ is
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length + 1),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1);
+        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1)
+      and
+      ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt16
-     (bs : in out Bitstream; IntVal : out Integer_16;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT) with
-      Pre => nullChars'Length >= 1 and then nullChars'Length < 10
+     (bs     : in out Bitstream; IntVal : out Integer_16; minVal : Integer_16;
+      maxVal :        Integer_16; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT) with
+      Pre => minVal <= maxVal
+      and then nullChars'Length >= 1 and then nullChars'Length < 10
       and then nullChars'First = 1
       and then bs.Current_Bit_Pos <
         Natural'Last - 8 * (Max_Int_Digits + nullChars'Length + 1)
@@ -2299,12 +2316,17 @@ is
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length + 1),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1);
+        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1)
+      and
+      ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt32
-     (bs : in out Bitstream; IntVal : out Integer_32;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT) with
-      Pre => nullChars'Length >= 1 and then nullChars'Length < 10
+     (bs     : in out Bitstream; IntVal : out Integer_32; minVal : Integer_32;
+      maxVal :        Integer_32; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT) with
+      Pre => minVal <= maxVal
+      and then nullChars'Length >= 1 and then nullChars'Length < 10
       and then nullChars'First = 1
       and then bs.Current_Bit_Pos <
         Natural'Last - 8 * (Max_Int_Digits + nullChars'Length + 1)
@@ -2313,12 +2335,17 @@ is
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length + 1),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1);
+        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1)
+      and
+      ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8
-     (bs : in out Bitstream; IntVal : out Unsigned_8;
-     nullChars : OctetBuffer; Result :    out ASN1_RESULT) with
-      Pre => nullChars'Length >= 1 and then nullChars'Length <= 10
+     (bs     : in out Bitstream; IntVal : out Unsigned_8; minVal : Unsigned_8;
+      maxVal :        Unsigned_8; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT) with
+      Pre => minVal <= maxVal
+      and then nullChars'Length >= 1 and then nullChars'Length <= 10
       and then nullChars'First = 1
       and then bs.Current_Bit_Pos <
         Natural'Last - 8 * (Max_Int_Digits + nullChars'Length)
@@ -2327,12 +2354,17 @@ is
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length);
+        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length)
+      and
+      ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16
-     (bs : in out Bitstream; IntVal : out Unsigned_16;
-     nullChars : OctetBuffer; Result :    out ASN1_RESULT) with
-      Pre => nullChars'Length >= 1 and then nullChars'Length <= 10
+     (bs : in out Bitstream; IntVal : out Unsigned_16; minVal : Unsigned_16;
+      maxVal :        Unsigned_16; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT) with
+      Pre => minVal <= maxVal
+      and then nullChars'Length >= 1 and then nullChars'Length <= 10
       and then nullChars'First = 1
       and then bs.Current_Bit_Pos <
         Natural'Last - 8 * (Max_Int_Digits + nullChars'Length)
@@ -2341,12 +2373,17 @@ is
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length);
+        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length)
+      and
+      ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32
-     (bs : in out Bitstream; IntVal : out Unsigned_32;
-     nullChars : OctetBuffer; Result :    out ASN1_RESULT) with
-      Pre => nullChars'Length >= 1 and then nullChars'Length <= 10
+     (bs : in out Bitstream; IntVal : out Unsigned_32; minVal : Unsigned_32;
+      maxVal :        Unsigned_32; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT) with
+      Pre => minVal <= maxVal
+      and then nullChars'Length >= 1 and then nullChars'Length <= 10
       and then nullChars'First = 1
       and then bs.Current_Bit_Pos <
         Natural'Last - 8 * (Max_Int_Digits + nullChars'Length)
@@ -2355,7 +2392,10 @@ is
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length);
+        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length)
+      and
+      ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal));
 
    --  Full-range decoders (coverage step 10b): used instead of the checked
    --  procedures above when every bit pattern of the field is a valid
