@@ -229,7 +229,7 @@ let checkIntHasEnoughSpace acnEncodingClass (hasMappingFunction:bool) acnErrLoc0
         |TwosComplement_ConstSize nBits                 -> checkBinary false nBits
         |ASCII_ConstSize nBits                          -> checkAscii false nBits
         |ASCII_VarSize_NullTerminated _                 -> ()
-        |ASCII_UINT_ConstSize nBits                     -> checkAscii false nBits
+        |ASCII_UINT_ConstSize nBits                     -> checkAscii true nBits
         |ASCII_UINT_VarSize_NullTerminated _            -> ()
         |BCD_ConstSize nBits                            -> checkBCD nBits
         |BCD_VarSize_NullTerminated _                   -> ()

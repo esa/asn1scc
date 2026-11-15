@@ -19,7 +19,7 @@ END
 --TCLS     CONSTANT WSIZE ::=128/2 MyPDU[encoding pos-int, size WSIZE]
 --TCLS     MyPDU[encoding pos-int, size 64]
 --TCLS     MyPDU[]
---TCLFC     MyPDU[encoding ASCII, size 56]       $$$  sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 999999 to be encoded, while the corresponding ASN.1 type allows values up to 4294967295
+--TCLFC     MyPDU[encoding ASCII, size 56]       $$$  sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 9999999 to be encoded, while the corresponding ASN.1 type allows values up to 4294967295
 --TCLFC     MyPDU[encoding BCD, size -200]     $$$  sample1.acn:4:21: error: no viable alternative at input 'size'
 --TCLFC     MyPDU[encoding ASCII, size -200]     $$$  sample1.acn:4:23: error: no viable alternative at input 'size'
 --TCLFC     MyPDU[encoding BCD, size 39]       $$$  sample1.acn:4:6: error: size value should be multiple of 4
