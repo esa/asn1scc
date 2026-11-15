@@ -884,7 +884,7 @@ if (ret) {
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -893,14 +893,20 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, 
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+<if(bCallCannotFail)>
+	/* no check of ret: <sFuncName> cannot fail */
+	/*X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)*/
+	ret = BitStream_EncodeContainingOctets(pBitStrm, arr, bitStrm.currentByte * 8 + bitStrm.currentBit, <nMaxOctets>);<\n>
+<else>
 	if (ret) {
 		/*X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)*/
 		ret = BitStream_EncodeContainingOctets(pBitStrm, arr, bitStrm.currentByte * 8 + bitStrm.currentBit, <nMaxOctets>);
-	}
+	}<\n>
+<endif>
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/
@@ -918,7 +924,7 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, 
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -927,14 +933,20 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nM
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+<if(bCallCannotFail)>
+	/* no check of ret: <sFuncName> cannot fail */
+	/*X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)*/
+	ret = BitStream_EncodeContainingBits(pBitStrm, arr, bitStrm.currentByte * 8 + bitStrm.currentBit, <nMaxBits>);<\n>
+<else>
 	if (ret) {
 		/*X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)*/
 		ret = BitStream_EncodeContainingBits(pBitStrm, arr, bitStrm.currentByte * 8 + bitStrm.currentBit, <nMaxBits>);
-	}
+	}<\n>
+<endif>
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/

@@ -509,8 +509,11 @@ type LangGeneric_a() =
             match t with
             | EncRtlWritesOnly | EncPresenceBits | EncEnumerated | EncOctetStringFixedSize | EncOctetStringNoLength | EncBitStringFixedSize
             | EncStringFixedSize | EncSequenceOfFixedSize                           -> EncodeOutcome.noWrite
-            // the blocks are joined by checks of result before anything writes it
-            | EncFragmentation                                                      -> EncodeOutcome.unknown
+            // BitStream_EncodeContainingOctets / Bits: procedures without result (coverage step 14p)
+            | EncContainingUper                                                     -> EncodeOutcome.noWrite
+            // the fragmentation writes no result; since coverage step 14p its fixed-size blocks are joined by what an element
+            // does (DAstUPer.handleFixedSizeFragmentation), so no check reads result before anything writes it
+            | EncFragmentation                                                      -> EncodeOutcome.noWrite
             // since coverage step 14i the ACN external-field / null-terminated / deduced loops state
             // pragma Loop_Invariant (result.Success) after an element that cannot fail, as the uPER loops do
             | EncSequenceOfOtherLoop | EncLoopWithoutInvariant                      -> EncodeOutcome.noWrite

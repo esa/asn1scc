@@ -265,6 +265,8 @@ type EncodeTemplate =
     | EncSequenceOfFixedSize    // the loop, without the element
     | EncSequenceOfVarSize of VarSizeLengthCheck    // the length and the loop, without the element
     | EncFragmentation          // uPER fragmented SEQUENCE OF / OCTET / BIT STRING / IA5String, without the element
+    | EncContainingUper         // uPER OCTET / BIT STRING (CONTAINING X) after the call of X's encoder: the general length
+                                // and the contents (C: the RTL call returns a flag; Ada: a procedure without result)
     | EncSequenceOfOtherLoop    // ACN external-field / null-terminated / deduced SEQUENCE OF, without the element
     | EncLoopWithoutInvariant   // such a loop whose element writes result: Ada has no loop invariant on result there, so
                                 // gnatprove could not prove an encoder's Post => result.Success after the loop

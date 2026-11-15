@@ -914,6 +914,8 @@ type LangGeneric_c() =
             // the variable-size ones keep the check (the length is checked first; left open, step 12 Q6)
             | EncOctetStringVarSize _
             | EncOctetStringNoLength                            -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // ret = BitStream_EncodeContainingOctets / Bits(...) (coverage step 14p)
+            | EncContainingUper                                 -> {canFail = true; writes = AlwaysWrites; callee = None}
             | EncPresentWhenCheck | EncDeferredPatch PatchChecked
             | EncChoiceAbsentArm                                -> {canFail = true; writes = AlwaysWrites; callee = None}
             // (void)<PatchDet>(...): the only / first patch of each field (13b / 14d), ret not written

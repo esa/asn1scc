@@ -965,7 +965,7 @@ if ret {
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
@@ -981,7 +981,7 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, 
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/
@@ -996,7 +996,7 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, 
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
@@ -1012,7 +1012,7 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nM
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/

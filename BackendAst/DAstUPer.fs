@@ -480,7 +480,8 @@ let FragmentationParts (size:BigInteger) =
     { nBlocks64K = nBlocks64K; has48KBlock = has48KBlock; has32KBlock = has32KBlock; has16KBlock = has16KBlock; nRemainingItemsVar = nRemainingItemsVar}
 
 
-let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (fixSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString=
+/// itemOutcome: what the encoding of one element does (coverage step 14p: the blocks are joined by it)
+let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (fixSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString (itemOutcome:EncodeOutcome) =
     let fixedSize_Fragmentation_sqf_64K          = lm.uper.FixedSize_Fragmentation_sqf_64K
     let fixedSize_Fragmentation_sqf_small_block  = lm.uper.FixedSize_Fragmentation_sqf_small_block
     let fixedSize_Fragmentation_sqf_remaining    = lm.uper.FixedSize_Fragmentation_sqf_remaining
@@ -517,13 +518,18 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:Com
     let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode) (createLv sRemainingItemsVar)
     let fragmentationVars = fragmentationVars |> List.addIf (lm.lg.uper.requires_sBlockIndex) (createLv sBlockIndex)
     //let fragmentationVars = fragmentationVars |> List.addIf (l = C) (lv)
-    let singleNestedPart  = nestChildItems lm  codec parts |> Option.toList
+    // coverage step 14p: the encode blocks are joined by what an element does (no check after blocks of elements that
+    // write no result, e.g. the octets of an OCTET STRING); decoding as before
+    let singleNestedPart =
+        match codec with
+        | Encode -> DAstUtilFunctions.nestEncodeParts lm (parts |> List.map (fun x -> x, EncodeOutcome.loopElement itemOutcome)) |> Option.toList
+        | Decode -> nestChildItems lm  codec parts |> Option.toList
     fixedSize_Fragmentation_sqf (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) singleNestedPart fixSize bIsAsciiString codec, fragmentationVars
 
-let handleFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString=
+let handleFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString (itemOutcome:EncodeOutcome) =
     match minSize = maxSize with
     | true ->
-        handleFixedSizeFragmentation lm p codec errCode ii uperMaxSizeInBits minSize internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString
+        handleFixedSizeFragmentation lm p codec errCode ii uperMaxSizeInBits minSize internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString itemOutcome
     | false ->
         let fragmentation   = lm.uper.Fragmentation_sqf
         let sRemainingItemsVar = sprintf "%s%d" "nRemainingItemsVar" ii
@@ -628,7 +634,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper ->
                 str_VarSize pp (p.accessPath.joined lm.lg) typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr callAux typeDefinitionName errCode.errCodeName codec, lv::charIndex@nStringLength, EncStringVarSizeUper
             | _ ->
-                let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true
+                let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)
                 let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || o.maxSize.uper<>o.minSize.uper) lv
                 funcBodyContent, charIndex@localVariables, EncFragmentation
 
@@ -684,7 +690,7 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
             lm.uper.octet_VarSize_fullRange pp access minSize nSizeInBits, nStringLength, EncOctetStringVarSize lengthCheck
         | _ when maxSize < 65536I && (not isFixedSize) -> varSize td pp access minSize maxSize nSizeInBits  errCode.errCodeName (lengthEnforced lengthCheck) codec, (if false  then lv::nStringLength else nStringLength), EncOctetStringVarSize lengthCheck
         | _ ->
-            let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem nIntItemMaxSize false false
+            let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem nIntItemMaxSize false false (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)
             let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || (not isFixedSize)) (lv)
             funcBodyContent, localVariables, EncFragmentation
 
@@ -741,7 +747,7 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)
             lm.uper.bitString_VarSize_fullRange pp access minSize nSizeInBits, nStringLength, EncBitStringVarSize lengthCheck
         | _ when maxSize < 65536I && (not isFixedSize) -> bitString_VarSize td pp access minSize maxSize errCode.errCodeName nSizeInBits (lengthEnforced lengthCheck) codec, nStringLength, EncBitStringVarSize lengthCheck
         | _ ->
-            let funcBodyContent, fragmentationLvars = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem 1I true false
+            let funcBodyContent, fragmentationLvars = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem 1I true false (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)
             let fragmentationLvars = fragmentationLvars |> List.addIf ((not isFixedSize) &&  lm.lg.uper.requires_sBLJ) (iVar)
             (funcBodyContent,fragmentationLvars, EncFragmentation)
 
@@ -847,7 +853,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                     let funcBody = varSize pp access  td i (null : string) o.minSize.uper o.maxSize.uper nSizeInBits child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux false false (lengthEnforced lengthCheck) codec
                     Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = auxiliaries; encOutcome = ownOutcome})
                 | _                                                ->
-                    let funcBody, localVariables = handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper "" nIntItemMaxSize false false
+                    let funcBody, localVariables = handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper "" nIntItemMaxSize false false EncodeOutcome.noWrite
                     Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = auxiliaries; encOutcome = ownOutcome})
             | Some internalItem ->
                 let childErrCodes =  internalItem.errCodes
@@ -880,7 +886,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper -> fixedSize pp td i internalItemBody o.minSize.uper child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux bFixedItemCannotFail bFixedItemWritesResult codec, nStringLength
                     | _ when varFullRange.IsSome -> lm.uper.seqOf_VarSize_fullRange pp access i internalItemBody o.minSize.uper o.maxSize.uper nSizeInBits nIntItemMaxSize varFullRange.Value, nStringLength
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper -> varSize pp access  td i internalItemBody o.minSize.uper o.maxSize.uper nSizeInBits child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux bItemCannotFail bItemWritesResult (lengthEnforced lengthCheck) codec, nStringLength
-                    | _ -> handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItemBody nIntItemMaxSize false false
+                    | _ -> handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItemBody nIntItemMaxSize false false internalItem.encOutcome
                 let ret = withFixedSizeCount r lm codec t o.isFixedSize o.minSize.uper p ret
                 let encOutcome = encodeOutcomeOf codec (EncodeOutcome.sequence [ownOutcome; EncodeOutcome.loopElement internalItem.encOutcome])
                 Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(localVariables@internalItem.localVariables); bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=internalItem.auxiliaries@auxiliaries; encOutcome = encOutcome})
@@ -1327,6 +1333,10 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
             let octet_string_containing_func  = lm.uper.octet_string_containing_func
             let bit_string_containing_func  = lm.uper.bit_string_containing_func
             let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
+            // coverage step 14p: the call of X's encoder, then the general length and the contents (C: a flag)
+            let callOutcome = encodeCallOutcome lm t.id.ModName us codec baseFncName
+            let bCallCannotFail = codec = Encode && not callOutcome.canFail
+            let containingOutcome = encodeOutcomeOf codec (EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncContainingUper])
             // Issue 94: emitted also when X encodes nothing (NULL, an empty SEQUENCE): X.691 10.1.3 sends one zero octet
             let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
                 let pp, resultExpr =
@@ -1345,7 +1355,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                     | false -> "1"
                 let funcBodyContent =
                     match opts.octOrBitStr with
-                    | ContainedInOctString  -> octet_string_containing_func pp baseFncName baseTypeDefinitionName sBufferBytes nContentsOctets errCode.errCodeName codec
-                    | ContainedInBitString  -> bit_string_containing_func pp baseFncName baseTypeDefinitionName sBufferBytes (nContentsOctets * 8I) errCode.errCodeName codec
-                Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []; encOutcome = EncodeOutcome.unknown}
+                    | ContainedInOctString  -> octet_string_containing_func pp baseFncName baseTypeDefinitionName sBufferBytes nContentsOctets errCode.errCodeName bCallCannotFail codec
+                    | ContainedInBitString  -> bit_string_containing_func pp baseFncName baseTypeDefinitionName sBufferBytes (nContentsOctets * 8I) errCode.errCodeName bCallCannotFail codec
+                Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []; encOutcome = containingOutcome}
             createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  [] us)

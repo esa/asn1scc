@@ -946,21 +946,28 @@ end if;
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode, bCallCannotFail) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
 begin
 	--encode value to a temporary bit stream
 	<sFuncName>_aux(<p>, tmpBs, result);
+<if(bCallCannotFail)>
+	-- no check: <sFuncName> cannot fail (Post => result.Success)
+	pragma Assert (result.Success);
+	--X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)
+	adaasn1rtl.encoding.uper.BitStream_EncodeContainingOctets(bs, tmpBs.Buffer, tmpBs.Current_Bit_Pos, <nMaxOctets>);<\n>
+<else>
 	if result.success then
 		--X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)
 		adaasn1rtl.encoding.uper.BitStream_EncodeContainingOctets(bs, tmpBs.Buffer, tmpBs.Current_Bit_Pos, <nMaxOctets>);
-	end if;
+	end if;<\n>
+<endif>
 end;
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode, bCallCannotFail) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
@@ -981,21 +988,28 @@ end;
 >>
 
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode, bCallCannotFail) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
 begin
 	--encode value to a temporary bit stream
 	<sFuncName>_aux(<p>, tmpBs, result);
+<if(bCallCannotFail)>
+	-- no check: <sFuncName> cannot fail (Post => result.Success)
+	pragma Assert (result.Success);
+	--X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)
+	adaasn1rtl.encoding.uper.BitStream_EncodeContainingBits(bs, tmpBs.Buffer, tmpBs.Current_Bit_Pos, <nMaxBits>);<\n>
+<else>
 	if result.success then
 		--X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)
 		adaasn1rtl.encoding.uper.BitStream_EncodeContainingBits(bs, tmpBs.Buffer, tmpBs.Current_Bit_Pos, <nMaxBits>);
-	end if;
+	end if;<\n>
+<endif>
 end;
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode, bCallCannotFail) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
