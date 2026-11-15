@@ -1,0 +1,5 @@
+WIRE DEFINITIONS ::= BEGIN
+	Fn [] { len Len [encoding ASCII, size null-terminated], s [size len] }
+	Fc [] { len Len [encoding ASCII, size 16], s [size len] }
+	Cm [] { a [encoding ASCII, size null-terminated] }
+END

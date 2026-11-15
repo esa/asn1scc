@@ -12,6 +12,10 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 		a INTEGER (-5 .. 20)
 	}
 
+	En ::= SEQUENCE {
+		ev ENUMERATED { m(-1), z(0), p(7) }
+	}
+
 END
 
 -- ACN fields of a referenced INTEGER type: the signedness of the encoding follows the range of the type, as for an
@@ -28,3 +32,4 @@ END
 --TCLFC    MyPDU[] {len SLen [encoding pos-int, size 8], s [size len]}    $$$ sample1.acn:4:14: error: Acn property pos-int cannot be applied to signed INTEGER types
 --TCLFC    MyPDU[] {len SLen [encoding BCD, size null-terminated], s [size len]}    $$$ sample1.acn:4:14: error: Acn property BCD cannot be applied to signed INTEGER types
 --TCLFC    Comp[] {a [encoding BCD, size null-terminated]}    $$$ sample1.acn:4:11: error: Acn property BCD cannot be applied to signed INTEGER types
+--TCLFC    En[] {ev [encoding BCD, size null-terminated, encode-values]}    $$$ sample1.asn1:16:5: error: Acn property BCD cannot be applied to signed INTEGER types

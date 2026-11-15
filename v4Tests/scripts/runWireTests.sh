@@ -130,6 +130,24 @@ cp "$root/test-cases/acn-wire/001_decode_test.adb" "$out/decode_test.adb"
 (cd "$out" && gnatmake -q -gnat2012 -gnata -aIasn1rtl -aIsrc -aIboards/msp430 decode_test.adb && ./decode_test)
 echo "acn-wire 001 (Ada msp430) OK"
 
+# ACN fields of a referenced unsigned INTEGER type as ASCII: digits without a sign, as a component of the type
+# (q: Issue 98); C (ASan / UBSan) and Ada x86 (-gnata), legacy and acn-v2.
+for mode in "" "--acn-v2"; do
+    out=$work/acn002c$mode
+    mkdir "$out"
+    run_compiler -c -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/002.asn1" "$root/test-cases/acn-wire/002.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/acn-wire/002_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 002 $mode OK"
+    out=$work/acn002ada$mode
+    mkdir "$out"
+    run_compiler -Ada -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/002.asn1" "$root/test-cases/acn-wire/002.acn"
+    cp "$root/test-cases/acn-wire/002_wire_test.adb" "$out/wire_test.adb"
+    (cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
+    echo "acn-wire 002 (Ada) $mode OK"
+done
+
 # 036 in Ada on the 32-bit board msp430: sign extension in the upper bytes of 64-bit fields
 # (compiled with -gnata: the RTL's pragma Assume are checked too).
 out=$work/ada036
