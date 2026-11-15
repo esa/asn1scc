@@ -1,4 +1,4 @@
---RUN_SPARK
+--RUN_SPARK C_ADA_ONLY (Python cannot decode INTEGER (MIN..N): its uPER IntUnconstrainedMax_decode never assigns the value, pre-existing)
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 	Small ::= INTEGER (1 .. 999)
