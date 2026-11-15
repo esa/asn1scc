@@ -1013,24 +1013,18 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (lms:
             let uperRange    = uPER.getIntTypeConstraintUperRange cons  ts.Location
             let uperMinSizeInBits, uperMaxSizeInBits = uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
             let acnProperties = {IntegerAcnProperties.encodingProp = getIntEncodingProperty ts.Location props; sizeProp = getIntSizeProperty ts.Location props; endiannessProp = getEndiannessProperty props; mappingFunction = getMappingFunctionProperty ts.Location props}
+            // The local of the field has the C / Ada type of the referenced INTEGER (intClass, from its range), so the
+            // encoding class follows the range too, as for an ASN.1 INTEGER component (Issue 98): an ASCII encoding of an
+            // unsigned range is ASCII_UINT_* (no sign character), pos-int / BCD of a signed range and twos-complement of an
+            // unsigned range are rejected by GetIntEncodingClass. Before, the signedness came from the encoding (ASCII and
+            // twos-complement signed, pos-int and BCD unsigned) and every mismatch generated code that did not compile.
+            let intClass = getIntEncodingClassByUperRange asn1.args uperRange
             let isUnsigned =
                 match acnProperties.encodingProp with
-                | Some encProp ->
-                    match encProp with
-                    | PosInt            -> true
-                    | TwosComplement    -> false
-                    | IntAscii          -> false
-                    | BCD               -> true
-                | None         ->
+                | Some _ -> intClass.IsPositive
+                | None   ->
                     match acnProperties.sizeProp.IsNone && acnProperties.endiannessProp.IsNone with
-                    | true  ->
-                        match uperRange with
-                        | Concrete  (a,b) when a >= 0I -> true      //[a, b]
-                        | Concrete  _                  -> false
-                        | NegInf    _                  -> false    //(-inf, b]
-                        | PosInf   a when a >= 0I  -> true     //[a, +inf)
-                        | PosInf  _                    -> false    //[a, +inf)
-                        | Full                         -> false    // (-inf, +inf)
+                    | true  -> intClass.IsPositive
                     | false -> raise(SemanticError(ts.Location, "Mandatory ACN property 'encoding' is missing"))
 
             let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits  =
@@ -1039,7 +1033,6 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (lms:
             let checkIntHasEnoughSpace asn1Min asn1Max =
                 checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome ts.Location asn1Min asn1Max
 
-            let  intClass = getIntEncodingClassByUperRange asn1.args uperRange
             AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAlignment=acnAlignment; acnEncodingClass = acnEncodingClass;  Location = ts.Location; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;cons=cons;withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; intClass=intClass; defaultValue="0"; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=Some {InheritanceInfo.modName=md.Value; tasName=ts.Value;hasAdditionalConstraints=false;}}), us
         | _                               ->
             let newParma  =

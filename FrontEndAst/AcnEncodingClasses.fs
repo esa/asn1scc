@@ -110,6 +110,7 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (alignment: AcnAlignment
                 match bUINT with
                 | true                                          -> ASCII_UINT_ConstSize fxVal, fxVal, fxVal
                 | false                                         -> ASCII_ConstSize  fxVal, fxVal, fxVal
+            | BCD, _, _                                         when not bUINT       ->  raise(SemanticError(errLoc, "Acn property BCD cannot be applied to signed INTEGER types"))
             | BCD, Fixed(fxVal) , BigEndianness   when fxVal > maxDigitsInInteger*4I       ->  raise(SemanticError(errLoc, (sprintf "Size must be less than %A" (maxDigitsInInteger*4I))))
             | BCD, Fixed(fxVal) , BigEndianness   when fxVal % 4I <> 0I       ->  raise(SemanticError(errLoc, "size value should be multiple of 4"))
             | BCD, Fixed(fxVal) , BigEndianness                 ->  BCD_ConstSize fxVal, fxVal, fxVal
