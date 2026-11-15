@@ -787,7 +787,14 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (unique:Set<st
                 | TypedefsEnforceRanges -> []
             let set (sValue, what) = mk t.id (lm.init.initEnumerated (lm.lg.getValue path) sValue "" false "") e what
             (nonItem |> List.map (fun x -> {set x with encoding = InvalidEnumItem OwnTree})) @ (excluded |> List.map set)
-    | NullType _ | Boolean _ | ObjectIdentifier _ | TimeType _ -> []
+    // coverage step 14p: an OBJECT IDENTIFIER of one arc (a RELATIVE-OID of none) fails the basic validity check
+    | ObjectIdentifier o ->
+        match ownErrCode t with
+        | None   -> []
+        | Some e ->
+            let n, what = if o.baseInfo.relativeObjectId then 0I, "no arc, a RELATIVE-OID needs one" else 1I, "one arc, an OBJECT IDENTIFIER needs two"
+            [mk t.id (lm.init.initVarSizeSequenceOf (path.joined lm.lg) (lm.lg.getAccess path) n []) e what]
+    | NullType _ | Boolean _ | TimeType _ -> []
 
 /// WITH COMPONENTS of a SEQUENCE (they fail the SEQUENCE's own check): a child marked PRESENT is made absent; an
 /// INTEGER child gets the values next to the named constraint's endpoints that its own type accepts.
@@ -809,6 +816,18 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                         [{ nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                            setInvalid = lm.init.initSequence_optionalChild (path.joined lm.lg) (lm.lg.getAccess path) chName absentFlag ""
                            errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s absent, WITH COMPONENTS requires it" ch.Name.Value; encoding = CheckedOnly; localVariables = [] }]
+                    // coverage step 14p: a child marked ABSENT is made present with the first automatic test value of
+                    // its type (valid, so the child's own checks pass and only the WITH COMPONENTS check fails)
+                    | Asn1Ast.MarkAbsent, Some _ ->
+                        match ch.Type.initFunction.automaticTestCases with
+                        | []      -> []
+                        | atc::_  ->
+                            let presentFlag = if lm.lg.usesBooleanPresenceBits then lm.lg.TrueLiteral else "1"
+                            let chPath = lm.lg.getSeqChild path chName ch.Type.isIA5String ch.Optionality.IsSome
+                            let childValue = atc.initTestCaseFunc {CodegenScope.modName = ToC "MainProgram"; accessPath = chPath}
+                            [{ nodeId = t.id; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; inAlternative = false
+                               setInvalid = lm.init.initSequence_optionalChild (path.joined lm.lg) (lm.lg.getAccess path) chName presentFlag childValue.funcBody
+                               errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s present, WITH COMPONENTS requires it absent" ch.Name.Value; encoding = CheckedOnly; localVariables = childValue.localVariables }]
                     | (Asn1Ast.MarkPresent | Asn1Ast.NoMark | Asn1Ast.MarkOptional | Asn1Ast.MarkAbsent), _ -> []
                 let values =
                     match nc.Constraint, ch.Type.ActualType.Kind with
@@ -820,6 +839,29 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                             { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                               setInvalid = lm.init.initInteger (lm.lg.getValue chPath) sv false "" ""
                               errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s = %s, outside %s (WITH COMPONENTS)" ch.Name.Value sv ic.ASN1; encoding = CheckedOnly; localVariables = [] })
+                    | Some (Asn1AcnAst.OctetStringConstraint (Asn1AcnAst.SizeConstraint (_, rc))), _
+                    | Some (Asn1AcnAst.BitStringConstraint (Asn1AcnAst.SizeConstraint (_, rc))), _
+                    | Some (Asn1AcnAst.SequenceOfConstraint (Asn1AcnAst.SeqOfSizeConstraint (_, rc))), _ ->
+                        // coverage step 14p: a SIZE on a child, the sizes next to its endpoints that the child's typedef can
+                        // hold (its own type assignment's range, a variable-size typedef)
+                        let childSizeRange =
+                            match ch.Type.Kind with
+                            | ReferenceType ref -> referencedSizeRange r ref.baseInfo.modName.Value ref.baseInfo.tasName.Value
+                            | OctetString o     -> Some (o.baseInfo.minSize.uper, o.baseInfo.maxSize.uper, o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper)
+                            | BitString o       -> Some (o.baseInfo.minSize.uper, o.baseInfo.maxSize.uper, o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper)
+                            | SequenceOf o      -> Some (o.baseInfo.minSize.uper, o.baseInfo.maxSize.uper, o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper)
+                            | _                 -> None
+                        match childSizeRange with
+                        | Some (tMin, tMax, false) ->
+                            let chPath = lm.lg.getSeqChild path chName ch.Type.isIA5String ch.Optionality.IsSome
+                            rangeEndpoints rc |> List.collect (fun v -> [BigInteger (v:uint32) - 1I; BigInteger v + 1I]) |> List.distinct |> List.sort |>
+                            List.filter (fun n -> tMin <= n && n <= tMax && not (Asn1Fold.isValidValueRanged [rc] (uint32 n))) |>
+                            List.map (fun n ->
+                                { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
+                                  setInvalid = lm.init.initVarSizeSequenceOf (chPath.joined lm.lg) (lm.lg.getAccess chPath) n []
+                                  errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s size %A, outside %s (WITH COMPONENTS)" ch.Name.Value n (rc.ASN1); encoding = CheckedOnly; localVariables = [] })
+                        | Some (_, _, true)
+                        | None -> []
                     | _ -> []
                 absent @ values)
 
