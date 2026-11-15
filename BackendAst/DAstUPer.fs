@@ -289,7 +289,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         | Concrete (min, max), _ -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName sType codec, false, false, Some (FullyConstrained (min, max))
         | PosInf a, _  when a>=0I && (not extCon) -> IntSemiConstraintPos pp a  errCode.errCodeName sType codec, false, false, Some (SemiConstrainedPositive a)
         | PosInf a, _ -> IntSemiConstraint pp a  errCode.errCodeName sType codec, false, false, Some (SemiConstrained a)
-        | NegInf max, _ -> IntUnconstrainedMax pp max None errCode.errCodeName codec, false, false, Some (UnconstrainedMax max)
+        | NegInf max, _ -> IntUnconstrainedMax pp max None errCode.errCodeName sType codec, false, false, Some (UnconstrainedMax max)
         | Full, _ -> IntUnconstrained pp errCode.errCodeName false sType codec, false, false, Some Unconstrained
 
     let getValueByConstraint uperRange =

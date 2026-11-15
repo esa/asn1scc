@@ -180,8 +180,8 @@ ret = BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>);   <if(bCoverageIgn
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
-IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
-IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
+IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode, soType) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
+IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode, soType) ::= <<
 ret = BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>);
 *pErrCode = (ret <if(soCheckExp)>&&(<soCheckExp>)<endif>) ? 0 : <sErrCode>;
 >>

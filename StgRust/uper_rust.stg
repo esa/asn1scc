@@ -176,8 +176,8 @@ IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= <<
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
-IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "pBitStrm.encode_unconstrained_whole_number(<p>);"
-IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
+IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode, soType) ::= "pBitStrm.encode_unconstrained_whole_number(<p>);"
+IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode, soType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_unconstrained_whole_number();
     <p> = val as _;

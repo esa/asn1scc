@@ -171,8 +171,8 @@ val <p> = codec.base.decodeUnconstrainedWholeNumber() match {
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
-IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "codec.base.encodeUnconstrainedWholeNumber(<p>)"
-IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
+IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode, soType) ::= "codec.base.encodeUnconstrainedWholeNumber(<p>)"
+IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode, soType) ::= <<
 if !codec.base.decodeUnconstrainedWholeNumber() then // TODO meth does not return a boolean value...?
     <if(soCheckExp)>
     if !<soCheckExp> then return LeftMut(<sErrCode>)

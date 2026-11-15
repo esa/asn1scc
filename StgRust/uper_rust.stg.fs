@@ -91,13 +91,13 @@ let IntUnconstrained (p:string) (sErrCode:string) (bCoverageIgnore:bool) (soType
     | Decode    ->
         ST.call "uper_rust" "IntUnconstrained_decode" [("p",p :>Object);("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("bCoverageIgnore",bCoverageIgnore :>Object);("soType",(if soType.IsNone then null else ST.StrHelper soType.Value:>Object) )]
 
-let IntUnconstrainedMax (p:string) (nMax:BigInteger) (soCheckExp:string option) (sErrCode:string) codec =
+let IntUnconstrainedMax (p:string) (nMax:BigInteger) (soCheckExp:string option) (sErrCode:string) (soType:string option) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
     | Encode    ->
-        ST.call "uper_rust" "IntUnconstrainedMax_encode" [("p",p :>Object);("nMax",nMax :>Object);("soCheckExp",(if soCheckExp.IsNone then null else ST.StrHelper soCheckExp.Value:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "uper_rust" "IntUnconstrainedMax_encode" [("p",p :>Object);("nMax",nMax :>Object);("soCheckExp",(if soCheckExp.IsNone then null else ST.StrHelper soCheckExp.Value:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("soType",(if soType.IsNone then null else ST.StrHelper soType.Value:>Object) )]
     | Decode    ->
-        ST.call "uper_rust" "IntUnconstrainedMax_decode" [("p",p :>Object);("nMax",nMax :>Object);("soCheckExp",(if soCheckExp.IsNone then null else ST.StrHelper soCheckExp.Value:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
+        ST.call "uper_rust" "IntUnconstrainedMax_decode" [("p",p :>Object);("nMax",nMax :>Object);("soCheckExp",(if soCheckExp.IsNone then null else ST.StrHelper soCheckExp.Value:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("soType",(if soType.IsNone then null else ST.StrHelper soType.Value:>Object) )]
 
 let IntSemiConstraint (p:string) (nMin:BigInteger) (sErrCode:string) (soType:string option) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

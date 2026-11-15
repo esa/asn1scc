@@ -29,8 +29,8 @@ type IUper_rust() =
             uper_rust.IntFullyConstraintPos  p nMin nMax nBits sSsuffix sErrCode soRangeAssert soType codec
         override this.IntUnconstrained  (p:string) (sErrCode:string) (bCoverageIgnore:bool) (soType:string option) (codec:Codec) =
             uper_rust.IntUnconstrained  p sErrCode bCoverageIgnore soType codec
-        override this.IntUnconstrainedMax  (p:string) (nMax:BigInteger) (soCheckExp:string option) (sErrCode:string) (codec:Codec) =
-            uper_rust.IntUnconstrainedMax  p nMax soCheckExp sErrCode codec
+        override this.IntUnconstrainedMax  (p:string) (nMax:BigInteger) (soCheckExp:string option) (sErrCode:string) (soType:string option) (codec:Codec) =
+            uper_rust.IntUnconstrainedMax  p nMax soCheckExp sErrCode soType codec
         override this.IntSemiConstraint  (p:string) (nMin:BigInteger) (sErrCode:string) (soType:string option) (codec:Codec) =
             uper_rust.IntSemiConstraint  p nMin sErrCode soType codec
         override this.IntSemiConstraintPos  (p:string) (nMin:BigInteger) (sErrCode:string) (soType:string option) (codec:Codec) =

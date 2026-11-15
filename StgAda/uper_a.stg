@@ -199,8 +199,8 @@ adaasn1rtl.encoding.uper.UPER_Dec_UnConstraintWholeNumber(bs, <p>, result.Succes
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
-IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
-IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
+IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode, soType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
+IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode, soType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_UnConstraintWholeNumberMax(bs, <p>, <nMax>, result.Success);
 --result.Success := result.Success and then (<soCheckExp>);

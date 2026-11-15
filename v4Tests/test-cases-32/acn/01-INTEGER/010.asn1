@@ -1,4 +1,4 @@
--- C_ADA_ONLY: copy of test-cases/acn/01-INTEGER/010 without the SPARK marker (the ws=4 legs run on msp430, where no corpus file is proved)
+-- copy of test-cases/acn/01-INTEGER/010 without the SPARK marker: the ws=4 legs run on msp430, where no corpus file is proved
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 	Small ::= INTEGER (1 .. 999)

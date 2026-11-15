@@ -166,19 +166,23 @@ decoded_int = codec.decode_unconstrained_whole_number()
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
-IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= <<
+IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode, soType) ::= <<
 res = codec.encode_unconstrained_whole_number(<p>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
-IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
+IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode, soType) ::= <<
 decoded_result = codec.decode_unconstrained_whole_number()
-if decoded_result.success:
-    <if(soCheckExp)>
-    if not <soCheckExp>:
-        raise Asn1ValueOutOfRangeException(f"Decoded value exceeds maximum constraint: {decoded_result.error_message}")
-    <else>
-    raise Asn1InvalidValueException(f"Decoding of Unconstrained Positive Whole Number failed: {decoded_result.error_message}")
-    <endif>
+if not decoded_result.success or decoded_result.decoded_value is None:
+    if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding of decode_unconstrained_whole_number failed: {decoded_result.error_message}")
+    raise Asn1InvalidValueException(f"Decoding of decode_unconstrained_whole_number failed: {decoded_result.error_message}")
+if decoded_result.decoded_value > <nMax>:
+    raise Asn1ValueOutOfRangeException(f"Decoded value {decoded_result.decoded_value} exceeds the maximum <nMax>")
+<if(soType)><p> = <soType>(decoded_result.decoded_value)<else><p> = decoded_result.decoded_value<endif>
+<if(soCheckExp)>
+if not (<soCheckExp>):
+    raise Asn1ValueOutOfRangeException("Decoded value violates the constraints")
+<endif>
 >>
 
 /*case: A:: = INTEGER (-5..MAX) */
