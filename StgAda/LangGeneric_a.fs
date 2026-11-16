@@ -517,9 +517,10 @@ type LangGeneric_a() =
             // since coverage step 14i the ACN external-field / null-terminated / deduced loops state
             // pragma Loop_Invariant (result.Success) after an element that cannot fail, as the uPER loops do
             | EncSequenceOfOtherLoop | EncLoopWithoutInvariant                      -> EncodeOutcome.noWrite
-            // result.Success := Length >= min AND Length <= max
+            // coverage step 14q (Q3 a): pragma Assume (Length >= min AND Length <= max), the string's size likewise: the
+            // validation at the entry of the encoder checked it (every Ada _aux validates its value unless that cannot fail)
             | EncOctetStringVarSize LengthChecked | EncBitStringVarSize LengthChecked | EncStringVarSize
-            | EncSequenceOfVarSize LengthChecked                                    -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncSequenceOfVarSize LengthChecked                                    -> EncodeOutcome.noWrite
             // the Length subtype of the typedef holds that range: a pragma Assert instead of the check (coverage step 14b2)
             | EncOctetStringVarSize LengthEnforcedByTypedef | EncBitStringVarSize LengthEnforcedByTypedef
             | EncSequenceOfVarSize LengthEnforcedByTypedef                          -> EncodeOutcome.noWrite
@@ -533,14 +534,14 @@ type LangGeneric_a() =
             // <PatchDet>(..., result) after a body that cannot fail, checked or with pragma Assume (coverage step 14q)
             | EncContainingRegionEnd PatchChecked                                   -> {canFail = true; writes = AlwaysWrites; callee = None}
             | EncContainingRegionEnd PatchUnchecked                                 -> {canFail = false; writes = AlwaysWrites; callee = None}
-            // result.Success := nStringLength >= min AND ...: a component write, so result must be initialised before
-            | EncStringVarSizeUper                                                  -> {canFail = true; writes = ReadsFirst; callee = None}
+            // pragma Assume (nStringLength >= min AND ...): checked at the entry of the encoder (coverage step 14q, Q3 a)
+            | EncStringVarSizeUper                                                  -> EncodeOutcome.noWrite
             // an exhaustive case over the selector: no default arm
             | EncChoiceDefaultArm                                                   -> EncodeOutcome.noWrite
             // determinant updates (coverage step 12c): assignments; an exhaustive case over the CHOICE selector
             | EncDeterminantAssign | EncDeterminantSwitch                           -> EncodeOutcome.noWrite
-            // result.success := <v> <= max: a component write, so result must be initialised before
-            | EncDeterminantRangeCheck                                              -> {canFail = true; writes = ReadsFirst; callee = None}
+            // pragma Assume (<v> <= max): the string's SIZE, checked at the entry of the encoder (coverage step 14q, Q3 a)
+            | EncDeterminantRangeCheck                                              -> EncodeOutcome.noWrite
             // result := (Success => result.Success and <sources agree>, ...)
             | EncDeterminantMulti                                                   -> {canFail = true; writes = ReadsFirst; callee = None}
         override _.atcEmitsConstraintViolationTests = true

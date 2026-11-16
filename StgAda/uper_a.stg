@@ -551,12 +551,11 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 
 str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
 nStringLength := <rtlModuleName()>.getStringSize(<p>);
-result.Success := nStringLength >= <nSizeMin> AND nStringLength \<= <nSizeMax>;
+-- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
+pragma Assume (nStringLength >= <nSizeMin> AND nStringLength \<= <nSizeMax>);
 <i> := 1;
-if result.Success then
-    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(nStringLength), <nSizeMin>, <nSizeInBits>);
-    <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
-end if;
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(nStringLength), <nSizeMin>, <nSizeInBits>);
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 >>
 
 str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
@@ -627,12 +626,10 @@ pragma Assert (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>)
 adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
 <else>
-result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
-result.errorCode := <sErrCode>;
-if result.Success then
-    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
-    adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
-end if;
+-- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
+pragma Assume (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
 <endif>
 >>
 
@@ -664,13 +661,11 @@ pragma Assert (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>)
 adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
 <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
 <else>
-result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
-result.errorCode := <sErrCode>;
+-- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
+pragma Assume (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
 <i> := 1;
-if result.Success then
-    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
-    <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
-end if;
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
 <endif>
 >>
 
@@ -1071,12 +1066,10 @@ pragma Assert (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>)
 adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
 <bitString_FixSize_encode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"Length"], sErrCode=sErrCode)>
 <else>
-result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
-result.errorCode := <sErrCode>;
-if result.Success then
-    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
-    <bitString_FixSize_encode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"Length"], sErrCode=sErrCode)>
-end if;
+-- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
+pragma Assume (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+<bitString_FixSize_encode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"Length"], sErrCode=sErrCode)>
 <endif>
 >>
 

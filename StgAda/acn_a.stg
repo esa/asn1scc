@@ -870,11 +870,9 @@ result.ErrorCode := <sErrCode>;
 
 
 Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
-result.ErrorCode := <sErrCode>;
-result.Success := <nAsn1Min> \<= <rtlModuleName()>.getStringSize(<p>);
-if result.Success then
-    adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_Internal_Field_Determinant(bs, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);
-end if;
+-- no check: the validation at the entry of the encoder accepted the string (its IsConstraintValid checks its SIZE, at least <nAsn1Min>)
+pragma Assume (<nAsn1Min> \<= <rtlModuleName()>.getStringSize(<p>));
+adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_Internal_Field_Determinant(bs, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);
 >>
 Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_Internal_Field_Determinant(bs, <nAsn1Min>, <nAsn1Max>, <nInternalLengthDeterminantSizeInBits>, <p>, result);
@@ -963,12 +961,10 @@ pragma Assert (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>)
 adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
 <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
 <else>
-result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
-result.errorCode := <sErrCode>;
-if result.Success then
-    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
-    <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
-end if;
+-- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
+pragma Assume (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
 <endif>
 >>
 
@@ -1413,10 +1409,11 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName, bSetInitFlag) ::= <<
 SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName, bSetInitFlag) ::= <<
 <if(bSetInitFlag)><v>_is_initialized := True;<\n><endif><v> := <sTypedefName>(<sCount>);
 <if(bCheckRange)>
+-- no check: the validation at the entry of the encoder accepted the string (its IsConstraintValid checks SIZE (<nMin> .. <nMax>))
 <if(bCheckMin)>
-result.success := <v> \>= <nMin> and <v> \<= <nMax>;
+pragma Assume (<v> \>= <nMin> and <v> \<= <nMax>);
 <else>
-result.success := <v> \<= <nMax>;
+pragma Assume (<v> \<= <nMax>);
 <endif>
 
 <endif>
