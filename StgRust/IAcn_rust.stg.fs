@@ -239,26 +239,26 @@ type IAcn_rust() =
             acn_rust.MultiAcnUpdate  v sV0 sErrCode arrsLocalDeclarations arrsLocalUpdateStatements arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality sDefaultExpr bSetInitFlag 
         override this.checkAccessPath  (arrsCheckPaths:seq<string>) (sUpdateStatement:string) (v:string) (sInitExpr:string) =
             acn_rust.checkAccessPath  arrsCheckPaths sUpdateStatement v sInitExpr 
-        override this.SizeDependency_oct_str_containing  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (v:string) (bIsOctet:bool) (sInner:string) (sLocalVarType:string) (bSetInitFlag:bool) =
-            acn_rust.SizeDependency_oct_str_containing  p sFuncName sReqBytesForUperEncoding v bIsOctet sInner sLocalVarType bSetInitFlag 
+        override this.SizeDependency_oct_str_containing  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (v:string) (bIsOctet:bool) (sInner:string) (sLocalVarType:string) (bSetInitFlag:bool) (soNoCheckNote:string option) =
+            acn_rust.SizeDependency_oct_str_containing  p sFuncName sReqBytesForUperEncoding v bIsOctet sInner sLocalVarType bSetInitFlag soNoCheckNote 
         override this.octet_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (nReqBytes:BigInteger) (sExtField:string) (sErrCode:string) (soInner:string option) (bDeducedContent:bool) (codec:Codec) =
             acn_rust.octet_string_containing_ext_field_func  p sFuncName sReqBytesForUperEncoding nReqBytes sExtField sErrCode soInner bDeducedContent codec
-        override this.octet_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (sValue:string) (soNBits:string option) (sErrCode:string) (bDeducedContent:bool) (bCannotFail:bool) (soFixedOctets:string option) (soCovExempt:string option) (codec:Codec) =
-            acn_rust.octet_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName sValue soNBits sErrCode bDeducedContent bCannotFail soFixedOctets soCovExempt codec
-        override this.octet_string_containing_deferred_fixed_func  (p:string) (sFuncName:string) (nOctets:BigInteger) (sErrCode:string) (soFixedOctets:string option) (codec:Codec) =
-            acn_rust.octet_string_containing_deferred_fixed_func  p sFuncName nOctets sErrCode soFixedOctets codec
-        override this.octet_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) (bDeducedContent:bool) (soFixedOctets:string option) (soCovExempt:string option) (soCovExemptFits:string option) (codec:Codec) =
-            acn_rust.octet_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits sErrCode bDeducedContent soFixedOctets soCovExempt soCovExemptFits codec
-        override this.octet_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (sValue:string) (soNBits:string option) (sErrCode:string) (bDeducedContent:bool) (bCannotFail:bool) (soFixedOctets:string option) (soCovExempt:string option) (codec:Codec) =
-            acn_rust.octet_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName sValue soNBits sErrCode bDeducedContent bCannotFail soFixedOctets soCovExempt codec
-        override this.bit_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (sValue:string) (soNBits:string option) (sErrCode:string) (bCannotFail:bool) (soCovExempt:string option) (codec:Codec) =
-            acn_rust.bit_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName sValue soNBits sErrCode bCannotFail soCovExempt codec
+        override this.octet_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (sValue:string) (soNBits:string option) (sErrCode:string) (bDeducedContent:bool) (bCannotFail:bool) (soFixedOctets:string option) (soCovExempt:string option) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.octet_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName sValue soNBits sErrCode bDeducedContent bCannotFail soFixedOctets soCovExempt soNoCheckNote codec
+        override this.octet_string_containing_deferred_fixed_func  (p:string) (sFuncName:string) (nOctets:BigInteger) (sErrCode:string) (soFixedOctets:string option) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.octet_string_containing_deferred_fixed_func  p sFuncName nOctets sErrCode soFixedOctets soNoCheckNote codec
+        override this.octet_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) (bDeducedContent:bool) (soFixedOctets:string option) (soCovExempt:string option) (soCovExemptFits:string option) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.octet_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits sErrCode bDeducedContent soFixedOctets soCovExempt soCovExemptFits soNoCheckNote codec
+        override this.octet_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (sValue:string) (soNBits:string option) (sErrCode:string) (bDeducedContent:bool) (bCannotFail:bool) (soFixedOctets:string option) (soCovExempt:string option) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.octet_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName sValue soNBits sErrCode bDeducedContent bCannotFail soFixedOctets soCovExempt soNoCheckNote codec
+        override this.bit_string_containing_deferred_func  (p:string) (sFuncName:string) (sDetParamName:string) (sPatchFuncName:string) (sValue:string) (soNBits:string option) (sErrCode:string) (bCannotFail:bool) (soCovExempt:string option) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.bit_string_containing_deferred_func  p sFuncName sDetParamName sPatchFuncName sValue soNBits sErrCode bCannotFail soCovExempt soNoCheckNote codec
         override this.bit_string_containing_deferred_fixed_func  (p:string) (sFuncName:string) (codec:Codec) =
             acn_rust.bit_string_containing_deferred_fixed_func  p sFuncName codec
-        override this.bit_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) (codec:Codec) =
-            acn_rust.bit_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits sErrCode codec
-        override this.bit_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (sValue:string) (soNBits:string option) (sErrCode:string) (bCannotFail:bool) (soCovExempt:string option) (codec:Codec) =
-            acn_rust.bit_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName sValue soNBits sErrCode bCannotFail soCovExempt codec
+        override this.bit_string_containing_deferred_embedded_func  (p:string) (sFuncName:string) (nMinSize:BigInteger) (nMaxSize:BigInteger) (nBits:BigInteger) (sErrCode:string) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.bit_string_containing_deferred_embedded_func  p sFuncName nMinSize nMaxSize nBits sErrCode soNoCheckNote codec
+        override this.bit_string_containing_deferred_wrapper  (sBody:string) (sDetParamName:string) (sPatchFuncName:string) (sValue:string) (soNBits:string option) (sErrCode:string) (bCannotFail:bool) (soCovExempt:string option) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.bit_string_containing_deferred_wrapper  sBody sDetParamName sPatchFuncName sValue soNBits sErrCode bCannotFail soCovExempt soNoCheckNote codec
         override this.bit_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (sReqBitsForUperEncoding:string) (nReqBits:BigInteger) (sExtField:string) (sErrCode:string) (codec:Codec) =
             acn_rust.bit_string_containing_ext_field_func  p sFuncName sReqBytesForUperEncoding sReqBitsForUperEncoding nReqBits sExtField sErrCode codec
         override this.rtlModuleName  () =
@@ -267,10 +267,10 @@ type IAcn_rust() =
             acn_rust.sparkAnnotations  sTypeDefName codec
         override this.sparkAnnotations_deducedFixed  (sTypeDefName:string) =
             acn_rust.sparkAnnotations_deducedFixed  sTypeDefName 
-        override this.octet_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (sErrCode:string) (bDeducedContent:bool) (codec:Codec) =
-            acn_rust.octet_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding nBits nMinSize nMaxSize bFixedSize sErrCode bDeducedContent codec
-        override this.bit_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (sReqBitsForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (sErrCode:string) (codec:Codec) =
-            acn_rust.bit_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding sReqBitsForUperEncoding nBits nMinSize nMaxSize bFixedSize sErrCode codec
+        override this.octet_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (sErrCode:string) (bDeducedContent:bool) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.octet_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding nBits nMinSize nMaxSize bFixedSize sErrCode bDeducedContent soNoCheckNote codec
+        override this.bit_string_containing_func  (p:string) (sFuncName:string) (sContainedType:string) (sReqBytesForAcnEncoding:string) (sReqBitsForUperEncoding:string) (nBits:BigInteger) (nMinSize:BigInteger) (nMaxSize:BigInteger) (bFixedSize:bool) (sErrCode:string) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.bit_string_containing_func  p sFuncName sContainedType sReqBytesForAcnEncoding sReqBitsForUperEncoding nBits nMinSize nMaxSize bFixedSize sErrCode soNoCheckNote codec
         override this.acn_deferred_det_declare  (sDetName:string) (codec:Codec) =
             acn_rust.acn_deferred_det_declare  sDetName codec
         override this.acn_deferred_det_init_value  (sInitFuncName:string) (sDetName:string) (codec:Codec) =

@@ -924,6 +924,9 @@ type LangGeneric_c() =
             | EncContainingDeferredWrapper PatchChecked         -> {canFail = true; writes = ReadsFirst; callee = None}
             // ... the same with the only / first patch of the size field, which cannot fail (step 14e, E3)
             | EncContainingDeferredWrapper PatchUnchecked       -> {canFail = false; writes = ReadsFirst; callee = None}
+            // ret = <PatchDet>(...) after a body that cannot fail, checked or not (coverage step 14q)
+            | EncContainingRegionEnd PatchChecked               -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncContainingRegionEnd PatchUnchecked             -> {canFail = false; writes = AlwaysWrites; callee = None}
             // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid selector (coverage step 12d)
             | EncChoiceDefaultArm                               -> {canFail = true; writes = SometimesWrites; callee = None}
             // determinant updates (coverage step 12c): assignments (the C size update has no range check)

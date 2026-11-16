@@ -278,6 +278,9 @@ type EncodeTemplate =
     | EncContainingDeferredWrapper of DeferredPatchCheck  // --acn-v2: the end of a CONTAINING region around an inline
                                     // body (checks the body's result, then the PatchDet of the region's size: reads
                                     // result first; may fail unless that PatchDet is unchecked, step 14e E3)
+    | EncContainingRegionEnd of DeferredPatchCheck  // --acn-v2: the same end of a CONTAINING region after a body that
+                                    // cannot fail, without the check of its result (coverage step 14q): the padding and
+                                    // the PatchDet of the region's size, which writes the result (C ret = <PatchDet>(...))
     // coverage step 12c: the update of an ACN determinant (AcnDependencies), without the flag it may set
     | EncDeterminantAssign      // size / presence: an assignment
     | EncDeterminantRangeCheck  // IA5String size with a range check (Ada: result.Success := ..., a component write)

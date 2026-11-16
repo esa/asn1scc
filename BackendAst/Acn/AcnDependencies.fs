@@ -333,20 +333,24 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
         else
         let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let pSizeable, checkPath = getAccessFromScopeNodeList relPath false lm pBase
-        let sInner =
+        let sInner, innerOutcome =
             match asn1TypeD.acnEncFunction with
             | Some f  ->
                 let fncBdRes, _ = f.funcBody us [] nestingScope pSizeable
                 match fncBdRes with
-                | None -> ""
-                | Some a -> a.funcBody
-            | None -> ""
+                | None -> "", EncodeOutcome.unknown
+                | Some a -> a.funcBody, a.encOutcome
+            | None -> "", EncodeOutcome.unknown
+        // coverage step 14q: the temporary encoding of the contained type; when it cannot fail the determinant is set
+        // without checking its result
+        let soNoCheckNote = encodeNoCheckNote lm Encode innerOutcome
         let sLocalVarType = child.typeDefinitionBodyWithinSeq
         let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
-        let updateStatement = lm.acn.SizeDependency_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.accessPath Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner sLocalVarType bSetInitFlag
-        // the temporary encoding of the contained type writes ret / result (not classified): sets the determinant only
-        // when it succeeded, else the check after the update stops the encoding
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement EncodeOutcome.unknown [] false
+        let updateStatement = lm.acn.SizeDependency_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.accessPath Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner sLocalVarType bSetInitFlag soNoCheckNote
+        // sets the determinant only when the temporary encoding succeeded, else the check after the update stops the
+        // encoding
+        let updOutcome = EncodeOutcome.sequence [innerOutcome; lm.lg.encodeTemplateOutcome EncDeterminantAssign]
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement updOutcome [] false
     let testCaseFnc = dependencyTestCaseFnc d
     let localVars = lm.lg.acn.getAcnDepSizeDeterminantLocVars sReqBytesForUperEncoding
     let icdComments = icdCommentsForDependency ctx.d

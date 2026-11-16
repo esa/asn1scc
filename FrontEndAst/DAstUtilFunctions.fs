@@ -1155,6 +1155,28 @@ let nestEncodeParts (lm:LanguageMacros) (parts: (string * EncodeOutcome) list) :
                     Some (lm.isvalid.JoinItemsCannotFail content sNested soCallee bAssumed)
     printFrom 0
 
+/// Coverage step 14q: a template that guards what follows a part with a check of its result (CONTAINING: the call or
+/// inline body of the contents, then the length / padding / PatchDet of the region) drops the check when the part
+/// cannot fail. None: the template keeps the check (decoding, or a part that may fail); Some note: the text that takes
+/// its place, as nestEncodeParts joins (C a comment; Ada a comment, and pragma Assert / Assume (result.Success) after
+/// a part that writes the result).
+let encodeNoCheckNote (lm:LanguageMacros) (codec:CommonTypes.Codec) (o:EncodeOutcome) : string option =
+    match codec, o.canFail with
+    | CommonTypes.Decode, _
+    | CommonTypes.Encode, true  -> None
+    | CommonTypes.Encode, false ->
+        let soCallee = o.callee |> Option.map (fun c -> c.name)
+        let bAssumed =
+            match o.callee with
+            | Some {basis = ByCompilerAnalysis} -> true
+            | Some {basis = ByContract}
+            | None                              -> false
+        let bWritesResult =
+            match o.writes with
+            | NoWrite                                                       -> false
+            | AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown   -> true
+        Some (lm.isvalid.EncodeNoCheckNote soCallee bAssumed bWritesResult)
+
 let nestItems_ret (lm:LanguageMacros) children =
     nestItems  lm.isvalid.JoinTwoIfFirstOk children
 

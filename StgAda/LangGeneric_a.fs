@@ -530,6 +530,9 @@ type LangGeneric_a() =
             | EncContainingDeferredWrapper PatchChecked                             -> {canFail = true; writes = ReadsFirst; callee = None}
             // ... the same with the only / first patch of the size field and pragma Assume (step 14e, E3)
             | EncContainingDeferredWrapper PatchUnchecked                           -> {canFail = false; writes = ReadsFirst; callee = None}
+            // <PatchDet>(..., result) after a body that cannot fail, checked or with pragma Assume (coverage step 14q)
+            | EncContainingRegionEnd PatchChecked                                   -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncContainingRegionEnd PatchUnchecked                                 -> {canFail = false; writes = AlwaysWrites; callee = None}
             // result.Success := nStringLength >= min AND ...: a component write, so result must be initialised before
             | EncStringVarSizeUper                                                  -> {canFail = true; writes = ReadsFirst; callee = None}
             // an exhaustive case over the selector: no default arm

@@ -44,6 +44,10 @@ JoinItemsNoWrite(sPart, sNestedPart, bComment) ::= <<
 <sNestedPart>
 >>
 
+/* Coverage step 14q: used by C and Ada only (the templates of this backend keep their checks). */
+EncodeNoCheckNote(soCallee, bAssumed, bWritesResult) ::= <<
+>>
+
 /* Coverage step 11b: says why a check is not in the generated code (e.g. a child that cannot be invalid). */
 validation_comment(sText) ::= <<
 # <sText>

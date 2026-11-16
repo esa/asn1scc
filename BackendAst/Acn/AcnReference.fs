@@ -232,7 +232,11 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                     let toc = ToC str
                     toc, Some toc
                 | _ -> str, None
-            let funcBodyContent, errCodes, localVariables, userDefinedFunctions, ns2 =
+            // coverage step 14q: the call of the contents' encoder (C: with bCheckConstraints = FALSE); when it cannot fail
+            // the template does not check its result before the length and the contents
+            let callOutcome = encodeCallOutcome lm t.id.ModName us codec baseFncName
+            let soNoCheckNote = encodeNoCheckNote lm codec callOutcome
+            let funcBodyContent, errCodes, localVariables, userDefinedFunctions, ns2, partOutcome =
                 match encOptions.acnEncodingClass, encOptions.octOrBitStr with
                 | SZ_EC_ExternalField    relPath    , ContainedInOctString  ->
                     let filterDependency (d:AcnDependency) =
@@ -258,26 +262,28 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                         let localVars2 = lm.lg.acn.getAcnContainingByLocVars (sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" (AcnDependencies.containedTypeName r lm t.id.ModName o))
                         localVariables0@localVars2
 
-                    fncBody, errCode::errCodes0,lvs, userDefinedFunctions, ns1
+                    // the bytes the size determinant's update encoded (C: ret = BitStream_EncodeOctetString_no_length(...))
+                    fncBody, errCode::errCodes0,lvs, userDefinedFunctions, ns1, lm.lg.encodeTemplateOutcome EncOctetStringNoLength
                 | SZ_EC_ExternalField    relPath    , ContainedInBitString  ->
                     let extField        = getExternalField lm r deps t.id
                     let fncBody = bit_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nReqBitsForAcnEncoding extField errCode.errCodeName codec
-                    fncBody, [errCode],[], [], us
+                    // the bits the size determinant's update encoded (BitStream_AppendBits)
+                    fncBody, [errCode],[], [], us, lm.lg.encodeTemplateOutcome EncRtlWritesOnly
                 | SZ_EC_FIXED_SIZE        , ContainedInOctString  ->
-                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName bDeducedContent codec
-                    fncBody, [errCode],[], [], us
+                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName bDeducedContent soNoCheckNote codec
+                    fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncOctetStringNoLength]
                 | SZ_EC_LENGTH_EMBEDDED nBits , ContainedInOctString  ->
-                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName bDeducedContent codec
-                    fncBody, [errCode],[], [], us
+                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName bDeducedContent soNoCheckNote codec
+                    fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncOctetStringNoLength]
                 | SZ_EC_FIXED_SIZE                        , ContainedInBitString  ->
-                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName codec
-                    fncBody, [errCode],[], [], us
+                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName soNoCheckNote codec
+                    fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly]
                 | SZ_EC_LENGTH_EMBEDDED nBits                 , ContainedInBitString  ->
-                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName codec
-                    fncBody, [errCode],[], [], us
+                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName soNoCheckNote codec
+                    fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly]
                 | SZ_EC_TerminationPattern nullVal  ,  _                    ->  raise(SemanticError (loc, "Invalid type for parameter4"))
                 | SZ_EC_Deduced                     ,  _                    ->  raise(SemanticError (loc, "'size deduced': backend code generation is not implemented yet"))
-            let funcBodyResult = Some ({AcnFuncBodyResult.funcBody = funcBodyContent; userDefinedFunctions=userDefinedFunctions; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd; encOutcome = EncodeOutcome.unknown})
+            let funcBodyResult = Some ({AcnFuncBodyResult.funcBody = funcBodyContent; userDefinedFunctions=userDefinedFunctions; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd; encOutcome = encodeOutcomeOf codec partOutcome})
             funcBodyResult, ns2)
 
         let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
