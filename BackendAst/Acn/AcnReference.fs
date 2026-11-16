@@ -166,10 +166,13 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                         let toc = ToC str
                         toc, Some toc
                     | _ -> str, None
+                // coverage step 12b: what the call of the referenced type's encoder does; 14q (Q3 b): its body when this
+                // site's validation is the one the encoder would repeat
+                let callTarget, encOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
                 let funcBodyContent =
                     match p.accessPath.steps with
                     | [] ->
-                        let baseContent = callSuperclassFunc lm pp baseFncName codec
+                        let baseContent = callSuperclassFunc lm pp callTarget codec
                         match codec with
                         | Decode when nestingScope.nestingLevel = 0I ->
                             let rec isPrimitive (kind: Asn1AcnAst.Asn1TypeKind) =
@@ -181,9 +184,7 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                             | Some wrapLine -> baseContent + "\n" + wrapLine
                             | None -> baseContent
                         | _ -> baseContent
-                    | _ -> callBaseTypeFunc lm pp baseFncName codec
-                // coverage step 12b: what the call of the referenced type's encoder does
-                let encOutcome = encodeCallOutcome lm t.id.ModName us codec baseFncName
+                    | _ -> callBaseTypeFunc lm pp callTarget codec
                 Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd; encOutcome = encOutcome}), us)
 
             let ns =
@@ -234,7 +235,7 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                 | _ -> str, None
             // coverage step 14q: the call of the contents' encoder (C: with bCheckConstraints = FALSE); when it cannot fail
             // the template does not check its result before the length and the contents
-            let callOutcome = encodeCallOutcome lm t.id.ModName us codec baseFncName
+            let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
             let soNoCheckNote = encodeNoCheckNote lm codec callOutcome
             let funcBodyContent, errCodes, localVariables, userDefinedFunctions, ns2, partOutcome =
                 match encOptions.acnEncodingClass, encOptions.octOrBitStr with
@@ -270,16 +271,16 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                     // the bits the size determinant's update encoded (BitStream_AppendBits)
                     fncBody, [errCode],[], [], us, lm.lg.encodeTemplateOutcome EncRtlWritesOnly
                 | SZ_EC_FIXED_SIZE        , ContainedInOctString  ->
-                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName bDeducedContent soNoCheckNote codec
+                    let fncBody = octet_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName bDeducedContent soNoCheckNote codec
                     fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncOctetStringNoLength]
                 | SZ_EC_LENGTH_EMBEDDED nBits , ContainedInOctString  ->
-                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName bDeducedContent soNoCheckNote codec
+                    let fncBody = octet_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName bDeducedContent soNoCheckNote codec
                     fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncOctetStringNoLength]
                 | SZ_EC_FIXED_SIZE                        , ContainedInBitString  ->
-                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName soNoCheckNote codec
+                    let fncBody = bit_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName soNoCheckNote codec
                     fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly]
                 | SZ_EC_LENGTH_EMBEDDED nBits                 , ContainedInBitString  ->
-                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName soNoCheckNote codec
+                    let fncBody = bit_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName soNoCheckNote codec
                     fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly]
                 | SZ_EC_TerminationPattern nullVal  ,  _                    ->  raise(SemanticError (loc, "Invalid type for parameter4"))
                 | SZ_EC_Deduced                     ,  _                    ->  raise(SemanticError (loc, "'size deduced': backend code generation is not implemented yet"))

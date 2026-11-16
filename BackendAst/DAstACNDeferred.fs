@@ -1284,14 +1284,14 @@ let private buildContainingStandaloneBody
     let patchFnName, soNBits, sValue, mappingDeclarations =
         containingSizePatchDet ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id (fun () -> "")
     // coverage step 14q: the call of the contents' encoder; when it cannot fail the end of the region does not check it
-    let callOutcome = encodeCallOutcome ctx.lm ctx.t.id.ModName ns1 ctx.codec baseFncName
+    let callTarget, callOutcome = encodeCallTarget ctx.lm ctx.t.id.ModName ns1 ctx.codec ctx.t.id baseFncName
     let soNoCheckNote = encodeNoCheckNote ctx.lm ctx.codec callOutcome
     let fncBody =
         match ctx.o.encodingOptions.Value.octOrBitStr with
         | CommonTypes.ContainedInOctString ->
-            ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote ctx.codec
+            ctx.lm.acn.octet_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote ctx.codec
         | CommonTypes.ContainedInBitString ->
-            ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote ctx.codec
+            ctx.lm.acn.bit_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote ctx.codec
     { emptyBody ctx.lm with
         funcBody = fncBody
         encOutcome = encodeOutcomeOf ctx.codec (EncodeOutcome.sequence [callOutcome; containingRegionEndOutcome ctx sizePrm soNoCheckNote])
@@ -1677,10 +1677,12 @@ let private createDeferredReferenceFunction
     // coverage step 14q: stgCall also takes the outcome of the call of the contents' encoder (looked up in the state the
     // function body is built with)
     let makeContainingFuncBody (stgCall: EncodeOutcome -> string -> string -> ErrorCode -> (AcnFuncBodyResult option) * State) =
+        // coverage step 14q (Q3 b): the body of the contents' encoder when this site's validation is the one it repeats
         let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
         let funcBody (us:State) (errCode:ErrorCode) (_acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (_nestingScope: NestingScope) (p:CodegenScope) =
             let pp = lm.lg.getParamValue t p.accessPath codec
-            stgCall (encodeCallOutcome lm t.id.ModName us codec baseFncName) pp baseFncName errCode
+            let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
+            stgCall callOutcome pp callTarget errCode
         DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc
             (fun us e acnArgs nestingScope p -> funcBody us e acnArgs nestingScope p)
             (fun _atc -> true) soSparkAnnotations [] us

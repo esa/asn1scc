@@ -1041,3 +1041,7 @@ choice_one_alternative(p, sAcc, sChildID, sChildContent) ::= <<
 <p><sAcc>kind = <sChildID>;
 <sChildContent>
 >>
+
+/* Coverage step 14q (Q3 b): Ada only (ILangGeneric.encoderBodySplit). */
+EmitEncodeBodyProcedure(sVarName, sBodyFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, bBsIsUnreferenced, bVarNameIsUnreferenced, bFragmentation) ::= <<
+>>

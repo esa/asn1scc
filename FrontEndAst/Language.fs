@@ -858,6 +858,11 @@ type ILangGeneric () =
 
     /// Whether the call of a child's encoder validates the child again (Ada: T_Encode_aux calls IsConstraintValid
     /// unless 12a skipped it; C passes bCheckConstraints = FALSE), so that the call can fail on its validity check.
+    /// Coverage step 14q (Q3 b): a type assignment's encoder that validates its value is split into the validation (the
+    /// _aux, unchanged for its callers outside the package) and a body without it, which the encoders of the same
+    /// package call after their own validation has checked the value (Ada).
+    abstract member encoderBodySplit : bool
+    default _.encoderBodySplit = false
     abstract member encodeCallValidates : bool
     default _.encodeCallValidates = true
 

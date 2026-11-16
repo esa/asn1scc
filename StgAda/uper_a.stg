@@ -1219,3 +1219,32 @@ adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSiz
 /* Coverage step 14c3, C only (ILangGeneric.decodeOneValueWithoutRead; never used here). */
 one_value_assign(p, sValue) ::= ""
 choice_one_alternative(p, sAcc, sChildID, sChildContent) ::= ""
+
+/* Coverage step 14q (Q3 b): the body of a type assignment's encoder, without the entry validation: <X>_aux validates the
+   value and calls it; the encoders of the same package call it after their own validation, which checked the value at the
+   call (DAstUtilFunctions.encodeCallTarget). Declared in the package body (not in the spec), before its body: a body
+   without a declaration gets "mode could be in" warnings. bFragmentation: the last block of a fixed-size fragmentation
+   updates the offset for nothing (GNAT -gnatwm; before, inside the validation's if, it gave no warning). */
+EmitEncodeBodyProcedure(sVarName, sBodyFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, bBsIsUnreferenced, bVarNameIsUnreferenced, bFragmentation) ::= <<
+-- the encoding of a valid value: the callers have validated it (no check of its constraints here)
+procedure <sBodyFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+<soSparkAnnotations>
+;
+<if(bFragmentation)>
+pragma Warnings (Off, "possibly useless assignment to ""nCurOffset*");
+<endif>
+procedure <sBodyFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+is
+<if(bBsIsUnreferenced)>
+    pragma Unreferenced (bs);
+
+<endif>
+<if(bVarNameIsUnreferenced)>
+    pragma Unreferenced (<sVarName>);
+
+<endif>
+    <arrsLocalVariables; separator="\n">
+begin
+    <sContent>
+end <sBodyFuncName>_aux;<if(bFragmentation)><\n>pragma Warnings (On, "possibly useless assignment to ""nCurOffset*");<endif>
+>>

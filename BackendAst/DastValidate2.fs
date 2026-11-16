@@ -1379,6 +1379,13 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
                 addFunctionCallToState us caller callee
         | Some _, true
         | None, _      -> us
+    // coverage step 14q (Q3 b): the function this site's validation calls, so that an encoder of the site may call the
+    // referenced encoder's body (without its validation) only when that validation is the one done here
+    let ns =
+        match resolvedType.isValidFunction, referencedNotCalled with
+        | Some _, false -> {ns with siteValidatorCalls = ns.siteValidatorCalls.Add (t.id.AsString, DAstUtilFunctions.encodeCallKey l t.id.ModName baseFncName)}
+        | Some _, true
+        | None, _       -> ns
     let errorCodeComment0 = o.refCons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
         let with_component_check, lv2 =

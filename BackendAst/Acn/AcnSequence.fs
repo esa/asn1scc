@@ -336,8 +336,12 @@ let private handleAsn1Child
             | Some (Optional _), Some c         -> EncodeOutcome.conditional c.encOutcome
         encodeOutcomeOf codec (EncodeOutcome.sequence (presentWhenOutcome @ [childOutcome]))
     let valReferenced =
-        presentWhenStmts.IsSome || child.Optionality.IsSome ||
-            (match childContentResult with Some c -> not c.bValIsUnReferenced | None -> false)
+        presentWhenStmts.IsSome || DAstUtilFunctions.presenceReadsVal child.Optionality ||
+            // (14q: an ALWAYS ABSENT child encodes nothing)
+            (match child.Optionality, childContentResult with
+             | Some AlwaysAbsent, _ when codec = Encode -> false
+             | _, Some c                                -> not c.bValIsUnReferenced
+             | _, None                                  -> false)
     let res = {stmts=[stmts]; resultExpr=childResultExpr; existVar=existVar; props=props; auxiliaries=auxiliaries @ optAux; icdResult=icdResult; bsReferenced=bsReferenced; encOutcome=encOutcome; valReferenced=valReferenced}
     let newAcc = {us=ns3; childIx=s.childIx + 1I; uperAccBits=s.uperAccBits + child.uperMaxSizeInBits; acnAccBits=s.acnAccBits + child.acnMaxSizeInBits; checkedSelectors=checkedInChild @ s.checkedSelectors}
     res, newAcc

@@ -159,3 +159,5 @@ type IUper_rust() =
             uper_rust.one_value_assign  p sValue 
         override this.choice_one_alternative  (p:string) (sAcc:string) (sChildID:string) (sChildContent:string) =
             uper_rust.choice_one_alternative  p sAcc sChildID sChildContent 
+        override this.EmitEncodeBodyProcedure  (sVarName:string) (sBodyFuncName:string) (sTypeDefName:string) (arrsLocalVariables:seq<string>) (sContent:string) (soSparkAnnotations:string option) (bBsIsUnreferenced:bool) (bVarNameIsUnreferenced:bool) (bFragmentation:bool) =
+            uper_rust.EmitEncodeBodyProcedure  sVarName sBodyFuncName sTypeDefName arrsLocalVariables sContent soSparkAnnotations bBsIsUnreferenced bVarNameIsUnreferenced bFragmentation 

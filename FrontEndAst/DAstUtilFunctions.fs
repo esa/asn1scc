@@ -1083,6 +1083,31 @@ let encodeCallOutcome (lm:LanguageMacros) (sCallerModName:string) (us:State) (co
     | CommonTypes.Encode, None      -> EncodeOutcome.unknownCall
     | CommonTypes.Decode, _         -> EncodeOutcome.unknown
 
+/// Coverage step 14q (Q3 b): whether the encoding of a SEQUENCE child reads the value through its presence (the
+/// Exist flag of an OPTIONAL child); an ALWAYS ABSENT child encodes nothing (an encoder body without the validation may
+/// then not reference val: Ada pragma Unreferenced).
+let presenceReadsVal (opt:Asn1AcnAst.Asn1Optionality option) =
+    match opt with
+    | None                          -> false
+    | Some Asn1AcnAst.AlwaysAbsent  -> false
+    | Some Asn1AcnAst.AlwaysPresent
+    | Some (Asn1AcnAst.Optional _)  -> true
+
+/// Coverage step 14q (Q3 b): the function an encoder of the reference site siteId calls for the type assignment encoder
+/// sFuncName, and what the call does: the encoder's body (without its entry validation) when the encoder has one
+/// (encodeBodies), it is in the caller's package, and the site's own validation calls the same IsConstraintValid as the
+/// encoder's _aux (siteValidatorCalls: the caller's entry validation has checked the value at this site, by
+/// construction); else the encoder itself (encodeCallOutcome).
+let encodeCallTarget (lm:LanguageMacros) (sCallerModName:string) (us:State) (codec:CommonTypes.Codec) (siteId:ReferenceToType) (sFuncName:string) : string * EncodeOutcome =
+    let viaEncoder () = sFuncName, encodeCallOutcome lm sCallerModName us codec sFuncName
+    match codec with
+    | CommonTypes.Decode -> viaEncoder ()
+    | CommonTypes.Encode ->
+        match us.encodeBodies.TryFind (encodeCallKey lm sCallerModName sFuncName), us.siteValidatorCalls.TryFind siteId.AsString with
+        | Some b, Some v when v = b.validatorKey && b.modName = ToC sCallerModName -> b.bodyFuncName, b.outcome
+        | Some _, _
+        | None, _                                                                  -> viaEncoder ()
+
 /// Coverage step 12a: the encoder of a type whose IsConstraintValid cannot fail (11b outcome AlwaysValid) does not
 /// call it; the template emits a comment instead of the call and its check. Decoders are unchanged.
 let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) (bodyOutcome:EncodeOutcome) : bool =
