@@ -163,6 +163,14 @@ let constraintViolationStringChar (sStr:string) (nIndex:BigInteger) (nChar:BigIn
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "constraintViolationStringChar" [("sStr",(if sStr = null then null else ST.StrHelper sStr:>Object) );("nIndex",nIndex :>Object);("nChar",nChar :>Object)]
 
+let constraintViolationStringFill (sStr:string) (nCount:BigInteger) (nChar:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "constraintViolationStringFill" [("sStr",(if sStr = null then null else ST.StrHelper sStr:>Object) );("nCount",nCount :>Object);("nChar",nChar :>Object)]
+
+let constraintViolationRealInfinity (sVal:string) (bNegative:bool) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "constraintViolationRealInfinity" [("sVal",(if sVal = null then null else ST.StrHelper sVal:>Object) );("bNegative",bNegative :>Object)]
+
 let constraintViolationEveryElement (sIdx:string) (sCount:string) (arrsGuards:seq<string>) (sSetInvalidValue:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "constraintViolationEveryElement" [("sIdx",(if sIdx = null then null else ST.StrHelper sIdx:>Object) );("sCount",(if sCount = null then null else ST.StrHelper sCount:>Object) );("arrsGuards",(arrsGuards|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sSetInvalidValue",(if sSetInvalidValue = null then null else ST.StrHelper sSetInvalidValue:>Object) )]

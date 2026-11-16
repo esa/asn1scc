@@ -260,6 +260,14 @@ constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmb
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 >>
 
+/* Coverage step 14q: Ada only (a string without its terminating NUL has no length in this backend). */
+constraintViolationStringFill(sStr, nCount, nChar) ::= <<
+>>
+
+/* Coverage step 14q: C only (no infinity in this backend's REAL types / no constraint-violation tests). */
+constraintViolationRealInfinity(sVal, bNegative) ::= <<
+>>
+
 /* Coverage step 14f: C and Ada only (ILangGeneric.atcEmitsConstraintViolationTests). */
 constraintViolationEveryElement(sIdx, sCount, arrsGuards, sSetInvalidValue) ::= <<
 >>

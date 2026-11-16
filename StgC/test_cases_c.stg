@@ -1045,6 +1045,15 @@ constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 <sStr>[<nIndex>] = (char)<nChar>;
 >>
 
+/* Coverage step 14q: Ada only (a string without its terminating NUL has no length in this backend). */
+constraintViolationStringFill(sStr, nCount, nChar) ::= <<
+>>
+
+/* Coverage step 14q: a REAL set to -/+ infinity (beyond a range that ends at the largest double). */
+constraintViolationRealInfinity(sVal, bNegative) ::= <<
+<sVal> = <if(bNegative)>-<endif>INFINITY;
+>>
+
 /* Coverage step 14f: a constraint violation that needs a selection inside a SEQUENCE OF element, set in every element
    that makes the selection (arrsGuards: the CHOICE alternatives / OPTIONAL children on the way). */
 constraintViolationEveryElement(sIdx, sCount, arrsGuards, sSetInvalidValue) ::= <<

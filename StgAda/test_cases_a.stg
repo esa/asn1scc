@@ -614,6 +614,15 @@ constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 <sStr>(<nIndex> + 1) := Character'Val (<nChar>);
 >>
 
+/* Coverage step 14q: characters 1 .. nCount of a string set to one character (a string longer than its maximum size). */
+constraintViolationStringFill(sStr, nCount, nChar) ::= <<
+<sStr>(1 .. <nCount>) := (others => Character'Val (<nChar>));
+>>
+
+/* Coverage step 14q: C only (no infinity in this backend's REAL types / no constraint-violation tests). */
+constraintViolationRealInfinity(sVal, bNegative) ::= <<
+>>
+
 /* Coverage step 14f: a constraint violation that needs a selection inside a SEQUENCE OF element, set in every element
    that makes the selection (arrsGuards: the CHOICE alternatives / OPTIONAL children on the way). */
 constraintViolationEveryElement(sIdx, sCount, arrsGuards, sSetInvalidValue) ::= <<

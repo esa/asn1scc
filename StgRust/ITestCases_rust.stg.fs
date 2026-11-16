@@ -85,6 +85,10 @@ type ITestCases_rust() =
             test_cases_rust.constraintViolationUncheckedEncodeCheck  sEncFunc sModName sTasName sEnc sAmber 
         override this.constraintViolationStringChar  (sStr:string) (nIndex:BigInteger) (nChar:BigInteger) =
             test_cases_rust.constraintViolationStringChar  sStr nIndex nChar 
+        override this.constraintViolationStringFill  (sStr:string) (nCount:BigInteger) (nChar:BigInteger) =
+            test_cases_rust.constraintViolationStringFill  sStr nCount nChar 
+        override this.constraintViolationRealInfinity  (sVal:string) (bNegative:bool) =
+            test_cases_rust.constraintViolationRealInfinity  sVal bNegative 
         override this.constraintViolationEveryElement  (sIdx:string) (sCount:string) (arrsGuards:seq<string>) (sSetInvalidValue:string) =
             test_cases_rust.constraintViolationEveryElement  sIdx sCount arrsGuards sSetInvalidValue 
         override this.emitValidityTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (bStatic:bool) (sIsValidFunc:string) (arrsValueChecks:seq<string>) =
