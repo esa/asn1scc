@@ -315,11 +315,18 @@ def sticky(stacks, after, until):
     """True when no line between `after` and `until` can turn a FALSE ret back to
     TRUE: every assignment of ret there other than `ret = FALSE` sits in a block
     `if (ret ...)` opened after `after`."""
+    lines = stacks["lines"]
+
+    def runs_with_ret_true(number):
+        # asn1scc 4.9.140.0: inside a block `if (ret)` (opened anywhere) with no assignment of ret between its opening
+        # and `number`, ret is TRUE at `number`: an assignment there cannot turn a FALSE ret back to TRUE
+        return any(guard(b) == ("ret",) and not any(RET_SET.search(code_only(lines[m - 1])) for m in range(b[0] + 1, number))
+                   for b in stacks[number])
     for number in range(after + 1, until):
-        for match in RET_SET.finditer(code_only(stacks["lines"][number - 1])):
+        for match in RET_SET.finditer(code_only(lines[number - 1])):
             if match[1].strip() == "FALSE":
                 continue
-            if not any(b[0] > after and guard(b) == ("ret",) for b in stacks[number]):
+            if not any(b[0] > after and guard(b) == ("ret",) for b in stacks[number]) and not runs_with_ret_true(number):
                 return False
     return True
 
@@ -491,6 +498,10 @@ def assigns_on_every_exit(lines, stacks, end, head, name):
         """An unconditional statement of the block (opened at line `block`) assigns `name`."""
         return any(re.match(r"^\s*" + re.escape(name) + r"\s*=(?!=)", code_only(lines[n - 1]))
                    and stacks[n] and stacks[n][-1][0] == block for n in numbers)
+    # asn1scc 4.9.140.0: a plain assignment (the value of a multi-determinant update taken from a source whose update
+    # is not under a check of the path)
+    if re.match(r"^\s*" + re.escape(name) + r"\s*=(?!=)[^;]*;\s*$", code_only(lines[head - 1])):
+        return head
     body = switch_body(lines, head, end)
     if body is not None:
         _, opened, last, groups, default = body
@@ -543,12 +554,21 @@ def cov005(lines, first):
     for n, value in local_assignments(lines, start, end, name):
         if value in labels:
             continue
-        # a source of a multi-determinant update: set only to labels, read only under its flag
+        # a source of a multi-determinant update: set only to labels, read only under its flag, or (asn1scc 4.9.140.0,
+        # a source whose update is not under a check of the path) read after a construct that assigns it on every
+        # exit with ret TRUE
+        def read_after_assignment(value, n):
+            for number in range(start + 1, n):
+                last = assigns_on_every_exit(lines, stacks, end, number, value)
+                if last is not None and last < n and runs_after(stacks, number, last, n):
+                    return True
+            return False
         if not (re.fullmatch(r"\w+", value) and declared(value)
                 and all(v in labels for _, v in local_assignments(lines, start, end, value))
-                and flag_follows_value(lines, stacks, start, end, value)
-                and any(guard(b) in (("if", value + "_is_initialized"), ("elif", value + "_is_initialized"))
-                        for b in stacks[n])):
+                and ((flag_follows_value(lines, stacks, start, end, value)
+                      and any(guard(b) in (("if", value + "_is_initialized"), ("elif", value + "_is_initialized"))
+                              for b in stacks[n]))
+                     or read_after_assignment(value, n))):
             return False
     if any(guard(b) == ("if", name + "_is_initialized") for b in stacks[head]) and flag_follows_value(lines, stacks, start, end, name):
         return True

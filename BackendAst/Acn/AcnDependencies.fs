@@ -559,7 +559,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
         let icdComments = localUpdateFuns |> List.choose id |> List.collect(fun z -> z.icdComments)
         let multiUpdateFunc (child: AcnChild) (nestingScope: NestingScope) (vTarget : CodegenScope) (pSrcRoot : CodegenScope) (bForceInitFlag:bool) =
             let v = lm.lg.getValue vTarget.accessPath
-            let arrsLocalUpdateStatements =
+            let localUpdates =
                 localUpdateFuns |>
                 List.mapi(fun i fn ->
                     let c_name = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
@@ -567,8 +567,8 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                     match fn with
                     | None      -> None
                     // the sources keep their flags: arrsGetFirstIntValue / arrsLocalCheckEquality read them
-                    | Some fn   -> Some(fn.updateAcnChildFnc child nestingScope lv pSrcRoot true)) |>
-                List.choose id
+                    | Some fn   -> Some(fn.updateAcnChildFnc child nestingScope lv pSrcRoot true))
+            let arrsLocalUpdateStatements = localUpdates |> List.choose id
 
             let isAlwaysInit (d: AcnDependency): bool =
                 match d.dependencyKind with
@@ -579,18 +579,35 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                 | _ -> true
 
             let firstAlwaysInit = ds |> List.tryFind isAlwaysInit
+            // coverage step 14q (Q6 b): C / Ada take the value from a source whose update sets it on every path that
+            // reaches the determinant's update (its own update is not under a check of the path: AlwaysInitialized), so
+            // no "no source set" arm (else ret = FALSE) is left; the source keeps its own index (vNN)
+            let alwaysSetSource =
+                match lm.lg.multiAcnUpdateFromAlwaysSetSource with
+                | true ->
+                    List.zip ds localUpdates |> List.indexed |>
+                    List.tryPick (fun (i, (d, u)) ->
+                        match isAlwaysInit d, u with
+                        | true, Some {init = AlwaysInitialized} -> Some (i, d)
+                        | _                                     -> None)
+                | false -> None
             let arrsGetFirstIntValue =
                 let ds2 =
-                    match firstAlwaysInit with
-                    | Some fst when lm.lg.usesWrappedOptional -> [fst]
-                    | _ -> ds
+                    match alwaysSetSource, firstAlwaysInit with
+                    | Some (i, d), _                                -> [(i, d)]
+                    | None, Some fst when lm.lg.usesWrappedOptional -> [(0, fst)]
+                    | None, _                                       -> List.indexed ds
                 ds2 |>
-                List.mapi (fun i d ->
+                List.mapi (fun k (i, d) ->
                     let cmp = getDeterminantTypeUpdateMacro lm d.determinant
                     let vi = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
                     let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
                     let choicePath, _ = getAccessFromScopeNodeList relPath d.dependencyKind.isString lm pBase
-                    cmp v vi (choicePath.accessPath.joined lm.lg) (i=0) (ds2.Length = 1))
+                    cmp v vi (choicePath.accessPath.joined lm.lg) (k=0) (ds2.Length = 1))
+            let bIsFirstIntValueSingle =
+                match lm.lg.multiAcnUpdateFromAlwaysSetSource with
+                | true  -> alwaysSetSource.IsSome
+                | false -> firstAlwaysInit.IsSome
             let arrsLocalCheckEquality =
                 ds |>
                 List.mapi (fun i d ->
@@ -602,7 +619,7 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
             // the determinant is set whenever the update succeeds (else ret / result is FALSE and the check after it stops
             // the encoding)
             let bSetInitFlag = setsInitFlag lm bForceInitFlag AlwaysInitialized
-            let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) (arrsLocalUpdateStatements |> List.map (fun u -> u.updateBody)) arrsGetFirstIntValue firstAlwaysInit.IsSome arrsLocalCheckEquality (initExpr r lm m child.Type) bSetInitFlag
+            let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) (arrsLocalUpdateStatements |> List.map (fun u -> u.updateBody)) arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality (initExpr r lm m child.Type) bSetInitFlag
             // coverage step 12e: the determinant takes the value of one of the sources, after all their switches ran
             {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = lm.lg.encodeTemplateOutcome EncDeterminantMulti
              checkedSelectors = arrsLocalUpdateStatements |> List.collect (fun u -> u.checkedSelectors)

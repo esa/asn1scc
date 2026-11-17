@@ -504,6 +504,8 @@ type LangGeneric_a() =
         override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValidPrimitives
+        // coverage step 14q (Q6 b): the determinant of several sources from one that is always set
+        override _.multiAcnUpdateFromAlwaysSetSource = true
         // coverage step 14q (Q3 b): <X>_Encode_Body_aux, called by the encoders of the same package after their validation
         override _.encoderBodySplit = true
         // What the Ada encode templates write to result (coverage step 12b; gnatprove checks the assertions).

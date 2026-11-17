@@ -861,6 +861,10 @@ type ILangGeneric () =
     /// Coverage step 14q (Q3 b): a type assignment's encoder that validates its value is split into the validation (the
     /// _aux, unchanged for its callers outside the package) and a body without it, which the encoders of the same
     /// package call after their own validation has checked the value (Ada).
+    /// Coverage step 14q (Q6 b): MultiAcnUpdate takes the determinant's value from a source whose update sets it on every
+    /// path (no chain over the sources' flags with a failing else); C and Ada (Scala / Python: usesWrappedOptional).
+    abstract member multiAcnUpdateFromAlwaysSetSource : bool
+    default _.multiAcnUpdateFromAlwaysSetSource = false
     abstract member encoderBodySplit : bool
     default _.encoderBodySplit = false
     abstract member encodeCallValidates : bool

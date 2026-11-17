@@ -5,6 +5,7 @@ Each exemption of Docs/statement-coverage-exemptions.md must accept its own
 generated shape and reject every near miss, because a wrong acceptance would
 count a reachable statement as proven unreachable."""
 from pathlib import Path
+import re
 import sys
 import unittest
 
@@ -676,8 +677,43 @@ class Cov005(unittest.TestCase):
         source = LEGACY_IN_ALTERNATIVE.replace("\t                O3_k = b;\n", "")
         self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_O3_K;"), "")
 
-    def test_multi_source_read_without_its_flag_is_not_proven(self):
+    def test_multi_source_read_after_its_unconditional_update_is_proven(self):
+        # asn1scc 4.9.140.0: a source whose update assigns it on every exit with ret TRUE is read without its flag
         source = LEGACY_MULTI.replace("else if (Direct_kind01_is_initialized) {", "else if (TRUE) {")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "ASN1SCC-COV-005")
+
+    def test_multi_value_from_an_unconditional_source_is_proven(self):
+        # asn1scc 4.9.140.0: the chain over the sources' flags is a plain assignment from a source whose update is not
+        # under a check of the path, and the equality check follows it in the same block
+        old = ("\t            if (Direct_kind00_is_initialized) { /*COVERAGE_IGNORE*/\n"
+               "\t                Direct_kind = Direct_kind00; /*COVERAGE_IGNORE*/\n"
+               "\t            } /*COVERAGE_IGNORE*/ else if (Direct_kind01_is_initialized) { /*COVERAGE_IGNORE*/\n"
+               "\t                Direct_kind = Direct_kind01; /*COVERAGE_IGNORE*/\n"
+               "\t            } /*COVERAGE_IGNORE*/ else {\n"
+               "\t                ret = FALSE; /*COVERAGE_IGNORE*/\n"
+               "\t            }\n"
+               "\t            if (ret) {\n"
+               "\t                ret = (((Direct_kind00_is_initialized && Direct_kind == Direct_kind00) || !Direct_kind00_is_initialized));\n"
+               "\t            }\n")
+        new = ("\t            Direct_kind = Direct_kind00;\n"
+               "\t            ret = (((Direct_kind00_is_initialized && Direct_kind == Direct_kind00) || !Direct_kind00_is_initialized));\n")
+        self.assertIn(old, LEGACY_MULTI)
+        source = LEGACY_MULTI.replace(old, new)
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "ASN1SCC-COV-005")
+
+    def test_multi_value_after_a_failure_in_the_same_block_is_not_proven(self):
+        # the same, but ret may be FALSE before the equality check sets it again
+        old = "\t            if (Direct_kind00_is_initialized) { /*COVERAGE_IGNORE*/\n"
+        self.assertIn(old, LEGACY_MULTI)
+        source = LEGACY_MULTI.replace("\t            if (ret) {\n\t                ret = (((Direct_kind00", "\t            {\n\t                ret = (((Direct_kind00")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
+
+    def test_multi_source_read_without_its_flag_is_not_proven(self):
+        # the source is not assigned on every exit of its update, and is read without its flag
+        source = LEGACY_MULTI.replace("else if (Direct_kind01_is_initialized) {", "else if (TRUE) {").replace(
+            "Direct_kind01 = SelKind_alpha;\n", "")
+        self.assertIn("else if (TRUE)", source)
+        self.assertNotIn("Direct_kind01 = SelKind_alpha;", source)
         self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
 
     def test_chain_without_a_failing_else_is_not_proven(self):

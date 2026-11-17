@@ -1366,8 +1366,13 @@ MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> = <p2>)"
 MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "(<p1> = <p2>)"
 
 MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
+<if(bIsSingleElement)>
+-- <sVi>: its update is not under a check of the path, so it is set (coverage step 14q)
+<sV0> := <sVi>;
+<else>
 <if(bIsFirst)>if<else>elsif<endif> <sVi>_is_initialized then		--COVERAGE_IGNORE
     <sV0> := <sVi>;													--COVERAGE_IGNORE
+<endif>
 >>
 
 MultiAcnUpdate_get_first_init_value_str(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
@@ -1386,10 +1391,14 @@ begin
 
     <arrsLocalUpdateStatements; separator="\n">
 
+<if(bIsFirstIntValueSingle)>
+    <arrsGetFirstIntValue; separator="\n">
+<else>
     <arrsGetFirstIntValue; separator="\n">
     else
         result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);		--COVERAGE_IGNORE
-    end if;
+    end if;<\n>
+<endif>
 
     result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success and (<arrsLocalCheckEquality; separator=" and ">), ErrorCode => <sErrCode>);
 <if(bSetInitFlag)>    <v>_is_initialized := result.Success;<\n><endif>    pragma Warnings (On, "condition is always*");
