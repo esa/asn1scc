@@ -493,7 +493,8 @@ def flag_follows_value(lines, stacks, start, end, name):
 def assigns_on_every_exit(lines, stacks, end, head, name):
     """For the construct starting at line `head`: a switch whose every case group assigns
     `name` and whose default arm fails, or an if / else if chain whose every branch
-    assigns `name` but a final else that sets ret FALSE. Returns its last line or None."""
+    assigns `name` but a final else that sets ret FALSE (or, asn1scc Issue 105, assigns it the
+    default value too). Returns its last line or None."""
     def assigned(numbers, block):
         """An unconditional statement of the block (opened at line `block`) assigns `name`."""
         return any(re.match(r"^\s*" + re.escape(name) + r"\s*=(?!=)", code_only(lines[n - 1]))
@@ -524,7 +525,9 @@ def assigns_on_every_exit(lines, stacks, end, head, name):
         return None
     if branches[-1][0] != "else" or len(branches) < 2:
         return None
-    if not all(assigned(ns, opened) for _, opened, ns in branches[:-1]) or not fails(lines, branches[-1][2]):
+    _, else_opened, else_lines = branches[-1]
+    if not all(assigned(ns, opened) for _, opened, ns in branches[:-1]) \
+            or not (fails(lines, else_lines) or assigned(else_lines, else_opened)):
         return None
     return number
 

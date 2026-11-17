@@ -900,6 +900,8 @@ type LangGeneric_c() =
         override _.encoderValidationModel = EncodersSkipAlwaysValid
         // coverage step 14q (Q6 b): the determinant of several sources from one that is always set
         override _.multiAcnUpdateFromAlwaysSetSource = true
+        // Issue 105: the determinant of several sources takes its default value when no source is set
+        override _.multiAcnUpdateDefaultWhenNoSource = true
         // What the C encode templates write to ret (coverage step 12b; checked by step12/tools/gate12b.py).
         override _.encodeTemplateOutcome t =
             match t with

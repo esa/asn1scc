@@ -235,8 +235,8 @@ type IAcn_rust() =
             acn_rust.MultiAcnUpdate_checkEqual_pri  sV0 sVi sChPath bIsAlwaysInit 
         override this.MultiAcnUpdate_checkEqual_str  (sV0:string) (sVi:string) (sChPath:string) (bIsAlwaysInit:bool) =
             acn_rust.MultiAcnUpdate_checkEqual_str  sV0 sVi sChPath bIsAlwaysInit 
-        override this.MultiAcnUpdate  (v:string) (sV0:string) (sErrCode:string) (arrsLocalDeclarations:seq<string>) (arrsLocalUpdateStatements:seq<string>) (arrsGetFirstIntValue:seq<string>) (bIsFirstIntValueSingle:bool) (arrsLocalCheckEquality:seq<string>) (sDefaultExpr:string) (bSetInitFlag:bool) =
-            acn_rust.MultiAcnUpdate  v sV0 sErrCode arrsLocalDeclarations arrsLocalUpdateStatements arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality sDefaultExpr bSetInitFlag 
+        override this.MultiAcnUpdate  (v:string) (sV0:string) (sErrCode:string) (arrsLocalDeclarations:seq<string>) (arrsLocalUpdateStatements:seq<string>) (arrsGetFirstIntValue:seq<string>) (bIsFirstIntValueSingle:bool) (arrsLocalCheckEquality:seq<string>) (sDefaultExpr:string) (bSetInitFlag:bool) (bNoSourceDefault:bool) =
+            acn_rust.MultiAcnUpdate  v sV0 sErrCode arrsLocalDeclarations arrsLocalUpdateStatements arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality sDefaultExpr bSetInitFlag bNoSourceDefault 
         override this.checkAccessPath  (arrsCheckPaths:seq<string>) (sUpdateStatement:string) (v:string) (sInitExpr:string) =
             acn_rust.checkAccessPath  arrsCheckPaths sUpdateStatement v sInitExpr 
         override this.SizeDependency_oct_str_containing  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (v:string) (bIsOctet:bool) (sInner:string) (sLocalVarType:string) (bSetInitFlag:bool) (soNoCheckNote:string option) =

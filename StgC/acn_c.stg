@@ -1332,7 +1332,7 @@ MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_
 MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized && strcmp(<sV0>,<sVi>) == 0) || !<sVi>_is_initialized)"
 
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag, bNoSourceDefault) ::= <<
 {
     <arrsLocalDeclarations; separator="\n">
 
@@ -1344,7 +1344,12 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
         ret = (<arrsLocalCheckEquality; separator=" && ">);<if(bSetInitFlag)><\n>        <v>_is_initialized = TRUE;<endif><\n>
 <else>
         <arrsGetFirstIntValue; separator=" "> else {
-            ret = FALSE; /*COVERAGE_IGNORE*/
+<if(bNoSourceDefault)>
+            /* no source is set: no consumer of the determinant is in the value, it takes its default value */
+            <v> = <sDefaultExpr>; /*COVERAGE_IGNORE*/<\n>
+<else>
+            ret = FALSE; /*COVERAGE_IGNORE*/<\n>
+<endif>
         }
         if (ret) {
             ret = (<arrsLocalCheckEquality; separator=" && ">);<if(bSetInitFlag)><\n>            <v>_is_initialized = TRUE;<endif>

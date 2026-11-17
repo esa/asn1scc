@@ -572,7 +572,9 @@ is set only right after an assignment of the local, or after a construct that
 assigns it on every path on which `ret` stays TRUE (a switch with an
 assignment in every `case` and a failing `default:`, or an `if` / `else if`
 chain with an assignment in every branch and a final `else` that sets `ret =
-FALSE`), with the same `ret` argument as ASN1SCC-COV-004.
+FALSE` or, since asn1scc 4.9.141.0, assigns the local its default value, the
+first item, when no consumer of the determinant is in the encoded value), with
+the same `ret` argument as ASN1SCC-COV-004.
 
 **Conditions** (checked by `classifyStatements.py`): the switch is in an
 encoder and its selector is a local declared without an initializer in that

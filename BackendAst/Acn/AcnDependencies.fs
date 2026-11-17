@@ -187,11 +187,12 @@ let private dependencyTestCaseFnc (d:AcnDependency) (atc:AutomaticTestCase) : Te
 /// belongs to a part of the value that is absent (e.g. another alternative of a CHOICE that receives
 /// the determinant as an ACN argument). The encoder skips such dependencies at run time
 /// (<name>_is_initialized), so the test value is valid when at least one dependency yields a value
-/// and all yielded values agree.
-let private agreedTestCaseValue (fncs:(AutomaticTestCase -> TestCaseValue option) option list) (atc:AutomaticTestCase) : TestCaseValue option =
+/// and all yielded values agree. When no dependency yields a value, `noSourceValue` decides (Issue 105: the
+/// determinant takes its default value when no consumer is in the value).
+let private agreedTestCaseValue (noSourceValue:AutomaticTestCase -> TestCaseValue option) (fncs:(AutomaticTestCase -> TestCaseValue option) option list) (atc:AutomaticTestCase) : TestCaseValue option =
     let updateValues = fncs |> List.map(fun z -> match z with None -> None | Some f -> f atc)
     match updateValues |> List.choose id with
-    | []        -> None
+    | []        -> noSourceValue atc
     | u1::us    ->
         match us |> Seq.exists(fun z -> z <> u1) with
         | true  -> None
@@ -537,6 +538,27 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
 
         let ds = d1::dds
         let c_name0 = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) 0
+        // Issue 105 (legacy ACN): when no source is set, i.e. every consumer of the determinant is absent from the
+        // value, an ACN field takes its default value (initExpr; no consumer reads it) instead of failing the encoding.
+        // Not for an IA5String field (a C char array is not assignable) nor for an ACN parameter, whose value is a source
+        // of the caller's determinant: both keep the failing else.
+        let noSourceDefault =
+            match lm.lg.multiAcnUpdateDefaultWhenNoSource, d1.determinant with
+            | false, _                          -> false
+            | true, AcnParameterDeterminant _   -> false
+            | true, AcnChildDeterminant ch      ->
+                match ch.Type with
+                | Asn1AcnAst.AcnInteger _
+                | Asn1AcnAst.AcnBoolean _
+                | Asn1AcnAst.AcnReferenceToEnumerated _ -> true
+                | Asn1AcnAst.AcnNullType _
+                | Asn1AcnAst.AcnReferenceToIA5String _  -> false
+        // the test value agrees: valid when no consumer is in it (a consumer present whose value is unknown keeps it
+        // invalid)
+        let noSourceValue (atc:AutomaticTestCase) =
+            match noSourceDefault && (ds |> List.forall (fun d -> not (atc.testCaseTypeIDsMap.ContainsKey d.asn1Type))) with
+            | true  -> Some TcvAnyValue
+            | false -> None
         let localVars (child: AcnChild) =
             ds |>
             List.mapi(fun i d1 ->
@@ -619,12 +641,12 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
             // the determinant is set whenever the update succeeds (else ret / result is FALSE and the check after it stops
             // the encoding)
             let bSetInitFlag = setsInitFlag lm bForceInitFlag AlwaysInitialized
-            let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) (arrsLocalUpdateStatements |> List.map (fun u -> u.updateBody)) arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality (initExpr r lm m child.Type) bSetInitFlag
+            let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) (arrsLocalUpdateStatements |> List.map (fun u -> u.updateBody)) arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality (initExpr r lm m child.Type) bSetInitFlag noSourceDefault
             // coverage step 12e: the determinant takes the value of one of the sources, after all their switches ran
             {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = lm.lg.encodeTemplateOutcome EncDeterminantMulti
              checkedSelectors = arrsLocalUpdateStatements |> List.collect (fun u -> u.checkedSelectors)
              writesOnlyEnumItems = arrsLocalUpdateStatements |> List.forall (fun u -> u.writesOnlyEnumItems)}
-        let testCaseFnc = agreedTestCaseValue (localUpdateFuns |> List.map (Option.map (fun res -> res.testCaseFnc)))
+        let testCaseFnc = agreedTestCaseValue noSourceValue (localUpdateFuns |> List.map (Option.map (fun res -> res.testCaseFnc)))
 
         let ret = Some(({AcnChildUpdateResult.updateAcnChildFnc = multiUpdateFunc; icdComments=icdComments; errCodes=errCode::restErrCodes ; testCaseFnc = testCaseFnc; localVariables = restLocalVariables}))
         ret, ns

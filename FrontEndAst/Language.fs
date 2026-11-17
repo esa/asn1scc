@@ -865,6 +865,11 @@ type ILangGeneric () =
     /// path (no chain over the sources' flags with a failing else); C and Ada (Scala / Python: usesWrappedOptional).
     abstract member multiAcnUpdateFromAlwaysSetSource : bool
     default _.multiAcnUpdateFromAlwaysSetSource = false
+    /// Issue 105 (legacy ACN): when no source of a MultiAcnUpdate is set (every consumer of the determinant is absent
+    /// from the value) the determinant takes its default value instead of failing the encoding; the automatic test
+    /// values agree (AcnDependencies.agreedTestCaseValue). C and Ada; ACN fields of type INTEGER, BOOLEAN or ENUMERATED.
+    abstract member multiAcnUpdateDefaultWhenNoSource : bool
+    default _.multiAcnUpdateDefaultWhenNoSource = false
     abstract member encoderBodySplit : bool
     default _.encoderBodySplit = false
     abstract member encodeCallValidates : bool

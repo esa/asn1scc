@@ -720,6 +720,22 @@ class Cov005(unittest.TestCase):
         source = LEGACY_MULTI.replace("\t                ret = FALSE; /*COVERAGE_IGNORE*/\n", "")
         self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
 
+    NO_SOURCE_FAILS = "\t                ret = FALSE; /*COVERAGE_IGNORE*/\n"
+
+    def test_chain_whose_else_assigns_the_default_item_is_proven(self):
+        # asn1scc Issue 105: when no source is set the determinant takes its default value (the first item)
+        self.assertIn(self.NO_SOURCE_FAILS, LEGACY_MULTI)
+        source = LEGACY_MULTI.replace(self.NO_SOURCE_FAILS, "\t                Direct_kind = SelKind_alpha; /*COVERAGE_IGNORE*/\n")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "ASN1SCC-COV-005")
+
+    def test_chain_whose_else_assigns_a_value_that_is_not_an_item_is_not_proven(self):
+        source = LEGACY_MULTI.replace(self.NO_SOURCE_FAILS, "\t                Direct_kind = 7; /*COVERAGE_IGNORE*/\n")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
+
+    def test_chain_whose_else_assigns_another_local_is_not_proven(self):
+        source = LEGACY_MULTI.replace(self.NO_SOURCE_FAILS, "\t                Direct_kind00 = SelKind_alpha; /*COVERAGE_IGNORE*/\n")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
+
 
 # Coverage step 14c3: the decoder of a SEQUENCE decodes the ENUMERATED determinant into a local, then the CHOICE
 # switches on it (legacy PUS-C ErrorCodes shape, two items in 8 bits).
