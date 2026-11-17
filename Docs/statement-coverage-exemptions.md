@@ -64,6 +64,29 @@ as "exempted, no violation" if a test ever executes it, which would mean the
 proof no longer holds. Decision and MC/DC obligations inside a region are
 exempted the same way (ASN1SCC-COV-002 covers the guard decision itself).
 
+## Defensive checks that stay open (not exempted)
+
+Some checks of the generated C encoders can fail only when the encoder is
+called outside its usual conditions. They are reachable, so they are **not**
+exempted, and the automatic tests do not execute their failing side; they
+stay in the "neither covered nor proven" count, for the reason below.
+
+- **The result of an RTL write of the contents of an OCTET / BIT STRING**
+  (`BitStream_EncodeOctetString_no_length`, `BitStream_EncodeContainingOctets`
+  / `Bits`, after a variable-size, external-field or CONTAINING length): the
+  RTL function refuses the write when the bitstream has no room for it, or for
+  a negative length. For a valid value encoded into a bitstream of at least
+  `<Type>_REQUIRED_BYTES_FOR_ENCODING` / `..._ACN_ENCODING` bytes (the size
+  the generated `*_Encode` wrappers and the automatic tests use) neither
+  happens. It can happen when a caller passes a shorter bitstream, or encodes
+  an invalid value with `bCheckConstraints = FALSE`; the check is then the only
+  barrier before a write past the buffer, because the other C write primitives
+  (e.g. `BitStream_AppendBit`) do not check the bitstream's size. The check
+  stays, and the encoder returns FALSE. A test cannot make the write fail
+  without making other writes of the same encoder undefined, so none is
+  generated.
+
+
 ---
 
 ## ASN1SCC-COV-001: default arm after a range-checked index decode (C, Ada)
