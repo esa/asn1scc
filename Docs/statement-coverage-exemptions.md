@@ -420,10 +420,14 @@ if (ret) {
             break;
     default:                                    /*COVERAGE_IGNORE*/    /* <- exempted */
         *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
-        ret = FALSE;                    /*COVERAGE_IGNORE*/
+        return FALSE;                   /*COVERAGE_IGNORE*/
     }
 }
 ```
+
+Since asn1scc 4.9.140.0 the exempted arms of the CHOICE encoders and of the
+determinant updates return FALSE instead of setting `ret = FALSE` (see
+ASN1SCC-COV-005): the parts that follow need no check of `ret` for it.
 
 `--acn-v2` (the specialised encoder of `chr`, which receives the reserved
 determinant as a parameter):
@@ -522,14 +526,20 @@ if (ret) {
             intVal_Msg_kind = 1UL;
             break;
         default:                                    /*COVERAGE_IGNORE*/    /* <- exempted */
-            ret = FALSE;                            /*COVERAGE_IGNORE*/
             *pErrCode = ERR_ACN_ENCODE_MSG_KIND;                 /*COVERAGE_IGNORE*/
+            return FALSE;                           /*COVERAGE_IGNORE*/
     }
-    if (ret) {
-        Acn_Enc_Int_PositiveInteger_ConstSize_8(pBitStrm, intVal_Msg_kind);
-    }
+    /* no check of ret: the default arm returns (coverage step 14q) */
+    Acn_Enc_Int_PositiveInteger_ConstSize_8(pBitStrm, intVal_Msg_kind);
 }
 ```
+
+Since asn1scc 4.9.140.0 the exempted arm returns FALSE (with its error code)
+instead of setting `ret = FALSE`: in a C encoder every part after a failure
+runs only under `if (ret)` and the function returns `ret`, so both forms
+behave the same, and the code after the switch needs no check of `ret` (that
+check could only be FALSE through the exempted arm). Where the region is not
+emitted (the arm is reachable), the arm keeps `ret = FALSE` and the check.
 
 **Proof.** Every assignment of the local in the encoder stores an item that
 has a `case` (or a copy of another local of which the same holds, when one

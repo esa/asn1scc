@@ -522,13 +522,22 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
 switch(<p>) {
     <arrsItem; separator="\n">
-    default:                                    /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
+<if(soCovExempt)>
+    default:                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */
+        *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
+        return FALSE;                           /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */
+}
+/* no check of ret: the default arm returns (coverage step 14q) */
+<sActualCodecFunc><\n>
+<else>
+    default:                                    /*COVERAGE_IGNORE*/
         ret = FALSE;                            /*COVERAGE_IGNORE*/
-        *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif>
+        *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
 }
 if (ret) {
 	<sActualCodecFunc>
-}
+}<\n>
+<endif>
 >>
 
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
@@ -1162,7 +1171,11 @@ switch(<p><sAcc>kind)
 <arrsChildren; separator="\n">
 default:<if(soCovExempt)>                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
     *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif>
+<if(soCovExempt)>
+    return FALSE;                   /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */<\n>
+<else>
+    ret = FALSE;                    /*COVERAGE_IGNORE*/<\n>
+<endif>
 }
 >>
 
@@ -1200,7 +1213,11 @@ switch(<p><sAcc>kind)
     <arrsChildren; separator="\n">
 default:<if(soCovExempt)>                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
     *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif>
+<if(soCovExempt)>
+    return FALSE;                   /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */<\n>
+<else>
+    ret = FALSE;                    /*COVERAGE_IGNORE*/<\n>
+<endif>
 }
 >>
 
@@ -1242,8 +1259,13 @@ ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefau
 switch (<sChPath><sAcc>kind) {
     <arrsChoiceEnumItems; separator="\n">
     default:<if(soCovExempt)>                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
+<if(soCovExempt)>
+        *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/
+        return FALSE;                           /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */<\n>
+<else>
         ret = FALSE;                            /*COVERAGE_IGNORE*/
-        *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif>
+        *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/<\n>
+<endif>
 }
 >>
 
@@ -1269,8 +1291,13 @@ ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName, soCovEx
 switch (<sChPath><sAcc>kind) {
     <arrsChoiceItems; separator="\n">
     default:<if(soCovExempt)>                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
+<if(soCovExempt)>
+        *pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE;     /*COVERAGE_IGNORE*/
+        return FALSE;                                   /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */<\n>
+<else>
         ret = FALSE;                                    /*COVERAGE_IGNORE*/
-        *pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE;     /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif>
+        *pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE;     /*COVERAGE_IGNORE*/<\n>
+<endif>
 }
 >>
 

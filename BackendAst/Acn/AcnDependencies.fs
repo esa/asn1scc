@@ -247,6 +247,12 @@ let private initOfCheckPath (checkPath: 'a list) : DeterminantInit =
 /// Coverage step 12c: the update, wrapped in the check of its dependency path when it has one.
 /// Coverage step 12e: checkedSelectors / writesOnlyEnumItems as in AcnChildUpdate (the checks of the dependency path guard
 /// the update and the encoding of the CHOICE alike).
+/// Coverage step 14q: the update switch of a determinant; an exempted default arm (ASN1SCC-COV-004) returns FALSE itself
+let private determinantSwitchOutcome (lm:LanguageMacros) (soCovExempt:string option) : EncodeOutcome =
+    match soCovExempt with
+    | Some _ -> EncodeOutcome.noWrite
+    | None   -> lm.lg.encodeTemplateOutcome EncDeterminantSwitch
+
 let private updateResult (lm:LanguageMacros) (checkPath: string list) (v:string) (sInitExpr:string) (updateStatement:string) (o:EncodeOutcome) (checkedSelectors:string list) (writesOnlyEnumItems:bool) : AcnChildUpdate =
     match checkPath with
     | []    -> {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = o; checkedSelectors = checkedSelectors; writesOnlyEnumItems = writesOnlyEnumItems}
@@ -445,7 +451,7 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
         // coverage step 12e: an earlier update of this function already switched on the same selector
         let soCovExempt = nestingScope.selectorExemption (choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)) "ASN1SCC-COV-004" |> Option.map covExemptJustification
         let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName soCovExempt
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantSwitch) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] false
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (determinantSwitchOutcome lm soCovExempt) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] false
     let testCaseFnc = dependencyTestCaseFnc d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
@@ -486,7 +492,7 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
         // coverage step 12e: an earlier update of this function already switched on the same selector
         let soCovExempt = nestingScope.selectorExemption (choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)) "ASN1SCC-COV-004" |> Option.map covExemptJustification
         let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName soCovExempt
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantSwitch) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] false
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (determinantSwitchOutcome lm soCovExempt) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] false
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = []
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc = testCaseFnc; localVariables=[]}), us
@@ -510,7 +516,7 @@ and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.Reference
         // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for
         // accessing enums fields instead of a compiler-unchecked access
         let updateStatement2 = lm.lg.formatAcnDeterminantUpdate (choicePath.accessPath.joined lm.lg) checkPath updateStatement
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement2 (lm.lg.encodeTemplateOutcome EncDeterminantSwitch) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] true
+        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement2 (determinantSwitchOutcome lm soCovExempt) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] true
     let testCaseFnc = dependencyTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us

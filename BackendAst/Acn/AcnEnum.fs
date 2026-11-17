@@ -227,8 +227,13 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                             let sEnumIndex = "nEnumIndex"
                             let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
                             Enumerated_no_switch (lm.lg.getValue p.accessPath) td intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName  intVal   sEnumIndex nLastItemIndex o.encodeValues   codec, enumIndexVar::localVar@intAcnFuncBdResult.localVariables
-                // coverage step 12b: the value -> encoded value map, then the integer encoding inside it
-                let encOutcome = EncodeOutcome.sequence [lm.lg.encodeTemplateOutcome EncEnumerated; intAcnFuncBdResult.encOutcome]
+                // coverage step 12b: the value -> encoded value map, then the integer encoding inside it; 14q: an exempted
+                // default arm (ASN1SCC-COV-005) returns FALSE itself, so the map writes no ret (EnumeratedEncValues)
+                let mapOutcome =
+                    match codec, r.args.isEnumEfficientEnabled o.items.Length, fullIndex, nestingScope.selectorExemption (lm.lg.getValue p.accessPath) "ASN1SCC-COV-005" with
+                    | Encode, false, None, Some _ -> EncodeOutcome.noWrite
+                    | _                           -> lm.lg.encodeTemplateOutcome EncEnumerated
+                let encOutcome = EncodeOutcome.sequence [mapOutcome; intAcnFuncBdResult.encOutcome]
                 Some (mainContent, resultExpr, errCodes, localVariables, auxiliaries, encOutcome)
 
         match funcBodyContent with
