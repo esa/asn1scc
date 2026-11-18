@@ -89,6 +89,13 @@ WIRE DEFINITIONS ::= BEGIN
         pl <header.n> [present-when flg2],
         tail []
     }
+    ColPDU [] {
+        f1 BOOLEAN [],
+        a [present-when f1] { g1 BOOLEAN [], b-h [present-when g1] { more BOOLEAN [], c [] } },
+        a-b [] { g2 BOOLEAN [], g3 BOOLEAN [], h [present-when g2] { more BOOLEAN [], c [] }, w [present-when g3] { z [present-when h.more] } },
+        y [present-when a.b-h.more],
+        tail []
+    }
     AbsPDU [] {
         flg2 BOOLEAN [],
         header [] { a [], n INTEGER [size 4, encoding pos-int] },

@@ -119,6 +119,25 @@ let private componentOptionality (r: AstRoot) (path: ScopeNode list) : Asn1Optio
         r.typeAssignmentsMap.TryFind (md, tas) |> Option.bind (fun ts -> walk ts.Type rest)
     | _ -> None
 
+/// ACN fields whose decode local shares its name with another ACN field of the same type assignment
+/// (`getAcnDeterminantName` joins the path with `_` and maps `-` to `_`: `a.b-h.more` and `a-b.h.more` are both
+/// `Top_a_b_h_more`; the declarations are merged, so one local holds both). A reset of such a local could overwrite the
+/// other field's decoded value: these fields keep the code of master (no reset, no initial value), and a holder is not
+/// taken as dominated by such a flag (q/issues.md Issue 106, round 3; the collision itself is pre-existing).
+let private collidingFieldsCache = System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Set<ReferenceToType>>()
+let private collidingFields (deps: AcnInsertedFieldDependencies) : Set<ReferenceToType> =
+    collidingFieldsCache.GetValue(deps, fun deps ->
+        deps.acnDependencies
+        |> List.choose (fun d -> match d.determinant with AcnChildDeterminant ac -> Some ac.id | AcnParameterDeterminant _ -> None)
+        |> List.distinct
+        |> List.groupBy (fun id ->
+            match id.ToScopeNodeList with
+            | md :: ta :: _ -> Some (md, ta), AcnCreateFromAntlr.getAcnDeterminantName id
+            | _             -> None, AcnCreateFromAntlr.getAcnDeterminantName id)
+        |> List.filter (fun (_, ids) -> ids.Length > 1)
+        |> List.collect snd
+        |> Set.ofList)
+
 /// The ACN field (id) whose value decides the presence of the SEQUENCE component at `path` (present-when <BOOLEAN
 /// field>), from its AcnDepPresenceBool dependency: legacy follows ACN parameters to the field, --acn-v2 takes the
 /// field a parameter stands for (determinantIdentity). None for any other optionality.
@@ -169,7 +188,7 @@ let private holderStepsWith (sameFlagDominates: bool) (r: AstRoot) (deps: AcnIns
             let stepPath = List.take n fieldPath
             let holdsFlag (flag: ReferenceToType) =
                 let flagPath = flag.ToScopeNodeList
-                flagPath.Length > n && List.take n flagPath = stepPath
+                flagPath.Length > n && List.take n flagPath = stepPath && not ((collidingFields deps).Contains flag)
             sameFlagDominates &&
                 ((match presenceFieldOf r deps stepPath with
                   | Some h -> readerFlags |> List.contains h
@@ -285,6 +304,7 @@ let private presenceFlagReadsOf (r: AstRoot) (deps: AcnInsertedFieldDependencies
         | AcnDepPresenceBool, true, AcnChildDeterminant _ ->
             match holderStepsWith false r deps d, fieldAndReader r deps d with
             | [], _ | _, None -> None
+            | _, Some (fieldId, _) when (collidingFields deps).Contains fieldId -> None
             | steps, Some (fieldId, readerId) ->
                 // the deepest common ancestor of field and reader (a SEQUENCE: both are components of it or below it)
                 let fieldPath, readerPath = fieldId.ToScopeNodeList, readerId.ToScopeNodeList

@@ -1,7 +1,8 @@
 --  A determinant field inside an OPTIONAL component, its dependent outside it (run by v4Tests/scripts/runWireTests.sh,
 --  -gnata, legacy and --acn-v2). A stream that says the component is absent and the dependent present does not hold
 --  the field: the decoder must fail with the dependent's error code (it raised Constraint_Error, or with -gnatp used
---  an unset local). The bytes after the stream are 16#AB#. The round trips are in 003_decode_test.c.
+--  an unset local). The bytes after the stream are 16#AB#. The round trips are in 003_decode_test.c. Built with
+--  -gnateDACN_V2=True for --acn-v2, False for legacy (GNAT integrated preprocessor).
 with Ada.Command_Line;
 with Ada.Text_IO;
 with adaasn1rtl;
@@ -76,6 +77,7 @@ procedure Decode_Test is
    procedure Cont is new Check (WIRE.ContPDU, WIRE.ContPDU_ACN_STREAM_SIZE, WIRE.ContPDU_ACN_Decode);
    procedure Arg is new Check (WIRE.ArgPDU, WIRE.ArgPDU_ACN_STREAM_SIZE, WIRE.ArgPDU_ACN_Decode);
    procedure OptArg is new Check (WIRE.OptArgPDU, WIRE.OptArgPDU_ACN_STREAM_SIZE, WIRE.OptArgPDU_ACN_Decode);
+   procedure Col is new Check (WIRE.ColPDU, WIRE.ColPDU_ACN_STREAM_SIZE, WIRE.ColPDU_ACN_Decode);
    procedure Abs_Check is new Check (WIRE.AbsPDU, WIRE.AbsPDU_ACN_STREAM_SIZE, WIRE.AbsPDU_ACN_Decode);
    procedure Same is new Check (WIRE.SamePDU, WIRE.SamePDU_ACN_STREAM_SIZE, WIRE.SamePDU_ACN_Decode);
 
@@ -92,6 +94,7 @@ procedure Decode_Test is
    VCont : WIRE.ContPDU;
    VArg : WIRE.ArgPDU;
    VOptArg : WIRE.OptArgPDU;
+   VCol : WIRE.ColPDU;
    VAbs : WIRE.AbsPDU;
    VSame : WIRE.SamePDU;
 begin
@@ -136,8 +139,16 @@ begin
    --  a CONTAINING sized by the field (legacy: the code of cont; --acn-v2: the region is too short)
    Cont ("ContPDU a", (1 => 16#40#), -1, VCont);
    Cont ("ContPDU c", (1 => 16#00#), 0, VCont);
-   --  the field as an ACN argument (legacy fails at pl.d; --acn-v2 passes the reference, value 0: memory-safe)
-   Arg ("ArgPDU a", (1 => 16#40#), -2, VArg);
+   --  the field as an ACN argument: legacy fails at pl.d; --acn-v2 passes the reference, value 0, and d takes size 0
+   --  (memory-safe; q/issues.md Issue 107: it should fail)
+#if ACN_V2 then
+   Arg ("ArgPDU a", (1 => 16#40#), 0, VArg);
+   if VArg.Exist.pl /= 1 or else VArg.pl.d.Length /= 0 then
+      Fail ("ArgPDU a: value");
+   end if;
+#else
+   Arg ("ArgPDU a", (1 => 16#40#), WIRE.ERR_ACN_DECODE_ARGPDU_PL_D, VArg);
+#end if;
    Arg ("ArgPDU c", (16#16#, 16#80#), 0, VArg);
    if VArg.Exist.header /= 0 or else VArg.Exist.pl /= 0 or else VArg.tail /= 16#5A# then
       Fail ("ArgPDU c: value");
@@ -148,6 +159,20 @@ begin
      or else VOptArg.pl.e /= 5 or else VOptArg.tail /= 7
    then
       Fail ("OptArgPDU: value");
+   end if;
+   --  the same with d present (60 A0 E0): d's size is header.n, not in the stream (--acn-v2 today: size 0, Issue 107)
+#if ACN_V2 then
+   OptArg ("OptArgPDU d", (16#60#, 16#A0#, 16#E0#), 0, VOptArg);
+   if VOptArg.pl.Exist.d /= 1 or else VOptArg.pl.d.Length /= 0 or else VOptArg.pl.e /= 5 or else VOptArg.tail /= 7 then
+      Fail ("OptArgPDU d: value");
+   end if;
+#else
+   OptArg ("OptArgPDU d", (16#60#, 16#A0#, 16#E0#), WIRE.ERR_ACN_DECODE_OPTARGPDU_PL_D, VOptArg);
+#end if;
+   --  two ACN fields with one decode local: not reset, the value decoded for a.b-h.more reaches y
+   Col ("ColPDU", (1 => 16#E2#), 0, VCol);
+   if VCol.Exist.a /= 1 or else VCol.Exist.y /= 1 or else VCol.y /= 1 or else VCol.tail /= 0 then
+      Fail ("ColPDU: value");
    end if;
    --  the component is ALWAYS ABSENT
    Abs_Check ("AbsPDU a", (1 => 16#80#), WIRE.ERR_ACN_DECODE_ABSPDU_DATA, VAbs);

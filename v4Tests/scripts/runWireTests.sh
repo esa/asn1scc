@@ -167,8 +167,11 @@ for mode in "" "--acn-v2"; do
     mkdir "$out"
     run_compiler -Ada -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/003.asn1" "$root/test-cases/acn-wire/003.acn"
     cp "$root/test-cases/acn-wire/003_decode_test.adb" "$out/decode_test.adb"
-    # -gnatVa: a decoder that reads a Boolean local it did not set (the test dirties the stack with 2) raises
-    (cd "$out" && gnatmake -q -gnat2012 -gnata -gnatVa decode_test.adb && ./decode_test)
+    # -gnatVa: a decoder that reads a Boolean local it did not set (the test dirties the stack with 2) raises;
+    # ACN_V2 selects the mode's expectations (GNAT preprocessor)
+    v2=False
+    [ "$mode" = --acn-v2 ] && v2=True
+    (cd "$out" && gnatmake -q -gnat2012 -gnata -gnatVa -gnateDACN_V2=$v2 decode_test.adb && ./decode_test)
     echo "acn-wire 003 (Ada) $mode OK"
 done
 out=$work/acn004c

@@ -236,22 +236,15 @@ int main(void)
         ROUND_TRIP(ContPDU, v);
     }
     /* the field as an ACN argument: legacy decodes Payload in place and checks at d; --acn-v2 passes the field's
-       reference (value 0) to Payload's decoder (memory-safe, d is empty: not checked here) */
+       reference (value 0) to Payload's decoder, which takes size 0 (memory-safe; q/issues.md Issue 107: it should fail) */
     {
         ArgPDU v;
         ArgPDU_Initialize(&v);
 #ifndef WIRE_ACN_V2
         DECODE(ArgPDU, v, ERR_ACN_DECODE_ARGPDU_PL_D, 0x40);
 #else
-        {
-            static byte buf[ArgPDU_REQUIRED_BYTES_FOR_ACN_ENCODING + 16];
-            BitStream bs;
-            int err = 0;
-            memset(buf, 0xAB, sizeof(buf));
-            buf[0] = 0x40;
-            BitStream_AttachBuffer(&bs, buf, sizeof(buf));
-            (void)ArgPDU_ACN_Decode(&v, &bs, &err);
-        }
+        DECODE(ArgPDU, v, 0, 0x40);                                     /* today's --acn-v2 behaviour */
+        EXPECT(!v.exist.header && v.exist.pl && v.pl.d.nCount == 0);
 #endif
         DECODE(ArgPDU, v, 0, 0x16, 0x80);                               /* header, pl absent, tail 0x5A */
         EXPECT(!v.exist.header && !v.exist.pl && v.tail == 0x5A);
@@ -268,6 +261,21 @@ int main(void)
         OptArgPDU_Initialize(&v);
         DECODE(OptArgPDU, v, 0, 0x40, 0xA0, 0xE0);
         EXPECT(!v.exist.header && v.exist.pl && !v.pl.exist.d && v.pl.e == 5 && v.tail == 7);
+        /* the same with d present (60 A0 E0): d's size is header.n, not in the stream */
+#ifndef WIRE_ACN_V2
+        DECODE(OptArgPDU, v, ERR_ACN_DECODE_OPTARGPDU_PL_D, 0x60, 0xA0, 0xE0);
+#else
+        DECODE(OptArgPDU, v, 0, 0x60, 0xA0, 0xE0);                      /* today's --acn-v2 behaviour, Issue 107 */
+        EXPECT(!v.exist.header && v.exist.pl && v.pl.exist.d && v.pl.d.nCount == 0 && v.pl.e == 5 && v.tail == 7);
+#endif
+    }
+    /* two ACN fields with one decode local (a.b-h.more and a-b.h.more are both ColPDU_a_b_h_more): the local is not
+       reset, so the value decoded for a.b-h.more reaches y (a-b.h absent) */
+    {
+        ColPDU v;
+        ColPDU_Initialize(&v);
+        DECODE(ColPDU, v, 0, 0xE2);
+        EXPECT(v.exist.a && v.a.exist.b_h && !v.a_b.exist.h && !v.a_b.exist.w && v.exist.y && v.y == 1 && v.tail == 0);
     }
     /* the component is ALWAYS ABSENT */
     {

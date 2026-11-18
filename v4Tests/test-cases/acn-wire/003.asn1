@@ -85,6 +85,13 @@ WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
         pl      Payload2 OPTIONAL,
         tail    INTEGER(0..255)
     }
+    -- two ACN fields whose decode locals have the same name (a.b-h.more, a-b.h.more): the shared local is not reset
+    ColPDU ::= SEQUENCE {
+        a    SEQUENCE { b-h SEQUENCE { c INTEGER (0..1) } OPTIONAL } OPTIONAL,
+        a-b  SEQUENCE { h SEQUENCE { c INTEGER (0..1) } OPTIONAL, w SEQUENCE { z INTEGER (0..1) OPTIONAL } OPTIONAL },
+        y    INTEGER (0..1) OPTIONAL,
+        tail INTEGER (0..1)
+    }
     -- the component is ALWAYS ABSENT: a present dependent always fails
     -- (a referenced component type: the Ada init function of an inline ALWAYS ABSENT SEQUENCE is not emitted)
     Hdr ::= SEQUENCE { a INTEGER(0..255) }
