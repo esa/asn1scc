@@ -1,0 +1,64 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    OctPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], n INTEGER [size 8, encoding pos-int] },
+        data [present-when flg2, size header.n]
+    }
+    StrPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], m INTEGER [size 5, encoding pos-int] },
+        str [present-when flg2, size header.m]
+    }
+    BitPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], b INTEGER [size 4, encoding pos-int] },
+        bits [present-when flg2, size header.b]
+    }
+    SqfPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], q INTEGER [size 4, encoding pos-int] },
+        sq [present-when flg2, size header.q]
+    }
+    BoolPDU [] {
+        flg BOOLEAN [],
+        header [present-when flg] { a [], more BOOLEAN [] },
+        x [present-when header.more]
+    }
+    ChPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], k Kind [encoding pos-int, size 1] },
+        ch [determinant header.k, present-when flg2]
+    }
+    PwPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], t INTEGER [size 2, encoding pos-int] },
+        cp [present-when flg2] { p1 [present-when header.t==1], p2 [present-when header.t==2] }
+    }
+    PwStrPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], s Tag [] },
+        cs [present-when flg2] { s1 [present-when header.s=="ab"], s2 [present-when header.s=="cd"] }
+    }
+    ElemPDU [] {
+        elems [] {
+          [] {
+            e1 BOOLEAN [],
+            e2 BOOLEAN [],
+            hh [present-when e1] { a [], n INTEGER [size 4, encoding pos-int] },
+            dd [present-when e2, size hh.n]
+          }
+        }
+    }
+    SamePDU [] {
+        flg BOOLEAN [],
+        header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },
+        data [present-when flg, size header.n]
+    }
+END

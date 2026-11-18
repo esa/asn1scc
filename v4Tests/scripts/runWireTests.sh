@@ -148,6 +148,40 @@ for mode in "" "--acn-v2"; do
     echo "acn-wire 002 (Ada) $mode OK"
 done
 
+# A determinant field inside an OPTIONAL component, its dependent outside it: with the component absent and the
+# dependent present the decoders fail with the dependent's error code (they read the field's unset local); C (ASan /
+# UBSan) and Ada x86 (-gnata), legacy and acn-v2 (003), acn-v2 only for fields exposed by a referenced component (004).
+for mode in "" "--acn-v2"; do
+    def=
+    [ "$mode" = --acn-v2 ] && def=-DWIRE_ACN_V2
+    out=$work/acn003c$mode
+    mkdir "$out"
+    run_compiler -c -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/003.asn1" "$root/test-cases/acn-wire/003.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        $def -I "$out" "$out"/*.c "$root/test-cases/acn-wire/003_decode_test.c" -o "$out/decode_test"
+    "$out/decode_test"
+    echo "acn-wire 003 $mode OK"
+    out=$work/acn003ada$mode
+    mkdir "$out"
+    run_compiler -Ada -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/003.asn1" "$root/test-cases/acn-wire/003.acn"
+    cp "$root/test-cases/acn-wire/003_decode_test.adb" "$out/decode_test.adb"
+    (cd "$out" && gnatmake -q -gnat2012 -gnata decode_test.adb && ./decode_test)
+    echo "acn-wire 003 (Ada) $mode OK"
+done
+out=$work/acn004c
+mkdir "$out"
+run_compiler -c -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/004.asn1" "$root/test-cases/acn-wire/004.acn" 2>/dev/null
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I "$out" "$out"/*.c "$root/test-cases/acn-wire/004_decode_test.c" -o "$out/decode_test"
+"$out/decode_test"
+echo "acn-wire 004 --acn-v2 OK"
+out=$work/acn004ada
+mkdir "$out"
+run_compiler -Ada -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/004.asn1" "$root/test-cases/acn-wire/004.acn" 2>/dev/null
+cp "$root/test-cases/acn-wire/004_decode_test.adb" "$out/decode_test.adb"
+(cd "$out" && gnatmake -q -gnat2012 -gnata decode_test.adb && ./decode_test)
+echo "acn-wire 004 (Ada) --acn-v2 OK"
+
 # 036 in Ada on the 32-bit board msp430: sign extension in the upper bytes of 64-bit fields
 # (compiled with -gnata: the RTL's pragma Assume are checked too).
 out=$work/ada036

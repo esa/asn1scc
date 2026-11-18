@@ -1,0 +1,14 @@
+WIRE DEFINITIONS ::= BEGIN
+    Hdr [] { a [], len INTEGER [size 4, encoding pos-int], len2 INTEGER [size 4, encoding pos-int], more BOOLEAN [] }
+    Payload <INTEGER:len> [] { d [size len] }
+    MyPDU [] {
+        f3 BOOLEAN [],
+        f4 BOOLEAN [],
+        f5 BOOLEAN [],
+        hdr2 [present-when f3],
+        data2 [present-when f4, size hdr2.len],
+        pl2 <hdr2.len2> [present-when f5],
+        x [present-when hdr2.more],
+        tail []
+    }
+END

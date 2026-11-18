@@ -1,0 +1,86 @@
+-- A determinant field inside an OPTIONAL component, its dependent outside it: a stream that says the component is
+-- absent and the dependent present does not hold the field, and the decoder fails with the dependent's error code (it
+-- used to read the field's unset local: C wrote past the array of data, Ada raised Constraint_Error). Hand-made streams,
+-- the bytes after them 0xAB.
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 003_decode_test.c / 003_decode_test.adb, legacy and
+-- --acn-v2 (an ACN argument and a CONTAINING size are passed to an --acn-v2 specialised function as a reference that
+-- keeps its initial value 0: the checks of those two types differ by mode).
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    -- sizes of an OCTET STRING (8-bit field, no range check) and of an IA5String
+    MyPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        data    OCTET STRING (SIZE(0..255)) OPTIONAL,
+        str     IA5String (SIZE(0..255)) OPTIONAL
+    }
+    -- CHOICE determinant
+    Kind ::= ENUMERATED { c1, c2 }
+    ChPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        ch      CHOICE { c1 INTEGER(0..7), c2 BOOLEAN } OPTIONAL
+    }
+    -- CHOICE present-when an INTEGER field and a string field
+    PwPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        cp      CHOICE { p1 INTEGER(0..7), p2 BOOLEAN } OPTIONAL
+    }
+    Tag ::= IA5String (SIZE(2))
+    PwStrPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        cs      CHOICE { s1 INTEGER(0..7), s2 BOOLEAN } OPTIONAL
+    }
+    -- present-when a BOOLEAN field of the component: absent with it (no failure)
+    BoolPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        x       INTEGER(0..255) OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- inside a SEQUENCE OF element: element 2 must not use the size of element 1
+    ElemPDU ::= SEQUENCE {
+        elems   SEQUENCE (SIZE(1..3)) OF SEQUENCE {
+            hh SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+            dd OCTET STRING (SIZE(0..15)) OPTIONAL
+        }
+    }
+    -- nested components: both must be present
+    NestPDU ::= SEQUENCE {
+        h1      SEQUENCE { a INTEGER(0..255), h2 SEQUENCE { b INTEGER(0..255) } OPTIONAL } OPTIONAL,
+        d       OCTET STRING (SIZE(0..15)) OPTIONAL
+    }
+    -- the dependent is an alternative of a mandatory CHOICE
+    AltPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        alt     CHOICE { o1 OCTET STRING (SIZE(0..10)), o2 NULL }
+    }
+    -- a CONTAINING sized by the field
+    Inner ::= SEQUENCE { v INTEGER(0..255) }
+    ContPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        cont    OCTET STRING (CONTAINING Inner) OPTIONAL
+    }
+    -- the field passed as an ACN argument: legacy decodes the referenced type in place and checks at d
+    Payload ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) }
+    ArgPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      Payload OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- an ACN argument used only by an absent part of the referenced type: a valid stream (both modes decode it)
+    Payload2 ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    OptArgPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      Payload2 OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- the component is ALWAYS ABSENT: a present dependent always fails
+    -- (a referenced component type: the Ada init function of an inline ALWAYS ABSENT SEQUENCE is not emitted)
+    Hdr ::= SEQUENCE { a INTEGER(0..255) }
+    AbsPDU ::= SEQUENCE {
+        header  Hdr OPTIONAL,
+        data    OCTET STRING (SIZE(0..15)) OPTIONAL
+    } (WITH COMPONENTS {header ABSENT, data})
+    -- component and dependent present when the same field says so: no check, both decode together
+    SamePDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        data    OCTET STRING (SIZE(0..15)) OPTIONAL
+    }
+END
