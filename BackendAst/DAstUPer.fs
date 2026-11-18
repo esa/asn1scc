@@ -116,10 +116,9 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
     let p = lm.lg.getParamType t codec
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
-    let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
-    let func, funcDef, auxiliaries,ns2 =
+    let func, funcDef, auxiliaries, ns2, withEmittedValidator =
             match funcName  with
-            | None              -> None, None, [], ns
+            | None              -> None, None, [], ns, (fun _ _ -> None)
             | Some funcName     ->
                 let content = funcBody (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p false
                 // coverage step 12b: what the encoder's body does (an empty body writes nothing)
@@ -127,96 +126,103 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                     match content with
                     | Some c -> encodeOutcomeOf codec c.encOutcome
                     | None   -> encodeOutcomeOf codec EncodeOutcome.noWrite
-                // coverage step 12a: an encoder does not call a validity function that cannot fail
-                let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec isValidFunc t bodyOutcome
-                let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
-                // coverage step 12b: an encoder that cannot fail states result.Success in its contract (Ada)
-                let soSparkAnnotations =
-                    match codec, bodyOutcome.canFail || bValidityCalled, soSparkAnnotations with
-                    | Encode, false, Some _ -> Some (lm.uper.sparkAnnotationsAlwaysSucceeds (lm.lg.getLongTypedefName typeDefinition))
-                    | Encode, _, _
-                    | Decode, _, _          -> soSparkAnnotations
-                // coverage step 12b: without a validity call the Ada encoder initialises result before the body,
-                // unless the body writes it on every path before reading it (C: ret is initialised in its
-                // declaration, the macro is empty)
-                let encodeResultInit (bValidity:bool) (body:string) =
-                    match codec, bValidity, bodyOutcome.writes, lm.uper.decode_result_init () with
-                    | Encode, false, (NoWrite | SometimesWrites | ReadsFirst | WritesUnknown), sInit when sInit <> "" -> sInit + "\n" + body
-                    | Encode, _, _, _
-                    | Decode, _, _, _   -> body
-                let withEncodeResultInit = encodeResultInit bValidityCalled
-                // coverage step 14q (Q3 b): an encoder that validates its value is split (Ada): the body without the
-                // validation, and the _aux = validation + call of the body. Not when the body's writes are unknown (the
-                // body's result initialisation could be an unused assignment) or empty
-                let bSplit =
-                    match codec, lm.lg.encoderBodySplit && bValidityCalled, content, bodyOutcome.writes with
-                    | Encode, true, Some _, (NoWrite | AlwaysWrites | SometimesWrites | ReadsFirst) -> true
-                    | Encode, _, _, _
-                    | Decode, _, _, _ -> false
-                let bodyFuncName = funcName + "_Body"
-                let sInitialExp =
-                    // ST wraps non-null strings, including "", as truthy values.
-                    match content with
-                    | Some _ -> null
-                    | None ->
-                        match codec, lm.lg.initMethod with
-                        | Decode, InitMethod.Function -> soInitFuncName.orElse null
-                        | Encode, InitMethod.Function
-                        | Encode, InitMethod.Procedure
-                        | Decode, InitMethod.Procedure -> null
-                let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, auxiliaries =
-                    match content with
-                    | None              ->
-                        let emptyStatement = withEncodeResultInit lm.lg.emptyStatement
-                        emptyStatement, [], [], true, isValidFuncName.IsNone || bValidityCannotFail, []
-                    | Some bodyResult   ->
-                        let body =
-                            match codec, lm.lg.decodeReadFailureModel with
-                            | Decode, ReadsCannotFail when DecodeOutcome.uperNeedsResultInit r lm t ->
-                                lm.uper.decode_result_init () + "\n" + bodyResult.funcBody
-                            | Decode, ReadsCannotFail
-                            | Decode, ReadsCanFail      -> bodyResult.funcBody
-                            | Encode, _                 -> withEncodeResultInit bodyResult.funcBody
-                        // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
-                        let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
-                        body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.auxiliaries
-                let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let precondAnnots = lm.lg.generatePrecond r UPER t codec
-                let postcondAnnots = lm.lg.generatePostcond r UPER p t codec
-                let func =
-                    match bSplit, content with
-                    | true, Some bodyResult ->
-                        // the body states result.Success in its contract when it cannot fail; the _aux keeps its own
-                        let soBodyAnnotations =
-                            match bodyOutcome.canFail, soSparkAnnotations with
-                            | false, Some _ -> Some (lm.uper.sparkAnnotationsAlwaysSucceeds (lm.lg.getLongTypedefName typeDefinition))
-                            | _, _          -> soSparkAnnotations
-                        let body = lm.uper.EmitEncodeBodyProcedure varName bodyFuncName (lm.lg.getLongTypedefName typeDefinition) lvars (encodeResultInit false bodyResult.funcBody) soBodyAnnotations bodyResult.bBsIsUnReferenced bodyResult.bValIsUnReferenced (bodyResult.funcBody.Contains "nCurOffset")
-                        let callBody = lm.uper.call_base_type_func varName bodyFuncName codec
-                        let aux = EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) Seq.empty callBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) false false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds false bValidityCannotFail codec
-                        Some (body + "\n\n" + aux)
-                    | _, _ ->
-                        Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
+                // the wrapper around the body (validity call, split, contract, declaration) and what a call of the encoder
+                // does, for the IsConstraintValid given; cycle 15a (B1): rendered again where a reference lends this
+                // encoder with the function emitted under its name (withEmittedValidator below)
+                let render (isValidFunc: IsValidFunction option) (validatorSource: DAstUtilFunctions.ValidatorSource) (ns: State) =
+                    let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
+                    // coverage step 12a: an encoder does not call a validity function that cannot fail
+                    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec isValidFunc validatorSource t bodyOutcome
+                    let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
+                    // coverage step 12b: an encoder that cannot fail states result.Success in its contract (Ada)
+                    let soSparkAnnotations =
+                        match codec, bodyOutcome.canFail || bValidityCalled, soSparkAnnotations with
+                        | Encode, false, Some _ -> Some (lm.uper.sparkAnnotationsAlwaysSucceeds (lm.lg.getLongTypedefName typeDefinition))
+                        | Encode, _, _
+                        | Decode, _, _          -> soSparkAnnotations
+                    // coverage step 12b: without a validity call the Ada encoder initialises result before the body,
+                    // unless the body writes it on every path before reading it (C: ret is initialised in its
+                    // declaration, the macro is empty)
+                    let encodeResultInit (bValidity:bool) (body:string) =
+                        match codec, bValidity, bodyOutcome.writes, lm.uper.decode_result_init () with
+                        | Encode, false, (NoWrite | SometimesWrites | ReadsFirst | WritesUnknown), sInit when sInit <> "" -> sInit + "\n" + body
+                        | Encode, _, _, _
+                        | Decode, _, _, _   -> body
+                    let withEncodeResultInit = encodeResultInit bValidityCalled
+                    // coverage step 14q (Q3 b): an encoder that validates its value is split (Ada): the body without the
+                    // validation, and the _aux = validation + call of the body. Not when the body's writes are unknown (the
+                    // body's result initialisation could be an unused assignment) or empty
+                    let bSplit =
+                        match codec, lm.lg.encoderBodySplit && bValidityCalled, content, bodyOutcome.writes with
+                        | Encode, true, Some _, (NoWrite | AlwaysWrites | SometimesWrites | ReadsFirst) -> true
+                        | Encode, _, _, _
+                        | Decode, _, _, _ -> false
+                    let bodyFuncName = funcName + "_Body"
+                    let sInitialExp =
+                        // ST wraps non-null strings, including "", as truthy values.
+                        match content with
+                        | Some _ -> null
+                        | None ->
+                            match codec, lm.lg.initMethod with
+                            | Decode, InitMethod.Function -> soInitFuncName.orElse null
+                            | Encode, InitMethod.Function
+                            | Encode, InitMethod.Procedure
+                            | Decode, InitMethod.Procedure -> null
+                    let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, auxiliaries =
+                        match content with
+                        | None              ->
+                            let emptyStatement = withEncodeResultInit lm.lg.emptyStatement
+                            emptyStatement, [], [], true, isValidFuncName.IsNone || bValidityCannotFail, []
+                        | Some bodyResult   ->
+                            let body =
+                                match codec, lm.lg.decodeReadFailureModel with
+                                | Decode, ReadsCannotFail when DecodeOutcome.uperNeedsResultInit r lm t ->
+                                    lm.uper.decode_result_init () + "\n" + bodyResult.funcBody
+                                | Decode, ReadsCannotFail
+                                | Decode, ReadsCanFail      -> bodyResult.funcBody
+                                | Encode, _                 -> withEncodeResultInit bodyResult.funcBody
+                            // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
+                            let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
+                            body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.auxiliaries
+                    let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
+                    let precondAnnots = lm.lg.generatePrecond r UPER t codec
+                    let postcondAnnots = lm.lg.generatePostcond r UPER p t codec
+                    let func =
+                        match bSplit, content with
+                        | true, Some bodyResult ->
+                            // the body states result.Success in its contract when it cannot fail; the _aux keeps its own
+                            let soBodyAnnotations =
+                                match bodyOutcome.canFail, soSparkAnnotations with
+                                | false, Some _ -> Some (lm.uper.sparkAnnotationsAlwaysSucceeds (lm.lg.getLongTypedefName typeDefinition))
+                                | _, _          -> soSparkAnnotations
+                            let body = lm.uper.EmitEncodeBodyProcedure varName bodyFuncName (lm.lg.getLongTypedefName typeDefinition) lvars (encodeResultInit false bodyResult.funcBody) soBodyAnnotations bodyResult.bBsIsUnReferenced bodyResult.bValIsUnReferenced (bodyResult.funcBody.Contains "nCurOffset")
+                            let callBody = lm.uper.call_base_type_func varName bodyFuncName codec
+                            let aux = EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) Seq.empty callBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) false false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds false bValidityCannotFail codec
+                            Some (body + "\n\n" + aux)
+                        | _, _ ->
+                            Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
 
-                let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue) x.fieldPath)
-                // coverage step 14c2a: a full-index CHOICE writes all of its `in out` val (DecodeOutcome.uperValInitUnused)
-                let bValInitUnused = bValInOut && not bVarNameIsUnreferenced && codec = Decode && DecodeOutcome.uperValInitUnused r lm t
-                let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) (bValInOut && not bVarNameIsUnreferenced) bValInitUnused codec)
-                // coverage step 12b: what a call of this encoder does, for the parents' joins (C calls it with
-                // bCheckConstraints = FALSE; Ada's call validates unless the encoder skips it)
-                let ns =
-                    match codec with
-                    | Encode ->
-                        let callCanFail = bodyOutcome.canFail || (lm.lg.encodeCallValidates && bValidityCalled)
-                        let ns = {ns with encodeCallOutcomes = ns.encodeCallOutcomes.Add (encodeCallKey lm t.id.ModName funcName, EncodeOutcome.call funcName callCanFail)}
-                        // coverage step 14q (Q3 b): the body of a split encoder, for the callers of the same package
-                        match bSplit, isValidFuncName with
-                        | true, Some vf ->
-                            let b = {bodyFuncName = bodyFuncName; outcome = EncodeOutcome.call bodyFuncName bodyOutcome.canFail; validatorKey = encodeCallKey lm t.id.ModName vf; modName = ToC t.id.ModName}
-                            {ns with encodeBodies = ns.encodeBodies.Add (encodeCallKey lm t.id.ModName funcName, b)}
-                        | true, None
-                        | false, _ -> ns
-                    | Decode -> ns
+                    let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue) x.fieldPath)
+                    // coverage step 14c2a: a full-index CHOICE writes all of its `in out` val (DecodeOutcome.uperValInitUnused)
+                    let bValInitUnused = bValInOut && not bVarNameIsUnreferenced && codec = Decode && DecodeOutcome.uperValInitUnused r lm t
+                    let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) (bValInOut && not bVarNameIsUnreferenced) bValInitUnused codec)
+                    // coverage step 12b: what a call of this encoder does, for the parents' joins (C calls it with
+                    // bCheckConstraints = FALSE; Ada's call validates unless the encoder skips it)
+                    let ns =
+                        match codec with
+                        | Encode ->
+                            let callCanFail = bodyOutcome.canFail || (lm.lg.encodeCallValidates && bValidityCalled)
+                            let ns = {ns with encodeCallOutcomes = ns.encodeCallOutcomes.Add (encodeCallKey lm t.id.ModName funcName, EncodeOutcome.call funcName callCanFail)}
+                            // coverage step 14q (Q3 b): the body of a split encoder, for the callers of the same package
+                            match bSplit, isValidFuncName with
+                            | true, Some vf ->
+                                let b = {bodyFuncName = bodyFuncName; outcome = EncodeOutcome.call bodyFuncName bodyOutcome.canFail; validatorKey = encodeCallKey lm t.id.ModName vf; modName = ToC t.id.ModName}
+                                {ns with encodeBodies = ns.encodeBodies.Add (encodeCallKey lm t.id.ModName funcName, b)}
+                            | true, None
+                            | false, _ -> {ns with encodeBodies = ns.encodeBodies.Remove (encodeCallKey lm t.id.ModName funcName)}   // (15a: not split any more)
+                        | Decode -> ns
+                    bValidityCannotFail, func, funcDef, auxiliaries, ns
+                let bValidityCannotFail, func, funcDef, auxiliaries, ns = render isValidFunc DAstUtilFunctions.ValidatorBuiltWithTheType ns
                 let ns2 =
                     match t.id.topLevelTas with
                     | None -> ns
@@ -234,7 +240,17 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                         | Decode, InitMethod.Function
                         | Decode, InitMethod.Procedure -> ns2
 
-                func, funcDef, auxiliaries, ns2
+                // cycle 15a (B1): the same body and error codes with the validator emitted under the name (no new error
+                // code, no second run of the body); None when the decision is the same
+                let withEmittedValidator (vf: IsValidFunction option) (us: State) =
+                    match codec with
+                    | Decode -> None
+                    | Encode ->
+                        let bSkip, func2, funcDef2, _, us2 = render vf DAstUtilFunctions.ValidatorEmittedUnderTheName us
+                        match bSkip = bValidityCannotFail with
+                        | true  -> None
+                        | false -> Some (func2, funcDef2, us2)
+                func, funcDef, auxiliaries, ns2, withEmittedValidator
 
 
     let ret =
@@ -245,6 +261,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
             funcBody                   = funcBody
             funcBody_e                 = funcBody_e
             auxiliaries                = auxiliaries
+            withEmittedValidator       = withEmittedValidator
         }
     ret, ns2
 
@@ -1366,7 +1383,12 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                 Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = []; encOutcome = callOutcome}
             TL "UPER_REF_06" (fun () -> createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations [] ns)
         | false ->
-            baseType.getUperFunction codec, us
+            // the merged type lends its encoder, built before this reference's IsConstraintValid (the function emitted
+            // under the name it calls); cycle 15a (B1): rendered again with that function, same body and error codes
+            let lent = baseType.getUperFunction codec
+            match lent.withEmittedValidator isValidFunc us with
+            | Some (func, funcDef, ns) -> {lent with func = func; funcDef = funcDef}, ns
+            | None                     -> lent, us
     | Some opts  ->
         TL "UPER_REF_50" (fun () -> 
             let octet_string_containing_func  = lm.uper.octet_string_containing_func

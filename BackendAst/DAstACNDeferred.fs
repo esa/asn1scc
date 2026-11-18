@@ -1490,7 +1490,7 @@ let private emitSpecializedFunctionDecl
 
     // coverage step 12a / 12b: as AcnFunctionWrapper.createAcnFunction
     let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
-    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t bodyOutcome
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc DAstUtilFunctions.ValidatorBuiltWithTheType ctx.t bodyOutcome
     let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
     // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
     let specBodyContent =
@@ -1548,7 +1548,7 @@ let private emitSpecializedFunctionDecl
 /// Its basis is the compiler's analysis (EncodeOutcome.specialisedCall): specialised functions have no contract.
 let private specialisedCallOutcome (ctx: DeferredRefCtx) (specFuncName: string) (finalBody: AcnFuncBodyResult) : EncodeOutcome =
     let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
-    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t bodyOutcome
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc DAstUtilFunctions.ValidatorBuiltWithTheType ctx.t bodyOutcome
     let isValidFuncName = match ctx.isValidFunc with None -> None | Some f -> f.funcName
     let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
     EncodeOutcome.specialisedCall specFuncName (bodyOutcome.canFail || (ctx.lm.lg.encodeCallValidates && bValidityCalled))

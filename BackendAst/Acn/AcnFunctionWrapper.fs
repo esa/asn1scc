@@ -168,7 +168,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
         | Asn1AcnAst.Choice _
         | Asn1AcnAst.ObjectIdentifier _
         | Asn1AcnAst.ReferenceType _ -> None
-    let func, funcDef, userDefinedFunctions, auxiliaries, icdResult, ns2  =
+    let func, funcDef, userDefinedFunctions, auxiliaries, icdResult, ns2, withEmittedValidator  =
             match funcNameAndtasInfo  with
             | None ->
                 if not lm.lg.supportsAcnIcdForUndeclaredType then
@@ -177,11 +177,11 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     // An ICD generated from such an AST would be incomplete -
                     // Program.fs rejects -icdAcn / -customIcdAcn / -icdRaw when
                     // Scala is the first target language (roadmap B6).
-                    None, None, [], [], None, ns
+                    None, None, [], [], None, ns, (fun _ _ -> None)
                 else
                     match r.args.generateAcnIcd with
                     | false ->
-                        None, None, [], [], None, ns
+                        None, None, [], [], None, ns, (fun _ _ -> None)
                     | true ->
                         // The call to funcBody is necessary to get the correct nesting
                         // scope; however it is expensive, so we only call it when the
@@ -205,7 +205,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                                     // when the type is aligned, prepend the padding row the
                                     // alignment emits (roadmap B3).
                                     AcnAlignment.prependAlignmentPaddingRow t.acnAlignment (zeroBitIcdResult ()), bodyResult.userDefinedFunctions
-                        None, None, udfcs, [], icdResult, ns1a
+                        None, None, udfcs, [], icdResult, ns1a, (fun _ _ -> None)
             | Some funcName ->
                 let precondAnnots = lm.lg.generatePrecond r ACN t codec
                 let postcondAnnots = lm.lg.generatePostcond r ACN p t codec
@@ -217,155 +217,162 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     match content with
                     | Some c -> encodeOutcomeOf codec c.encOutcome
                     | None   -> encodeOutcomeOf codec EncodeOutcome.noWrite
-                // coverage step 12a: an encoder does not call a validity function that cannot fail
-                let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec isValidFunc t bodyOutcome
-                let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
-                // coverage step 12b: an encoder that cannot fail states result.Success in its contract (Ada)
-                let soSparkAnnotations =
-                    match codec, bodyOutcome.canFail || bValidityCalled, soSparkAnnotations with
-                    | Encode, false, Some _ -> Some (lm.acn.sparkAnnotationsAlwaysSucceeds typeDefinitionName)
-                    | Encode, _, _
-                    | Decode, _, _          -> soSparkAnnotations
-                // coverage step 12b: without a validity call the Ada encoder initialises result before the body,
-                // unless the body writes it on every path before reading it (C: the macro is empty)
-                let encodeResultInit (bValidity:bool) (body:string) =
-                    match codec, bValidity, bodyOutcome.writes, lm.uper.decode_result_init () with
-                    | Encode, false, (NoWrite | SometimesWrites | ReadsFirst | WritesUnknown), sInit when sInit <> "" -> sInit + "\n" + body
-                    | Encode, _, _, _
-                    | Decode, _, _, _   -> body
-                let withEncodeResultInit = encodeResultInit bValidityCalled
-                // coverage step 14q (Q3 b): an encoder that validates its value is split (Ada, as in DAstUPer); not for a
-                // type with ACN parameters (only parents call its _aux, which would then be called by nobody), unknown
-                // writes or an empty body
-                let bSplit =
-                    match codec, lm.lg.encoderBodySplit && bValidityCalled && t.acnParameters.IsEmpty, content, bodyOutcome.writes with
-                    | Encode, true, Some _, (NoWrite | AlwaysWrites | SometimesWrites | ReadsFirst) -> true
-                    | Encode, _, _, _
-                    | Decode, _, _, _ -> false
-                let bodyFuncName = funcName + "_Body"
-                // coverage step 12b: what a call of this encoder does, for the parents' joins
-                let ns1a =
-                    match codec with
-                    | Encode ->
-                        let callCanFail = bodyOutcome.canFail || (lm.lg.encodeCallValidates && bValidityCalled)
-                        let ns1a = {ns1a with encodeCallOutcomes = ns1a.encodeCallOutcomes.Add (encodeCallKey lm t.id.ModName funcName, EncodeOutcome.call funcName callCanFail)}
-                        // coverage step 14q (Q3 b): the body of a split encoder, for the callers of the same package
-                        match bSplit, isValidFuncName with
-                        | true, Some vf ->
-                            let b = {bodyFuncName = bodyFuncName; outcome = EncodeOutcome.call bodyFuncName bodyOutcome.canFail; validatorKey = encodeCallKey lm t.id.ModName vf; modName = ToC t.id.ModName}
-                            {ns1a with encodeBodies = ns1a.encodeBodies.Add (encodeCallKey lm t.id.ModName funcName, b)}
-                        | true, None
-                        | false, _ -> ns1a
-                    | Decode -> ns1a
-                let sInitialExp =
-                    // A null attribute disables the optional template initializer.
-                    match content with
-                    | Some _ -> null
-                    | None ->
-                        match codec, lm.lg.initMethod with
-                        | Decode, InitMethod.Function -> soInitFuncName.orElse null
-                        | Encode, InitMethod.Function
-                        | Encode, InitMethod.Procedure
-                        | Decode, InitMethod.Procedure -> null
-                let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, udfcs, auxiliaries, icdResult =
-                    match content with
-                    | None ->
-                        let emptyStatement = withEncodeResultInit lm.lg.emptyStatement
-                        emptyStatement, [], [], true, isValidFuncName.IsNone || bValidityCannotFail, [], [], zeroBitIcdResult ()
-                    | Some bodyResult ->
-                        // Same zero-bit fallback as the inline branch above: a body
-                        // without icdResult comes from the align-to-next/save-position
-                        // wrappers around a zero-bit encoding.
-                        let icdResult =
-                            match bodyResult.icdResult with
-                            | Some _ -> bodyResult.icdResult
-                            | None   -> AcnAlignment.prependAlignmentPaddingRow t.acnAlignment (zeroBitIcdResult ())
-                        // coverage step 10b: result is defined first when an exit or the end could read an unset
-                        // error code (DecodeOutcome.acnNeedsResultInit)
-                        let body =
-                            match codec, lm.lg.decodeReadFailureModel with
-                            | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit r deps lm t ->
-                                lm.uper.decode_result_init () + "\n" + bodyResult.funcBody
-                            | Decode, ReadsCannotFail
-                            | Decode, ReadsCanFail      -> bodyResult.funcBody
-                            | Encode, _                 -> withEncodeResultInit bodyResult.funcBody
-                        // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
-                        let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
-                        body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
+                // the wrapper around the body (validity call, split, contract, declaration) and what a call of the encoder
+                // does, for the IsConstraintValid given; cycle 15a (B1): rendered again where a reference lends this
+                // encoder with the function emitted under its name (withEmittedValidator below)
+                let render (isValidFunc: IsValidFunction option) (validatorSource: DAstUtilFunctions.ValidatorSource) (ns1a: State) =
+                    let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
+                    // coverage step 12a: an encoder does not call a validity function that cannot fail
+                    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec isValidFunc validatorSource t bodyOutcome
+                    let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
+                    // coverage step 12b: an encoder that cannot fail states result.Success in its contract (Ada)
+                    let soSparkAnnotations =
+                        match codec, bodyOutcome.canFail || bValidityCalled, soSparkAnnotations with
+                        | Encode, false, Some _ -> Some (lm.acn.sparkAnnotationsAlwaysSucceeds typeDefinitionName)
+                        | Encode, _, _
+                        | Decode, _, _          -> soSparkAnnotations
+                    // coverage step 12b: without a validity call the Ada encoder initialises result before the body,
+                    // unless the body writes it on every path before reading it (C: the macro is empty)
+                    let encodeResultInit (bValidity:bool) (body:string) =
+                        match codec, bValidity, bodyOutcome.writes, lm.uper.decode_result_init () with
+                        | Encode, false, (NoWrite | SometimesWrites | ReadsFirst | WritesUnknown), sInit when sInit <> "" -> sInit + "\n" + body
+                        | Encode, _, _, _
+                        | Decode, _, _, _   -> body
+                    let withEncodeResultInit = encodeResultInit bValidityCalled
+                    // coverage step 14q (Q3 b): an encoder that validates its value is split (Ada, as in DAstUPer); not for a
+                    // type with ACN parameters (only parents call its _aux, which would then be called by nobody), unknown
+                    // writes or an empty body
+                    let bSplit =
+                        match codec, lm.lg.encoderBodySplit && bValidityCalled && t.acnParameters.IsEmpty, content, bodyOutcome.writes with
+                        | Encode, true, Some _, (NoWrite | AlwaysWrites | SometimesWrites | ReadsFirst) -> true
+                        | Encode, _, _, _
+                        | Decode, _, _, _ -> false
+                    let bodyFuncName = funcName + "_Body"
+                    // coverage step 12b: what a call of this encoder does, for the parents' joins
+                    let ns1a =
+                        match codec with
+                        | Encode ->
+                            let callCanFail = bodyOutcome.canFail || (lm.lg.encodeCallValidates && bValidityCalled)
+                            let ns1a = {ns1a with encodeCallOutcomes = ns1a.encodeCallOutcomes.Add (encodeCallKey lm t.id.ModName funcName, EncodeOutcome.call funcName callCanFail)}
+                            // coverage step 14q (Q3 b): the body of a split encoder, for the callers of the same package
+                            match bSplit, isValidFuncName with
+                            | true, Some vf ->
+                                let b = {bodyFuncName = bodyFuncName; outcome = EncodeOutcome.call bodyFuncName bodyOutcome.canFail; validatorKey = encodeCallKey lm t.id.ModName vf; modName = ToC t.id.ModName}
+                                {ns1a with encodeBodies = ns1a.encodeBodies.Add (encodeCallKey lm t.id.ModName funcName, b)}
+                            | true, None
+                            | false, _ -> {ns1a with encodeBodies = ns1a.encodeBodies.Remove (encodeCallKey lm t.id.ModName funcName)}   // (15a: not split any more)
+                        | Decode -> ns1a
+                    let sInitialExp =
+                        // A null attribute disables the optional template initializer.
+                        match content with
+                        | Some _ -> null
+                        | None ->
+                            match codec, lm.lg.initMethod with
+                            | Decode, InitMethod.Function -> soInitFuncName.orElse null
+                            | Encode, InitMethod.Function
+                            | Encode, InitMethod.Procedure
+                            | Decode, InitMethod.Procedure -> null
+                    let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced, udfcs, auxiliaries, icdResult =
+                        match content with
+                        | None ->
+                            let emptyStatement = withEncodeResultInit lm.lg.emptyStatement
+                            emptyStatement, [], [], true, isValidFuncName.IsNone || bValidityCannotFail, [], [], zeroBitIcdResult ()
+                        | Some bodyResult ->
+                            // Same zero-bit fallback as the inline branch above: a body
+                            // without icdResult comes from the align-to-next/save-position
+                            // wrappers around a zero-bit encoding.
+                            let icdResult =
+                                match bodyResult.icdResult with
+                                | Some _ -> bodyResult.icdResult
+                                | None   -> AcnAlignment.prependAlignmentPaddingRow t.acnAlignment (zeroBitIcdResult ())
+                            // coverage step 10b: result is defined first when an exit or the end could read an unset
+                            // error code (DecodeOutcome.acnNeedsResultInit)
+                            let body =
+                                match codec, lm.lg.decodeReadFailureModel with
+                                | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit r deps lm t ->
+                                    lm.uper.decode_result_init () + "\n" + bodyResult.funcBody
+                                | Decode, ReadsCannotFail
+                                | Decode, ReadsCanFail      -> bodyResult.funcBody
+                                | Encode, _                 -> withEncodeResultInit bodyResult.funcBody
+                            // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
+                            let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
+                            body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
 
-                let handleAcnParameter (p:AcnParameter) =
-                    let intType  = lm.typeDef.Declare_Integer ()
-                    let boolType = lm.typeDef.Declare_Boolean ()
-                    let intZero  = lm.lg.asn1SccIntValueToString 0I false
-                    let emitPrm  = lm.acn.EmitAcnParameter
-                    match p.asn1Type with
-                    | AcnPrmInteger    _          -> emitPrm p.c_name intType intZero
-                    | AcnPrmBoolean    _          -> emitPrm p.c_name boolType lm.lg.FalseLiteral
-                    | AcnPrmNullType   loc        -> raise(SemanticError (loc, "Invalid type for parameter"))
-                    | AcnPrmRefType(md,ts)        ->
-                        let prmTypeName =
-                            match lm.lg.hasModules with
-                            | false         -> ToC2(r.args.TypePrefix + ts.Value)
-                            | true       ->
-                                match md.Value = t.id.ModName with
-                                | true  -> ToC2(r.args.TypePrefix + ts.Value)
-                                | false -> lm.lg.constructCrossModuleFuncPrefix (ToC2 md.Value) + ToC2(r.args.TypePrefix + ts.Value)
-                        let resolvedKind =
-                            r.Modules
-                            |> Seq.tryFind (fun m -> m.Name.Value = md.Value)
-                            |> Option.bind (fun m -> m.TypeAssignments |> Seq.tryFind (fun ta -> ta.Name.Value = ts.Value))
-                            |> Option.map (fun ta -> ta.Type.ActualType.Kind)
-                        let basicType, defaultVal = lm.lg.resolveAcnPrmRefTypeEmission prmTypeName resolvedKind intZero
-                        emitPrm p.c_name basicType defaultVal
+                    let handleAcnParameter (p:AcnParameter) =
+                        let intType  = lm.typeDef.Declare_Integer ()
+                        let boolType = lm.typeDef.Declare_Boolean ()
+                        let intZero  = lm.lg.asn1SccIntValueToString 0I false
+                        let emitPrm  = lm.acn.EmitAcnParameter
+                        match p.asn1Type with
+                        | AcnPrmInteger    _          -> emitPrm p.c_name intType intZero
+                        | AcnPrmBoolean    _          -> emitPrm p.c_name boolType lm.lg.FalseLiteral
+                        | AcnPrmNullType   loc        -> raise(SemanticError (loc, "Invalid type for parameter"))
+                        | AcnPrmRefType(md,ts)        ->
+                            let prmTypeName =
+                                match lm.lg.hasModules with
+                                | false         -> ToC2(r.args.TypePrefix + ts.Value)
+                                | true       ->
+                                    match md.Value = t.id.ModName with
+                                    | true  -> ToC2(r.args.TypePrefix + ts.Value)
+                                    | false -> lm.lg.constructCrossModuleFuncPrefix (ToC2 md.Value) + ToC2(r.args.TypePrefix + ts.Value)
+                            let resolvedKind =
+                                r.Modules
+                                |> Seq.tryFind (fun m -> m.Name.Value = md.Value)
+                                |> Option.bind (fun m -> m.TypeAssignments |> Seq.tryFind (fun ta -> ta.Name.Value = ts.Value))
+                                |> Option.map (fun ta -> ta.Type.ActualType.Kind)
+                            let basicType, defaultVal = lm.lg.resolveAcnPrmRefTypeEmission prmTypeName resolvedKind intZero
+                            emitPrm p.c_name basicType defaultVal
 
-                let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let prms = t.acnParameters |> List.map handleAcnParameter
-                let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
-                // For languages that need it (Python): for CEC_enum CHOICE decode, inject the
-                // enum determinant as an extra parameter so the standalone classmethod can access
-                // the choice discriminant. Deduplicate against existing prmNames.
-                let prms, prmNames =
-                    if lm.lg.needsAcnChoiceDeterminantParam && codec = Decode then
-                        let existing = System.Collections.Generic.HashSet<string>(prmNames)
-                        let extra =
-                            deps.acnDependencies
-                            |> List.filter (fun d ->
-                                d.asn1Type = t.id &&
-                                match d.dependencyKind with
-                                | AcnDepChoiceDeterminant _ -> true
-                                | _ -> false)
-                            |> List.choose (fun d ->
-                                let detName = getAcnDeterminantName d.determinant.id
-                                if existing.Add(detName) then
-                                    Some (lm.acn.EmitAcnParameter detName "int" "0", detName)
-                                else None)
-                        let extraPrms, extraNames = extra |> List.map fst, extra |> List.map snd
-                        prms @ extraPrms, prmNames @ extraNames
-                    else
-                        prms, prmNames
-                let func =
-                    match bSplit, content with
-                    | true, Some bodyResult ->
-                        // the body states result.Success in its contract when it cannot fail; the _aux keeps its own
-                        let soBodyAnnotations =
-                            match bodyOutcome.canFail, soSparkAnnotations with
-                            | false, Some _ -> Some (lm.acn.sparkAnnotationsAlwaysSucceeds typeDefinitionName)
-                            | _, _          -> soSparkAnnotations
-                        let body = lm.uper.EmitEncodeBodyProcedure varName bodyFuncName typeDefinitionName lvars (encodeResultInit false bodyResult.funcBody) soBodyAnnotations bodyResult.bBsIsUnReferenced bodyResult.bValIsUnReferenced (bodyResult.funcBody.Contains "nCurOffset")
-                        let callBody = lm.uper.call_base_type_func varName bodyFuncName codec
-                        let aux = EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName Seq.empty callBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) false false false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds false bValidityCannotFail codec
-                        Some (body + "\n\n" + aux)
-                    | _, _ ->
-                        Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
+                    let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
+                    let prms = t.acnParameters |> List.map handleAcnParameter
+                    let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
+                    // For languages that need it (Python): for CEC_enum CHOICE decode, inject the
+                    // enum determinant as an extra parameter so the standalone classmethod can access
+                    // the choice discriminant. Deduplicate against existing prmNames.
+                    let prms, prmNames =
+                        if lm.lg.needsAcnChoiceDeterminantParam && codec = Decode then
+                            let existing = System.Collections.Generic.HashSet<string>(prmNames)
+                            let extra =
+                                deps.acnDependencies
+                                |> List.filter (fun d ->
+                                    d.asn1Type = t.id &&
+                                    match d.dependencyKind with
+                                    | AcnDepChoiceDeterminant _ -> true
+                                    | _ -> false)
+                                |> List.choose (fun d ->
+                                    let detName = getAcnDeterminantName d.determinant.id
+                                    if existing.Add(detName) then
+                                        Some (lm.acn.EmitAcnParameter detName "int" "0", detName)
+                                    else None)
+                            let extraPrms, extraNames = extra |> List.map fst, extra |> List.map snd
+                            prms @ extraPrms, prmNames @ extraNames
+                        else
+                            prms, prmNames
+                    let func =
+                        match bSplit, content with
+                        | true, Some bodyResult ->
+                            // the body states result.Success in its contract when it cannot fail; the _aux keeps its own
+                            let soBodyAnnotations =
+                                match bodyOutcome.canFail, soSparkAnnotations with
+                                | false, Some _ -> Some (lm.acn.sparkAnnotationsAlwaysSucceeds typeDefinitionName)
+                                | _, _          -> soSparkAnnotations
+                            let body = lm.uper.EmitEncodeBodyProcedure varName bodyFuncName typeDefinitionName lvars (encodeResultInit false bodyResult.funcBody) soBodyAnnotations bodyResult.bBsIsUnReferenced bodyResult.bValIsUnReferenced (bodyResult.funcBody.Contains "nCurOffset")
+                            let callBody = lm.uper.call_base_type_func varName bodyFuncName codec
+                            let aux = EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName Seq.empty callBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) false false false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds false bValidityCannotFail codec
+                            Some (body + "\n\n" + aux)
+                        | _, _ ->
+                            Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
 
-                let errCodStr =
-                    errCodes |>
-                    List.groupBy (fun x -> x.errCodeName) |>
-                    List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath}) |>
-                    List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath) |> List.distinct
-                // coverage step 14c2a: a full-index CHOICE writes all of its `in out` val (DecodeOutcome.acnValInitUnused)
-                let bValInitUnused = bValInOut && not bVarNameIsUnreferenced && codec = Decode && DecodeOutcome.acnValInitUnused r deps lm t
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits prms soSparkAnnotations (bValInOut && not bVarNameIsUnreferenced) false bValInitUnused codec)
+                    let errCodStr =
+                        errCodes |>
+                        List.groupBy (fun x -> x.errCodeName) |>
+                        List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath}) |>
+                        List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath) |> List.distinct
+                    // coverage step 14c2a: a full-index CHOICE writes all of its `in out` val (DecodeOutcome.acnValInitUnused)
+                    let bValInitUnused = bValInOut && not bVarNameIsUnreferenced && codec = Decode && DecodeOutcome.acnValInitUnused r deps lm t
+                    let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  typeDefinitionName errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN t.acnMaxSizeInBits prms soSparkAnnotations (bValInOut && not bVarNameIsUnreferenced) false bValInitUnused codec)
+                    bValidityCannotFail, func, funcDef, udfcs, auxiliaries, icdResult, ns1a
+                let bValidityCannotFail, func, funcDef, udfcs, auxiliaries, icdResult, ns1a = render isValidFunc DAstUtilFunctions.ValidatorBuiltWithTheType ns1a
                 let ns2a =
                     match t.id.topLevelTas with
                     | None -> ns1a
@@ -384,7 +391,17 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         | Encode, InitMethod.Procedure
                         | Decode, InitMethod.Function
                         | Decode, InitMethod.Procedure -> ns2
-                func, funcDef, udfcs, auxiliaries, icdResult, ns2a
+                // cycle 15a (B1): the same body and error codes with the validator emitted under the name (no new error
+                // code, no second run of the body, no second ICD entry); None when the decision is the same
+                let withEmittedValidator (vf: IsValidFunction option) (us: State) =
+                    match codec with
+                    | Decode -> None
+                    | Encode ->
+                        let bSkip, func2, funcDef2, _, _, _, us2 = render vf DAstUtilFunctions.ValidatorEmittedUnderTheName us
+                        match bSkip = bValidityCannotFail with
+                        | true  -> None
+                        | false -> Some (func2, funcDef2, us2)
+                func, funcDef, udfcs, auxiliaries, icdResult, ns2a, withEmittedValidator
 
     let icdAux, ns3 =
         match icdResult with
@@ -433,5 +450,6 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
             icdTas                        = icdAux
             userDefinedFunctions       = userDefinedFunctions
             encodingSizeConstant       = sEncodingSizeConstant
+            withEmittedValidator       = withEmittedValidator
         }
     ret, ns3

@@ -118,7 +118,16 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
           // TODO: this is where stuff gets inlined
           TL "ACN_REF_01" (fun () ->
           match codec with
-            | Codec.Encode  -> baseType.getAcnFunction codec, us
+            | Codec.Encode  ->
+                // the merged type lends its encoder, built before this reference's IsConstraintValid (the function
+                // emitted under the name it calls); cycle 15a (B1): rendered again with that function, same body and
+                // error codes
+                match baseType.getAcnFunction codec with
+                | Some lent ->
+                    match lent.withEmittedValidator isValidFunc us with
+                    | Some (func, funcDef, ns) -> Some {lent with func = func; funcDef = funcDef}, ns
+                    | None                     -> Some lent, us
+                | None      -> None, us
             | Codec.Decode  ->
                 let paramsArgsPairs = List.zip o.acnArguments o.resolvedType.acnParameters
                 let baseTypeAcnFunction = baseType.getAcnFunction codec

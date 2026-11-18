@@ -780,6 +780,14 @@ type UPERFuncBodyResult = {
     auxiliaries         : string list
     encOutcome          : EncodeOutcome     // encode only (coverage step 12b); decode bodies: EncodeOutcome.unknown
 }
+/// Coverage cycle 15a (B1): a type assignment's encoder rendered again with the IsConstraintValid emitted under the name
+/// it calls (a reference with constraints at the site lends the merged type's encoder, whose validity decision was
+/// taken before the reference's validator existed). The body, its error code and its local variables are the ones
+/// already built (no second getNextValidErrorCode, no second run of the body); only the wrapper (validity call, split,
+/// contract) and the encode-call bookkeeping of the State follow the new decision. Some (func, funcDef, State) when the
+/// decision changes; None otherwise (decoders, no function, same decision).
+type EncoderWithEmittedValidator = IsValidFunction option -> State -> (string option * string option * State) option
+
 type UPerFunction = {
     funcName            : string option               // the name of the function
     func                : string option               // the body of the function
@@ -787,6 +795,7 @@ type UPerFunction = {
     funcBody            : NestingScope -> CodegenScope -> bool -> UPERFuncBodyResult option            // returns a list of validations statements. The bool indicates whether this was called from ACN context
     funcBody_e          : ErrorCode -> NestingScope -> CodegenScope -> bool -> UPERFuncBodyResult option // bool: whether called from ACN context
     auxiliaries         : string list
+    withEmittedValidator : EncoderWithEmittedValidator   // coverage cycle 15a (B1)
 }
 
 type IcdArgAux = {
@@ -855,6 +864,7 @@ type AcnFunction = {
     isTestVaseValid     : AutomaticTestCase -> bool
     userDefinedFunctions : UserDefinedFunction list //a list of user defined functions prototypes used in this function body. Emitted at the begining of the source file
     icdTas              : IcdTypeAss option (* always present in Encode, always None in Decode *)
+    withEmittedValidator : EncoderWithEmittedValidator   // coverage cycle 15a (B1)
 }
 
 type EncodeDecodeTestFunc = {

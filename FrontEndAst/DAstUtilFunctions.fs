@@ -1108,9 +1108,18 @@ let encodeCallTarget (lm:LanguageMacros) (sCallerModName:string) (us:State) (cod
         | Some _, _
         | None, _                                                                  -> viaEncoder ()
 
+/// Coverage cycle 15a (B1): which IsConstraintValid an encoder's skip decision (encoderSkipsValidation) is taken from.
+type ValidatorSource =
+    /// the IsValidFunction built with the type; for the merged type of a reference with constraints at the site it need
+    /// not be the function emitted under the name the encoder calls (the reference's, built after the merged type)
+    | ValidatorBuiltWithTheType
+    /// the IsValidFunction emitted under the name the encoder calls: the reference's own, passed where the reference
+    /// lends the merged type's encoder (DAstUPer.createReferenceFunction, AcnReference.createReferenceFunction_inline)
+    | ValidatorEmittedUnderTheName
+
 /// Coverage step 12a: the encoder of a type whose IsConstraintValid cannot fail (11b outcome AlwaysValid) does not
 /// call it; the template emits a comment instead of the call and its check. Decoders are unchanged.
-let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) (bodyOutcome:EncodeOutcome) : bool =
+let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isValidFunc: IsValidFunction option) (validatorSource:ValidatorSource) (t:Asn1AcnAst.Asn1Type) (bodyOutcome:EncodeOutcome) : bool =
     let alwaysValid =
         match isValidFunc with
         | Some {funcName = Some _; outcome = AlwaysValid}  -> true
@@ -1124,12 +1133,15 @@ let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isVali
     // referencedNotCalled). Since Issue 46 both check the same constraints on the same typedef, so a merged
     // AlwaysValid no longer hides a check that can fail; but in Ada a site range that the subtype enforces
     // (MyPDU ::= T1 (0 .. 100)) makes the merged type AlwaysValid while the reference's function still
-    // carries the check (MayBeInvalid), so the encoder keeps calling the function it names.
+    // carries the check (MayBeInvalid), so the encoder keeps calling the function it names. Cycle 15a (B1): where the
+    // reference lends that encoder it renders it again with its own, emitted function (ValidatorEmittedUnderTheName),
+    // whose outcome is then the called function's.
     let outcomeIsTheCalledFunctions =
-        match t.inheritInfo with
-        | Some {hasAdditionalConstraints = true}   -> false
-        | Some {hasAdditionalConstraints = false}
-        | None                                     -> true
+        match validatorSource, t.inheritInfo with
+        | ValidatorEmittedUnderTheName, _                                   -> true
+        | ValidatorBuiltWithTheType, Some {hasAdditionalConstraints = true} -> false
+        | ValidatorBuiltWithTheType, Some {hasAdditionalConstraints = false}
+        | ValidatorBuiltWithTheType, None                                   -> true
     // (a variable-size OCTET / BIT STRING encoding starts with its own length check, which sets result); since 12b
     // also any body whose writes are known: the encoder initialises result only where the body needs it
     let encodingWritesNoResult =
