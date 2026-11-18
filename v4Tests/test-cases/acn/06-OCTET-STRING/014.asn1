@@ -1,0 +1,22 @@
+-- Type assignments that restate the fixed SIZE of their base type (Alias ::= Base (SIZE(3))): the reference lends the
+-- encoder of its merged type, whose validator cannot fail; the encoders do not call it (C and Ada).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+Base ::= OCTET STRING (SIZE(3))
+Alias ::= Base (SIZE(3))
+
+Flags ::= SEQUENCE (SIZE(2)) OF BOOLEAN
+FlagsAlias ::= Flags (SIZE(2))
+
+PDU ::= SEQUENCE {
+    a Alias,
+    b Base (SIZE(3)),
+    f FlagsAlias
+}
+
+pdu1 PDU ::= { a 'A1B2C3'H, b '010203'H, f { TRUE, FALSE } }
+
+END
+
+--TCLS PDU[] { a [], b [], f [] }
+--TCLS Alias[]

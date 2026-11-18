@@ -1,0 +1,24 @@
+--RUN_SPARK
+-- CHOICEs decoded in place with an alternative that has an alignment and no content of its own (a NULL without
+-- pattern, aligned to the next byte): that alternative writes no result, so the Ada decoder keeps the index range check
+-- when another alternative may fail (PDU1.item), and a CHOICE of such alternatives only (PDU2.pair) is not treated as
+-- one whose alternatives all write the result. Each CHOICE is the first component of its SEQUENCE (nothing writes the
+-- result before it) and a mandatory component follows it.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+PDU1 ::= SEQUENCE {
+    item  CHOICE { pad NULL, n INTEGER (0..5) },
+    tail  BOOLEAN
+}
+
+PDU2 ::= SEQUENCE {
+    pair  CHOICE { pad NULL, q NULL },
+    last  BOOLEAN
+}
+
+pdu1 PDU1 ::= { item n : 5, tail TRUE }
+pdu2 PDU2 ::= { pair pad : NULL, last FALSE }
+
+END
+
+--TCLS PDU1[] { item [] { pad [align-to-next byte], n [] }, tail [] } PDU2[] { pair [] { pad [align-to-next byte], q [] }, last [] }

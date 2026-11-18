@@ -164,9 +164,25 @@ let private acnIntReadInterval (readChecksFieldRange: IntEncodingClass -> bool) 
         | Some a, Some b -> Some (pick a b)
         | Some _, None   -> x
         | None, _        -> y
-    match fld.acnProperties.mappingFunction with
-    | Some _ -> None
-    | None   -> Some (tighter max wireLo fieldLo, tighter min wireHi fieldHi)
+    // a field whose range does not narrow its encoding width is read by the full-range twin (Ada,
+    // DecodeOutcome.acnIntegerFullRange), whose bound comes only from its Post: the 64-bit twins state IntVal < 2**nBits,
+    // the twins of the -slim narrowed classes (_FullRangeUInt8 / 16 / 32, Int8 / 16 / 32, adaasn1rtl-encoding-acn.ads)
+    // state no bound, so nothing is claimed for them (the check stays)
+    let rangeNarrowsWidth =
+        match fld.uperRange, wireLo, wireHi with
+        | Concrete (a, b), Some wl, Some wh -> a > wl || b < wh
+        | Concrete _, _, _                  -> true
+        | (NegInf _ | PosInf _ | Full), _, _ -> false
+    let narrowedClass =
+        match fld.intClass with
+        | ASN1SCC_Int8 _ | ASN1SCC_Int16 _ | ASN1SCC_Int32 _
+        | ASN1SCC_UInt8 _ | ASN1SCC_UInt16 _ | ASN1SCC_UInt32 _ -> true
+        | ASN1SCC_Int64 _ | ASN1SCC_Int _ | ASN1SCC_UInt64 _ | ASN1SCC_UInt _ -> false
+    match fld.acnProperties.mappingFunction, rangeNarrowsWidth, narrowedClass with
+    | Some _, _, _       -> None
+    | None, false, true  -> None
+    | None, true, _
+    | None, false, false -> Some (tighter max wireLo fieldLo, tighter min wireHi fieldHi)
 
 /// Coverage cycle 15a (A-str): the bounds (low, high) of the size field of the string asn1TypeIdWithDependency, when
 /// they make the decoder's `<field> in 0 .. maxSize` check (the Ada string external-field templates, Issue 64) always

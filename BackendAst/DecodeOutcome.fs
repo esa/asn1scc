@@ -829,9 +829,12 @@ and acnChoiceUnguarded (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:Langu
 
 /// The decode part of a CHOICE alternative (AcnChoice.handleChild): its outcome and ErrorCode summary.
 and acnChoiceAlternative (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (childType:Asn1Type) : DecodeOutcome * ErrorCodeSummary =
-    match acnHasDecodeContent childType with
-    | true  -> acn r deps lm childType, acnErrorCodeSummary r deps lm childType
-    | false -> AlwaysSucceeds WritesResult, { writesE = true; exitNeedsE = false }    // decode_nullType: result := (true, 0)
+    match acnHasDecodeContent childType, childType.acnAlignment with
+    | true, _       -> acn r deps lm childType, acnErrorCodeSummary r deps lm childType
+    | false, None   -> AlwaysSucceeds WritesResult, { writesE = true; exitNeedsE = false }    // decode_nullType: result := (true, 0)
+    // cycle 15a: an aligned alternative without content (NULL without pattern, align-to-next) is only the alignment
+    // (AcnAlignment.handleAlignmentForAsn1Types gives it a body, so AcnChoice emits no decode_nullType): no result write
+    | false, Some _ -> AlwaysSucceeds NoResultWrite, { writesE = false; exitNeedsE = false }
 
 /// An OPTIONAL child without present-when has a presence bit (AcnSequence.printPresenceBit: BitStream_ReadBit).
 and acnHasPresenceBit (c:Asn1Child) : bool =
@@ -960,10 +963,11 @@ and acnErrorCodeSummary (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:Lang
         | Some _, _ ->
             // Choice_Enum_decode (`case <determinant>`, also --acn-v2 deferred): nothing is written before the
             // alternatives, so every alternative must set ErrorCode (a _FullRange alternative does not touch result)
-            let alternatives = ch.children |> List.map (fun c -> c.Type, acnErrorCodeSummary r deps lm c.Type)
-            // an alternative without content (NULL) is decode_nullType: result := (true, 0)
-            { writesE    = alternatives |> List.forall (fun (altType, s) -> s.writesE || not (acnHasDecodeContent altType))
-              exitNeedsE = alternatives |> List.exists (fun (_, s) -> s.exitNeedsE) }
+            // an alternative without content (NULL) is decode_nullType: result := (true, 0), unless it is aligned (cycle 15a:
+            // then only the alignment, acnChoiceAlternative)
+            let alternatives = ch.children |> List.map (fun c -> acnChoiceAlternative r deps lm c.Type |> snd)
+            { writesE    = alternatives |> List.forall (fun s -> s.writesE)
+              exitNeedsE = alternatives |> List.exists (fun s -> s.exitNeedsE) }
     | OctetString o ->
         match o.acnEncodingClass with
         | SZ_EC_FIXED_SIZE -> leaf (not (fixedStringCannotFail lm FixedOctets true))   // octet_FixedSize_noCheck: never
