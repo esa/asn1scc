@@ -96,6 +96,14 @@ WIRE DEFINITIONS ::= BEGIN
         y [present-when a.b-h.more],
         tail []
     }
+    Col2PDU [] {
+        a [] { b-h [] { more BOOLEAN [], c [] } },
+        header [present-when a.b-h.more] { n INTEGER [size 8, encoding pos-int], c [] },
+        a-b [] { h [] { more BOOLEAN [], c [] } },
+        w [present-when a-b.h.more],
+        data [present-when a.b-h.more, size header.n],
+        tail []
+    }
     AbsPDU [] {
         flg2 BOOLEAN [],
         header [] { a [], n INTEGER [size 4, encoding pos-int] },

@@ -122,8 +122,9 @@ let private componentOptionality (r: AstRoot) (path: ScopeNode list) : Asn1Optio
 /// ACN fields whose decode local shares its name with another ACN field of the same type assignment
 /// (`getAcnDeterminantName` joins the path with `_` and maps `-` to `_`: `a.b-h.more` and `a-b.h.more` are both
 /// `Top_a_b_h_more`; the declarations are merged, so one local holds both). A reset of such a local could overwrite the
-/// other field's decoded value: these fields keep the code of master (no reset, no initial value), and a holder is not
-/// taken as dominated by such a flag (q/issues.md Issue 106, round 3; the collision itself is pre-existing).
+/// other field's decoded value, and an initial value on one of them gives two declarations of the local (C / Ada do not
+/// compile): these fields keep the code of master (no reset, no initial value), and a holder is not taken as dominated
+/// by such a flag (q/issues.md Issue 106, rounds 3 / 4; the collision itself is pre-existing).
 let private collidingFieldsCache = System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Set<ReferenceToType>>()
 let private collidingFields (deps: AcnInsertedFieldDependencies) : Set<ReferenceToType> =
     collidingFieldsCache.GetValue(deps, fun deps ->
@@ -191,7 +192,7 @@ let private holderStepsWith (sameFlagDominates: bool) (r: AstRoot) (deps: AcnIns
                 flagPath.Length > n && List.take n flagPath = stepPath && not ((collidingFields deps).Contains flag)
             sameFlagDominates &&
                 ((match presenceFieldOf r deps stepPath with
-                  | Some h -> readerFlags |> List.contains h
+                  | Some h -> readerFlags |> List.contains h && not ((collidingFields deps).Contains h)
                   | None   -> false)
                  || readerFlags |> List.exists holdsFlag)
         // the components strictly between the common ancestor and the field (the field itself is the last node)
@@ -251,6 +252,8 @@ let private guardedDependencies (r: AstRoot) (deps: AcnInsertedFieldDependencies
         |> List.choose (fun d ->
             match holderSteps r deps d, fieldAndReader r deps d with
             | [], _ | _, None -> None
+            // a local shared by two ACN fields keeps master's code (collidingFields)
+            | _, Some (fieldId, _) when (collidingFields deps).Contains fieldId -> None
             | steps, Some (fieldId, _) -> Some (d, steps, fieldId))
         |> List.groupBy (fun (d, _, _) -> d.asn1Type)
         |> Map.ofList)
@@ -346,4 +349,6 @@ let fieldsReadWhenHolderAbsent (r: AstRoot) (deps: AcnInsertedFieldDependencies)
             | AcnDepPresence _ | AcnDepPresenceStr _ | AcnDepChoiceDeterminant _ -> true)
         |> List.filter (fun d -> not (holderStepsWith false r deps d).IsEmpty)
         |> List.choose (fun d -> fieldAndReader r deps d |> Option.map fst)
+        // a local shared by two ACN fields keeps master's single declaration (collidingFields)
+        |> List.filter (fun fieldId -> not ((collidingFields deps).Contains fieldId))
         |> Set.ofList)

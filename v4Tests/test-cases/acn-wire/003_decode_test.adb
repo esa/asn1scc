@@ -78,6 +78,7 @@ procedure Decode_Test is
    procedure Arg is new Check (WIRE.ArgPDU, WIRE.ArgPDU_ACN_STREAM_SIZE, WIRE.ArgPDU_ACN_Decode);
    procedure OptArg is new Check (WIRE.OptArgPDU, WIRE.OptArgPDU_ACN_STREAM_SIZE, WIRE.OptArgPDU_ACN_Decode);
    procedure Col is new Check (WIRE.ColPDU, WIRE.ColPDU_ACN_STREAM_SIZE, WIRE.ColPDU_ACN_Decode);
+   procedure Col2 is new Check (WIRE.Col2PDU, WIRE.Col2PDU_ACN_STREAM_SIZE, WIRE.Col2PDU_ACN_Decode);
    procedure Abs_Check is new Check (WIRE.AbsPDU, WIRE.AbsPDU_ACN_STREAM_SIZE, WIRE.AbsPDU_ACN_Decode);
    procedure Same is new Check (WIRE.SamePDU, WIRE.SamePDU_ACN_STREAM_SIZE, WIRE.SamePDU_ACN_Decode);
 
@@ -95,6 +96,7 @@ procedure Decode_Test is
    VArg : WIRE.ArgPDU;
    VOptArg : WIRE.OptArgPDU;
    VCol : WIRE.ColPDU;
+   VCol2 : WIRE.Col2PDU;
    VAbs : WIRE.AbsPDU;
    VSame : WIRE.SamePDU;
 begin
@@ -174,6 +176,8 @@ begin
    if VCol.Exist.a /= 1 or else VCol.Exist.y /= 1 or else VCol.y /= 1 or else VCol.tail /= 0 then
       Fail ("ColPDU: value");
    end if;
+   --  a shared local as present-when field: header absent, data present (its size is not in the stream)
+   Col2 ("Col2PDU", (1 => 16#2C#), WIRE.ERR_ACN_DECODE_COL2PDU_DATA, VCol2);
    --  the component is ALWAYS ABSENT
    Abs_Check ("AbsPDU a", (1 => 16#80#), WIRE.ERR_ACN_DECODE_ABSPDU_DATA, VAbs);
    Abs_Check ("AbsPDU c", (1 => 16#00#), 0, VAbs);

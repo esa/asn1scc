@@ -277,6 +277,12 @@ int main(void)
         DECODE(ColPDU, v, 0, 0xE2);
         EXPECT(v.exist.a && v.a.exist.b_h && !v.a_b.exist.h && !v.a_b.exist.w && v.exist.y && v.y == 1 && v.tail == 0);
     }
+    /* a shared local as present-when field: header absent, a-b.h.more = 1 (the local of a.b-h.more too), data present */
+    {
+        Col2PDU v;
+        Col2PDU_Initialize(&v);
+        DECODE(Col2PDU, v, ERR_ACN_DECODE_COL2PDU_DATA, 0x2C);
+    }
     /* the component is ALWAYS ABSENT */
     {
         AbsPDU v;
