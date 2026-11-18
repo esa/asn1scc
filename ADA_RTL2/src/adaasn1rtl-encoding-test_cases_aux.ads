@@ -42,14 +42,15 @@ package adaasn1rtl.encoding.test_cases_aux is
    --  in 1 .. Last_Offset, the value is encoded into a fresh stream of
    --  Size_In_Bytes bytes from bit s (Encode calls the encoder that keeps
    --  the position) and decoded from bit s ('size deduced': the view ends
-   --  with the last byte written). Decode resets its target first and
-   --  validates the decoded value once (Valid); Same compares it with the
-   --  encoded value. Encoding and decoding must succeed, the value must be
-   --  valid and the same. Stops at the first violation, prints the stage
-   --  and the offset, and returns the stage as Result.Step (TC_ENCODE,
-   --  TC_DECODE, TC_VALIDATE_DECODED or TC_EQUAL) with Success => False and
-   --  the codec's error code, or 8 (invalid, different, or an exception,
-   --  also one raised while the stream is allocated).
+   --  with the last byte written). Decode resets its target first. The
+   --  decoder must succeed and stop where the encoder stopped, the decoded
+   --  value must be valid (Valid) and the same as the encoded one (Same).
+   --  Stops at the first violation, prints the stage and the offset, and
+   --  returns the stage as Result.Step (TC_ENCODE, TC_DECODE,
+   --  TC_VALIDATE_DECODED or TC_EQUAL) with Success => False and the codec's
+   --  error code, or 8 (wrong position, invalid, different, or an exception,
+   --  also one raised while the stream is allocated). A stream too large for
+   --  BitStream_init (Size_In_Bytes >= Positive'Last / 8) is not swept.
    procedure Offset_Round_Trips
      (Name          : String;
       Size_In_Bytes : Positive;
@@ -59,9 +60,9 @@ package adaasn1rtl.encoding.test_cases_aux is
         (bs  : in out Bitstream;
          Res : out ASN1_RESULT);
       Decode : not null access procedure
-        (bs    : in out Bitstream;
-         Res   : out ASN1_RESULT;
-         Valid : out Boolean);
+        (bs  : in out Bitstream;
+         Res : out ASN1_RESULT);
+      Valid  : not null access function return Boolean;
       Same   : not null access function return Boolean;
       Result : out TEST_CASE_RESULT);
 

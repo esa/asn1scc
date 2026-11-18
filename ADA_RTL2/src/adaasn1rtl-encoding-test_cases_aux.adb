@@ -162,16 +162,16 @@ package body adaasn1rtl.encoding.test_cases_aux is
         (bs  : in out Bitstream;
          Res : out ASN1_RESULT);
       Decode : not null access procedure
-        (bs    : in out Bitstream;
-         Res   : out ASN1_RESULT;
-         Valid : out Boolean);
+        (bs  : in out Bitstream;
+         Res : out ASN1_RESULT);
+      Valid  : not null access function return Boolean;
       Same   : not null access function return Boolean;
       Result : out TEST_CASE_RESULT)
    is
-      type Phase is (Encoding, Decoding, Comparing);
-      Now   : Phase;
-      Res   : ASN1_RESULT;
-      Valid : Boolean;
+      type Phase is (Encoding, Decoding, Validating, Comparing);
+      Now     : Phase;
+      Res     : ASN1_RESULT;
+      Enc_End : Natural;
 
       procedure Fail
         (s : Positive; Step : TEST_CASE_STEP; Code : Integer; What : String);
@@ -188,6 +188,13 @@ package body adaasn1rtl.encoding.test_cases_aux is
 
    begin
       Result := (Step => TC_DECODE_CORRUPTED, Success => True, ErrorCode => 0);
+      --  BitStream_init and the _aux preconditions need
+      --  Size_In_Bytes < Positive'Last / 8 (else Size_In_Bytes * 8
+      --  overflows): a larger stream cannot be made, the value is not swept
+      --  (a type that large exists in no test; this is not a failure)
+      if Size_In_Bytes >= Positive'Last / 8 then
+         return;
+      end if;
       for s in 1 .. Last_Offset loop
          exit when not Result.Success;
          --  the handler also covers the allocation of the stream
@@ -203,24 +210,35 @@ package body adaasn1rtl.encoding.test_cases_aux is
                         "encoding failed with error code"
                         & Integer'Image (Res.ErrorCode));
                else
+                  Enc_End := bs.Current_Bit_Pos;
                   if Deduced then
-                     bs.End_Bit_Pos := ((bs.Current_Bit_Pos + 7) / 8) * 8;
+                     bs.End_Bit_Pos := ((Enc_End + 7) / 8) * 8;
                   end if;
                   bs.Current_Bit_Pos := s;
                   Now := Decoding;
-                  Decode (bs, Res, Valid);
+                  Decode (bs, Res);
                   if not Res.Success then
                      Fail (s, TC_DECODE, Res.ErrorCode,
                            "decoding failed with error code"
                            & Integer'Image (Res.ErrorCode));
-                  elsif not Valid then
-                     Fail (s, TC_VALIDATE_DECODED, 8,
-                           "the decoded value is invalid");
+                  elsif bs.Current_Bit_Pos /= Enc_End then
+                     Fail (s, TC_DECODE, 8,
+                           "the decoder stopped at bit"
+                           & Integer'Image (bs.Current_Bit_Pos)
+                           & ", the encoder at bit"
+                           & Integer'Image (Enc_End));
                   else
-                     Now := Comparing;
-                     if not Same.all then
-                        Fail (s, TC_EQUAL, 8,
-                              "the decoded value differs from the encoded");
+                     Now := Validating;
+                     if not Valid.all then
+                        Fail (s, TC_VALIDATE_DECODED, 8,
+                              "the decoded value is invalid");
+                     else
+                        Now := Comparing;
+                        if not Same.all then
+                           Fail (s, TC_EQUAL, 8,
+                                 "the decoded value differs from the "
+                                 & "encoded");
+                        end if;
                      end if;
                   end if;
                end if;
@@ -229,14 +247,16 @@ package body adaasn1rtl.encoding.test_cases_aux is
             when E : others =>
                Fail (s,
                      (case Now is
-                         when Encoding  => TC_ENCODE,
-                         when Decoding  => TC_DECODE,
-                         when Comparing => TC_EQUAL),
+                         when Encoding   => TC_ENCODE,
+                         when Decoding   => TC_DECODE,
+                         when Validating => TC_VALIDATE_DECODED,
+                         when Comparing  => TC_EQUAL),
                      8,
                      (case Now is
-                         when Encoding  => "allocating the stream or encoding",
-                         when Decoding  => "decoding",
-                         when Comparing => "comparing")
+                         when Encoding   => "stream allocation or encoding",
+                         when Decoding   => "decoding",
+                         when Validating => "validating",
+                         when Comparing  => "comparing")
                      & " raised " & Ada.Exceptions.Exception_Name (E));
          end;
       end loop;
