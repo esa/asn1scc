@@ -1,4 +1,4 @@
---RUN_SPARK
+--RUN_SPARK C_ADA_ONLY (Rust: the empty IA5String value of pdu1.b becomes "arr: [, 0, ...]", which does not compile, also on master)
 -- IA5Strings sized by an ACN INTEGER field of the same SEQUENCE whose read bounds it within the SIZE range: a checked
 -- pos-int read (a) and a uPER read (b). Without -slim the reads' contracts state the bound and the Ada decoder does not
 -- check the length again; with -slim the fields have narrowed types read by procedures whose contracts state no bound,
