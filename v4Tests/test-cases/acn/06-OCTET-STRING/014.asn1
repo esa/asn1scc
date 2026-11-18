@@ -1,0 +1,54 @@
+--RUN_SPARK
+-- Encoders of chained aliases: a type assignment that is a reference with constraints of its own is built in one
+-- construction level per alias, each creating a validator under the type assignment's name, and its encoder comes
+-- from an inner level. The encoder must skip the validity call only when the function emitted under that name cannot
+-- fail: Alias, FlagsAlias, FxA restate what their typedef holds (no call in C and Ada), I1 / I3's range is enforced
+-- by the Ada subtype only; Outer, Plain, Mid, Leaf, I2 (value constraints at some level of the chain) must call it.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    Base  ::= OCTET STRING (SIZE(3))
+    Alias ::= Base (SIZE(3))
+    Outer ::= Alias ('010203'H)
+    Plain ::= Outer
+    Mid   ::= Alias ('010203'H | '040506'H)
+    -- Leaf restates Mid's value set: the automatic test values of a narrower value set at a reference ('010203'H)
+    -- still take Mid's values (master), so the test would fail in encoding
+    Leaf  ::= Mid ('010203'H | '040506'H)
+
+    Flags      ::= SEQUENCE (SIZE(2)) OF BOOLEAN
+    FlagsAlias ::= Flags (SIZE(2))
+
+    I0 ::= INTEGER (0..255)
+    I1 ::= I0 (0..100)
+    I2 ::= I1 (1 | 3 | 5)
+    I3 ::= I2
+
+    Quad ::= OCTET STRING (SIZE(4))
+    Fx  ::= SEQUENCE { q Quad, flag BOOLEAN }
+    FxA ::= Fx (WITH COMPONENTS { q (SIZE(4)), flag })
+
+    PDU ::= SEQUENCE {
+        a Alias,
+        b Outer,
+        c Leaf,
+        d FlagsAlias,
+        e I2,
+        f Base (SIZE(3)),
+        g FxA OPTIONAL,
+        h Plain,
+        i I3,
+        j Mid,
+        k I1
+    }
+
+    -- g is absent: the front end reports any value of a WITH COMPONENTS (SIZE(n)) constraint on an OCTET STRING
+    -- component as not conforming
+    pdu1 PDU ::= {
+        a '010203'H, b '010203'H, c '010203'H, d {TRUE, FALSE}, e 3, f '0A0B0C'H,
+        h '010203'H, i 5, j '040506'H, k 100
+    }
+
+END
+
+--TCLS     PDU[] Alias[] Outer[] Plain[] Leaf[] FlagsAlias[] I2[] I3[] FxA[]
+--TCLS     PDU[] {a[], b[], c[], d[], e[encoding pos-int, size 8], f[], g[], h[], i[], j[], k[encoding pos-int, size 7]}

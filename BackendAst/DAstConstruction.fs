@@ -990,6 +990,18 @@ let private mapTypeId (r:Asn1AcnAst.AstRoot)  (deps:Asn1AcnAst.AcnInsertedFieldD
 *)
 
 
+/// Runs f with stdout and stderr discarded (cycle 15a2: the first construction of a type assignment, whose output the
+/// second construction prints again).
+let private withConsoleSilenced (f: unit -> 'a) : 'a =
+    let out, err = Console.Out, Console.Error
+    Console.SetOut TextWriter.Null
+    Console.SetError TextWriter.Null
+    try
+        f ()
+    finally
+        Console.SetOut out
+        Console.SetError err
+
 let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (tas:Asn1AcnAst.TypeAssignment) (us:State)=
     // For languages that emit error codes into a per-type namespace (e.g. Python's nested
     // Encode/DecodeConstants classes), reset the error-code NAME uniqueness set at each type
@@ -997,7 +1009,43 @@ let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnA
     // class) while avoiding the pathological "_2_2_2..." chains that a single flat global set
     // produces across type assignments. Error-code VALUES (currErrorCode) stay globally monotonic.
     let us = if lm.lg.scopeErrorCodeNamesPerTypeAssignment then {us with curErrCodeNames = Set.empty} else us
+    // Cycle 15a2: a type assignment that is a reference (Outer ::= Alias ('010203'H), Alias ::= Base (SIZE(3))) is
+    // built in one construction level per alias of the chain (Asn1Fold folds the resolved type first), every level
+    // creating an IsConstraintValid under the type assignment's name; the encoder is built, or lent upward, at an inner
+    // level, before the function that is finally emitted under the name (the type assignment's level) exists. A first
+    // construction from the same state gives the outcome of every validator as emitted; its state is discarded (error
+    // codes, ICD entries and encode outcomes come from the second construction, which starts from the same state as
+    // without it), and its console output is dropped (the second one prints the same warnings).
+    let firstOutcomes =
+        match tas.Type.Kind with
+        | Asn1AcnAst.ReferenceType _ ->
+            let _, first = TL "mapType_validatorOutcomes" (fun () -> withConsoleSilenced (fun () -> mapType r icdStgFileName deps lm m (tas.Type, us)))
+            Some first.validatorOutcomes
+        | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
+        | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.TimeType _ | Asn1AcnAst.BitString _
+        | Asn1AcnAst.Boolean _ | Asn1AcnAst.Enumerated _ | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _
+        | Asn1AcnAst.Choice _ | Asn1AcnAst.ObjectIdentifier _ ->
+            // not a reference: the type assignment's encoder is built at the level that creates the emitted validator
+            None
+    // only the names this type assignment creates (or changes): for any other function the encoders keep the rule of
+    // DAstUtilFunctions.encoderSkipsValidation for functions not in the map
+    let us =
+        match firstOutcomes with
+        | Some first -> {us with emittedValidatorOutcomes = first |> Map.filter (fun k v -> us.validatorOutcomes.TryFind k <> Some v)}
+        | None       -> {us with emittedValidatorOutcomes = Map.empty}
     let newType, ns = TL "mapType" (fun () -> mapType r icdStgFileName deps lm m (tas.Type, us))
+    // The premise of the first construction: validators never read encoder state, so both constructions create the
+    // same validators with the same outcomes. If it ever breaks, an encoder may skip a validator that can fail.
+    match firstOutcomes with
+    | Some first when ns.validatorOutcomes <> first ->
+        let differing =
+            Seq.append (Map.keys first) (Map.keys ns.validatorOutcomes) |> Seq.distinct |>
+            Seq.filter (fun k -> first.TryFind k <> ns.validatorOutcomes.TryFind k) |> Seq.toList
+        raise (BugErrorException (sprintf "%s.%s: the validator outcomes of the first construction differ from the second's (%A)" m.Name.Value tas.Name.Value differing))
+    | Some _
+    | None   -> ()
+    // no stale map reaches the next type assignment or the value assignments (mapVas)
+    let ns = {ns with emittedValidatorOutcomes = Map.empty}
     {
         TypeAssignment.Name = tas.Name
         c_name = tas.c_name
@@ -1330,7 +1378,7 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         //Seq.groupBy id |>
         //Seq.map(fun (id, lst) -> (id, Seq.length lst)) |>
         //Map.ofSeq
-    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; validatorOutcomes=Map.empty; encodeBodies=Map.empty; siteValidatorCalls=Map.empty; acnSequenceCheckedSelectors=[]}
+    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; validatorOutcomes=Map.empty; encodeBodies=Map.empty; siteValidatorCalls=Map.empty; acnSequenceCheckedSelectors=[]; emittedValidatorOutcomes=Map.empty}
     let sortedTypes = sortTypes r
     //let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (tas:Asn1AcnAst.TypeAssignment) (us:State)=
 

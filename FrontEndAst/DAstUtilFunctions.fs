@@ -1110,26 +1110,39 @@ let encodeCallTarget (lm:LanguageMacros) (sCallerModName:string) (us:State) (cod
 
 /// Coverage step 12a: the encoder of a type whose IsConstraintValid cannot fail (11b outcome AlwaysValid) does not
 /// call it; the template emits a comment instead of the call and its check. Decoders are unchanged.
-let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) (bodyOutcome:EncodeOutcome) : bool =
-    let alwaysValid =
+/// emitted = State.emittedValidatorOutcomes (cycle 15a2): the outcome of the functions the type assignment under
+/// construction emits, from its first construction (DAstConstruction.mapTas).
+let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (emitted: Map<string, ValidationOutcome>) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) (bodyOutcome:EncodeOutcome) : bool =
+    // The merged type of a reference with constraints at the site (Outer ::= Alias ('010203'H), ByteFlags ::= BitFlags
+    // (SIZE(8))) builds the encoder that the type assignment lends (DAstUPer.createReferenceFunction when the encodings
+    // differ, AcnReference.createReferenceFunction_inline), but the IsConstraintValid emitted under the name the encoder
+    // calls is the type assignment's, created after it; a chained alias creates one more validator per alias in between,
+    // under the same name. The encoder's own isValidFunc is the one of the level that builds it, so the decision reads
+    // the outcome of the function emitted under that name when the first construction knows it.
+    let calledFunctionsOutcome =
         match isValidFunc with
-        | Some {funcName = Some _; outcome = AlwaysValid}  -> true
-        | Some {funcName = Some _; outcome = MayBeInvalid}
+        | Some {funcName = Some fn}  -> emitted.TryFind (encodeCallKey lm t.id.ModName fn)
         | Some {funcName = None}
-        | None                                             -> false
-    // The merged type of a reference with constraints at the site (ByteFlags ::= BitFlags (SIZE(8))) can lend its
-    // encoder to the type assignment (DAstUPer.createReferenceFunction when the encodings differ), but the
-    // IsConstraintValid emitted under that name is the reference's, which calls the wider referenced type's
-    // function and checks the site's constraints: the merged type's outcome is not that function's (as for 11b's
-    // referencedNotCalled). Since Issue 46 both check the same constraints on the same typedef, so a merged
-    // AlwaysValid no longer hides a check that can fail; but in Ada a site range that the subtype enforces
-    // (MyPDU ::= T1 (0 .. 100)) makes the merged type AlwaysValid while the reference's function still
-    // carries the check (MayBeInvalid), so the encoder keeps calling the function it names.
+        | None                       -> None
+    let alwaysValid =
+        match calledFunctionsOutcome, isValidFunc with
+        | Some AlwaysValid, _                                       -> true
+        | Some MayBeInvalid, _                                      -> false
+        | None, Some {funcName = Some _; outcome = AlwaysValid}     -> true
+        | None, Some {funcName = Some _; outcome = MayBeInvalid}
+        | None, Some {funcName = None}
+        | None, None                                                -> false
+    // Outside the map (no first construction, or a function of another type assignment): the type's own outcome is
+    // the called function's unless the type is the merged copy of a reference with constraints at the site, whose
+    // function is the reference's (it calls the referenced type's function and checks the site's constraints; in Ada
+    // a site range that the subtype enforces (MyPDU ::= T1 (0 .. 100)) makes the merged type AlwaysValid while the
+    // reference's function still carries the check): keep the call then.
     let outcomeIsTheCalledFunctions =
-        match t.inheritInfo with
-        | Some {hasAdditionalConstraints = true}   -> false
-        | Some {hasAdditionalConstraints = false}
-        | None                                     -> true
+        match calledFunctionsOutcome, t.inheritInfo with
+        | Some _, _                                         -> true
+        | None, Some {hasAdditionalConstraints = true}      -> false
+        | None, Some {hasAdditionalConstraints = false}
+        | None, None                                        -> true
     // (a variable-size OCTET / BIT STRING encoding starts with its own length check, which sets result); since 12b
     // also any body whose writes are known: the encoder initialises result only where the body needs it
     let encodingWritesNoResult =

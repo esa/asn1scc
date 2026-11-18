@@ -1138,6 +1138,8 @@ type private DeferredRefCtx = {
     // --acn-v2 mode; without it every closure-converted reference (and
     // everything reachable only through one) disappears from the document.
     refIcd:         IcdArgAux option
+    // cycle 15a2: State.emittedValidatorOutcomes when the context is built (DAstUtilFunctions.encoderSkipsValidation)
+    emittedValidatorOutcomes: Map<string, ValidationOutcome>
 }
 
 /// Coverage step 14e (E3): the PatchDet of the size field of a CONTAINING region cannot fail when it is the field's only
@@ -1498,7 +1500,7 @@ let private emitSpecializedFunctionDecl
 
     // coverage step 12a / 12b: as AcnFunctionWrapper.createAcnFunction
     let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
-    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t bodyOutcome
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.emittedValidatorOutcomes ctx.isValidFunc ctx.t bodyOutcome
     let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
     // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
     let specBodyContent =
@@ -1556,7 +1558,7 @@ let private emitSpecializedFunctionDecl
 /// Its basis is the compiler's analysis (EncodeOutcome.specialisedCall): specialised functions have no contract.
 let private specialisedCallOutcome (ctx: DeferredRefCtx) (specFuncName: string) (finalBody: AcnFuncBodyResult) : EncodeOutcome =
     let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
-    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t bodyOutcome
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.emittedValidatorOutcomes ctx.isValidFunc ctx.t bodyOutcome
     let isValidFuncName = match ctx.isValidFunc with None -> None | Some f -> f.funcName
     let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
     EncodeOutcome.specialisedCall specFuncName (bodyOutcome.canFail || (ctx.lm.lg.encodeCallValidates && bValidityCalled))
@@ -1791,6 +1793,7 @@ let private createDeferredReferenceFunction
                 typeDefinition = typeDefinition
                 isValidFunc    = isValidFunc
                 refIcd         = refIcd
+                emittedValidatorOutcomes = us.emittedValidatorOutcomes
             }
 
             // Generate body content — dispatched on the 3-way match.  Each branch
