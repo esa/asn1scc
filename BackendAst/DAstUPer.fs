@@ -1294,11 +1294,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
             let childrenAuxiliaries = childrenContent3 |> List.collect(fun (_,_,_,a) -> a)
             let introSnap = nestingScope.nestingLevel = 0I
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
-            // coverage step 14c2a: 2^nIndexSizeInBits alternatives that cannot fail (DecodeOutcome.uperChoiceFullIndex)
+            // coverage step 14c2a: 2^nIndexSizeInBits alternatives that cannot fail; cycle 15a: also alternatives that
+            // may fail, when every one writes result (DecodeOutcome.uperChoiceUnguarded): the index read cannot fail and
+            // covers every alternative, so the `case` needs no guard
             let ret =
-                match codec, bOneAlternative, DecodeOutcome.uperChoiceFullIndex r lm o with
+                match codec, bOneAlternative, DecodeOutcome.uperChoiceUnguarded r lm o with
                 | Decode, true, _                    -> childrenContent.Head
-                | Decode, false, Some (nFullBits, _) -> lm.uper.choice_fullIndex pp (lm.lg.getAccess p.accessPath) childrenContent sChoiceIndexName td nFullBits
+                | Decode, false, Some nFullBits      -> lm.uper.choice_fullIndex pp (lm.lg.getAccess p.accessPath) childrenContent sChoiceIndexName td nFullBits
                 | Decode, false, None
                 | Encode, _, _                       -> choice pp (lm.lg.getAccess p.accessPath) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits introSnap codec
             let ret = lm.lg.generateChoiceProof r UPER t o ret p.accessPath codec

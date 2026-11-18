@@ -298,6 +298,28 @@ and uperChoiceFullIndex (r:AstRoot) (lm:LanguageMacros) (o:Choice) : (BigInteger
         | AlwaysSucceeds w :: rest when rest |> List.forall (fun x -> x = AlwaysSucceeds w) -> Some (nBits, w)
         | _ -> None)
 
+/// Coverage cycle 15a (C): the CHOICE decode arm writes result on every path (a MayFail part does, by the classifier's
+/// rule; AlwaysSucceeds WritesResult does) or it does not (AlwaysSucceeds NoResultWrite: an arm without a statement or
+/// with only _FullRange calls).
+and choiceArmWritesResult (outcome:DecodeOutcome) : bool =
+    match outcome with
+    | MayFail                       -> true
+    | AlwaysSucceeds WritesResult   -> true
+    | AlwaysSucceeds NoResultWrite  -> false
+
+/// Coverage cycle 15a (C): a uPER CHOICE whose index fills its field (2^k alternatives, fullIndexBits) is decoded with
+/// the _FullRange twin and an unguarded `case` (choice_fullIndex): the 14c2a shape (uperChoiceFullIndex), and also when
+/// some alternative may fail, provided every alternative writes result on every path (choiceArmWritesResult). Under the
+/// decoder precondition the guarded read could not fail and returned 0 .. 2^k - 1, so its `if` was never FALSE; with
+/// every arm writing result, the CHOICE still writes result.Success on every path (the rule of a MayFail part) and stays
+/// MayFail. A CHOICE with an arm that writes no result keeps the guard (George, 14c2a question B (a)). Returns k.
+and uperChoiceUnguarded (r:AstRoot) (lm:LanguageMacros) (o:Choice) : BigInteger option =
+    match uperChoiceFullIndex r lm o with
+    | Some (nBits, _) -> Some nBits
+    | None            ->
+        fullIndexBits lm o.children.Length
+        |> Option.filter (fun _ -> o.children |> List.forall (fun c -> choiceArmWritesResult (uperChild r lm c.Type)))
+
 /// A direct NULL child has no decode statement in Ada (a reference to a NULL type is a call).
 and uperChildHasStatement (childType:Asn1Type) : bool =
     match childType.Kind with
@@ -342,10 +364,11 @@ let rec uperErrorCodeSummary (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : Erro
     | NullType _ -> leaf false
     | Enumerated o -> leaf (uperEnumFullIndex r lm o).IsNone                          // _FullRange index: no ErrorCode
     | Choice o ->
-        match uperChoiceFullIndex r lm o with
+        match uperChoiceUnguarded r lm o with
         | None   -> leaf true                                                         // choice_decode: ErrorCode before the index
         | Some _ ->
-            // choice_fullIndex writes nothing before the alternatives: one of them runs (the index covers them all)
+            // choice_fullIndex writes nothing before the alternatives: one of them runs (the index covers them all;
+            // 14c2a, and since cycle 15a also with alternatives that may fail)
             let alternatives = o.children |> List.map (fun c -> uperErrorCodeSummary r lm c.Type)
             { writesE    = alternatives |> List.forall (fun s -> s.writesE)
               exitNeedsE = alternatives |> List.exists (fun s -> s.exitNeedsE) }
@@ -776,16 +799,33 @@ and acnChoiceEnumLocal (r:AstRoot) (deps:AcnInsertedFieldDependencies) (t:Asn1Ty
             | false, _                          -> noAlwaysAbsent
 
 and acnChoiceFullIndex (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (o:Choice) : (BigInteger * ResultWrite) option =
-    let selfSelected =
-        o.acnProperties.enumDeterminant.IsNone
-        && o.children |> List.forall (fun c -> c.acnPresentWhenConditions.IsEmpty && c.Optionality <> Some ChoiceAlwaysAbsent)
-    match selfSelected with
+    match acnChoiceSelfSelected o with
     | false -> None
     | true  ->
         fullIndexBits lm o.children.Length |> Option.bind (fun nBits ->
             match o.children |> List.map (fun c -> acnChoiceAlternative r deps lm c.Type |> fst) with
             | AlwaysSucceeds w :: rest when rest |> List.forall (fun x -> x = AlwaysSucceeds w) -> Some (nBits, w)
             | _ -> None)
+
+/// An ACN CHOICE that decodes its own index (AcnChoice CEC_uper: no determinant, no present-when) without ALWAYS ABSENT
+/// alternatives (their Ada arm only writes a failure; with a guarded index they carry ASN1SCC-COV-001).
+and acnChoiceSelfSelected (o:Choice) : bool =
+    o.acnProperties.enumDeterminant.IsNone
+    && o.children |> List.forall (fun c -> c.acnPresentWhenConditions.IsEmpty && c.Optionality <> Some ChoiceAlwaysAbsent)
+
+/// Coverage cycle 15a (C): uperChoiceUnguarded for an ACN CHOICE that decodes its own index (acnChoiceSelfSelected):
+/// Choice_fullIndex (the _FullRange read, unguarded `case`) for the 14c2a shape (acnChoiceFullIndex) and when every
+/// alternative writes result on every path (an alternative without content is decode_nullType: result := (true, 0)).
+/// Returns k.
+and acnChoiceUnguarded (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (o:Choice) : BigInteger option =
+    match acnChoiceFullIndex r deps lm o with
+    | Some (nBits, _) -> Some nBits
+    | None            ->
+        match acnChoiceSelfSelected o with
+        | false -> None
+        | true  ->
+            fullIndexBits lm o.children.Length
+            |> Option.filter (fun _ -> o.children |> List.forall (fun c -> choiceArmWritesResult (acnChoiceAlternative r deps lm c.Type |> fst)))
 
 /// The decode part of a CHOICE alternative (AcnChoice.handleChild): its outcome and ErrorCode summary.
 and acnChoiceAlternative (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (childType:Asn1Type) : DecodeOutcome * ErrorCodeSummary =
@@ -909,9 +949,10 @@ and acnErrorCodeSummary (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:Lang
         | SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> leaf true
     | NullType n -> leaf n.acnProperties.encodingPattern.IsSome                       // Null_pattern: the call, then ErrorCode
     | Choice ch ->
-        match ch.acnProperties.enumDeterminant, acnChoiceFullIndex r deps lm ch with
+        match ch.acnProperties.enumDeterminant, acnChoiceUnguarded r deps lm ch with
         | None, Some _ ->
-            // Choice_fullIndex writes nothing before the alternatives: one of them runs (the index covers them all)
+            // Choice_fullIndex writes nothing before the alternatives: one of them runs (the index covers them all;
+            // 14c2a, and since cycle 15a also with alternatives that may fail)
             let alternatives = ch.children |> List.map (fun c -> acnChoiceAlternative r deps lm c.Type |> snd)
             { writesE    = alternatives |> List.forall (fun s -> s.writesE)
               exitNeedsE = alternatives |> List.exists (fun s -> s.exitNeedsE) }
@@ -1031,7 +1072,7 @@ let acnChoiceSelectionAssigns (r:AstRoot) (deps:AcnInsertedFieldDependencies) (l
     match t.Kind with
     | Choice o ->
         match o.acnProperties.enumDeterminant with
-        | None   -> (acnChoiceFullIndex r deps lm o).IsSome
+        | None   -> (acnChoiceUnguarded r deps lm o).IsSome                              // cycle 15a: also arms that may fail
         | Some _ -> acnChoiceEnumLocal r deps t o
     | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
     | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | NullType _ | ReferenceType _ -> false
@@ -1055,11 +1096,12 @@ let rec acnChoiceChildAssigns (r:AstRoot) (deps:AcnInsertedFieldDependencies) (l
 
 /// uPER *_Decode_aux: does it write all of val on every path?
 let uperValWrite (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
-    // a uPER CHOICE decoded in place reaches an arm on every path only with a full index (choice_fullIndex: no guard);
-    // a reference is decoded in place when it is not equivalent to its type assignment (uperValInitUnused)
+    // a uPER CHOICE decoded in place reaches an arm on every path only with a full index (choice_fullIndex: no guard;
+    // cycle 15a: also when an arm may fail, uperChoiceUnguarded); a reference is decoded in place when it is not
+    // equivalent to its type assignment (uperValInitUnused)
     let rec choiceAssigns (c:Asn1Type) =
         match c.Kind with
-        | Choice o -> (uperChoiceFullIndex r lm o).IsSome
+        | Choice o -> (uperChoiceUnguarded r lm o).IsSome
         | ReferenceType o ->
             match o.encodingOptions with
             | Some _ -> false
@@ -1076,6 +1118,7 @@ let acnValWrite (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacr
     valWrite (acn r deps lm) (acnChoiceChildAssigns r deps lm) (fun a -> fst (acnInsertedFieldPart r lm a)) acnHasDecodeContent true r.args.acnDeferred lm t
 
 /// Coverage step 14c2a: a decoder whose body is a CHOICE with a full index writes all of val on every path (each arm
+/// runs, since cycle 15a also when an arm may fail: uperChoiceUnguarded / acnChoiceUnguarded; each arm
 /// assigns `val := T'(kind => ..., x => init)`), yet val stays `in out`: a CHOICE is a variant record, and the
 /// discriminant of an `out` parameter is read at the call (gnatprove "val.x.kind is not set" in the caller). Its
 /// initial value is then never read: gnatprove "unused initial value of val", suppressed on the declaration
@@ -1083,10 +1126,10 @@ let acnValWrite (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacr
 /// decoded by a call passes val on (a read); one decoded in place has the referenced body.
 let rec uperValInitUnused (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : bool =
     match t.Kind with
-    | Choice _ ->
+    | Choice o ->
         match uper r lm t with
         | AlwaysSucceeds _ -> true
-        | MayFail          -> false
+        | MayFail          -> (uperChoiceUnguarded r lm o).IsSome                   // cycle 15a: every path runs an arm
     | ReferenceType o ->
         match o.encodingOptions with
         | Some _ -> false
@@ -1100,10 +1143,10 @@ let rec uperValInitUnused (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : bool =
 /// ACN twin of uperValInitUnused (the reference rules of acn).
 let rec acnValInitUnused (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : bool =
     match t.Kind with
-    | Choice _ ->
+    | Choice o ->
         match acn r deps lm t with
         | AlwaysSucceeds _ -> true
-        | MayFail          -> false
+        | MayFail          -> (acnChoiceUnguarded r deps lm o).IsSome              // cycle 15a: every path runs an arm
     | ReferenceType o ->
         match o.encodingOptions, o.hasExtraConstrainsOrChildrenOrAcnArgs with
         | Some _, _         -> false
