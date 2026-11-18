@@ -501,6 +501,8 @@ type LangGeneric_a() =
         override _.typedefConstraintModel = TypedefsEnforceRanges
         // The discriminant of a CHOICE is an enumeration of its alternatives (coverage step 14i).
         override _.choiceSelectorHoldsOnlyAlternatives = true
+        // coverage cycle 15a (A-str): every Ada ACN integer read tests minVal .. maxVal in code (see Language.fs)
+        override _.acnIntReadChecksFieldRange _ = true
         override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValidPrimitives

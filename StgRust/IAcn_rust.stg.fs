@@ -113,16 +113,16 @@ type IAcn_rust() =
             acn_rust.Acn_String_Ascii_FixSize  p sErrCode nAsn1Max codec
         override this.Acn_String_Ascii_Null_Terminated  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (arruNullBytes:seq<byte>) (sType:string) (codec:Codec) =
             acn_rust.Acn_String_Ascii_Null_Terminated  p sErrCode nAsn1Max arruNullBytes sType codec
-        override this.Acn_String_Ascii_External_Field_Determinant  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (sExtFld:string) (sType:string) (codec:Codec) =
-            acn_rust.Acn_String_Ascii_External_Field_Determinant  p sErrCode nAsn1Max sExtFld sType codec
+        override this.Acn_String_Ascii_External_Field_Determinant  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (sExtFld:string) (sType:string) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.Acn_String_Ascii_External_Field_Determinant  p sErrCode nAsn1Max sExtFld sType soNoCheckNote codec
         override this.Acn_String_Ascii_Internal_Field_Determinant  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (nAsn1Min:BigInteger) (nInternalLengthDeterminantSizeInBits:BigInteger) (sType:string) (codec:Codec) =
             acn_rust.Acn_String_Ascii_Internal_Field_Determinant  p sErrCode nAsn1Max nAsn1Min nInternalLengthDeterminantSizeInBits sType codec
         override this.Acn_String_CharIndex_FixSize  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (arrnAlphabetAsciiCodes:seq<BigInteger>) (nCharSetSize:BigInteger) (td:FE_StringTypeDefinition) (nCharSize:BigInteger) (sType:string) (codec:Codec) =
             acn_rust.Acn_String_CharIndex_FixSize  p sErrCode nAsn1Max arrnAlphabetAsciiCodes nCharSetSize td nCharSize sType codec
-        override this.Acn_String_CharIndex_External_Field_Determinant  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (arrnAlphabetAsciiCodes:seq<BigInteger>) (nCharSetSize:BigInteger) (sExtFld:string) (td:FE_StringTypeDefinition) (nCharSize:BigInteger) (sType:string) (codec:Codec) =
-            acn_rust.Acn_String_CharIndex_External_Field_Determinant  p sErrCode nAsn1Max arrnAlphabetAsciiCodes nCharSetSize sExtFld td nCharSize sType codec
-        override this.Acn_IA5String_CharIndex_External_Field_Determinant  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (sExtFld:string) (td:FE_StringTypeDefinition) (nCharSize:BigInteger) (nRemainingBits:BigInteger) (sType:string) (codec:Codec) =
-            acn_rust.Acn_IA5String_CharIndex_External_Field_Determinant  p sErrCode nAsn1Max sExtFld td nCharSize nRemainingBits sType codec
+        override this.Acn_String_CharIndex_External_Field_Determinant  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (arrnAlphabetAsciiCodes:seq<BigInteger>) (nCharSetSize:BigInteger) (sExtFld:string) (td:FE_StringTypeDefinition) (nCharSize:BigInteger) (sType:string) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.Acn_String_CharIndex_External_Field_Determinant  p sErrCode nAsn1Max arrnAlphabetAsciiCodes nCharSetSize sExtFld td nCharSize sType soNoCheckNote codec
+        override this.Acn_IA5String_CharIndex_External_Field_Determinant  (p:string) (sErrCode:string) (nAsn1Max:BigInteger) (sExtFld:string) (td:FE_StringTypeDefinition) (nCharSize:BigInteger) (nRemainingBits:BigInteger) (sType:string) (soNoCheckNote:string option) (codec:Codec) =
+            acn_rust.Acn_IA5String_CharIndex_External_Field_Determinant  p sErrCode nAsn1Max sExtFld td nCharSize nRemainingBits sType soNoCheckNote codec
         override this.oct_external_field  (sTypedefName:string) (p:string) (sAcc:string) (noSizeMin:BigInteger option) (noSizeMax:BigInteger option) (sExtFld:string) (bIsUnsigned:bool) (nAlignSize:BigInteger) (sErrCode:string) (codec:Codec) =
             acn_rust.oct_external_field  sTypedefName p sAcc noSizeMin noSizeMax sExtFld bIsUnsigned nAlignSize sErrCode codec
         override this.oct_external_field_fix_size  (sTypedefName:string) (p:string) (sAcc:string) (noSizeMin:BigInteger option) (nSizeMax:BigInteger) (sExtFld:string) (bIsUnsigned:bool) (nAlignSize:BigInteger) (sErrCode:string) (codec:Codec) =

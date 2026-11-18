@@ -855,8 +855,13 @@ result.ErrorCode := <sErrCode>;
 >>
 
 
-Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_External_Field_Determinant(bs, <p>);"
-Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
+Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType, soNoCheckNote) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_External_Field_Determinant(bs, <p>);"
+Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType, soNoCheckNote) ::= <<
+<if(soNoCheckNote)>
+<soNoCheckNote>
+adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_External_Field_Determinant(bs, <rtlModuleName()>.Asn1Int'Base(<sExtFld>), <p>, result);
+result.ErrorCode := <sErrCode>;
+<else>
 --  the length read from the stream, checked in its own type before it is converted (q/issues.md Issue 64)
 if <sExtFld> in 0 .. <nAsn1Max> then
     adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_External_Field_Determinant(bs, <rtlModuleName()>.Asn1Int'Base(<sExtFld>), <p>, result);
@@ -866,6 +871,7 @@ else
     result.Success := False;  --COVERAGE_IGNORE
 end if;
 result.ErrorCode := <sErrCode>;
+<endif>
 >>
 
 
@@ -888,8 +894,13 @@ result.ErrorCode := <sErrCode>;
 >>
 
 
-Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <p>);"
-Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType, soNoCheckNote) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <p>);"
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType, soNoCheckNote) ::= <<
+<if(soNoCheckNote)>
+<soNoCheckNote>
+adaasn1rtl.encoding.acn.Acn_Dec_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <rtlModuleName()>.Asn1Int'Base(<sExtFld>), <p>, result);
+result.ErrorCode := <sErrCode>;
+<else>
 --  the length read from the stream, checked in its own type before it is converted (q/issues.md Issue 64)
 if <sExtFld> in 0 .. <nAsn1Max> then
     adaasn1rtl.encoding.acn.Acn_Dec_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <rtlModuleName()>.Asn1Int'Base(<sExtFld>), <p>, result);
@@ -899,11 +910,17 @@ else
     result.Success := False;  --COVERAGE_IGNORE
 end if;
 result.ErrorCode := <sErrCode>;
+<endif>
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <p>);"
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType, soNoCheckNote) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <p>);"
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType, soNoCheckNote) ::= <<
+<if(soNoCheckNote)>
+<soNoCheckNote>
+adaasn1rtl.encoding.acn.Acn_Dec_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <rtlModuleName()>.Asn1Int'Base(<sExtFld>), <p>, result);
+result.ErrorCode := <sErrCode>;
+<else>
 --  the length read from the stream, checked in its own type before it is converted (q/issues.md Issue 64)
 if <sExtFld> in 0 .. <nAsn1Max> then
     adaasn1rtl.encoding.acn.Acn_Dec_String_CharIndex_External_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <rtlModuleName()>.Asn1Int'Base(<sExtFld>), <p>, result);
@@ -913,6 +930,7 @@ else
     result.Success := False;  --COVERAGE_IGNORE
 end if;
 result.ErrorCode := <sErrCode>;
+<endif>
 >>
 
 

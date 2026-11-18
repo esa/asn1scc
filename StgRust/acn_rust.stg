@@ -674,8 +674,8 @@ Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sT
 <A(sErrCode)>
 >>
 
-Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= "acn::acn_enc_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);"
-Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
+Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType, soNoCheckNote) ::= "acn::acn_enc_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);"
+Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType, soNoCheckNote) ::= <<
 {
     let ok = acn::acn_dec_string_ascii_external_field_determinant(pBitStrm, <nAsn1Max>, <sExtFld> as i64, &mut (<p>).arr);
     ret = ok;
@@ -710,12 +710,12 @@ Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCode
 <A(sErrCode)>
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType, soNoCheckNote) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 acn::acn_enc_string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, &ALLOWED_CHAR_SET, &(<p>).arr);
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType, soNoCheckNote) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 {
     let ok = acn::acn_dec_string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, &ALLOWED_CHAR_SET, <sExtFld> as i64, &mut (<p>).arr);
@@ -725,11 +725,11 @@ Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, ar
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType, soNoCheckNote) ::= <<
 acn::acn_enc_ia5string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, &(<p>).arr);
 >>
 
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType, soNoCheckNote) ::= <<
 {
     let ok = acn::acn_dec_ia5string_char_index_external_field_determinant(pBitStrm, <nAsn1Max>, <sExtFld> as i64, &mut (<p>).arr);
     ret = ok;

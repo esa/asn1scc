@@ -834,6 +834,15 @@ type ILangGeneric () =
     abstract member decodeOneValueWithoutRead : bool
     default _.decodeOneValueWithoutRead = false
 
+    /// Coverage cycle 15a (A-str): whether the decoder of an ACN INTEGER field (without mapping function) of this
+    /// encoding rejects, in executable code, a value outside the field's concrete range (so the decoded value is within it
+    /// also under -gnatp): Ada every class (Acn_Dec_*_ConstSize* / ASCII / BCD take minVal .. maxVal and test them,
+    /// adaasn1rtl-encoding-acn.adb; Integer_uPER: Dec_ConstraintWholeNumber, adaasn1rtl-encoding.adb); C only
+    /// Integer_uPER (BitStream_DecodeConstraint[Pos]WholeNumber; the C ConstSize readers take no bounds); the others: none
+    /// known. Must agree with what AcnPrimitives.createAcnIntegerFunctionInternal emits.
+    abstract member acnIntReadChecksFieldRange : IntEncodingClass -> bool
+    default _.acnIntReadChecksFieldRange _ = false
+
     /// Coverage step 14c3: a decoder SEQUENCE joins its parts by what they write, as the encoders do
     /// (DAstUtilFunctions.nestEncodeParts): after a part that writes no ret (an ALWAYS ABSENT child, a one-value part)
     /// the rest follows without `if (ret)`. C only (Ada joins its decode parts by DecodeOutcome).

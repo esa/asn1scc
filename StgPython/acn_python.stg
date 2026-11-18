@@ -678,12 +678,12 @@ if not decoded_result.success or decoded_result.decoded_value is None:
 <p> = <sType>([ord(i) for i in decoded_result.decoded_value])
 >>
 
-Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
+Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType, soNoCheckNote) ::= <<
 res = codec.enc_string_ascii_external_field_determinant(<nAsn1Max>, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
+Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType, soNoCheckNote) ::= <<
 decoded_result = codec.dec_string_ascii_external_field_determinant(<nAsn1Max>, <sExtFld>)
 if not decoded_result or decoded_result.decoded_value is None:
     if decoded_result.error_code == ErrorCode.INSUFFICIENT_DATA:
@@ -734,13 +734,13 @@ if not decoded_result or decoded_result.decoded_value is None:
 <endif>
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType, soNoCheckNote) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 res = codec.enc_string_char_index_external_field_determinant(<nAsn1Max>, allowedCharSet, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType, soNoCheckNote) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 decoded_result = codec.dec_string_char_index_external_field_determinant(<nAsn1Max>, allowedCharSet, <sExtFld>)
 if not decoded_result or decoded_result.decoded_value is None:
@@ -755,7 +755,7 @@ if not decoded_result or decoded_result.decoded_value is None:
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType, soNoCheckNote) ::= <<
 bix = codec.bit_index
 res = codec.enc_ia5_string_char_index_external_field_determinant(<nAsn1Max>, <getStringContent(p)>)
 <CheckEncodeResult(sInp="res", sErrCode=sErrCode)>
@@ -763,7 +763,7 @@ if codec.bit_index > bix + <nAsn1Max> * <nCharSize> or codec.bit_index != bix + 
     raise Asn1Exception(f"Encoding Exception {self.EncodeConstants.<sErrCode>}: {res.error_message}")
 >>
 
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType, soNoCheckNote) ::= <<
 bix = codec.bit_index
 if <sExtFld> \< 0:
     raise Asn1InvalidValueException(f"External field size is negative: {<sExtFld>}")

@@ -608,8 +608,8 @@ ret = Acn_Dec_String_Ascii_Null_Terminated_mult(pBitStrm, <nAsn1Max>, (byte[]){<
 <A(sErrCode)>
 >>
 
-Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= "Acn_Enc_String_Ascii_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>);"
-Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
+Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType, soNoCheckNote) ::= "Acn_Enc_String_Ascii_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>);"
+Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType, soNoCheckNote) ::= <<
 ret = Acn_Dec_String_Ascii_External_Field_Determinant(pBitStrm, <nAsn1Max>, <sExtFld>, <p>);
 <A(sErrCode)>
 >>
@@ -635,23 +635,23 @@ ret = Acn_Dec_String_CharIndex_FixSize(pBitStrm, <nAsn1Max>, allowedCharSet, <nC
 <A(sErrCode)>
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType, soNoCheckNote) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 Acn_Enc_String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>);
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType, soNoCheckNote) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 ret = Acn_Dec_String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>, <p>);
 <A(sErrCode)>
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType, soNoCheckNote) ::= <<
 Acn_Enc_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>);
 >>
 
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType, soNoCheckNote) ::= <<
 ret = Acn_Dec_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, <sExtFld>, <p>);
 <A(sErrCode)>
 >>

@@ -121,3 +121,89 @@ let externalSizeChecks (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldD
         | Some detMax when detMax <= maxSize -> None
         | _ -> Some maxSize
     noSizeMin, noSizeMax
+
+/// Coverage cycle 15a (A-str): the values a successful read of the ACN INTEGER field `int` can return, as (low, high)
+/// bounds (None = unbounded): the encoding width of an unsigned / two's complement ConstSize field, intersected with the
+/// field's concrete range when the language's read rejects a value outside it in executable code (readChecksFieldRange,
+/// ILangGeneric.acnIntReadChecksFieldRange). None for a field with a mapping function (the mapped value is unbounded).
+let private acnIntReadInterval (readChecksFieldRange: IntEncodingClass -> bool) (fld: Asn1AcnAst.AcnInteger) : (System.Numerics.BigInteger option * System.Numerics.BigInteger option) option =
+    let unsigned (nBits:System.Numerics.BigInteger) = Some 0I, Some (System.Numerics.BigInteger.Pow(2I, int nBits) - 1I)
+    let signed (nBits:System.Numerics.BigInteger) = Some (-System.Numerics.BigInteger.Pow(2I, int nBits - 1)), Some (System.Numerics.BigInteger.Pow(2I, int nBits - 1) - 1I)
+    let wireLo, wireHi =
+        match fld.acnEncodingClass with
+        | PositiveInteger_ConstSize_8                  -> unsigned 8I
+        | PositiveInteger_ConstSize_big_endian_16      -> unsigned 16I
+        | PositiveInteger_ConstSize_little_endian_16   -> unsigned 16I
+        | PositiveInteger_ConstSize_big_endian_32      -> unsigned 32I
+        | PositiveInteger_ConstSize_little_endian_32   -> unsigned 32I
+        | PositiveInteger_ConstSize_big_endian_64      -> unsigned 64I
+        | PositiveInteger_ConstSize_little_endian_64   -> unsigned 64I
+        | PositiveInteger_ConstSize nBits              -> unsigned nBits
+        | TwosComplement_ConstSize_8                   -> signed 8I
+        | TwosComplement_ConstSize_big_endian_16       -> signed 16I
+        | TwosComplement_ConstSize_little_endian_16    -> signed 16I
+        | TwosComplement_ConstSize_big_endian_32       -> signed 32I
+        | TwosComplement_ConstSize_little_endian_32    -> signed 32I
+        | TwosComplement_ConstSize_big_endian_64       -> signed 64I
+        | TwosComplement_ConstSize_little_endian_64    -> signed 64I
+        | TwosComplement_ConstSize nBits               -> signed nBits
+        | Integer_uPER
+        | ASCII_ConstSize _
+        | ASCII_VarSize_NullTerminated _
+        | ASCII_UINT_ConstSize _
+        | ASCII_UINT_VarSize_NullTerminated _
+        | BCD_ConstSize _
+        | BCD_VarSize_NullTerminated _                 -> None, None
+    let fieldLo, fieldHi =
+        match readChecksFieldRange fld.acnEncodingClass, fld.uperRange with
+        | true, Concrete (a, b)                         -> Some a, Some b
+        | true, (NegInf _ | PosInf _ | Full)
+        | false, _                                      -> None, None
+    let tighter pick (x: System.Numerics.BigInteger option) (y: System.Numerics.BigInteger option) =
+        match x, y with
+        | Some a, Some b -> Some (pick a b)
+        | Some _, None   -> x
+        | None, _        -> y
+    match fld.acnProperties.mappingFunction with
+    | Some _ -> None
+    | None   -> Some (tighter max wireLo fieldLo, tighter min wireHi fieldHi)
+
+/// Coverage cycle 15a (A-str): the bounds (low, high) of the size field of the string asn1TypeIdWithDependency, when
+/// they make the decoder's `<field> in 0 .. maxSize` check (the Ada string external-field templates, Issue 64) always
+/// TRUE: the field was decoded before the string on every path that decodes the string, in the same function, and every
+/// value its read returns is within 0 .. maxSize. Conditions:
+/// - the determinant is an ACN INTEGER field of a SEQUENCE (AcnChildDeterminant; not a parameter, i.e. not an --acn-v2
+///   AcnInsertedFieldRef from another function, nor a legacy parameter chain): the decoder of the string reads the
+///   field's local;
+/// - the read dominates the string: the SEQUENCE holding the field is an ancestor of the string, reached through
+///   mandatory SEQUENCE components only (every node of the string's id after the holder's is SEQ_CHILD (_, false); no
+///   OPTIONAL / ALWAYS ABSENT / ALWAYS PRESENT component, CHOICE alternative or SEQUENCE OF element), and the front end
+///   requires an ACN field before its dependent, so every path that decodes the string has decoded the field first;
+/// - the read's interval (acnIntReadInterval) is bounded and within 0 .. maxSize.
+let localSizeFieldWithinSize (readChecksFieldRange: IntEncodingClass -> bool) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (asn1TypeIdWithDependency: ReferenceToType) (maxSize: System.Numerics.BigInteger) : (System.Numerics.BigInteger * System.Numerics.BigInteger) option =
+    match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = asn1TypeIdWithDependency) with
+    | None -> None
+    | Some dependency ->
+        match dependency.determinant with
+        | AcnParameterDeterminant _ -> None
+        | AcnChildDeterminant field ->
+            let fieldPath = field.id.ToScopeNodeList
+            let holder = List.take (fieldPath.Length - 1) fieldPath
+            let consumerPath = asn1TypeIdWithDependency.ToScopeNodeList
+            let dominates =
+                holder.Length < consumerPath.Length
+                && List.take holder.Length consumerPath = holder
+                && consumerPath |> List.skip holder.Length |> List.forall (fun n ->
+                    match n with
+                    | SEQ_CHILD (_, false)                                  -> true
+                    | SEQ_CHILD (_, true) | MD _ | TA _ | VA _ | CH_CHILD _ | PRM _ | SQF -> false)
+            let interval =
+                match field.Type with
+                | AcnInsertedType.AcnInteger fld              -> acnIntReadInterval readChecksFieldRange fld
+                | AcnInsertedType.AcnNullType _
+                | AcnInsertedType.AcnBoolean _
+                | AcnInsertedType.AcnReferenceToEnumerated _
+                | AcnInsertedType.AcnReferenceToIA5String _   -> None
+            match dominates, interval with
+            | true, Some (Some lo, Some hi) when lo >= 0I && hi <= maxSize -> Some (lo, hi)
+            | _ -> None

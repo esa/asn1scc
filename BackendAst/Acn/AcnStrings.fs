@@ -36,6 +36,15 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             match typedefMaxSize r t > nMax with
             | true  -> lm.acn.Acn_String_Ascii_FixSize_prefix pp nMax
             | false -> pp
+        // coverage cycle 15a (A-str): the decoder checks the external size field against 0 .. max before the RTL call
+        // (Issue 64), unless the field was decoded within that range before, in this function, on every path that reaches
+        // the string (SizeDeterminantBounds.localSizeFieldWithinSize); then a comment replaces the check
+        let sizeFieldNoCheckNote (extField:string) =
+            match codec, SizeDeterminantBounds.localSizeFieldWithinSize lm.lg.acnIntReadChecksFieldRange deps t.id o.maxSize.acn with
+            | Decode, Some (lo, hi) ->
+                Some (lm.lg.createSingleLineComment (sprintf " no size check: %s was decoded within %A .. %A before this string (a field of an enclosing SEQUENCE, reached through mandatory components), inside 0 .. %A" extField lo hi o.maxSize.acn))
+            | Decode, None
+            | Encode, _             -> None
         let funcBodyContent, ns =
             match o.acnEncodingClass with
             | Acn_Enc_String_uPER  _ ->
@@ -59,7 +68,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 Some (Acn_String_Ascii_Null_Terminated (ppSub o.maxSize.acn) errCode.errCodeName ( o.maxSize.acn) nullChars sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
             | Acn_Enc_String_Ascii_External_Field_Determinant _ ->
                 let extField = getExternalField lm r deps t.id
-                Some(Acn_String_Ascii_External_Field_Determinant (ppSub o.maxSize.acn) errCode.errCodeName ( o.maxSize.acn) extField sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
+                Some(Acn_String_Ascii_External_Field_Determinant (ppSub o.maxSize.acn) errCode.errCodeName ( o.maxSize.acn) extField sType (sizeFieldNoCheckNote extField) codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
             | Acn_Enc_String_CharIndex_External_Field_Determinant _ ->
                 let extField = getExternalField lm r deps t.id
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
@@ -67,8 +76,8 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     match o.uperCharSet.Length = 128 with
                     | false ->
                         let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
-                        Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) arrAsciiCodes (BigInteger o.uperCharSet.Length) extField td nBits sType codec
-                    | true -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName o.maxSize.acn extField td nBits (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) sType codec
+                        Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) arrAsciiCodes (BigInteger o.uperCharSet.Length) extField td nBits sType (sizeFieldNoCheckNote extField) codec
+                    | true -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName o.maxSize.acn extField td nBits (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) sType (sizeFieldNoCheckNote extField) codec
                 Some(encDecStatement, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
             | Acn_Enc_String_Ascii_Deduced _ ->
                 Some (lm.acn.str_ascii_deduced pp errCode.errCodeName o.maxSize.acn nestingScope.deducedTrailingBits sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
@@ -175,7 +184,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 | Acn_Enc_String_Ascii_Null_Terminated (_, nullChars)   -> Some (Acn_String_Ascii_Null_Terminated pp errCode.errCodeName ( t.str.maxSize.acn) nullChars (ToC typeId.dropModule.AsString) codec, [], [], [])
                 | Acn_Enc_String_Ascii_External_Field_Determinant       _    ->
                     let extField = getExternalField lm r deps typeId
-                    Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) extField sType codec, [], [], [])
+                    Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) extField sType None codec, [], [], [])
                 | Acn_Enc_String_CharIndex_External_Field_Determinant   _    ->
                     let extField = getExternalField lm r deps typeId
                     let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (t.str.uperCharSet.Length-1))
@@ -183,8 +192,8 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                         match t.str.uperCharSet.Length = 128 with
                         | false ->
                             let arrAsciiCodes = t.str.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
-                            Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) arrAsciiCodes (BigInteger t.str.uperCharSet.Length) extField td nBits sType codec
-                        | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName t.str.maxSize.acn extField td nBits (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) sType codec
+                            Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize.acn) arrAsciiCodes (BigInteger t.str.uperCharSet.Length) extField td nBits sType None codec
+                        | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName t.str.maxSize.acn extField td nBits (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) sType None codec
                     Some(encDecStatement, [], [], [])
                 | Acn_Enc_String_uPER    _                                         ->
                     let x = uper_funcBody errCode nestingScope p

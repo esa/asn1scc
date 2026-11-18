@@ -494,8 +494,8 @@ Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes, sT
 val <p> = codec.dec_String_Ascii_Null_Terminated_multVec(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>)
 >>
 
-Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= "codec.enc_String_Ascii_External_Field_Determinant(<nAsn1Max>, <p>)"
-Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType) ::= <<
+Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sType, soNoCheckNote) ::= "codec.enc_String_Ascii_External_Field_Determinant(<nAsn1Max>, <p>)"
+Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sType, soNoCheckNote) ::= <<
 val <p> = codec.dec_String_Ascii_External_Field_Determinant(<nAsn1Max>, <sExtFld>)
 >>
 
@@ -521,18 +521,18 @@ Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCode
 val <p> = codec.dec_String_CharIndex_FixSize(<nAsn1Max>, allowedCharSet, <nCharSetSize>)
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType, soNoCheckNote) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 codec.enc_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
 >>
 
-Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType) ::= <<
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, sType, soNoCheckNote) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 val <p> = codec.dec_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>)
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType, soNoCheckNote) ::= <<
 locally {
     val bix = codec.base.bitStream.bitIndex
     codec.enc_IA5String_CharIndex_External_Field_DeterminantVec(<nAsn1Max>, <p>)
@@ -541,7 +541,7 @@ locally {
 }
 >>
 
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType) ::= <<
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize, nRemainingBits, sType, soNoCheckNote) ::= <<
 val <p> = locally {
     val bix = codec.base.bitStream.bitIndex
     if <sExtFld>.toRaw \< 0L then
