@@ -160,3 +160,64 @@ let insertActualParams (baseFuncCall: string) (extraActualParams: string list) :
             baseFuncCall.[..insertIdx-1] + ", " + (extraActualParams |> String.concat ", ") + baseFuncCall.[insertIdx..]
         else
             baseFuncCall
+
+
+// Choose the right base scope for folding a dependency path.
+// In --acn-v2, a reference type's funcBody may be inlined into a specialized
+// function whose runtime pVal does not correspond to the captured type's TAS.
+// To generate correct access paths, walk the enclosing scopes (current SEQUENCE
+// + ancestors from nestingScope.parents) and pick the DEEPEST whose type id is
+// a prefix of depPath.  Fold the remaining nodes from that scope.
+//
+// Intra-sequence deps resolve to the current SEQUENCE (shortest fold).
+// Sibling/outer deps resolve to an ancestor whose scope matches the dep's
+// outer TA, giving the correct base pVal for the fold.
+//
+// The returned path carries the backend names of the SEQUENCE / CHOICE
+// children (withBackendChildNames), so that the access path built from it
+// matches the generated type definitions.
+let rec resolveDepScope (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (nestingScope: NestingScope) (pSrcRoot: CodegenScope) (depPath: ReferenceToType) : CodegenScope * ReferenceToType =
+    match tryResolveDepScope r lm nestingScope depPath with
+    | Some resolved -> resolved
+    | None          -> pSrcRoot, withBackendChildNames r lm depPath
+
+/// resolveDepScope without a fallback: None when no enclosing scope of nestingScope is a prefix of depPath.
+and tryResolveDepScope (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (nestingScope: NestingScope) (depPath: ReferenceToType) : (CodegenScope * ReferenceToType) option =
+    let (ReferenceToType depNodes) = depPath
+    let (ReferenceToType backendNodes) = withBackendChildNames r lm depPath
+    let candidates = nestingScope.parents |> List.map (fun (p, t) -> (p, t.id))
+    let matching =
+        candidates |> List.tryFind (fun (_, ReferenceToType scopeNodes) ->
+            let n = List.length scopeNodes
+            n >= 2 && List.length depNodes >= n && List.take n depNodes = scopeNodes)
+    match matching with
+    | Some (scope, ReferenceToType scopeNodes) ->
+        let n = List.length scopeNodes
+        let remaining = ReferenceToType (List.take 2 scopeNodes @ List.skip n backendNodes)
+        Some (scope, remaining)
+    | None -> None
+
+// The scope nodes of a type path with the backend names of the SEQUENCE and
+// CHOICE children instead of their ASN.1 names. The two differ when -fp AUTO
+// renames a field (EnsureUniqueEnumNames: a keyword, a type name or a module
+// name), e.g. Ada "type" -> "MyPDU_type", C "switch" -> "MyPDU_switch".
+// A node whose child cannot be found keeps its ASN.1 name.
+and withBackendChildNames (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (path: ReferenceToType) : ReferenceToType =
+    let rec walk (t: Asn1AcnAst.Asn1Type option) (nodes: ScopeNode list) : ScopeNode list =
+        match nodes, t |> Option.map (fun t -> t.ActualType.Kind) with
+        | [], _ -> []
+        | (SEQ_CHILD (name, isOpt)) :: rest, Some (Asn1AcnAst.Sequence s) ->
+            match s.children |> List.tryPick (fun c -> match c with Asn1AcnAst.Asn1Child c when c.Name.Value = name -> Some c | _ -> None) with
+            | Some c -> SEQ_CHILD (lm.lg.getAsn1ChildBackendName0 c, isOpt) :: walk (Some c.Type) rest
+            | None   -> SEQ_CHILD (name, isOpt) :: walk None rest
+        | (CH_CHILD (name, preName, chParent)) :: rest, Some (Asn1AcnAst.Choice ch) ->
+            match ch.children |> List.tryFind (fun (c: Asn1AcnAst.ChChildInfo) -> c.Name.Value = name) with
+            | Some c -> CH_CHILD (lm.lg.getAsn1ChChildBackendName0 c, preName, chParent) :: walk (Some c.Type) rest
+            | None   -> CH_CHILD (name, preName, chParent) :: walk None rest
+        | SQF :: rest, Some (Asn1AcnAst.SequenceOf sqf) -> SQF :: walk (Some sqf.child) rest
+        | n :: rest, _ -> n :: walk None rest
+    match path with
+    | ReferenceToType ((MD md) :: (TA tas) :: xs) ->
+        let tasType = r.typeAssignmentsMap.TryFind (md, tas) |> Option.map (fun ts -> ts.Type)
+        ReferenceToType ((MD md) :: (TA tas) :: walk tasType xs)
+    | _ -> path

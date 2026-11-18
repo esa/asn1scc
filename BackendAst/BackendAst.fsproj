@@ -18,6 +18,7 @@
     <Compile Include="EncodeDecodeTestCase.fs" />
     <Compile Include="DAstInitialize.fs" />
     <Compile Include="SizeDeterminantBounds.fs" />
+    <Compile Include="AbsentHolder.fs" />
     <Compile Include="DecodeOutcome.fs" />
     <Compile Include="DAstUPer.fs" />
     <Compile Include="DAstXer.fs" />

@@ -629,15 +629,31 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
 
 
 
+    // q/issues.md Issue 106: the decode locals of the fields that a dependent may read while the component holding them
+    // is absent start with their initial value (a BOOLEAN present-when then sees FALSE, the dependent is absent; gnatprove
+    // flow sees the local initialised on the path that skipped the holder); every other local is declared as before
+    let readWhenHolderAbsent =
+        match codec, lm.lg.decodeFailsWhenHolderAbsent with
+        | Decode, true          -> AbsentHolder.fieldsReadWhenHolderAbsent r deps
+        | Decode, false
+        | Encode, _             -> Set.empty
     let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
         let acnlocalVariablesCh =
             acnChildren |>
             List.filter(fun x -> match x.Type with AcnNullType _ -> false | _ -> true) |>
             List.collect(fun x ->
                 let childLv =
-                    match lm.lg.decodingKind with
-                    | InPlace -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq, x.initExpression)]
-                    | Copy -> []
+                    match lm.lg.decodingKind, readWhenHolderAbsent.Contains x.id with
+                    | InPlace, false -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq, x.initExpression)]
+                    | InPlace, true  ->
+                        // a string field: the empty string in the array of its typedef (SIZE max + 1 characters;
+                        // AcnChild.initExpression counts one more, it is not used elsewhere for a local)
+                        let initExp =
+                            match x.Type with
+                            | AcnReferenceToIA5String str -> lm.lg.stringLocalInit (int str.str.maxSize.uper)
+                            | AcnInteger _ | AcnBoolean _ | AcnNullType _ | AcnReferenceToEnumerated _ -> x.initExpression
+                        [GenericLocalVariable {name = x.c_name; varType = x.typeDefinitionBodyWithinSeq; arrSize = None; isStatic = false; initExp = Some initExp}]
+                    | Copy, _        -> []
                 match codec with
                 | Encode ->
                     // coverage step 12c: with FlagMaybeUninitialized the child that needs the flag declares it (handleAcnChild)

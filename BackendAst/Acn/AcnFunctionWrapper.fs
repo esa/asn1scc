@@ -43,6 +43,59 @@ let rec private hasBoundedFixedDeducedDecoder (t: Asn1AcnAst.Asn1Type) =
         | Asn1AcnAst.ObjectIdentifier _ -> false
 
 
+/// q/issues.md Issue 106: the decoder of a dependent whose determinant field is in a component the stream may say
+/// absent (AbsentHolder.decodeGuard) tests the component's presence first and fails with the dependent's own error
+/// code when it is absent (the field's local was never decoded; C wrote past an array with a size taken from it, Ada
+/// raised Constraint_Error). The guard is built where the dependent is decoded: the holder is found among the
+/// enclosing scopes (AcnHelpers.tryResolveDepScope), as the encoder finds the dependent's path for its update. With an
+/// ALWAYS ABSENT holder the dependent can never be decoded: only the failure is emitted (its body, and the locals only
+/// the body used, are dropped). Every dependent of a field decoded on all paths keeps its body unchanged (NoGuard).
+let private withAbsentHolderGuard (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (lm: LanguageMacros)
+                                  (codec: Codec) (t: Asn1AcnAst.Asn1Type) (funcBody: AcnAlignment.FuncBody) : AcnAlignment.FuncBody =
+    let guard =
+        match codec, lm.lg.decodeFailsWhenHolderAbsent with
+        | Decode, true          -> AbsentHolder.decodeGuard r deps t
+        | Decode, false
+        | Encode, _             -> AbsentHolder.NoGuard
+    // the field / holder paths after the type assignment, for the comment (`header.n`, `header`)
+    let pathText (id: ReferenceToType) = (id.AcnAbsPath |> List.skip 2 |> String.concat ".").Replace("#", "elm")
+    let describe (holders: ReferenceToType list) (fields: ReferenceToType list) =
+        (fields |> List.map pathText |> String.concat ", "), (holders |> List.map pathText |> String.concat " / ")
+    match guard with
+    | AbsentHolder.NoGuard -> funcBody
+    | AbsentHolder.HolderAlwaysAbsent (holders, fields) ->
+        fun st errCode prms nestingScope p ->
+            let res, st1 = funcBody st errCode prms nestingScope p
+            let sFields, sHolders = describe holders fields
+            let res =
+                res |> Option.map (fun b ->
+                    {b with funcBody = lm.acn.acn_dec_absent_holder_fail b.funcBody errCode.errCodeName sFields sHolders
+                            localVariables = []; bBsIsUnReferenced = true})
+            res, st1
+    | AbsentHolder.TestHolders (holders, fields) ->
+        fun st errCode prms nestingScope p ->
+            let res, st1 = funcBody st errCode prms nestingScope p
+            let presence (holderId: ReferenceToType) =
+                match AcnHelpers.tryResolveDepScope r lm nestingScope holderId with
+                | Some (scope, ReferenceToType relNodes) ->
+                    let pParent, _ = getAccessFromScopeNodeList (ReferenceToType (List.take (relNodes.Length - 1) relNodes)) false lm scope
+                    match List.last relNodes with
+                    | SEQ_CHILD (name, _) -> lm.lg.getSeqChildIsPresent pParent.accessPath (ToC name)
+                    | MD _ | TA _ | VA _ | PRM _ | CH_CHILD _ | SQF ->
+                        raise (BugErrorException (sprintf "Issue 106 guard: %s is not a SEQUENCE component" holderId.AsString))
+                | None ->
+                    // the field's SEQUENCE must enclose the dependent in this function (AbsentHolder.fieldAndReader)
+                    raise (BugErrorException (sprintf "Issue 106 guard: no enclosing scope holds %s (dependent %s)" holderId.AsString t.id.AsString))
+            let sFields, sHolders = describe holders fields
+            let res =
+                match nestingScope.isStandaloneRender with
+                // the ICD renders an inline type alone (its code is not emitted): no enclosing scope holds the holder
+                | true  -> res
+                | false ->
+                    res |> Option.map (fun b ->
+                        {b with funcBody = lm.acn.acn_dec_absent_holder_guard (holders |> List.map presence) b.funcBody errCode.errCodeName sFields sHolders})
+            res, st1
+
 // If the type assignment has acnParameters, then no function is generated.
 // This function can only be inlined by the calling function (i.e. by the parent
 // type encoding function).
@@ -67,6 +120,8 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                               (funcDefAnnots: string list)
                               (us: State) =
     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
+    // Issue 106: the dependent's own body, under the presence test of the holder of its determinant field
+    let funcBody = withAbsentHolderGuard r deps lm codec t funcBody
     // --acn-v2: a type assignment whose ACN field determines a field of an
     // enclosing type has no standalone ACN function, like a type with ACN
     // parameters (AcnClosureConversion.findTassesWithExportedDeterminants).

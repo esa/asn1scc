@@ -27,41 +27,11 @@ let deferredDetLocalName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (name: str
     if isKeyword || hidesModuleOrType then cName + "_ref" else cName
 
 
-/// The RefTypeArgument link of each ACN parameter (parameter id -> the determinant
-/// passed to it), built once per dependency list.
-let private paramLinksCache =
-    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, Determinant>>()
-
-let private paramLinks (deps: AcnInsertedFieldDependencies) : Map<ReferenceToType, Determinant> =
-    paramLinksCache.GetValue(deps, fun deps ->
-        deps.acnDependencies
-        |> List.choose (fun d ->
-            match d.dependencyKind with
-            | AcnDepRefTypeArgument prm -> Some (prm.id, d.determinant)
-            | _ -> None)
-        |> List.rev
-        |> Map.ofList)
-
-/// --acn-v2: the ACN field an AcnInsertedFieldRef stands for (q/issues.md Issue 52).
-/// Every AcnInsertedFieldRef, a formal parameter or a local, holds one ACN field;
-/// the backend matches them by this id, never by name (two fields with the same
-/// name shared one local). A parameter added by closure conversion stands for the
-/// field it was created for (AstRoot.closureParamDeterminants); any other parameter
-/// for what its RefTypeArgument link passes, followed up to the field. A parameter
-/// without either (a parameter of the outermost function) stands for itself.
-let rec private paramIdIdentity (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (prmId: ReferenceToType) : ReferenceToType =
-    match r.closureParamDeterminants.TryFind prmId with
-    | Some fieldId -> fieldId
-    | None ->
-        match (paramLinks deps).TryFind prmId with
-        | Some (AcnChildDeterminant ac)      -> ac.id
-        | Some (AcnParameterDeterminant prm) -> paramIdIdentity r deps prm.id
-        | None                               -> prmId
-
-let determinantIdentity (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (det: Determinant) : ReferenceToType =
-    match det with
-    | AcnChildDeterminant ac      -> ac.id
-    | AcnParameterDeterminant prm -> paramIdIdentity r deps prm.id
+// The identity of the field an ACN parameter stands for (Issue 52) lives in AbsentHolder.fs since Issue 106 (DecodeOutcome,
+// compiled before this file, needs it).
+let private paramLinks = AbsentHolder.paramLinks
+let determinantIdentity = AbsentHolder.determinantIdentity
+let private paramIdIdentity = AbsentHolder.paramIdIdentity
 
 /// determinantIdentity of an ACN parameter.
 let paramIdentity (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (prm: AcnParameter) : ReferenceToType =

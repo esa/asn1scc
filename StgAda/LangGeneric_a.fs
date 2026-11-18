@@ -497,6 +497,8 @@ type LangGeneric_a() =
         override _.atcDecodeSweep _ = CorruptionSweep
         // The precondition of every Ada decoder guarantees a full-size stream: reads cannot fail.
         override _.decodeReadFailureModel = ReadsCannotFail
+        // Issue 106: fail at the dependent when the holder of its determinant field is absent
+        override _.decodeFailsWhenHolderAbsent = true
         // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.
         override _.typedefConstraintModel = TypedefsEnforceRanges
         // The discriminant of a CHOICE is an enumeration of its alternatives (coverage step 14i).

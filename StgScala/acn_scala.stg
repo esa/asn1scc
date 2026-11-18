@@ -782,6 +782,16 @@ sequence_presence_optChild_pres_int_decode(p, sAcc, sChName, sExtFldName, nIntVa
 sequence_presence_optChild_pres_str_encode(p, sAcc, sChName, sExtFldName, sVal) ::= ""
 sequence_presence_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) ::= ""
 
+/* not called: ILangGeneric.decodeFailsWhenHolderAbsent is false for this backend */
+acn_dec_absent_holder_guard(arrsGuards, sBody, sErrCode, sFields, sHolders) ::= <<
+<sBody>
+>>
+
+acn_dec_absent_holder_fail(sBody, sErrCode, sFields, sHolders) ::= <<
+<sBody>
+>>
+
+
 sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
 <sBitStreamPositionsLocalVar> = pBitStrm // save the initial position of the bit stream at
 >>

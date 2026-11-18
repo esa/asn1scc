@@ -963,6 +963,23 @@ sequence_presence_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) 
 <p><sAcc>exist.<sChName> = (strcmp(<sExtFldName>, "<sVal>") == 0) ? 1 : 0;
 >>
 
+/* q/issues.md Issue 106: the decoder of a dependent whose determinant field is in a component the stream may say absent (BackendAst/AbsentHolder.fs) */
+acn_dec_absent_holder_guard(arrsGuards, sBody, sErrCode, sFields, sHolders) ::= <<
+if (<arrsGuards; separator=" && ">) {
+    <sBody>
+} else {
+    /* <sFields> is in <sHolders>, absent in this stream: the stream does not hold it */
+    ret = FALSE;
+    *pErrCode = <sErrCode>;
+}
+>>
+
+acn_dec_absent_holder_fail(sBody, sErrCode, sFields, sHolders) ::= <<
+/* <sFields> is in <sHolders>, which is always absent: the stream never holds it */
+ret = FALSE;
+*pErrCode = <sErrCode>;
+>>
+
 sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
 <sBitStreamPositionsLocalVar> = *pBitStrm; //save the initial position of the bit stream at
 >>

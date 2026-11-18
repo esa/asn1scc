@@ -963,6 +963,9 @@ type LangGeneric_c() =
         // coverage step 14c3: no read of a one-value type, no `if (ret)` after a decode part that writes no ret
         override _.decodeOneValueWithoutRead = true
         override _.decodeJoinsByWrites = true
+        // Issue 106: fail at the dependent when the holder of its determinant field is absent
+        override _.decodeFailsWhenHolderAbsent = true
+        override _.stringLocalInit _ = "\"\""
 
         override this.getDirInfo (target:Targets option) rootDir =
             {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}

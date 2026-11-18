@@ -834,6 +834,18 @@ type ILangGeneric () =
     abstract member decodeOneValueWithoutRead : bool
     default _.decodeOneValueWithoutRead = false
 
+    /// q/issues.md Issue 106: the decoder of a dependent fails (error code of the dependent) when the component holding
+    /// its determinant field is absent in the stream (BackendAst/AbsentHolder.fs, macros acn_dec_absent_holder_guard /
+    /// _fail), and the decode local of such a field starts with its initial value. C and Ada; the other backends keep
+    /// their output (Scala / Python / Rust: the macros are stubs).
+    abstract member decodeFailsWhenHolderAbsent : bool
+    default _.decodeFailsWhenHolderAbsent = false
+
+    /// Issue 106: the initial value of the decode local of an IA5String ACN field, an array of `stringSize` + 1
+    /// characters (C: a string literal, the range initialiser of initializeString is a GNU extension).
+    abstract member stringLocalInit : int -> string
+    default this.stringLocalInit stringSize = this.initializeString None stringSize
+
     /// Coverage step 14c3: a decoder SEQUENCE joins its parts by what they write, as the encoders do
     /// (DAstUtilFunctions.nestEncodeParts): after a part that writes no ret (an ALWAYS ABSENT child, a one-value part)
     /// the rest follows without `if (ret)`. C only (Ada joins its decode parts by DecodeOutcome).
