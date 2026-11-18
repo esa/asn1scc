@@ -384,7 +384,7 @@ static flag <sFuncName>_sweep_encoder(const void* pVal, BitStream* pBitStrm, int
 <endif>
 >>
 
-Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sEnc, sAmber, sVal, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sEnc, sAmber, sVal, soIsValidFunc, bTruncate, bDeduced, nBudget, soEqualFunc, sInitFunc, nLastOffset, nExtraBytes) ::= <<
 // Decode truncated and corrupted copies of the encoded value
 *pErrCode = asn1scc_decode_fault_sweep("<sFuncName>", encBuff, BitStream_GetLength(&bitStrm), &decodedPDU, <sFuncName>_sweep_decoder, <if(soEncFuncName)>(const void*)<sVal>, <sFuncName>_sweep_encoder<else>NULL, NULL<endif>, (long)sizeof(encBuff) - 1, <if(bTruncate)>TRUE<else>FALSE<endif>, <if(bDeduced)>TRUE<else>FALSE<endif>);
 ret = *pErrCode == 0;

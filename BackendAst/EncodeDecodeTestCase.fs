@@ -79,13 +79,26 @@ type private DecodeSweepParts = {
     helper      : string
 }
 
+// Bit offsets of the offset round trips (Ada, 15b; C encodes from bit 1..7 since 14c1): a value is encoded again from
+// bit 1 .. last of a stream with `extra` bytes more than the type needs (the _aux Pre holds: last < 8 * extra). A type
+// with word / dword alignment needs the offsets up to 15 / 31 to reach every residue of its first alignment.
+let private offsetRoundTrips (maxAlignment:AcnGenericTypes.AcnAlignment option) =
+    match maxAlignment with
+    | None
+    | Some AcnGenericTypes.NextByte  -> 7I, 1I
+    | Some AcnGenericTypes.NextWord  -> 15I, 2I
+    | Some AcnGenericTypes.NextDWord -> 31I, 4I
+
 // The encoder (soEncFunName) and the value (sVal) are for the truncation at a bit offset (14c1): the value is encoded
-// again from bit 1..7 of the buffer.
-let private decodeSweepParts (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (modName:string) (funcName:string) (sTasName:string) (sEnc:string) (sAmber:string) (sVal:string) (isValidFunc: IsValidFunction option) (soEncFunName:string option) (decFunName:string option) (isLiveDeduced:bool) =
+// again from bit 1..7 of the buffer. The Equal function, the init function and the offsets are for the Ada offset
+// round trips (15b).
+let private decodeSweepParts (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (modName:string) (funcName:string) (sTasName:string) (sEnc:string) (sAmber:string) (sVal:string) (isValidFunc: IsValidFunction option) (soEncFunName:string option) (decFunName:string option) (isLiveDeduced:bool) (soEqualFunc:string option) (maxAlignment:AcnGenericTypes.AcnAlignment option) =
     let soIsValid = isValidFunc |> Option.bind (fun f -> f.funcName)
+    let sInitFunc = sTasName + lm.init.methodNameSuffix()
+    let nLastOffset, nExtraBytes = offsetRoundTrips maxAlignment
     let parts bTruncate decName =
         {
-            DecodeSweepParts.statement = lm.atc.Codec_DecodeSweep modName funcName decName soEncFunName sTasName sEnc sAmber sVal soIsValid bTruncate isLiveDeduced r.args.atcSweepBudget
+            DecodeSweepParts.statement = lm.atc.Codec_DecodeSweep modName funcName decName soEncFunName sTasName sEnc sAmber sVal soIsValid bTruncate isLiveDeduced r.args.atcSweepBudget soEqualFunc sInitFunc nLastOffset nExtraBytes
             adapter = lm.atc.Codec_DecodeSweep_adapter modName funcName decName soEncFunName sTasName sAmber soIsValid
             helper = lm.atc.Codec_DecodeSweep_helper r.args.atcSweepBudget
         }
@@ -134,7 +147,7 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
     match funcName  with
     | None              -> None, us
     | Some funcName     ->
-        let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode varName isValidFunc (encFunc |> Option.bind (fun f -> f.funcName)) (decFunc |> Option.bind (fun f -> f.funcName)) false
+        let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode varName isValidFunc (encFunc |> Option.bind (fun f -> f.funcName)) (decFunc |> Option.bind (fun f -> f.funcName)) false eqFunc.isEqualFuncName None
 
         let printStatement stm sNestedContent =
             let content=
@@ -231,7 +244,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         match funcName  with
         | None              -> None, us
         | Some funcName     ->
-            let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode varName isValidFunc (encFunc |> Option.bind (fun f -> f.funcName)) (decFunc |> Option.bind (fun f -> f.funcName)) (isLiveDeduced t)
+            let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode varName isValidFunc (encFunc |> Option.bind (fun f -> f.funcName)) (decFunc |> Option.bind (fun f -> f.funcName)) (isLiveDeduced t) eqFunc.isEqualFuncName t.maxAlignment
             let printStatement stm sNestedContent =
                 let content=
                     match stm with

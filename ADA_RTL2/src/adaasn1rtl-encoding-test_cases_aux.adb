@@ -153,4 +153,93 @@ package body adaasn1rtl.encoding.test_cases_aux is
       bs.Current_Bit_Pos := Saved_Pos;
    end Decode_View_End_Sweep;
 
+   procedure Offset_Round_Trips
+     (Name          : String;
+      Size_In_Bytes : Positive;
+      Last_Offset   : Positive;
+      Deduced       : Boolean;
+      Encode : not null access procedure
+        (bs  : in out Bitstream;
+         Res : out ASN1_RESULT);
+      Decode : not null access procedure
+        (bs    : in out Bitstream;
+         Res   : out ASN1_RESULT;
+         Valid : out Boolean);
+      Same   : not null access function return Boolean;
+      Result : out TEST_CASE_RESULT)
+   is
+      type Phase is (Encoding, Decoding, Comparing);
+      Now   : Phase;
+      Res   : ASN1_RESULT;
+      Valid : Boolean;
+
+      procedure Fail
+        (s : Positive; Step : TEST_CASE_STEP; Code : Integer; What : String);
+
+      procedure Fail
+        (s : Positive; Step : TEST_CASE_STEP; Code : Integer; What : String)
+      is
+      begin
+         Ada.Text_IO.Put_Line
+           (Name & ": round trip from bit offset" & Integer'Image (s)
+            & ": " & What);
+         Result := (Step => Step, Success => False, ErrorCode => Code);
+      end Fail;
+
+   begin
+      Result := (Step => TC_DECODE_CORRUPTED, Success => True, ErrorCode => 0);
+      for s in 1 .. Last_Offset loop
+         exit when not Result.Success;
+         --  the handler also covers the allocation of the stream
+         Now := Encoding;
+         begin
+            declare
+               bs : Bitstream := BitStream_init (Size_In_Bytes);
+            begin
+               bs.Current_Bit_Pos := s;
+               Encode (bs, Res);
+               if not Res.Success then
+                  Fail (s, TC_ENCODE, Res.ErrorCode,
+                        "encoding failed with error code"
+                        & Integer'Image (Res.ErrorCode));
+               else
+                  if Deduced then
+                     bs.End_Bit_Pos := ((bs.Current_Bit_Pos + 7) / 8) * 8;
+                  end if;
+                  bs.Current_Bit_Pos := s;
+                  Now := Decoding;
+                  Decode (bs, Res, Valid);
+                  if not Res.Success then
+                     Fail (s, TC_DECODE, Res.ErrorCode,
+                           "decoding failed with error code"
+                           & Integer'Image (Res.ErrorCode));
+                  elsif not Valid then
+                     Fail (s, TC_VALIDATE_DECODED, 8,
+                           "the decoded value is invalid");
+                  else
+                     Now := Comparing;
+                     if not Same.all then
+                        Fail (s, TC_EQUAL, 8,
+                              "the decoded value differs from the encoded");
+                     end if;
+                  end if;
+               end if;
+            end;
+         exception
+            when E : others =>
+               Fail (s,
+                     (case Now is
+                         when Encoding  => TC_ENCODE,
+                         when Decoding  => TC_DECODE,
+                         when Comparing => TC_EQUAL),
+                     8,
+                     (case Now is
+                         when Encoding  => "allocating the stream or encoding",
+                         when Decoding  => "decoding",
+                         when Comparing => "comparing")
+                     & " raised " & Ada.Exceptions.Exception_Name (E));
+         end;
+      end loop;
+   end Offset_Round_Trips;
+
 end adaasn1rtl.encoding.test_cases_aux;
