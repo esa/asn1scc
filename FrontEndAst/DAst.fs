@@ -315,6 +315,12 @@ type EncodeBodyCall = {
                                     // body (it is not declared in the spec)
 }
 
+/// Cycle 15a2: a type assignment that is a reference is constructed twice (DAstConstruction.mapTas); the first
+/// construction only yields the outcomes of the validators it creates.
+type ConstructionPass =
+    | EmittingPass              // the construction whose functions are emitted
+    | ValidatorOutcomePass      // the first construction: its state is discarded, it prints no warning
+
 type State = {
     currErrorCode   : int
     curErrCodeNames : Set<String>
@@ -351,6 +357,11 @@ type State = {
     // coverage step 12e: NestingScope.checkedSelectors at the end of the last SEQUENCE encoder body generated inline;
     // a parent SEQUENCE clears it before a child and reads it after a mandatory SEQUENCE child (same function)
     acnSequenceCheckedSelectors : (string * string) list
+    // cycle 15a2: which construction of the type assignment runs (DAstConstruction.mapTas)
+    constructionPass : ConstructionPass
+    // cycle 15a2: the encodeCallKey of every IsConstraintValid created since the start of the type assignment's
+    // construction (DastValidate2.createIsValidFunction; reset by DAstConstruction.mapTas)
+    tasValidatorKeys : Set<string>
     // cycle 15a2: the outcome of the IsConstraintValid functions that the type assignment under construction emits, by
     // encodeCallKey, taken from a first construction of that type assignment (DAstConstruction.mapTas). A chained alias
     // creates one validator per construction level under the same name, and the encoder is built (or lent) at an inner
@@ -360,7 +371,7 @@ type State = {
 }
 
 
-let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; validatorOutcomes=Map.empty; encodeBodies=Map.empty; siteValidatorCalls=Map.empty; acnSequenceCheckedSelectors=[]; emittedValidatorOutcomes=Map.empty}
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; validatorOutcomes=Map.empty; encodeBodies=Map.empty; siteValidatorCalls=Map.empty; acnSequenceCheckedSelectors=[]; emittedValidatorOutcomes=Map.empty; constructionPass=EmittingPass; tasValidatorKeys=Set.empty}
 
 /// Parent context passed from the fold's pre-functions to child callbacks.
 /// Allows seqAcnChildFunc to know about the parent SEQUENCE's deferred children.

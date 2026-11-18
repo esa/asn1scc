@@ -271,7 +271,7 @@ let integerConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (lm:LanguageMac
         st
 
 
-let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (acnEncodingClass : RealEncodingClass) (c:RealTypeConstraint) st =
+let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (acnEncodingClass : RealEncodingClass) (c:RealTypeConstraint) (st:State) =
     let valToStrFunc (v:double) = 
         let d2str (v:double) = v.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo)
         let d2str_b (v:double) = v.ToString("G17", NumberFormatInfo.InvariantInfo)
@@ -282,7 +282,12 @@ let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (acnEncodingClass : R
             match FsUtils.nearestFloat32 v with
             | None -> ()
             | Some (nearestLow, nearestHi) ->
-                printfn "Warning: The constant %A cannot be precisely represented in IEEE754-1985-32 encoding.\n The closest representable values are %A and %A" (d2str_b v) (f2str nearestLow) (f2str nearestHi)
+                match st.constructionPass with
+                | EmittingPass ->
+                    printfn "Warning: The constant %A cannot be precisely represented in IEEE754-1985-32 encoding.\n The closest representable values are %A and %A" (d2str_b v) (f2str nearestLow) (f2str nearestHi)
+                | ValidatorOutcomePass ->
+                    // cycle 15a2: the emitting construction of the same type assignment prints it
+                    ()
         | _ -> ()
 
         d2str v
@@ -685,7 +690,9 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
     // coverage step 14p: callers (references) look the outcome up by the name of the function they call
     let ns =
         match funcName with
-        | Some fn -> {ns with validatorOutcomes = ns.validatorOutcomes.Add (DAstUtilFunctions.encodeCallKey lm t.id.ModName fn, outcome)}
+        | Some fn ->
+            let key = DAstUtilFunctions.encodeCallKey lm t.id.ModName fn
+            {ns with validatorOutcomes = ns.validatorOutcomes.Add (key, outcome); tasValidatorKeys = ns.tasValidatorKeys.Add key}
         | None    -> ns
     Some ret, ns
 
