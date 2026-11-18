@@ -24,11 +24,22 @@ WIRE DEFINITIONS ::= BEGIN
         header [present-when flg] { a [], s Tag [] },
         cs [present-when flg2] { s1 [present-when header.s=="ab"], s2 [present-when header.s=="cd"] }
     }
+    Payload3 <BOOLEAN:b> [] { y [present-when b] }
     BoolPDU [] {
         flg BOOLEAN [],
+        g BOOLEAN [],
         header [present-when flg] { a [], more BOOLEAN [] },
         x [present-when header.more],
+        p <header.more> [present-when g],
         tail []
+    }
+    SqPDU [] {
+        [] {
+            f BOOLEAN [],
+            h [present-when f] { a [], more BOOLEAN [], n INTEGER [size 4, encoding pos-int] },
+            x [present-when h.more, size h.n],
+            tail []
+        }
     }
     ElemPDU [] {
         elems [] {
@@ -45,6 +56,11 @@ WIRE DEFINITIONS ::= BEGIN
         f3 BOOLEAN [],
         h1 [present-when f1] { f2 BOOLEAN [], a [], h2 [present-when f2] { b [], n INTEGER [size 4, encoding pos-int] } },
         d [present-when f3, size h1.h2.n]
+    }
+    Nest2PDU [] {
+        f1 BOOLEAN [],
+        h1 [present-when f1] { a [], h2 [present-when f1] { b [], n INTEGER [size 4, encoding pos-int] } },
+        d [present-when f1, size h1.h2.n]
     }
     AltPDU [] {
         flg BOOLEAN [],

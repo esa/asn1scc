@@ -141,6 +141,14 @@ let covExemptJustification (id:string) =
     | "ASN1SCC-COV-009" -> "ASN1SCC-COV-009: every caller decoded the determinant as an item before the call, see Docs/statement-coverage-exemptions.md"
     | _ -> raise (BugErrorException ("unknown coverage exemption " + id))
 
+/// q/issues.md Issue 106: the initial value of the decode local of an ACN field that a dependent may read while the
+/// component holding it is absent (AbsentHolder.fieldsReadWhenHolderAbsent): AcnChild.initExpression, except for a
+/// string field, whose initExpression counts one character more than the typedef's array (SIZE max + 1).
+let decodeLocalInitExpr (lm: LanguageMacros) (x: AcnChild) : string =
+    match x.Type with
+    | AcnReferenceToIA5String str -> lm.lg.stringLocalInit (int str.str.maxSize.uper)
+    | AcnInteger _ | AcnBoolean _ | AcnNullType _ | AcnReferenceToEnumerated _ -> x.initExpression
+
 /// Coverage step 12e: the key of a CHOICE selector in NestingScope.checkedSelectors / AcnChildUpdate.checkedSelectors
 /// (the text of `<p><sAcc>kind` of the C templates; only compared with other keys of the same language).
 let choiceSelectorKey (joined:string) (acc:string) = joined + acc + "kind"

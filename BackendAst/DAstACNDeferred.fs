@@ -734,7 +734,15 @@ let private createDeferredSequenceFunction
                                                 // which both decoders accept.
                                                 BooleanLocalVariable (tmpName, None)
                                             | _ ->
-                                                GenericLocalVariable { name = tmpName; varType = ac.typeDefinitionBodyWithinSeq; arrSize = None; isStatic = false; initExp = None }
+                                                // q/issues.md Issue 106: a dependent may read this local while the component
+                                                // holding the field is absent (its guard makes the read exact): initial value
+                                                // for gnatprove flow (AcnSequence does the same for the other fields; a
+                                                // BOOLEAN read by a present-when is set at the start of the enclosing SEQUENCE)
+                                                let initExp =
+                                                    match lm.lg.decodeFailsWhenHolderAbsent && (AbsentHolder.fieldsReadWhenHolderAbsent astRoot deps).Contains ac.id with
+                                                    | true  -> Some (AcnHelpers.decodeLocalInitExpr lm ac)
+                                                    | false -> None
+                                                GenericLocalVariable { name = tmpName; varType = ac.typeDefinitionBodyWithinSeq; arrSize = None; isStatic = false; initExp = initExp }
                                         let modifiedP = {p with accessPath = AccessPath.valueEmptyPath tmpName}
                                         let result = originalFuncBody innerCodec acnArgs nestingScope modifiedP bsPos
                                         match result with

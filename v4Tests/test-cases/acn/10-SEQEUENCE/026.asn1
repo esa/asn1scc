@@ -57,6 +57,11 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
             dd OCTET STRING (SIZE(0..15)) OPTIONAL
         }
     }
+    -- nested components present when the same field says so as the dependent: no check
+    Nest2PDU ::= SEQUENCE {
+        h1      SEQUENCE { a INTEGER(0..255), h2 SEQUENCE { b INTEGER(0..255) } OPTIONAL } OPTIONAL,
+        d       OCTET STRING (SIZE(0..15)) OPTIONAL
+    }
     -- the component and the dependent present when the same field says so: the dependent is decoded only when the
     -- component is present, no check
     SamePDU ::= SEQUENCE {

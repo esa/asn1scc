@@ -1119,6 +1119,10 @@ acn_dec_absent_holder_fail(sBody, sErrCode, sFields, sHolders) ::= <<
 result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);
 >>
 
+acn_dec_absent_holder_reset(sLocal, sInitValue, sField, sHolders) ::= <<
+--  <sField> is in <sHolders>: False unless the stream holds it
+<sLocal> := <sInitValue>;
+>>
 
 sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
 <sBitStreamPositionsLocalVar>.Size_In_Bytes := bs.Size_In_Bytes; --save the size of the bit stream

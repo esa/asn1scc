@@ -28,11 +28,20 @@ WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
         header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
         cs      CHOICE { s1 INTEGER(0..7), s2 BOOLEAN } OPTIONAL
     }
-    -- present-when a BOOLEAN field of the component: absent with it (no failure)
+    -- present-when a BOOLEAN field of the component: absent with it (no failure); the field is also passed to p as an
+    -- ACN argument (--acn-v2: a deferred field, decoded into a local that the present-when reads)
+    Payload3 ::= SEQUENCE { y INTEGER(0..1) OPTIONAL }
     BoolPDU ::= SEQUENCE {
         header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
         x       INTEGER(0..255) OPTIONAL,
+        p       Payload3 OPTIONAL,
         tail    INTEGER(0..255)
+    }
+    -- the same inside a SEQUENCE OF element: an element without the component must not see the previous element's field
+    SqPDU ::= SEQUENCE (SIZE(2)) OF SEQUENCE {
+        h    SEQUENCE { a INTEGER (0..1) } OPTIONAL,
+        x    OCTET STRING (SIZE(0..15)) OPTIONAL,
+        tail INTEGER (0..1)
     }
     -- inside a SEQUENCE OF element: element 2 must not use the size of element 1
     ElemPDU ::= SEQUENCE {
@@ -43,6 +52,11 @@ WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     }
     -- nested components: both must be present
     NestPDU ::= SEQUENCE {
+        h1      SEQUENCE { a INTEGER(0..255), h2 SEQUENCE { b INTEGER(0..255) } OPTIONAL } OPTIONAL,
+        d       OCTET STRING (SIZE(0..15)) OPTIONAL
+    }
+    -- nested components present when the same field says so as the dependent: no check, both decode together
+    Nest2PDU ::= SEQUENCE {
         h1      SEQUENCE { a INTEGER(0..255), h2 SEQUENCE { b INTEGER(0..255) } OPTIONAL } OPTIONAL,
         d       OCTET STRING (SIZE(0..15)) OPTIONAL
     }

@@ -56,6 +56,11 @@ TEST-CASE DEFINITIONS ::= BEGIN
           }
         }
     }
+    Nest2PDU [] {
+        f1 BOOLEAN [],
+        h1 [present-when f1] { a [], h2 [present-when f1] { b [], n INTEGER [size 4, encoding pos-int] } },
+        d [present-when f1, size h1.h2.n]
+    }
     SamePDU [] {
         flg BOOLEAN [],
         header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },

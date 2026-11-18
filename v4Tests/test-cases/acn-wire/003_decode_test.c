@@ -9,12 +9,16 @@
 
 static int failures = 0;
 
-/* a stack with garbage where the decoders' locals will be */
+/* ASan's fake stack for use-after-return would give the decoders fresh (zeroed) frames, which dirty() cannot reach */
+const char *__asan_default_options(void);
+const char *__asan_default_options(void) { return "detect_stack_use_after_return=0"; }
+
+/* a stack with garbage where the decoders' locals will be: 2 is not a valid C bool (UBSan), a large size overflows */
 static void dirty(void)
 {
     volatile unsigned long long junk[512];
     for (int i = 0; i < 512; i++)
-        junk[i] = 0x400ULL;
+        junk[i] = 0x0202020202020202ULL;
     (void)junk[7];
 }
 
@@ -131,14 +135,30 @@ int main(void)
     {
         BoolPDU v;
         BoolPDU_Initialize(&v);
-        DECODE(BoolPDU, v, 0, 0x2D, 0x00);                              /* header absent, tail 0x5A */
-        EXPECT(!v.exist.header && !v.exist.x && v.tail == 0x5A);
+        DECODE(BoolPDU, v, 0, 0x16, 0x80);                              /* header, p absent, tail 0x5A */
+        EXPECT(!v.exist.header && !v.exist.x && !v.exist.p && v.tail == 0x5A);
         BoolPDU_Initialize(&v);
         v.exist.header = 1;
         v.exist.x = 1;
         v.x = 3;
         v.tail = 9;
         ROUND_TRIP(BoolPDU, v);
+    }
+    /* SEQUENCE OF elements, present-when a BOOLEAN field: element 1 has h, more TRUE, x empty; element 2 has no h,
+       so no x (it used to take element 1's more) */
+    {
+        SqPDU v;
+        SqPDU_Initialize(&v);
+        DECODE(SqPDU, v, 0, 0xA0, 0x40);
+        EXPECT(v.arr[0].exist.h && v.arr[0].exist.x && v.arr[0].x.nCount == 0 && v.arr[0].tail == 0);
+        EXPECT(!v.arr[1].exist.h && !v.arr[1].exist.x && v.arr[1].tail == 1);
+        SqPDU_Initialize(&v);
+        v.arr[0].exist.h = 1;
+        v.arr[0].exist.x = 1;
+        v.arr[0].x.nCount = 3;
+        v.arr[0].x.arr[2] = 3;
+        v.arr[1].tail = 1;
+        ROUND_TRIP(SqPDU, v);
     }
     /* SEQUENCE OF elements: element 1 sets the size (1), element 2 has no component but a dependent */
     {
@@ -172,6 +192,19 @@ int main(void)
         v.exist.d = 1;
         v.d.nCount = 3;
         ROUND_TRIP(NestPDU, v);
+    }
+    /* nested components present when the same field says so as the dependent */
+    {
+        Nest2PDU v;
+        Nest2PDU_Initialize(&v);
+        DECODE(Nest2PDU, v, 0, 0x00);
+        EXPECT(!v.exist.h1 && !v.exist.d);
+        Nest2PDU_Initialize(&v);
+        v.exist.h1 = 1;
+        v.h1.exist.h2 = 1;
+        v.exist.d = 1;
+        v.d.nCount = 2;
+        ROUND_TRIP(Nest2PDU, v);
     }
     /* the dependent is an alternative of a mandatory CHOICE */
     {

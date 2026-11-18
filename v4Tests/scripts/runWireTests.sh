@@ -149,8 +149,10 @@ for mode in "" "--acn-v2"; do
 done
 
 # A determinant field inside an OPTIONAL component, its dependent outside it: with the component absent and the
-# dependent present the decoders fail with the dependent's error code (they read the field's unset local); C (ASan /
-# UBSan) and Ada x86 (-gnata), legacy and acn-v2 (003), acn-v2 only for fields exposed by a referenced component (004).
+# dependent present the decoders fail with the dependent's error code (they read the field's unset local), and a
+# present-when on a BOOLEAN field of an absent component reads FALSE (also in SEQUENCE OF elements); C (ASan / UBSan)
+# and Ada x86 (-gnata, 003 also -gnatVa), legacy and acn-v2 (003), acn-v2 only for fields exposed by a referenced
+# component (004).
 for mode in "" "--acn-v2"; do
     def=
     [ "$mode" = --acn-v2 ] && def=-DWIRE_ACN_V2
@@ -165,7 +167,8 @@ for mode in "" "--acn-v2"; do
     mkdir "$out"
     run_compiler -Ada -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/003.asn1" "$root/test-cases/acn-wire/003.acn"
     cp "$root/test-cases/acn-wire/003_decode_test.adb" "$out/decode_test.adb"
-    (cd "$out" && gnatmake -q -gnat2012 -gnata decode_test.adb && ./decode_test)
+    # -gnatVa: a decoder that reads a Boolean local it did not set (the test dirties the stack with 2) raises
+    (cd "$out" && gnatmake -q -gnat2012 -gnata -gnatVa decode_test.adb && ./decode_test)
     echo "acn-wire 003 (Ada) $mode OK"
 done
 out=$work/acn004c

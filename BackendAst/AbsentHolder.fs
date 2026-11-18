@@ -119,11 +119,30 @@ let private componentOptionality (r: AstRoot) (path: ScopeNode list) : Asn1Optio
         r.typeAssignmentsMap.TryFind (md, tas) |> Option.bind (fun ts -> walk ts.Type rest)
     | _ -> None
 
+/// The ACN field (id) whose value decides the presence of the SEQUENCE component at `path` (present-when <BOOLEAN
+/// field>), from its AcnDepPresenceBool dependency: legacy follows ACN parameters to the field, --acn-v2 takes the
+/// field a parameter stands for (determinantIdentity). None for any other optionality.
+let private presenceFieldOf (r: AstRoot) (deps: AcnInsertedFieldDependencies) (path: ScopeNode list) : ReferenceToType option =
+    match componentOptionality r path with
+    | Some (Some (Optional {acnPresentWhen = Some (PresenceWhenBool _)})) ->
+        deps.acnDependencies
+        |> List.tryFind (fun d ->
+            d.asn1Type = ReferenceToType path &&
+                (match d.dependencyKind with
+                 | AcnDepPresenceBool -> true
+                 | AcnDepIA5StringSizeDeterminant _ | AcnDepSizeDeterminant _ | AcnDepSizeDeterminant_bit_oct_str_contain _
+                 | AcnDepRefTypeArgument _ | AcnDepPresence _ | AcnDepPresenceStr _ | AcnDepChoiceDeterminant _ -> false))
+        |> Option.map (fun d ->
+            match r.args.acnDeferred, fieldAndReader r deps d with
+            | false, Some (fieldId, _) -> fieldId
+            | false, None | true, _    -> determinantIdentity r deps d.determinant)
+    | Some (Some (Optional _)) | Some (Some AlwaysAbsent) | Some (Some AlwaysPresent) | Some None | None -> None
+
 /// The components between the deepest common ancestor of the field a dependency reads and the dependent (its reader,
 /// fieldAndReader), and the field, whose presence the decoder decides from the stream: OPTIONAL (with or without
 /// present-when) and ALWAYS ABSENT; ids with their optionality, outermost first. Empty when the field's SEQUENCE
 /// dominates the reader (every step mandatory or ALWAYS PRESENT, which Issue 53 treats as mandatory, or present when
-/// the same BOOLEAN field decides the reader's presence): then the field is decoded on every path that reaches the
+/// a BOOLEAN field is TRUE that also decides the presence of the reader or of a component holding it): then the field is decoded on every path that reaches the
 /// dependent. A path passes through SEQUENCE components and references only (the
 /// front end rejects CHOICE and SEQUENCE OF steps), and the field precedes the dependent, so the presence of every step
 /// is known when the dependent is decoded.
@@ -136,19 +155,26 @@ let private holderStepsWith (sameFlagDominates: bool) (r: AstRoot) (deps: AcnIns
         let common =
             List.zip (List.truncate readerPath.Length fieldPath) (List.truncate fieldPath.Length readerPath)
             |> List.takeWhile (fun (x, y) -> x = y) |> List.length
-        // the BOOLEAN field whose value decides the presence of the component at `path` (present-when <field>)
-        let presenceFlag (path: ScopeNode list) =
-            match componentOptionality r path with
-            | Some (Some (Optional {acnPresentWhen = Some (PresenceWhenBool relPath)})) -> Some relPath.AsString
-            | Some (Some (Optional _)) | Some (Some AlwaysAbsent) | Some (Some AlwaysPresent) | Some None | None -> None
-        // a holder that is a child of the common ancestor and present when the same BOOLEAN field says so as the
-        // reader's own branch (`header [present-when flg]`, `data [present-when flg, size header.n]`): the reader is
-        // decoded only when the holder is present
+        // the BOOLEAN fields that decide the presence of the reader's branch below the common ancestor (the reader
+        // itself included): when the reader is decoded, each of them is TRUE
+        let readerFlags =
+            [common + 1 .. readerPath.Length] |> List.choose (fun n -> presenceFieldOf r deps (List.take n readerPath))
+        // a holder present when one of those fields says so (`header [present-when flg]`, `data [present-when flg,
+        // size header.n]`, also deeper: `h1 [present-when f1] { h2 [present-when f1] { n } }`): the reader is decoded
+        // only when the holder is present. The fields are compared by id (the same relative path names different
+        // fields from different SEQUENCEs).
+        // Also a holder that holds one of those fields (`h [present-when f] { more, n }`, `x [present-when h.more, size
+        // h.n]`): the field is FALSE unless decoded in the holder (presenceFlagResets; an --acn-v2 reference starts at 0).
         let sameFlagAsReader (n: int) =
-            sameFlagDominates && n = common + 1 && readerPath.Length > common &&
-                (match presenceFlag (List.take n fieldPath), presenceFlag (List.take n readerPath) with
-                 | Some h, Some d -> h = d
-                 | Some _, None | None, _ -> false)
+            let stepPath = List.take n fieldPath
+            let holdsFlag (flag: ReferenceToType) =
+                let flagPath = flag.ToScopeNodeList
+                flagPath.Length > n && List.take n flagPath = stepPath
+            sameFlagDominates &&
+                ((match presenceFieldOf r deps stepPath with
+                  | Some h -> readerFlags |> List.contains h
+                  | None   -> false)
+                 || readerFlags |> List.exists holdsFlag)
         // the components strictly between the common ancestor and the field (the field itself is the last node)
         [common + 1 .. fieldPath.Length - 1]
         |> List.choose (fun n ->
@@ -168,7 +194,7 @@ let private holderSteps = holderStepsWith true
 
 /// The dependency kinds whose decoder fails when the field's holder is absent (Issue 106, fix option b): a size, a
 /// CHOICE determinant, a CHOICE present-when on an INTEGER / string field. Not a present-when on a BOOLEAN field: its
-/// local starts FALSE (fieldsReadWhenHolderAbsent), an --acn-v2 AcnInsertedFieldRef starts at value 0 (written only by
+/// local is set to FALSE at the start of the enclosing SEQUENCE (presenceFlagResets), an --acn-v2 AcnInsertedFieldRef starts at value 0 (written only by
 /// the holder's decoder; not so in an inline SEQUENCE OF element, where the ref is declared before the loop, a shape
 /// whose encoder does not compile today), so a holder that is absent makes the dependent absent, which is what the
 /// encoders require, and a guard would be a condition no test can show independent (MC/DC). Not a RefTypeArgument: legacy inlines the referenced
@@ -246,15 +272,58 @@ let hasDecodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (t: Asn1Typ
     | NoGuard                                   -> false
     | TestHolders _ | HolderAlwaysAbsent _      -> true
 
-/// The ACN fields that some dependency may read while the component holding them is absent (any kind but
-/// RefTypeArgument: the links only pass the field on). Their decode locals are declared with an initial value: a
-/// BOOLEAN present-when then sees FALSE (the dependent is absent), and gnatprove flow, which does not correlate the
-/// guard with the holder's presence, sees an initialised local on every path. Also when the holder and the dependent
-/// are present by the same BOOLEAN field (no guard, the read is exact): flow does not correlate the two presence
-/// flags either ("might not be initialized" at the read).
-let fieldsReadWhenHolderAbsent (r: AstRoot) (deps: AcnInsertedFieldDependencies) : Set<ReferenceToType> =
+/// A present-when on a BOOLEAN field read from a decode local (legacy; --acn-v2 a field of the same function, not an
+/// AcnInsertedFieldRef) whose holder may be absent: the local is set to FALSE at the start of the SEQUENCE that
+/// encloses holder and dependent (the deepest common ancestor), so a holder that is absent makes the dependent absent.
+/// At the start of that SEQUENCE, not only at the declaration: a SEQUENCE OF element is decoded in a loop and the local
+/// is declared once before it, so element k would see element k - 1's value (q/issues.md Issue 106, round 2).
+let private presenceFlagReadsOf (r: AstRoot) (deps: AcnInsertedFieldDependencies) : (ReferenceToType * ReferenceToType * ReferenceToType list) list =
     deps.acnDependencies
-    |> List.filter (fun d -> match d.dependencyKind with AcnDepRefTypeArgument _ -> false | _ -> true)
-    |> List.filter (fun d -> not (holderStepsWith false r deps d).IsEmpty)
-    |> List.choose (fun d -> fieldAndReader r deps d |> Option.map fst)
-    |> Set.ofList
+    |> List.choose (fun d ->
+        match d.dependencyKind, r.args.acnDeferred, d.determinant with
+        | AcnDepPresenceBool, false, _
+        | AcnDepPresenceBool, true, AcnChildDeterminant _ ->
+            match holderStepsWith false r deps d, fieldAndReader r deps d with
+            | [], _ | _, None -> None
+            | steps, Some (fieldId, readerId) ->
+                // the deepest common ancestor of field and reader (a SEQUENCE: both are components of it or below it)
+                let fieldPath, readerPath = fieldId.ToScopeNodeList, readerId.ToScopeNodeList
+                let common =
+                    List.zip (List.truncate readerPath.Length fieldPath) (List.truncate fieldPath.Length readerPath)
+                    |> List.takeWhile (fun (x, y) -> x = y) |> List.length
+                Some (ReferenceToType (List.take common fieldPath), fieldId, steps |> List.map fst)
+        | AcnDepPresenceBool, true, AcnParameterDeterminant _ -> None      // an AcnInsertedFieldRef: starts at 0
+        | AcnDepIA5StringSizeDeterminant _, _, _ | AcnDepSizeDeterminant _, _, _ | AcnDepSizeDeterminant_bit_oct_str_contain _, _, _
+        | AcnDepRefTypeArgument _, _, _ | AcnDepPresence _, _, _ | AcnDepPresenceStr _, _, _ | AcnDepChoiceDeterminant _, _, _ -> None)
+
+let private presenceFlagReadsCache =
+    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, (ReferenceToType * ReferenceToType * ReferenceToType list) list>()
+let private presenceFlagReads (r: AstRoot) (deps: AcnInsertedFieldDependencies) : (ReferenceToType * ReferenceToType * ReferenceToType list) list =
+    presenceFlagReadsCache.GetValue(deps, fun deps -> presenceFlagReadsOf r deps)
+
+/// The BOOLEAN fields (ids, with their holders) whose decode local the SEQUENCE seqId sets to FALSE at its start
+/// (presenceFlagReads).
+let presenceFlagResets (r: AstRoot) (deps: AcnInsertedFieldDependencies) (seqId: ReferenceToType) : (ReferenceToType * ReferenceToType list) list =
+    presenceFlagReads r deps
+    |> List.filter (fun (ancestor, _, _) -> ancestor = seqId)
+    |> List.groupBy (fun (_, fieldId, _) -> fieldId)
+    |> List.map (fun (fieldId, xs) -> fieldId, xs |> List.collect (fun (_, _, holders) -> holders) |> List.distinct)
+
+/// The ACN fields that a size / CHOICE dependency may read while the component holding them is absent (not a
+/// RefTypeArgument: the links only pass the field on; not a present-when on a BOOLEAN field: presenceFlagResets).
+/// Their decode locals are declared with an initial value: gnatprove flow, which does not correlate the guard with the
+/// holder's presence, sees an initialised local on every path (the guard makes the read exact, also in a loop). Also
+/// when the holder and the dependent are present by the same BOOLEAN field (no guard, the read is exact): flow does
+/// not correlate the two presence flags either ("might not be initialized" at the read).
+let private fieldsReadCache = System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Set<ReferenceToType>>()
+let fieldsReadWhenHolderAbsent (r: AstRoot) (deps: AcnInsertedFieldDependencies) : Set<ReferenceToType> =
+    fieldsReadCache.GetValue(deps, fun deps ->
+        deps.acnDependencies
+        |> List.filter (fun d ->
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument _ | AcnDepPresenceBool -> false
+            | AcnDepIA5StringSizeDeterminant _ | AcnDepSizeDeterminant _ | AcnDepSizeDeterminant_bit_oct_str_contain _
+            | AcnDepPresence _ | AcnDepPresenceStr _ | AcnDepChoiceDeterminant _ -> true)
+        |> List.filter (fun d -> not (holderStepsWith false r deps d).IsEmpty)
+        |> List.choose (fun d -> fieldAndReader r deps d |> Option.map fst)
+        |> Set.ofList)

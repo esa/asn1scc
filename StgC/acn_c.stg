@@ -980,6 +980,11 @@ ret = FALSE;
 *pErrCode = <sErrCode>;
 >>
 
+acn_dec_absent_holder_reset(sLocal, sInitValue, sField, sHolders) ::= <<
+/* <sField> is in <sHolders>: FALSE unless the stream holds it */
+<sLocal> = <sInitValue>;
+>>
+
 sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
 <sBitStreamPositionsLocalVar> = *pBitStrm; //save the initial position of the bit stream at
 >>

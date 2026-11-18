@@ -167,6 +167,8 @@ type IAcn_rust() =
             acn_rust.acn_dec_absent_holder_guard  arrsGuards sBody sErrCode sFields sHolders 
         override this.acn_dec_absent_holder_fail  (sBody:string) (sErrCode:string) (sFields:string) (sHolders:string) =
             acn_rust.acn_dec_absent_holder_fail  sBody sErrCode sFields sHolders 
+        override this.acn_dec_absent_holder_reset  (sLocal:string) (sInitValue:string) (sField:string) (sHolders:string) =
+            acn_rust.acn_dec_absent_holder_reset  sLocal sInitValue sField sHolders 
         override this.sequence_save_bitStream_start  (sBitStreamPositionsLocalVar:string) (codec:Codec) =
             acn_rust.sequence_save_bitStream_start  sBitStreamPositionsLocalVar codec
         override this.sequence_save_bitstream  (sBitStreamPositionsLocalVar:string) (sChName:string) (codec:Codec) =

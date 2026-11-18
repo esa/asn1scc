@@ -28,6 +28,15 @@ procedure Decode_Test is
         (V : out T; S : in out adaasn1rtl.encoding.Bitstream; R : out adaasn1rtl.ASN1_RESULT);
    procedure Check (Name : String; Stream : Bytes; Exp_Err : Integer; V : out T);
 
+   --  a stack with garbage where the decoders' locals will be (built with -gnatVa: 2 is not a valid Boolean)
+   procedure Dirty is
+      type Junk_T is array (1 .. 8192) of adaasn1rtl.Asn1Byte;
+      J : Junk_T := (others => 16#02#);
+      pragma Volatile (J);
+   begin
+      J (7) := J (8);
+   end Dirty;
+
    procedure Check (Name : String; Stream : Bytes; Exp_Err : Integer; V : out T) is
       S : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init (Size);
       R : adaasn1rtl.ASN1_RESULT;
@@ -37,6 +46,7 @@ procedure Decode_Test is
       for I in Stream'Range loop
          S.Buffer (S.Buffer'First + I - Stream'First) := Stream (I);
       end loop;
+      Dirty;
       Decode (V, S, R);
       case Exp_Err is
          when 0      => Ok := R.Success;
@@ -58,6 +68,8 @@ procedure Decode_Test is
    procedure Pw is new Check (WIRE.PwPDU, WIRE.PwPDU_ACN_STREAM_SIZE, WIRE.PwPDU_ACN_Decode);
    procedure PwStr is new Check (WIRE.PwStrPDU, WIRE.PwStrPDU_ACN_STREAM_SIZE, WIRE.PwStrPDU_ACN_Decode);
    procedure Bool is new Check (WIRE.BoolPDU, WIRE.BoolPDU_ACN_STREAM_SIZE, WIRE.BoolPDU_ACN_Decode);
+   procedure Sq is new Check (WIRE.SqPDU, WIRE.SqPDU_ACN_STREAM_SIZE, WIRE.SqPDU_ACN_Decode);
+   procedure Nest2 is new Check (WIRE.Nest2PDU, WIRE.Nest2PDU_ACN_STREAM_SIZE, WIRE.Nest2PDU_ACN_Decode);
    procedure Elem is new Check (WIRE.ElemPDU, WIRE.ElemPDU_ACN_STREAM_SIZE, WIRE.ElemPDU_ACN_Decode);
    procedure Nest is new Check (WIRE.NestPDU, WIRE.NestPDU_ACN_STREAM_SIZE, WIRE.NestPDU_ACN_Decode);
    procedure Alt is new Check (WIRE.AltPDU, WIRE.AltPDU_ACN_STREAM_SIZE, WIRE.AltPDU_ACN_Decode);
@@ -72,6 +84,8 @@ procedure Decode_Test is
    VPw : WIRE.PwPDU;
    VPwStr : WIRE.PwStrPDU;
    VBool : WIRE.BoolPDU;
+   VSq : WIRE.SqPDU;
+   VNest2 : WIRE.Nest2PDU;
    VElem : WIRE.ElemPDU;
    VNest : WIRE.NestPDU;
    VAlt : WIRE.AltPDU;
@@ -96,10 +110,19 @@ begin
    PwStr ("PwStrPDU a", (1 => 16#40#), WIRE.ERR_ACN_DECODE_PWSTRPDU_CS, VPwStr);
    PwStr ("PwStrPDU c", (1 => 16#00#), 0, VPwStr);
    --  present-when a BOOLEAN field of an absent component: x absent, tail 16#5A#
-   Bool ("BoolPDU c", (16#2D#, 16#00#), 0, VBool);
-   if VBool.Exist.header /= 0 or else VBool.Exist.x /= 0 or else VBool.tail /= 16#5A# then
+   Bool ("BoolPDU c", (16#16#, 16#80#), 0, VBool);
+   if VBool.Exist.header /= 0 or else VBool.Exist.x /= 0 or else VBool.Exist.p /= 0 or else VBool.tail /= 16#5A# then
       Fail ("BoolPDU c: value");
    end if;
+   --  the same in SEQUENCE OF elements: element 2 has no component, so no x (not element 1's field)
+   Sq ("SqPDU", (16#A0#, 16#40#), 0, VSq);
+   if VSq.Data (1).Exist.h /= 1 or else VSq.Data (1).Exist.x /= 1 or else VSq.Data (1).x.Length /= 0
+     or else VSq.Data (2).Exist.h /= 0 or else VSq.Data (2).Exist.x /= 0 or else VSq.Data (2).tail /= 1
+   then
+      Fail ("SqPDU: value");
+   end if;
+   --  nested components present when the same field says so as the dependent
+   Nest2 ("Nest2PDU c", (1 => 16#00#), 0, VNest2);
    --  SEQUENCE OF: element 1 sets the size, element 2 has no component but a dependent
    Elem ("ElemPDU a", (16#70#, 16#01#, 16#55#, 16#40#), WIRE.ERR_ACN_DECODE_ELEMPDU_ELEMS_ELM_DD, VElem);
    Elem ("ElemPDU c", (1 => 16#00#), 0, VElem);

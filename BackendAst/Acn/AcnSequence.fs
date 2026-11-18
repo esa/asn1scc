@@ -629,9 +629,10 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
 
 
 
-    // q/issues.md Issue 106: the decode locals of the fields that a dependent may read while the component holding them
-    // is absent start with their initial value (a BOOLEAN present-when then sees FALSE, the dependent is absent; gnatprove
-    // flow sees the local initialised on the path that skipped the holder); every other local is declared as before
+    // q/issues.md Issue 106: the decode locals of the fields that a size / CHOICE dependent may read while the component
+    // holding them is absent start with their initial value (gnatprove flow sees the local initialised on the path that
+    // skipped the holder; the dependent's guard makes the read exact); every other local is declared as before (a
+    // BOOLEAN read by a present-when is set at the start of the enclosing SEQUENCE, below)
     let readWhenHolderAbsent =
         match codec, lm.lg.decodeFailsWhenHolderAbsent with
         | Decode, true          -> AbsentHolder.fieldsReadWhenHolderAbsent r deps
@@ -646,13 +647,7 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
                     match lm.lg.decodingKind, readWhenHolderAbsent.Contains x.id with
                     | InPlace, false -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq, x.initExpression)]
                     | InPlace, true  ->
-                        // a string field: the empty string in the array of its typedef (SIZE max + 1 characters;
-                        // AcnChild.initExpression counts one more, it is not used elsewhere for a local)
-                        let initExp =
-                            match x.Type with
-                            | AcnReferenceToIA5String str -> lm.lg.stringLocalInit (int str.str.maxSize.uper)
-                            | AcnInteger _ | AcnBoolean _ | AcnNullType _ | AcnReferenceToEnumerated _ -> x.initExpression
-                        [GenericLocalVariable {name = x.c_name; varType = x.typeDefinitionBodyWithinSeq; arrSize = None; isStatic = false; initExp = Some initExp}]
+                        [GenericLocalVariable {name = x.c_name; varType = x.typeDefinitionBodyWithinSeq; arrSize = None; isStatic = false; initExp = Some (decodeLocalInitExpr lm x)}]
                     | Copy, _        -> []
                 match codec with
                 | Encode ->
@@ -860,6 +855,24 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             match trailingComments with
             | []       -> seqContent
             | comments -> seqContent |> Option.map (fun content -> content + "\n" + String.concat "\n" comments)
+        // q/issues.md Issue 106 (round 2): the decode locals of the BOOLEAN fields that decide a present-when while
+        // their holder may be absent are set to FALSE at the start of this SEQUENCE, the deepest common ancestor of
+        // holder and dependent (in a SEQUENCE OF element: every element). The assignment cannot fail and writes no
+        // result, so it precedes the parts without a join.
+        let seqContent =
+            let resets =
+                match codec, lm.lg.decodeFailsWhenHolderAbsent with
+                | Decode, true ->
+                    let pathText (id: ReferenceToType) = (id.AcnAbsPath |> List.skip 2 |> String.concat ".").Replace("#", "elm")
+                    AbsentHolder.presenceFlagResets r deps t.id
+                    |> List.map (fun (fieldId, holders) ->
+                        lm.acn.acn_dec_absent_holder_reset (getAcnDeterminantName fieldId) lm.lg.FalseLiteral (pathText fieldId) (holders |> List.map pathText |> String.concat " / "))
+                | Decode, false
+                | Encode, _    -> []
+            match resets, seqContent with
+            | [], _              -> seqContent
+            | _, Some content    -> Some (String.concat "\n" resets + "\n" + content)
+            | _, None            -> Some (String.concat "\n" resets)
 
         let icdFnc _ _ _  =
             let chRows0, compositeChildren0 = childrenStatements00 |> List.map (fun s -> s.icdResult) |> List.unzip
