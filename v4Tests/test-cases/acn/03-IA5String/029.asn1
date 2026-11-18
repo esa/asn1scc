@@ -1,0 +1,20 @@
+--RUN_SPARK
+-- IA5Strings sized by an ACN INTEGER field of the same SEQUENCE whose read bounds it within the SIZE range: a checked
+-- pos-int read (a) and a uPER read (b). Without -slim the reads' contracts state the bound and the Ada decoder does not
+-- check the length again; with -slim the fields have narrowed types read by procedures whose contracts state no bound,
+-- and the check stays. A field whose range is wider than the SIZE range (c) is always checked.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+Len ::= INTEGER (0..100)
+
+PDU ::= SEQUENCE {
+    a IA5String (SIZE(0..100)),
+    b IA5String (SIZE(0..100)),
+    c IA5String (SIZE(0..20))
+}
+
+pdu1 PDU ::= { a "abc", b "", c "xyz" }
+
+END
+
+--TCLS PDU [] { la Len [encoding pos-int, size 7], a [encoding ASCII, size la], lb Len [], b [encoding ASCII, size lb], lc Len [encoding pos-int, size 7], c [encoding ASCII, size lc] }

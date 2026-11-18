@@ -40,7 +40,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         // (Issue 64), unless the field was decoded within that range before, in this function, on every path that reaches
         // the string (SizeDeterminantBounds.localSizeFieldWithinSize); then a comment replaces the check
         let sizeFieldNoCheckNote (extField:string) =
-            match codec, SizeDeterminantBounds.localSizeFieldWithinSize lm.lg.acnIntReadChecksFieldRange deps t.id o.maxSize.acn with
+            match codec, SizeDeterminantBounds.localSizeFieldWithinSize lm.lg.acnIntReadPostsBoundValue deps t.id o.maxSize.acn with
             | Decode, Some (lo, hi) ->
                 Some (lm.lg.createSingleLineComment (sprintf " no size check: %s was decoded within %A .. %A before this string (a field of an enclosing SEQUENCE, reached through mandatory components), inside 0 .. %A" extField lo hi o.maxSize.acn))
             | Decode, None

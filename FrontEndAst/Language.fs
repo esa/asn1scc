@@ -834,14 +834,12 @@ type ILangGeneric () =
     abstract member decodeOneValueWithoutRead : bool
     default _.decodeOneValueWithoutRead = false
 
-    /// Coverage cycle 15a (A-str): whether the decoder of an ACN INTEGER field (without mapping function) of this
-    /// encoding rejects, in executable code, a value outside the field's concrete range (so the decoded value is within it
-    /// also under -gnatp): Ada every class (Acn_Dec_*_ConstSize* / ASCII / BCD take minVal .. maxVal and test them,
-    /// adaasn1rtl-encoding-acn.adb; Integer_uPER: Dec_ConstraintWholeNumber, adaasn1rtl-encoding.adb); C only
-    /// Integer_uPER (BitStream_DecodeConstraint[Pos]WholeNumber; the C ConstSize readers take no bounds); the others: none
-    /// known. Must agree with what AcnPrimitives.createAcnIntegerFunctionInternal emits.
-    abstract member acnIntReadChecksFieldRange : IntEncodingClass -> bool
-    default _.acnIntReadChecksFieldRange _ = false
+    /// Coverage cycle 15a (A-str): whether the RTL integer reads that SizeDeterminantBounds.acnIntReadInterval whitelists
+    /// state in their Post that the decoded value lies in the read's bounds (Ada: the unsuffixed UPER_Dec_Constraint[Pos]
+    /// WholeNumber[_FullRange] and Acn_Dec_Int_PositiveInteger / TwosComplement_ConstSize*[_FullRange],
+    /// adaasn1rtl-encoding-uper.ads / -acn.ads). Only such a stated bound lets a later check be dropped (the proof needs it).
+    abstract member acnIntReadPostsBoundValue : bool
+    default _.acnIntReadPostsBoundValue = false
 
     /// Coverage step 14c3: a decoder SEQUENCE joins its parts by what they write, as the encoders do
     /// (DAstUtilFunctions.nestEncodeParts): after a part that writes no ret (an ALWAYS ABSENT child, a one-value part)

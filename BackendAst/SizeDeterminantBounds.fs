@@ -122,14 +122,35 @@ let externalSizeChecks (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldD
         | _ -> Some maxSize
     noSizeMin, noSizeMax
 
-/// Coverage cycle 15a (A-str): the values a successful read of the ACN INTEGER field `int` can return, as (low, high)
-/// bounds (None = unbounded): the encoding width of an unsigned / two's complement ConstSize field, intersected with the
-/// field's concrete range when the language's read rejects a value outside it in executable code (readChecksFieldRange,
-/// ILangGeneric.acnIntReadChecksFieldRange). None for a field with a mapping function (the mapped value is unbounded).
-let private acnIntReadInterval (readChecksFieldRange: IntEncodingClass -> bool) (fld: Asn1AcnAst.AcnInteger) : (System.Numerics.BigInteger option * System.Numerics.BigInteger option) option =
-    let unsigned (nBits:System.Numerics.BigInteger) = Some 0I, Some (System.Numerics.BigInteger.Pow(2I, int nBits) - 1I)
-    let signed (nBits:System.Numerics.BigInteger) = Some (-System.Numerics.BigInteger.Pow(2I, int nBits - 1)), Some (System.Numerics.BigInteger.Pow(2I, int nBits - 1) - 1I)
-    let wireLo, wireHi =
+/// Coverage cycle 15a (A-str), positive rule: the values the Ada read of the ACN INTEGER field `fld` returns, as (low,
+/// high), when the read's RTL Post states them (`readPostsBound`, ILangGeneric.acnIntReadPostsBoundValue); None otherwise.
+/// Whitelist (no mapping function, an integer class without -slim narrowing, i.e. the unsuffixed RTL procedures):
+/// - Integer_uPER with a concrete range [a, b] and no extension marker: UPER_Dec_ConstraintWholeNumber /
+///   UPER_Dec_ConstraintPosWholeNumber (Post: Success and IntVal in MinVal .. MaxVal, or not Success and IntVal = MinVal),
+///   their _FullRange twins (Post: MinVal <= IntVal <= MinVal + 2**nBits - 1, the whole range), IntNoneRequired (a = b,
+///   assigned): [a, b];
+/// - PositiveInteger_ConstSize* / TwosComplement_ConstSize*: Acn_Dec_Int_PositiveInteger_ConstSize* /
+///   Acn_Dec_Int_TwosComplement_ConstSize* (Post: Success and IntVal in minVal .. maxVal, or not Success and IntVal = minVal;
+///   minVal .. maxVal = the field's range within the encoding width) and their _FullRange twins (Post: IntVal within the
+///   encoding width, used when the field's range holds the whole width): the width, intersected with a concrete range.
+/// Not whitelisted: ASCII / BCD encodings, Integer_uPER with an open range, mapping functions, and every narrowed
+/// (-slim) class (Int8 .. Int32, UInt8 .. UInt32: suffixed procedures such as _FullRangeUInt32, whose Post states no
+/// bound).
+let private acnIntReadInterval (readPostsBound: bool) (fld: Asn1AcnAst.AcnInteger) : (System.Numerics.BigInteger * System.Numerics.BigInteger) option =
+    let unsigned (nBits:System.Numerics.BigInteger) = Some (0I, System.Numerics.BigInteger.Pow(2I, int nBits) - 1I)
+    let signed (nBits:System.Numerics.BigInteger) = Some (-System.Numerics.BigInteger.Pow(2I, int nBits - 1), System.Numerics.BigInteger.Pow(2I, int nBits - 1) - 1I)
+    let unsuffixedClass =
+        match fld.intClass with
+        | ASN1SCC_Int64 _ | ASN1SCC_Int _ | ASN1SCC_UInt64 _ | ASN1SCC_UInt _ -> true
+        | ASN1SCC_Int8 _ | ASN1SCC_Int16 _ | ASN1SCC_Int32 _
+        | ASN1SCC_UInt8 _ | ASN1SCC_UInt16 _ | ASN1SCC_UInt32 _ -> false
+    let noExtension =
+        fld.cons |> List.forall (fun c ->
+            match c with
+            | RangeRootConstraint _ | RangeRootConstraint2 _ -> false
+            | RangeUnionConstraint _ | RangeIntersectionConstraint _ | RangeAllExceptConstraint _ | RangeExceptConstraint _
+            | RangeSingleValueConstraint _ | RangeConstraint _ | RangeConstraint_val_MAX _ | RangeConstraint_MIN_val _ -> true)
+    let width =
         match fld.acnEncodingClass with
         | PositiveInteger_ConstSize_8                  -> unsigned 8I
         | PositiveInteger_ConstSize_big_endian_16      -> unsigned 16I
@@ -153,36 +174,14 @@ let private acnIntReadInterval (readChecksFieldRange: IntEncodingClass -> bool) 
         | ASCII_UINT_ConstSize _
         | ASCII_UINT_VarSize_NullTerminated _
         | BCD_ConstSize _
-        | BCD_VarSize_NullTerminated _                 -> None, None
-    let fieldLo, fieldHi =
-        match readChecksFieldRange fld.acnEncodingClass, fld.uperRange with
-        | true, Concrete (a, b)                         -> Some a, Some b
-        | true, (NegInf _ | PosInf _ | Full)
-        | false, _                                      -> None, None
-    let tighter pick (x: System.Numerics.BigInteger option) (y: System.Numerics.BigInteger option) =
-        match x, y with
-        | Some a, Some b -> Some (pick a b)
-        | Some _, None   -> x
-        | None, _        -> y
-    // a field whose range does not narrow its encoding width is read by the full-range twin (Ada,
-    // DecodeOutcome.acnIntegerFullRange), whose bound comes only from its Post: the 64-bit twins state IntVal < 2**nBits,
-    // the twins of the -slim narrowed classes (_FullRangeUInt8 / 16 / 32, Int8 / 16 / 32, adaasn1rtl-encoding-acn.ads)
-    // state no bound, so nothing is claimed for them (the check stays)
-    let rangeNarrowsWidth =
-        match fld.uperRange, wireLo, wireHi with
-        | Concrete (a, b), Some wl, Some wh -> a > wl || b < wh
-        | Concrete _, _, _                  -> true
-        | (NegInf _ | PosInf _ | Full), _, _ -> false
-    let narrowedClass =
-        match fld.intClass with
-        | ASN1SCC_Int8 _ | ASN1SCC_Int16 _ | ASN1SCC_Int32 _
-        | ASN1SCC_UInt8 _ | ASN1SCC_UInt16 _ | ASN1SCC_UInt32 _ -> true
-        | ASN1SCC_Int64 _ | ASN1SCC_Int _ | ASN1SCC_UInt64 _ | ASN1SCC_UInt _ -> false
-    match fld.acnProperties.mappingFunction, rangeNarrowsWidth, narrowedClass with
-    | Some _, _, _       -> None
-    | None, false, true  -> None
-    | None, true, _
-    | None, false, false -> Some (tighter max wireLo fieldLo, tighter min wireHi fieldHi)
+        | BCD_VarSize_NullTerminated _                 -> None
+    match readPostsBound && unsuffixedClass && noExtension, fld.acnProperties.mappingFunction, fld.acnEncodingClass, fld.uperRange, width with
+    | false, _, _, _, _ | _, Some _, _, _, _                          -> None
+    | true, None, Integer_uPER, Concrete (a, b), _                   -> Some (a, b)
+    | true, None, Integer_uPER, (NegInf _ | PosInf _ | Full), _      -> None
+    | true, None, _, Concrete (a, b), Some (wl, wh)                  -> Some (max a wl, min b wh)
+    | true, None, _, (NegInf _ | PosInf _ | Full), Some (wl, wh)     -> Some (wl, wh)
+    | true, None, _, _, None                                         -> None
 
 /// Coverage cycle 15a (A-str): the bounds (low, high) of the size field of the string asn1TypeIdWithDependency, when
 /// they make the decoder's `<field> in 0 .. maxSize` check (the Ada string external-field templates, Issue 64) always
@@ -196,7 +195,7 @@ let private acnIntReadInterval (readChecksFieldRange: IntEncodingClass -> bool) 
 ///   OPTIONAL / ALWAYS ABSENT / ALWAYS PRESENT component, CHOICE alternative or SEQUENCE OF element), and the front end
 ///   requires an ACN field before its dependent, so every path that decodes the string has decoded the field first;
 /// - the read's interval (acnIntReadInterval) is bounded and within 0 .. maxSize.
-let localSizeFieldWithinSize (readChecksFieldRange: IntEncodingClass -> bool) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (asn1TypeIdWithDependency: ReferenceToType) (maxSize: System.Numerics.BigInteger) : (System.Numerics.BigInteger * System.Numerics.BigInteger) option =
+let localSizeFieldWithinSize (readPostsBound: bool) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (asn1TypeIdWithDependency: ReferenceToType) (maxSize: System.Numerics.BigInteger) : (System.Numerics.BigInteger * System.Numerics.BigInteger) option =
     match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = asn1TypeIdWithDependency) with
     | None -> None
     | Some dependency ->
@@ -215,11 +214,11 @@ let localSizeFieldWithinSize (readChecksFieldRange: IntEncodingClass -> bool) (d
                     | SEQ_CHILD (_, true) | MD _ | TA _ | VA _ | CH_CHILD _ | PRM _ | SQF -> false)
             let interval =
                 match field.Type with
-                | AcnInsertedType.AcnInteger fld              -> acnIntReadInterval readChecksFieldRange fld
+                | AcnInsertedType.AcnInteger fld              -> acnIntReadInterval readPostsBound fld
                 | AcnInsertedType.AcnNullType _
                 | AcnInsertedType.AcnBoolean _
                 | AcnInsertedType.AcnReferenceToEnumerated _
                 | AcnInsertedType.AcnReferenceToIA5String _   -> None
             match dominates, interval with
-            | true, Some (Some lo, Some hi) when lo >= 0I && hi <= maxSize -> Some (lo, hi)
+            | true, Some (lo, hi) when lo >= 0I && hi <= maxSize -> Some (lo, hi)
             | _ -> None

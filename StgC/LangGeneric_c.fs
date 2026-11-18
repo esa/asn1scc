@@ -962,18 +962,6 @@ type LangGeneric_c() =
         override _.atcDecodeSweep _ = TruncationAndCorruptionSweep
         // coverage step 14c3: no read of a one-value type, no `if (ret)` after a decode part that writes no ret
         override _.decodeOneValueWithoutRead = true
-        // coverage cycle 15a: only the uPER-like read of an ACN integer field rejects a value above the field's range
-        override _.acnIntReadChecksFieldRange enc =
-            match enc with
-            | Asn1AcnAst.Integer_uPER -> true
-            | Asn1AcnAst.PositiveInteger_ConstSize_8 | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_16 | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_16
-            | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_32 | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_32
-            | Asn1AcnAst.PositiveInteger_ConstSize_big_endian_64 | Asn1AcnAst.PositiveInteger_ConstSize_little_endian_64 | Asn1AcnAst.PositiveInteger_ConstSize _
-            | Asn1AcnAst.TwosComplement_ConstSize_8 | Asn1AcnAst.TwosComplement_ConstSize_big_endian_16 | Asn1AcnAst.TwosComplement_ConstSize_little_endian_16
-            | Asn1AcnAst.TwosComplement_ConstSize_big_endian_32 | Asn1AcnAst.TwosComplement_ConstSize_little_endian_32
-            | Asn1AcnAst.TwosComplement_ConstSize_big_endian_64 | Asn1AcnAst.TwosComplement_ConstSize_little_endian_64 | Asn1AcnAst.TwosComplement_ConstSize _
-            | Asn1AcnAst.ASCII_ConstSize _ | Asn1AcnAst.ASCII_VarSize_NullTerminated _ | Asn1AcnAst.ASCII_UINT_ConstSize _ | Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated _
-            | Asn1AcnAst.BCD_ConstSize _ | Asn1AcnAst.BCD_VarSize_NullTerminated _ -> false
         override _.decodeJoinsByWrites = true
 
         override this.getDirInfo (target:Targets option) rootDir =
