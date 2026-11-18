@@ -200,11 +200,23 @@ let uperVarSizeCannotFail (lm:LanguageMacros) (kind:FixedStringKind) (isFixedSiz
 
 /// uPER decode outcome of a type (as decoded in place: a reference that is decoded by a call to the type
 /// assignment's function is a part that writes result).
+/// Coverage cycle 15a: an INTEGER with an extension marker (a root constraint) is decoded by IntRootExt_decode /
+/// IntRootExt2_decode (DAstUPer.getIntfuncBodyByCons: the extension bit, then the root range or an unconstrained value),
+/// which may fail, whatever its uperRange (also a singleton such as INTEGER (0..5, ...) (3), which IntNoneRequired would
+/// assign).
+let intHasExtension (cons:IntegerTypeConstraint list) : bool =
+    cons |> List.exists (fun c ->
+        match c with
+        | RangeRootConstraint _ | RangeRootConstraint2 _ -> true
+        | RangeUnionConstraint _ | RangeIntersectionConstraint _ | RangeAllExceptConstraint _ | RangeExceptConstraint _
+        | RangeSingleValueConstraint _ | RangeConstraint _ | RangeConstraint_val_MAX _ | RangeConstraint_MIN_val _ -> false)
+
 let rec uper (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : DecodeOutcome =
     match lm.lg.decodeReadFailureModel with
     | ReadsCanFail      -> MayFail
     | ReadsCannotFail   ->
         match t.Kind with
+        | Integer o when intHasExtension o.cons -> MayFail                          // IntRootExt(2)_decode: extension bit, then the root or unconstrained read
         | Integer o ->
             match o.uperRange with
             | Concrete (min, max) when min = max -> AlwaysSucceeds WritesResult      // IntNoneRequired: result := (true, 0)
@@ -298,49 +310,6 @@ and uperChoiceFullIndex (r:AstRoot) (lm:LanguageMacros) (o:Choice) : (BigInteger
         | AlwaysSucceeds w :: rest when rest |> List.forall (fun x -> x = AlwaysSucceeds w) -> Some (nBits, w)
         | _ -> None)
 
-/// Coverage cycle 15a (C), positive rule: the Ada uPER decode of a CHOICE alternative of this type writes
-/// result.Success and result.ErrorCode on every path. Whitelist (anything else: false, the CHOICE keeps its guard):
-/// - INTEGER without extension marker and not read by a _FullRange twin (uper_a.stg IntFullyConstraint_decode,
-///   IntFullyConstraintPos_decode, IntSemiConstraint(Pos)_decode, IntUnconstrained(Max)_decode: `result.ErrorCode :=
-///   <sErrCode>;` then the RTL read with `result.Success` as its out parameter), or with one value (IntNoneRequired_decode:
-///   `result := ASN1_RESULT'(Success => true, ErrorCode => 0);`);
-/// - a reference decoded by a call of the type assignment's decoder (`<T>_Decode_aux(<p>, bs, result)`: result is its
-///   `out` parameter, which its body writes on every path).
-and uperArmWritesResult (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : bool =
-    match t.Kind with
-    | Integer o ->
-        match o.uperRange with
-        | Concrete (a, b) when a = b -> true                                        // IntNoneRequired_decode
-        | Concrete _ | PosInf _ | NegInf _ | Full ->
-            intWithoutExtension o.cons && (uperIntegerFullRange r lm o.uperRange o.intClass o.cons).IsNone
-    | ReferenceType o ->
-        match o.encodingOptions with
-        | Some _ -> false                                                           // CONTAINING
-        | None   -> TypesEquivalence.uperEquivalence (GetActualTypeByName r o.modName o.tasName) o.resolvedType  // call
-    | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | NullType _ | Boolean _ | Enumerated _
-    | Choice _ | Sequence _ | SequenceOf _ | ObjectIdentifier _ | TimeType _ -> false
-
-/// An INTEGER without extension marker (no IntRootExt / IntRootExt2 template).
-and intWithoutExtension (cons:IntegerTypeConstraint list) : bool =
-    cons |> List.forall (fun c ->
-        match c with
-        | RangeRootConstraint _ | RangeRootConstraint2 _ -> false
-        | RangeUnionConstraint _ | RangeIntersectionConstraint _ | RangeAllExceptConstraint _ | RangeExceptConstraint _
-        | RangeSingleValueConstraint _ | RangeConstraint _ | RangeConstraint_val_MAX _ | RangeConstraint_MIN_val _ -> true)
-
-/// Coverage cycle 15a (C): a uPER CHOICE whose index fills its field (2^k alternatives, fullIndexBits) is decoded with
-/// the _FullRange twin and an unguarded `case` (choice_fullIndex): the 14c2a shape (uperChoiceFullIndex), and also when
-/// some alternative may fail, provided every alternative is on the whitelist of uperArmWritesResult. Under the
-/// decoder precondition the guarded read could not fail and returned 0 .. 2^k - 1, so its `if` was never FALSE; with
-/// every arm writing result, the CHOICE still writes result.Success on every path (the rule of a MayFail part) and stays
-/// MayFail. A CHOICE with an arm that writes no result keeps the guard (George, 14c2a question B (a)). Returns k.
-and uperChoiceUnguarded (r:AstRoot) (lm:LanguageMacros) (o:Choice) : BigInteger option =
-    match uperChoiceFullIndex r lm o with
-    | Some (nBits, _) -> Some nBits
-    | None            ->
-        fullIndexBits lm o.children.Length
-        |> Option.filter (fun _ -> o.children |> List.forall (fun c -> uperArmWritesResult r lm c.Type))
-
 /// A direct NULL child has no decode statement in Ada (a reference to a NULL type is a call).
 and uperChildHasStatement (childType:Asn1Type) : bool =
     match childType.Kind with
@@ -385,11 +354,10 @@ let rec uperErrorCodeSummary (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : Erro
     | NullType _ -> leaf false
     | Enumerated o -> leaf (uperEnumFullIndex r lm o).IsNone                          // _FullRange index: no ErrorCode
     | Choice o ->
-        match uperChoiceUnguarded r lm o with
+        match uperChoiceFullIndex r lm o with
         | None   -> leaf true                                                         // choice_decode: ErrorCode before the index
         | Some _ ->
-            // choice_fullIndex writes nothing before the alternatives: one of them runs (the index covers them all;
-            // 14c2a, and since cycle 15a also with alternatives that may fail)
+            // choice_fullIndex writes nothing before the alternatives: one of them runs (the index covers them all)
             let alternatives = o.children |> List.map (fun c -> uperErrorCodeSummary r lm c.Type)
             { writesE    = alternatives |> List.forall (fun s -> s.writesE)
               exitNeedsE = alternatives |> List.exists (fun s -> s.exitNeedsE) }
@@ -820,79 +788,16 @@ and acnChoiceEnumLocal (r:AstRoot) (deps:AcnInsertedFieldDependencies) (t:Asn1Ty
             | false, _                          -> noAlwaysAbsent
 
 and acnChoiceFullIndex (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (o:Choice) : (BigInteger * ResultWrite) option =
-    match acnChoiceSelfSelected o with
+    let selfSelected =
+        o.acnProperties.enumDeterminant.IsNone
+        && o.children |> List.forall (fun c -> c.acnPresentWhenConditions.IsEmpty && c.Optionality <> Some ChoiceAlwaysAbsent)
+    match selfSelected with
     | false -> None
     | true  ->
         fullIndexBits lm o.children.Length |> Option.bind (fun nBits ->
             match o.children |> List.map (fun c -> acnChoiceAlternative r deps lm c.Type |> fst) with
             | AlwaysSucceeds w :: rest when rest |> List.forall (fun x -> x = AlwaysSucceeds w) -> Some (nBits, w)
             | _ -> None)
-
-/// An ACN CHOICE that decodes its own index (AcnChoice CEC_uper: no determinant, no present-when) without ALWAYS ABSENT
-/// alternatives (their Ada arm only writes a failure; with a guarded index they carry ASN1SCC-COV-001).
-and acnChoiceSelfSelected (o:Choice) : bool =
-    o.acnProperties.enumDeterminant.IsNone
-    && o.children |> List.forall (fun c -> c.acnPresentWhenConditions.IsEmpty && c.Optionality <> Some ChoiceAlwaysAbsent)
-
-/// Coverage cycle 15a (C): uperChoiceUnguarded for an ACN CHOICE that decodes its own index (acnChoiceSelfSelected):
-/// Choice_fullIndex (the _FullRange read, unguarded `case`) for the 14c2a shape (acnChoiceFullIndex) and when every
-/// alternative is on the whitelist of acnArmWritesResult.
-/// Returns k.
-and acnChoiceUnguarded (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (o:Choice) : BigInteger option =
-    match acnChoiceFullIndex r deps lm o with
-    | Some (nBits, _) -> Some nBits
-    | None            ->
-        match acnChoiceSelfSelected o with
-        | false -> None
-        | true  ->
-            fullIndexBits lm o.children.Length
-            |> Option.filter (fun _ -> o.children |> List.forall (fun c -> acnArmWritesResult r deps lm c.Type))
-
-/// Coverage cycle 15a (C), positive rule: uperArmWritesResult for the Ada ACN decode of a CHOICE alternative (an alignment
-/// before it writes no result and does not change the rule). Whitelist:
-/// - INTEGER without mapping function: Integer_uPER (the uPER body, uperArmWritesResult), or a pos-int / twos-complement
-///   ConstSize class not read by a _FullRange twin (acn_a.stg PositiveInteger_ConstSize*_decode,
-///   TwosComplement_ConstSize*_decode: the RTL read with the out parameter `result`, then `result.ErrorCode :=
-///   <sErrCode>;`);
-/// - a reference decoded by a call of the type assignment's ACN decoder (`<T>_ACN_Decode_aux(<p>, bs, result)`: no
-///   CONTAINING, no constraints / children / ACN arguments at the site, not a live 'size deduced' type, and a type
-///   assignment that has its own ACN function, i.e. not one exporting --acn-v2 determinants).
-and acnArmWritesResult (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : bool =
-    match t.Kind with
-    | Integer o ->
-        match o.acnProperties.mappingFunction, o.acnEncodingClass with
-        | Some _, _ -> false
-        | None, Integer_uPER -> uperArmWritesResult r lm t
-        | None, PositiveInteger_ConstSize_8
-        | None, PositiveInteger_ConstSize_big_endian_16
-        | None, PositiveInteger_ConstSize_little_endian_16
-        | None, PositiveInteger_ConstSize_big_endian_32
-        | None, PositiveInteger_ConstSize_little_endian_32
-        | None, PositiveInteger_ConstSize_big_endian_64
-        | None, PositiveInteger_ConstSize_little_endian_64
-        | None, PositiveInteger_ConstSize _
-        | None, TwosComplement_ConstSize_8
-        | None, TwosComplement_ConstSize_big_endian_16
-        | None, TwosComplement_ConstSize_little_endian_16
-        | None, TwosComplement_ConstSize_big_endian_32
-        | None, TwosComplement_ConstSize_little_endian_32
-        | None, TwosComplement_ConstSize_big_endian_64
-        | None, TwosComplement_ConstSize_little_endian_64
-        | None, TwosComplement_ConstSize _ ->
-            (acnIntegerFullRange r lm o.uperRange o.intClass o.acnEncodingClass false).IsNone
-        | None, ASCII_ConstSize _
-        | None, ASCII_VarSize_NullTerminated _
-        | None, ASCII_UINT_ConstSize _
-        | None, ASCII_UINT_VarSize_NullTerminated _
-        | None, BCD_ConstSize _
-        | None, BCD_VarSize_NullTerminated _ -> false
-    | ReferenceType o ->
-        match o.encodingOptions, o.hasExtraConstrainsOrChildrenOrAcnArgs, isLiveDeduced o.resolvedType with
-        | None, false, false ->
-            not (r.tassesWithExportedDeterminants.Contains {TypeAssignmentInfo.modName = o.modName.Value; tasName = o.tasName.Value})
-        | None, false, true | None, true, _ | Some _, _, _ -> false
-    | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | NullType _ | Boolean _ | Enumerated _
-    | Choice _ | Sequence _ | SequenceOf _ | ObjectIdentifier _ | TimeType _ -> false
 
 /// The decode part of a CHOICE alternative (AcnChoice.handleChild): its outcome and ErrorCode summary.
 and acnChoiceAlternative (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (childType:Asn1Type) : DecodeOutcome * ErrorCodeSummary =
@@ -931,8 +836,13 @@ and acnChildPart (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMac
     // (not ErrorCode), then the child is decoded under `if Exist = 1`: the part cannot fail when the child cannot, and
     // it writes result on every path
     | Some (Optional opt), false when opt.acnPresentWhen.IsSome -> Some (AlwaysSucceeds WritesResult, leaf false)
+    // cycle 15a: an aligned child without content is only the alignment (a statement that writes no result, AcnAlignment);
+    // without alignment it has no statement
     | Some (Optional _), false
-    | None, false                                               -> None
+    | None, false                                               ->
+        match childType.acnAlignment with
+        | Some _ -> Some (AlwaysSucceeds NoResultWrite, leaf false)
+        | None   -> None
     | Some (Optional opt), true ->
         let outcome =
             match opt.acnPresentWhen, acn r deps lm childType with
@@ -1019,10 +929,9 @@ and acnErrorCodeSummary (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:Lang
         | SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> leaf true
     | NullType n -> leaf n.acnProperties.encodingPattern.IsSome                       // Null_pattern: the call, then ErrorCode
     | Choice ch ->
-        match ch.acnProperties.enumDeterminant, acnChoiceUnguarded r deps lm ch with
+        match ch.acnProperties.enumDeterminant, acnChoiceFullIndex r deps lm ch with
         | None, Some _ ->
-            // Choice_fullIndex writes nothing before the alternatives: one of them runs (the index covers them all;
-            // 14c2a, and since cycle 15a also with alternatives that may fail)
+            // Choice_fullIndex writes nothing before the alternatives: one of them runs (the index covers them all)
             let alternatives = ch.children |> List.map (fun c -> acnChoiceAlternative r deps lm c.Type |> snd)
             { writesE    = alternatives |> List.forall (fun s -> s.writesE)
               exitNeedsE = alternatives |> List.exists (fun s -> s.exitNeedsE) }
@@ -1030,8 +939,8 @@ and acnErrorCodeSummary (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:Lang
         | Some _, _ ->
             // Choice_Enum_decode (`case <determinant>`, also --acn-v2 deferred): nothing is written before the
             // alternatives, so every alternative must set ErrorCode (a _FullRange alternative does not touch result)
-            // an alternative without content (NULL) is decode_nullType: result := (true, 0), unless it is aligned (cycle 15a:
-            // then only the alignment, acnChoiceAlternative); an ALWAYS ABSENT alternative's arm is
+            // an alternative without content (NULL) is decode_nullType: result := (true, 0), unless it is aligned (cycle
+            // 15a: then only the alignment, acnChoiceAlternative); an ALWAYS ABSENT alternative's arm is
             // ChoiceChildAlwaysAbsent_decode: result := (false, <code>)
             let alternatives =
                 ch.children |> List.map (fun c ->
@@ -1112,7 +1021,10 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (choiceAssigns: As
                 o.children |> List.forall (fun c ->
                     match c with
                     | AcnChild _  -> not acnChildrenDecoded
-                    | Asn1Child c -> c.Optionality.IsNone && not (hasStatement c.Type))
+                    | Asn1Child c ->
+                        // cycle 15a: an aligned NULL field gives the ACN body a statement (the alignment), so no
+                        // decode_empty_sequence writes the fields (uPER ignores ACN alignment)
+                        c.Optionality.IsNone && not (hasStatement c.Type) && (not acnChildrenDecoded || c.Type.acnAlignment.IsNone))
             match full || onlyNullFields with
             | true  -> FullWrite
             | false -> MayLeavePartial
@@ -1148,7 +1060,7 @@ let acnChoiceSelectionAssigns (r:AstRoot) (deps:AcnInsertedFieldDependencies) (l
     match t.Kind with
     | Choice o ->
         match o.acnProperties.enumDeterminant with
-        | None   -> (acnChoiceUnguarded r deps lm o).IsSome                              // cycle 15a: also arms that may fail
+        | None   -> (acnChoiceFullIndex r deps lm o).IsSome
         | Some _ -> acnChoiceEnumLocal r deps t o
     | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
     | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | NullType _ | ReferenceType _ -> false
@@ -1172,12 +1084,11 @@ let rec acnChoiceChildAssigns (r:AstRoot) (deps:AcnInsertedFieldDependencies) (l
 
 /// uPER *_Decode_aux: does it write all of val on every path?
 let uperValWrite (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
-    // a uPER CHOICE decoded in place reaches an arm on every path only with a full index (choice_fullIndex: no guard;
-    // cycle 15a: also when an arm may fail, uperChoiceUnguarded); a reference is decoded in place when it is not
-    // equivalent to its type assignment (uperValInitUnused)
+    // a uPER CHOICE decoded in place reaches an arm on every path only with a full index (choice_fullIndex: no guard);
+    // a reference is decoded in place when it is not equivalent to its type assignment (uperValInitUnused)
     let rec choiceAssigns (c:Asn1Type) =
         match c.Kind with
-        | Choice o -> (uperChoiceUnguarded r lm o).IsSome
+        | Choice o -> (uperChoiceFullIndex r lm o).IsSome
         | ReferenceType o ->
             match o.encodingOptions with
             | Some _ -> false
@@ -1194,7 +1105,6 @@ let acnValWrite (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacr
     valWrite (acn r deps lm) (acnChoiceChildAssigns r deps lm) (fun a -> fst (acnInsertedFieldPart r lm a)) acnHasDecodeContent true r.args.acnDeferred lm t
 
 /// Coverage step 14c2a: a decoder whose body is a CHOICE with a full index writes all of val on every path (each arm
-/// runs, since cycle 15a also when an arm may fail: uperChoiceUnguarded / acnChoiceUnguarded; each arm
 /// assigns `val := T'(kind => ..., x => init)`), yet val stays `in out`: a CHOICE is a variant record, and the
 /// discriminant of an `out` parameter is read at the call (gnatprove "val.x.kind is not set" in the caller). Its
 /// initial value is then never read: gnatprove "unused initial value of val", suppressed on the declaration
@@ -1202,10 +1112,10 @@ let acnValWrite (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacr
 /// decoded by a call passes val on (a read); one decoded in place has the referenced body.
 let rec uperValInitUnused (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : bool =
     match t.Kind with
-    | Choice o ->
+    | Choice _ ->
         match uper r lm t with
         | AlwaysSucceeds _ -> true
-        | MayFail          -> (uperChoiceUnguarded r lm o).IsSome                   // cycle 15a: every path runs an arm
+        | MayFail          -> false
     | ReferenceType o ->
         match o.encodingOptions with
         | Some _ -> false
@@ -1219,10 +1129,10 @@ let rec uperValInitUnused (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : bool =
 /// ACN twin of uperValInitUnused (the reference rules of acn).
 let rec acnValInitUnused (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : bool =
     match t.Kind with
-    | Choice o ->
+    | Choice _ ->
         match acn r deps lm t with
         | AlwaysSucceeds _ -> true
-        | MayFail          -> (acnChoiceUnguarded r deps lm o).IsSome              // cycle 15a: every path runs an arm
+        | MayFail          -> false
     | ReferenceType o ->
         match o.encodingOptions, o.hasExtraConstrainsOrChildrenOrAcnArgs with
         | Some _, _         -> false

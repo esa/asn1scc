@@ -363,12 +363,10 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 | Decode, _, _                            -> None
             match ec with
             | CEC_uper        ->
-                // coverage step 14c2a: 2^nIndexSizeInBits alternatives that cannot fail; cycle 15a: also alternatives
-                // that may fail, when every one writes result (DecodeOutcome.acnChoiceUnguarded): the index read cannot
-                // fail and covers every alternative, so the `case` needs no guard
-                match codec, bOneAlternative, DecodeOutcome.acnChoiceUnguarded r deps lm o with
+                // coverage step 14c2a: 2^nIndexSizeInBits alternatives that cannot fail (DecodeOutcome.acnChoiceFullIndex)
+                match codec, bOneAlternative, DecodeOutcome.acnChoiceFullIndex r deps lm o with
                 | Decode, true, _                    -> String.concat "\n" childrenStatements, resultExpr
-                | Decode, false, Some nFullBits      -> lm.acn.Choice_fullIndex pp access childrenStatements sChoiceIndexName td nFullBits, resultExpr
+                | Decode, false, Some (nFullBits, _) -> lm.acn.Choice_fullIndex pp access childrenStatements sChoiceIndexName td nFullBits, resultExpr
                 | Decode, false, None
                 | Encode, _, _                       -> choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
             | CEC_enum   enm  ->
