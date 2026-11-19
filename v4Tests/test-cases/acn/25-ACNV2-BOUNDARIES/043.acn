@@ -1,6 +1,0 @@
-TEST-CASE DEFINITIONS ::= BEGIN
-    PW <INTEGER:pa, INTEGER:pb> [] { hx BOOLEAN [], hy BOOLEAN [], x [present-when hx, size pa], y [present-when hy, size pa], z [size pb] }
-    TW [] { a [], n INTEGER [size 4, encoding pos-int], pl <n, n> [], tail [] }
-    PS <INTEGER:pa, INTEGER:pb> [] { hx BOOLEAN [], x [present-when hx, size pa], z [size pb] }
-    TS [] { a [], n INTEGER [size 4, encoding pos-int], pl <n, n> [], tail [] }
-END

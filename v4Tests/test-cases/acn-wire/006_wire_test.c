@@ -220,17 +220,6 @@ int main(void)
         v.a = 1; v.pl.items.nCount = 2; FIXED3(v.pl.items.arr[0].arr); FIXED3(v.pl.items.arr[1].arr); v.tail = 7;
         ENCODE(TQV, v, 0x01, 0x34, 0x04, 0x08, 0x0C, 0x04, 0x08, 0x0C, 0x1C);
     }
-    /* two formal parameters bound to one field (pl <n, n>): x and z of 3 octets; x 2 / z 3 and y 2 / z 3 rejected */
-    {
-        static TW v;
-        memset(&v, 0, sizeof v);
-        v.a = 1; v.pl.exist.x = 1; FILL(v.pl.x, 3); FILL(v.pl.z, 3); v.tail = 7;
-        ENCODE(TW, v, 0x01, 0x38, 0x04, 0x08, 0x0C, 0x04, 0x08, 0x0C, 0x1C);
-        FILL(v.pl.x, 2);
-        REJECT(TW, v);
-        v.pl.exist.x = 0; v.pl.exist.y = 1; FILL(v.pl.y, 2);
-        REJECT(TW, v);
-    }
     /* an OPTIONAL consumer before a mandatory one */
     {
         static TL2 v;

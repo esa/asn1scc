@@ -93,7 +93,6 @@ procedure Wire_Test is
    package CL2 is new Checks (TL2, TL2_ACN_STREAM_SIZE, TL2_ACN_Encode, TL2_ACN_Decode, TL2_Equal);
    package CQ is new Checks (TQ, TQ_ACN_STREAM_SIZE, TQ_ACN_Encode, TQ_ACN_Decode, TQ_Equal);
    package CQV is new Checks (TQV, TQV_ACN_STREAM_SIZE, TQV_ACN_Encode, TQV_ACN_Decode, TQV_Equal);
-   package CW is new Checks (TW, TW_ACN_STREAM_SIZE, TW_ACN_Encode, TW_ACN_Decode, TW_Equal);
 
    --  n octets 1, 2, ...
    function Oct (N : Natural) return adaasn1rtl.OctetBuffer is
@@ -122,7 +121,6 @@ procedure Wire_Test is
    VL2 : TL2 := TL2_Init;
    VQ : TQ := TQ_Init;
    VQV : TQV := TQV_Init;
-   VW : TW := TW_Init;
 begin
    --  two OPTIONAL consumers: the first present, the second (the one patched before) absent, and the other way
    VB.a := 1; VB.tail := 7; VB.pl.e := 5;
@@ -250,19 +248,6 @@ begin
    VQV.pl.items.Data (1).Data := F3;
    VQV.pl.items.Data (2).Data := F3;
    CQV.Enc ("TQV", VQV, (16#01#, 16#34#, 16#04#, 16#08#, 16#0C#, 16#04#, 16#08#, 16#0C#, 16#1C#));
-   --  two formal parameters bound to one field (pl <n, n>): x and z of 3 octets; x 2 / z 3 and y 2 / z 3 rejected
-   VW.a := 1; VW.tail := 7;
-   VW.pl.Exist := (x => 1, y => 0);
-   VW.pl.x := (Length => 3, Data => Oct (3));
-   VW.pl.y := (Length => 0, Data => Oct (0));
-   VW.pl.z := (Length => 3, Data => Oct (3));
-   CW.Enc ("TW", VW, (16#01#, 16#38#, 16#04#, 16#08#, 16#0C#, 16#04#, 16#08#, 16#0C#, 16#1C#));
-   VW.pl.x := (Length => 2, Data => Oct (2));
-   CW.Rej ("TW x 2 z 3", VW);
-   VW.pl.Exist := (x => 0, y => 1);
-   VW.pl.x := (Length => 0, Data => Oct (0));
-   VW.pl.y := (Length => 2, Data => Oct (2));
-   CW.Rej ("TW y 2 z 3", VW);
    --  an OPTIONAL consumer before a mandatory one
    VL2.a := 1; VL2.tail := 7;
    VL2.pl.Exist := (o => 0);

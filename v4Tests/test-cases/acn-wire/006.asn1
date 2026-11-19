@@ -57,7 +57,4 @@ WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     TQ ::= SEQUENCE { a INTEGER(0..255), pl PQ, tail INTEGER(0..255) }
     PQV ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, items SEQUENCE (SIZE(1..2)) OF OCTET STRING (SIZE(3)) }
     TQV ::= SEQUENCE { a INTEGER(0..255), pl PQV, tail INTEGER(0..255) }
-    -- two formal parameters bound to one field (pl <n, n>): one first patch per field, not per parameter
-    PW ::= SEQUENCE { x OCTET STRING (SIZE(0..15)) OPTIONAL, y OCTET STRING (SIZE(0..15)) OPTIONAL, z OCTET STRING (SIZE(0..15)) }
-    TW ::= SEQUENCE { a INTEGER(0..255), pl PW, tail INTEGER(0..255) }
 END

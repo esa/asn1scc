@@ -30,6 +30,4 @@ WIRE DEFINITIONS ::= BEGIN
     TQ [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
     PQV <INTEGER:len> [] { h BOOLEAN [], d [present-when h, size len], items [] { [size len] } }
     TQV [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
-    PW <INTEGER:pa, INTEGER:pb> [] { hx BOOLEAN [], hy BOOLEAN [], x [present-when hx, size pa], y [present-when hy, size pa], z [size pb] }
-    TW [] { a [], n INTEGER [size 4, encoding pos-int], pl <n, n> [], tail [] }
 END

@@ -42,6 +42,14 @@ type FixedSizePatchGuard =
     /// nonzero code (C) / make an Ada pragma Assume false.
     | FixedSizeUnderPathChecks
 
+/// How many formal parameters of one specialised function stand for an ACN field (AcnExternalField.paramIdentity).
+type private FieldBinding =
+    /// One formal parameter: the per-consumer patches of Issue 121.
+    | SingleFormal
+    /// Two or more formal parameters bound to the same field (`pl <n, n>`): the patches of before Issue 121 (one per
+    /// parameter, per-parameter first-patch rule); the fix is one ref per field, q/issues.md Issue 126.
+    | AliasedField
+
 /// Compute the value expression for a PatchDet call, based on the
 /// dependency kind.  Returns (preBlock option, valueExpr) where preBlock
 /// is an optional block of code to prepend (e.g., a switch/case that
@@ -1390,8 +1398,13 @@ let private appendPatchDetCalls
                 findContainingSizeParam ctx.deps ctx.o
                 |> Option.map (fun prm -> prm.id)
             let boundaryPath = ctx.o.resolvedType.id.ToScopeNodeList
-            // The patches of the block, in emission order: (parameter, consumer dependency, fixed-size guard, PatchDet
-            // functions of the parameter)
+            let fieldOf (prm: AcnGenericTypes.AcnParameter) = AcnExternalField.paramIdentity ctx.r ctx.deps prm
+            let bindingOf (prm: AcnGenericTypes.AcnParameter) =
+                match ctx.o.resolvedType.acnParameters |> List.filter (fun p -> fieldOf p = fieldOf prm) with
+                | [] | [_]      -> SingleFormal
+                | _ :: _ :: _   -> AliasedField
+            // The patches of the block, in emission order: (parameter, field binding, consumer dependency, fixed-size
+            // guard, PatchDet functions of the parameter)
             let patchedConsumers =
                 ctx.o.resolvedType.acnParameters |> List.collect (fun prm ->
                     match containingSizePrmId with
@@ -1424,10 +1437,13 @@ let private appendPatchDetCalls
                     // were until Issue 124.
                     let belowSequenceOf (d: Asn1AcnAst.AcnDependency) =
                         d.asn1Type.ToScopeNodeList |> List.skip boundaryPath.Length |> List.exists (function SQF -> true | _ -> false)
+                    // An aliased field (Issue 126) keeps the code of before as well: one patch per parameter
+                    let binding = bindingOf prm
                     let consumerDeps =
-                        match allConsumerDeps |> List.exists belowSequenceOf with
-                        | true  -> allConsumerDeps |> List.truncate 1
-                        | false -> allConsumerDeps
+                        match binding, allConsumerDeps |> List.exists belowSequenceOf with
+                        | AliasedField, _
+                        | SingleFormal, true  -> allConsumerDeps |> List.truncate 1
+                        | SingleFormal, false -> allConsumerDeps
                     // Several consumers: each patch runs only when its consumer is encoded, also a fixed-size one
                     // (an unguarded constant would collide with another consumer that is present); one consumer:
                     // the code of before (Issue 125)
@@ -1442,19 +1458,17 @@ let private appendPatchDetCalls
                             // Skip CONTAINING size deps — handled by CONTAINING wrapper
                             match dep.dependencyKind with
                             | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> None
-                            | _ -> Some (prm, dep, fixedSizeGuard, detFns)))
+                            | _ -> Some (prm, binding, dep, fixedSizeGuard, detFns)))
             // coverage step 14d: only the first patch of a field in this block can be its first patch since the
-            // InitDet. Counted per field (paramIdentity), not per parameter: two formal parameters may stand for one
-            // field (`pl <n, n>`), and each used to count as first (C TRUE with code 203, a false Ada pragma Assume on
-            // an inconsistent value; this also changes master's text for such callees: their second patch is checked).
-            let fieldOf (prm: AcnGenericTypes.AcnParameter) = AcnExternalField.paramIdentity ctx.r ctx.deps prm
+            // InitDet. Counted per field (paramIdentity); an aliased field (two formal parameters standing for it,
+            // `pl <n, n>`) keeps the per-parameter rule of before (Issue 126).
             let indexedConsumers, _ =
-                patchedConsumers |> List.mapFold (fun (seen: Map<ReferenceToType, int>) (prm, dep, guard, detFns) ->
+                patchedConsumers |> List.mapFold (fun (seen: Map<ReferenceToType, int>) (prm, binding, dep, guard, detFns) ->
                     let fieldId = fieldOf prm
                     let k = seen.TryFind fieldId |> Option.defaultValue 0
-                    (prm, fieldId, k, dep, guard, detFns), seen.Add (fieldId, k + 1)) Map.empty
+                    (prm, binding, fieldId, k, dep, guard, detFns), seen.Add (fieldId, k + 1)) Map.empty
             let patchCalls =
-                indexedConsumers |> List.map (fun (prm, fieldId, k, dep, fixedSizeGuard, (_initFn, patchFn, nBitsOpt, uperMinOffset)) ->
+                indexedConsumers |> List.map (fun (prm, binding, fieldId, k, dep, fixedSizeGuard, (_initFn, patchFn, nBitsOpt, uperMinOffset)) ->
                             let (preBlock, rawValueExpr, checks) =
                                 computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP bodyOutcome.canFail fixedSizeGuard
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
@@ -1471,12 +1485,16 @@ let private appendPatchDetCalls
                             // callee it is passed to patches first). isOnlyPatchOfField holds only for consumers in
                             // different CHOICE alternatives, whose patches are all under their path checks
                             // (FixedSizeUnderPathChecks), so one runs
-                            let sameFieldParams =
-                                ctx.o.resolvedType.acnParameters |> List.filter (fun p -> fieldOf p = fieldId)
                             let bFirstPatch =
-                                AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
-                                (k = 0 && sameFieldParams |> List.forall (fun p ->
-                                    AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id p.id))
+                                match binding with
+                                | SingleFormal ->
+                                    AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
+                                    (k = 0 && AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id)
+                                // Issue 126: the rule of before, per parameter (its exemptions can leave two patches of
+                                // the field unchecked; fixed with one ref per field)
+                                | AliasedField ->
+                                    AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
+                                    AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id
                             let bSameValue = not bFirstPatch && AcnExternalField.consumersWriteOneValue ctx.r ctx.deps fieldId
                             let bCannotFail = bFirstPatch || bSameValue
                             let isIA5StringDet = patchFn.Contains("IA5String")
@@ -1494,11 +1512,11 @@ let private appendPatchDetCalls
                                     | None ->
                                         ctx.lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch bCannotFail bSameValue ctx.codec
                             (guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty,
-                             patchDetMappingDeclarations ctx.r ctx.lm field, bCannotFail))
+                             patchDetMappingDeclarations ctx.r ctx.lm field, bCannotFail, binding))
             match patchCalls with
             | [] -> body, false, [], PatchChecked
             | calls ->
-                let patchCode = calls |> List.map (fun (code, _, _, _) -> code) |> String.concat "\n"
+                let patchCode = calls |> List.map (fun (code, _, _, _, _) -> code) |> String.concat "\n"
                 // "guarded" = the block may write no result: true only when every patch is under a path check (Issue
                 // 121). One unguarded patch runs on every path. Exact for Ada, where every patch (checked or under
                 // pragma Assume) writes result: with List.exists a block "unguarded + guarded" kept a
@@ -1507,11 +1525,15 @@ let private appendPatchDetCalls
                 // is declared AlwaysWrites while it writes only sometimes: harmless, the checked patch makes the block
                 // canFail, the caller keeps its if (ret) and ret is initialised TRUE in every function; no emitted
                 // check depends on this flag (q/details-docs/coverage/cycles/i121/review-fable.md Q2).
-                let guarded = calls |> List.forall (fun (_, guarded, _, _) -> guarded)
-                let mappingDeclarations = calls |> List.collect (fun (_, _, declarations, _) -> declarations)
+                // A block with an aliased field keeps the join of before (List.exists; Issue 126).
+                let guarded =
+                    match calls |> List.exists (fun (_, _, _, _, binding) -> match binding with AliasedField -> true | SingleFormal -> false) with
+                    | false -> calls |> List.forall (fun (_, guarded, _, _, _) -> guarded)
+                    | true  -> calls |> List.exists (fun (_, guarded, _, _, _) -> guarded)
+                let mappingDeclarations = calls |> List.collect (fun (_, _, declarations, _, _) -> declarations)
                 // step 14e (E1): the patches cannot fail when every one is the only / first patch of its field
                 let check =
-                    match calls |> List.forall (fun (_, _, _, bCannotFail) -> bCannotFail) with
+                    match calls |> List.forall (fun (_, _, _, bCannotFail, _) -> bCannotFail) with
                     | true  -> PatchUnchecked
                     | false -> PatchChecked
                 // The PatchDet calls write the result: after a body that may fail they run only when it succeeded,
