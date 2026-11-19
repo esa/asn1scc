@@ -198,6 +198,26 @@ int main(void)
         ENCODE(AbsPDU, v, 0x81, 0x41, 0xC0);
         REJECT(AbsPDU, -1, 0xC0, 0x00, 0x01, 0x41, 0xC0);               /* pl.d present */
     }
+    /* an ASCII INTEGER field passed as an ACN argument is not deferred (no reference holds it): the callee must not
+       check the reference. The stream legacy writes for h present (a = 1, n = "+00"), d of 0 octets, e = 5, tail = 7
+       decodes (decode only: the --acn-v2 encoder of this shape is q/issues.md Issue 101) */
+    {
+        static byte buf[AscPDU_REQUIRED_BYTES_FOR_ACN_ENCODING + 16];
+        static const byte stream[] = {0xC0, 0x4A, 0xCC, 0x0C, 0x20, 0xA0, 0xE0};
+        BitStream bs;
+        AscPDU v;
+        int err = 0;
+        flag ok;
+        memset(buf, 0xAB, sizeof(buf));
+        memcpy(buf, stream, sizeof(stream));
+        BitStream_AttachBuffer(&bs, buf, sizeof(buf));
+        ok = AscPDU_ACN_Decode(&v, &bs, &err);
+        if (!ok || err != 0 || !v.exist.h || v.h.a != 1 || !v.exist.pl || !v.pl.exist.d || v.pl.d.nCount != 0 ||
+            v.pl.e != 5 || v.tail != 7) {
+            printf("AscPDU line %d: decode ok=%d err=%d\n", __LINE__, ok, err);
+            failures++;
+        }
+    }
     /* SEQUENCE OF elements: element 1 holds the field (more = 1, y present), element 2 does not (y absent); element 2
        saw element 1's reference (encoder: TRUE with error code 203, the decoder read y) */
     {

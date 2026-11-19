@@ -627,7 +627,7 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
     | ReadsCanFail      -> MayFail
     // Issue 106: a dependent whose determinant field is inside a component the stream may say absent fails then
     // (AcnFunctionWrapper: acn_dec_absent_holder_guard), whatever its own decoding
-    | ReadsCannotFail when lm.lg.decodeFailsWhenHolderAbsent && AbsentHolder.hasDecodeGuard r deps t -> MayFail
+    | ReadsCannotFail when lm.lg.decodeFailsWhenHolderAbsent && AbsentHolder.hasDecodeGuard r deps (fun ft -> (lm.lg.getDeferredDetFunctions ft).IsSome) t -> MayFail
     | ReadsCannotFail   ->
         match t.Kind with
         | Integer o ->
@@ -840,7 +840,7 @@ and acnChildPart (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMac
 and acnErrorCodeSummary (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : ErrorCodeSummary =
     // Issue 106: a guarded part writes ErrorCode where its body does (then branch) and with its failure (else branch):
     // the summary of the body; with an ALWAYS ABSENT holder only the failure is emitted
-    match lm.lg.decodeFailsWhenHolderAbsent, AbsentHolder.decodeGuard r deps t with
+    match lm.lg.decodeFailsWhenHolderAbsent, AbsentHolder.decodeGuard r deps (fun ft -> (lm.lg.getDeferredDetFunctions ft).IsSome) t with
     | true, AbsentHolder.HolderAlwaysAbsent _ -> { writesE = true; exitNeedsE = false }
     | true, (AbsentHolder.NoGuard | AbsentHolder.TestHolders _)
     | false, _                                -> acnErrorCodeSummaryOfBody r deps lm t
@@ -1042,7 +1042,7 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (choiceAssigns: As
 let acnChoiceSelectionAssigns (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : bool =
     match t.Kind with
     // Issue 106: the guard of a determinant in a component that may be absent fails without reaching an arm
-    | Choice _ when lm.lg.decodeFailsWhenHolderAbsent && AbsentHolder.hasDecodeGuard r deps t -> false
+    | Choice _ when lm.lg.decodeFailsWhenHolderAbsent && AbsentHolder.hasDecodeGuard r deps (fun ft -> (lm.lg.getDeferredDetFunctions ft).IsSome) t -> false
     | Choice o ->
         match o.acnProperties.enumDeterminant with
         | None   -> (acnChoiceFullIndex r deps lm o).IsSome

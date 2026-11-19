@@ -695,7 +695,7 @@ let private createDeferredSequenceFunction
                                     // the component holding it may be absent tests the ref's in_stream (AbsentHolder,
                                     // the same list decides the guards): set it where the field is read
                                     let markInStream (body: string) =
-                                        match lm.lg.deferredRefTracksStream && (AbsentHolder.fieldsReadThroughRef astRoot deps).Contains ac.id with
+                                        match lm.lg.deferredRefTracksStream && (AbsentHolder.fieldsReadThroughRef astRoot deps (fun ft -> (lm.lg.getDeferredDetFunctions ft).IsSome)).Contains ac.id with
                                         | false -> body
                                         | true  ->
                                             let inStream =

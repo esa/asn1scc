@@ -84,6 +84,13 @@ WIRE DEFINITIONS ::= BEGIN
         pl <header.n> [present-when flg2],
         tail []
     }
+    AscPDU [] {
+        g BOOLEAN [],
+        f BOOLEAN [],
+        h [present-when f] { a [], n INTEGER [size 24, encoding ASCII] },
+        pl <h.n> [present-when g],
+        tail []
+    }
     SqBPDU [] { [] {
         g BOOLEAN [],
         f BOOLEAN [],

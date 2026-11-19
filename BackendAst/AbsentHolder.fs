@@ -272,9 +272,8 @@ let private decodeGuardsCache =
     System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, GuardedDependency list>>()
 
 /// The dependencies that read a field whose holder may be absent, with the holder steps and the field, by dependent id,
-/// built once per dependency list. --acn-v2 (Issue 107): also a dependent that reads the field through a ref parameter
-/// (refFieldAndReader); the same list decides the guards (decodeGuard) and where the decoder sets the ref's
-/// `in_stream` (fieldsReadThroughRef), so a guard never tests a flag no decoder sets.
+/// built once per dependency list (language neutral). --acn-v2 (Issue 107): also a dependent that reads the field
+/// through a ref parameter (refFieldAndReader); see deferrableGuarded.
 let private guardedDependencies (r: AstRoot) (deps: AcnInsertedFieldDependencies) : Map<ReferenceToType, GuardedDependency list> =
     decodeGuardsCache.GetValue(deps, fun deps ->
         deps.acnDependencies
@@ -293,15 +292,40 @@ let private guardedDependencies (r: AstRoot) (deps: AcnInsertedFieldDependencies
         |> List.groupBy (fun (d, _, _, _) -> d.asn1Type)
         |> Map.ofList)
 
+/// The type of the ACN field fieldId (the AcnChildDeterminant of some dependency), built once per dependency list.
+let private fieldTypesCache =
+    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, AcnInsertedType>>()
+let private fieldTypes (deps: AcnInsertedFieldDependencies) : Map<ReferenceToType, AcnInsertedType> =
+    fieldTypesCache.GetValue(deps, fun deps ->
+        deps.acnDependencies
+        |> List.choose (fun d ->
+            match d.determinant with
+            | AcnChildDeterminant ac      -> Some (ac.id, ac.Type)
+            | AcnParameterDeterminant _   -> None)
+        |> Map.ofList)
+
+/// guardedDependencies without the reads through a ref whose field is not held in the ref by the decoder of its
+/// SEQUENCE: --acn-v2 defers only the field types with deferred det functions (isDeferrable =
+/// `lm.lg.getDeferredDetFunctions t).IsSome`, the question DAstACNDeferred.createDeferredSequenceFunction asks); any
+/// other field (e.g. an ASCII INTEGER) is decoded into a plain local and never sets the ref's `in_stream`, so a guard on
+/// it would reject valid streams (cycle i107, triage 3.0). Both decodeGuard and fieldsReadThroughRef read this list:
+/// a guard never tests a flag no decoder sets. A field whose type is not found keeps its dependency.
+let private deferrableGuarded (r: AstRoot) (deps: AcnInsertedFieldDependencies) (isDeferrable: AcnInsertedType -> bool) : Map<ReferenceToType, GuardedDependency list> =
+    guardedDependencies r deps
+    |> Map.map (fun _ xs ->
+        xs |> List.filter (fun (_, _, fieldId, prm) ->
+            match prm, (fieldTypes deps).TryFind fieldId with
+            | None, _               -> true
+            | Some _, None          -> true
+            | Some _, Some fieldType -> isDeferrable fieldType))
+
 /// --acn-v2 (Issue 107): the fields that some dependent reads through an AcnInsertedFieldRef under a guard
-/// (guardedDependencies): the decoder sets the ref's `in_stream` where it reads such a field.
-let private refFieldsCache = System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Set<ReferenceToType>>()
-let fieldsReadThroughRef (r: AstRoot) (deps: AcnInsertedFieldDependencies) : Set<ReferenceToType> =
-    refFieldsCache.GetValue(deps, fun deps ->
-        guardedDependencies r deps
-        |> Map.toList |> List.collect snd
-        |> List.choose (fun (_, _, fieldId, prm) -> prm |> Option.map (fun _ -> fieldId))
-        |> Set.ofList)
+/// (deferrableGuarded): the decoder sets the ref's `in_stream` where it reads such a field.
+let fieldsReadThroughRef (r: AstRoot) (deps: AcnInsertedFieldDependencies) (isDeferrable: AcnInsertedType -> bool) : Set<ReferenceToType> =
+    deferrableGuarded r deps isDeferrable
+    |> Map.toList |> List.collect snd
+    |> List.choose (fun (_, _, fieldId, prm) -> prm |> Option.map (fun _ -> fieldId))
+    |> Set.ofList
 
 /// Whether the decoder of a type of this kind is the one that reads the determinant of the dependency: a reference
 /// site with ACN properties shares its id with its resolved type (the merged type is keyed by the site), so both
@@ -317,8 +341,8 @@ let private readsTheDeterminant (kind: Asn1TypeKind) (d: AcnDependency) : bool =
 
 /// The DecodeGuard of the decoder of t (NoGuard for every type that does not read a determinant whose holder may be
 /// absent).
-let decodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (t: Asn1Type) : DecodeGuard =
-    match (guardedDependencies r deps).TryFind t.id |> Option.defaultValue [] |> List.filter (fun (d, _, _, _) -> readsTheDeterminant t.Kind d) with
+let decodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (isDeferrable: AcnInsertedType -> bool) (t: Asn1Type) : DecodeGuard =
+    match (deferrableGuarded r deps isDeferrable).TryFind t.id |> Option.defaultValue [] |> List.filter (fun (d, _, _, _) -> readsTheDeterminant t.Kind d) with
     | [] -> NoGuard
     | xs ->
         let steps = xs |> List.collect (fun (_, steps, _, _) -> steps) |> List.distinct
@@ -350,8 +374,8 @@ let decodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (t: Asn1Type) 
             TestHolders (holders, refs, fields)
 
 /// Whether the decoder of t has a guard (DecodeOutcome: the part may fail).
-let hasDecodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (t: Asn1Type) : bool =
-    match decodeGuard r deps t with
+let hasDecodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (isDeferrable: AcnInsertedType -> bool) (t: Asn1Type) : bool =
+    match decodeGuard r deps isDeferrable t with
     | NoGuard                                   -> false
     | TestHolders _ | HolderAlwaysAbsent _      -> true
 

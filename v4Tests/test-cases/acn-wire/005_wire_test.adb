@@ -10,6 +10,8 @@ with adaasn1rtl.encoding;
 with WIRE;
 procedure Wire_Test is
    use type adaasn1rtl.Asn1Byte;
+   use type adaasn1rtl.BIT;
+   use type adaasn1rtl.Asn1UInt;
 
    type Bytes is array (Positive range <>) of adaasn1rtl.Asn1Byte;
 
@@ -207,6 +209,28 @@ begin
    VAbs.tail := 7;
    Abs_C.Enc ("AbsPDU", VAbs, (16#81#, 16#41#, 16#C0#));
    Abs_C.Rej ("AbsPDU", (16#C0#, 16#00#, 16#01#, 16#41#, 16#C0#));
+   --  an ASCII INTEGER field passed as an ACN argument is not deferred (no reference holds it): the callee must not
+   --  check the reference; the stream legacy writes (h.a = 1, n = "+00", d of 0 octets, e = 5, tail = 7) decodes
+   --  (decode only: the --acn-v2 encoder of this shape is q/issues.md Issue 101)
+   declare
+      Stream : constant Bytes := (16#C0#, 16#4A#, 16#CC#, 16#0C#, 16#20#, 16#A0#, 16#E0#);
+      S : WIRE.AscPDU_ACN_Stream := adaasn1rtl.encoding.BitStream_init (WIRE.AscPDU_ACN_STREAM_SIZE);
+      V : WIRE.AscPDU;
+      R : adaasn1rtl.ASN1_RESULT;
+   begin
+      S.Buffer := (others => 16#AB#);
+      for I in Stream'Range loop
+         S.Buffer (I - Stream'First + 1) := Stream (I);
+      end loop;
+      WIRE.AscPDU_ACN_Decode (V, S, R);
+      if not R.Success or else R.ErrorCode /= 0 or else V.Exist.h /= 1 or else V.h.a /= 1 or else V.Exist.pl /= 1
+        or else V.pl.Exist.d /= 1 or else V.pl.d.Length /= 0 or else V.pl.e /= 5 or else V.tail /= 7
+      then
+         Fail ("AscPDU: decode Success=" & Boolean'Image (R.Success) & " ErrorCode=" & Integer'Image (R.ErrorCode));
+      end if;
+   exception
+      when others => Fail ("AscPDU: exception");
+   end;
    --  SEQUENCE OF elements: element 1 holds the field (more = 1, y present), element 2 does not (y absent)
    VSqB.Data (1).Exist.h := 1;
    VSqB.Data (1).h.a := 1;

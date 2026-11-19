@@ -85,6 +85,13 @@ WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
         pl      Payload OPTIONAL,
         tail    INTEGER(0..255)
     } (WITH COMPONENTS {..., header ABSENT})
+    -- an ASCII INTEGER field passed as an ACN argument: --acn-v2 does not defer it (no reference holds it), so the
+    -- callee has no check of the reference (a valid stream must decode; the encoder: q/issues.md Issue 101)
+    AscPDU ::= SEQUENCE {
+        h       SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      Payload OPTIONAL,
+        tail    INTEGER(0..255)
+    }
     -- inside SEQUENCE OF elements: an inline holder, and an OPTIONAL referenced component exposing the field
     SqBPDU ::= SEQUENCE (SIZE(2)) OF SEQUENCE {
         h  SEQUENCE { a INTEGER(0..255) } OPTIONAL,

@@ -54,7 +54,7 @@ let private withAbsentHolderGuard (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFiel
                                   (codec: Codec) (t: Asn1AcnAst.Asn1Type) (funcBody: AcnAlignment.FuncBody) : AcnAlignment.FuncBody =
     let guard =
         match codec, lm.lg.decodeFailsWhenHolderAbsent with
-        | Decode, true          -> AbsentHolder.decodeGuard r deps t
+        | Decode, true          -> AbsentHolder.decodeGuard r deps (fun ft -> (lm.lg.getDeferredDetFunctions ft).IsSome) t
         | Decode, false
         | Encode, _             -> AbsentHolder.NoGuard
     // the field / holder paths after the type assignment, for the comment (`header.n`, `header`)
