@@ -1,0 +1,5 @@
+-- a named element type consumes the field, same function (legacy rejects, --acn-v2 accepts)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    MyOct ::= OCTET STRING (SIZE(0..15))
+    S ::= SEQUENCE { a INTEGER(0..255), items SEQUENCE (SIZE(0..2)) OF MyOct, tail INTEGER(0..255) }
+END

@@ -1,0 +1,5 @@
+-- a CONTAINING with an external size in the elements, same function (legacy rejects, --acn-v2 accepts)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    Cont ::= SEQUENCE { v INTEGER(0..255) }
+    S ::= SEQUENCE { a INTEGER(0..255), items SEQUENCE (SIZE(1..2)) OF OCTET STRING (CONTAINING Cont), tail INTEGER(0..255) }
+END

@@ -1,0 +1,65 @@
+-- ACNV2_ONLY (an ACN parameter consumed inside the elements of a SEQUENCE OF of the referenced type, Issue 124)
+-- One determinant for every element: the --acn-v2 specialised encoder patches it from every element (the elements must
+-- agree), each loop under the checks of the path above its SEQUENCE OF. Inline element SEQUENCE / CHOICE / OCTET
+-- STRING, a consumer under an OPTIONAL inner SEQUENCE, present-when, CHOICE determinant (inline and named element),
+-- IA5String, CONTAINING, nested loops, a direct consumer next to a loop one, fixed-size consumers, two callees, a callee
+-- passing the parameter on, a callee that is the SEQUENCE OF, a SEQUENCE OF under an OPTIONAL component / in a CHOICE
+-- alternative, a fixed-size SEQUENCE OF and a fixed-size subtype of a variable one, a callee in an outer SEQUENCE OF
+-- element (its own value per element). Legacy rejects these shapes (cycle i124a, L1).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    MyOct ::= OCTET STRING (SIZE(0..15))
+    Kind ::= ENUMERATED { k1, k2 }
+    Cont ::= SEQUENCE { v INTEGER(0..255), w SEQUENCE (SIZE(0..3)) OF INTEGER(0..255) }
+    PA ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF SEQUENCE { o OCTET STRING (SIZE(0..15)) } }
+    TA ::= SEQUENCE { a INTEGER(0..255), pl PA, tail INTEGER(0..255) }
+    PB ::= SEQUENCE { items SEQUENCE (SIZE(1..2)) OF SEQUENCE { x INTEGER(0..7), inner SEQUENCE { o MyOct } OPTIONAL } }
+    TB ::= SEQUENCE { a INTEGER(0..255), pl PB, tail INTEGER(0..255) }
+    CC ::= CHOICE { k1 INTEGER(0..7), k2 BOOLEAN }
+    PC ::= SEQUENCE { items SEQUENCE (SIZE(1..2)) OF CC }
+    TC ::= SEQUENCE { a INTEGER(0..255), pl PC, tail INTEGER(0..255) }
+    PD ::= SEQUENCE { items SEQUENCE (SIZE(1..2)) OF SEQUENCE { x INTEGER(0..7) OPTIONAL, y INTEGER(0..7) } }
+    TD ::= SEQUENCE { a INTEGER(0..255), pl PD, tail INTEGER(0..255) }
+    PE ::= SEQUENCE { rows SEQUENCE (SIZE(1..2)) OF SEQUENCE { cols SEQUENCE (SIZE(1..2)) OF MyOct } }
+    TE ::= SEQUENCE { a INTEGER(0..255), pl PE, tail INTEGER(0..255) }
+    PF ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, items SEQUENCE (SIZE(0..2)) OF MyOct }
+    TF ::= SEQUENCE { a INTEGER(0..255), pl PF, tail INTEGER(0..255) }
+    PG ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(3)) }
+    TG ::= SEQUENCE { a INTEGER(0..255), pl PG, tail INTEGER(0..255) }
+    PG2 ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(3)) }
+    TG2 ::= SEQUENCE { a INTEGER(0..255), pl PG2, tail INTEGER(0..255) }
+    TH ::= SEQUENCE { a INTEGER(0..255), p1 PA, p2 PA, tail INTEGER(0..255) }
+    PI ::= SEQUENCE { x INTEGER(0..7), q PA }
+    TI ::= SEQUENCE { a INTEGER(0..255), pl PI, tail INTEGER(0..255) }
+    EJ ::= SEQUENCE { o OCTET STRING (SIZE(0..15)) }
+    PJ ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF EJ }
+    TJ ::= SEQUENCE { a INTEGER(0..255), pl PJ, tail INTEGER(0..255) }
+    S2 ::= SEQUENCE { a INTEGER(0..255), items SEQUENCE (SIZE(0..2)) OF MyOct, tail INTEGER(0..255) }
+    M1 ::= SEQUENCE (SIZE(1..2)) OF SEQUENCE { a INTEGER(0..255), pl PA }
+    PX1 ::= SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(0..15))
+    TX1 ::= SEQUENCE { a INTEGER(0..255), pl PX1, tail INTEGER(0..255) }
+    PX2 ::= SEQUENCE { items SEQUENCE (SIZE(1..2)) OF SEQUENCE { o OCTET STRING (SIZE(0..15)) } OPTIONAL }
+    TX2 ::= SEQUENCE { a INTEGER(0..255), pl PX2, tail INTEGER(0..255) }
+    PX3 ::= CHOICE { a INTEGER(0..7), items SEQUENCE (SIZE(1..2)) OF SEQUENCE { o OCTET STRING (SIZE(0..15)) } }
+    TX3 ::= SEQUENCE { a INTEGER(0..255), pl PX3, tail INTEGER(0..255) }
+    PX4 ::= SEQUENCE { items SEQUENCE (SIZE(1..2)) OF CHOICE { k1 INTEGER(0..7), k2 BOOLEAN } }
+    TX4 ::= SEQUENCE { a INTEGER(0..255), pl PX4, tail INTEGER(0..255) }
+    PX5 ::= SEQUENCE { items SEQUENCE (SIZE(1..2)) OF SEQUENCE { s IA5String (SIZE(0..15)) } }
+    TX5 ::= SEQUENCE { a INTEGER(0..255), pl PX5, tail INTEGER(0..255) }
+    PX7 ::= SEQUENCE { items SEQUENCE (SIZE(1..2)) OF SEQUENCE { c OCTET STRING (CONTAINING Cont) } }
+    TX7 ::= SEQUENCE { a INTEGER(0..255), pl PX7, tail INTEGER(0..255) }
+    PQ ::= SEQUENCE { items SEQUENCE (SIZE(2)) OF SEQUENCE { o OCTET STRING (SIZE(0..15)) } }
+    TQ ::= SEQUENCE { a INTEGER(0..255), pl PQ, tail INTEGER(0..255) }
+    MyList ::= SEQUENCE (SIZE(0..2)) OF MyOct
+    TR ::= SEQUENCE { a INTEGER(0..255), pl MyList (SIZE(2)), tail INTEGER(0..255) }
+    -- values master --acn-v2 encoded wrong (the size of the element after the last one, or no element at all)
+    ta-2 TA ::= { a 1, pl { items { { o '10111213'H }, { o '20212223'H } } }, tail 7 }
+    ta-1 TA ::= { a 1, pl { items { { o '101112'H } } }, tail 7 }
+    ta-0 TA ::= { a 1, pl { items { } }, tail 7 }
+    tf-d TF ::= { a 1, pl { d '0102030405'H, items { } }, tail 7 }
+    tf-di TF ::= { a 1, pl { d '0102'H, items { '0304'H, '0506'H } }, tail 7 }
+    td-x TD ::= { a 1, pl { items { { x 3, y 1 }, { x 4, y 2 } } }, tail 7 }
+    td-n TD ::= { a 1, pl { items { { y 1 }, { y 2 } } }, tail 7 }
+    m1-2 M1 ::= { { a 1, pl { items { { o '0102'H } } } }, { a 2, pl { items { { o '010203'H }, { o '040506'H } } } } }
+END
+
+--TCFS   043.acn

@@ -1,0 +1,19 @@
+WIRE DEFINITIONS ::= BEGIN
+    PA <INTEGER:len> [] { items [] { [] { o [size len] } } }
+    TA [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PF <INTEGER:len> [] { hd BOOLEAN [], d [present-when hd, size len], items [] { [size len] } }
+    TF [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PD <BOOLEAN:b> [] { items [] { [] { x [present-when b], y [] } } }
+    TD [] { a [], f BOOLEAN [], pl <f> [], tail [] }
+    TH [] { a [], n INTEGER [size 4, encoding pos-int], p1 <n> [], p2 <n> [], tail [] }
+    PX2 <INTEGER:len> [] { h BOOLEAN [], items [present-when h] { [] { o [size len] } } }
+    TX2 [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PX3 <INTEGER:len> [] { a [], items [] { [] { o [size len] } } }
+    TX3 [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PX4 <Kind:k> [] { items [] { [determinant k] { k1 [], k2 [] } } }
+    TX4 [] { a [], kk Kind [encoding pos-int, size 2], pl <kk> [], tail [] }
+    PE <INTEGER:len> [] { rows [] { [] { cols [] { [size len] } } } }
+    TE [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    M1 [] { [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [] } }
+    TV [] { a [], f BOOLEAN [], g BOOLEAN [], h [present-when f] { b [], n INTEGER [size 4, encoding pos-int] }, pl <h.n> [present-when g], tail [] }
+END

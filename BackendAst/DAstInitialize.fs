@@ -874,7 +874,7 @@ let getChildExpressionGlobal (lm:LanguageMacros) (childType:Asn1Type) =
         cn.globalName
     | _ -> childType.initFunction.initExpressionGlobalFnc ()
 
-let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.SequenceOf  ) (typeDefinition:TypeDefinitionOrReference) (childType:Asn1Type)  =
+let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.SequenceOf  ) (typeDefinition:TypeDefinitionOrReference) (childType:Asn1Type)  =
     let initFixedSequenceOf                     = lm.init.initFixedSequenceOf
     let initVarSizeSequenceOf                   = lm.init.initVarSizeSequenceOf
     let initTestCaseSizeSequenceOf_innerItem    = lm.init.initTestCaseSizeSequenceOf_innerItem
@@ -969,11 +969,33 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                         let thisCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)]
                         childTestCases |> List.fold(fun (newMap:Map<ReferenceToType, TestCaseValue>) atc -> mergeMaps newMap atc.testCaseTypeIDsMap) thisCase
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase; variants = elementVariants childAll bundleStart }
+        // q/issues.md Issue 124: a determinant outside the SEQUENCE OF consumed inside its elements (size, presence,
+        // CHOICE determinant, argument passed to the elements) holds one value for every element, so a value whose
+        // elements are built from different child test cases is ACN-inconsistent, and the elements' maps are merged
+        // (isTestVaseValid cannot see it): every value takes all its elements from one child test case. Constant
+        // consumers (SIZE min = max) write the same value from every element: their values stay as they are.
+        let elementsShareDeterminant =
+            let elemPath = t.id.ToScopeNodeList @ [SQF]
+            let below (ReferenceToType path) = path.Length >= elemPath.Length && List.take elemPath.Length path = elemPath
+            deps.acnDependencies |> List.exists (fun d ->
+                below d.asn1Type && not (below d.determinant.id) &&
+                match d.dependencyKind with
+                | Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _) -> minSize.acn <> maxSize.acn
+                | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _
+                | Asn1AcnAst.AcnDepIA5StringSizeDeterminant _
+                | Asn1AcnAst.AcnDepPresenceBool
+                | Asn1AcnAst.AcnDepPresence _
+                | Asn1AcnAst.AcnDepPresenceStr _
+                | Asn1AcnAst.AcnDepChoiceDeterminant _
+                | Asn1AcnAst.AcnDepRefTypeArgument _ -> true)
         match r.args.generateAutomaticTestCases with
         | true  ->
             let seqOfCase_aux (nSize:BigInteger) =
-                match nSize > 0I with
-                | true ->
+                match nSize > 0I, elementsShareDeterminant with
+                | true, true ->
+                    let childTestCases = acnValidChildTestCases r childType
+                    childTestCases |> List.mapi (fun i atc -> nSize, seqOfCase childTestCases i [atc] nSize)
+                | true, false ->
                     let childTestCases = acnValidChildTestCases r childType
                     let totalChildAtcs = childTestCases.Length
                     let test_case_bundles = int (totalChildAtcs.AsBigInt / nSize)
@@ -988,7 +1010,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                             yield nSize, seqOfCase childTestCases (test_case_bundles * (int nSize)) last_bund_cases nSize
 
                     } |> Seq.toList
-                | false -> []
+                | false, _ -> []
 
             // Coverage step 14a: each value gets a variant with another size (the first value of another size)
             let withSizeVariants (sized:(BigInteger * AutomaticTestCase) list) =

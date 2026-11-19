@@ -3,8 +3,8 @@
 # are not specific to acn-v2 also run without --acn-v2):
 #  - byte-exact wire checks: a wrong but self-consistent encoding (e.g. an
 #    unmapped length) survives encode+decode, so <n>_wire_test.c asserts the
-#    encoded bytes; for 016 to 018, whose automatic test cases cannot run
-#    (NO_AUTOMATIC_TEST_CASES), also the round trip and the rejected values;
+#    encoded bytes; for 016 to 018 also the round trip and the rejected
+#    values (elements that disagree on a shared determinant);
 #  - the warning printed for types that export a determinant to their parent.
 # Test inputs: v4Tests/test-cases/acn/25-ACNV2-BOUNDARIES.
 # ASN1SCC overrides the compiler (executable or .dll), as for runTests.py.
@@ -228,6 +228,93 @@ run_compiler -Ada -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/006.
 cp "$root/test-cases/acn-wire/006_wire_test.adb" "$out/wire_test.adb"
 (cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
 echo "acn-wire 006 (Ada) --acn-v2 OK"
+
+# acn-wire/007 (q/issues.md Issue 124): an ACN parameter of a referenced type consumed inside the elements of a
+# SEQUENCE OF of that type: every element patches the determinant (--acn-v2; legacy rejects the shapes, below).
+out=$work/acn007c
+mkdir "$out"
+run_compiler -c -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/007.asn1" "$root/test-cases/acn-wire/007.acn" 2>/dev/null
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I "$out" "$out"/*.c "$root/test-cases/acn-wire/007_wire_test.c" -o "$out/wire_test"
+"$out/wire_test"
+echo "acn-wire 007 --acn-v2 OK"
+out=$work/acn007ada
+mkdir "$out"
+run_compiler -Ada -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/007.asn1" "$root/test-cases/acn-wire/007.acn" 2>/dev/null
+cp "$root/test-cases/acn-wire/007_wire_test.adb" "$out/wire_test.adb"
+(cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
+echo "acn-wire 007 (Ada) --acn-v2 OK"
+
+# A determinant consumed inside the elements of a SEQUENCE OF that does not hold it (Issues 122 / 124, cycle i124a):
+# legacy rejects every such shape but constant consumers; --acn-v2 rejects a field consumed with no type assignment
+# between it and the consumer (no per-element patch for it yet). Grammars in acn-wire/007_reject/.
+reject_dir=$root/test-cases/acn-wire/007_reject
+expect_rejection() {
+    n=$1
+    mode=$2
+    text=$3
+    out=$work/reject007$n$mode
+    mkdir "$out"
+    if run_compiler -c -ACN $mode -o "$out" "$reject_dir/$n.asn1" "$reject_dir/$n.acn" 2>"$out/stderr.txt"; then
+        echo "007_reject $n $mode FAILED: accepted"
+        exit 1
+    fi
+    if ! grep -qF "$text" "$out/stderr.txt"; then
+        echo "007_reject $n $mode FAILED, got:"
+        cat "$out/stderr.txt"
+        exit 1
+    fi
+    echo "007_reject $n $mode rejection OK"
+}
+expect_accepted() {
+    n=$1
+    mode=$2
+    out=$work/accept007$n$mode
+    mkdir "$out"
+    if ! run_compiler -c -ACN $mode -o "$out" "$reject_dir/$n.asn1" "$reject_dir/$n.acn" 2>"$out/stderr.txt"; then
+        echo "007_reject $n $mode FAILED: rejected"
+        cat "$out/stderr.txt"
+        exit 1
+    fi
+    echo "007_reject $n $mode accepted OK"
+}
+legacy_only="This is supported only with --acn-v2."
+legacy_inline="Legacy ACN does not support this; --acn-v2 supports it when the consumer, or a component that contains it inside the elements, is a reference to a type assignment."
+v2_inline="with no type assignment between them. This is not supported yet: make the consumer, or a component that contains it inside the elements, a reference to a type assignment."
+expect_rejection size "" "size.acn:2:17: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#'). $legacy_inline"
+expect_rejection size --acn-v2 "size.acn:2:17: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#') $v2_inline"
+expect_rejection presence "" "presence.acn:2:17: error: ACN field 'f' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#.x'). $legacy_inline"
+expect_rejection presence --acn-v2 "presence.acn:2:17: error: ACN field 'f' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#.x') $v2_inline"
+expect_rejection choice "" "choice.acn:2:17: error: ACN field 'kk' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#'). $legacy_inline"
+expect_rejection choice --acn-v2 "choice.acn:2:17: error: ACN field 'kk' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#') $v2_inline"
+expect_rejection ia5 "" "ia5.acn:2:17: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#'). $legacy_inline"
+expect_rejection ia5 --acn-v2 "ia5.acn:2:17: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#') $v2_inline"
+expect_rejection outer "" "outer.acn:2:22: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#'). $legacy_inline"
+expect_rejection outer --acn-v2 "outer.acn:2:22: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#') $v2_inline"
+expect_rejection containing "" "containing.acn:2:17: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#'). $legacy_only"
+expect_accepted containing --acn-v2
+expect_rejection named "" "named.acn:2:17: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#'). $legacy_only"
+expect_accepted named --acn-v2
+expect_rejection param "" "param.acn:2:15: error: ACN parameter 'len' of type 'P' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#.o'). $legacy_only"
+expect_accepted param --acn-v2
+expect_rejection argument "" "argument.acn:3:15: error: ACN parameter 'len' of type 'P' is passed as an argument to the elements of SEQUENCE OF 'items' (to 'items.#'). $legacy_only"
+expect_accepted argument --acn-v2
+expect_rejection nested "" "nested.acn:3:61: error: ACN field 'n' is passed as an argument to the elements of SEQUENCE OF 'items' (to 'items.#.pl'). $legacy_only"
+expect_accepted nested --acn-v2
+expect_accepted fixed ""
+expect_accepted fixed --acn-v2
+out=$work/legacy007
+mkdir "$out"
+if run_compiler -c -ACN -o "$out" "$root/test-cases/acn-wire/007.asn1" "$root/test-cases/acn-wire/007.acn" 2>"$out/stderr.txt"; then
+    echo "legacy 007 FAILED: accepted without --acn-v2"
+    exit 1
+fi
+if ! grep -qF "$legacy_only" "$out/stderr.txt"; then
+    echo "legacy 007 FAILED, got:"
+    cat "$out/stderr.txt"
+    exit 1
+fi
+echo "legacy 007 rejection OK"
 
 # 036 in Ada on the 32-bit board msp430: sign extension in the upper bytes of 64-bit fields
 # (compiled with -gnata: the RTL's pragma Assume are checked too).

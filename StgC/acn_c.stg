@@ -2226,6 +2226,14 @@ acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<
 }
 >>
 
+/* q/issues.md Issue 124: the patch of a consumer inside the elements of a SEQUENCE OF, once per element (every element
+   is encoded with the value of the determinant, so all of them must agree) */
+acn_deferred_det_patch_loop(sIdx, sLength, sBody) ::= <<
+for (<sIdx> = 0; <sIdx> \< (int)<sLength>; <sIdx>++) {
+    <sBody>
+}
+>>
+
 acn_deferred_det_optional_producer_check(sParent, sAcc, sProducer, sConsumer, sErrCode) ::= <<
 if (!<sParent><sAcc>exist.<sProducer><if(sConsumer)> && <sParent><sAcc>exist.<sConsumer><endif>) {
     *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/

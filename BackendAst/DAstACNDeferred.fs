@@ -185,6 +185,77 @@ let guardPatchBlock (lm: LanguageMacros) (checks: string list) (preBlock: string
     | []    -> block
     | _     -> lm.acn.checkAccessPath checks block "" ""
 
+/// Where the PatchDet of a consumer of a specialised encoder's ACN parameter runs (q/issues.md Issue 124).
+type private ConsumerPlacement =
+    /// Once, after the body, under the checks of the consumer's path.
+    | DirectConsumer
+    /// Below one or more SEQUENCE OFs of the specialised type: once per element (every element is encoded with the
+    /// value the field holds, so all of them must agree: the patches are checked), in a loop over the elements of each
+    /// SEQUENCE OF, each loop under the checks of the path above it. An empty list patches nothing (the fallback of
+    /// the field's owner writes the default; no element reads the field).
+    | LoopConsumer
+
+/// q/issues.md Issue 124: the patch block of a consumer below SEQUENCE OFs of the specialised type (LoopConsumer).
+/// `checks` are the checks of the consumer's whole path (computePatchDetValueExpr). The checks of a path prefix are a
+/// list prefix of the checks of the whole path (getAccessFromScopeNodeList emits the outer nodes first), so each loop
+/// goes under the checks of the nodes above its SEQUENCE OF: the bound (C nCount / Ada Length) of a SEQUENCE OF in an
+/// absent OPTIONAL component or an unselected CHOICE alternative must not be read (Ada: discriminant check). The index
+/// of the n-th SEQUENCE OF on the path is i<n>, the name getAccessFromScopeNodeList gives it in the value expression
+/// and the body's own loops declare (returned for the declarations, in case a SEQUENCE OF of the path has no loop in
+/// the body). A SEQUENCE OF whose typedef is fixed-size has no length field: its bound is the size.
+let private patchLoopBlock
+        (r: Asn1AcnAst.AstRoot)
+        (lm: LanguageMacros)
+        (rootType: Asn1AcnAst.Asn1Type)
+        (dep: Asn1AcnAst.AcnDependency)
+        (boundaryPath: ScopeNode list)
+        (specP: CodegenScope)
+        (checks: string list)
+        (preBlock: string option)
+        (patchCall: string) : string * LocalVariable list =
+    let backendParts = (withBackendChildNames r lm dep.asn1Type).ToScopeNodeList |> List.skip boundaryPath.Length
+    let asn1Parts = dep.asn1Type.ToScopeNodeList |> List.skip boundaryPath.Length
+    let rec typeAt (t: Asn1AcnAst.Asn1Type) (nodes: ScopeNode list) : Asn1AcnAst.Asn1Type =
+        match nodes with
+        | [] -> t
+        | n :: rest ->
+            match n, t.ActualType.Kind with
+            | SEQ_CHILD (name, _), Asn1AcnAst.Sequence s ->
+                let child = s.children |> List.pick (fun c -> match c with Asn1AcnAst.Asn1Child c when c.Name.Value = name -> Some c.Type | _ -> None)
+                typeAt child rest
+            | CH_CHILD (name, _, _), Asn1AcnAst.Choice ch ->
+                let child = ch.children |> List.find (fun (c: Asn1AcnAst.ChChildInfo) -> c.Name.Value = name)
+                typeAt child.Type rest
+            | SQF, Asn1AcnAst.SequenceOf sqf -> typeAt sqf.child rest
+            | _ -> raise (BugErrorException (sprintf "patchLoopBlock: no type at %A of %s" n dep.asn1Type.AsString))
+    // (level of the index, bound, number of checks of the path above the SEQUENCE OF), outermost first
+    let levels =
+        backendParts |> List.indexed |> List.choose (fun (pos, n) -> match n with SQF -> Some pos | _ -> None)
+        |> List.mapi (fun level pos ->
+            let prefix = List.take pos backendParts
+            let (seqOfExpr, seqOfAcc), prefixChecks =
+                match prefix with
+                | [] -> (specP.accessPath.rootId, lm.lg.getAccess specP.accessPath), []
+                | _  ->
+                    let p, prefixChecks = getAccessFromScopeNodeList (ReferenceToType (MD "" :: TA "" :: prefix)) false lm specP
+                    (p.accessPath.joined lm.lg, lm.lg.getAccess p.accessPath), prefixChecks
+            let seqOfType = (typeAt rootType (List.take pos asn1Parts)).ActualType
+            let bound =
+                match typedefIsFixedSize r seqOfType with
+                | true  -> (typedefSizeableMaxSize r seqOfType).ToString()
+                | false -> lm.acn.getSizeableSize seqOfExpr seqOfAcc false
+            (level + 1, bound, prefixChecks.Length))
+    let checksFrom n = checks |> List.skip (min n checks.Length)
+    let nInnermost = levels |> List.last |> fun (_, _, n) -> n
+    let inner = guardPatchBlock lm (checksFrom nInnermost) preBlock patchCall
+    let outerCounts = 0 :: (levels |> List.map (fun (_, _, n) -> n)) |> List.truncate levels.Length
+    let code =
+        List.foldBack2 (fun (level, bound, nPrefix) nOuter body ->
+            let loop = lm.acn.acn_deferred_det_patch_loop (sprintf "i%d" level) bound body
+            guardPatchBlock lm (checksFrom nOuter |> List.truncate (nPrefix - nOuter)) None loop)
+            levels outerCounts inner
+    code, levels |> List.map (fun (level, _, _) -> SequenceOfIndex (level, None))
+
 /// Follow the RefTypeArgumentDependency chain from a parameter upward
 /// through intermediate boundaries until reaching the original
 /// AcnChildDeterminant.  Returns the (InitDet, PatchDet, nBitsOpt) function names.
@@ -1383,12 +1454,12 @@ let private appendPatchDetCalls
         (isContainingExternalField: bool)
         (baseHasStandaloneFunc: bool)
         (bodyOutcome: EncodeOutcome)
-        (body: string) : string * bool * UserDefinedFunction list * DeferredPatchCheck =
+        (body: string) : string * bool * UserDefinedFunction list * DeferredPatchCheck * LocalVariable list =
     match isContainingExternalField, not baseHasStandaloneFunc with
-    | true, false -> body, false, [], PatchChecked  // old approach: PatchDet is in STG template
+    | true, false -> body, false, [], PatchChecked, []  // old approach: PatchDet is in STG template
     | _ ->
         match ctx.codec with
-        | CommonTypes.Codec.Decode -> body, false, [], PatchChecked
+        | CommonTypes.Codec.Decode -> body, false, [], PatchChecked, []
         | CommonTypes.Codec.Encode ->
             // Identify CONTAINING size param to exclude from step 2b.  Always
             // check (not just when isContainingExternalField) because named
@@ -1430,20 +1501,15 @@ let private appendPatchDetCalls
                     // q/issues.md Issue 121: every consumer of the parameter gets its patch (one tryFind used to patch
                     // only the first dependency, i.e. the last consumer in the type, and lost the others: a valid
                     // value with that consumer absent and another one present encoded a wrong determinant), like the
-                    // SEQUENCE epilogues (localSiblingEpilogue, producerPatchEpilogue). A parameter with a consumer
-                    // under a SEQUENCE OF inside the callee (patched after the loop from one element, Issue 124) keeps
-                    // the single pick of before, also when it has direct consumers too: patching only the direct ones
-                    // would drop the loop consumer's size (a stream the decoder rejects), so these shapes stay as they
-                    // were until Issue 124.
-                    let belowSequenceOf (d: Asn1AcnAst.AcnDependency) =
-                        d.asn1Type.ToScopeNodeList |> List.skip boundaryPath.Length |> List.exists (function SQF -> true | _ -> false)
-                    // An aliased field (Issue 126) keeps the code of before as well: one patch per parameter
+                    // SEQUENCE epilogues (localSiblingEpilogue, producerPatchEpilogue). Issue 124: a consumer under a
+                    // SEQUENCE OF inside the callee is patched once per element (LoopConsumer), also next to direct
+                    // consumers.
+                    // An aliased field (Issue 126) keeps the code of before: one patch per parameter
                     let binding = bindingOf prm
                     let consumerDeps =
-                        match binding, allConsumerDeps |> List.exists belowSequenceOf with
-                        | AliasedField, _
-                        | SingleFormal, true  -> allConsumerDeps |> List.truncate 1
-                        | SingleFormal, false -> allConsumerDeps
+                        match binding with
+                        | AliasedField -> allConsumerDeps |> List.truncate 1
+                        | SingleFormal -> allConsumerDeps
                     // Several consumers: each patch runs only when its consumer is encoded, also a fixed-size one
                     // (an unguarded constant would collide with another consumer that is present); one consumer:
                     // the code of before (Issue 125)
@@ -1451,6 +1517,15 @@ let private appendPatchDetCalls
                         match consumerDeps with
                         | [] | [_]  -> FixedSizeUnguarded
                         | _ :: _ :: _ -> FixedSizeUnderPathChecks
+                    // Issue 124: a consumer below a SEQUENCE OF of the specialised type is patched from every element,
+                    // except a single fixed-size one: its constant needs no element and stays unguarded (Issue 125)
+                    let placementOf (dep: Asn1AcnAst.AcnDependency) =
+                        let belowSequenceOf =
+                            dep.asn1Type.ToScopeNodeList |> List.skip boundaryPath.Length |> List.exists (function SQF -> true | _ -> false)
+                        match belowSequenceOf, dep.dependencyKind, fixedSizeGuard with
+                        | false, _, _ -> DirectConsumer
+                        | true, Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _), FixedSizeUnguarded when minSize.acn = maxSize.acn -> DirectConsumer
+                        | true, _, _ -> LoopConsumer
                     match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
                     | None -> []
                     | Some detFns ->
@@ -1458,17 +1533,17 @@ let private appendPatchDetCalls
                             // Skip CONTAINING size deps — handled by CONTAINING wrapper
                             match dep.dependencyKind with
                             | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> None
-                            | _ -> Some (prm, binding, dep, fixedSizeGuard, detFns)))
+                            | _ -> Some (prm, binding, dep, fixedSizeGuard, placementOf dep, detFns)))
             // coverage step 14d: only the first patch of a field in this block can be its first patch since the
             // InitDet. Counted per field (paramIdentity); an aliased field (two formal parameters standing for it,
             // `pl <n, n>`) keeps the per-parameter rule of before (Issue 126).
             let indexedConsumers, _ =
-                patchedConsumers |> List.mapFold (fun (seen: Map<ReferenceToType, int>) (prm, binding, dep, guard, detFns) ->
+                patchedConsumers |> List.mapFold (fun (seen: Map<ReferenceToType, int>) (prm, binding, dep, guard, placement, detFns) ->
                     let fieldId = fieldOf prm
                     let k = seen.TryFind fieldId |> Option.defaultValue 0
-                    (prm, binding, fieldId, k, dep, guard, detFns), seen.Add (fieldId, k + 1)) Map.empty
+                    (prm, binding, fieldId, k, dep, guard, placement, detFns), seen.Add (fieldId, k + 1)) Map.empty
             let patchCalls =
-                indexedConsumers |> List.map (fun (prm, binding, fieldId, k, dep, fixedSizeGuard, (_initFn, patchFn, nBitsOpt, uperMinOffset)) ->
+                indexedConsumers |> List.map (fun (prm, binding, fieldId, k, dep, fixedSizeGuard, placement, (_initFn, patchFn, nBitsOpt, uperMinOffset)) ->
                             let (preBlock, rawValueExpr, checks) =
                                 computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP bodyOutcome.canFail fixedSizeGuard
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
@@ -1485,14 +1560,18 @@ let private appendPatchDetCalls
                             // callee it is passed to patches first). isOnlyPatchOfField holds only for consumers in
                             // different CHOICE alternatives, whose patches are all under their path checks
                             // (FixedSizeUnderPathChecks), so one runs
+                            // Issue 124: a patch in a loop runs once per element and fails when two elements disagree:
+                            // never exempt as a first / only patch (isFirstPatchOfField does not see the loop inside the
+                            // callee); only consumersWriteOneValue (every patch writes the same constant) exempts it
                             let bFirstPatch =
-                                match binding with
-                                | SingleFormal ->
+                                match placement, binding with
+                                | LoopConsumer, _ -> false
+                                | DirectConsumer, SingleFormal ->
                                     AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
                                     (k = 0 && AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id)
                                 // Issue 126: the rule of before, per parameter (its exemptions can leave two patches of
                                 // the field unchecked; fixed with one ref per field)
-                                | AliasedField ->
+                                | DirectConsumer, AliasedField ->
                                     AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
                                     AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id
                             let bSameValue = not bFirstPatch && AcnExternalField.consumersWriteOneValue ctx.r ctx.deps fieldId
@@ -1511,12 +1590,18 @@ let private appendPatchDetCalls
                                         ctx.lm.acn.acn_deferred_det_patch_ptr_with_size patchFn nBits valueExpr detParamName errCodePatch bCannotFail bSameValue ctx.codec
                                     | None ->
                                         ctx.lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch bCannotFail bSameValue ctx.codec
-                            (guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty,
-                             patchDetMappingDeclarations ctx.r ctx.lm field, bCannotFail, binding))
+                            // the block, whether it may not run (a loop entry: zero elements) and the indexes it uses
+                            let code, bGuarded, indexes =
+                                match placement with
+                                | DirectConsumer -> guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty, []
+                                | LoopConsumer   ->
+                                    let code, indexes = patchLoopBlock ctx.r ctx.lm ctx.o.resolvedType dep boundaryPath specP checks preBlock patchCall
+                                    code, true, indexes
+                            (code, bGuarded, patchDetMappingDeclarations ctx.r ctx.lm field, bCannotFail, binding, indexes))
             match patchCalls with
-            | [] -> body, false, [], PatchChecked
+            | [] -> body, false, [], PatchChecked, []
             | calls ->
-                let patchCode = calls |> List.map (fun (code, _, _, _, _) -> code) |> String.concat "\n"
+                let patchCode = calls |> List.map (fun (code, _, _, _, _, _) -> code) |> String.concat "\n"
                 // "guarded" = the block may write no result: true only when every patch is under a path check (Issue
                 // 121). One unguarded patch runs on every path. Exact for Ada, where every patch (checked or under
                 // pragma Assume) writes result: with List.exists a block "unguarded + guarded" kept a
@@ -1527,13 +1612,14 @@ let private appendPatchDetCalls
                 // check depends on this flag (q/details-docs/coverage/cycles/i121/review-fable.md Q2).
                 // A block with an aliased field keeps the join of before (List.exists; Issue 126).
                 let guarded =
-                    match calls |> List.exists (fun (_, _, _, _, binding) -> match binding with AliasedField -> true | SingleFormal -> false) with
-                    | false -> calls |> List.forall (fun (_, guarded, _, _, _) -> guarded)
-                    | true  -> calls |> List.exists (fun (_, guarded, _, _, _) -> guarded)
-                let mappingDeclarations = calls |> List.collect (fun (_, _, declarations, _, _) -> declarations)
+                    match calls |> List.exists (fun (_, _, _, _, binding, _) -> match binding with AliasedField -> true | SingleFormal -> false) with
+                    | false -> calls |> List.forall (fun (_, guarded, _, _, _, _) -> guarded)
+                    | true  -> calls |> List.exists (fun (_, guarded, _, _, _, _) -> guarded)
+                let mappingDeclarations = calls |> List.collect (fun (_, _, declarations, _, _, _) -> declarations)
+                let indexes = calls |> List.collect (fun (_, _, _, _, _, indexes) -> indexes)
                 // step 14e (E1): the patches cannot fail when every one is the only / first patch of its field
                 let check =
-                    match calls |> List.forall (fun (_, _, _, bCannotFail, _) -> bCannotFail) with
+                    match calls |> List.forall (fun (_, _, _, bCannotFail, _, _) -> bCannotFail) with
                     | true  -> PatchUnchecked
                     | false -> PatchChecked
                 // The PatchDet calls write the result: after a body that may fail they run only when it succeeded,
@@ -1541,10 +1627,10 @@ let private appendPatchDetCalls
                 // result, the join reads it (Ada: pragma Assume, the body is a specialised one, without contract; step
                 // 14e E1), else the PatchDet would overwrite a result nobody read (gnatprove flow "set ... but not used").
                 match bodyOutcome.canFail, bodyOutcome.writes with
-                | true, _        -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded, mappingDeclarations, check
-                | false, NoWrite -> body + "\n" + patchCode, guarded, mappingDeclarations, check
+                | true, _        -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded, mappingDeclarations, check, indexes
+                | false, NoWrite -> body + "\n" + patchCode, guarded, mappingDeclarations, check, indexes
                 | false, (AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown) ->
-                    ctx.lm.isvalid.JoinItemsCannotFail body patchCode None true, guarded, mappingDeclarations, check
+                    ctx.lm.isvalid.JoinItemsCannotFail body patchCode None true, guarded, mappingDeclarations, check, indexes
 
 
 /// Step 3 — build the specialized function's deferred-determinant formal
@@ -1955,7 +2041,7 @@ let private createDeferredReferenceFunction
 
             // Step 2b: append PatchDet calls (encode only) onto the body.
             let finalBody =
-                let body, bPatchGuarded, mappingDeclarations, patchCheck =
+                let body, bPatchGuarded, mappingDeclarations, patchCheck, patchIndexes =
                     appendPatchDetCalls ctx specP
                         isContainingExternalField (not baseAcnFunc.funcName.IsNone) bodyResult.encOutcome bodyResult.funcBody
                 // coverage step 12b: the PatchDet calls write the result (they may fail); after a body that may fail
@@ -1979,7 +2065,9 @@ let private createDeferredReferenceFunction
                     // a body that cannot fail and writes the result: joined by JoinItemsCannotFail, which reads it
                     | false, false, (AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown), _ -> EncodeOutcome.seq2 b patch
                 { bodyResult with funcBody = body; encOutcome = encOutcome
-                                  userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations }
+                                  userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations
+                                  // the indexes of the patch loops (Issue 124); declared once with the body's own
+                                  localVariables = bodyResult.localVariables @ patchIndexes }
 
             // Step 3: build the specialized function's deferred formal params.
             let deferredFormalParams, deferredParamNames =

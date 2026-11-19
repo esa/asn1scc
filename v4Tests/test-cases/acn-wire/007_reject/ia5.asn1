@@ -1,0 +1,4 @@
+-- an IA5String consumer inline in the elements, same function (legacy and --acn-v2 reject)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    S ::= SEQUENCE { a INTEGER(0..255), items SEQUENCE (SIZE(1..2)) OF IA5String (SIZE(0..15)) }
+END

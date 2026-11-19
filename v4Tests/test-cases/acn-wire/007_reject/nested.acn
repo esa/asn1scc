@@ -1,0 +1,4 @@
+REJ DEFINITIONS ::= BEGIN
+    Payload <INTEGER:len> [] { d [size len] }
+    NestL [] { [] { f BOOLEAN [], h [present-when f] { a [], n INTEGER [size 4, encoding pos-int] }, items [] { [] { g BOOLEAN [], pl <h.n> [present-when g], z [] } }, tail [] } }
+END

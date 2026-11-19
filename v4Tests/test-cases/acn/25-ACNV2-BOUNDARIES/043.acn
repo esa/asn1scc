@@ -1,0 +1,43 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    PA <INTEGER:len> [] { items [] { [] { o [size len] } } }
+    TA [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PB <INTEGER:len> [] { items [] { [] { x [], hb BOOLEAN [], inner [present-when hb] { o [size len] } } } }
+    TB [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    CC <Kind:k> [determinant k] { k1 [], k2 [] }
+    PC <Kind:k> [] { items [] { <k> [] } }
+    TC [] { a [], kk Kind [encoding pos-int, size 2], pl <kk> [], tail [] }
+    PD <BOOLEAN:b> [] { items [] { [] { x [present-when b], y [] } } }
+    TD [] { a [], f BOOLEAN [], pl <f> [], tail [] }
+    PE <INTEGER:len> [] { rows [] { [] { cols [] { [size len] } } } }
+    TE [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PF <INTEGER:len> [] { hd BOOLEAN [], d [present-when hd, size len], items [] { [size len] } }
+    TF [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PG <INTEGER:len> [] { items [] { [size len] } }
+    TG [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PG2 <INTEGER:len> [] { hd BOOLEAN [], d [present-when hd, size len], items [] { [size len] } }
+    TG2 [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    TH [] { a [], n INTEGER [size 4, encoding pos-int], p1 <n> [], p2 <n> [], tail [] }
+    PI <INTEGER:len> [] { x [], q <len> [] }
+    TI [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    EJ <INTEGER:len> [] { o [size len] }
+    PJ <INTEGER:len> [] { items [] { <len> [] } }
+    TJ [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    S2 [] { a [], n INTEGER [size 4, encoding pos-int], items [] { [size n] }, tail [] }
+    M1 [] { [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [] } }
+    PX1 <INTEGER:len> [] { [size len] }
+    TX1 [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PX2 <INTEGER:len> [] { h BOOLEAN [], items [present-when h] { [] { o [size len] } } }
+    TX2 [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PX3 <INTEGER:len> [] { a [], items [] { [] { o [size len] } } }
+    TX3 [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PX4 <Kind:k> [] { items [] { [determinant k] { k1 [], k2 [] } } }
+    TX4 [] { a [], kk Kind [encoding pos-int, size 2], pl <kk> [], tail [] }
+    PX5 <INTEGER:len> [] { items [] { [] { s [size len] } } }
+    TX5 [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PX7 <INTEGER:len> [] { items [] { [] { c [size len] } } }
+    TX7 [] { a [], n INTEGER [size 8, encoding pos-int], pl <n> [], tail [] }
+    PQ <INTEGER:len> [] { items [] { [] { o [size len] } } }
+    TQ [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    MyList <INTEGER:len> [] { [size len] }
+    TR [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+END

@@ -1,0 +1,5 @@
+-- an inline CHOICE element selected by an ENUMERATED field, same function (legacy and --acn-v2 reject)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    Kind ::= ENUMERATED { k1, k2 }
+    S ::= SEQUENCE { a INTEGER(0..255), items SEQUENCE (SIZE(1..2)) OF CHOICE { k1 INTEGER(0..7), k2 BOOLEAN } }
+END

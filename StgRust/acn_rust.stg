@@ -2160,6 +2160,10 @@ acn_deferred_det_bool_pattern_value(sValue, sTrueValue, sFalseValue) ::= "<sValu
 
 
 /* Wrap a preBlock and patchCall in braces */
+/* q/issues.md Issue 124: not reached (Rust has no PatchDet in specialised functions); fail loudly if it ever is */
+acn_deferred_det_patch_loop(sIdx, sLength, sBody) ::= <<
+compile_error!("acn-v2 patch loop over SEQUENCE OF elements is not implemented for Rust");
+>>
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<
 {
 <sPreBlock>

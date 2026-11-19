@@ -1191,6 +1191,10 @@ let acn_deferred_det_bool_pattern_value (sValue:string) (sTrueValue:string) (sFa
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "acn_deferred_det_bool_pattern_value" [("sValue",(if sValue = null then null else ST.StrHelper sValue:>Object) );("sTrueValue",(if sTrueValue = null then null else ST.StrHelper sTrueValue:>Object) );("sFalseValue",(if sFalseValue = null then null else ST.StrHelper sFalseValue:>Object) )]
 
+let acn_deferred_det_patch_loop (sIdx:string) (sLength:string) (sBody:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_deferred_det_patch_loop" [("sIdx",(if sIdx = null then null else ST.StrHelper sIdx:>Object) );("sLength",(if sLength = null then null else ST.StrHelper sLength:>Object) );("sBody",(if sBody = null then null else ST.StrHelper sBody:>Object) )]
+
 let acn_deferred_det_preblock_wrap (sPreBlock:string) (sPatchCall:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "acn_deferred_det_preblock_wrap" [("sPreBlock",(if sPreBlock = null then null else ST.StrHelper sPreBlock:>Object) );("sPatchCall",(if sPatchCall = null then null else ST.StrHelper sPatchCall:>Object) )]
