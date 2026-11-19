@@ -587,10 +587,14 @@ and AtcVariant = {
 and AtcVariantUse =
     // test_case_unequal_* (T_Equal must return FALSE) and, when `replaces` is Some, test_case_inconsistent_* (14d)
     | EqualityAndInconsistency
-    // test_case_unequal_* only: a value that must not be encoded (an ALWAYS PRESENT child made absent) or an inner
-    // node of a reference whose ids the parent's test values do not key (an inner variant of a reference lifted to
-    // its parent)
+    // test_case_unequal_* only: an inner node of a reference whose ids the parent's test values do not key (an inner
+    // variant of a reference lifted to its parent)
     | EqualityOnly
+    // test_case_unequal_* only, and T_Equal(v2, v2) must return TRUE for the changed value: an ALWAYS PRESENT child
+    // made absent (a value that must not be encoded). The reflexive check gives the MC/DC pair of `ret && exist.x`
+    // (ret TRUE, x absent on both sides), which no other test value has. Lifted through inline parents only: through
+    // a reference it becomes EqualityOnly (the referenced type's own test has the pair in the same function)
+    | EqualityOnlyAndReflexive
 
 type InitProcedure0 = {
     funcName:string;

@@ -286,6 +286,10 @@ emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sIn
 equalityVariantCheck(sModName, sAmber, sApplyVariant, sWhat, sEqualFunc) ::= <<
 >>
 
+/* Coverage cycle 15c (P4): C and Ada only (ILangGeneric.atcEmitsEqualityVariantTests). */
+equalityReflexiveCheck(sModName, sAmber, sWhat, sEqualFunc) ::= <<
+>>
+
 /* Coverage step 14d: C and Ada only (ILangGeneric.atcEmitsConstraintViolationTests). */
 emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc) ::= <<
 >>

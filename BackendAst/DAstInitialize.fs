@@ -268,7 +268,8 @@ let private liftVariants (sName:string) (childScope:CodegenScope -> CodegenScope
         {v with what = what; applyFnc = fun p -> v.applyFnc (childScope p)})
 
 /// Coverage cycle 15c: a variant for the Equal tests only (AtcVariantUse.EqualityOnly). Without `replaces` the step-14d
-/// tests never take it; the one place that marks a variant EqualityOnly.
+/// tests never take it; the one place that marks a variant EqualityOnly (EqualityOnlyAndReflexive: only the ALWAYS
+/// PRESENT child made absent, built without `replaces`).
 let private equalityOnly (v:AtcVariant) = {v with usedBy = EqualityOnly; replaces = None}
 
 /// A component's own variants are lifted to its parent. Of a reference, the variants that change its value at the
@@ -305,6 +306,8 @@ let private ownTreeVariants (r:Asn1AcnAst.AstRoot) (child:Asn1Type) (atc:Automat
             match v.usedBy with
             // monotone: never promoted at an upper site, whatever ids that site has
             | EqualityOnly             -> v
+            // the reflexive check stays with the referenced type's own test
+            | EqualityOnlyAndReflexive -> equalityOnly v
             | EqualityAndInconsistency ->
                 match v.what.StartsWith ":", r.args.acnDeferred && belowSite v.nodeId && siteKeyed v with
                 | true, _      -> v
@@ -1263,7 +1266,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         List.choose (fun (c, _, _) ->
                             match c.Optionality with
                             | Some Asn1AcnAst.AlwaysPresent ->
-                                Some (equalityOnly {AtcVariant.nodeId = c.Type.id; what = c.Name.Value + ": absent (WITH COMPONENTS requires it)"; applyFnc = absentChildFunc c; replaces = None; usedBy = EqualityOnly})
+                                Some {AtcVariant.nodeId = c.Type.id; what = c.Name.Value + ": absent (WITH COMPONENTS requires it)"; applyFnc = absentChildFunc c; replaces = None; usedBy = EqualityOnlyAndReflexive}
                             | Some (Asn1AcnAst.Optional _)
                             | Some Asn1AcnAst.AlwaysAbsent
                             | None -> None)

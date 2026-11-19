@@ -1080,7 +1080,8 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
             List.filter (fun v ->
                 match v.usedBy with
                 | EqualityAndInconsistency
-                | EqualityOnly             -> true)
+                | EqualityOnly
+                | EqualityOnlyAndReflexive -> true)
         let _, starts =
             atcs |> Array.toList |> List.indexed |>
             List.fold (fun (seen:Set<string>, acc) (i, atc) ->
@@ -1106,7 +1107,16 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
                     List.map (fun (atc, variants) ->
                         let initStatement = atc.initTestCaseFunc p
                         let applied = variants |> List.map (fun v -> v, v.applyFnc p2)
-                        let checks = applied |> List.map (fun (v, a) -> lm.atc.equalityVariantCheck td.programUnit encAmper a.funcBody (variantText t sTypeName v) sEqualFunc)
+                        let checks =
+                            applied |>
+                            List.collect (fun (v, a) ->
+                                let sWhat = variantText t sTypeName v
+                                let check = lm.atc.equalityVariantCheck td.programUnit encAmper a.funcBody sWhat sEqualFunc
+                                // coverage cycle 15c (P4): T_Equal(v2, v2) with the changed value, right after its check
+                                match v.usedBy with
+                                | EqualityOnlyAndReflexive -> [check; lm.atc.equalityReflexiveCheck td.programUnit encAmper sWhat sEqualFunc]
+                                | EqualityAndInconsistency
+                                | EqualityOnly             -> [check])
                         initStatement.localVariables @ (applied |> List.collect (fun (_, a) -> a.localVariables)), initStatement.funcBody :: checks)
                 let arrsVars = parts |> List.collect fst |> List.map lm.lg.getLocalVariableDeclaration |> Seq.distinct |> Seq.toList
                 let blocks = parts |> List.collect snd
@@ -1169,7 +1179,8 @@ let inconsistentValueTestCases (lm:LanguageMacros) (t:Asn1Type) (sEncFunc:string
                 let replaces =
                     match v.usedBy with
                     | EqualityAndInconsistency -> v.replaces
-                    | EqualityOnly             -> None
+                    | EqualityOnly
+                    | EqualityOnlyAndReflexive -> None
                 replaces |>
                 Option.bind (fun replaced ->
                     match acnEnc.isTestVaseValid {atc with testCaseTypeIDsMap = changedMap atc replaced} with

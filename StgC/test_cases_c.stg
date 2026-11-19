@@ -1160,6 +1160,14 @@ if (<sEqualFunc>(<sAmber>tc_data, <sAmber>tc_data2) || <sEqualFunc>(<sAmber>tc_d
 }
 >>
 
+/* Coverage cycle 15c (P4): after equalityVariantCheck, the changed value (tc_data2) compared with itself must be equal:
+   the MC/DC pair of `ret && pVal1->exist.x` with x absent on both sides (an ALWAYS PRESENT child made absent). */
+equalityReflexiveCheck(sModName, sAmber, sWhat, sEqualFunc) ::= <<
+if (!<sEqualFunc>(<sAmber>tc_data2, <sAmber>tc_data2)) {
+    equalFor = "<sEqualFunc> returned FALSE for a value and itself: <sWhat>";
+}
+>>
+
 /* Coverage step 14d: a value whose ACN fields disagree (one consumer of a shared field changed): the ACN encoder must
    reject it with a nonzero error code. */
 emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc) ::= <<
