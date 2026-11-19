@@ -50,14 +50,18 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     TC2 ::= SEQUENCE { a INTEGER(0..255), pl CF2, tail INTEGER(0..255) }
     PL2 ::= SEQUENCE { o MyOct OPTIONAL, d OCTET STRING (SIZE(0..15)) }
     TL2 ::= SEQUENCE { a INTEGER(0..255), pl PL2, tail INTEGER(0..255) }
-    -- values whose last consumer is absent while an earlier one is present (master --acn-v2 lost their size)
+    -- values master --acn-v2 encoded with a wrong size (the consumer it patched is absent, another one present)
     tb-o TB ::= { a 1, pl { o '010203'H, e 5 }, tail 7 }
     th-a TH ::= { a 1, pl a : '010203'H, tail 7 }
     tf1-o TF1 ::= { a 1, pl { o '010203'H, e 5 }, tail 7 }
+    tf2-d TF2 ::= { a 1, pl { d '0102030405'H, e 5 }, tail 7 }
+    tc1-a TC1 ::= { a 1, pl a : '010203'H, tail 7 }
+    tc2-b TC2 ::= { a 1, pl b : '0102030405'H, tail 7 }
+    -- positive controls (master already right: the present consumer is the one it patched); they also run the
+    -- decoder lines of the fixed-size consumers
     tf2-o TF2 ::= { a 1, pl { o '010203'H, e 5 }, tail 7 }
     tf1-d TF1 ::= { a 1, pl { d '0102030405'H, e 5 }, tail 7 }
     tc1-b TC1 ::= { a 1, pl b : '0102030405'H, tail 7 }
-    tc2-b TC2 ::= { a 1, pl b : '0102030405'H, tail 7 }
 END
 
 --TCFS   042.acn

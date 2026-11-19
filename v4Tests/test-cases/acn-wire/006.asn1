@@ -51,4 +51,13 @@ WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- an OPTIONAL consumer before a mandatory one
     PayL2 ::= SEQUENCE { o MyOct OPTIONAL, d OCTET STRING (SIZE(0..15)) }
     TL2 ::= SEQUENCE { a INTEGER(0..255), pl PayL2, tail INTEGER(0..255) }
+    -- a direct consumer and one inside a SEQUENCE OF of the callee: the single patch of before is kept (the loop
+    -- consumer's, q/issues.md Issue 124), so d absent with elements keeps its size
+    PQ ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, items SEQUENCE (SIZE(1)) OF OCTET STRING (SIZE(3)) }
+    TQ ::= SEQUENCE { a INTEGER(0..255), pl PQ, tail INTEGER(0..255) }
+    PQV ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, items SEQUENCE (SIZE(1..2)) OF OCTET STRING (SIZE(3)) }
+    TQV ::= SEQUENCE { a INTEGER(0..255), pl PQV, tail INTEGER(0..255) }
+    -- two formal parameters bound to one field (pl <n, n>): one first patch per field, not per parameter
+    PW ::= SEQUENCE { x OCTET STRING (SIZE(0..15)) OPTIONAL, y OCTET STRING (SIZE(0..15)) OPTIONAL, z OCTET STRING (SIZE(0..15)) }
+    TW ::= SEQUENCE { a INTEGER(0..255), pl PW, tail INTEGER(0..255) }
 END

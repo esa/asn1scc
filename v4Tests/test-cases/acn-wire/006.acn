@@ -26,4 +26,10 @@ WIRE DEFINITIONS ::= BEGIN
     TC2 [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
     PayL2 <INTEGER:len> [] { h BOOLEAN [], o [present-when h, size len], d [size len] }
     TL2 [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PQ <INTEGER:len> [] { h BOOLEAN [], d [present-when h, size len], items [] { [size len] } }
+    TQ [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PQV <INTEGER:len> [] { h BOOLEAN [], d [present-when h, size len], items [] { [size len] } }
+    TQV [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PW <INTEGER:pa, INTEGER:pb> [] { hx BOOLEAN [], hy BOOLEAN [], x [present-when hx, size pa], y [present-when hy, size pa], z [size pb] }
+    TW [] { a [], n INTEGER [size 4, encoding pos-int], pl <n, n> [], tail [] }
 END

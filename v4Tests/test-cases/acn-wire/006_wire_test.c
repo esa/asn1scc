@@ -1,8 +1,9 @@
 /* --acn-v2: an ACN parameter of a referenced type with several consumers inside it (run by
    v4Tests/scripts/runWireTests.sh, ASan / UBSan, --acn-v2 and legacy). Valid values encode to the bytes legacy writes
    with a zero error code and decode back; values whose consumers disagree fail with a nonzero error code (the
-   specialised encoders patched one consumer per parameter: q/issues.md Issue 121). LEGACY (-DLEGACY) marks the one
-   value legacy does not encode. */
+   specialised encoders patched one consumer per parameter: q/issues.md Issue 121). LEGACY (-DLEGACY) skips the values
+   legacy does not encode (no consumer present: --acn-v2 writes the fallback 0 into the size field, which no consumer
+   reads). */
 #include <stdio.h>
 #include <string.h>
 #include "006.h"
@@ -187,6 +188,48 @@ int main(void)
         memset(&v, 0, sizeof v);
         v.a = 1; v.pl.kind = CF2_a_PRESENT; FIXED3(v.pl.u.a.arr); v.tail = 7;
         ENCODE(TC2, v, 0x01, 0x34, 0x04, 0x08, 0x0C, 0x1C);
+    }
+    /* no consumer present: the size field takes the fallback 0 (master --acn-v2 wrote 3 when the fixed-size consumer
+       was the last component; legacy rejects these values) */
+#ifndef LEGACY
+    {
+        static TF2 v;
+        memset(&v, 0, sizeof v);
+        v.a = 1; v.pl.e = 5; v.tail = 7;
+        ENCODE(TF2, v, 0x01, 0x00, 0x14, 0x1C);
+    }
+    {
+        static TC2 v;
+        memset(&v, 0, sizeof v);
+        v.a = 1; v.pl.kind = CF2_c_PRESENT; v.pl.u.c = 4; v.tail = 7;
+        ENCODE(TC2, v, 0x01, 0x0A, 0x03, 0x80);
+    }
+#endif
+    /* a direct consumer and one inside a SEQUENCE OF of the callee: d absent with elements, and d of 3 octets */
+    {
+        static TQ v;
+        memset(&v, 0, sizeof v);
+        v.a = 1; FIXED3(v.pl.items.arr[0].arr); v.tail = 7;
+        ENCODE(TQ, v, 0x01, 0x30, 0x08, 0x10, 0x18, 0x38);
+        v.pl.exist.d = 1; FILL(v.pl.d, 3);
+        ENCODE(TQ, v, 0x01, 0x38, 0x08, 0x10, 0x18, 0x08, 0x10, 0x18, 0x38);
+    }
+    {
+        static TQV v;
+        memset(&v, 0, sizeof v);
+        v.a = 1; v.pl.items.nCount = 2; FIXED3(v.pl.items.arr[0].arr); FIXED3(v.pl.items.arr[1].arr); v.tail = 7;
+        ENCODE(TQV, v, 0x01, 0x34, 0x04, 0x08, 0x0C, 0x04, 0x08, 0x0C, 0x1C);
+    }
+    /* two formal parameters bound to one field (pl <n, n>): x and z of 3 octets; x 2 / z 3 and y 2 / z 3 rejected */
+    {
+        static TW v;
+        memset(&v, 0, sizeof v);
+        v.a = 1; v.pl.exist.x = 1; FILL(v.pl.x, 3); FILL(v.pl.z, 3); v.tail = 7;
+        ENCODE(TW, v, 0x01, 0x38, 0x04, 0x08, 0x0C, 0x04, 0x08, 0x0C, 0x1C);
+        FILL(v.pl.x, 2);
+        REJECT(TW, v);
+        v.pl.exist.x = 0; v.pl.exist.y = 1; FILL(v.pl.y, 2);
+        REJECT(TW, v);
     }
     /* an OPTIONAL consumer before a mandatory one */
     {

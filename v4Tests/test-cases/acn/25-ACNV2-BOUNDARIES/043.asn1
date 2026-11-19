@@ -1,0 +1,14 @@
+-- ACNV2_ONLY C_ONLY (two formal parameters of a referenced type bound to one ACN field, pl <n, n>, Issue 121 round 2;
+-- C only: the Ada --acn-v2 call passes one AcnInsertedFieldRef as two in out actuals, which GNAT -gnatwe rejects
+-- ("writable actual ... overlaps"), on master too). The PatchDet calls of the field count one first patch per field,
+-- not per parameter: an ACN-inconsistent value (x or y not of the size of z) fails with a nonzero code, also when the
+-- first patch's consumer is absent.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    PW ::= SEQUENCE { x OCTET STRING (SIZE(0..15)) OPTIONAL, y OCTET STRING (SIZE(0..15)) OPTIONAL, z OCTET STRING (SIZE(0..15)) }
+    TW ::= SEQUENCE { a INTEGER(0..255), pl PW, tail INTEGER(0..255) }
+    -- one consumer per parameter
+    PS ::= SEQUENCE { x OCTET STRING (SIZE(0..15)) OPTIONAL, z OCTET STRING (SIZE(0..15)) }
+    TS ::= SEQUENCE { a INTEGER(0..255), pl PS, tail INTEGER(0..255) }
+END
+
+--TCFS   043.acn

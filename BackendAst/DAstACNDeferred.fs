@@ -1389,14 +1389,16 @@ let private appendPatchDetCalls
             let containingSizePrmId =
                 findContainingSizeParam ctx.deps ctx.o
                 |> Option.map (fun prm -> prm.id)
-            let patchCalls =
+            let boundaryPath = ctx.o.resolvedType.id.ToScopeNodeList
+            // The patches of the block, in emission order: (parameter, consumer dependency, fixed-size guard, PatchDet
+            // functions of the parameter)
+            let patchedConsumers =
                 ctx.o.resolvedType.acnParameters |> List.collect (fun prm ->
                     match containingSizePrmId with
                     | Some csId when csId = prm.id -> []
                     | _ ->
                     // The deps inside this boundary where the determinant
                     // is this parameter (consumer-side dependencies)
-                    let boundaryPath = ctx.o.resolvedType.id.ToScopeNodeList
                     let allConsumerDeps =
                         ctx.deps.acnDependencies |> List.filter (fun d ->
                             let dependentPath = d.asn1Type.ToScopeNodeList
@@ -1415,15 +1417,17 @@ let private appendPatchDetCalls
                     // q/issues.md Issue 121: every consumer of the parameter gets its patch (one tryFind used to patch
                     // only the first dependency, i.e. the last consumer in the type, and lost the others: a valid
                     // value with that consumer absent and another one present encoded a wrong determinant), like the
-                    // SEQUENCE epilogues (localSiblingEpilogue, producerPatchEpilogue). Consumers under a SEQUENCE OF
-                    // inside the callee are left out (patched after the loop from one element: Issue 124); when all
-                    // consumers are such, the single pick of before is kept, so that shape is unchanged.
+                    // SEQUENCE epilogues (localSiblingEpilogue, producerPatchEpilogue). A parameter with a consumer
+                    // under a SEQUENCE OF inside the callee (patched after the loop from one element, Issue 124) keeps
+                    // the single pick of before, also when it has direct consumers too: patching only the direct ones
+                    // would drop the loop consumer's size (a stream the decoder rejects), so these shapes stay as they
+                    // were until Issue 124.
                     let belowSequenceOf (d: Asn1AcnAst.AcnDependency) =
                         d.asn1Type.ToScopeNodeList |> List.skip boundaryPath.Length |> List.exists (function SQF -> true | _ -> false)
                     let consumerDeps =
-                        match allConsumerDeps |> List.filter (belowSequenceOf >> not) with
-                        | []        -> allConsumerDeps |> List.truncate 1
-                        | direct    -> direct
+                        match allConsumerDeps |> List.exists belowSequenceOf with
+                        | true  -> allConsumerDeps |> List.truncate 1
+                        | false -> allConsumerDeps
                     // Several consumers: each patch runs only when its consumer is encoded, also a fixed-size one
                     // (an unguarded constant would collide with another consumer that is present); one consumer:
                     // the code of before (Issue 125)
@@ -1431,16 +1435,26 @@ let private appendPatchDetCalls
                         match consumerDeps with
                         | [] | [_]  -> FixedSizeUnguarded
                         | _ :: _ :: _ -> FixedSizeUnderPathChecks
-                    // Skip CONTAINING size deps — handled by CONTAINING wrapper
-                    let patchedDeps =
-                        consumerDeps |> List.filter (fun dep ->
+                    match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
+                    | None -> []
+                    | Some detFns ->
+                        consumerDeps |> List.choose (fun dep ->
+                            // Skip CONTAINING size deps — handled by CONTAINING wrapper
                             match dep.dependencyKind with
-                            | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> false
-                            | _ -> true)
-                    patchedDeps |> List.mapi (fun i dep -> i, dep) |> List.choose (fun (i, dep) ->
-                        match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
-                        | None -> None
-                        | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
+                            | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> None
+                            | _ -> Some (prm, dep, fixedSizeGuard, detFns)))
+            // coverage step 14d: only the first patch of a field in this block can be its first patch since the
+            // InitDet. Counted per field (paramIdentity), not per parameter: two formal parameters may stand for one
+            // field (`pl <n, n>`), and each used to count as first (C TRUE with code 203, a false Ada pragma Assume on
+            // an inconsistent value; this also changes master's text for such callees: their second patch is checked).
+            let fieldOf (prm: AcnGenericTypes.AcnParameter) = AcnExternalField.paramIdentity ctx.r ctx.deps prm
+            let indexedConsumers, _ =
+                patchedConsumers |> List.mapFold (fun (seen: Map<ReferenceToType, int>) (prm, dep, guard, detFns) ->
+                    let fieldId = fieldOf prm
+                    let k = seen.TryFind fieldId |> Option.defaultValue 0
+                    (prm, fieldId, k, dep, guard, detFns), seen.Add (fieldId, k + 1)) Map.empty
+            let patchCalls =
+                indexedConsumers |> List.map (fun (prm, fieldId, k, dep, fixedSizeGuard, (_initFn, patchFn, nBitsOpt, uperMinOffset)) ->
                             let (preBlock, rawValueExpr, checks) =
                                 computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP bodyOutcome.canFail fixedSizeGuard
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
@@ -1451,14 +1465,18 @@ let private appendPatchDetCalls
                             let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                             // coverage step 13b: the only patch of the field cannot fail; 14d: nor the first one; E6-C: nor
                             // one of a field whose consumers all write the same value. With several consumers here (Issue
-                            // 121) only the first patch emitted is the first of the field (a later one runs on a ref the
-                            // earlier set when both consumers are present: checked, the consistency check of legacy);
-                            // isOnlyPatchOfField holds only for consumers in different CHOICE alternatives, whose patches
-                            // are all under their path checks (FixedSizeUnderPathChecks), so one runs
-                            let fieldId = AcnExternalField.paramIdentity ctx.r ctx.deps prm
+                            // 121) only the first patch of the field emitted here (k = 0) can be its first (a later one
+                            // runs on a ref the earlier set when both consumers are present: checked, the consistency
+                            // check of legacy), and only when no parameter standing for the field is passed on (the
+                            // callee it is passed to patches first). isOnlyPatchOfField holds only for consumers in
+                            // different CHOICE alternatives, whose patches are all under their path checks
+                            // (FixedSizeUnderPathChecks), so one runs
+                            let sameFieldParams =
+                                ctx.o.resolvedType.acnParameters |> List.filter (fun p -> fieldOf p = fieldId)
                             let bFirstPatch =
                                 AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
-                                (i = 0 && AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id)
+                                (k = 0 && sameFieldParams |> List.forall (fun p ->
+                                    AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id p.id))
                             let bSameValue = not bFirstPatch && AcnExternalField.consumersWriteOneValue ctx.r ctx.deps fieldId
                             let bCannotFail = bFirstPatch || bSameValue
                             let isIA5StringDet = patchFn.Contains("IA5String")
@@ -1475,8 +1493,8 @@ let private appendPatchDetCalls
                                         ctx.lm.acn.acn_deferred_det_patch_ptr_with_size patchFn nBits valueExpr detParamName errCodePatch bCannotFail bSameValue ctx.codec
                                     | None ->
                                         ctx.lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch bCannotFail bSameValue ctx.codec
-                            Some (guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty,
-                                  patchDetMappingDeclarations ctx.r ctx.lm field, bCannotFail)))
+                            (guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty,
+                             patchDetMappingDeclarations ctx.r ctx.lm field, bCannotFail))
             match patchCalls with
             | [] -> body, false, [], PatchChecked
             | calls ->
