@@ -569,8 +569,8 @@ type AutomaticTestCase = {
 
 /// Coverage step 14a: the value of an automatic test case with one node of the type's own tree changed (another
 /// automatic test value of that node, or a language toggle). Built together with the value, so it holds for exactly
-/// this value: no lookup by node id. A referenced type is changed only as a whole: another value, or a change at its
-/// root (its own inner nodes are changed by the tests of its type assignment).
+/// this value: no lookup by node id. Variants of a referenced type's inner nodes reach the parents for the Equal tests
+/// only (coverage cycle 15c, AtcVariantUse).
 and AtcVariant = {
     nodeId      : ReferenceToType                       // the node whose value differs
     what        : string                                // the node and the change, for the test's comment and message
@@ -578,11 +578,19 @@ and AtcVariant = {
     // the node and the testCaseTypeIDsMap of the test value written there, when the change is another test value of
     // the node (coverage step 14d: the ACN validity of the changed value); None for a toggle or a SEQUENCE OF element
     replaces    : (ReferenceToType * Map<ReferenceToType, TestCaseValue>) option
-    // coverage step 14e (E6-C): an inner node of a reference site that has node ids of its own (ACN fields or
-    // constraints at the site, 12d), lifted to the parent only for the step-14d tests (the referenced type's own
-    // equality tests change its inner nodes, so test_case_unequal_* keeps a reference as a whole)
-    inconsistencyOnly : bool
+    usedBy      : AtcVariantUse                         // which automatic tests may take the variant
 }
+
+/// Coverage cycle 15c: the automatic tests that may take a variant. Monotone: a variant marked EqualityOnly stays
+/// EqualityOnly when it is lifted further (DAstInitialize.ownTreeVariants), and it never has `replaces` (helper
+/// DAstInitialize.equalityOnly), so it never reaches the step-14d tests.
+and AtcVariantUse =
+    // test_case_unequal_* (T_Equal must return FALSE) and, when `replaces` is Some, test_case_inconsistent_* (14d)
+    | EqualityAndInconsistency
+    // test_case_unequal_* only: a value that must not be encoded (an ALWAYS PRESENT child made absent) or an inner
+    // node of a reference whose ids the parent's test values do not key (an inner variant of a reference lifted to
+    // its parent)
+    | EqualityOnly
 
 type InitProcedure0 = {
     funcName:string;

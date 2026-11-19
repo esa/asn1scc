@@ -1039,7 +1039,7 @@ let private startVariants (t:Asn1Type) (atcs:AutomaticTestCase array) (i:int) (a
         match atcs.Length >= 2 with
         | true  ->
             let other = atcs.[(i + 1) % atcs.Length]
-            [{AtcVariant.nodeId = t.id; what = ": another test value"; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap); inconsistencyOnly = false}]
+            [{AtcVariant.nodeId = t.id; what = ": another test value"; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap); usedBy = EqualityAndInconsistency}]
         | false -> []
     whole @ atc.variants
 
@@ -1053,7 +1053,12 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
     match lm.lg.atcEmitsEqualityVariantTests, t.equalFunction.isEqualFuncName with
     | true, Some sEqualFunc ->
         let atcs = t.initFunction.automaticTestCases |> List.toArray
-        let variantsOf i atc = startVariants t atcs i atc |> List.filter (fun v -> not v.inconsistencyOnly)
+        let variantsOf i atc =
+            startVariants t atcs i atc |>
+            List.filter (fun v ->
+                match v.usedBy with
+                | EqualityAndInconsistency
+                | EqualityOnly             -> true)
         let _, starts =
             atcs |> Array.toList |> List.indexed |>
             List.fold (fun (seen:Set<string>, acc) (i, atc) ->
@@ -1139,7 +1144,11 @@ let inconsistentValueTestCases (lm:LanguageMacros) (t:Asn1Type) (sEncFunc:string
         List.collect (fun (i, atc) ->
             startVariants t atcs i atc |>
             List.choose (fun v ->
-                v.replaces |>
+                let replaces =
+                    match v.usedBy with
+                    | EqualityAndInconsistency -> v.replaces
+                    | EqualityOnly             -> None
+                replaces |>
                 Option.bind (fun replaced ->
                     match acnEnc.isTestVaseValid {atc with testCaseTypeIDsMap = changedMap atc replaced} with
                     | true  -> None
