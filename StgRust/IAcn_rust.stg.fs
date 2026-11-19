@@ -367,6 +367,14 @@ type IAcn_rust() =
             acn_rust.acn_deferred_det_type_name  () 
         override this.acn_deferred_det_init_expr  () =
             acn_rust.acn_deferred_det_init_expr  () 
+        override this.acn_deferred_det_in_stream_value  (sDetName:string) =
+            acn_rust.acn_deferred_det_in_stream_value  sDetName 
+        override this.acn_deferred_det_in_stream_ptr  (sDetName:string) =
+            acn_rust.acn_deferred_det_in_stream_ptr  sDetName 
+        override this.acn_deferred_det_mark_in_stream  (sInStream:string) (sField:string) =
+            acn_rust.acn_deferred_det_mark_in_stream  sInStream sField 
+        override this.acn_deferred_det_reset  (sDetName:string) (sField:string) (sHolders:string) =
+            acn_rust.acn_deferred_det_reset  sDetName sField sHolders 
         override this.AcnIntFullRange  (p:string) (sKind:string) (sWidth:string) (sSsuffix:string) (noBits:BigInteger option) =
             acn_rust.AcnIntFullRange  p sKind sWidth sSsuffix noBits 
         override this.Real_64_cannotFail  (p:string) (sEndianness:string) =

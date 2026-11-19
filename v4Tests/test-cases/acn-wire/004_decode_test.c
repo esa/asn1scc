@@ -72,16 +72,9 @@ int main(void)
     DECODE(MyPDU, v, ERR_ACN_DECODE_MYPDU_DATA2, 0x40);                /* hdr2 absent, data2 present */
     DECODE(MyPDU, v, 0, 0x0B, 0x40);                                    /* hdr2 absent: x absent, tail 0x5A */
     EXPECT(!v.exist.hdr2 && !v.exist.data2 && !v.exist.pl2 && !v.exist.x && v.tail == 0x5A);
-    {
-        /* hdr2 absent, pl2 present: pl2 receives the reference with value 0 (no check of the result) */
-        static byte buf[MyPDU_REQUIRED_BYTES_FOR_ACN_ENCODING + 16];
-        BitStream bs;
-        int err = 0;
-        memset(buf, 0xAB, sizeof(buf));
-        buf[0] = 0x20;
-        BitStream_AttachBuffer(&bs, buf, sizeof(buf));
-        (void)MyPDU_ACN_Decode(&v, &bs, &err);
-    }
+    /* hdr2 absent, pl2 present: pl2.d checks that the reference it receives holds a field of the stream (q/issues.md
+       Issue 107; its error code ERR_ACN_DECODE_MYPDU_PL2_D is private to 004.c: any nonzero code) */
+    DECODE(MyPDU, v, -1, 0x20);
     MyPDU_Initialize(&v);
     v.exist.hdr2 = 1;
     v.hdr2.a = 3;

@@ -72,7 +72,7 @@ let private withAbsentHolderGuard (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFiel
                     {b with funcBody = lm.acn.acn_dec_absent_holder_fail b.funcBody errCode.errCodeName sFields sHolders
                             localVariables = []; bBsIsUnReferenced = true})
             res, st1
-    | AbsentHolder.TestHolders (holders, fields) ->
+    | AbsentHolder.TestHolders (holders, refs, fields) ->
         fun st errCode prms nestingScope p ->
             let res, st1 = funcBody st errCode prms nestingScope p
             let presence (holderId: ReferenceToType) =
@@ -86,14 +86,28 @@ let private withAbsentHolderGuard (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFiel
                 | None ->
                     // the field's SEQUENCE must enclose the dependent in this function (AbsentHolder.fieldAndReader)
                     raise (BugErrorException (sprintf "Issue 106 guard: no enclosing scope holds %s (dependent %s)" holderId.AsString t.id.AsString))
-            let sFields, sHolders = describe holders fields
+            // q/issues.md Issue 107 (--acn-v2): a field read through an AcnInsertedFieldRef is in the stream when the ref's
+            // in_stream is set (the decoder of the field sets it, DAstACNDeferred; AbsentHolder.fieldsReadThroughRef)
+            let inStream (refTest: AbsentHolder.RefTest) =
+                match refTest with
+                // the formal parameter the dependent reads (AcnExternalField.getExternalField0)
+                | AbsentHolder.FormalRef prm -> lm.acn.acn_deferred_det_in_stream_ptr (getAcnDeterminantName prm.id)
+                // the ref the call passes for the parameter (as DAstACNDeferred.buildCallerWrapper): the enclosing
+                // function's formal parameter standing for the same field, else the local of the field
+                | AbsentHolder.ArgumentRef prm ->
+                    let identity = AcnExternalField.paramIdentity r deps prm
+                    match prms |> List.tryFind (fun (_, parentPrm) -> AcnExternalField.paramIdentity r deps parentPrm = identity) with
+                    | Some (_, parentPrm) -> lm.acn.acn_deferred_det_in_stream_ptr (getAcnDeterminantName parentPrm.id)
+                    | None                -> lm.acn.acn_deferred_det_in_stream_value (AcnExternalField.deferredDetRefName r lm identity)
+            let allHolders = (holders @ (refs |> List.collect snd)) |> List.distinct
+            let sFields, sHolders = describe allHolders fields
             let res =
                 match nestingScope.isStandaloneRender with
                 // the ICD renders an inline type alone (its code is not emitted): no enclosing scope holds the holder
                 | true  -> res
                 | false ->
                     res |> Option.map (fun b ->
-                        {b with funcBody = lm.acn.acn_dec_absent_holder_guard (holders |> List.map presence) b.funcBody errCode.errCodeName sFields sHolders})
+                        {b with funcBody = lm.acn.acn_dec_absent_holder_guard ((holders |> List.map presence) @ (refs |> List.map (fst >> inStream))) b.funcBody errCode.errCodeName sFields sHolders})
             res, st1
 
 // If the type assignment has acnParameters, then no function is generated.

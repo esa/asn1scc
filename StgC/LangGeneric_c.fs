@@ -965,6 +965,8 @@ type LangGeneric_c() =
         override _.decodeJoinsByWrites = true
         // Issue 106: fail at the dependent when the holder of its determinant field is absent
         override _.decodeFailsWhenHolderAbsent = true
+        // Issue 107: the AcnInsertedFieldRef of the RTL tracks whether its field is in the stream
+        override _.deferredRefTracksStream = true
         override _.stringLocalInit _ = "\"\""
 
         override this.getDirInfo (target:Targets option) rootDir =

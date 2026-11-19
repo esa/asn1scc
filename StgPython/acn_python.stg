@@ -1705,6 +1705,15 @@ acn_deferred_det_optional_producer_wrap(sParent, sAcc, sProducer, sBody) ::= "# 
 acn_deferred_det_type_name() ::= "# TODO"
 acn_deferred_det_init_expr() ::= "# TODO"
 
+/* q/issues.md Issue 107: C and Ada only (ILangGeneric.deferredRefTracksStream) */
+acn_deferred_det_in_stream_value(sDetName) ::= ""
+
+acn_deferred_det_in_stream_ptr(sDetName) ::= ""
+
+acn_deferred_det_mark_in_stream(sInStream, sField) ::= ""
+
+acn_deferred_det_reset(sDetName, sField, sHolders) ::= ""
+
 
 /* Coverage step 10b, Ada only (never used here). */
 AcnIntFullRange(p, sKind, sWidth, sSsuffix, noBits) ::= ""

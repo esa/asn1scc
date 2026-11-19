@@ -1211,6 +1211,22 @@ let acn_deferred_det_init_expr () =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "acn_deferred_det_init_expr" []
 
+let acn_deferred_det_in_stream_value (sDetName:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_deferred_det_in_stream_value" [("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) )]
+
+let acn_deferred_det_in_stream_ptr (sDetName:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_deferred_det_in_stream_ptr" [("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) )]
+
+let acn_deferred_det_mark_in_stream (sInStream:string) (sField:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_deferred_det_mark_in_stream" [("sInStream",(if sInStream = null then null else ST.StrHelper sInStream:>Object) );("sField",(if sField = null then null else ST.StrHelper sField:>Object) )]
+
+let acn_deferred_det_reset (sDetName:string) (sField:string) (sHolders:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_deferred_det_reset" [("sDetName",(if sDetName = null then null else ST.StrHelper sDetName:>Object) );("sField",(if sField = null then null else ST.StrHelper sField:>Object) );("sHolders",(if sHolders = null then null else ST.StrHelper sHolders:>Object) )]
+
 let AcnIntFullRange (p:string) (sKind:string) (sWidth:string) (sSsuffix:string) (noBits:BigInteger option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "AcnIntFullRange" [("p",p :>Object);("sKind",(if sKind = null then null else ST.StrHelper sKind:>Object) );("sWidth",(if sWidth = null then null else ST.StrHelper sWidth:>Object) );("sSsuffix",(if sSsuffix = null then null else ST.StrHelper sSsuffix:>Object) );("noBits",(if noBits.IsNone then null else noBits.Value:>Object) )]

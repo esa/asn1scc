@@ -92,6 +92,17 @@ let private fieldAndReader (r: AstRoot) (deps: AcnInsertedFieldDependencies) (d:
                     | AcnParameterDeterminant prm2 -> follow prm2.id (visited.Add prmId))
         follow prm.id Set.empty
 
+/// --acn-v2, q/issues.md Issue 107: a dependency that reads its field through an AcnInsertedFieldRef parameter of the
+/// function that decodes the dependent (the cases fieldAndReader leaves out): the field (determinantIdentity), the
+/// dependent, which is the reader, and the parameter. The field is decoded by a caller, which sets the ref's `in_stream`
+/// where it reads the field (DAstACNDeferred); the parameter of an outermost function stands for itself (no holder).
+let private refFieldAndReader (r: AstRoot) (deps: AcnInsertedFieldDependencies) (d: AcnDependency) : (ReferenceToType * ReferenceToType * AcnParameter) option =
+    match r.args.acnDeferred, d.determinant with
+    | true, AcnParameterDeterminant prm when not (isExposedProducer d prm) -> Some (determinantIdentity r deps d.determinant, d.asn1Type, prm)
+    | true, AcnParameterDeterminant _
+    | true, AcnChildDeterminant _
+    | false, _ -> None
+
 /// The optionality of the SEQUENCE component at `path` (MD :: TA :: ... :: SEQ_CHILD name), found by walking the type
 /// assignment through the components (references by their actual type, as AcnDependencies.withBackendChildNames
 /// does). None when the path does not lead to an ASN.1 SEQUENCE component.
@@ -166,49 +177,51 @@ let private presenceFieldOf (r: AstRoot) (deps: AcnInsertedFieldDependencies) (p
 /// dependent. A path passes through SEQUENCE components and references only (the
 /// front end rejects CHOICE and SEQUENCE OF steps), and the field precedes the dependent, so the presence of every step
 /// is known when the dependent is decoded.
+let private holderStepsOf (sameFlagDominates: bool) (r: AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) (readerId: ReferenceToType) : (ReferenceToType * Asn1Optionality) list =
+    let fieldPath = fieldId.ToScopeNodeList
+    let readerPath = readerId.ToScopeNodeList
+    let common =
+        List.zip (List.truncate readerPath.Length fieldPath) (List.truncate fieldPath.Length readerPath)
+        |> List.takeWhile (fun (x, y) -> x = y) |> List.length
+    // the BOOLEAN fields that decide the presence of the reader's branch below the common ancestor (the reader
+    // itself included): when the reader is decoded, each of them is TRUE
+    let readerFlags =
+        [common + 1 .. readerPath.Length] |> List.choose (fun n -> presenceFieldOf r deps (List.take n readerPath))
+    // a holder present when one of those fields says so (`header [present-when flg]`, `data [present-when flg,
+    // size header.n]`, also deeper: `h1 [present-when f1] { h2 [present-when f1] { n } }`): the reader is decoded
+    // only when the holder is present. The fields are compared by id (the same relative path names different
+    // fields from different SEQUENCEs).
+    // Also a holder that holds one of those fields (`h [present-when f] { more, n }`, `x [present-when h.more, size
+    // h.n]`): the field is FALSE unless decoded in the holder (presenceFlagResets; an --acn-v2 reference starts at 0).
+    let sameFlagAsReader (n: int) =
+        let stepPath = List.take n fieldPath
+        let holdsFlag (flag: ReferenceToType) =
+            let flagPath = flag.ToScopeNodeList
+            flagPath.Length > n && List.take n flagPath = stepPath && not ((collidingFields deps).Contains flag)
+        sameFlagDominates &&
+            ((match presenceFieldOf r deps stepPath with
+              | Some h -> readerFlags |> List.contains h && not ((collidingFields deps).Contains h)
+              | None   -> false)
+             || readerFlags |> List.exists holdsFlag)
+    // the components strictly between the common ancestor and the field (the field itself is the last node)
+    [common + 1 .. fieldPath.Length - 1]
+    |> List.choose (fun n ->
+        let path = List.take n fieldPath
+        match List.last path, sameFlagAsReader n with
+        | SEQ_CHILD (_, true), false ->
+            match componentOptionality r path with
+            | Some (Some (Optional opt)) -> Some (ReferenceToType path, Optional opt)
+            | Some (Some AlwaysAbsent)   -> Some (ReferenceToType path, AlwaysAbsent)
+            | Some (Some AlwaysPresent)
+            | Some None
+            | None                       -> None
+        | SEQ_CHILD (_, true), true
+        | (SEQ_CHILD (_, false) | MD _ | TA _ | VA _ | PRM _ | CH_CHILD _ | SQF), _ -> None)
+
 let private holderStepsWith (sameFlagDominates: bool) (r: AstRoot) (deps: AcnInsertedFieldDependencies) (d: AcnDependency) : (ReferenceToType * Asn1Optionality) list =
     match fieldAndReader r deps d with
     | None -> []
-    | Some (fieldId, readerId) ->
-        let fieldPath = fieldId.ToScopeNodeList
-        let readerPath = readerId.ToScopeNodeList
-        let common =
-            List.zip (List.truncate readerPath.Length fieldPath) (List.truncate fieldPath.Length readerPath)
-            |> List.takeWhile (fun (x, y) -> x = y) |> List.length
-        // the BOOLEAN fields that decide the presence of the reader's branch below the common ancestor (the reader
-        // itself included): when the reader is decoded, each of them is TRUE
-        let readerFlags =
-            [common + 1 .. readerPath.Length] |> List.choose (fun n -> presenceFieldOf r deps (List.take n readerPath))
-        // a holder present when one of those fields says so (`header [present-when flg]`, `data [present-when flg,
-        // size header.n]`, also deeper: `h1 [present-when f1] { h2 [present-when f1] { n } }`): the reader is decoded
-        // only when the holder is present. The fields are compared by id (the same relative path names different
-        // fields from different SEQUENCEs).
-        // Also a holder that holds one of those fields (`h [present-when f] { more, n }`, `x [present-when h.more, size
-        // h.n]`): the field is FALSE unless decoded in the holder (presenceFlagResets; an --acn-v2 reference starts at 0).
-        let sameFlagAsReader (n: int) =
-            let stepPath = List.take n fieldPath
-            let holdsFlag (flag: ReferenceToType) =
-                let flagPath = flag.ToScopeNodeList
-                flagPath.Length > n && List.take n flagPath = stepPath && not ((collidingFields deps).Contains flag)
-            sameFlagDominates &&
-                ((match presenceFieldOf r deps stepPath with
-                  | Some h -> readerFlags |> List.contains h && not ((collidingFields deps).Contains h)
-                  | None   -> false)
-                 || readerFlags |> List.exists holdsFlag)
-        // the components strictly between the common ancestor and the field (the field itself is the last node)
-        [common + 1 .. fieldPath.Length - 1]
-        |> List.choose (fun n ->
-            let path = List.take n fieldPath
-            match List.last path, sameFlagAsReader n with
-            | SEQ_CHILD (_, true), false ->
-                match componentOptionality r path with
-                | Some (Some (Optional opt)) -> Some (ReferenceToType path, Optional opt)
-                | Some (Some AlwaysAbsent)   -> Some (ReferenceToType path, AlwaysAbsent)
-                | Some (Some AlwaysPresent)
-                | Some None
-                | None                       -> None
-            | SEQ_CHILD (_, true), true
-            | (SEQ_CHILD (_, false) | MD _ | TA _ | VA _ | PRM _ | CH_CHILD _ | SQF), _ -> None)
+    | Some (fieldId, readerId) -> holderStepsOf sameFlagDominates r deps fieldId readerId
 
 let private holderSteps = holderStepsWith true
 
@@ -231,32 +244,64 @@ let private failsWhenHolderAbsent (d: AcnDependency) : bool =
     | AcnDepPresenceBool
     | AcnDepRefTypeArgument _           -> false
 
+/// --acn-v2, q/issues.md Issue 107: the AcnInsertedFieldRef a guard tests (`in_stream`) when the dependent reads its
+/// field through a ref, i.e. when the holder is not visible where the dependent is decoded.
+type RefTest =
+    /// the dependent is decoded in a specialised function and reads this formal parameter of it
+    | FormalRef of AcnParameter
+    /// the dependent is an OCTET / BIT STRING (CONTAINING X) reference site: the region wrapper of its specialised
+    /// function reads this parameter, and the guard at the call tests the ref the caller passes for it
+    | ArgumentRef of AcnParameter
+
 /// What the decoder of a dependent does before it reads its determinant fields (Issue 106).
 type DecodeGuard =
     /// every field is decoded on every path that reaches the dependent: no code (all existing grammars before Issue 106)
     | NoGuard
-    /// test the presence of the holders (ids, outermost first) and fail when one is absent; the fields read (ids)
-    | TestHolders of holders: ReferenceToType list * fields: ReferenceToType list
+    /// test the presence of the holders (ids, outermost first; fields of this function) and the `in_stream` of the refs
+    /// (fields read through an AcnInsertedFieldRef, Issue 107, each with its holders for the comment), and fail when
+    /// one is absent; the fields read (ids)
+    | TestHolders of holders: ReferenceToType list * refs: (RefTest * ReferenceToType list) list * fields: ReferenceToType list
     /// a holder is ALWAYS ABSENT: the field is never in the stream, a present dependent always fails
     | HolderAlwaysAbsent of holders: ReferenceToType list * fields: ReferenceToType list
 
+/// A guarded dependency: the holder steps, the field, and the parameter it is read through (Issue 107; None: a field
+/// decoded in the function of the dependent, Issue 106).
+type private GuardedDependency = AcnDependency * (ReferenceToType * Asn1Optionality) list * ReferenceToType * AcnParameter option
+
 let private decodeGuardsCache =
-    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, (AcnDependency * (ReferenceToType * Asn1Optionality) list * ReferenceToType) list>>()
+    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, GuardedDependency list>>()
 
 /// The dependencies that read a field whose holder may be absent, with the holder steps and the field, by dependent id,
-/// built once per dependency list.
-let private guardedDependencies (r: AstRoot) (deps: AcnInsertedFieldDependencies) =
+/// built once per dependency list. --acn-v2 (Issue 107): also a dependent that reads the field through a ref parameter
+/// (refFieldAndReader); the same list decides the guards (decodeGuard) and where the decoder sets the ref's
+/// `in_stream` (fieldsReadThroughRef), so a guard never tests a flag no decoder sets.
+let private guardedDependencies (r: AstRoot) (deps: AcnInsertedFieldDependencies) : Map<ReferenceToType, GuardedDependency list> =
     decodeGuardsCache.GetValue(deps, fun deps ->
         deps.acnDependencies
         |> List.filter failsWhenHolderAbsent
         |> List.choose (fun d ->
-            match holderSteps r deps d, fieldAndReader r deps d with
-            | [], _ | _, None -> None
+            let read =
+                match fieldAndReader r deps d, refFieldAndReader r deps d with
+                | Some (fieldId, _), _              -> Some (holderSteps r deps d, fieldId, None)
+                | None, Some (fieldId, readerId, prm) -> Some (holderStepsOf true r deps fieldId readerId, fieldId, Some prm)
+                | None, None                        -> None
+            match read with
+            | None | Some ([], _, _) -> None
             // a local shared by two ACN fields keeps master's code (collidingFields)
-            | _, Some (fieldId, _) when (collidingFields deps).Contains fieldId -> None
-            | steps, Some (fieldId, _) -> Some (d, steps, fieldId))
-        |> List.groupBy (fun (d, _, _) -> d.asn1Type)
+            | Some (_, fieldId, _) when (collidingFields deps).Contains fieldId -> None
+            | Some (steps, fieldId, prm) -> Some (d, steps, fieldId, prm))
+        |> List.groupBy (fun (d, _, _, _) -> d.asn1Type)
         |> Map.ofList)
+
+/// --acn-v2 (Issue 107): the fields that some dependent reads through an AcnInsertedFieldRef under a guard
+/// (guardedDependencies): the decoder sets the ref's `in_stream` where it reads such a field.
+let private refFieldsCache = System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Set<ReferenceToType>>()
+let fieldsReadThroughRef (r: AstRoot) (deps: AcnInsertedFieldDependencies) : Set<ReferenceToType> =
+    refFieldsCache.GetValue(deps, fun deps ->
+        guardedDependencies r deps
+        |> Map.toList |> List.collect snd
+        |> List.choose (fun (_, _, fieldId, prm) -> prm |> Option.map (fun _ -> fieldId))
+        |> Set.ofList)
 
 /// Whether the decoder of a type of this kind is the one that reads the determinant of the dependency: a reference
 /// site with ACN properties shares its id with its resolved type (the merged type is keyed by the site), so both
@@ -273,20 +318,36 @@ let private readsTheDeterminant (kind: Asn1TypeKind) (d: AcnDependency) : bool =
 /// The DecodeGuard of the decoder of t (NoGuard for every type that does not read a determinant whose holder may be
 /// absent).
 let decodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (t: Asn1Type) : DecodeGuard =
-    match (guardedDependencies r deps).TryFind t.id |> Option.defaultValue [] |> List.filter (fun (d, _, _) -> readsTheDeterminant t.Kind d) with
+    match (guardedDependencies r deps).TryFind t.id |> Option.defaultValue [] |> List.filter (fun (d, _, _, _) -> readsTheDeterminant t.Kind d) with
     | [] -> NoGuard
     | xs ->
-        let steps = xs |> List.collect (fun (_, steps, _) -> steps) |> List.distinct
-        let holders = steps |> List.map fst
-        let fields = xs |> List.map (fun (_, _, fieldId) -> fieldId) |> List.distinct
+        let steps = xs |> List.collect (fun (_, steps, _, _) -> steps) |> List.distinct
+        let fields = xs |> List.map (fun (_, _, fieldId, _) -> fieldId) |> List.distinct
         let alwaysAbsent =
             steps |> List.exists (fun (_, opt) ->
                 match opt with
                 | AlwaysAbsent                  -> true
                 | Optional _ | AlwaysPresent    -> false)
         match alwaysAbsent with
-        | true  -> HolderAlwaysAbsent (holders, fields)
-        | false -> TestHolders (holders, fields)
+        | true  -> HolderAlwaysAbsent (steps |> List.map fst, fields)
+        | false ->
+            let holders =
+                xs |> List.collect (fun (_, steps, _, prm) ->
+                    match prm with
+                    | None   -> steps |> List.map fst
+                    | Some _ -> [])
+                |> List.distinct
+            // the dependent of an OCTET / BIT STRING (CONTAINING X) is the reference site, decoded at the call
+            let refs =
+                xs |> List.choose (fun (_, steps, _, prm) ->
+                    prm |> Option.map (fun prm ->
+                        match t.Kind with
+                        | ReferenceType _ -> ArgumentRef prm, steps |> List.map fst
+                        | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | NullType _ | TimeType _
+                        | BitString _ | Boolean _ | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _
+                        | Choice _ -> FormalRef prm, steps |> List.map fst))
+                |> List.distinctBy (fun (rt, _) -> match rt with FormalRef p | ArgumentRef p -> p.id)
+            TestHolders (holders, refs, fields)
 
 /// Whether the decoder of t has a guard (DecodeOutcome: the part may fail).
 let hasDecodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (t: Asn1Type) : bool =
@@ -328,6 +389,47 @@ let private presenceFlagReads (r: AstRoot) (deps: AcnInsertedFieldDependencies) 
 /// (presenceFlagReads).
 let presenceFlagResets (r: AstRoot) (deps: AcnInsertedFieldDependencies) (seqId: ReferenceToType) : (ReferenceToType * ReferenceToType list) list =
     presenceFlagReads r deps
+    |> List.filter (fun (ancestor, _, _) -> ancestor = seqId)
+    |> List.groupBy (fun (_, fieldId, _) -> fieldId)
+    |> List.map (fun (fieldId, xs) -> fieldId, xs |> List.collect (fun (_, _, holders) -> holders) |> List.distinct)
+
+/// --acn-v2 (q/issues.md Issue 107): every (deepest common ancestor of field and reader, field, holders) of a field read
+/// outside the component holding it, by any dependency (an ACN argument, a sibling consumer, a consumer in a callee
+/// through a ref, the consumer of a field an OPTIONAL referenced child exposes), when the ancestor is executed per
+/// SEQUENCE OF element (an SQF step in its path). Structural: no same-flag dominance (holderStepsOf false).
+let private refResetsCache =
+    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, (ReferenceToType * ReferenceToType * ReferenceToType list) list>()
+let private deferredRefReads (r: AstRoot) (deps: AcnInsertedFieldDependencies) =
+    refResetsCache.GetValue(deps, fun deps ->
+        match r.args.acnDeferred with
+        | false -> []
+        | true ->
+            deps.acnDependencies
+            |> List.choose (fun d ->
+                let read =
+                    match fieldAndReader r deps d, refFieldAndReader r deps d with
+                    | Some (fieldId, readerId), _       -> Some (fieldId, readerId)
+                    | None, Some (fieldId, readerId, _) -> Some (fieldId, readerId)
+                    | None, None                        -> None
+                read |> Option.bind (fun (fieldId, readerId) ->
+                    match holderStepsOf false r deps fieldId readerId with
+                    | [] -> None
+                    | steps ->
+                        let fieldPath, readerPath = fieldId.ToScopeNodeList, readerId.ToScopeNodeList
+                        let common =
+                            List.zip (List.truncate readerPath.Length fieldPath) (List.truncate fieldPath.Length readerPath)
+                            |> List.takeWhile (fun (x, y) -> x = y) |> List.length
+                        let ancestor = List.take common fieldPath
+                        match ancestor |> List.exists (function SQF -> true | _ -> false) with
+                        | true  -> Some (ReferenceToType ancestor, fieldId, steps |> List.map fst)
+                        | false -> None)))
+
+/// --acn-v2 (Issue 107): the fields (ids, with their holders) whose AcnInsertedFieldRef the SEQUENCE seqId resets at
+/// its start (deferredRefReads): the ref is declared once before the SEQUENCE OF loop, so element k would see element
+/// k - 1's `in_stream` / `is_set` / `value` when its holder is absent (the encoder patched at the old position, the
+/// decoder read the old value). The caller keeps the fields held in a local ref of its function.
+let deferredRefResets (r: AstRoot) (deps: AcnInsertedFieldDependencies) (seqId: ReferenceToType) : (ReferenceToType * ReferenceToType list) list =
+    deferredRefReads r deps
     |> List.filter (fun (ancestor, _, _) -> ancestor = seqId)
     |> List.groupBy (fun (_, fieldId, _) -> fieldId)
     |> List.map (fun (fieldId, xs) -> fieldId, xs |> List.collect (fun (_, _, holders) -> holders) |> List.distinct)

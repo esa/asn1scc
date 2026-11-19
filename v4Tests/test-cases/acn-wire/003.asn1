@@ -3,8 +3,8 @@
 -- used to read the field's unset local: C wrote past the array of data, Ada raised Constraint_Error). Hand-made streams,
 -- the bytes after them 0xAB.
 -- No directives: run by v4Tests/scripts/runWireTests.sh with 003_decode_test.c / 003_decode_test.adb, legacy and
--- --acn-v2 (an ACN argument and a CONTAINING size are passed to an --acn-v2 specialised function as a reference that
--- keeps its initial value 0: the checks of those two types differ by mode).
+-- --acn-v2 (an ACN argument and a CONTAINING size are passed to an --acn-v2 specialised function as a reference whose
+-- in_stream says whether the field is in the stream: the error codes of those two types differ by mode).
 WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- sizes of an OCTET STRING (8-bit field, no range check) and of an IA5String
     MyPDU ::= SEQUENCE {

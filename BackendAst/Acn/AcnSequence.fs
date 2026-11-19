@@ -859,16 +859,32 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
         // their holder may be absent are set to FALSE at the start of this SEQUENCE, the deepest common ancestor of
         // holder and dependent (in a SEQUENCE OF element: every element). The assignment cannot fail and writes no
         // result, so it precedes the parts without a join.
+        // q/issues.md Issue 107 (--acn-v2, encode and decode): the AcnInsertedFieldRef locals of the fields read outside
+        // the component holding them are reset at the start of this SEQUENCE when it runs once per SEQUENCE OF element
+        // (AbsentHolder.deferredRefResets): the ref is declared before the loop, and an element whose holder is absent
+        // must not see the previous element's field. A reset cannot fail and writes no result (no join).
         let seqContent =
+            let pathText (id: ReferenceToType) = (id.AcnAbsPath |> List.skip 2 |> String.concat ".").Replace("#", "elm")
             let resets =
                 match codec, lm.lg.decodeFailsWhenHolderAbsent with
                 | Decode, true ->
-                    let pathText (id: ReferenceToType) = (id.AcnAbsPath |> List.skip 2 |> String.concat ".").Replace("#", "elm")
                     AbsentHolder.presenceFlagResets r deps t.id
                     |> List.map (fun (fieldId, holders) ->
                         lm.acn.acn_dec_absent_holder_reset (getAcnDeterminantName fieldId) lm.lg.FalseLiteral (pathText fieldId) (holders |> List.map pathText |> String.concat " / "))
                 | Decode, false
                 | Encode, _    -> []
+            let refResets =
+                match r.args.acnDeferred, lm.lg.deferredRefTracksStream with
+                | true, true ->
+                    AbsentHolder.deferredRefResets r deps t.id
+                    // a field held in a local ref of this function (not a formal parameter standing for it)
+                    |> List.filter (fun (fieldId, _) ->
+                        AcnExternalField.isDeferredField r deps fieldId && (AcnExternalField.fieldParamOfScope r deps fieldId t.id).IsNone)
+                    |> List.map (fun (fieldId, holders) ->
+                        lm.acn.acn_deferred_det_reset (AcnExternalField.deferredDetRefName r lm fieldId) (pathText fieldId) (holders |> List.map pathText |> String.concat " / "))
+                | true, false
+                | false, _     -> []
+            let resets = resets @ refResets
             match resets, seqContent with
             | [], _              -> seqContent
             | _, Some content    -> Some (String.concat "\n" resets + "\n" + content)

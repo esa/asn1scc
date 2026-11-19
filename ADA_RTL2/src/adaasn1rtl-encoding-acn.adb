@@ -21,6 +21,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_8 (bs, 0);
    end Acn_InitDet_U8;
@@ -33,7 +34,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_8 (bs, V);
@@ -57,6 +61,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16 (bs, 0);
    end Acn_InitDet_U16_BE;
@@ -69,7 +74,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16 (bs, V);
@@ -91,6 +99,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32 (bs, 0);
    end Acn_InitDet_U32_BE;
@@ -103,7 +112,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32 (bs, V);
@@ -125,6 +137,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64 (bs, 0);
    end Acn_InitDet_U64_BE;
@@ -137,7 +150,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64 (bs, V);
@@ -159,6 +175,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16 (bs, 0);
    end Acn_InitDet_U16_LE;
@@ -171,7 +188,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16 (bs, V);
@@ -193,6 +213,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32 (bs, 0);
    end Acn_InitDet_U32_LE;
@@ -205,7 +226,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32 (bs, V);
@@ -227,6 +251,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64 (bs, 0);
    end Acn_InitDet_U64_LE;
@@ -239,7 +264,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64 (bs, V);
@@ -263,6 +291,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_TwosComplement_ConstSize_8 (bs, 0);
    end Acn_InitDet_I8;
@@ -275,7 +304,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_TwosComplement_ConstSize_8 (bs, To_Int (V));
@@ -297,6 +329,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16 (bs, 0);
    end Acn_InitDet_I16_BE;
@@ -309,7 +342,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16 (bs, To_Int (V));
@@ -331,6 +367,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32 (bs, 0);
    end Acn_InitDet_I32_BE;
@@ -343,7 +380,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32 (bs, To_Int (V));
@@ -365,6 +405,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64 (bs, 0);
    end Acn_InitDet_I64_BE;
@@ -377,7 +418,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64 (bs, To_Int (V));
@@ -401,6 +445,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       BitStream_AppendBit (bs, 0);
    end Acn_InitDet_BOOL1;
@@ -413,7 +458,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          BitStream_AppendBit (bs, (if V = 0 then 0 else 1));
@@ -439,6 +487,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       for i in 0 .. nBits - 1 loop
          pragma Loop_Invariant
@@ -458,7 +507,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          for i in 0 .. nBits - 1 loop
@@ -490,6 +542,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       for i in 0 .. nBits - 1 loop
          pragma Loop_Invariant
@@ -509,7 +562,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          for i in 0 .. nBits - 1 loop
@@ -543,6 +599,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       --  det.Str_Value is irrelevant while Is_Set = False; PatchDet sets it.
       for i in 0 .. nChars * 7 - 1 loop
@@ -563,7 +620,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          for i in 0 .. nChars - 1 loop

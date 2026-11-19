@@ -111,10 +111,11 @@ The C runtime provides three building blocks:
 typedef struct {
     AcnBitStreamPos pos;     /* where in the stream the determinant lives */
     flag            is_set;  /* has the value been written? (for shared determinants) */
+    flag            in_stream; /* is the determinant in the stream? (set by InitDet / where it is decoded) */
     asn1SccUint     value;   /* the determinant value */
 } AcnInsertedFieldRef;
 
-/* Reserve space: write 'size' zero bits, save position in 'det' */
+/* Reserve space: write 'size' zero bits, save position in 'det', set in_stream */
 void Acn_InitDet_<name>(BitStream* pBitStrm, AcnInsertedFieldRef* det);
 
 /* Patch: seek back to det->pos, write value 'v', restore stream position */
@@ -217,6 +218,16 @@ The payload encoder writes field data directly to the real bitstream in a single
 ### Shared determinant consistency
 
 When the same determinant is consumed by multiple fields, `Acn_PatchDet_*` performs a consistency check: if `is_set` is already true, it verifies that the new value matches the previously written one. A mismatch returns `ERR_ACN_DET_CONSISTENCY_MISMATCH`.
+
+### Determinants in an absent component
+
+A determinant may lie in an OPTIONAL (or ALWAYS ABSENT) component while a field outside that component uses it (for
+example `header [present-when flg] { n ... }, pl <header.n> [present-when flg2]`). When the component is absent, the
+determinant is not in the stream: no `Acn_InitDet_*` ran, `in_stream` stays FALSE, and every `Acn_PatchDet_*` of it
+writes nothing and succeeds, so the encoding is the same as without `--acn-v2`. The decoder sets `in_stream` where it
+reads such a determinant, and a field that uses it through a reference fails with its own error code when the
+reference says the determinant is not in the stream. A reference declared before a SEQUENCE OF loop is reset at the
+start of every element whose components may hold it.
 
 ### Determinants exported to the enclosing type
 

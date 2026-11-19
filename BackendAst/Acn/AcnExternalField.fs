@@ -73,6 +73,17 @@ let fieldOwnParam (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (
     |> List.tryHead
     |> Option.map snd
 
+/// --acn-v2 (q/issues.md Issue 107): the formal parameter (id) standing for the ACN field fieldId in the function that
+/// encodes the scope scopeId, i.e. of a boundary that encloses the scope (or is the scope); None when that function
+/// holds the field in a local AcnInsertedFieldRef (deferredDetRefName) or does not hold it at all.
+let fieldParamOfScope (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) (scopeId: ReferenceToType) : ReferenceToType option =
+    let scopePath = scopeId.ToScopeNodeList
+    (fieldParams r deps).TryFind fieldId
+    |> Option.defaultValue []
+    |> List.tryFind (fun prmId ->
+        let boundary = prmId.ToScopeNodeList |> List.take (prmId.ToScopeNodeList.Length - 1)
+        boundary.Length <= scopePath.Length && List.take boundary.Length scopePath = boundary)
+
 /// The consumers of each ACN field (determinantIdentity): the dependencies that patch it (every kind but the
 /// RefTypeArgument links that pass it on), built once per dependency list.
 let private fieldConsumersCache =

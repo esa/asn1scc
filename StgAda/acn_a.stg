@@ -2587,6 +2587,24 @@ acn_deferred_det_type_name() ::= "adaasn1rtl.encoding.acn.AcnInsertedFieldRef"
    always emits ":= <init>;", so we supply an aggregate that picks up every default). */
 acn_deferred_det_init_expr() ::= "(others =\> \<\>)"
 
+/* q/issues.md Issue 107: whether the field of an AcnInsertedFieldRef is in the stream (InitDet sets it when encoding,
+   the decoder where it reads the field); a PatchDet of a ref whose field is not in the stream writes nothing */
+acn_deferred_det_in_stream_value(sDetName) ::= "<sDetName>.In_Stream"
+
+acn_deferred_det_in_stream_ptr(sDetName) ::= "<sDetName>.In_Stream"
+
+acn_deferred_det_mark_in_stream(sInStream, sField) ::= <<
+<sInStream> := True;  --  <sField> is in the stream
+>>
+
+/* Issue 107: a ref declared before a SEQUENCE OF loop starts every element unset (its field's holder may be absent) */
+acn_deferred_det_reset(sDetName, sField, sHolders) ::= <<
+--  <sField> is in <sHolders>: not in the stream unless this element holds it
+<sDetName>.In_Stream := False;
+<sDetName>.Is_Set := False;
+<sDetName>.Value := 0;
+>>
+
 
 /* ------------------------------------------------------------------------- */
 /* 'size deduced' (Docs/deduced-size-spec.md): the element count is not      */

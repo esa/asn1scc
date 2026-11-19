@@ -1498,6 +1498,15 @@ acn_deferred_det_optional_producer_wrap(sParent, sAcc, sProducer, sBody) ::= "//
 acn_deferred_det_type_name() ::= "// TODO"
 acn_deferred_det_init_expr() ::= "// TODO"
 
+/* q/issues.md Issue 107: C and Ada only (ILangGeneric.deferredRefTracksStream) */
+acn_deferred_det_in_stream_value(sDetName) ::= ""
+
+acn_deferred_det_in_stream_ptr(sDetName) ::= ""
+
+acn_deferred_det_mark_in_stream(sInStream, sField) ::= ""
+
+acn_deferred_det_reset(sDetName, sField, sHolders) ::= ""
+
 
 // 'size deduced' is not supported for Scala (empty stubs for interface parity)
 str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= ""

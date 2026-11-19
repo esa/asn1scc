@@ -499,6 +499,8 @@ type LangGeneric_a() =
         override _.decodeReadFailureModel = ReadsCannotFail
         // Issue 106: fail at the dependent when the holder of its determinant field is absent
         override _.decodeFailsWhenHolderAbsent = true
+        // Issue 107: the AcnInsertedFieldRef of the RTL tracks whether its field is in the stream
+        override _.deferredRefTracksStream = true
         // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.
         override _.typedefConstraintModel = TypedefsEnforceRanges
         // The discriminant of a CHOICE is an enumeration of its alternatives (coverage step 14i).

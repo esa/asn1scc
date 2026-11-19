@@ -1,7 +1,8 @@
 --  --acn-v2: determinant fields exposed by an OPTIONAL referenced component to its siblings (run by
 --  v4Tests/scripts/runWireTests.sh, -gnata). A stream with hdr2 absent and data2 present does not hold the size of data2:
 --  the decoder must fail with the error code of data2 (it decoded data2 with size 0); x, present when the exposed BOOLEAN
---  field says so, is absent. The round trip is in 004_decode_test.c.
+--  field says so, is absent; with pl2 present the decoder of pl2.d fails (the size it receives is not in the stream).
+--  The round trip is in 004_decode_test.c.
 with Ada.Command_Line;
 with Ada.Text_IO;
 with adaasn1rtl;
@@ -21,6 +22,7 @@ procedure Decode_Test is
       WIRE.MyPDU_ACN_Decode (V, S, R);
       if (Exp_Err = 0 and then not R.Success)
         or else (Exp_Err > 0 and then (R.Success or else R.ErrorCode /= Exp_Err))
+        or else (Exp_Err = -1 and then (R.Success or else R.ErrorCode = 0))
       then
          Ada.Text_IO.Put_Line (Name & ": Success=" & Boolean'Image (R.Success) & " ErrorCode=" &
                                Integer'Image (R.ErrorCode) & ", expected" & Integer'Image (Exp_Err));
@@ -42,7 +44,8 @@ begin
       Ada.Text_IO.Put_Line ("x: value");
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
-   --  hdr2 absent, pl2 present: pl2 receives the reference with value 0 (any result, no exception)
-   Decode ("pl2", 16#20#, 16#AB#, -2, V);
+   --  hdr2 absent, pl2 present: pl2.d checks that the reference it receives holds a field of the stream
+   --  (q/issues.md Issue 107; ERR_ACN_DECODE_MYPDU_PL2_D is private to the package body: any nonzero code)
+   Decode ("pl2", 16#20#, 16#AB#, -1, V);
    Ada.Text_IO.Put_Line ("decode checks done");
 end Decode_Test;

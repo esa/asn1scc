@@ -841,6 +841,14 @@ type ILangGeneric () =
     abstract member decodeFailsWhenHolderAbsent : bool
     default _.decodeFailsWhenHolderAbsent = false
 
+    /// q/issues.md Issue 107 (--acn-v2): the RTL AcnInsertedFieldRef carries `in_stream` (set by InitDet; a PatchDet of a
+    /// ref whose field is not in the stream writes nothing), the decoder sets it where it reads a field that a consumer
+    /// reads through a ref while the component holding the field may be absent, and the refs of such fields are reset
+    /// at the start of every SEQUENCE OF element (BackendAst/AbsentHolder.fs, macros acn_deferred_det_in_stream_* /
+    /// _mark_in_stream / _reset). C and Ada; the other backends keep their output (stubs).
+    abstract member deferredRefTracksStream : bool
+    default _.deferredRefTracksStream = false
+
     /// Issue 106: the initial value of the decode local of an IA5String ACN field, an array of `stringSize` + 1
     /// characters (C: a string literal, the range initialiser of initializeString is a GNU extension).
     abstract member stringLocalInit : int -> string

@@ -138,16 +138,18 @@ begin
    --  the dependent is an alternative of a mandatory CHOICE
    Alt ("AltPDU a", (1 => 16#00#), WIRE.ERR_ACN_DECODE_ALTPDU_ALT_O1, VAlt);
    Alt ("AltPDU c", (1 => 16#40#), 0, VAlt);
-   --  a CONTAINING sized by the field (legacy: the code of cont; --acn-v2: the region is too short)
-   Cont ("ContPDU a", (1 => 16#40#), -1, VCont);
-   Cont ("ContPDU c", (1 => 16#00#), 0, VCont);
-   --  the field as an ACN argument: legacy fails at pl.d; --acn-v2 passes the reference, value 0, and d takes size 0
-   --  (memory-safe; q/issues.md Issue 107: it should fail)
+   --  a CONTAINING sized by the field (legacy: checked at cont; --acn-v2: checked at the call of cont's decoder that
+   --  the field's reference holds a field of the stream, q/issues.md Issue 107)
 #if ACN_V2 then
-   Arg ("ArgPDU a", (1 => 16#40#), 0, VArg);
-   if VArg.Exist.pl /= 1 or else VArg.pl.d.Length /= 0 then
-      Fail ("ArgPDU a: value");
-   end if;
+   Cont ("ContPDU a", (1 => 16#40#), WIRE.ERR_ACN_DECODE_CONTPDU_CONT_2_2, VCont);
+#else
+   Cont ("ContPDU a", (1 => 16#40#), -1, VCont);
+#end if;
+   Cont ("ContPDU c", (1 => 16#00#), 0, VCont);
+   --  the field as an ACN argument: legacy fails at pl.d; --acn-v2 passes the reference, and d checks that it holds a
+   --  field of the stream (q/issues.md Issue 107; d's error code is private to the package body: any nonzero code)
+#if ACN_V2 then
+   Arg ("ArgPDU a", (1 => 16#40#), -1, VArg);
 #else
    Arg ("ArgPDU a", (1 => 16#40#), WIRE.ERR_ACN_DECODE_ARGPDU_PL_D, VArg);
 #end if;
@@ -162,12 +164,10 @@ begin
    then
       Fail ("OptArgPDU: value");
    end if;
-   --  the same with d present (60 A0 E0): d's size is header.n, not in the stream (--acn-v2 today: size 0, Issue 107)
+   --  the same with d present (60 A0 E0): d's size is header.n, not in the stream (--acn-v2: d's code, private to the
+   --  package body)
 #if ACN_V2 then
-   OptArg ("OptArgPDU d", (16#60#, 16#A0#, 16#E0#), 0, VOptArg);
-   if VOptArg.pl.Exist.d /= 1 or else VOptArg.pl.d.Length /= 0 or else VOptArg.pl.e /= 5 or else VOptArg.tail /= 7 then
-      Fail ("OptArgPDU d: value");
-   end if;
+   OptArg ("OptArgPDU d", (16#60#, 16#A0#, 16#E0#), -1, VOptArg);
 #else
    OptArg ("OptArgPDU d", (16#60#, 16#A0#, 16#E0#), WIRE.ERR_ACN_DECODE_OPTARGPDU_PL_D, VOptArg);
 #end if;

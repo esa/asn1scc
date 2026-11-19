@@ -221,12 +221,16 @@ int main(void)
         v.alt.u.o1.arr[1] = 8;
         ROUND_TRIP(AltPDU, v);
     }
-    /* a CONTAINING sized by the field: legacy checks the component (the error code of cont); --acn-v2 passes the
-       field's reference (value 0) to cont's decoder, whose region is then too short for Inner */
+    /* a CONTAINING sized by the field: legacy checks the component; --acn-v2 checks at the call of cont's decoder that
+       the field's reference holds a field of the stream (q/issues.md Issue 107), with the error code of the call */
     {
         ContPDU v;
         ContPDU_Initialize(&v);
+#ifndef WIRE_ACN_V2
         DECODE(ContPDU, v, -1, 0x40);
+#else
+        DECODE(ContPDU, v, ERR_ACN_DECODE_CONTPDU_CONT_2_2, 0x40);
+#endif
         DECODE(ContPDU, v, 0, 0x00);
         EXPECT(!v.exist.header && !v.exist.cont);
         ContPDU_Initialize(&v);
@@ -236,15 +240,15 @@ int main(void)
         ROUND_TRIP(ContPDU, v);
     }
     /* the field as an ACN argument: legacy decodes Payload in place and checks at d; --acn-v2 passes the field's
-       reference (value 0) to Payload's decoder, which takes size 0 (memory-safe; q/issues.md Issue 107: it should fail) */
+       reference to Payload's decoder, where d checks that it holds a field of the stream (q/issues.md Issue 107; the
+       error code of d is defined in 003.c, private to the specialised decoder: any nonzero code) */
     {
         ArgPDU v;
         ArgPDU_Initialize(&v);
 #ifndef WIRE_ACN_V2
         DECODE(ArgPDU, v, ERR_ACN_DECODE_ARGPDU_PL_D, 0x40);
 #else
-        DECODE(ArgPDU, v, 0, 0x40);                                     /* today's --acn-v2 behaviour */
-        EXPECT(!v.exist.header && v.exist.pl && v.pl.d.nCount == 0);
+        DECODE(ArgPDU, v, -1, 0x40);
 #endif
         DECODE(ArgPDU, v, 0, 0x16, 0x80);                               /* header, pl absent, tail 0x5A */
         EXPECT(!v.exist.header && !v.exist.pl && v.tail == 0x5A);
@@ -265,8 +269,7 @@ int main(void)
 #ifndef WIRE_ACN_V2
         DECODE(OptArgPDU, v, ERR_ACN_DECODE_OPTARGPDU_PL_D, 0x60, 0xA0, 0xE0);
 #else
-        DECODE(OptArgPDU, v, 0, 0x60, 0xA0, 0xE0);                      /* today's --acn-v2 behaviour, Issue 107 */
-        EXPECT(!v.exist.header && v.exist.pl && v.pl.exist.d && v.pl.d.nCount == 0 && v.pl.e == 5 && v.tail == 7);
+        DECODE(OptArgPDU, v, -1, 0x60, 0xA0, 0xE0);                     /* Issue 107: d's code, private to 003.c */
 #endif
     }
     /* two ACN fields with one decode local (a.b-h.more and a-b.h.more are both ColPDU_a_b_h_more): the local is not

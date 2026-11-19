@@ -2,7 +2,8 @@
 -- from the caller's AcnInsertedFieldRef (value 0 when hdr2 is absent). A stream with hdr2 absent and data2 present does
 -- not hold the size of data2: the decoder fails with the error code of data2 (it decoded data2 with size 0). A
 -- present-when on an exposed BOOLEAN field reads FALSE (x absent), the behaviour the encoder's check of an absent
--- producer requires. An ACN argument (pl2) keeps the reference's value 0 (memory-safe; not checked here).
+-- producer requires. An ACN argument (pl2): the decoder of pl2.d fails, the field's reference says that the field is
+-- not in the stream.
 -- No directives: run by v4Tests/scripts/runWireTests.sh with 004_decode_test.c / 004_decode_test.adb (legacy rejects
 -- fields of a referenced type used outside it).
 WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN

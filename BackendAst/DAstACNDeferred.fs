@@ -691,6 +691,18 @@ let private createDeferredSequenceFunction
                                     // the AST root's arguments, for the integer class of the determinant
                                     // below (r is shadowed by the function body result there)
                                     let astArgs = r.args
+                                    // q/issues.md Issue 107: a dependent that reads this field through a ref while
+                                    // the component holding it may be absent tests the ref's in_stream (AbsentHolder,
+                                    // the same list decides the guards): set it where the field is read
+                                    let markInStream (body: string) =
+                                        match lm.lg.deferredRefTracksStream && (AbsentHolder.fieldsReadThroughRef astRoot deps).Contains ac.id with
+                                        | false -> body
+                                        | true  ->
+                                            let inStream =
+                                                if isOwnParam then lm.acn.acn_deferred_det_in_stream_ptr detVarName
+                                                else lm.acn.acn_deferred_det_in_stream_value detVarName
+                                            let fieldText = (ac.id.AcnAbsPath |> List.skip 2 |> String.concat ".").Replace("#", "elm")
+                                            lm.acn.acn_deferred_det_mark_in_stream inStream fieldText + "\n" + body
                                     match redirectKind with
                                     | "direct_value" ->
                                         let valueTarget =
@@ -703,7 +715,7 @@ let private createDeferredSequenceFunction
                                             let extraLvars =
                                                 if isOwnParam then []
                                                 else [GenericLocalVariable { name = detVarName; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }]
-                                            Some { r with localVariables = extraLvars @ r.localVariables }
+                                            Some { r with funcBody = markInStream r.funcBody; localVariables = extraLvars @ r.localVariables }
                                         | None -> None
                                     | "direct_str_value" ->
                                         // IA5String: decode directly into det.str_value / det->str_value
@@ -717,7 +729,7 @@ let private createDeferredSequenceFunction
                                             let extraLvars =
                                                 if isOwnParam then []
                                                 else [GenericLocalVariable { name = detVarName; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }]
-                                            Some { r with localVariables = extraLvars @ r.localVariables }
+                                            Some { r with funcBody = markInStream r.funcBody; localVariables = extraLvars @ r.localVariables }
                                         | None -> None
                                     | _ ->
                                         // Decode to a clean temp variable, then copy to det.value
@@ -800,7 +812,7 @@ let private createDeferredSequenceFunction
                                                 (if isOwnParam then []
                                                  else [GenericLocalVariable { name = detVarName; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }])
                                             Some { r with
-                                                        funcBody = r.funcBody + "\n" + assignStmt
+                                                        funcBody = markInStream (r.funcBody + "\n" + assignStmt)
                                                         localVariables = extraLvars @ r.localVariables }
                                         | None -> None
                         let dummyNullType = Asn1AcnAst.AcnInsertedType.AcnNullType {

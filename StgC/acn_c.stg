@@ -2245,6 +2245,24 @@ acn_deferred_det_type_name() ::= "AcnInsertedFieldRef"
 /* AcnInsertedFieldRef zero initializer */
 acn_deferred_det_init_expr() ::= "{0}"
 
+/* q/issues.md Issue 107: whether the field of an AcnInsertedFieldRef is in the stream (InitDet sets it when encoding,
+   the decoder where it reads the field); a PatchDet of a ref whose field is not in the stream writes nothing */
+acn_deferred_det_in_stream_value(sDetName) ::= "<sDetName>.in_stream"
+
+acn_deferred_det_in_stream_ptr(sDetName) ::= "<sDetName>->in_stream"
+
+acn_deferred_det_mark_in_stream(sInStream, sField) ::= <<
+<sInStream> = TRUE; /* <sField> is in the stream */
+>>
+
+/* Issue 107: a ref declared before a SEQUENCE OF loop starts every element unset (its field's holder may be absent) */
+acn_deferred_det_reset(sDetName, sField, sHolders) ::= <<
+/* <sField> is in <sHolders>: not in the stream unless this element holds it */
+<sDetName>.in_stream = FALSE;
+<sDetName>.is_set = FALSE;
+<sDetName>.value = 0;
+>>
+
 
 /* Coverage step 10b, Ada only (never used here). */
 AcnIntFullRange(p, sKind, sWidth, sSsuffix, noBits) ::= ""

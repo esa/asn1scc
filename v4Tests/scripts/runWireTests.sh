@@ -188,6 +188,24 @@ cp "$root/test-cases/acn-wire/004_decode_test.adb" "$out/decode_test.adb"
 (cd "$out" && gnatmake -q -gnat2012 -gnata decode_test.adb && ./decode_test)
 echo "acn-wire 004 (Ada) --acn-v2 OK"
 
+# --acn-v2: a determinant field in a component the stream may say absent, read outside it by a specialised function
+# (an ACN argument, a CONTAINING size, a field exposed by a referenced component; also in SEQUENCE OF elements): valid
+# values encode to the bytes legacy writes, streams with the component absent and the dependent present are rejected
+# (q: Issue 107); C (ASan / UBSan) and Ada x86 (-gnata).
+out=$work/acn005c
+mkdir "$out"
+run_compiler -c -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/005.asn1" "$root/test-cases/acn-wire/005.acn" 2>/dev/null
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I "$out" "$out"/*.c "$root/test-cases/acn-wire/005_wire_test.c" -o "$out/wire_test"
+"$out/wire_test"
+echo "acn-wire 005 --acn-v2 OK"
+out=$work/acn005ada
+mkdir "$out"
+run_compiler -Ada -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/005.asn1" "$root/test-cases/acn-wire/005.acn" 2>/dev/null
+cp "$root/test-cases/acn-wire/005_wire_test.adb" "$out/wire_test.adb"
+(cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
+echo "acn-wire 005 (Ada) --acn-v2 OK"
+
 # 036 in Ada on the 32-bit board msp430: sign extension in the upper bytes of 64-bit fields
 # (compiled with -gnata: the RTL's pragma Assume are checked too).
 out=$work/ada036

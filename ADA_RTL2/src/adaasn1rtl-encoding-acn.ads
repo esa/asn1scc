@@ -23,6 +23,10 @@ is
    --  Is_Set + Value enable consistency checking for shared
    --  determinants (the same determinant patched by multiple sites
    --  must produce the same value).
+   --  In_Stream: the field is in the stream (encode: set by InitDet;
+   --  decode: set by the generated code where the field is read).
+   --  False (the default) when the component holding the field is
+   --  absent: a PatchDet then writes nothing.
    AcnDet_Str_Max : constant := 256;
    subtype AcnDet_Str_Index is Positive range 1 .. AcnDet_Str_Max;
    subtype AcnDet_Str is String (AcnDet_Str_Index);
@@ -30,6 +34,7 @@ is
    type AcnInsertedFieldRef is record
       Pos       : AcnBitStreamPos := (Bit_Pos => 0);
       Is_Set    : Boolean         := False;
+      In_Stream : Boolean         := False;
       Value     : Asn1UInt        := 0;
       Str_Value : AcnDet_Str      := (others => NUL);
    end record;
@@ -73,6 +78,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_U8
@@ -98,6 +104,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_U16_BE
@@ -121,6 +128,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_U32_BE
@@ -144,6 +152,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_U64_BE
@@ -166,6 +175,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_U16_LE
@@ -189,6 +199,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_U32_LE
@@ -212,6 +223,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_U64_LE
@@ -238,6 +250,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_I8
@@ -261,6 +274,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_I16_BE
@@ -284,6 +298,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_I32_BE
@@ -307,6 +322,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_I64_BE
@@ -333,6 +349,7 @@ is
       Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 1
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_BOOL1
@@ -363,6 +380,7 @@ is
       and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_ConstSize
@@ -391,6 +409,7 @@ is
       and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_TwosComplement_ConstSize
@@ -425,6 +444,7 @@ is
       and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes
       and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
       and then det.Is_Set = False
+      and then det.In_Stream
       and then det.Value = 0;
 
    procedure Acn_PatchDet_IA5String_FixSize
