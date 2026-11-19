@@ -30,12 +30,14 @@ last byte. That happens only when the region starts inside a byte, hence the cop
 
 Ada runs the corruption sweep (with the bit flips) and the round trips from a bit offset without
 truncation: the value is encoded again into a new stream starting at bit `s = 1 .. 7` (`1 .. 15` / `1 .. 31` for an ACN
-type with `align-to-next word` / `dword`, so that every alignment residue is reached), decoded from bit `s`, and the
-decoded value must pass `IsConstraintValid` and be equal (`Equal`) to the encoded one. The stream is 1 (2, 4) bytes
-longer than the encoding at bit 0. Every generated Ada decoder has a precondition that the stream holds
-enough bytes for the largest encoding of its type, so a truncated stream is outside the decoder's contract.
-PDUs that contain an ACN `size deduced` field are swept in C only, and a truncated copy of such a PDU may
-also decode successfully (to a valid value with fewer elements).
+type with `align-to-next word` / `dword`, so that every alignment residue is reached), decoded from bit `s`; the
+decoder must stop at the bit where the encoder stopped, and the decoded value must pass `IsConstraintValid` and be equal
+(`Equal`) to the encoded one. The new stream holds the largest encoding of the type plus 1 (2, 4) bytes, so the
+encoder's and decoder's preconditions hold at every offset. Every generated Ada decoder has a precondition that the
+stream holds enough bytes for the largest encoding of its type, so a truncated stream is outside the decoder's contract.
+PDUs that contain an ACN `size deduced` field are decoded from a view that ends with the last encoded byte (the Ada
+round trips from a bit offset too: the view ends with the byte that holds the last bit the encoder wrote); a truncated
+copy of such a PDU may also decode successfully (to a valid value with fewer elements), so C accepts that for them.
 
 ## Failures
 

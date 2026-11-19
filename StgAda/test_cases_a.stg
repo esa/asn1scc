@@ -169,21 +169,22 @@ if ret.Success then
         stream.End_Bit_Pos := stream.Size_In_Bytes * 8;<\n><endif>        ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE_CORRUPTED, Success => result.Success, ErrorCode => result.ErrorCode);
     end;
 end if;<if(soEncFuncName)><if(soEqualFunc)><\n>--  Encode / decode the value from bit offsets 1 .. <nLastOffset> (coverage step 15b): encoder and decoder _aux
---  keep the position; the stream has <nExtraBytes> byte(s) more than the encoding above; the decoder must stop where
---  the encoder stopped
+--  keep the position; the stream holds <nExtraBytes> byte(s) more than the stream above (the type's maximum); the decoder must stop where
+--  the encoder stopped; the packages are named from Standard: a module can have the name of a local below (an ASN.1
+--  module name can map to any Ada identifier, so no local name is safe), which would hide its package here
 if ret.Success then
     declare
         procedure Offset_Encode (bs : in out adaasn1rtl.encoding.Bitstream; Res : out <rtlModuleName()>.ASN1_RESULT) is
         begin
-            <sModName>.<soEncFuncName>_aux(<sVal>, bs, Res);
+            Standard.<sModName>.<soEncFuncName>_aux(<sVal>, bs, Res);
         end Offset_Encode;
         procedure Offset_Decode (bs : in out adaasn1rtl.encoding.Bitstream; Res : out <rtlModuleName()>.ASN1_RESULT) is
         begin
-            decodedPDU := <sModName>.<sInitFunc>;
-            <sModName>.<sDecFuncName>_aux(decodedPDU, bs, Res);
+            decodedPDU := Standard.<sModName>.<sInitFunc>;
+            Standard.<sModName>.<sDecFuncName>_aux(decodedPDU, bs, Res);
         end Offset_Decode;
-        function Offset_Valid return Boolean is (<if(soIsValidFunc)><sModName>.<soIsValidFunc>(decodedPDU).Success<else>True<endif>);
-        function Offset_Same return Boolean is (<sModName>.<soEqualFunc>(<sVal>, decodedPDU));
+        function Offset_Valid return Boolean is (<if(soIsValidFunc)>Standard.<sModName>.<soIsValidFunc>(decodedPDU).Success<else>True<endif>);
+        function Offset_Same return Boolean is (Standard.<sModName>.<soEqualFunc>(<sVal>, decodedPDU));
     begin
         adaasn1rtl.encoding.test_cases_aux.Offset_Round_Trips("<sFuncName>", stream.Size_In_Bytes + <nExtraBytes>, <nLastOffset>, <if(bDeduced)>True<else>False<endif>, Offset_Encode'Access, Offset_Decode'Access, Offset_Valid'Access, Offset_Same'Access, ret);
         result := (Success => ret.Success, ErrorCode => ret.ErrorCode);
