@@ -1,8 +1,8 @@
 /* --acn-v2: an ACN parameter of a referenced type consumed inside the elements of a SEQUENCE OF of that type (run by
    v4Tests/scripts/runWireTests.sh, ASan / UBSan, --acn-v2). Valid values encode to the bytes computed by hand from
    the ACN, with a zero error code, and decode back; values whose elements disagree on the determinant (or disagree
-   with a direct consumer) fail with a nonzero error code. Before (q/issues.md Issue 124) the specialised encoder
-   patched the determinant once, after the loop, from the element after the last one. */
+   with a direct consumer) fail with ERR_ACN_DET_CONSISTENCY_MISMATCH. Before (q/issues.md Issue 124) the specialised
+   encoder patched the determinant once, after the loop, from the element after the last one. */
 #include <stdio.h>
 #include <string.h>
 #include "007.h"
@@ -38,7 +38,8 @@ static int failures = 0;
         }                                                                                               \
     } while (0)
 
-/* encode val (ACN-inconsistent: the consumers of one determinant disagree); expect a failure with a nonzero code */
+/* encode val (ACN-inconsistent: the consumers of one determinant disagree); expect FALSE with
+   ERR_ACN_DET_CONSISTENCY_MISMATCH */
 #define REJECT(T, val)                                                                                  \
     do {                                                                                                \
         static byte buf[T##_REQUIRED_BYTES_FOR_ACN_ENCODING + 16];                                      \
@@ -47,8 +48,8 @@ static int failures = 0;
         flag ok;                                                                                        \
         BitStream_Init(&bs, buf, sizeof(buf));                                                          \
         ok = T##_ACN_Encode(&(val), &bs, &err, TRUE);                                                   \
-        if (ok || err == 0) {                                                                           \
-            printf("%s line %d: encode ok=%d err=%d, expected a failure\n", #T, __LINE__, ok, err);     \
+        if (ok || err != ERR_ACN_DET_CONSISTENCY_MISMATCH) {                                            \
+            printf("%s line %d: encode ok=%d err=%d, expected FALSE, 203\n", #T, __LINE__, ok, err);    \
             failures++;                                                                                 \
         }                                                                                               \
     } while (0)

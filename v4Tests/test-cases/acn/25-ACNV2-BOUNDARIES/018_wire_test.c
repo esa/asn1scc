@@ -15,6 +15,8 @@ static int encode(const Requirements *input, byte *encoded, size_t size, long *l
     BitStream_Init(&stream, encoded, (long)size);
     ok = Requirements_ACN_Encode(input, &stream, &error, TRUE);
     *length = BitStream_GetLength(&stream);
+    /* never TRUE with a nonzero error code, nor FALSE without one */
+    assert(ok ? error == 0 : error != 0);
     return ok ? 0 : error;
 }
 

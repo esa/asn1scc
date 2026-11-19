@@ -1,8 +1,8 @@
 --  --acn-v2: an ACN parameter of a referenced type consumed inside the elements of a SEQUENCE OF of that type (run by
 --  v4Tests/scripts/runWireTests.sh, -gnata: the RTL contracts are checked too). Valid values encode to the bytes
 --  computed by hand from the ACN with ErrorCode 0 and decode back; values whose elements disagree on the determinant
---  fail with a nonzero error code (q/issues.md Issue 124: the patch after the loop read Data (Length + 1), a
---  Constraint_Error with -gnata). The same values as 007_wire_test.c.
+--  fail with ERR_ACN_DET_CONSISTENCY_MISMATCH (q/issues.md Issue 124: the patch after the loop read
+--  Data (Length + 1), a Constraint_Error with -gnata). The same values as 007_wire_test.c.
 with Ada.Command_Line;
 with Ada.Text_IO;
 with adaasn1rtl;
@@ -31,7 +31,7 @@ procedure Wire_Test is
    package Checks is
       --  encode V: success with error code 0, exactly the bytes Expected, and V back from a decode
       procedure Enc (Name : String; V : T; Expected : Bytes);
-      --  encode V (ACN-inconsistent): a failure with a nonzero error code
+      --  encode V (ACN-inconsistent): a failure with ERR_ACN_DET_CONSISTENCY_MISMATCH
       procedure Rej (Name : String; V : T);
    end Checks;
 
@@ -69,7 +69,7 @@ procedure Wire_Test is
          R : adaasn1rtl.ASN1_RESULT;
       begin
          Encode (V, S, R);
-         if R.Success or else R.ErrorCode = 0 then
+         if R.Success or else R.ErrorCode /= adaasn1rtl.ERR_ACN_DET_CONSISTENCY_MISMATCH then
             Fail (Name & ": encoded, Success=" & Boolean'Image (R.Success) & " ErrorCode="
                   & Integer'Image (R.ErrorCode));
          end if;

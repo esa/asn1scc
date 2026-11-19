@@ -1542,6 +1542,12 @@ let private appendPatchDetCalls
                     let fieldId = fieldOf prm
                     let k = seen.TryFind fieldId |> Option.defaultValue 0
                     (prm, binding, fieldId, k, dep, guard, placement, detFns), seen.Add (fieldId, k + 1)) Map.empty
+            // the fields patched in a loop: every other patch of such a field may find the ref set by an element
+            let fieldsWithLoopPatch =
+                indexedConsumers |> List.choose (fun (_, _, fieldId, _, _, _, placement, _) ->
+                    match placement with
+                    | LoopConsumer   -> Some fieldId
+                    | DirectConsumer -> None) |> Set.ofList
             let patchCalls =
                 indexedConsumers |> List.map (fun (prm, binding, fieldId, k, dep, fixedSizeGuard, placement, (_initFn, patchFn, nBitsOpt, uperMinOffset)) ->
                             let (preBlock, rawValueExpr, checks) =
@@ -1571,9 +1577,12 @@ let private appendPatchDetCalls
                                     (k = 0 && AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id)
                                 // Issue 126: the rule of before, per parameter (its exemptions can leave two patches of
                                 // the field unchecked; fixed with one ref per field)
+                                // An aliased field with a per-element patch (through another formal): every patch of it
+                                // is checked (the per-parameter exemptions do not see the loop; Codex i124a F1)
                                 | DirectConsumer, AliasedField ->
-                                    AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
-                                    AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id
+                                    not (fieldsWithLoopPatch.Contains fieldId) &&
+                                    (AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
+                                     AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id)
                             let bSameValue = not bFirstPatch && AcnExternalField.consumersWriteOneValue ctx.r ctx.deps fieldId
                             let bCannotFail = bFirstPatch || bSameValue
                             let isIA5StringDet = patchFn.Contains("IA5String")

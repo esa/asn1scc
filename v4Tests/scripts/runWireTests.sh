@@ -244,9 +244,18 @@ run_compiler -Ada -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/007.
 cp "$root/test-cases/acn-wire/007_wire_test.adb" "$out/wire_test.adb"
 (cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
 echo "acn-wire 007 (Ada) --acn-v2 OK"
+# One field passed twice (`payload <n, n>`), consumed directly and in the elements: C only (Ada does not compile the
+# aliased refs under -gnatwe, Issue 126).
+out=$work/acn007aliased
+mkdir "$out"
+run_compiler -c -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/007_aliased.asn1" "$root/test-cases/acn-wire/007_aliased.acn" 2>/dev/null
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I "$out" "$out"/*.c "$root/test-cases/acn-wire/007_aliased_test.c" -o "$out/wire_test"
+"$out/wire_test"
+echo "acn-wire 007_aliased --acn-v2 OK"
 
 # A determinant consumed inside the elements of a SEQUENCE OF that does not hold it (Issues 122 / 124, cycle i124a):
-# legacy rejects every such shape but constant consumers; --acn-v2 rejects a field consumed with no type assignment
+# legacy rejects every such shape but constant consumers (not behind an OPTIONAL / CHOICE check inside the element); --acn-v2 rejects a field consumed with no type assignment
 # between it and the consumer (no per-element patch for it yet). Grammars in acn-wire/007_reject/.
 reject_dir=$root/test-cases/acn-wire/007_reject
 expect_rejection() {
@@ -301,6 +310,10 @@ expect_rejection argument "" "argument.acn:3:15: error: ACN parameter 'len' of t
 expect_accepted argument --acn-v2
 expect_rejection nested "" "nested.acn:3:61: error: ACN field 'n' is passed as an argument to the elements of SEQUENCE OF 'items' (to 'items.#.pl'). $legacy_only"
 expect_accepted nested --acn-v2
+expect_rejection fixedopt "" "fixedopt.acn:2:11: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#.o'). $legacy_inline"
+expect_rejection fixedopt --acn-v2 "fixedopt.acn:2:11: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#.o') $v2_inline"
+expect_rejection fixedopt2 "" "fixedopt2.acn:2:11: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#.o'). $legacy_inline"
+expect_rejection fixedopt2 --acn-v2 "fixedopt2.acn:2:11: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#.o') $v2_inline"
 expect_accepted fixed ""
 expect_accepted fixed --acn-v2
 out=$work/legacy007

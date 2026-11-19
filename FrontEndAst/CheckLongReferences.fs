@@ -735,6 +735,30 @@ let private sequenceOfBetween (r: AstRoot) (d: AcnDependency) : (string * ScopeN
             | _, _                           -> (List.item (i - 1) below).StrValue
         Some (seqOf, below, holderLength)
 
+/// Whether the dependent's path, below its first `fromLength` nodes, passes an OPTIONAL component or a CHOICE
+/// alternative: a check that the update / patch evaluates on that part of the path (getAccessFromScopeNodeList emits one
+/// for every SEQ_CHILD marked optional and every CH_CHILD).
+let private checksBelow (d: AcnDependency) (fromLength: int) =
+    d.asn1Type.ToScopeNodeList |> List.skip fromLength |> List.exists (fun n ->
+        match n with
+        | SEQ_CHILD (_, isOptional) -> isOptional
+        | CH_CHILD _                -> true
+        | SQF | MD _ | TA _ | PRM _ | VA _ -> false)
+
+/// loopDependencyKind for a dependency inside the elements of a SEQUENCE OF (q/issues.md Issue 124, Codex i124a F3): a
+/// constant consumer whose path below the first SEQUENCE OF passes an OPTIONAL component or a CHOICE alternative reads
+/// the element (its exist flag / kind) to know whether it is encoded, so it is a value consumer there; checks above the
+/// SEQUENCE OF need no element and keep it constant.
+let private loopKind (r: AstRoot) (d: AcnDependency) =
+    match loopDependencyKind d, sequenceOfBetween r d with
+    | ConstantConsumer, Some (_, below, holderLength) ->
+        let firstSqf = below |> List.findIndex (fun n -> match n with SQF -> true | SEQ_CHILD _ | CH_CHILD _ | MD _ | TA _ | PRM _ | VA _ -> false)
+        match checksBelow d (holderLength + firstSqf) with
+        | true  -> ValueConsumer
+        | false -> ConstantConsumer
+    | ConstantConsumer, None
+    | (ValueConsumer | ContainingConsumer | ArgumentLink _), _ -> loopDependencyKind d
+
 let private pathText (nodes: ScopeNode list) = nodes |> List.map (fun n -> n.StrValue) |> String.concat "."
 
 /// Whether a type assignment (ReferenceType) lies on the dependent's path below the determinant's holder: --acn-v2
@@ -755,7 +779,7 @@ let private referenceBelowHolder (r: AstRoot) (d: AcnDependency) (holderLength: 
 /// constant and CONTAINING consumers excepted (handled in both shapes). `exemptReferences` = false after closure
 /// conversion, where such a consumer can no longer be inside a reference.
 let private sameFunctionLoopConsumer (r: AstRoot) (exemptReferences: bool) (d: AcnDependency) : (AcnChild * string * ScopeNode list) option =
-    match d.determinant, loopDependencyKind d, sequenceOfBetween r d with
+    match d.determinant, loopKind r d, sequenceOfBetween r d with
     | AcnChildDeterminant ac, ValueConsumer, Some (seqOf, below, holderLength) ->
         match exemptReferences && referenceBelowHolder r d holderLength with
         | true  -> None
@@ -795,7 +819,9 @@ let checkLegacySequenceOfConsumers (r: AstRoot) (deps: AcnInsertedFieldDependenc
             deps.acnDependencies |> List.exists (fun d ->
                 d.determinant.id = prm.id &&
                 match loopDependencyKind d with
-                | ConstantConsumer          -> false
+                // a constant consumer of the callee behind an OPTIONAL component / CHOICE alternative reads the element
+                // the argument is passed to (F3)
+                | ConstantConsumer          -> checksBelow d (prm.id.ToScopeNodeList.Length - 1)
                 | ValueConsumer
                 | ContainingConsumer        -> true
                 | ArgumentLink calleePrm    -> readsValue (seen.Add prm.id) calleePrm)
@@ -804,7 +830,7 @@ let checkLegacySequenceOfConsumers (r: AstRoot) (deps: AcnInsertedFieldDependenc
         | AcnChildDeterminant ac      -> sprintf "ACN field '%s'" ac.Name.Value, ac.Name.Location
         | AcnParameterDeterminant prm -> sprintf "ACN parameter '%s' of type '%s'" prm.name (parameterTypeName r prm), prm.loc
     deps.acnDependencies |> List.iter (fun d ->
-        match sequenceOfBetween r d, loopDependencyKind d with
+        match sequenceOfBetween r d, loopKind r d with
         | None, _ | Some _, ConstantConsumer -> ()
         | Some (seqOf, below, _), ArgumentLink prm ->
             match readsValue Set.empty prm with
