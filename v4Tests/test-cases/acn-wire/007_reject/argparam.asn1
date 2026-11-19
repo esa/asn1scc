@@ -1,0 +1,7 @@
+-- a constant consumer (SIZE(3)) reached through an argument link that an OPTIONAL component of the element guards,
+-- parameter passed on (legacy rejects, --acn-v2 accepts; review i124a R2-1)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    QQ ::= SEQUENCE { o OCTET STRING (SIZE(3)) }
+    P ::= SEQUENCE { b BOOLEAN, items SEQUENCE (SIZE(1..2)) OF SEQUENCE { q QQ OPTIONAL } }
+    T ::= SEQUENCE { pl P }
+END

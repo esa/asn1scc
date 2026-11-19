@@ -1577,8 +1577,9 @@ let private appendPatchDetCalls
                                     (k = 0 && AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id)
                                 // Issue 126: the rule of before, per parameter (its exemptions can leave two patches of
                                 // the field unchecked; fixed with one ref per field)
-                                // An aliased field with a per-element patch (through another formal): every patch of it
-                                // is checked (the per-parameter exemptions do not see the loop; Codex i124a F1)
+                                // An aliased field with a per-element patch (through another formal) in this function:
+                                // every patch of it is checked (the per-parameter exemptions do not see the loop; Codex
+                                // i124a F1). A loop patch in a nested callee is not seen here (Issue 126)
                                 | DirectConsumer, AliasedField ->
                                     not (fieldsWithLoopPatch.Contains fieldId) &&
                                     (AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||

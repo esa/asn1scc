@@ -314,6 +314,16 @@ expect_rejection fixedopt "" "fixedopt.acn:2:11: error: ACN field 'n' is consume
 expect_rejection fixedopt --acn-v2 "fixedopt.acn:2:11: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#.o') $v2_inline"
 expect_rejection fixedopt2 "" "fixedopt2.acn:2:11: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#.o'). $legacy_inline"
 expect_rejection fixedopt2 --acn-v2 "fixedopt2.acn:2:11: error: ACN field 'n' is consumed inside the elements of SEQUENCE OF 'items' (by 'items.#.o') $v2_inline"
+expect_rejection argparam "" "argparam.acn:3:15: error: ACN parameter 'len' of type 'P' is passed as an argument to the elements of SEQUENCE OF 'items' (to 'items.#.q'). $legacy_only"
+expect_accepted argparam --acn-v2
+expect_rejection argopt "" "argopt.acn:3:11: error: ACN field 'n' is passed as an argument to the elements of SEQUENCE OF 'list' (to 'c.list.#.q'). $legacy_only"
+expect_accepted argopt --acn-v2
+expect_rejection argchoice "" "argchoice.acn:3:11: error: ACN field 'n' is passed as an argument to the elements of SEQUENCE OF 'list' (to 'c.list.#.q'). $legacy_only"
+expect_accepted argchoice --acn-v2
+expect_rejection argchain "" "argchain.acn:4:11: error: ACN field 'n' is passed as an argument to the elements of SEQUENCE OF 'list' (to 'c.list.#'). $legacy_only"
+expect_accepted argchain --acn-v2
+expect_accepted argmand ""
+expect_accepted argmand --acn-v2
 expect_accepted fixed ""
 expect_accepted fixed --acn-v2
 out=$work/legacy007

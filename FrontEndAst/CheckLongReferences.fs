@@ -811,20 +811,21 @@ let checkSameFunctionLoopConsumers (r: AstRoot) (deps: AcnInsertedFieldDependenc
 /// a parameter (the consumer inside a parameterized type). Constant consumers (SIZE min = max) are right and stay; an
 /// argument whose consumers are all constant too. Runs after checkLegacySequenceOfArguments (its message first).
 let checkLegacySequenceOfConsumers (r: AstRoot) (deps: AcnInsertedFieldDependencies) =
-    // whether a parameter reaches a consumer that is not a constant
-    let rec readsValue (seen: Set<ReferenceToType>) (prm: AcnParameter) =
+    // whether a parameter reaches a consumer that is not a constant, or a constant one behind an OPTIONAL component /
+    // CHOICE alternative of the element the argument is passed to (F3; R2-1: the check may also lie on the path of an
+    // argument link, between the SEQUENCE OF and the reference site or between two sites of a chain, behindCheck)
+    let rec readsValue (seen: Set<ReferenceToType>) (behindCheck: bool) (prm: AcnParameter) =
         match seen.Contains prm.id with
         | true  -> false
         | false ->
             deps.acnDependencies |> List.exists (fun d ->
                 d.determinant.id = prm.id &&
-                match loopDependencyKind d with
-                // a constant consumer of the callee behind an OPTIONAL component / CHOICE alternative reads the element
-                // the argument is passed to (F3)
-                | ConstantConsumer          -> checksBelow d (prm.id.ToScopeNodeList.Length - 1)
-                | ValueConsumer
-                | ContainingConsumer        -> true
-                | ArgumentLink calleePrm    -> readsValue (seen.Add prm.id) calleePrm)
+                (let behindCheck = behindCheck || checksBelow d (prm.id.ToScopeNodeList.Length - 1)
+                 match loopDependencyKind d with
+                 | ConstantConsumer          -> behindCheck
+                 | ValueConsumer
+                 | ContainingConsumer        -> true
+                 | ArgumentLink calleePrm    -> readsValue (seen.Add prm.id) behindCheck calleePrm))
     let determinantText (d: AcnDependency) =
         match d.determinant with
         | AcnChildDeterminant ac      -> sprintf "ACN field '%s'" ac.Name.Value, ac.Name.Location
@@ -832,8 +833,9 @@ let checkLegacySequenceOfConsumers (r: AstRoot) (deps: AcnInsertedFieldDependenc
     deps.acnDependencies |> List.iter (fun d ->
         match sequenceOfBetween r d, loopKind r d with
         | None, _ | Some _, ConstantConsumer -> ()
-        | Some (seqOf, below, _), ArgumentLink prm ->
-            match readsValue Set.empty prm with
+        | Some (seqOf, below, holderLength), ArgumentLink prm ->
+            let firstSqf = below |> List.findIndex (fun n -> match n with SQF -> true | SEQ_CHILD _ | CH_CHILD _ | MD _ | TA _ | PRM _ | VA _ -> false)
+            match readsValue Set.empty (checksBelow d (holderLength + firstSqf)) prm with
             | false -> ()
             | true  ->
                 let what, loc = determinantText d

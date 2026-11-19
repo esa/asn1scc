@@ -1,0 +1,5 @@
+-- as argopt with the element's component mandatory: the constant needs no element (legacy and --acn-v2 accept)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    QQ ::= SEQUENCE { o OCTET STRING (SIZE(3)) }
+    T ::= SEQUENCE { c CHOICE { list SEQUENCE (SIZE(1..2)) OF SEQUENCE { q QQ }, z BOOLEAN } }
+END

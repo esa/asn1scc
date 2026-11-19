@@ -1,0 +1,5 @@
+-- as argparam, a field, the list in a CHOICE alternative (legacy rejects, --acn-v2 accepts; review i124a R2-1)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    QQ ::= SEQUENCE { o OCTET STRING (SIZE(3)) }
+    T ::= SEQUENCE { c CHOICE { list SEQUENCE (SIZE(1..2)) OF SEQUENCE { q QQ OPTIONAL }, z BOOLEAN } }
+END
