@@ -206,6 +206,29 @@ cp "$root/test-cases/acn-wire/005_wire_test.adb" "$out/wire_test.adb"
 (cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
 echo "acn-wire 005 (Ada) --acn-v2 OK"
 
+# --acn-v2: an ACN parameter of a referenced type with several consumers inside it (OPTIONAL, mandatory, CHOICE
+# alternatives, fixed-size next to variable, determinants, present-when flags): valid values encode to the bytes legacy
+# writes with a zero error code, values whose consumers disagree fail with a nonzero code (q: Issue 121); C (ASan /
+# UBSan) acn-v2 and legacy (the same bytes; -DLEGACY skips the one value legacy does not encode), Ada x86 (-gnata,
+# acn-v2: a false pragma Assume after a patch raises).
+for mode in "" "--acn-v2"; do
+    legacy=
+    [ -z "$mode" ] && legacy=-DLEGACY
+    out=$work/acn006c$mode
+    mkdir "$out"
+    run_compiler -c -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/006.asn1" "$root/test-cases/acn-wire/006.acn" 2>/dev/null
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        $legacy -I "$out" "$out"/*.c "$root/test-cases/acn-wire/006_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 006 $mode OK"
+done
+out=$work/acn006ada
+mkdir "$out"
+run_compiler -Ada -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/006.asn1" "$root/test-cases/acn-wire/006.acn" 2>/dev/null
+cp "$root/test-cases/acn-wire/006_wire_test.adb" "$out/wire_test.adb"
+(cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
+echo "acn-wire 006 (Ada) --acn-v2 OK"
+
 # 036 in Ada on the 32-bit board msp430: sign extension in the upper bytes of 64-bit fields
 # (compiled with -gnata: the RTL's pragma Assume are checked too).
 out=$work/ada036

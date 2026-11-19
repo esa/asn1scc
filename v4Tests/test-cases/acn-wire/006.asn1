@@ -1,0 +1,54 @@
+-- --acn-v2: an ACN parameter of a referenced type with several consumers inside it (two OPTIONAL OCTET STRINGs, CHOICE
+-- alternatives, a consumer inside an OPTIONAL inline child, a callee passing the parameter on, a callee in a SEQUENCE
+-- OF element, mandatory consumers, two CHOICE determinants, two present-when flags, fixed-size consumers next to
+-- variable ones). The specialised encoder patched only one consumer of each parameter (q/issues.md Issue 121):
+-- - a valid value whose patched consumer is absent while another one is present encodes the bytes legacy writes (the
+--   determinant was the fallback 0 or the reserved zeros);
+-- - a value whose consumers disagree (ACN-inconsistent) fails with a nonzero error code (it was encoded);
+-- - the patch of a fixed-size consumer runs only when it is encoded (no failure, no error code on a valid value).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 006_wire_test.c / 006_wire_test.adb (C with ASan / UBSan,
+-- Ada with -gnata), --acn-v2; the C test also runs on the legacy encoder (same bytes and rejections, except the
+-- values marked there). The corpus twin with automatic tests is test-cases/acn/25-ACNV2-BOUNDARIES/042.
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    MyOct ::= OCTET STRING (SIZE(0..15))
+    -- two OPTIONAL consumers, a named and an inline one
+    PB ::= SEQUENCE { o MyOct OPTIONAL, d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    TB ::= SEQUENCE { a INTEGER(0..255), pl PB, tail INTEGER(0..255) }
+    -- two mandatory consumers
+    PG ::= SEQUENCE { o MyOct, d OCTET STRING (SIZE(0..15)), e INTEGER(0..255) }
+    TG ::= SEQUENCE { a INTEGER(0..255), pl PG, tail INTEGER(0..255) }
+    -- the alternatives of a CHOICE
+    CH ::= CHOICE { a OCTET STRING (SIZE(0..15)), b MyOct, c INTEGER(0..7) }
+    TH ::= SEQUENCE { a INTEGER(0..255), pl CH, tail INTEGER(0..255) }
+    -- a consumer inside an OPTIONAL inline child
+    PI ::= SEQUENCE { inner SEQUENCE { o MyOct } OPTIONAL, d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    TI ::= SEQUENCE { a INTEGER(0..255), pl PI, tail INTEGER(0..255) }
+    -- the callee passes the parameter on
+    PK ::= SEQUENCE { x INTEGER(0..7), q PB }
+    TK ::= SEQUENCE { a INTEGER(0..255), pl PK, tail INTEGER(0..255) }
+    -- a mandatory consumer and an OPTIONAL one
+    PayL ::= SEQUENCE { o MyOct, d OCTET STRING (SIZE(0..15)) OPTIONAL }
+    TL ::= SEQUENCE { a INTEGER(0..255), pl PayL, tail INTEGER(0..255) }
+    -- the callee in a SEQUENCE OF element
+    TM ::= SEQUENCE (SIZE(1..2)) OF SEQUENCE { a INTEGER(0..255), pl PB, tail INTEGER(0..255) }
+    -- two CHOICE determinants
+    Kind ::= ENUMERATED { k1, k2 }
+    ChK ::= CHOICE { k1 INTEGER(0..7), k2 BOOLEAN }
+    PN ::= SEQUENCE { c1 ChK OPTIONAL, c2 CHOICE { k1 INTEGER(0..3), k2 NULL } OPTIONAL }
+    TN ::= SEQUENCE { a INTEGER(0..255), pl PN, tail INTEGER(0..255) }
+    -- two present-when flags of one BOOLEAN parameter
+    PP ::= SEQUENCE { x INTEGER(0..7) OPTIONAL, y INTEGER(0..7) OPTIONAL, e INTEGER(0..255) }
+    TP ::= SEQUENCE { a INTEGER(0..255), pl PP, tail INTEGER(0..255) }
+    -- fixed-size consumers (SIZE(3)) next to variable ones: in a SEQUENCE, in both orders, and in a CHOICE
+    PF1 ::= SEQUENCE { o OCTET STRING (SIZE(3)) OPTIONAL, d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    TF1 ::= SEQUENCE { a INTEGER(0..255), pl PF1, tail INTEGER(0..255) }
+    PF2 ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, o OCTET STRING (SIZE(3)) OPTIONAL, e INTEGER(0..255) }
+    TF2 ::= SEQUENCE { a INTEGER(0..255), pl PF2, tail INTEGER(0..255) }
+    CF1 ::= CHOICE { a OCTET STRING (SIZE(3)), b OCTET STRING (SIZE(0..15)), c INTEGER(0..7) }
+    TC1 ::= SEQUENCE { a INTEGER(0..255), pl CF1, tail INTEGER(0..255) }
+    CF2 ::= CHOICE { b OCTET STRING (SIZE(0..15)), a OCTET STRING (SIZE(3)), c INTEGER(0..7) }
+    TC2 ::= SEQUENCE { a INTEGER(0..255), pl CF2, tail INTEGER(0..255) }
+    -- an OPTIONAL consumer before a mandatory one
+    PayL2 ::= SEQUENCE { o MyOct OPTIONAL, d OCTET STRING (SIZE(0..15)) }
+    TL2 ::= SEQUENCE { a INTEGER(0..255), pl PayL2, tail INTEGER(0..255) }
+END
