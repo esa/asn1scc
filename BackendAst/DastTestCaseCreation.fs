@@ -348,11 +348,6 @@ type ConstraintViolation = {
     nodeId          : ReferenceToType           // the start test value must contain this node
     contextNodes    : ReferenceToType list      // ... and these (the reference sites on the way to it)
     presentChildren : ReferenceToType list      // ... and have these OPTIONAL children present
-    // ... and these ALWAYS PRESENT children (coverage cycle 15c): every automatic test value has them present, so they
-    // need no selection; kept apart so that the choice of the reference branch's first violation stays as before 15c.
-    // Set only by the violation that makes an ALWAYS PRESENT child absent (the 15c target): the other WITH COMPONENTS
-    // violations of such a child keep it in presentChildren, as before 15c (cycle 15c round 3)
-    presentInEveryValue : ReferenceToType list
     nonEmptySeqOfs  : ReferenceToType list      // ... and at least one element in these SEQUENCE OFs (element 0 is changed)
     inAlternative   : bool                      // ... and select the CHOICE alternatives on the way (via nodeId)
     setInvalid      : string                    // the statement that sets the invalid value
@@ -361,16 +356,7 @@ type ConstraintViolation = {
     what            : string                    // what is changed, for the test's comment
     encoding        : ViolationEncoding         // whether the unchecked encoders are called too
     localVariables  : LocalVariable list        // the statement's own locals (the element index of a loop, step 14f)
-    admission       : ViolationAdmission        // whether only the cycle-15c rule lets a reference site take it
 }
-
-/// Coverage cycle 15c: a reference site with several uses takes a violation that needs an ALWAYS PRESENT child
-/// (presentInEveryValue) since 15c only; such a violation is ranked after every other one in the choice of the site's
-/// first violation, also at the enclosing reference sites (the mark is kept up the tree), so it only fills an empty
-/// slot and the change only adds tests.
-and ViolationAdmission =
-    | AdmittedBefore15c
-    | AdmittedSince15c
 
 /// A violation of a referenced type or of a SEQUENCE OF element, seen from the enclosing type.
 let private nested (v:ConstraintViolation) =
@@ -390,8 +376,7 @@ let private rebaseIds (fromId:ReferenceToType) (toId:ReferenceToType) (v:Constra
         | true  -> ReferenceToType (toId.ToScopeNodeList @ List.skip prefix.Length nodes)
         | false -> id
     {v with nodeId = rebase v.nodeId; contextNodes = List.map rebase v.contextNodes
-            presentChildren = List.map rebase v.presentChildren; presentInEveryValue = List.map rebase v.presentInEveryValue
-            nonEmptySeqOfs = List.map rebase v.nonEmptySeqOfs}
+            presentChildren = List.map rebase v.presentChildren; nonEmptySeqOfs = List.map rebase v.nonEmptySeqOfs}
 
 /// The node with this id in a type's tree, through references (only the subtrees whose ids lead to it).
 let rec private tryFindNode (id:ReferenceToType) (t:Asn1Type) : Asn1Type option =
@@ -629,7 +614,7 @@ let rec private selectionGuards (lm:LanguageMacros) (path:AccessPath) (t:Asn1Typ
 
 /// unique: the type assignments with one reference site in the tested value (uniqueReferenceSites).
 let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (unique:Set<string * string>) (path:AccessPath) (t:Asn1Type) : ConstraintViolation list =
-    let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; presentInEveryValue = []; nonEmptySeqOfs = []; inAlternative = false; setInvalid = sSet; errCode = errCode; errCodeModule = ToC t.id.ModName; what = what; encoding = CheckedOnly; localVariables = []; admission = AdmittedBefore15c}
+    let mk nodeId sSet errCode what = {nodeId = nodeId; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; inAlternative = false; setInvalid = sSet; errCode = errCode; errCodeModule = ToC t.id.ModName; what = what; encoding = CheckedOnly; localVariables = []}
     /// surelyInvalid n: every value of size n violates the constraints (coverage step 14q: also SIZE with value sets)
     let sizeViolations (minSize:BigInteger) (maxSize:BigInteger) (surelyInvalid:BigInteger -> bool) =
         match lm.lg.typedefConstraintModel, ownErrCode t, minSize <> maxSize with
@@ -687,9 +672,7 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (unique:Set<st
         valueSetViolation (valueSetChanged o.baseInfo.cons bits flips) (ToggleBit 0I)
     | SequenceOf o  ->
         let own = sizeViolations o.baseInfo.minSize.uper o.baseInfo.maxSize.uper (fun _ -> o.baseInfo.cons |> List.forall pureSeqOfSize)
-        // coverage cycle 15c: an ALWAYS PRESENT child (presentInEveryValue) keeps its place in a loop over every element
-        // (before 15c it counted as a selection), so the change only adds tests
-        let needsSelection (v:ConstraintViolation) = v.inAlternative || not v.presentChildren.IsEmpty || not v.presentInEveryValue.IsEmpty
+        let needsSelection (v:ConstraintViolation) = v.inAlternative || not v.presentChildren.IsEmpty
         let elemPath = lm.lg.getArrayItem path (string lm.lg.ArrayStartIndex) o.childType.isIA5String
         let elems = constraintViolations r lm unique elemPath o.childType |>
                     // the elements get different test values, but the test value says only that one of them selects the
@@ -772,18 +755,9 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (unique:Set<st
                 // OPTIONAL child, SEQUENCE OF element) is sure to hold at this site only when it is the type's one
                 // site in the tested value (coverage step 12f)
                 let needsSelection (v:ConstraintViolation) = v.inAlternative || not v.presentChildren.IsEmpty || not v.nonEmptySeqOfs.IsEmpty
-                // coverage cycle 15c: an ALWAYS PRESENT child needs no selection (every test value has it present), but
-                // the first violation is chosen as before 15c (when it counted as one), so a new candidate only fills
-                // an empty slot and the change only adds tests (cycles/15c/review-fable.md §3.1)
-                let neededSelectionBefore15c (v:ConstraintViolation) = needsSelection v || not v.presentInEveryValue.IsEmpty
                 let candidates =
                     constraintViolations r lm unique path ts.Type |>
-                    List.choose (fun v ->
-                        match unique.Contains (ref.baseInfo.modName.Value, ref.baseInfo.tasName.Value), needsSelection v, neededSelectionBefore15c v with
-                        | true, _, _          -> Some v
-                        | false, false, false -> Some v
-                        | false, false, true  -> Some {v with admission = AdmittedSince15c}
-                        | false, true, _      -> None) |>
+                    List.filter (fun v -> unique.Contains (ref.baseInfo.modName.Value, ref.baseInfo.tasName.Value) || not (needsSelection v)) |>
                     List.indexed
                 // the first one covers the parent's check of the call (one that needs no selection if there is one, as
                 // before 12f); every invalid discriminant too (step 12d): the parent often encodes the referenced type
@@ -793,16 +767,7 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (unique:Set<st
                         match v.encoding with
                         | CheckedOnly | InvalidEnumItem _ -> true
                         | InvalidSelector _               -> false
-                    // the choice of before 15c among the candidates admitted before 15c; a candidate admitted since 15c
-                    // (here or at a reference site below) only when that choice is empty
-                    let before15c =
-                        candidates |>
-                        List.filter (fun (_, v) ->
-                            match v.admission with
-                            | AdmittedBefore15c -> true
-                            | AdmittedSince15c  -> false)
-                    before15c |> List.tryFind (fun (_, v) -> callCheck v && not (neededSelectionBefore15c v)) |>
-                    Option.orElse (before15c |> List.tryFind (fun (_, v) -> callCheck v)) |>
+                    candidates |> List.tryFind (fun (_, v) -> callCheck v && not (needsSelection v)) |>
                     Option.orElse (candidates |> List.tryFind (fun (_, v) -> callCheck v))
                 let discriminants =
                     candidates |>
@@ -940,24 +905,13 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
             | None    -> []
             | Some ch ->
                 let chName = lm.lg.getAsn1ChildBackendName ch
-                // coverage cycle 15c: an ALWAYS PRESENT child is present in every automatic test value (DAstInitialize
-                // handleChild), so it needs no selection: the violation also reaches parents through references with
-                // several sites
-                // (the absent violation only; the value / SIZE violations below keep the rule of before 15c: their
-                // tests at reference sites with several uses expected the child's error code where the child's own
-                // check fails first, cycle 15c round 3)
-                let absentPresentChildren, presentInEveryValue =
-                    match ch.Optionality with
-                    | Some Asn1AcnAst.AlwaysPresent                              -> [], [ch.Type.id]
-                    | Some (Asn1AcnAst.Optional _) | Some Asn1AcnAst.AlwaysAbsent -> [ch.Type.id], []
-                    | None                                                       -> [], []
                 let presentChildren = if ch.Optionality.IsSome then [ch.Type.id] else []
                 let absent =
                     match nc.Mark, ch.Optionality with
                     | Asn1Ast.MarkPresent, Some _ ->
-                        [{ nodeId = t.id; contextNodes = []; presentChildren = absentPresentChildren; presentInEveryValue = presentInEveryValue; nonEmptySeqOfs = []; inAlternative = false
+                        [{ nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                            setInvalid = lm.init.initSequence_optionalChild (path.joined lm.lg) (lm.lg.getAccess path) chName absentFlag ""
-                           errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s absent, WITH COMPONENTS requires it" ch.Name.Value; encoding = CheckedOnly; localVariables = []; admission = AdmittedBefore15c }]
+                           errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s absent, WITH COMPONENTS requires it" ch.Name.Value; encoding = CheckedOnly; localVariables = [] }]
                     // coverage step 14p: a child marked ABSENT is made present with the first automatic test value of
                     // its type (valid, so the child's own checks pass and only the WITH COMPONENTS check fails)
                     | Asn1Ast.MarkAbsent, Some _ ->
@@ -967,9 +921,9 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                             let presentFlag = if lm.lg.usesBooleanPresenceBits then lm.lg.TrueLiteral else "1"
                             let chPath = lm.lg.getSeqChild path chName ch.Type.isIA5String ch.Optionality.IsSome
                             let childValue = atc.initTestCaseFunc {CodegenScope.modName = ToC "MainProgram"; accessPath = chPath}
-                            [{ nodeId = t.id; contextNodes = []; presentChildren = []; presentInEveryValue = []; nonEmptySeqOfs = []; inAlternative = false
+                            [{ nodeId = t.id; contextNodes = []; presentChildren = []; nonEmptySeqOfs = []; inAlternative = false
                                setInvalid = lm.init.initSequence_optionalChild (path.joined lm.lg) (lm.lg.getAccess path) chName presentFlag childValue.funcBody
-                               errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s present, WITH COMPONENTS requires it absent" ch.Name.Value; encoding = CheckedOnly; localVariables = childValue.localVariables; admission = AdmittedBefore15c }]
+                               errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s present, WITH COMPONENTS requires it absent" ch.Name.Value; encoding = CheckedOnly; localVariables = childValue.localVariables }]
                     | (Asn1Ast.MarkPresent | Asn1Ast.NoMark | Asn1Ast.MarkOptional | Asn1Ast.MarkAbsent), _ -> []
                 let values =
                     match nc.Constraint, ch.Type.ActualType.Kind with
@@ -978,9 +932,9 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                         intViolatingValues r lm o.baseInfo o.baseInfo.cons [ic] |>
                         List.map (fun v ->
                             let sv = lm.lg.intValueToString v o.baseInfo.intClass
-                            { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; presentInEveryValue = []; nonEmptySeqOfs = []; inAlternative = false
+                            { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                               setInvalid = lm.init.initInteger (lm.lg.getValue chPath) sv false "" ""
-                              errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s = %s, outside %s (WITH COMPONENTS)" ch.Name.Value sv ic.ASN1; encoding = CheckedOnly; localVariables = []; admission = AdmittedBefore15c })
+                              errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s = %s, outside %s (WITH COMPONENTS)" ch.Name.Value sv ic.ASN1; encoding = CheckedOnly; localVariables = [] })
                     | Some (Asn1AcnAst.OctetStringConstraint (Asn1AcnAst.SizeConstraint (_, rc))), _
                     | Some (Asn1AcnAst.BitStringConstraint (Asn1AcnAst.SizeConstraint (_, rc))), _
                     | Some (Asn1AcnAst.SequenceOfConstraint (Asn1AcnAst.SeqOfSizeConstraint (_, rc))), _ ->
@@ -999,42 +953,13 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                             rangeEndpoints rc |> List.collect (fun v -> [BigInteger (v:uint32) - 1I; BigInteger v + 1I]) |> List.distinct |> List.sort |>
                             List.filter (fun n -> tMin <= n && n <= tMax && not (Asn1Fold.isValidValueRanged [rc] (uint32 n))) |>
                             List.map (fun n ->
-                                { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; presentInEveryValue = []; nonEmptySeqOfs = []; inAlternative = false
+                                { nodeId = t.id; contextNodes = []; presentChildren = presentChildren; nonEmptySeqOfs = []; inAlternative = false
                                   setInvalid = lm.init.initVarSizeSequenceOf (chPath.joined lm.lg) (lm.lg.getAccess chPath) n []
-                                  errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s size %A, outside %s (WITH COMPONENTS)" ch.Name.Value n (rc.ASN1); encoding = CheckedOnly; localVariables = []; admission = AdmittedBefore15c })
+                                  errCode = e; errCodeModule = ToC t.id.ModName; what = sprintf "%s size %A, outside %s (WITH COMPONENTS)" ch.Name.Value n (rc.ASN1); encoding = CheckedOnly; localVariables = [] })
                         | Some (_, _, true)
                         | None -> []
                     | _ -> []
                 absent @ values)
-
-/// Coverage cycle 15c (round 3): every automatic test value of the type sets every component it holds. A SEQUENCE sets
-/// only the children that have automatic test values (DAstInitialize generateCases: a mandatory child without values
-/// stays unset, an OPTIONAL one gets no presence flag), a SEQUENCE OF of an element without values sets no length; a
-/// CHOICE selects only alternatives with values. Conservative (the whole type, every value).
-let rec private completeTestValues (t:Asn1Type) : bool =
-    let hasValues (c:Asn1Type) = not c.initFunction.automaticTestCases.IsEmpty
-    match t.Kind with
-    | Sequence sq ->
-        sq.children |>
-        List.forall (fun c ->
-            match c with
-            | AcnChild _     -> true
-            | Asn1Child ch ->
-                match ch.Type.Kind, ch.Optionality with
-                | _, Some Asn1AcnAst.AlwaysAbsent -> true
-                | NullType _, _                   -> true
-                | _, (None | Some Asn1AcnAst.AlwaysPresent | Some (Asn1AcnAst.Optional _)) -> hasValues ch.Type && completeTestValues ch.Type)
-    | Choice ch       -> ch.children |> List.forall (fun c -> not (hasValues c.chType) || completeTestValues c.chType)
-    | SequenceOf o    -> hasValues o.childType && completeTestValues o.childType
-    | ReferenceType rf -> completeTestValues rf.resolvedType
-    | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _ | BitString _ | Boolean _ | Enumerated _
-    | ObjectIdentifier _ | TimeType _ -> true
-
-/// Coverage cycle 15c: whether `fits` counts the element node of a SEQUENCE OF that the violation needs non-empty as
-/// present (the site of a reference element, which no test map holds).
-type private ElementSiteRule =
-    | ElementSiteMustBeInMap        // before 15c
-    | ElementOfNonEmptyIsPresent    // since 15c, for the tests that did not exist before
 
 /// One automatic test per constraint violation of a type assignment (coverage step 11c), independent of the
 /// encoding: it calls IsConstraintValid and every checked encoder of the type; for a nested invalid discriminant
@@ -1045,18 +970,10 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
     | true, Some sIsValidFunc ->
         let p = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
         let atcs = t.initFunction.automaticTestCases
-        let fits (rule:ElementSiteRule) (v:ConstraintViolation) (atc:AutomaticTestCase) =
+        let fits (v:ConstraintViolation) (atc:AutomaticTestCase) =
             let m = atc.testCaseTypeIDsMap
-            // coverage cycle 15c: the element of a SEQUENCE OF that the violation needs non-empty exists (element 0 is
-            // changed); the map never holds the element node of a reference element (the site), only the referenced
-            // type's ids. Only this node: a wider "implied present" rule would reopen the 11c pitfalls
-            let elementOfNonEmpty (id:ReferenceToType) =
-                match rule with
-                | ElementSiteMustBeInMap     -> false
-                | ElementOfNonEmptyIsPresent -> v.nonEmptySeqOfs |> List.exists (fun so -> id.ToScopeNodeList = so.ToScopeNodeList @ [SQF])
-            (v.nodeId::v.contextNodes |> List.forall (fun id -> id = t.id || m.ContainsKey id || elementOfNonEmpty id)) &&
-            // an ALWAYS PRESENT child too (cycle 15c): a child type without automatic test values is never set
-            (v.presentChildren @ v.presentInEveryValue |> List.forall (fun chId ->
+            (v.nodeId::v.contextNodes |> List.forall (fun id -> id = t.id || m.ContainsKey id)) &&
+            (v.presentChildren |> List.forall (fun chId ->
                 // a present child is in the map with its own value (or TcvComponentPresent)
                 match m.TryFind chId with
                 | Some TcvComponentAbsent -> false
@@ -1068,29 +985,14 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
                 | Some _ | None                 -> false))
         // the unchecked encoders reach the arm of an invalid discriminant only from a value they can encode
         let acnValid (atc:AutomaticTestCase) = t.acnEncFunction |> Option.forall (fun f -> f.isTestVaseValid atc)
-        let complete = lazy (completeTestValues t)
         let start (v:ConstraintViolation) =
-            let pick (fitting:AutomaticTestCase list) =
-                match v.encoding with
-                | InvalidEnumItem Nested
-                | InvalidSelector Nested -> fitting |> List.tryFind acnValid |> Option.orElse (List.tryHead fitting)
-                | CheckedOnly
-                | InvalidEnumItem OwnTree
-                | InvalidSelector OwnTree -> List.tryHead fitting
-            match v.admission, atcs |> List.filter (fits ElementSiteMustBeInMap v) with
-            // a test of before cycle 15c, with its start value of before
-            | AdmittedBefore15c, (_::_ as fitting) -> pick fitting
-            // a test that did not exist before cycle 15c (admitted at a reference site with several uses, or a start
-            // value only through a reference element's site): only the 15c target, an ALWAYS PRESENT child made absent
-            // (presentInEveryValue), and only when every automatic test value sets every component (cycle 15c round 3:
-            // range / SIZE / nested-discriminant violations of other children expected the wrong error code or
-            // validated an unset component)
-            | AdmittedBefore15c, []
-            | AdmittedSince15c, _ ->
-                match v.presentInEveryValue, complete.Force () with
-                | _::_, true -> pick (atcs |> List.filter (fits ElementOfNonEmptyIsPresent v))
-                | _::_, false
-                | [], _      -> None
+            let fitting = atcs |> List.filter (fits v)
+            match v.encoding with
+            | InvalidEnumItem Nested
+            | InvalidSelector Nested -> fitting |> List.tryFind acnValid |> Option.orElse (List.tryHead fitting)
+            | CheckedOnly
+            | InvalidEnumItem OwnTree
+            | InvalidSelector OwnTree -> List.tryHead fitting
         constraintViolations r lm (uniqueReferenceSites r t) p.accessPath t |>
         // the type's own CHOICE selectors: step 02's test_case_invalid_* cover them, checked and unchecked
         List.filter (fun v ->
