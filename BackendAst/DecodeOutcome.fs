@@ -198,6 +198,16 @@ let private combine (alwaysWriting: DecodeOutcome list) (conditional: DecodeOutc
 let uperVarSizeCannotFail (lm:LanguageMacros) (kind:FixedStringKind) (isFixedSize:bool) (minSize:BigInteger) (maxSize:BigInteger) : bool =
     varSizeStringCannotFail lm kind isFixedSize minSize maxSize (GetNumberOfBitsForNonNegativeInteger (maxSize - minSize))
 
+/// The type whose decoder a reference site without encoding options calls: the referenced type assignment's own type
+/// when the chain reaches a CONTAINING (the call is named after that type assignment, Issue 91: its function decodes
+/// the octet / bit string and may fail on its length), else `resolved` (GetActualTypeByName: the type the call decodes).
+/// q/issues.md Issue 133: classifying the contents instead put `pragma Assert (result.Success)` after a call that fails
+/// on a bad length, and Ada dropped the failure (uPER and ACN, legacy and --acn-v2).
+let private callee (r:AstRoot) (o:ReferenceType) (resolved:Asn1Type) : Asn1Type =
+    match DAstUtilFunctions.containingCalleeTas r o with
+    | Some tas -> tas.Type
+    | None     -> resolved
+
 /// uPER decode outcome of a type (as decoded in place: a reference that is decoded by a call to the type
 /// assignment's function is a part that writes result).
 let rec uper (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : DecodeOutcome =
@@ -233,7 +243,7 @@ let rec uper (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : DecodeOutcome =
                 let t1 = GetActualTypeByName r o.modName o.tasName
                 match TypesEquivalence.uperEquivalence t1 o.resolvedType with
                 | true  ->                                                          // call of T_Decode_aux
-                    match uper r lm t1 with
+                    match uper r lm (callee r o t1) with
                     | AlwaysSucceeds _ -> AlwaysSucceeds WritesResult
                     | MayFail          -> MayFail
                 | false -> uper r lm o.resolvedType                                // decoded in place
@@ -682,7 +692,7 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
                 match isLiveDeduced o.resolvedType with
                 | true  -> MayFail                                                  // inlined with a trailing constant
                 | false ->                                                          // call of T_ACN_Decode_aux
-                    match acn r deps lm (GetActualTypeByName r o.modName o.tasName) with
+                    match acn r deps lm (callee r o (GetActualTypeByName r o.modName o.tasName)) with
                     | AlwaysSucceeds _ -> AlwaysSucceeds WritesResult
                     | MayFail          -> MayFail
         | OctetString o ->
@@ -972,7 +982,7 @@ type ValWrite =
     | FullWrite
     | MayLeavePartial
 
-let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (choiceAssigns: Asn1Type -> bool) (acnFieldOutcome: AcnInsertedType -> DecodeOutcome) (hasStatement: Asn1Type -> bool) (acnChildrenDecoded:bool) (acnDeferred:bool) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
+let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (choiceAssigns: Asn1Type -> bool) (acnFieldOutcome: AcnInsertedType -> DecodeOutcome) (hasStatement: Asn1Type -> bool) (containingCall: ReferenceType -> Asn1Type option) (acnChildrenDecoded:bool) (acnDeferred:bool) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
     match lm.lg.decodeReadFailureModel with
     | ReadsCanFail      -> FullWrite
     | ReadsCannotFail   ->
@@ -998,7 +1008,7 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (choiceAssigns: As
                         let childWrite =
                             match choiceAssigns c.Type with
                             | true  -> FullWrite
-                            | false -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm c.Type
+                            | false -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement containingCall acnChildrenDecoded acnDeferred lm c.Type
                         let written =
                             c.Optionality.IsNone && hasStatement c.Type && not failedBefore && childWrite = FullWrite
                         full && written, failedBefore || outcome c.Type = MayFail) (true, false)
@@ -1012,19 +1022,21 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (choiceAssigns: As
             | true  -> FullWrite
             | false -> MayLeavePartial
         | ReferenceType o ->
-            match o.encodingOptions with
-            | None     -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
-            | Some enc ->                                                               // CONTAINING
+            match o.encodingOptions, containingCall o with
+            // Issue 133: a call of a CONTAINING type assignment's function writes what that function writes
+            | None, Some calleeType -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement containingCall acnChildrenDecoded acnDeferred lm calleeType
+            | None, None -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement containingCall acnChildrenDecoded acnDeferred lm o.resolvedType
+            | Some enc, _ ->                                                               // CONTAINING
                 // --acn-v2 decodes a fixed-size CONTAINING by a plain call of the contained type's decoder
                 // (DAstACNDeferred: octet / bit_string_containing_deferred_fixed_func); everything else checks
                 // the region first
                 match acnDeferred, enc.acnEncodingClass with
-                | true, SZ_EC_FIXED_SIZE -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
+                | true, SZ_EC_FIXED_SIZE -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement containingCall acnChildrenDecoded acnDeferred lm o.resolvedType
                 // 14c2b: a CONTAINING with ACN arguments is a call of a specialised function, whose val has the mode of
                 // the contained type (DAstACNDeferred: acnValWrite of resolvedType); an ACN field before it no longer
                 // hides this since its read cannot fail (25-ACNV2-BOUNDARIES/002: "unused initial value of val")
                 | true, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced) when not o.acnArguments.IsEmpty ->
-                    valWrite outcome choiceAssigns acnFieldOutcome hasStatement acnChildrenDecoded acnDeferred lm o.resolvedType
+                    valWrite outcome choiceAssigns acnFieldOutcome hasStatement containingCall acnChildrenDecoded acnDeferred lm o.resolvedType
                 | true, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced)
                 | false, _ -> MayLeavePartial
         // a CHOICE is a variant record: the discriminant of an `out` parameter is read at the call, so the caller would
@@ -1083,11 +1095,21 @@ let uperValWrite (r:AstRoot) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
                 | false -> choiceAssigns o.resolvedType                             // decoded in place
         | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
         | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | NullType _ -> false
-    valWrite (uper r lm) choiceAssigns (fun _ -> MayFail) uperChildHasStatement false false lm t
+    // Issue 133: the site that calls a CONTAINING type assignment's T_Decode_aux (the call arm of uper)
+    let containingCall (o:ReferenceType) =
+        match TypesEquivalence.uperEquivalence (GetActualTypeByName r o.modName o.tasName) o.resolvedType with
+        | true  -> DAstUtilFunctions.containingCalleeTas r o |> Option.map (fun tas -> tas.Type)
+        | false -> None                                                             // decoded in place
+    valWrite (uper r lm) choiceAssigns (fun _ -> MayFail) uperChildHasStatement containingCall false false lm t
 
 /// ACN *_ACN_Decode_aux (also the --acn-v2 specialised functions): does it write all of val on every path?
 let acnValWrite (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) (t:Asn1Type) : ValWrite =
-    valWrite (acn r deps lm) (acnChoiceChildAssigns r deps lm) (fun a -> fst (acnInsertedFieldPart r lm a)) acnHasDecodeContent true r.args.acnDeferred lm t
+    // Issue 133: the site that calls a CONTAINING type assignment's T_ACN_Decode_aux (the call arm of acn)
+    let containingCall (o:ReferenceType) =
+        match o.hasExtraConstrainsOrChildrenOrAcnArgs || isLiveDeduced o.resolvedType with
+        | true  -> None                                                             // inlined, or a specialised function
+        | false -> DAstUtilFunctions.containingCalleeTas r o |> Option.map (fun tas -> tas.Type)
+    valWrite (acn r deps lm) (acnChoiceChildAssigns r deps lm) (fun a -> fst (acnInsertedFieldPart r lm a)) acnHasDecodeContent containingCall true r.args.acnDeferred lm t
 
 /// Coverage step 14c2a: a decoder whose body is a CHOICE with a full index writes all of val on every path (each arm
 /// assigns `val := T'(kind => ..., x => init)`), yet val stays `in out`: a CHOICE is a variant record, and the

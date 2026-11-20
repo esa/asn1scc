@@ -106,6 +106,28 @@ cp "$root/test-cases/uper-wire/001_wire_test.adb" "$out/wire_test.adb"
 (cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
 echo "uper-wire 001 (Ada) OK"
 
+# A component whose type is an OCTET STRING (CONTAINING X) type assignment: a region too short for its contents must
+# make the whole decoder fail (Issue 133: the Ada decoders asserted that the call of the type assignment's decoder
+# cannot fail and accepted the stream). uPER and ACN, legacy and --acn-v2; Ada also without -gnata, where only the
+# result shows the defect (with -gnata the old code stops at its pragma Assert).
+for mode in "" "--acn-v2"; do
+    out=$work/uper002$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/002.asn1"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/uper-wire/002_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "uper-wire 002 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/uper002ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/002.asn1"
+        cp "$root/test-cases/uper-wire/002_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "uper-wire 002 (Ada) $mode $gnata OK"
+    done
+done
+
 # ACN INTEGER as ASCII digits with a terminator: a value outside the range of the type, or a digit string beyond the
 # integer type, is an error code (Ada used to raise Constraint_Error, and accepted digit strings that wrapped around);
 # C, Ada x86 and Ada msp430 (-gnata: the RTL contracts are checked too).

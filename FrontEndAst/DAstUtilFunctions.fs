@@ -1255,9 +1255,13 @@ let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReferenc
 /// an alias `Box2 ::= OctBox`) encoded Inner without the OCTET / BIT STRING that OctBox's own function writes (and that
 /// REQUIRED_BITS and the ICD count). When the chain of type assignments reaches a CONTAINING, call the referenced type
 /// assignment's own function; otherwise getBaseFuncName.
-/// The (module-qualified) type name of the type assignment a reference site without encoding options names when the
-/// chain of type assignments reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise.
-let containingTasTypeName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) =
+/// The type assignment whose own function a reference site without encoding options calls when the chain of type
+/// assignments reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise. The single predicate for
+/// the call's name (containingTasTypeName) and for what the call does: the decode classifiers of
+/// BackendAst/DecodeOutcome.fs classify such a call by this type assignment, not by the contents that
+/// GetActualTypeByName reaches through the CONTAINING (q/issues.md Issue 133: the site was classified "cannot fail"
+/// after a call of a CONTAINING decoder that fails on a bad length).
+let containingCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.TypeAssignment option =
     let rec reachesContaining (modName:StringLoc) (tasName:StringLoc) (visited:Set<string*string>) =
         let key = (modName.Value, tasName.Value)
         match visited.Contains key with
@@ -1278,8 +1282,14 @@ let containingTasTypeName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (o:Asn1AcnA
     | None   ->
         match reachesContaining o.modName o.tasName Set.empty with
         | false -> None
-        | true  ->
-            let tas = (r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r
+        | true  -> Some ((r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r)
+
+/// The (module-qualified) type name of the type assignment a reference site without encoding options names when the
+/// chain of type assignments reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise.
+let containingTasTypeName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) =
+    match containingCalleeTas r o with
+    | None     -> None
+    | Some tas ->
             let tasTypeDef = lm.lg.getTypeDefinition tas.Type.FT_TypeDefinition
             match lm.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit with
             | true  -> Some (lm.lg.constructCrossModuleFuncPrefix tasTypeDef.programUnit + tasTypeDef.typeName)

@@ -212,9 +212,14 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
         //'size deduced' contents must be decoded from a stream that ends with their region;
         //other contents are decoded from a stream as large as their largest encoding
         let bDeducedContent = isLiveDeduced o.resolvedType
-        //the values of the two constants above, as literals: a decoder checks the length read from the stream against
-        //them in the determinant's own type, before any conversion (q/issues.md Issue 64)
-        let nReqBitsForAcnEncoding = (GetActualTypeByName r o.modName o.tasName).acnMaxSizeInBits
+        //the bound of the length a decoder reads from the stream, as a literal, checked in the determinant's own type
+        //before any conversion (q/issues.md Issue 64). i115 (F5): the maximum of the contents at this site (what the
+        //parent's REQUIRED_BITS counts), at most the type assignment's (the size of tmpBs, the constants above). The
+        //site's ACN spec may drop part of the type assignment's encoding (CFDP `payload [size ...] {file-directive
+        //[present-when ...], ...}` has no CHOICE index: 259 octets, PayloadData 260); a length between the two passed
+        //the check and the Ada reads of the region and after it ran past the stream the decoder precondition provides.
+        //A site's maximum can also be larger (an alignment of the site, 24-DEDUCED-SIZE/004): the type assignment's then.
+        let nReqBitsForAcnEncoding = min o.resolvedType.acnMaxSizeInBits (GetActualTypeByName r o.modName o.tasName).acnMaxSizeInBits
         let nReqBytesForAcnEncoding = System.Numerics.BigInteger (ceil ((double nReqBitsForAcnEncoding)/8.0))
 
         let octet_string_containing_func            = lm.acn.octet_string_containing_func

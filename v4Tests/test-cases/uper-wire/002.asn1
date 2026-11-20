@@ -1,0 +1,10 @@
+-- Issue 133: a component whose type is an OCTET STRING (CONTAINING X) type assignment is decoded by a call of that type
+-- assignment's decoder, which fails when the contents do not fit the region (uPER: a length of 0 octets; ACN: 2 octets for
+-- contents of 18 bits). The Ada
+-- decoders of PDU (uPER and ACN, legacy and --acn-v2) classified that call by X, which cannot fail, asserted success
+-- and decoded on: the next component overwrote the result and a stream the C decoders reject was accepted.
+UPER-WIRE-CONTAINING DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    T   ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL, c INTEGER (0..255) OPTIONAL }
+    Box ::= OCTET STRING (CONTAINING T)
+    PDU ::= SEQUENCE { f Box, z BOOLEAN }
+END
