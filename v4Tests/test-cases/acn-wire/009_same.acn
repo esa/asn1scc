@@ -6,4 +6,6 @@ ACN-WIRE-SITE-SPEC DEFINITIONS ::= BEGIN
     Bits [] { h [] { a [size 8, encoding pos-int], b [] }, z [] }
     T6 []
     Emb6 [] { f [], z [] }
+    T13 [] { a [size 12, encoding pos-int], b [] }
+    Bits13 [] { h [], z [] }
 END

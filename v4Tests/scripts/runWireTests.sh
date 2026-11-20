@@ -471,14 +471,14 @@ for mode in "" "--acn-v2"; do
     done
 done
 
-# Without --acn-v2, an OCTET / BIT STRING (CONTAINING T) with an embedded length or a fixed size whose contents at the
-# site are longer than T's encoding, or never as short (a site ACN specification with child overrides), is rejected
-# (Issue 134: legacy decodes the region into a buffer of T's maximum and encodes T's bits under the site's length
-# range); --acn-v2 accepts it. C and Ada.
-site_spec_msg="error: the contents of this CONTAINING region are encoded in"
+# Without --acn-v2, an OCTET / BIT STRING (CONTAINING T) with an embedded length or a fixed size whose length range at
+# the site does not hold T's encoding (a larger or smaller maximum, a larger minimum: a site ACN specification with
+# child overrides) is rejected (Issue 134: legacy decodes the region into a buffer of T's maximum and writes T's length
+# under the site's range); --acn-v2 accepts it. C and Ada.
+site_spec_msg="error: the length of this CONTAINING region"
 site_spec_end="whose functions the region calls; not supported without --acn-v2 (use a type assignment for the contents)"
-for variant in "emb 4:15 33..34 T 9..10" "fix 5:15 40..40 Fx 16..16" "bits 6:16 33..34 T 9..10" \
-    "bits12 6:16 13..14 T 9..10" "emb6 8:16 17..27 T6 16..26"; do
+for variant in "emb 4:15 5..5 T 2..2 octets" "fix 5:15 5..5 Fx 2..2 octets" "bits 6:16 33..34 T 9..10 bits" \
+    "bits12 6:16 13..14 T 9..10 bits" "emb6 8:16 3..4 T6 2..4 octets" "narrow 10:18 9..10 T13 13..14 bits"; do
     set -- $variant
     for lang in c Ada; do
         out=$work/acn009$1$lang
@@ -490,7 +490,7 @@ for variant in "emb 4:15 33..34 T 9..10" "fix 5:15 40..40 Fx 16..16" "bits 6:16 
         fi
         site=$(echo "$3" | sed 's/\.\./ .. /')
         callee=$(echo "$5" | sed 's/\.\./ .. /')
-        if ! grep -qF "009_$1.acn:$2: $site_spec_msg $site bits, outside those of $4 ($callee bits), $site_spec_end" \
+        if ! grep -qF "009_$1.acn:$2: $site_spec_msg ($site $6) does not match the encoding of $4 ($callee $6), $site_spec_end" \
             "$out/stderr.txt"; then
             echo "acn-wire 009 $1 $lang FAILED, got:"
             cat "$out/stderr.txt"

@@ -230,22 +230,37 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
         let nReqBytesForAcnEncoding = System.Numerics.BigInteger (ceil ((double nReqBitsForAcnEncoding)/8.0))
 
         //Issue 134 (S3): legacy decodes an embedded-length / fixed-size region into a temporary buffer of the callee's
-        //maximum and encodes the contents with the callee's function, under the length range of the contents at this
-        //site (o.resolvedType). When the site's contents can be longer than the callee's encoding, or never as short
-        //(a site ACN specification with child overrides `f [] { a [size 12] }`, also below an octet boundary), the
-        //decoder writes past the buffer and the encoder writes a length below its range: reject it. Compared in bits
-        //(a region in octets hides a growth inside the last octet). A site may narrow the contents (CFDP). --acn-v2
-        //decodes in place (no buffer, Issue 135); the external-size class checks its length against the buffer.
-        let siteExceedsCallee =
-            o.resolvedType.acnMaxSizeInBits > calleeType.acnMaxSizeInBits || o.resolvedType.acnMinSizeInBits > calleeType.acnMinSizeInBits
-        match r.args.acnDeferred, encOptions.acnEncodingClass, siteExceedsCallee with
+        //maximum and encodes the contents with the callee's function, whose length (octets for an OCTET STRING, bits for
+        //a BIT STRING) it writes under the length range of the contents at this site (encOptions, from o.resolvedType).
+        //The callee's encoding fits that range only when the maxima are equal (a larger site maximum: the decoder writes
+        //past the buffer; a smaller one: the encoder writes a length above its range) and, with an embedded length, the
+        //site's minimum is not above the callee's (else a length below the range). A site ACN specification with child
+        //overrides (`f [] { a [size 12] }`) breaks this in either direction: reject it. Compared in the region's unit,
+        //so a change of bits inside the same octets of an OCTET STRING region is accepted. --acn-v2 decodes in place (no
+        //buffer, Issue 135); the external-size class (CFDP) checks its length against the buffer.
+        let regionUnits (bits:bigint) =
+            match encOptions.octOrBitStr with
+            | ContainedInOctString -> (bits + 7I) / 8I
+            | ContainedInBitString -> bits
+        let unitName =
+            match encOptions.octOrBitStr with
+            | ContainedInOctString -> "octets"
+            | ContainedInBitString -> "bits"
+        let calleeMin, calleeMax = regionUnits calleeType.acnMinSizeInBits, regionUnits calleeType.acnMaxSizeInBits
+        let siteMin, siteMax = encOptions.minSize.acn, encOptions.maxSize.acn
+        let calleeDoesNotFit =
+            match encOptions.acnEncodingClass with
+            | SZ_EC_LENGTH_EMBEDDED _ -> siteMax <> calleeMax || siteMin > calleeMin
+            | SZ_EC_FIXED_SIZE        -> siteMax <> calleeMax
+            | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> false
+        match r.args.acnDeferred, encOptions.acnEncodingClass, calleeDoesNotFit with
         | false, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_FIXED_SIZE), true ->
             let errLoc = match t.acnLocation with Some l -> l | None -> loc
             let calleeName =
                 match calleeType.id.topLevelTas with
                 | Some tas -> tas.tasName
                 | None     -> o.tasName.Value
-            raise (SemanticError (errLoc, sprintf "the contents of this CONTAINING region are encoded in %s .. %s bits, outside those of %s (%s .. %s bits), whose functions the region calls; not supported without --acn-v2 (use a type assignment for the contents)" (o.resolvedType.acnMinSizeInBits.ToString()) (o.resolvedType.acnMaxSizeInBits.ToString()) calleeName (calleeType.acnMinSizeInBits.ToString()) (calleeType.acnMaxSizeInBits.ToString())))
+            raise (SemanticError (errLoc, sprintf "the length of this CONTAINING region (%s .. %s %s) does not match the encoding of %s (%s .. %s %s), whose functions the region calls; not supported without --acn-v2 (use a type assignment for the contents)" (siteMin.ToString()) (siteMax.ToString()) unitName calleeName (calleeMin.ToString()) (calleeMax.ToString()) unitName))
         | true, _, _
         | false, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_FIXED_SIZE), false
         | false, (SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced), _ -> ()
