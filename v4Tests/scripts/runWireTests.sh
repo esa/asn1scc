@@ -471,12 +471,14 @@ for mode in "" "--acn-v2"; do
     done
 done
 
-# Without --acn-v2, a site ACN specification that changes the size of the contents of an OCTET / BIT STRING (CONTAINING
-# T) with an embedded length or a fixed size is rejected (Issue 134: legacy decodes the region into a buffer of T's
-# maximum); --acn-v2 accepts it. C and Ada.
-site_spec_msg="error: the ACN specification of this CONTAINING changes the size of its contents (5 octets, the encoding of"
-site_spec_end="at most 2 octets); not supported without --acn-v2 (use a type assignment or a size field)"
-for variant in "emb 4:15 T" "fix 5:15 Fx" "bits 6:16 T"; do
+# Without --acn-v2, an OCTET / BIT STRING (CONTAINING T) with an embedded length or a fixed size whose contents at the
+# site are longer than T's encoding, or never as short (a site ACN specification with child overrides), is rejected
+# (Issue 134: legacy decodes the region into a buffer of T's maximum and encodes T's bits under the site's length
+# range); --acn-v2 accepts it. C and Ada.
+site_spec_msg="error: the contents of this CONTAINING region are encoded in"
+site_spec_end="whose functions the region calls; not supported without --acn-v2 (use a type assignment for the contents)"
+for variant in "emb 4:15 33..34 T 9..10" "fix 5:15 40..40 Fx 16..16" "bits 6:16 33..34 T 9..10" \
+    "bits12 6:16 13..14 T 9..10" "emb6 8:16 17..27 T6 16..26"; do
     set -- $variant
     for lang in c Ada; do
         out=$work/acn009$1$lang
@@ -486,7 +488,10 @@ for variant in "emb 4:15 T" "fix 5:15 Fx" "bits 6:16 T"; do
             echo "acn-wire 009 $1 $lang FAILED: accepted without --acn-v2"
             exit 1
         fi
-        if ! grep -qF "009_$1.acn:$2: $site_spec_msg $3 $site_spec_end" "$out/stderr.txt"; then
+        site=$(echo "$3" | sed 's/\.\./ .. /')
+        callee=$(echo "$5" | sed 's/\.\./ .. /')
+        if ! grep -qF "009_$1.acn:$2: $site_spec_msg $site bits, outside those of $4 ($callee bits), $site_spec_end" \
+            "$out/stderr.txt"; then
             echo "acn-wire 009 $1 $lang FAILED, got:"
             cat "$out/stderr.txt"
             exit 1

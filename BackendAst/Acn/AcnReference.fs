@@ -230,19 +230,22 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
         let nReqBytesForAcnEncoding = System.Numerics.BigInteger (ceil ((double nReqBitsForAcnEncoding)/8.0))
 
         //Issue 134 (S3): legacy decodes an embedded-length / fixed-size region into a temporary buffer of the callee's
-        //maximum and encodes the contents with the callee's function. A site ACN specification that makes the region
-        //larger than that (child overrides `f [] { a [size 32] }`) would make the decoder write past the buffer: reject
-        //it. --acn-v2 decodes in place (no buffer); the external-size class checks its length against the buffer.
-        let regionMaxOctets =
-            match encOptions.octOrBitStr with
-            | ContainedInOctString -> encOptions.maxSize.acn
-            | ContainedInBitString -> (encOptions.maxSize.acn + 7I) / 8I
-        let calleeOctets = (calleeType.acnMaxSizeInBits + 7I) / 8I
-        let regionExceedsBuffer = regionMaxOctets > calleeOctets
-        match r.args.acnDeferred, encOptions.acnEncodingClass, regionExceedsBuffer with
+        //maximum and encodes the contents with the callee's function, under the length range of the contents at this
+        //site (o.resolvedType). When the site's contents can be longer than the callee's encoding, or never as short
+        //(a site ACN specification with child overrides `f [] { a [size 12] }`, also below an octet boundary), the
+        //decoder writes past the buffer and the encoder writes a length below its range: reject it. Compared in bits
+        //(a region in octets hides a growth inside the last octet). A site may narrow the contents (CFDP). --acn-v2
+        //decodes in place (no buffer, Issue 135); the external-size class checks its length against the buffer.
+        let siteExceedsCallee =
+            o.resolvedType.acnMaxSizeInBits > calleeType.acnMaxSizeInBits || o.resolvedType.acnMinSizeInBits > calleeType.acnMinSizeInBits
+        match r.args.acnDeferred, encOptions.acnEncodingClass, siteExceedsCallee with
         | false, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_FIXED_SIZE), true ->
             let errLoc = match t.acnLocation with Some l -> l | None -> loc
-            raise (SemanticError (errLoc, sprintf "the ACN specification of this CONTAINING changes the size of its contents (%s octets, the encoding of %s at most %s octets); not supported without --acn-v2 (use a type assignment or a size field)" (regionMaxOctets.ToString()) o.tasName.Value (calleeOctets.ToString())))
+            let calleeName =
+                match calleeType.id.topLevelTas with
+                | Some tas -> tas.tasName
+                | None     -> o.tasName.Value
+            raise (SemanticError (errLoc, sprintf "the contents of this CONTAINING region are encoded in %s .. %s bits, outside those of %s (%s .. %s bits), whose functions the region calls; not supported without --acn-v2 (use a type assignment for the contents)" (o.resolvedType.acnMinSizeInBits.ToString()) (o.resolvedType.acnMaxSizeInBits.ToString()) calleeName (calleeType.acnMinSizeInBits.ToString()) (calleeType.acnMaxSizeInBits.ToString())))
         | true, _, _
         | false, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_FIXED_SIZE), false
         | false, (SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced), _ -> ()
