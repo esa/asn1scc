@@ -1113,7 +1113,7 @@ if (!<sIsValidFunc>(<sAmber>tc_data, &errCode) || errCode != 0) {
 
 /* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
    changed must compare unequal, both ways. */
-emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks) ::= <<
 void <sFuncName>(const TestOutput* output, int *totalErrors)
 {
     const char* equalFor = NULL;
@@ -1136,7 +1136,7 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         output->report_test_case_success("<sTasName>/<sFuncName>", 0);
     } else {
         output->report_failure_begin();
-        output->report_failure_message("Test case '<sFuncName>' failed: <sEqualFunc> returned TRUE for two different values:");
+        output->report_failure_message("Test case '<sFuncName>' failed: <sEqualFunc> returned TRUE for two different values<if(bReflexiveChecks)> or FALSE for a value and itself<endif>:");
         output->report_failure_message(equalFor);
         output->report_failure_message("========================================");
         *totalErrors = (*totalErrors) + 1;

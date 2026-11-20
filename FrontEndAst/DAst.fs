@@ -583,10 +583,16 @@ and AtcVariant = {
 
 /// Coverage cycle 15c: the automatic tests that may take a variant. Monotone: a variant marked EqualityOnly stays
 /// EqualityOnly when it is lifted further (DAstInitialize.ownTreeVariants), and it never has `replaces` (helper
-/// DAstInitialize.equalityOnly), so it never reaches the step-14d tests.
+/// DAstInitialize.equalityOnly), so it never reaches the step-14d tests. Every case but EqualityAndInconsistency is new
+/// in the Equal tests since 15c and is taken there only when every automatic value of the type assignment sets every
+/// component (DastTestCaseCreation.completeTestValues): T_Equal reads every presence flag, and the C / Ada initialisers
+/// leave some unset (an OPTIONAL NULL, a child without automatic values), which the tests of before 15c already read.
 and AtcVariantUse =
     // test_case_unequal_* (T_Equal must return FALSE) and, when `replaces` is Some, test_case_inconsistent_* (14d)
     | EqualityAndInconsistency
+    // test_case_inconsistent_* (14d), and test_case_unequal_* on complete values: an inner node of an --acn-v2
+    // reference site with ids of its own (14e E6-C; before 15c the step-14d tests only)
+    | InconsistencyAndEquality
     // test_case_unequal_* only: an inner node of a reference whose ids the parent's test values do not key (an inner
     // variant of a reference lifted to its parent)
     | EqualityOnly

@@ -1049,17 +1049,48 @@ let private variantText (t:Asn1Type) (sTypeName:string) (v:AtcVariant) =
     // the text goes into a comment and a string literal
     what.Replace("\"", "'").Replace("\\", "/").Replace("*/", "* /")
 
+/// Coverage cycle 15c: every automatic test value of the type sets every component it holds, by the rules of the
+/// initialisers (DAstInitialize, SEQUENCE generateCases): a SEQUENCE sets only the children with automatic values (a
+/// mandatory child without values stays unset, an OPTIONAL one without values gets no presence flag); a backend that
+/// decodes in place (C, Ada) leaves an OPTIONAL NULL child out, presence flag included; ALWAYS ABSENT children get
+/// their flag; a SEQUENCE OF of an element without values gets no length; a CHOICE selects only alternatives with
+/// values. Conservative: the whole type, every value.
+let rec private completeTestValues (lm:LanguageMacros) (t:Asn1Type) : bool =
+    let hasValues (c:Asn1Type) = not c.initFunction.automaticTestCases.IsEmpty
+    match t.Kind with
+    | Sequence sq ->
+        sq.children |>
+        List.forall (fun c ->
+            match c with
+            | AcnChild _   -> true
+            | Asn1Child ch ->
+                match ch.Type.Kind, ch.Optionality, lm.lg.decodingKind with
+                | _, Some Asn1AcnAst.AlwaysAbsent, _                              -> true
+                | NullType _, (None | Some Asn1AcnAst.AlwaysPresent), _           -> true
+                | NullType _, Some (Asn1AcnAst.Optional _), InPlace               -> false
+                | NullType _, Some (Asn1AcnAst.Optional _), Copy                  -> hasValues ch.Type
+                | _, (None | Some Asn1AcnAst.AlwaysPresent | Some (Asn1AcnAst.Optional _)), _ ->
+                    hasValues ch.Type && completeTestValues lm ch.Type)
+    | Choice ch        -> ch.children |> List.forall (fun c -> not (hasValues c.chType) || completeTestValues lm c.chType)
+    | SequenceOf o     -> hasValues o.childType && completeTestValues lm o.childType
+    | ReferenceType rf -> completeTestValues lm rf.resolvedType
+    | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _ | BitString _ | Boolean _ | Enumerated _
+    | ObjectIdentifier _ | TimeType _ -> true
+
 let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
     match lm.lg.atcEmitsEqualityVariantTests, t.equalFunction.isEqualFuncName with
     | true, Some sEqualFunc ->
         let atcs = t.initFunction.automaticTestCases |> List.toArray
+        // coverage cycle 15c: the variants that are new in the Equal tests only on a start value that sets every component
+        let complete = lazy (completeTestValues lm t)
         let variantsOf i atc =
             startVariants t atcs i atc |>
             List.filter (fun v ->
                 match v.usedBy with
-                | EqualityAndInconsistency
+                | EqualityAndInconsistency -> true
+                | InconsistencyAndEquality
                 | EqualityOnly
-                | EqualityOnlyAndReflexive -> true)
+                | EqualityOnlyAndReflexive -> complete.Force ())
         let _, starts =
             atcs |> Array.toList |> List.indexed |>
             List.fold (fun (seen:Set<string>, acc) (i, atc) ->
@@ -1094,11 +1125,23 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
                                 match v.usedBy with
                                 | EqualityOnlyAndReflexive -> [check; lm.atc.equalityReflexiveCheck td.programUnit encAmper sWhat sEqualFunc]
                                 | EqualityAndInconsistency
+                                | InconsistencyAndEquality
                                 | EqualityOnly             -> [check])
                         initStatement.localVariables @ (applied |> List.collect (fun (_, a) -> a.localVariables)), initStatement.funcBody :: checks)
                 let arrsVars = parts |> List.collect fst |> List.map lm.lg.getLocalVariableDeclaration |> Seq.distinct |> Seq.toList
                 let blocks = parts |> List.collect snd
-                let func_body = lm.atc.emitEqualityVariantTestCase sFuncName arrsVars td.programUnit td.typeName encAmper "" bStatic sEqualFunc blocks
+                // coverage cycle 15c (P4): the failure summary names the reflexive checks when the test has any
+                let bReflexiveChecks =
+                    starts |>
+                    List.exists (fun (_, variants) ->
+                        variants |>
+                        List.exists (fun v ->
+                            match v.usedBy with
+                            | EqualityOnlyAndReflexive -> true
+                            | EqualityAndInconsistency
+                            | InconsistencyAndEquality
+                            | EqualityOnly             -> false))
+                let func_body = lm.atc.emitEqualityVariantTestCase sFuncName arrsVars td.programUnit td.typeName encAmper "" bStatic sEqualFunc blocks bReflexiveChecks
                 (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)]
     | true, None
     | false, _ -> []
@@ -1156,7 +1199,8 @@ let inconsistentValueTestCases (lm:LanguageMacros) (t:Asn1Type) (sEncFunc:string
             List.choose (fun v ->
                 let replaces =
                     match v.usedBy with
-                    | EqualityAndInconsistency -> v.replaces
+                    | EqualityAndInconsistency
+                    | InconsistencyAndEquality -> v.replaces
                     | EqualityOnly
                     | EqualityOnlyAndReflexive -> None
                 replaces |>

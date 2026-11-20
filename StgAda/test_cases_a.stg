@@ -710,7 +710,7 @@ end if;
 
 /* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
    changed must compare unequal, both ways. */
-emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks) ::= <<
 procedure <sFuncName> ( totalErrors : in out Integer)
 is
     procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
@@ -743,7 +743,7 @@ begin
     if ok then
         Put_Line ("Test case '<sFuncName>' succeeded");
     else
-        Put_Line ("Test case '<sFuncName>' failed: <sEqualFunc> returned True for two different values.");
+        Put_Line ("Test case '<sFuncName>' failed: <sEqualFunc> returned True for two different values<if(bReflexiveChecks)> or False for a value and itself<endif>.");
         Put_Line ("========================================");
         totalErrors := totalErrors + 1;
     end if;

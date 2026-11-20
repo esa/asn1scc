@@ -308,10 +308,11 @@ let private ownTreeVariants (r:Asn1AcnAst.AstRoot) (child:Asn1Type) (atc:Automat
             | EqualityOnly             -> v
             // the reflexive check stays with the referenced type's own test
             | EqualityOnlyAndReflexive -> equalityOnly v
-            | EqualityAndInconsistency ->
+            | EqualityAndInconsistency
+            | InconsistencyAndEquality ->
                 match v.what.StartsWith ":", r.args.acnDeferred && belowSite v.nodeId && siteKeyed v with
                 | true, _      -> v
-                | false, true  -> v
+                | false, true  -> {v with usedBy = InconsistencyAndEquality}
                 | false, false -> equalityOnly v)
     | _               -> atc.variants
 

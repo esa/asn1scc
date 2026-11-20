@@ -477,7 +477,7 @@ emitValidityTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, bStatic, s
 validityCheck(sModName, sAmber, sInitializeTcData, sWhat, sIsValidFunc) ::= <<
 >>
 
-emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks) ::= <<
 >>
 
 equalityVariantCheck(sModName, sAmber, sApplyVariant, sWhat, sEqualFunc) ::= <<

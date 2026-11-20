@@ -95,8 +95,8 @@ type ITestCases_rust() =
             test_cases_rust.emitValidityTestCase  sFuncName arrsVars sModName sTasName sAmber bStatic sIsValidFunc arrsValueChecks 
         override this.validityCheck  (sModName:string) (sAmber:string) (sInitializeTcData:string) (sWhat:string) (sIsValidFunc:string) =
             test_cases_rust.validityCheck  sModName sAmber sInitializeTcData sWhat sIsValidFunc 
-        override this.emitEqualityVariantTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sEqualFunc:string) (arrsVariantChecks:seq<string>) =
-            test_cases_rust.emitEqualityVariantTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sEqualFunc arrsVariantChecks 
+        override this.emitEqualityVariantTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sEqualFunc:string) (arrsVariantChecks:seq<string>) (bReflexiveChecks:bool) =
+            test_cases_rust.emitEqualityVariantTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sEqualFunc arrsVariantChecks bReflexiveChecks 
         override this.equalityVariantCheck  (sModName:string) (sAmber:string) (sApplyVariant:string) (sWhat:string) (sEqualFunc:string) =
             test_cases_rust.equalityVariantCheck  sModName sAmber sApplyVariant sWhat sEqualFunc 
         override this.equalityReflexiveCheck  (sModName:string) (sAmber:string) (sWhat:string) (sEqualFunc:string) =
