@@ -1249,19 +1249,11 @@ let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReferenc
     let baseTypeDefinitionName = getBaseTypeDefName lm typeDefinitionName0 moduleName t o
     baseTypeDefinitionName, lm.lg.constructFuncName baseTypeDefinitionName methodSuffix (lm.lg.codecSuffix codec)
 
-/// q/issues.md Issue 91 (step 14k): the function a reference site without encoding options of its own calls. A type
-/// assignment `OctBox ::= OCTET STRING (CONTAINING Inner)` shares the contents' typedef (`typedef Inner OctBox`), so
-/// getBaseFuncName names the call after Inner and the site (`x OctBox`, also a CHOICE alternative, a SEQUENCE OF element,
-/// an alias `Box2 ::= OctBox`) encoded Inner without the OCTET / BIT STRING that OctBox's own function writes (and that
-/// REQUIRED_BITS and the ICD count). When the chain of type assignments reaches a CONTAINING, call the referenced type
-/// assignment's own function; otherwise getBaseFuncName.
-/// The type assignment whose own function a reference site without encoding options calls when the chain of type
-/// assignments reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise. The single predicate for
-/// the call's name (containingTasTypeName) and for what the call does: the decode classifiers of
-/// BackendAst/DecodeOutcome.fs classify such a call by this type assignment, not by the contents that
-/// GetActualTypeByName reaches through the CONTAINING (q/issues.md Issue 133: the site was classified "cannot fail"
-/// after a call of a CONTAINING decoder that fails on a bad length).
-let containingCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.TypeAssignment option =
+/// The type assignment whose own function a call from a reference site must use when the chain of type assignments
+/// from the referenced one reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise. Independent of
+/// the site's own encoding options: the contents of a CONTAINING site (`f OCTET STRING (CONTAINING Box)`, `Box ::= OCTET
+/// STRING (CONTAINING T)`) are Box's encoding, not T's (q/issues.md Issue 134).
+let chainCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.TypeAssignment option =
     let rec reachesContaining (modName:StringLoc) (tasName:StringLoc) (visited:Set<string*string>) =
         let key = (modName.Value, tasName.Value)
         match visited.Contains key with
@@ -1277,23 +1269,44 @@ let containingCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : As
             | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _
             | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _
             | Asn1AcnAst.Choice _ | Asn1AcnAst.TimeType _ -> false
+    match reachesContaining o.modName o.tasName Set.empty with
+    | false -> None
+    | true  -> Some ((r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r)
+
+/// The type assignment whose own function a reference site without encoding options calls when the chain of type
+/// assignments reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise, and None for a site with
+/// encoding options of its own (a CONTAINING site: its contents call is containedCalleeTas). The single predicate for
+/// the call's name (containingTasTypeName) and for what the call does: the decode classifiers of
+/// BackendAst/DecodeOutcome.fs classify such a call by this type assignment, not by the contents that
+/// GetActualTypeByName reaches through the CONTAINING (q/issues.md Issue 133: the site was classified "cannot fail"
+/// after a call of a CONTAINING decoder that fails on a bad length).
+let containingCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.TypeAssignment option =
     match o.encodingOptions with
     | Some _ -> None
-    | None   ->
-        match reachesContaining o.modName o.tasName Set.empty with
-        | false -> None
-        | true  -> Some ((r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r)
+    | None   -> chainCalleeTas r o
+
+/// q/issues.md Issue 134: the type assignment whose function encodes / decodes the contents of a CONTAINING site
+/// (a site with encoding options) when the chain of type assignments of the contents reaches a CONTAINING
+/// (`f OCTET STRING (CONTAINING Box)`, `Box ::= OCTET STRING (CONTAINING T)`: Box); None otherwise. Its name is also the
+/// prefix of the site's temporary buffer constant (`<Box>_REQUIRED_BYTES_FOR_[ACN_]ENCODING`). Before, the call and the
+/// buffer were named after the shared typedef (T), while the region range came from Box: the legacy decoders wrote past
+/// the buffer.
+let containedCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.TypeAssignment option =
+    match o.encodingOptions with
+    | None   -> None
+    | Some _ -> chainCalleeTas r o
+
+/// The type name of a type assignment as a call from the module of t names it (module-qualified across modules).
+let private tasTypeNameFrom (lm:LanguageMacros) (t: Asn1AcnAst.Asn1Type) (tas:Asn1AcnAst.TypeAssignment) =
+    let tasTypeDef = lm.lg.getTypeDefinition tas.Type.FT_TypeDefinition
+    match lm.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit with
+    | true  -> lm.lg.constructCrossModuleFuncPrefix tasTypeDef.programUnit + tasTypeDef.typeName
+    | false -> tasTypeDef.typeName
 
 /// The (module-qualified) type name of the type assignment a reference site without encoding options names when the
 /// chain of type assignments reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise.
 let containingTasTypeName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) =
-    match containingCalleeTas r o with
-    | None     -> None
-    | Some tas ->
-            let tasTypeDef = lm.lg.getTypeDefinition tas.Type.FT_TypeDefinition
-            match lm.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit with
-            | true  -> Some (lm.lg.constructCrossModuleFuncPrefix tasTypeDef.programUnit + tasTypeDef.typeName)
-            | false -> Some tasTypeDef.typeName
+    containingCalleeTas r o |> Option.map (tasTypeNameFrom lm t)
 
 /// q/issues.md Issue 91 (step 14k): the function a reference site without encoding options of its own calls. A type
 /// assignment `OctBox ::= OCTET STRING (CONTAINING Inner)` shares the contents' typedef (`typedef Inner OctBox`), so
@@ -1301,11 +1314,17 @@ let containingTasTypeName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (o:Asn1AcnA
 /// an alias `Box2 ::= OctBox`) encoded Inner without the OCTET / BIT STRING that OctBox's own function writes (and that
 /// REQUIRED_BITS and the ICD count). When the chain of type assignments reaches a CONTAINING, call the referenced type
 /// assignment's own function; otherwise getBaseFuncName.
+/// Issue 134: the same rule for the contents of a CONTAINING site (containedCalleeTas); there the first component (the
+/// buffer constant prefix of the CONTAINING arms) is the type assignment's name too. For a site without encoding options
+/// the first component is not read and stays getBaseFuncName's.
 let getReferenceCallFuncName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) (methodSuffix:string) (codec:CommonTypes.Codec) =
     let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t methodSuffix codec
-    match containingTasTypeName r lm o t with
-    | None         -> baseTypeDefinitionName, baseFncName
-    | Some tasName -> baseTypeDefinitionName, lm.lg.constructFuncName tasName methodSuffix (lm.lg.codecSuffix codec)
+    match containingTasTypeName r lm o t, containedCalleeTas r o with
+    | Some tasName, _ -> baseTypeDefinitionName, lm.lg.constructFuncName tasName methodSuffix (lm.lg.codecSuffix codec)
+    | None, Some tas  ->
+        let tasName = tasTypeNameFrom lm t tas
+        tasName, lm.lg.constructFuncName tasName methodSuffix (lm.lg.codecSuffix codec)
+    | None, None      -> baseTypeDefinitionName, baseFncName
 
 
 let serializeIcdTasToXml (icdTypeAss: IcdTypeAss) =

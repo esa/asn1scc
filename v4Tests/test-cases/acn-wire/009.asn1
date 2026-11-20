@@ -1,0 +1,14 @@
+-- Issue 134: without --acn-v2 an OCTET / BIT STRING (CONTAINING T) with an embedded length or a fixed size is decoded
+-- into a temporary buffer of T's maximum and encoded by T's own function. A site ACN specification that changes the
+-- size of the contents (here [size 32] for an 8-bit INTEGER of T) made the region larger than that buffer: the legacy
+-- decoders wrote past it on every valid stream. Without --acn-v2 such a specification is rejected; --acn-v2 accepts it
+-- (23-CONTAINING/020 round-trips the OCTET STRING forms). No directives: run by v4Tests/scripts/runWireTests.sh with
+-- 009_emb.acn, 009_fix.acn, 009_bits.acn (one component with such a specification each: embedded length, fixed size,
+-- BIT STRING) and 009_same.acn (child specifications that keep the sizes: accepted in both modes).
+ACN-WIRE-SITE-SPEC DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    T     ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL }
+    Fx    ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..255) }
+    Emb   ::= SEQUENCE { f OCTET STRING (CONTAINING T), z BOOLEAN }
+    Fix   ::= SEQUENCE { g OCTET STRING (CONTAINING Fx), z BOOLEAN }
+    Bits  ::= SEQUENCE { h BIT STRING (CONTAINING T), z BOOLEAN }
+END

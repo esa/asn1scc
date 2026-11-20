@@ -128,6 +128,28 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# An inline OCTET / BIT STRING (CONTAINING Box) whose contents are a CONTAINING type assignment: the contents are Box's
+# encoding, and the region never exceeds the temporary buffer (Issue 134: the call and the buffer were named after the
+# typedef Box shares with its contents, the decoders wrote past the buffer). uPER and ACN, legacy and --acn-v2; C with
+# ASan / UBSan, Ada with and without -gnata.
+for mode in "" "--acn-v2"; do
+    out=$work/uper003$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/003.asn1"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/uper-wire/003_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "uper-wire 003 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/uper003ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/003.asn1"
+        cp "$root/test-cases/uper-wire/003_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "uper-wire 003 (Ada) $mode $gnata OK"
+    done
+done
+
 # ACN INTEGER as ASCII digits with a terminator: a value outside the range of the type, or a digit string beyond the
 # integer type, is an error code (Ada used to raise Constraint_Error, and accepted digit strings that wrapped around);
 # C, Ada x86 and Ada msp430 (-gnata: the RTL contracts are checked too).
@@ -426,5 +448,61 @@ if ! grep -qF "039.acn:11:4: error: OCTET / BIT STRING (CONTAINING ...) componen
     exit 1
 fi
 echo "legacy 039 rejection OK"
+
+# An ACN align-to-next of a CONTAINING aligns the octet / bit string, not the contents (Issue 134: it entered the
+# contents' sizes, the region's length range grew by one octet and the legacy decoders wrote past their temporary
+# buffer). Legacy and --acn-v2; C with ASan / UBSan, Ada with and without -gnata.
+for mode in "" "--acn-v2"; do
+    out=$work/acn008$mode
+    mkdir "$out"
+    run_compiler -c -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/008.asn1" "$root/test-cases/acn-wire/008.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/acn-wire/008_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 008 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/acn008ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/008.asn1" \
+            "$root/test-cases/acn-wire/008.acn"
+        cp "$root/test-cases/acn-wire/008_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "acn-wire 008 (Ada) $mode $gnata OK"
+    done
+done
+
+# Without --acn-v2, a site ACN specification that changes the size of the contents of an OCTET / BIT STRING (CONTAINING
+# T) with an embedded length or a fixed size is rejected (Issue 134: legacy decodes the region into a buffer of T's
+# maximum); --acn-v2 accepts it. C and Ada.
+site_spec_msg="error: the ACN specification of this CONTAINING changes the size of its contents (5 octets, the encoding of"
+site_spec_end="at most 2 octets); not supported without --acn-v2 (use a type assignment or a size field)"
+for variant in "emb 4:15 T" "fix 5:15 Fx" "bits 6:16 T"; do
+    set -- $variant
+    for lang in c Ada; do
+        out=$work/acn009$1$lang
+        mkdir "$out"
+        if run_compiler -$lang -ACN -o "$out" "$root/test-cases/acn-wire/009.asn1" \
+            "$root/test-cases/acn-wire/009_$1.acn" 2>"$out/stderr.txt"; then
+            echo "acn-wire 009 $1 $lang FAILED: accepted without --acn-v2"
+            exit 1
+        fi
+        if ! grep -qF "009_$1.acn:$2: $site_spec_msg $3 $site_spec_end" "$out/stderr.txt"; then
+            echo "acn-wire 009 $1 $lang FAILED, got:"
+            cat "$out/stderr.txt"
+            exit 1
+        fi
+        out=$work/acn009$1${lang}v2
+        mkdir "$out"
+        run_compiler -$lang -ACN --acn-v2 -o "$out" "$root/test-cases/acn-wire/009.asn1" \
+            "$root/test-cases/acn-wire/009_$1.acn"
+        echo "acn-wire 009 $1 $lang rejection without --acn-v2 OK"
+    done
+done
+for mode in "" "--acn-v2"; do
+    out=$work/acn009same$mode
+    mkdir "$out"
+    run_compiler -c -ACN $mode -o "$out" "$root/test-cases/acn-wire/009.asn1" "$root/test-cases/acn-wire/009_same.acn"
+    echo "acn-wire 009 same $mode OK"
+done
 
 echo "acn-v2 wire checks passed"

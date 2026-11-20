@@ -218,10 +218,34 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
         //site's ACN spec may drop part of the type assignment's encoding (CFDP `payload [size ...] {file-directive
         //[present-when ...], ...}` has no CHOICE index: 259 octets, PayloadData 260); a length between the two passed
         //the check and the Ada reads of the region and after it ran past the stream the decoder precondition provides.
-        //A site's maximum can also be larger (an alignment of the site, 24-DEDUCED-SIZE/004): the type assignment's then.
-        let nReqBitsForAcnEncoding = min o.resolvedType.acnMaxSizeInBits (GetActualTypeByName r o.modName o.tasName).acnMaxSizeInBits
+        //A site's maximum can also be larger (a site ACN specification that overrides the contents' children; legacy
+        //rejects it below, --acn-v2 encodes the type assignment's encoding anyway, Issue 135): the type assignment's then.
+        //Issue 134: the callee is the type assignment the contents' chain reaches when it reaches a CONTAINING (Box of
+        //`OCTET STRING (CONTAINING Box)`, Box ::= OCTET STRING (CONTAINING T)); its constants size the temporary buffer.
+        let calleeType =
+            match containedCalleeTas r o with
+            | Some tas -> tas.Type
+            | None     -> GetActualTypeByName r o.modName o.tasName
+        let nReqBitsForAcnEncoding = min o.resolvedType.acnMaxSizeInBits calleeType.acnMaxSizeInBits
         let nReqBytesForAcnEncoding = System.Numerics.BigInteger (ceil ((double nReqBitsForAcnEncoding)/8.0))
 
+        //Issue 134 (S3): legacy decodes an embedded-length / fixed-size region into a temporary buffer of the callee's
+        //maximum and encodes the contents with the callee's function. A site ACN specification that makes the region
+        //larger than that (child overrides `f [] { a [size 32] }`) would make the decoder write past the buffer: reject
+        //it. --acn-v2 decodes in place (no buffer); the external-size class checks its length against the buffer.
+        let regionMaxOctets =
+            match encOptions.octOrBitStr with
+            | ContainedInOctString -> encOptions.maxSize.acn
+            | ContainedInBitString -> (encOptions.maxSize.acn + 7I) / 8I
+        let calleeOctets = (calleeType.acnMaxSizeInBits + 7I) / 8I
+        let regionExceedsBuffer = regionMaxOctets > calleeOctets
+        match r.args.acnDeferred, encOptions.acnEncodingClass, regionExceedsBuffer with
+        | false, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_FIXED_SIZE), true ->
+            let errLoc = match t.acnLocation with Some l -> l | None -> loc
+            raise (SemanticError (errLoc, sprintf "the ACN specification of this CONTAINING changes the size of its contents (%s octets, the encoding of %s at most %s octets); not supported without --acn-v2 (use a type assignment or a size field)" (regionMaxOctets.ToString()) o.tasName.Value (calleeOctets.ToString())))
+        | true, _, _
+        | false, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_FIXED_SIZE), false
+        | false, (SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced), _ -> ()
         let octet_string_containing_func            = lm.acn.octet_string_containing_func
         let bit_string_containing_func              = lm.acn.bit_string_containing_func
         let octet_string_containing_ext_field_func  = lm.acn.octet_string_containing_ext_field_func

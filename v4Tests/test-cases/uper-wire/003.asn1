@@ -1,0 +1,15 @@
+-- Issue 134: an inline OCTET / BIT STRING (CONTAINING Box) whose contents are a CONTAINING type assignment (Box ::= OCTET
+-- STRING (CONTAINING T)) shares T's typedef. The call and the temporary buffer were named after T (T_Decode into
+-- arr[T_REQUIRED_BYTES_FOR_ENCODING], 3 octets) while the region range came from Box (up to 4 octets): the decoders
+-- wrote past the buffer (uPER legacy and --acn-v2, ACN legacy), the uPER encoders wrote T without Box's general length
+-- (X.691: the contents are Box's encoding) and the legacy ACN encoder wrote a length outside its range. Fixed-size
+-- contents (P70) round-tripped but lacked Box's length in uPER; their ACN bytes do not change.
+UPER-WIRE-NESTED DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    T     ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL, c INTEGER (0..255) OPTIONAL }
+    Box   ::= OCTET STRING (CONTAINING T)
+    P10   ::= SEQUENCE { f OCTET STRING (CONTAINING Box), z BOOLEAN }
+    Fx    ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..255) }
+    BoxF  ::= OCTET STRING (CONTAINING Fx)
+    BBoxF ::= BIT STRING (CONTAINING Fx)
+    P70   ::= SEQUENCE { f OCTET STRING (CONTAINING BoxF), g BIT STRING (CONTAINING BBoxF), z BOOLEAN }
+END

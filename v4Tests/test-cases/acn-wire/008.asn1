@@ -1,0 +1,18 @@
+-- Issue 134: an ACN align-to-next of a CONTAINING aligns the octet / bit string, not the contents. It was also merged
+-- into the contents, whose maximum grew by up to 7 / 15 / 31 bits: the region's length range grew by one octet (Q6: a
+-- 2-bit length for 2 .. 4 octets instead of a 1-bit one for 2 .. 3; QF: a length field for fixed-size contents, which
+-- have none) and the legacy decoders wrote a region longer than the contents' maximum past their temporary buffer of
+-- that maximum (MyMsg, the shape of 24-DEDUCED-SIZE/004: a length of 151 octets into a buffer of 150).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 008_wire_test.c / 008_wire_test.adb (C with ASan / UBSan,
+-- Ada with and without -gnata), legacy and --acn-v2.
+ACN-WIRE-ALIGNED DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    T       ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL, c INTEGER (0..255) OPTIONAL }
+    Box     ::= OCTET STRING (CONTAINING T)
+    Q6      ::= SEQUENCE { y BOOLEAN, f Box, z BOOLEAN }
+    Fx      ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..255) }
+    BoxF    ::= OCTET STRING (CONTAINING Fx)
+    QF      ::= SEQUENCE { y BOOLEAN, f BoxF, g OCTET STRING (CONTAINING Fx), z BOOLEAN }
+    MyInt12 ::= INTEGER (0..4000)
+    TLVList ::= SEQUENCE (SIZE(1..100)) OF MyInt12
+    MyMsg   ::= CHOICE { a INTEGER (0..200), b OCTET STRING (CONTAINING TLVList) }
+END

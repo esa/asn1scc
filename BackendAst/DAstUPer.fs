@@ -1386,6 +1386,16 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                 // Issue 94 (X.691 10.1.3, 9.3.16): general length, contents padded to whole octets, at least one octet.
                 // The decoder accepts 0 .. the maximum (octets, or bits for a BIT STRING).
                 let nContentsOctets = uPER.containingOctets o.resolvedType.uperMaxSizeInBits
+                // Issue 134: the region never exceeds the temporary buffer (sBufferBytes, the callee's maximum): the
+                // site has no uPER encoding of its own, so a larger region is a compiler bug, not a user error.
+                let calleeType =
+                    match containedCalleeTas r o with
+                    | Some tas -> tas.Type
+                    | None     -> GetActualTypeByName r o.modName o.tasName
+                let calleeOctets = max 1I ((calleeType.uperMaxSizeInBits + 7I) / 8I)
+                match nContentsOctets > calleeOctets with
+                | true  -> raise (BugErrorException (sprintf "uPER CONTAINING region of %s octets larger than the buffer of %s (%s octets) at %s" (nContentsOctets.ToString()) o.tasName.Value (calleeOctets.ToString()) t.id.AsString))
+                | false -> ()
                 let sBufferBytes =
                     match o.resolvedType.uperMaxSizeInBits > 0I with
                     | true  -> sprintf "%s_REQUIRED_BYTES_FOR_ENCODING" baseTypeDefinitionName

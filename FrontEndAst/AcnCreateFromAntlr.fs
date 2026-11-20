@@ -1672,13 +1672,22 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 //the contained sizeable type into an external-field one, see
                 //Docs/deduced-size-spec.md).  For non-deduced contained types the legacy
                 //merging behaviour is preserved.
+                //An align-to-next of a CONTAINING aligns the octet/bit string (its own alignment, emitted once before
+                //the region), never the contents (q/issues.md Issue 134): merged into the contents it added up to
+                //7 / 15 / 31 bits to their maximum size, so the region's length range grew by one octet (a spurious
+                //length field for fixed-size contents) and the legacy decoders wrote past their temporary buffer.
                 let baseIsDeduced =
                     match baseTypeAcnEncSpec with
                     | Some baseSpec -> baseSpec.acnProperties |> List.exists(fun p -> match p with SIZE GP_Deduced -> true | _ -> false)
                     | None          -> false
                 match rf.refEnc, acnType with
-                | Some _, Some ts when baseIsDeduced ->
-                    Some {ts with acnProperties = ts.acnProperties |> List.filter(fun p -> match p with SIZE _ | TERMINATION_PATTERN _ -> false | _ -> true)}
+                | Some _, Some ts ->
+                    let staysWithTheContainer p =
+                        match p with
+                        | ALIGNTONEXT _                  -> true
+                        | SIZE _ | TERMINATION_PATTERN _ -> baseIsDeduced
+                        | _                              -> false
+                    Some {ts with acnProperties = ts.acnProperties |> List.filter(fun p -> not (staysWithTheContainer p))}
                 | _ -> acnType
             let mergedAcnEncSpec =
                 //if a reference type has a component constraint (i.e. it is actually a SEQUENCE, CHOICE or SEQUENCE OF) then we should not merge the ACN spec

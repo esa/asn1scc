@@ -1,0 +1,20 @@
+-- ACNV2_ONLY C_ADA_ONLY (Issue 134: without --acn-v2 these specifications are rejected, v4Tests/test-cases/acn-wire/009 in runWireTests.sh)
+-- --acn-v2 decodes a CONTAINING region in place, without a temporary buffer, so a site ACN specification that changes
+-- the size of the contents does not make it write past a buffer. (Its encoding of such a site is still the type
+-- assignment's own, a separate defect; this file checks only that the specification is accepted and round-trips. The
+-- BIT STRING form with such a specification does not round-trip with --acn-v2 either and is not part of this file.)
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    T     ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL }
+    Fx    ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..255) }
+
+    MyPDU ::= SEQUENCE {
+        f   OCTET STRING (CONTAINING T),
+        g   OCTET STRING (CONTAINING Fx),
+        h   BIT STRING (CONTAINING T),
+        z   BOOLEAN
+    }
+
+END
+
+--TCLS     MyPDU[] { f[] { a[size 32, encoding pos-int], b[] }, g[] { a[size 32, encoding pos-int], b[] }, h[], z[] }
