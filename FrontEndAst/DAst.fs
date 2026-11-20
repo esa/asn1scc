@@ -579,16 +579,16 @@ and AtcVariant = {
     // the node (coverage step 14d: the ACN validity of the changed value); None for a toggle or a SEQUENCE OF element
     replaces    : (ReferenceToType * Map<ReferenceToType, TestCaseValue>) option
     usedBy      : AtcVariantUse                         // which automatic tests may take the variant
-    difference  : AtcVariantDifference                  // whether T_Equal surely sees the change
+    change      : AtcVariantChange                      // what the variant changes
 }
 
-/// Coverage cycle 15c (round 6): whether T_Equal compares the changed part exactly. Asn1Real_Equal accepts a relative
-/// difference below 1e-5 (C `asn1crt.c`, Ada RTL), so another automatic value of a node that holds a REAL may compare
-/// equal (`REAL (0.0 | 1.0 | 1.000001)`). The variants that are new in the Equal tests since 15c are taken only when
-/// they differ exactly.
-and AtcVariantDifference =
-    | DiffersExactly            // presence, size, alternative, a toggle, or another value of a node without REAL
-    | MayBeWithinRealTolerance  // another value of a node that holds a REAL
+/// Coverage cycle 15c (round 7, George: option A): the variants that are new in the Equal tests since 15c are taken
+/// only when they flip a presence flag, which T_Equal compares exactly. Another value may compare equal: a REAL within
+/// Asn1Real_Equal's tolerance (`REAL (0.0 | 1.0 | 1.000001)`), or two automatic values that are the same value
+/// (`data ('01'H | '00000001'B)`).
+and AtcVariantChange =
+    | PresenceFlip      // an OPTIONAL child's next test value (they alternate present / absent), an ALWAYS PRESENT child made absent
+    | ValueChange       // another value, size, alternative, a toggle
 
 /// Coverage cycle 15c: the automatic tests that may take a variant. Monotone: a variant marked EqualityOnly stays
 /// EqualityOnly when it is lifted further (DAstInitialize.ownTreeVariants), and it never has `replaces` (helper

@@ -1039,7 +1039,7 @@ let private startVariants (t:Asn1Type) (atcs:AutomaticTestCase array) (i:int) (a
         match atcs.Length >= 2 with
         | true  ->
             let other = atcs.[(i + 1) % atcs.Length]
-            [{AtcVariant.nodeId = t.id; what = ": another test value"; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap); usedBy = EqualityAndInconsistency; difference = DAstInitialize.atcValueDifference t}]
+            [{AtcVariant.nodeId = t.id; what = ": another test value"; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap); usedBy = EqualityAndInconsistency; change = ValueChange}]
         | false -> []
     whole @ atc.variants
 
@@ -1081,16 +1081,17 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
     match lm.lg.atcEmitsEqualityVariantTests, t.equalFunction.isEqualFuncName with
     | true, Some sEqualFunc ->
         let atcs = t.initFunction.automaticTestCases |> List.toArray
-        // coverage cycle 15c: the variants that are new in the Equal tests only on a start value that sets every component
-        // and only when T_Equal surely sees the change (no REAL value within Asn1Real_Equal's tolerance)
+        // coverage cycle 15c: the variants that are new in the Equal tests only when they flip a presence flag (T_Equal
+        // compares it exactly; another value may compare equal, AtcVariantChange) and only on a start value that sets
+        // every component (T_Equal reads every flag)
         let complete = lazy (completeTestValues lm t)
         let variantsOf i atc =
             startVariants t atcs i atc |>
             List.filter (fun v ->
-                match v.usedBy, v.difference with
-                | EqualityAndInconsistency, _                              -> true
-                | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), DiffersExactly -> complete.Force ()
-                | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), MayBeWithinRealTolerance -> false)
+                match v.usedBy, v.change with
+                | EqualityAndInconsistency, (PresenceFlip | ValueChange)                                 -> true
+                | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), PresenceFlip -> complete.Force ()
+                | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), ValueChange  -> false)
         let _, starts =
             atcs |> Array.toList |> List.indexed |>
             List.fold (fun (seen:Set<string>, acc) (i, atc) ->

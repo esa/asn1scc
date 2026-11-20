@@ -240,24 +240,6 @@ let acnValidChildTestCases (r:Asn1AcnAst.AstRoot) (child:Asn1Type) : AutomaticTe
         | []    -> atcs
         | valid -> valid
 
-/// Coverage cycle 15c (round 6): a node holds a REAL (through references): another automatic value of it may compare
-/// equal (Asn1Real_Equal's tolerance), see AtcVariantDifference.
-let rec atcHoldsReal (t:Asn1Type) =
-    match t.Kind with
-    | Real _           -> true
-    | Sequence sq      -> sq.children |> List.exists (fun c -> match c with Asn1Child ch -> atcHoldsReal ch.Type | AcnChild _ -> false)
-    | Choice ch        -> ch.children |> List.exists (fun c -> atcHoldsReal c.chType)
-    | SequenceOf o     -> atcHoldsReal o.childType
-    | ReferenceType rf -> atcHoldsReal rf.resolvedType
-    | Integer _ | IA5String _ | OctetString _ | NullType _ | BitString _ | Boolean _ | Enumerated _
-    | ObjectIdentifier _ | TimeType _ -> false
-
-/// The difference of another automatic value of a node (AtcVariantDifference).
-let atcValueDifference (t:Asn1Type) =
-    match atcHoldsReal t with
-    | true  -> MayBeWithinRealTolerance
-    | false -> DiffersExactly
-
 /// Coverage step 14a: the toggles of a primitive test value, where the language can hold the changed value
 /// (ILangGeneric.atcEqualityToggle: C).
 let private toggleVariants (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (toggles:EqualityToggle list) : AtcVariant list =
@@ -272,8 +254,7 @@ let private toggleVariants (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (toggles:
                 | ToggleFirstChar                               -> ": character 0 changed"
                 | ToggleByte i                                  -> sprintf ": byte %A changed" i
                 | ToggleBit k                                   -> sprintf ": bit %A changed" k
-            // a REAL toggle writes 1.0 for 0.0 and 0.0 otherwise: Asn1Real_Equal compares 0.0 exactly
-            {AtcVariant.nodeId = t.id; what = what; replaces = None; usedBy = EqualityAndInconsistency; difference = DiffersExactly
+            {AtcVariant.nodeId = t.id; what = what; replaces = None; usedBy = EqualityAndInconsistency; change = ValueChange
              applyFnc = fun p ->
                 let sToggle = lm.lg.atcEqualityToggle toggle p.accessPath |> Option.defaultValue ""
                 {InitFunctionResult.funcBody = sToggle; resultVar = p.accessPath.asIdentifier lm.lg; localVariables = []}}))
@@ -952,7 +933,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                     match childAll.Length >= 2 with
                     | true  ->
                         let other = childAll.[(bundleStart + 1) % childAll.Length]
-                        [{AtcVariant.nodeId = childType.id; what = "[0]: another value"; applyFnc = (fun p -> other.initTestCaseFunc (elemScope p)); replaces = None; usedBy = EqualityAndInconsistency; difference = atcValueDifference childType}]
+                        [{AtcVariant.nodeId = childType.id; what = "[0]: another value"; applyFnc = (fun p -> other.initTestCaseFunc (elemScope p)); replaces = None; usedBy = EqualityAndInconsistency; change = ValueChange}]
                     | false -> []
                 swap @ liftVariants "[0]" elemScope (ownTreeVariants r childType childAll.[bundleStart])
         let seqOfCase (childAll : AutomaticTestCase list) (bundleStart:int) (childTestCases : AutomaticTestCase list) (nSize:BigInteger)  =
@@ -1053,7 +1034,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                 sized |>
                 List.map (fun (nSize, atc) ->
                     match sized |> List.tryFind (fun (n, _) -> n <> nSize) with
-                    | Some (n, other) -> {atc with variants = {AtcVariant.nodeId = t.id; what = sprintf ": %A elements instead of %A" n nSize; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap); usedBy = EqualityAndInconsistency; difference = DiffersExactly} :: atc.variants}
+                    | Some (n, other) -> {atc with variants = {AtcVariant.nodeId = t.id; what = sprintf ": %A elements instead of %A" n nSize; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap); usedBy = EqualityAndInconsistency; change = ValueChange} :: atc.variants}
                     | None            -> atc)
             seq {
                 match o.minSize.acn = o.maxSize.acn with
@@ -1275,7 +1256,16 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         childrenATCs |>
                         List.choose (fun (c, childCases, ln) ->
                             match ln >= 2 with
-                            | true  -> Some {AtcVariant.nodeId = c.Type.id; what = c.Name.Value + ": another value"; applyFnc = childCases.[(seqTestCaseIndex + 1) % ln].initTestCaseFunc; replaces = Some (c.Type.id, childCases.[(seqTestCaseIndex + 1) % ln].testCaseTypeIDsMap); usedBy = EqualityAndInconsistency; difference = atcValueDifference c.Type}
+                            | true  ->
+                                // an OPTIONAL child's test values alternate present / absent (handleChild), so its next
+                                // value flips the presence flag
+                                let change =
+                                    match c.Optionality with
+                                    | Some (Asn1AcnAst.Optional _) -> PresenceFlip
+                                    | Some Asn1AcnAst.AlwaysPresent
+                                    | Some Asn1AcnAst.AlwaysAbsent
+                                    | None                         -> ValueChange
+                                Some {AtcVariant.nodeId = c.Type.id; what = c.Name.Value + ": another value"; applyFnc = childCases.[(seqTestCaseIndex + 1) % ln].initTestCaseFunc; replaces = Some (c.Type.id, childCases.[(seqTestCaseIndex + 1) % ln].testCaseTypeIDsMap); usedBy = EqualityAndInconsistency; change = change}
                             | false -> None)
                     // Coverage cycle 15c: an ALWAYS PRESENT child (WITH COMPONENTS PRESENT) made absent, for the Equal
                     // tests only: no other variant makes it absent, so T_Equal's presence check of it was never FALSE.
@@ -1286,7 +1276,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         List.choose (fun (c, _, _) ->
                             match c.Optionality with
                             | Some Asn1AcnAst.AlwaysPresent ->
-                                Some {AtcVariant.nodeId = c.Type.id; what = c.Name.Value + ": absent (WITH COMPONENTS requires it)"; applyFnc = absentChildFunc c; replaces = None; usedBy = EqualityOnlyAndReflexive; difference = DiffersExactly}
+                                Some {AtcVariant.nodeId = c.Type.id; what = c.Name.Value + ": absent (WITH COMPONENTS requires it)"; applyFnc = absentChildFunc c; replaces = None; usedBy = EqualityOnlyAndReflexive; change = PresenceFlip}
                             | Some (Asn1AcnAst.Optional _)
                             | Some Asn1AcnAst.AlwaysAbsent
                             | None -> None)
@@ -1473,7 +1463,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             List.map (fun (ai, atc) ->
                 let other = [1 .. nAlts - 1] |> List.tryPick (fun d -> all |> List.tryFind (fun (aj, _) -> aj = (ai + d) % nAlts))
                 match other with
-                | Some (_, o) -> {atc with variants = {AtcVariant.nodeId = t.id; what = ": another alternative"; applyFnc = o.initTestCaseFunc; replaces = Some (t.id, o.testCaseTypeIDsMap); usedBy = EqualityAndInconsistency; difference = DiffersExactly} :: atc.variants}
+                | Some (_, o) -> {atc with variants = {AtcVariant.nodeId = t.id; what = ": another alternative"; applyFnc = o.initTestCaseFunc; replaces = Some (t.id, o.testCaseTypeIDsMap); usedBy = EqualityAndInconsistency; change = ValueChange} :: atc.variants}
                 | None        -> atc)
         let handleChild  (ch:ChChildInfo)  =
             let len = ch.chType.initFunction.automaticTestCases.Length
