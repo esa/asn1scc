@@ -50,7 +50,7 @@ is
       Pre     => bs.Size_In_Bytes < Positive'Last / 8
       and then p.Bit_Pos <= bs.Size_In_Bytes * 8,
       Post    => bs.Current_Bit_Pos = p.Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    function Acn_BitStream_DistanceInBytes
      (Start_Pos, End_Pos : AcnBitStreamPos) return Asn1UInt is
@@ -75,8 +75,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -90,8 +90,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    --  --- Batch A: U16/U32/U64 big-endian and little-endian pairs ---
 
@@ -101,8 +101,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -116,8 +116,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 16
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    procedure Acn_InitDet_U32_BE
      (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
@@ -125,8 +125,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -140,8 +140,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 32
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    procedure Acn_InitDet_U64_BE
      (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
@@ -149,8 +149,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -163,8 +163,8 @@ is
       Pre  => bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 64
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    procedure Acn_InitDet_U16_LE
      (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
@@ -172,8 +172,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -187,8 +187,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 16
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    procedure Acn_InitDet_U32_LE
      (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
@@ -196,8 +196,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -211,8 +211,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 32
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    procedure Acn_InitDet_U64_LE
      (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
@@ -220,8 +220,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -234,8 +234,8 @@ is
       Pre  => bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 64
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    --  --- Batch B: I8/I16/I32/I64 BE (signed two's complement) pairs ---
    --  PatchDet takes V : Asn1UInt; the bit pattern is reinterpreted via To_Int
@@ -247,8 +247,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -262,8 +262,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    procedure Acn_InitDet_I16_BE
      (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
@@ -271,8 +271,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -286,8 +286,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 16
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    procedure Acn_InitDet_I32_BE
      (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
@@ -295,8 +295,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -310,8 +310,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 32
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    procedure Acn_InitDet_I64_BE
      (bs : in out Bitstream; det : in out AcnInsertedFieldRef) with
@@ -319,8 +319,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -333,8 +333,8 @@ is
       Pre  => bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - 64
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    --  --- Batch C: BOOL1 (single-bit) pair ---
    --  Inner primitive is BitStream_AppendBit; Pre/Post operate on a 1-bit
@@ -346,8 +346,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos < bs.Size_In_Bytes * 8,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 1
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 1
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -360,25 +360,28 @@ is
       Pre  => bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos < bs.Size_In_Bytes * 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    --  --- Batch D: parametric ConstSize and TwosComplement_ConstSize pairs ---
    --  PatchDet writes bit-by-bit via BitStream_AppendBit (loop), to avoid
    --  AppendPartialByte clobbering adjacent bits already written by the
    --  encoders that ran between the matching InitDet and PatchDet sites.
 
+   --  nBits = 0: a determinant encoded in 0 bits (a one-item ENUMERATED,
+   --  a [size 0] length); nothing is written, PatchDet records V only.
+
    procedure Acn_InitDet_ConstSize
      (bs    : in out Bitstream;
       det   : in out AcnInsertedFieldRef;
       nBits :        Integer) with
-      Pre  => nBits >= 1 and then nBits < Asn1UInt'Size
+      Pre  => nBits >= 0 and then nBits < Asn1UInt'Size
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -389,13 +392,13 @@ is
       det    : in out AcnInsertedFieldRef;
       nBits  :        Integer;
       result :    out ASN1_RESULT) with
-      Pre  => nBits >= 1 and then nBits < Asn1UInt'Size
-      and then V <= max_value_with_n_bits (nBits)
+      Pre  => nBits >= 0 and then nBits < Asn1UInt'Size
+      and then (nBits = 0 or else V <= max_value_with_n_bits (nBits))
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    procedure Acn_InitDet_TwosComplement_ConstSize
      (bs    : in out Bitstream;
@@ -405,9 +408,9 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -424,8 +427,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - nBits
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    --  --- Batch E: IA5String_FixSize pair (7 bits per char, nested loops) ---
    --  Saves the encoded string in det.Str_Value for consistency check.
@@ -440,9 +443,9 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nChars * 7
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nChars * 7,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nChars * 7
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes
-      and then det.Pos.Bit_Pos = bs'Old.Current_Bit_Pos
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nChars * 7
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old
+      and then det.Pos.Bit_Pos = bs.Current_Bit_Pos'Old
       and then det.Is_Set = False
       and then det.In_Stream
       and then det.Value = 0;
@@ -462,8 +465,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then det.Pos.Bit_Pos <= bs.Size_In_Bytes * 8 - nChars * 7
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos
-      and then bs.Size_In_Bytes = bs'Old.Size_In_Bytes;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old
+      and then bs.Size_In_Bytes = bs.Size_In_Bytes'Old;
 
    --  ============================================================
    --  Original ACN encoders/decoders follow.
@@ -477,7 +480,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - sizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - sizeInBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + sizeInBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + sizeInBits;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_8
      (bs : in out Bitstream; IntVal : Asn1UInt) with
@@ -486,7 +489,7 @@ is
       and then IntVal <= Asn1UInt (Asn1Byte'Last)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16
      (bs : in out Bitstream; IntVal : Asn1UInt) with
@@ -495,7 +498,7 @@ is
       and then IntVal <= Asn1UInt (Interfaces.Unsigned_16'Last)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32
      (bs : in out Bitstream; IntVal : Asn1UInt) with
@@ -504,7 +507,7 @@ is
       and then IntVal <= Asn1UInt (Interfaces.Unsigned_32'Last)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64
      (bs : in out Bitstream; IntVal : Asn1UInt) with
@@ -512,7 +515,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16
      (bs : in out Bitstream; IntVal : Asn1UInt) with
@@ -521,7 +524,7 @@ is
       and then IntVal <= Asn1UInt (Interfaces.Unsigned_16'Last)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32
      (bs : in out Bitstream; IntVal : Asn1UInt) with
@@ -530,7 +533,7 @@ is
       and then IntVal <= Asn1UInt (Interfaces.Unsigned_32'Last)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64
      (bs : in out Bitstream; IntVal : Asn1UInt) with
@@ -538,7 +541,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    procedure Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded
      (bs : in out Bitstream; IntVal : Asn1UInt) with
@@ -547,8 +550,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1UInt'Size + 8);
 
    type Asn1Int_ARRAY_2_64 is array (2 .. 64) of Asn1Int;
 
@@ -698,7 +701,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - sizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - sizeInBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + sizeInBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + sizeInBits;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_8
      (bs : in out Bitstream; IntVal : Asn1Int) with
@@ -707,7 +710,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16
      (bs : in out Bitstream; IntVal : Asn1Int) with
@@ -716,7 +719,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32
      (bs : in out Bitstream; IntVal : Asn1Int) with
@@ -725,7 +728,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64
      (bs : in out Bitstream; IntVal : Asn1Int) with
@@ -733,7 +736,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16
      (bs : in out Bitstream; IntVal : Asn1Int) with
@@ -742,7 +745,7 @@ is
       and then IntVal <= Asn1Int (Interfaces.Unsigned_16'Last)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32
      (bs : in out Bitstream; IntVal : Asn1Int) with
@@ -750,7 +753,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64
      (bs : in out Bitstream; IntVal : Asn1Int) with
@@ -758,7 +761,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    procedure Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded
      (bs : in out Bitstream; IntVal : Asn1Int) with
@@ -766,8 +769,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1Int'Size + 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1Int'Size + 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1Int'Size + 8);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1Int'Size + 8);
 
    procedure Acn_Enc_Int_BCD_ConstSize
      (bs : in out Bitstream; IntVal : Asn1UInt; nNibbles : Integer) with
@@ -777,7 +780,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 4 * nNibbles
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * nNibbles,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 4 * nNibbles;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 4 * nNibbles;
 
    procedure Acn_Enc_Int_BCD_VarSize_NullTerminated
      (bs : in out Bitstream; IntVal : Asn1UInt) with
@@ -787,8 +790,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits + 1),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (Max_Int_Digits + 1);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 4 * (Max_Int_Digits + 1);
 
    procedure Acn_Enc_Int_ASCII_VarSize_LengthEmbedded
      (bs : in out Bitstream; IntVal : Asn1Int) with
@@ -799,8 +802,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (Max_Int_Digits);
 
    procedure Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded
      (bs : in out Bitstream; IntVal : Asn1UInt) with
@@ -810,8 +813,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + 1),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + 1);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (Max_Int_Digits + 1);
 
    procedure Acn_Enc_Int_ASCII_VarSize_NullTerminated
      (bs : in out Bitstream; IntVal : Asn1Int; nullChars : OctetBuffer) with
@@ -826,9 +829,9 @@ is
         bs.Size_In_Bytes * 8 -
           8 *
             (Get_number_of_digits (abs_value (IntVal)) + nullChars'Length + 1),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos +
+        bs.Current_Bit_Pos'Old +
           8 *
             (Get_number_of_digits (abs_value (IntVal)) + nullChars'Length + 1);
 
@@ -842,9 +845,9 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
           8 * (Get_number_of_digits (IntVal) + nullChars'Length),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos +
+        bs.Current_Bit_Pos'Old +
           8 * (Get_number_of_digits (IntVal) + nullChars'Length);
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize
@@ -854,7 +857,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nSizeInBits and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -864,7 +867,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -874,7 +877,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -884,7 +887,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -894,7 +897,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -904,7 +907,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -914,7 +917,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -924,7 +927,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
    procedure Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded
@@ -933,8 +936,8 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - (8 * 8 + 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (8 * 8 + 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (8 * 8 + 8) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (8 * 8 + 8) and
       ((Result.Success and IntVal >= minVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -945,7 +948,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nSizeInBits and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -955,7 +958,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -965,7 +968,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -975,7 +978,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -985,7 +988,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -995,7 +998,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -1005,7 +1008,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -1015,7 +1018,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -1025,8 +1028,8 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - (Asn1Int'Size + 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1Int'Size + 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1Int'Size + 8);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1Int'Size + 8);
 
    procedure Acn_Dec_Int_BCD_ConstSize
      (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
@@ -1036,8 +1039,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 4 * nNibbles
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * nNibbles,
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * nNibbles and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 4 * nNibbles and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -1050,8 +1053,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (Max_Int_Digits) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 4 * (Max_Int_Digits) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -1063,8 +1066,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (nChars);
 
    procedure Acn_Dec_Int_ASCII_ConstSize
      (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
@@ -1074,8 +1077,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (nChars) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -1087,8 +1090,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (nChars);
 
    procedure Acn_Dec_UInt_ASCII_ConstSize
      (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
@@ -1098,8 +1101,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (nChars) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -1115,9 +1118,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length)
+        bs.Current_Bit_Pos'Old + 8 * (Max_Int_Digits + nullChars'Length)
       and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
@@ -1134,9 +1137,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length + 1),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1)
+        bs.Current_Bit_Pos'Old + 8 * (Max_Int_Digits + nullChars'Length + 1)
       and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
@@ -1147,7 +1150,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Dec_Real_IEEE754_32_big_endian
      (bs     : in out Bitstream; RealVal : out Asn1Real;
@@ -1157,7 +1160,7 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
       Post => Result.Success and
-      bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Dec_Real_IEEE754_32_big_endian_fp32
      (bs     : in out Bitstream; RealVal : out Standard.Float;
@@ -1166,7 +1169,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Enc_Real_IEEE754_64_big_endian
      (bs : in out Bitstream; RealVal : Asn1Real) with
@@ -1174,7 +1177,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    --  Fails (ERR_INCORRECT_STREAM) only where Asn1Real is Float and the value
    --  does not fit (msp430 board).
@@ -1187,7 +1190,7 @@ is
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
       Post => (if Asn1Real'Digits >= Long_Float'Digits then Result.Success)
       and
-      bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    procedure Acn_Enc_Real_IEEE754_32_little_endian
      (bs : in out Bitstream; RealVal : Asn1Real) with
@@ -1195,7 +1198,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Dec_Real_IEEE754_32_little_endian
      (bs     : in out Bitstream; RealVal : out Asn1Real;
@@ -1205,7 +1208,7 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
       Post => Result.Success and
-      bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Dec_Real_IEEE754_32_little_endian_fp32
      (bs     : in out Bitstream; RealVal : out Standard.Float;
@@ -1214,7 +1217,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Enc_Real_IEEE754_64_little_endian
      (bs : in out Bitstream; RealVal : Asn1Real) with
@@ -1222,7 +1225,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    --  Fails (ERR_INCORRECT_STREAM) only where Asn1Real is Float and the value
    --  does not fit (msp430 board).
@@ -1235,7 +1238,7 @@ is
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
       Post => (if Asn1Real'Digits >= Long_Float'Digits then Result.Success)
       and
-      bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    --  REAL encoded as scaled integer.
    --  The REAL range [a, b] is mapped linearly onto the integer range
@@ -1278,7 +1281,7 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
-      bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
+      bs.Current_Bit_Pos'Old + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Dec_Boolean_true_pattern
      (bs     : in out Bitstream; BoolVal : out Asn1Boolean; pattern : BitArray;
@@ -1292,7 +1295,7 @@ is
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => Result.Success and
       bs.Current_Bit_Pos =
-        bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
+        bs.Current_Bit_Pos'Old + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Enc_Boolean_false_pattern
      (bs : in out Bitstream; BoolVal : Asn1Boolean; pattern : BitArray) with
@@ -1305,7 +1308,7 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
-      bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
+      bs.Current_Bit_Pos'Old + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Dec_Boolean_false_pattern
      (bs     : in out Bitstream; BoolVal : out Asn1Boolean; pattern : BitArray;
@@ -1320,7 +1323,7 @@ is
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => Result.Success and
       bs.Current_Bit_Pos =
-        bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
+        bs.Current_Bit_Pos'Old + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Enc_Boolean_true_false_pattern
      (bs : in out Bitstream; BoolVal : Asn1Boolean; true_pattern :
@@ -1336,7 +1339,7 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (true_pattern'Last - true_pattern'First + 1),
       Post => bs.Current_Bit_Pos =
-       bs'Old.Current_Bit_Pos + (true_pattern'Last - true_pattern'First + 1);
+       bs.Current_Bit_Pos'Old + (true_pattern'Last - true_pattern'First + 1);
 
    procedure Acn_Dec_Boolean_true_false_pattern
      (bs     : in out Bitstream; BoolVal : out Asn1Boolean;
@@ -1354,7 +1357,7 @@ is
         bs.Size_In_Bytes * 8 - (true_pattern'Last - true_pattern'First + 1),
       Post =>
       bs.Current_Bit_Pos =
-        bs'Old.Current_Bit_Pos + (true_pattern'Last - true_pattern'First + 1);
+        bs.Current_Bit_Pos'Old + (true_pattern'Last - true_pattern'First + 1);
 
    procedure Acn_Enc_NullType_pattern
      (bs : in out Bitstream; encVal : Asn1NullType; pattern : BitArray) with
@@ -1366,7 +1369,7 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
-      bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
+      bs.Current_Bit_Pos'Old + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Dec_NullType_pattern
      (bs : in out Bitstream; decValue : out Asn1NullType; pattern : BitArray;
@@ -1380,7 +1383,7 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
-      bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
+      bs.Current_Bit_Pos'Old + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Enc_NullType_pattern2
      (bs : in out Bitstream; pattern : BitArray) with
@@ -1393,7 +1396,7 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
-      bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
+      bs.Current_Bit_Pos'Old + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Dec_NullType_pattern2
      (bs : in out Bitstream; pattern : BitArray; Result : out ASN1_RESULT) with
@@ -1406,17 +1409,17 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
-      bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
+      bs.Current_Bit_Pos'Old + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Enc_NullType
      (bs : in out Bitstream; encVal : Asn1NullType) with
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old;
 
    procedure Acn_Dec_NullType
      (bs     : in out Bitstream; decValue : out Asn1NullType;
       Result :    out ASN1_RESULT) with
       Post => Result.Success and decValue = 0 and
-      bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos;
+      bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old;
 
    procedure Acn_Enc_String_Ascii_FixSize
      (bs : in out Bitstream; strVal : String) with
@@ -1429,7 +1432,7 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First) * 8,
       Post => bs.Current_Bit_Pos =
-      bs'Old.Current_Bit_Pos + (strVal'Last - strVal'First) * 8;
+      bs.Current_Bit_Pos'Old + (strVal'Last - strVal'First) * 8;
 
    procedure Acn_Dec_String_Ascii_FixSize
      (bs     : in out Bitstream; strVal : in out String;
@@ -1443,7 +1446,7 @@ is
         bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First) * 8,
       Post => Result.Success and
       bs.Current_Bit_Pos =
-        bs'Old.Current_Bit_Pos + (strVal'Last - strVal'First) * 8;
+        bs.Current_Bit_Pos'Old + (strVal'Last - strVal'First) * 8;
 
    procedure Acn_Enc_String_Ascii_Null_Terminated
      (bs     : in out Bitstream; null_characters : OctetBuffer;
@@ -1459,9 +1462,9 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
           (strVal'Length - 1 + null_characters'Length) * 8,
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos +
+        bs.Current_Bit_Pos'Old +
           (strVal'Length - 1 + null_characters'Length) * 8;
 
    procedure Acn_Dec_String_Ascii_Null_Terminated
@@ -1479,9 +1482,9 @@ is
           (strVal'Length - 1 + null_characters'Length) * 8,
       --  fails (ERR_INCORRECT_STREAM) when strVal'Length - 1 characters are
       --  not followed by the terminator, as the C decoder
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos +
+        bs.Current_Bit_Pos'Old +
           (strVal'Length - 1 + null_characters'Length) * 8;
 
    procedure Acn_Enc_String_Ascii_Internal_Field_Determinant
@@ -1501,9 +1504,9 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
           ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos +
+        bs.Current_Bit_Pos'Old +
           ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits);
 
    procedure Acn_Dec_String_Ascii_Internal_Field_Determinant
@@ -1522,9 +1525,9 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
           ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos +
+        bs.Current_Bit_Pos'Old +
           ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits);
 
    procedure Acn_Enc_String_Ascii_External_Field_Determinant
@@ -1537,9 +1540,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * 8);
+        bs.Current_Bit_Pos'Old + ((strVal'Last - strVal'First) * 8);
 
    procedure Acn_Dec_String_Ascii_External_Field_Determinant
      (bs     : in out Bitstream; extSizeDeterminantFld : Asn1Int;
@@ -1553,9 +1556,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * 8);
+        bs.Current_Bit_Pos'Old + ((strVal'Last - strVal'First) * 8);
 
    procedure Acn_Enc_String_CharIndex_External_Field_Determinant
      (bs     : in out Bitstream; charSet : String; nCharSize : Integer;
@@ -1572,9 +1575,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * nCharSize),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * nCharSize);
+        bs.Current_Bit_Pos'Old + ((strVal'Last - strVal'First) * nCharSize);
 
    procedure Acn_Dec_String_CharIndex_External_Field_Determinant
      (bs : in out Bitstream; charSet : String; nCharSize : Integer;
@@ -1593,9 +1596,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * nCharSize),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * nCharSize);
+        bs.Current_Bit_Pos'Old + ((strVal'Last - strVal'First) * nCharSize);
 
    procedure Acn_Enc_String_CharIndex_Internal_Field_Determinant
      (bs      : in out Bitstream; charSet : String; nCharSize : Integer;
@@ -1619,9 +1622,9 @@ is
         bs.Size_In_Bytes * 8 -
           ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos +
+        bs.Current_Bit_Pos'Old +
           ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits);
 
@@ -1649,9 +1652,9 @@ is
         bs.Size_In_Bytes * 8 -
           ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos +
+        bs.Current_Bit_Pos'Old +
           ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits);
 
@@ -1664,7 +1667,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1677,7 +1680,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1690,7 +1693,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1703,7 +1706,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1716,7 +1719,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1729,7 +1732,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1741,7 +1744,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1753,7 +1756,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1765,7 +1768,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1777,7 +1780,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1789,7 +1792,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1801,7 +1804,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1813,7 +1816,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1825,7 +1828,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1837,7 +1840,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1849,7 +1852,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1861,7 +1864,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1873,7 +1876,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1885,7 +1888,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1897,7 +1900,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1909,7 +1912,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1921,7 +1924,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1933,7 +1936,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1945,7 +1948,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1957,7 +1960,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1969,7 +1972,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1981,7 +1984,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -1993,7 +1996,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2005,7 +2008,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2017,7 +2020,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2029,7 +2032,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2041,7 +2044,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2053,7 +2056,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2065,7 +2068,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2077,7 +2080,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2089,7 +2092,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2101,7 +2104,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2113,7 +2116,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2125,7 +2128,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result.Success and (IntVal = MinVal)));
 
@@ -2137,7 +2140,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64 and
       ((Result.Success and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
          (not Result.Success and (IntVal = MinVal)));
 
@@ -2150,8 +2153,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 4 * nNibbles
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * nNibbles,
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * nNibbles and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 4 * nNibbles and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -2164,8 +2167,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 4 * nNibbles
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * nNibbles,
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * nNibbles and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 4 * nNibbles and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -2178,8 +2181,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 4 * nNibbles
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * nNibbles,
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * nNibbles and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 4 * nNibbles and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -2192,8 +2195,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (Max_Int_Digits) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 4 * (Max_Int_Digits) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -2206,8 +2209,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (Max_Int_Digits) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 4 * (Max_Int_Digits) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -2220,8 +2223,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (Max_Int_Digits) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 4 * (Max_Int_Digits) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
            (not Result.Success and IntVal = minVal));
 
@@ -2233,8 +2236,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (nChars) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -2246,8 +2249,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (nChars) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -2259,8 +2262,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (nChars) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
            (not Result.Success and IntVal = minVal));
 
@@ -2272,8 +2275,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (nChars) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -2285,8 +2288,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (nChars) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -2298,8 +2301,8 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 8 * (nChars) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -2315,9 +2318,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length + 1),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1)
+        bs.Current_Bit_Pos'Old + 8 * (Max_Int_Digits + nullChars'Length + 1)
       and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
@@ -2334,9 +2337,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length + 1),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1)
+        bs.Current_Bit_Pos'Old + 8 * (Max_Int_Digits + nullChars'Length + 1)
       and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
@@ -2353,9 +2356,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length + 1),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1)
+        bs.Current_Bit_Pos'Old + 8 * (Max_Int_Digits + nullChars'Length + 1)
       and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
@@ -2372,9 +2375,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length)
+        bs.Current_Bit_Pos'Old + 8 * (Max_Int_Digits + nullChars'Length)
       and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
@@ -2391,9 +2394,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length)
+        bs.Current_Bit_Pos'Old + 8 * (Max_Int_Digits + nullChars'Length)
       and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
@@ -2410,9 +2413,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length)
+        bs.Current_Bit_Pos'Old + 8 * (Max_Int_Digits + nullChars'Length)
       and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
@@ -2430,7 +2433,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nSizeInBits
       and then (if nSizeInBits < Asn1UInt'Size then
                   IntVal < Shift_Left (Asn1UInt (1), nSizeInBits));
 
@@ -2439,7 +2442,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8
       and then IntVal <= 16#FF#;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRangeUInt8
@@ -2447,14 +2450,14 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRange
      (bs : in out Bitstream; IntVal : out Asn1UInt) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16
       and then IntVal <= 16#FFFF#;
 
    procedure
@@ -2463,14 +2466,14 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16_FullRange
      (bs : in out Bitstream; IntVal : out Asn1UInt) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16
       and then IntVal <= 16#FFFF#;
 
    procedure
@@ -2479,14 +2482,14 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32_FullRange
      (bs : in out Bitstream; IntVal : out Asn1UInt) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32
       and then IntVal <= 16#FFFF_FFFF#;
 
    procedure
@@ -2495,14 +2498,14 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32_FullRange
      (bs : in out Bitstream; IntVal : out Asn1UInt) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32
       and then IntVal <= 16#FFFF_FFFF#;
 
    procedure
@@ -2511,21 +2514,21 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64_FullRange
      (bs : in out Bitstream; IntVal : out Asn1UInt) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64_FullRange
      (bs : in out Bitstream; IntVal : out Asn1UInt) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt8
      (bs : in out Bitstream; IntVal : out Unsigned_8; nBits : Integer) with
@@ -2533,7 +2536,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt16
      (bs : in out Bitstream; IntVal : out Unsigned_16; nBits : Integer) with
@@ -2541,7 +2544,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_FullRangeUInt32
      (bs : in out Bitstream; IntVal : out Unsigned_32; nBits : Integer) with
@@ -2549,7 +2552,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRange
      (bs : in out Bitstream; IntVal : out Asn1Int;
@@ -2558,7 +2561,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nSizeInBits
       and then (if nSizeInBits < Asn1UInt'Size then
                   IntVal >=
                     -Asn1Int (Shift_Left (Asn1UInt (1), nSizeInBits - 1))
@@ -2571,7 +2574,7 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8
       and then IntVal >= -128 and then IntVal <= 127;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_8_FullRangeInt8
@@ -2579,14 +2582,14 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16_FullRange
      (bs : in out Bitstream; IntVal : out Asn1Int) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16
       and then IntVal >= -32768 and then IntVal <= 32767;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16_FullRangeInt16
@@ -2594,14 +2597,14 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16_FullRange
      (bs : in out Bitstream; IntVal : out Asn1Int) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16
       and then IntVal >= -32768 and then IntVal <= 32767;
 
    procedure
@@ -2610,14 +2613,14 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 16;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32_FullRange
      (bs : in out Bitstream; IntVal : out Asn1Int) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32
       and then IntVal >= -16#7FFF_FFFF# - 1 and then IntVal <= 16#7FFF_FFFF#;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32_FullRangeInt32
@@ -2625,14 +2628,14 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32_FullRange
      (bs : in out Bitstream; IntVal : out Asn1Int) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32
       and then IntVal >= -16#7FFF_FFFF# - 1 and then IntVal <= 16#7FFF_FFFF#;
 
    procedure
@@ -2641,21 +2644,21 @@ is
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 32;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64_FullRange
      (bs : in out Bitstream; IntVal : out Asn1Int) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64_FullRange
      (bs : in out Bitstream; IntVal : out Asn1Int) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 64;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt8
      (bs : in out Bitstream; IntVal : out Integer_8; nBits : Integer) with
@@ -2663,7 +2666,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt16
      (bs : in out Bitstream; IntVal : out Integer_16; nBits : Integer) with
@@ -2671,7 +2674,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_FullRangeInt32
      (bs : in out Bitstream; IntVal : out Integer_32; nBits : Integer) with
@@ -2679,6 +2682,6 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
 end adaasn1rtl.encoding.acn;

@@ -268,8 +268,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 24),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 24);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1UInt'Size + 24);
 
    procedure UPER_Dec_Real_AsBinary_aux
      (bs      : in out Bitstream; ExpLen : Asn1Byte; Length : Asn1Byte;
@@ -310,8 +310,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 24),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 24);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1UInt'Size + 24);
 
    procedure UPER_Dec_Real_AsBinary
      (bs      : in out Bitstream; Header : Asn1Byte; EncLength : Asn1Byte;
@@ -440,8 +440,8 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 16;
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + 16;
 
    procedure ObjectIdentifier_uper_decode_length
      (bs : in out Bitstream; length : out Integer; result : out ASN1_RESULT)
@@ -531,9 +531,9 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (8 * OctetBuffer_16'Last),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + (8 * OctetBuffer_16'Last) and
+        bs.Current_Bit_Pos'Old + (8 * OctetBuffer_16'Last) and
       remainingOctets <= remainingOctets'Old and
       remainingOctets >= remainingOctets'Old - OctetBuffer_16'Last;
 
@@ -1103,7 +1103,7 @@ is
 --        and then bs.Current_Bit_Pos < Natural'Last - bits_to_read
 --        and then bs.Size_In_Bytes < Positive'Last / 8
 --        and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_read,
---        Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
+--        Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + bits_to_read;
 
    procedure BitStream_DecodeBitString
      (bs          : in out Bitstream; data : in out OctetBuffer;
@@ -1147,8 +1147,8 @@ is
                 else nCount <= 8 * data'Length)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBudget,
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos
-      and then bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + nBudget;
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old
+      and then bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + nBudget;
 
    procedure Containing_Encode_Fragments
      (bs        : in out Bitstream; data : OctetBuffer; nCount : Natural;
@@ -1204,8 +1204,8 @@ is
                 else nMax <= 8 * data'Length)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBudget,
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos
-      and then bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + nBudget
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old
+      and then bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + nBudget
       and then (if success then data_length <= nMax);
 
    procedure Containing_Decode_Fragments

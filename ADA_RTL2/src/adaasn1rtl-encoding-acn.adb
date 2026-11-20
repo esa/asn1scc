@@ -724,7 +724,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N
      (bs : in out Bitstream; IntVal : Asn1UInt; total_bytes : Integer)
@@ -1106,7 +1106,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0
      (bs : in out Bitstream; IntVal : out Asn1UInt; total_bytes : Integer)
@@ -1133,7 +1133,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -1308,7 +1308,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -3408,7 +3408,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8
       and then (if total_bytes * 8 < Asn1UInt'Size then
                   IntVal < Shift_Left (Asn1UInt (1), total_bytes * 8));
 
