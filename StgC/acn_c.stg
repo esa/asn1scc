@@ -1450,7 +1450,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 /* CONTAINING with deferred patching: encode directly, PatchDet with measured distance.
    soFixedOctets (also in the _embedded_ and _wrapper_ variants): every encoding of the contents takes that many whole
    octets, so the zero padding to whole octets is never needed and is omitted (coverage step 14e, E3). */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
@@ -1470,11 +1470,11 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
 >>
 
 /* CONTAINING with deferred patching: limit stream view, decode directly */
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
-    /*the region is <sDetParamName>->value octets from the current bit; off a byte boundary it ends inside one more byte*/
-    if (!Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value) ||
+    /*the region is <sDetParamName>->value octets from the current bit (at most <nMaxRegion>, the largest encoding of its contents); off a byte boundary it ends inside one more byte*/
+    if (<sDetParamName>->value > <nMaxRegion> || !Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value) ||
         (pBitStrm->currentBit != 0 && !Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value + 1))) {
         ret = FALSE; /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
@@ -1555,7 +1555,7 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 
 /* CONTAINING ExternalField wrapper: wraps an inline body with save-pos/measure/PatchDet
    Used when the contained type has ACN parameters (no standalone ACN function). */
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     <sBody>
@@ -1574,11 +1574,11 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
 }
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
-    /*the region is <sDetParamName>->value octets from the current bit; off a byte boundary it ends inside one more byte*/
-    if (!Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value) ||
+    /*the region is <sDetParamName>->value octets from the current bit (at most <nMaxRegion>, the largest encoding of its contents); off a byte boundary it ends inside one more byte*/
+    if (<sDetParamName>->value > <nMaxRegion> || !Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value) ||
         (pBitStrm->currentBit != 0 && !Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value + 1))) {
         ret = FALSE; /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
@@ -1595,7 +1595,7 @@ octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFunc
 >>
 
 /* BIT STRING CONTAINING with deferred patching: encode directly, PatchDet with measured bit distance */
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
@@ -1615,11 +1615,12 @@ bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFu
 >>
 
 /* BIT STRING CONTAINING with deferred patching: limit stream view (bit-granular), decode directly */
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     asn1SccUint acn_nBits = <sDetParamName>->value;
-    if (!Acn_BitStream_HasNBits(pBitStrm, acn_nBits)) {
+    /*the region holds at most <nMaxRegion> bits, the largest encoding of its contents*/
+    if (acn_nBits > <nMaxRegion> || !Acn_BitStream_HasNBits(pBitStrm, acn_nBits)) {
         ret = FALSE; /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     } else {
@@ -1706,7 +1707,7 @@ bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMax
 >>
 
 /* BIT STRING CONTAINING ExternalField wrapper: wraps inline body with bit-granular measurement/limiting */
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     <sBody>
@@ -1725,11 +1726,12 @@ bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncNa
 }
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     asn1SccUint acn_nBits = <sDetParamName>->value;
-    if (!Acn_BitStream_HasNBits(pBitStrm, acn_nBits)) {
+    /*the region holds at most <nMaxRegion> bits, the largest encoding of its contents*/
+    if (acn_nBits > <nMaxRegion> || !Acn_BitStream_HasNBits(pBitStrm, acn_nBits)) {
         ret = FALSE; /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     } else {
@@ -1770,6 +1772,11 @@ bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncodi
 		<A(sErrCode)>
 		if (ret) {
 			ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+			if (ret && bitStrm.currentByte * 8L + bitStrm.currentBit > (long)<sExtField>) {
+				/*the contents read past the end of the region (into the rest of its last byte)*/
+				ret = FALSE; /*COVERAGE_IGNORE*/
+				*pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+			}
 		}
 	}
 }
@@ -1900,6 +1907,11 @@ bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnE
 		/*the contents are decoded from the octets of the nRegionLen bits of this region only*/
 		bitStrm.count = (nRegionLen + 7) / 8;
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+		if (ret && bitStrm.currentByte * 8L + bitStrm.currentBit > nRegionLen) {
+			/*the contents read past the end of the region (into the rest of its last byte)*/
+			ret = FALSE; /*COVERAGE_IGNORE*/
+			*pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+		}
 	}
 
 	<endif>

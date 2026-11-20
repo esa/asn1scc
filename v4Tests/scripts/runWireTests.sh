@@ -471,6 +471,37 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# A CONTAINING region longer than the largest encoding of its contents (--acn-v2, external size: Ada read the fields
+# after it past the end of the stream, C skipped its unused part), BIT STRING contents that end past their region (Ada
+# both modes, C legacy inside the region's last octet), the region around a CHOICE bounded by the CHOICE's own maximum
+# (010_choice, --acn-v2 only): rejected streams and round trips (Issue 132). Legacy and --acn-v2; C with ASan / UBSan,
+# Ada with and without -gnata.
+for mode in "" "--acn-v2"; do
+    grammars="$root/test-cases/acn-wire/010.asn1 $root/test-cases/acn-wire/010.acn"
+    def=
+    v2=False
+    if [ "$mode" = --acn-v2 ]; then
+        grammars="$grammars $root/test-cases/acn-wire/010_choice.asn1 $root/test-cases/acn-wire/010_choice.acn"
+        def=-DWIRE_ACN_V2
+        v2=True
+    fi
+    out=$work/acn010$mode
+    mkdir "$out"
+    run_compiler -c -ACN -equal $mode -o "$out" $grammars
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        $def -I "$out" "$out"/*.c "$root/test-cases/acn-wire/010_decode_test.c" -o "$out/decode_test"
+    "$out/decode_test"
+    echo "acn-wire 010 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/acn010ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -ACN -equal $mode -o "$out" $grammars
+        cp "$root/test-cases/acn-wire/010_decode_test.adb" "$out/decode_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata -gnateDACN_V2=$v2 decode_test.adb && ./decode_test)
+        echo "acn-wire 010 (Ada) $mode $gnata OK"
+    done
+done
+
 # Without --acn-v2, an OCTET / BIT STRING (CONTAINING T) with an embedded length or a fixed size whose length range at
 # the site does not hold T's encoding (a larger or smaller maximum, a larger minimum: a site ACN specification with
 # child overrides) is rejected (Issue 134: legacy decodes the region into a buffer of T's maximum and writes T's length

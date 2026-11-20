@@ -1,0 +1,5 @@
+ACN-WIRE-REGION DEFINITIONS ::= BEGIN
+    PBitExt  [] { len INTEGER [size 8, encoding pos-int], f [size len], tail [] }
+    POctExt  [] { len INTEGER [size 8, encoding pos-int], v [size len], tail [] }
+    PBitExt2 [] { len INTEGER [size 8, encoding pos-int], v [size len], tail [] }
+END

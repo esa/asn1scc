@@ -1578,7 +1578,7 @@ end if;
 
 /* soFixedOctets (also in the _embedded_ and _wrapper_ variants): every encoding of the contents takes that many whole
    octets, so the zero padding to whole octets is never needed and is omitted (coverage step 14e, E3). */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1604,8 +1604,10 @@ end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
    When the contents use 'size deduced', they must see the end of the region (the
    deduced templates read bs.End_Bit_Pos): it is set to the region end, which is not
    on a byte boundary when the region does not start on one, and restored after. */
-octet_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode, bDeducedContent, soCovExempt) /*nogen*/ ::= <<
+octet_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode, bDeducedContent, soCovExempt, nMaxRegion) /*nogen*/ ::= <<
+--  the region holds at most the largest encoding of its contents (<nMaxRegion> octets) and fits the stream
 if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
+   <sDetParamName>.Value \<= <nMaxRegion> and then
    <sDetParamName>.Value \<= adaasn1rtl.Asn1UInt((bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8)
 then
     declare --COVERAGE_IGNORE
@@ -1623,8 +1625,8 @@ else
 end if;
 >>
 
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote) ::= <<
-<octet_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent, soCovExempt=soCovExempt)>
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+<octet_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent, soCovExempt=soCovExempt, nMaxRegion=nMaxRegion)>
 >>
 
 octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
@@ -1704,7 +1706,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1726,11 +1728,11 @@ begin
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote) ::= <<
-<octet_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent, soCovExempt=soCovExempt)>
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+<octet_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent, soCovExempt=soCovExempt, nMaxRegion=nMaxRegion)>
 >>
 
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1756,8 +1758,10 @@ end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
    the rest of the stream before it is converted (q/issues.md Issue 64: Natural (<det>.Value) of a huge value raised
    Constraint_Error, and with -gnatp set the stream position to a value taken from the stream); the contents must not
    read past the region (as octet_string_containing_deferred_region_decode). */
-bit_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode, soCovExempt) /*nogen*/ ::= <<
+bit_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode, soCovExempt, nMaxRegion) /*nogen*/ ::= <<
+--  the region holds at most the largest encoding of its contents (<nMaxRegion> bits) and fits the stream
 if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
+   <sDetParamName>.Value \<= <nMaxRegion> and then
    <sDetParamName>.Value \<= adaasn1rtl.Asn1UInt(bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos)
 then
     declare --COVERAGE_IGNORE
@@ -1779,8 +1783,8 @@ else
 end if;
 >>
 
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote) ::= <<
-<bit_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, soCovExempt=soCovExempt)>
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+<bit_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, soCovExempt=soCovExempt, nMaxRegion=nMaxRegion)>
 >>
 
 bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
@@ -1830,12 +1834,16 @@ begin
     if result.Success then
         acn_expected_end := bs.Current_Bit_Pos + acn_nCount;
         <sFuncName>_aux(<p>, bs, result);
+        --  the contents must not have read past their region
+        if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+        end if;
         bs.Current_Bit_Pos := acn_expected_end;
     end if;
 end;
 >>
 
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1857,8 +1865,8 @@ begin
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote) ::= <<
-<bit_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, soCovExempt=soCovExempt)>
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+<bit_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, soCovExempt=soCovExempt, nMaxRegion=nMaxRegion)>
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nReqBits, sExtField, sErrCode) ::= <<
@@ -1879,6 +1887,10 @@ begin
 			--  the contents end with the region ('size deduced' contents read up to End_Bit_Pos)
 			tmpBs.End_Bit_Pos := Integer(<sExtField>);
 			<sFuncName>_aux(<p>, tmpBs, result);
+			--  the contents must not have read past their region
+			if result.Success and then tmpBs.Current_Bit_Pos > Integer(<sExtField>) then
+				result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+			end if;
 		end if;
 	end if;
 
@@ -2218,6 +2230,10 @@ begin
         adaasn1rtl.encoding.BitStream_ReadBits (bs, tmpBs.Buffer, data_length, result.success);
 	    if result.success then
 		    <sFuncName>_aux(<p>, tmpBs, result);
+		    --  the contents must not have read past their region
+		    if result.Success and then tmpBs.Current_Bit_Pos > data_length then
+		        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+		    end if;
 	    else
 		    result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	    end if;

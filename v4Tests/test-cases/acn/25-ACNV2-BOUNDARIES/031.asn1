@@ -1,4 +1,4 @@
--- ACNV2_ONLY C_ADA_ONLY (legacy: no CHOICE of CONTAINING regions sized by an ACN parameter, as 009) KNOWN_FAILURE(Ada,acn-v2,gnata): with -gnata, a corrupted --acn-v2 CONTAINING region longer than the largest encoding of its contents is decoded, while the decoders' contracts bound the position by that maximum (a postcondition / precondition fails in the corruption sweep)
+-- ACNV2_ONLY C_ADA_ONLY (legacy: no CHOICE of CONTAINING regions sized by an ACN parameter, as 009)
 -- q/issues.md Issue 62: the size determinant of a CONTAINING region with a width other than 8/16/32/64 bits.
 -- With --acn-v2 the region's PatchDet called Acn_PatchDet_ConstSize / _TwosComplement_ConstSize without the
 -- width (C: too few arguments, Ada: missing argument), in all paths: OCTET STRING (MsgA, MsgC: twos-complement)

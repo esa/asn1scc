@@ -1,0 +1,13 @@
+ACN-WIRE-REGION-CHOICE DEFINITIONS ::= BEGIN
+    Val8 [] { number [encoding pos-int, size 8] }
+    Val16 [] { number [encoding pos-int, size 16] }
+    Payload1 <INTEGER:kind, INTEGER:length> [] {
+        value [present-when kind == 1, size length],
+        big   [present-when kind == 3, encoding pos-int, size 32],
+        other [present-when kind == 2, size length]
+    }
+    Doc1 [] { length INTEGER [encoding pos-int, size 16], kind INTEGER [encoding pos-int, size 8],
+              payload <kind, length> [], trailer [encoding pos-int, size 8] }
+    Payload2B <INTEGER:length> [] { value [size length], other [size length] }
+    Doc2B [] { length INTEGER [encoding pos-int, size 16], payload <length> [], trailer [encoding pos-int, size 8] }
+END

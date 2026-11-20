@@ -1,4 +1,4 @@
--- ACNV2_ONLY (an ACN parameter consumed inside the elements of a SEQUENCE OF of the referenced type, Issue 124) KNOWN_FAILURE(Ada,acn-v2,gnata): with -gnata, a corrupted --acn-v2 CONTAINING region longer than the largest encoding of its contents is decoded, while the decoders' contracts bound the position by that maximum (a postcondition / precondition fails in the corruption sweep)
+-- ACNV2_ONLY (an ACN parameter consumed inside the elements of a SEQUENCE OF of the referenced type, Issue 124)
 -- One determinant for every element: the --acn-v2 specialised encoder patches it from every element (the elements must
 -- agree), each loop under the checks of the path above its SEQUENCE OF. Inline element SEQUENCE / CHOICE / OCTET
 -- STRING, a consumer under an OPTIONAL inner SEQUENCE, present-when, CHOICE determinant (inline and named element),

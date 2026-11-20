@@ -1307,6 +1307,23 @@ let private cov010Justification =
 let private cov011Justification =
     "ASN1SCC-COV-011: an embedded region length within the SIZE range fits the stream of the decoder precondition, see Docs/statement-coverage-exemptions.md"
 
+/// Issue 132: the largest region of a CONTAINING (octets for OCTET STRING, bits for BIT STRING) = the maximum the
+/// enclosing REQUIRED_BITS counts for it; a longer region is rejected by the decoders.
+let private containingRegionMax (o: Asn1AcnAst.ReferenceType) : BigInteger =
+    match o.encodingOptions with
+    | Some eo -> eo.maxSize.acn
+    | None    -> failwith "BUG: containingRegionMax of a reference without encoding options"
+
+/// Issue 132: the region around a CHOICE whose alternatives share one size parameter holds the whole CHOICE body (an
+/// index of its own, alignment, alternatives that are not CONTAINING), so its largest region is the CHOICE's own maximum,
+/// which the enclosing REQUIRED_BITS counts (octets: rounded up, the region is padded to whole octets). The largest
+/// CONTAINING alternative would reject valid encodings. A region longer than the selected alternative needs but within
+/// this maximum stays accepted (known limit: the bound is not per alternative).
+let private choiceRegionMax (choiceType: Asn1AcnAst.Asn1Type) (octOrBitStr: CommonTypes.ContainedInOctOrBitString) : BigInteger =
+    match octOrBitStr with
+    | CommonTypes.ContainedInOctString -> (choiceType.acnMaxSizeInBits + 7I) / 8I
+    | CommonTypes.ContainedInBitString -> choiceType.acnMaxSizeInBits
+
 let private pastRegionExemption (contentsEndWithRegion: bool) : string option =
     match contentsEndWithRegion with
     | true  -> Some cov010Justification
@@ -1359,9 +1376,9 @@ let private buildContainingClosureBody
                     containingSizePatchDet ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id (fun () -> "")
                 match ctx.o.encodingOptions.Value.octOrBitStr with
                 | CommonTypes.ContainedInOctString ->
-                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote ctx.codec
+                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
                 | CommonTypes.ContainedInBitString ->
-                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote ctx.codec
+                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
             | None ->
                 br.funcBody  // fallback: no wrapping if size param not found
         let mappingDeclarations =
@@ -1408,9 +1425,9 @@ let private buildContainingStandaloneBody
     let fncBody =
         match ctx.o.encodingOptions.Value.octOrBitStr with
         | CommonTypes.ContainedInOctString ->
-            ctx.lm.acn.octet_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote ctx.codec
+            ctx.lm.acn.octet_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
         | CommonTypes.ContainedInBitString ->
-            ctx.lm.acn.bit_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote ctx.codec
+            ctx.lm.acn.bit_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
     { emptyBody ctx.lm with
         funcBody = fncBody
         encOutcome = encodeOutcomeOf ctx.codec (EncodeOutcome.sequence [callOutcome; containingRegionEndOutcome ctx sizePrm soNoCheckNote])
@@ -2038,10 +2055,10 @@ let private createDeferredReferenceFunction
                             ctx.lm.acn.octet_string_containing_deferred_wrapper
                                 bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName bDeducedContent (containingSizePatchCannotFail ctx sizePrm)
                                 (choiceRegionFixedOctets ctx.o.resolvedType ch |> Option.map string)
-                                (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote ctx.codec
+                                (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType containing.encodingOptions.Value.octOrBitStr) ctx.codec
                         | CommonTypes.ContainedInBitString ->
                             ctx.lm.acn.bit_string_containing_deferred_wrapper
-                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote ctx.codec
+                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType containing.encodingOptions.Value.octOrBitStr) ctx.codec
                     { bodyResult with
                         funcBody = wrappedBody
                         // the end of the region reads the body's result (q/issues.md Issue 63) unless it cannot fail (14q)

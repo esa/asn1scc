@@ -1,0 +1,14 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Val16 [] { number [encoding pos-int, size 16] }
+
+Payload2 <INTEGER:length> [] { value [size length], other [size length] }
+Doc2 [] { length INTEGER [encoding pos-int, size 16], payload <length> [], trailer [encoding pos-int, size 8] }
+
+Payload3 <INTEGER:kind, INTEGER:length> [] {
+    value [present-when kind == 1, size length, align-to-next byte],
+    other [present-when kind == 2, size length, align-to-next dword]
+}
+Doc3 [] { length INTEGER [encoding pos-int, size 16], kind INTEGER [encoding pos-int, size 8], f [], payload <kind, length> [], trailer [encoding pos-int, size 8] }
+
+END

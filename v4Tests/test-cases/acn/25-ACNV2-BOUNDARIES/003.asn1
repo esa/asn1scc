@@ -1,4 +1,4 @@
--- ACNV2_ONLY KNOWN_FAILURE(Ada,acn-v2,gnata): with -gnata, a corrupted --acn-v2 CONTAINING region longer than the largest encoding of its contents is decoded, while the decoders' contracts bound the position by that maximum (a postcondition / precondition fails in the corruption sweep)
+-- ACNV2_ONLY
 -- Length determinants cross nested SEQUENCE, CHOICE, and referenced-type
 -- boundaries in both producer and consumer directions.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
