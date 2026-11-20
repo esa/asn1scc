@@ -1,4 +1,5 @@
-/* Byte-exact check of 038 (run by v4Tests/scripts/runWireTests.sh with --acn-v2, Issue 78): the size field of an
+/* Byte-exact check of 038 (run by v4Tests/scripts/runWireTests.sh with --acn-v2 and legacy, Issue 78; legacy since Issue 123 fails no more
+   on the alternative that does not determine the field): the size field of an
    OCTET STRING (CONTAINING X) SEQUENCE component sized by an ACN parameter, the SEQUENCE being an alternative of a
    parameterized CHOICE, holds the length of the region when the alternative is selected, 0 otherwise. */
 #include <assert.h>

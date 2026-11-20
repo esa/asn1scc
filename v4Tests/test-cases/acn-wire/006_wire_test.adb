@@ -186,7 +186,7 @@ begin
    VP.pl.Exist := (x => 1, y => 0);
    CP.Rej ("TP x present y absent", VP);
    --  fixed-size consumers: o (SIZE(3)) absent and d of 5 octets; o present, d absent; o present and d of 5 octets
-   --  (inconsistent); both absent (the bytes of --acn-v2: legacy fails, q/issues.md Issue 123 note)
+   --  (inconsistent); both absent (the default 0, as legacy since Issue 123)
    VF1.a := 1; VF1.tail := 7; VF1.pl.e := 5;
    VF1.pl.Exist := (o => 0, d => 1);
    VF1.pl.d := (Length => 5, Data => Oct (5));

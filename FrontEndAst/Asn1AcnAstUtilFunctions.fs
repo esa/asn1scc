@@ -767,3 +767,15 @@ and isLiveDeduced (t:Asn1Type) =
             | Some _    -> false        //CONTAINING boundary: the container size delimits the region
             | None      -> isLiveDeduced rf.resolvedType
         | _ -> false
+
+/// The value an ACN INTEGER field takes when no consumer of it is in the value (q/issues.md Issues 105 / 123, legacy
+/// initExpr) and that the --acn-v2 fallback patch writes (Issue 142): 0 when the field's range holds it, else the bound
+/// nearest to 0. A field with a range not holding 0 rejects 0: uPER encoding asserts min <= v (wire value v - min), the
+/// Ada ACN integer reads check the range.
+let acnIntegerDefaultValue (a: AcnInteger) : BigInteger =
+    match a.uperRange with
+    | Concrete (lo, _) when lo > 0I -> lo
+    | Concrete (_, hi) when hi < 0I -> hi
+    | PosInf lo when lo > 0I        -> lo
+    | NegInf hi when hi < 0I        -> hi
+    | Concrete _ | PosInf _ | NegInf _ | Full -> 0I

@@ -241,10 +241,10 @@ type IAcn_rust() =
             acn_rust.MultiAcnUpdate_checkEqual_pri  sV0 sVi sChPath bIsAlwaysInit 
         override this.MultiAcnUpdate_checkEqual_str  (sV0:string) (sVi:string) (sChPath:string) (bIsAlwaysInit:bool) =
             acn_rust.MultiAcnUpdate_checkEqual_str  sV0 sVi sChPath bIsAlwaysInit 
-        override this.MultiAcnUpdate  (v:string) (sV0:string) (sErrCode:string) (arrsLocalDeclarations:seq<string>) (arrsLocalUpdateStatements:seq<string>) (arrsGetFirstIntValue:seq<string>) (bIsFirstIntValueSingle:bool) (arrsLocalCheckEquality:seq<string>) (sDefaultExpr:string) (bSetInitFlag:bool) (bNoSourceDefault:bool) =
-            acn_rust.MultiAcnUpdate  v sV0 sErrCode arrsLocalDeclarations arrsLocalUpdateStatements arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality sDefaultExpr bSetInitFlag bNoSourceDefault 
-        override this.checkAccessPath  (arrsCheckPaths:seq<string>) (sUpdateStatement:string) (v:string) (sInitExpr:string) =
-            acn_rust.checkAccessPath  arrsCheckPaths sUpdateStatement v sInitExpr 
+        override this.MultiAcnUpdate  (v:string) (sV0:string) (sErrCode:string) (arrsLocalDeclarations:seq<string>) (arrsLocalUpdateStatements:seq<string>) (arrsGetFirstIntValue:seq<string>) (bIsFirstIntValueSingle:bool) (arrsLocalCheckEquality:seq<string>) (sDefaultExpr:string) (bSetInitFlag:bool) (bNoSourceDefault:bool) (bNoSourceLeavesUnset:bool) =
+            acn_rust.MultiAcnUpdate  v sV0 sErrCode arrsLocalDeclarations arrsLocalUpdateStatements arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality sDefaultExpr bSetInitFlag bNoSourceDefault bNoSourceLeavesUnset 
+        override this.checkAccessPath  (arrsCheckPaths:seq<string>) (sUpdateStatement:string) (v:string) (sInitExpr:string) (bDefaultWhenAbsent:bool) =
+            acn_rust.checkAccessPath  arrsCheckPaths sUpdateStatement v sInitExpr bDefaultWhenAbsent 
         override this.SizeDependency_oct_str_containing  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (v:string) (bIsOctet:bool) (sInner:string) (sLocalVarType:string) (bSetInitFlag:bool) (soNoCheckNote:string option) =
             acn_rust.SizeDependency_oct_str_containing  p sFuncName sReqBytesForUperEncoding v bIsOctet sInner sLocalVarType bSetInitFlag soNoCheckNote 
         override this.octet_string_containing_ext_field_func  (p:string) (sFuncName:string) (sReqBytesForUperEncoding:string) (nReqBytes:BigInteger) (sExtField:string) (sErrCode:string) (soInner:string option) (bDeducedContent:bool) (codec:Codec) =

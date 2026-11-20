@@ -880,8 +880,11 @@ type LangGeneric_c() =
 
         override this.computeDeferredFallbackValue (acnType: Asn1AcnAst.AcnInsertedType) (uperMinOffset: BigInteger) : string =
             match acnType with
-            | Asn1AcnAst.AcnInsertedType.AcnInteger _ ->
-                if uperMinOffset > 0I then uperMinOffset.ToString() else "0"
+            | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                // the wire value of the field's default (Issues 123 / 142): the default less the offset of a uPER-encoded
+                // field (PatchDet writes its argument as is); a range holding no value >= 0 keeps 0
+                let wire = Asn1AcnAstUtilFunctions.acnIntegerDefaultValue ai - uperMinOffset
+                if wire >= 0I then wire.ToString() else "0"
             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 // The wire value of the first item (PatchDet writes its argument as is);

@@ -553,6 +553,9 @@ type TestCaseValue =
     | TcvSizeableTypeValue of BigInteger       //length
     | TcvChoiceAlternativePresentWhenInt of BigInteger
     | TcvChoiceAlternativePresentWhenStr of String
+    /// Not in a test value's map: the value of an ACN field none of whose consumers is in the value (q/issues.md Issue
+    /// 123; AcnDependencies). The field takes its default value, so it agrees with any other consumer.
+    | TcvNoConsumer
 
 (*
 In general, an automatic test involves many types (e.g. in sequences, choices etc). It consists of function (initTestCaseFunc) that returns

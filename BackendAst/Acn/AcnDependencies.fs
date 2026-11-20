@@ -15,7 +15,8 @@ open AcnDeterminantDef
 
 let initExpr (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (t: Asn1AcnAst.AcnInsertedType): string =
     match t with
-    | AcnInteger int -> lm.lg.asn1SccIntValueToString 0I int.isUnsigned
+    // Issue 123 (Fable C2): a value of the field's range (a uPER-encoded field with min > 0 rejects 0)
+    | AcnInteger int -> lm.lg.asn1SccIntValueToString (acnIntegerDefaultValue int) int.isUnsigned
     | AcnNullType _ -> lm.lg.asn1SccIntValueToString 0I true
     | AcnBoolean _ -> lm.lg.FalseLiteral
     | AcnReferenceToIA5String s -> lm.lg.initializeString None (int s.str.maxSize.uper)
@@ -133,16 +134,29 @@ let private dependencyTestCaseFnc (d:AcnDependency) (atc:AutomaticTestCase) : Te
             | None      -> atc.testCaseTypeIDsMap.TryFind d.asn1Type
         | _     -> atc.testCaseTypeIDsMap.TryFind d.asn1Type
 
+/// q/issues.md Issue 123: the value one consumer (dependency) gives its determinant: TcvNoConsumer when the consumer is
+/// not in the test value (the determinant then takes its default value, or another consumer's), None when it is in the
+/// value but its value cannot be computed (the test value is then not valid for ACN).
+let private consumerTestCaseFnc (d:AcnDependency) (atc:AutomaticTestCase) : TestCaseValue option =
+    match dependencyTestCaseFnc d atc with
+    | Some v                                                            -> Some v
+    | None when not (atc.testCaseTypeIDsMap.ContainsKey d.asn1Type)     -> Some TcvNoConsumer
+    | None                                                              -> None
+
 /// Several dependencies of one determinant. A dependency that yields no value for this test value
 /// belongs to a part of the value that is absent (e.g. another alternative of a CHOICE that receives
 /// the determinant as an ACN argument). The encoder skips such dependencies at run time
 /// (<name>_is_initialized), so the test value is valid when at least one dependency yields a value
-/// and all yielded values agree. When no dependency yields a value, `noSourceValue` decides (Issue 105: the
-/// determinant takes its default value when no consumer is in the value).
-let private agreedTestCaseValue (noSourceValue:AutomaticTestCase -> TestCaseValue option) (fncs:(AutomaticTestCase -> TestCaseValue option) option list) (atc:AutomaticTestCase) : TestCaseValue option =
-    let updateValues = fncs |> List.map(fun z -> match z with None -> None | Some f -> f atc)
-    match updateValues |> List.choose id with
-    | []        -> noSourceValue atc
+/// and all yielded values agree. When no dependency yields a value: no consumer is in the value when every source says
+/// so (TcvNoConsumer, Issues 105 / 123: the determinant takes its default value, or the caller's MultiAcnUpdate ignores
+/// it); a source in the value whose value is unknown keeps the test value invalid.
+let private agreedTestCaseValue (fncs:(AutomaticTestCase -> TestCaseValue option) option list) (atc:AutomaticTestCase) : TestCaseValue option =
+    let updateValues = fncs |> List.map(fun z -> match z with None -> Some TcvNoConsumer | Some f -> f atc)
+    match updateValues |> List.choose id |> List.filter (fun v -> v <> TcvNoConsumer) with
+    | []        ->
+        match updateValues |> List.forall (fun v -> v = Some TcvNoConsumer) with
+        | true  -> Some TcvNoConsumer
+        | false -> None
     | u1::us    ->
         match us |> Seq.exists(fun z -> z <> u1) with
         | true  -> None
@@ -195,6 +209,28 @@ let private initOfCheckPath (checkPath: 'a list) : DeterminantInit =
     | []    -> AlwaysInitialized
     | _     -> MaybeUninitialized
 
+/// q/issues.md Issue 123: whether the field takes its default value (initExpr) when no consumer is in the value: C / Ada
+/// (ILangGeneric.multiAcnUpdateDefaultWhenNoSource), a field of type INTEGER, BOOLEAN or ENUMERATED (a C char array is
+/// not assignable: an IA5String field with no consumer present still fails the encoding).
+let private fieldTakesDefault (lm:LanguageMacros) (t: Asn1AcnAst.AcnInsertedType) : bool =
+    lm.lg.multiAcnUpdateDefaultWhenNoSource &&
+    (match t with
+     | Asn1AcnAst.AcnInteger _ | Asn1AcnAst.AcnBoolean _ | Asn1AcnAst.AcnReferenceToEnumerated _ -> true
+     | Asn1AcnAst.AcnNullType _ | Asn1AcnAst.AcnReferenceToIA5String _                          -> false)
+
+/// q/issues.md Issue 123: the default of a single update under a check of its path (its consumer may be absent), unless
+/// the update is a source of a MultiAcnUpdate (bForceInitFlag), which reads its flag and ignores it when it is unset.
+let private defaultWhenAbsent (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (bForceInitFlag:bool) (t: Asn1AcnAst.AcnInsertedType) : string option =
+    match bForceInitFlag, fieldTakesDefault lm t with
+    | false, true               -> Some (initExpr r lm m t)
+    | true, _ | false, false    -> None
+
+/// The init of an update: on every path when it has no check of its path or a default for the other arm (Issue 123).
+let private initOfUpdate (checkPath: 'a list) (soDefault: string option) : DeterminantInit =
+    match soDefault with
+    | Some _    -> AlwaysInitialized
+    | None      -> initOfCheckPath checkPath
+
 /// Coverage step 12c: the update, wrapped in the check of its dependency path when it has one.
 /// Coverage step 12e: checkedSelectors / writesOnlyEnumItems as in AcnChildUpdate (the checks of the dependency path guard
 /// the update and the encoding of the CHOICE alike).
@@ -204,14 +240,25 @@ let private determinantSwitchOutcome (lm:LanguageMacros) (soCovExempt:string opt
     | Some _ -> EncodeOutcome.noWrite
     | None   -> lm.lg.encodeTemplateOutcome EncDeterminantSwitch
 
-let private updateResult (lm:LanguageMacros) (checkPath: string list) (v:string) (sInitExpr:string) (updateStatement:string) (o:EncodeOutcome) (checkedSelectors:string list) (writesOnlyEnumItems:bool) : AcnChildUpdate =
+/// Issue 123: with a default (soDefault) the field takes it before the check (kept when the update does not run), so it
+/// is set on every path (no flag, no failing arm in its encoding). Before the check, not in an else: the automatic test
+/// values toggle an OPTIONAL holder and its OPTIONAL consumer together, so an else arm would stay unexecuted.
+let private updateResult (lm:LanguageMacros) (checkPath: string list) (v:string) (sInitExpr:string) (soDefault: string option) (updateStatement:string) (o:EncodeOutcome) (checkedSelectors:string list) (writesOnlyEnumItems:bool) : AcnChildUpdate =
     match checkPath with
     | []    -> {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = o; checkedSelectors = checkedSelectors; writesOnlyEnumItems = writesOnlyEnumItems}
-    | _     -> {updateBody = lm.acn.checkAccessPath checkPath updateStatement v sInitExpr; init = MaybeUninitialized; updOutcome = EncodeOutcome.conditional o; checkedSelectors = checkedSelectors; writesOnlyEnumItems = writesOnlyEnumItems}
+    | _     ->
+        let sDefault, bDefault = match soDefault with Some e -> e, true | None -> sInitExpr, false
+        {updateBody = lm.acn.checkAccessPath checkPath updateStatement v sDefault bDefault; init = initOfUpdate checkPath soDefault; updOutcome = EncodeOutcome.conditional o; checkedSelectors = checkedSelectors; writesOnlyEnumItems = writesOnlyEnumItems}
 
 /// Coverage step 12c: no update text (the dependency's parent is not reachable from this nesting): the determinant
 /// stays unset, its encoding fails on the flag (as before).
 let private noUpdate : AcnChildUpdate = {updateBody = ""; init = MaybeUninitialized; updOutcome = EncodeOutcome.noWrite; checkedSelectors = []; writesOnlyEnumItems = false}
+
+/// What a MultiAcnUpdate does when none of its sources is set (Issues 105 / 123, getUpdateFunctionUsedInEncoding).
+type private NoSourceArm =
+    | NoSourceDefault       // the determinant takes its default value
+    | NoSourceLeavesUnset   // a source of the caller's MultiAcnUpdate: unset, its flag FALSE
+    | NoSourceFails         // ret / result FALSE (an IA5String field; the languages without a default)
 
 let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (d:AcnDependency)  (us:State) =
     let ctx = { r=r; deps=deps; lm=lm; m=m; d=d }
@@ -247,13 +294,14 @@ and private handleSizeDeterminant (ctx: DepContext) (minSize: SIZE) (maxSize: SI
             | AcnInteger int -> int.isUnsigned
             | AcnNullType _ -> true
             | _ -> raise (BugErrorException "???")
-        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
+        let soDefault = defaultWhenAbsent r lm m bForceInitFlag child.Type
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfUpdate checkPath soDefault)
         let updateStatement =
             match minSize.acn = maxSize.acn with
             | true  -> lm.acn.SizeDependencyFixedSize v minSize.acn bSetInitFlag
             | false -> lm.acn.SizeDependency v (lm.acn.getSizeableSize (pSizeable.accessPath.joined lm.lg) (lm.lg.getAccess pSizeable.accessPath) unsigned) minSize.uper maxSize.uper false false child.typeDefinitionBodyWithinSeq bSetInitFlag
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantAssign) [] false
-    let testCaseFnc = dependencyTestCaseFnc d
+        updateResult lm checkPath v (initExpr r lm m child.Type) soDefault updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantAssign) [] false
+    let testCaseFnc = consumerTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
@@ -302,13 +350,14 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
         // without checking its result
         let soNoCheckNote = encodeNoCheckNote lm Encode innerOutcome
         let sLocalVarType = child.typeDefinitionBodyWithinSeq
-        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
+        let soDefault = defaultWhenAbsent r lm m bForceInitFlag child.Type
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfUpdate checkPath soDefault)
         let updateStatement = lm.acn.SizeDependency_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.accessPath Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner sLocalVarType bSetInitFlag soNoCheckNote
         // sets the determinant only when the temporary encoding succeeded, else the check after the update stops the
         // encoding
         let updOutcome = EncodeOutcome.sequence [innerOutcome; lm.lg.encodeTemplateOutcome EncDeterminantAssign]
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement updOutcome [] false
-    let testCaseFnc = dependencyTestCaseFnc d
+        updateResult lm checkPath v (initExpr r lm m child.Type) soDefault updateStatement updOutcome [] false
+    let testCaseFnc = consumerTestCaseFnc d
     let localVars = lm.lg.acn.getAcnDepSizeDeterminantLocVars sReqBytesForUperEncoding
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=errCodes0; testCaseFnc=testCaseFnc; localVariables= localVariables0@localVars}), ns
@@ -323,10 +372,11 @@ and private handleIA5StringSizeDeterminant (ctx: DepContext) (minSize: SIZE) (ma
         // determinant encoder. A lower bound of 0 is left out: "len >= 0" is always True
         // for an unsigned determinant (GNAT -gnatwc, an error with -gnatwe), and SPARK
         // knows it from getStringSize returning Natural.
-        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
+        let soDefault = defaultWhenAbsent r lm m bForceInitFlag child.Type
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfUpdate checkPath soDefault)
         let updateStatement = lm.acn.SizeDependency v (lm.acn.getStringSize (pSizeable.accessPath.joined lm.lg)) minSize.uper maxSize.uper true (minSize.uper > 0I) child.typeDefinitionBodyWithinSeq bSetInitFlag
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantRangeCheck) [] false
-    let testCaseFnc = dependencyTestCaseFnc d
+        updateResult lm checkPath v (initExpr r lm m child.Type) soDefault updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantRangeCheck) [] false
+    let testCaseFnc = consumerTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
@@ -355,10 +405,11 @@ and private handlePresenceBool (ctx: DepContext) (us: State) =
         else
             let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot parDecTypeSeq
             let pDecParSeq, checkPath = getAccessFromScopeNodeList relPath false lm pBase
-            let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
+            let soDefault = defaultWhenAbsent r lm m bForceInitFlag child.Type
+            let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfUpdate checkPath soDefault)
             let updateStatement = lm.acn.PresenceDependency v (pDecParSeq.accessPath.joined lm.lg) (lm.lg.getAccess pDecParSeq.accessPath) (ToC (withBackendChildNames r lm d.asn1Type).lastItem) bSetInitFlag
-            updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantAssign) [] false
-    let testCaseFnc = dependencyTestCaseFnc d
+            updateResult lm checkPath v (initExpr r lm m child.Type) soDefault updateStatement (lm.lg.encodeTemplateOutcome EncDeterminantAssign) [] false
+    let testCaseFnc = consumerTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
@@ -384,7 +435,8 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
         else
         let pBase, relPath1 = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
-        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
+        let soDefault = defaultWhenAbsent r lm m bForceInitFlag child.Type
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfUpdate checkPath soDefault)
         let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
         let arrsChildUpdates =
             chc.children |>
@@ -402,8 +454,8 @@ and private handlePresenceChoice (ctx: DepContext) (relPath: AcnGenericTypes.Rel
         // coverage step 12e: an earlier update of this function already switched on the same selector
         let soCovExempt = nestingScope.selectorExemption (choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)) "ASN1SCC-COV-004" |> Option.map covExemptJustification
         let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName soCovExempt
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (determinantSwitchOutcome lm soCovExempt) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] false
-    let testCaseFnc = dependencyTestCaseFnc d
+        updateResult lm checkPath v (initExpr r lm m child.Type) soDefault updateStatement (determinantSwitchOutcome lm soCovExempt) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] false
+    let testCaseFnc = consumerTestCaseFnc d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
 and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.RelativePath) (chc: Asn1AcnAst.Choice) (str: Asn1AcnAst.StringType) (us: State) =
@@ -412,7 +464,8 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
         let v = lm.lg.getValue vTarget.accessPath
         let pBase, relPath1 = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath1 false lm pBase
-        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
+        let soDefault = defaultWhenAbsent r lm m bForceInitFlag child.Type
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfUpdate checkPath soDefault)
         let sChoiceTypeName = (lm.lg.getChoiceTypeDefinition chc.typeDef).typeName
         let sInsertedFieldTypeName =
             match child.Type with
@@ -443,8 +496,8 @@ and private handlePresenceStrChoice (ctx: DepContext) (relPath: AcnGenericTypes.
         // coverage step 12e: an earlier update of this function already switched on the same selector
         let soCovExempt = nestingScope.selectorExemption (choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)) "ASN1SCC-COV-004" |> Option.map covExemptJustification
         let updateStatement = lm.acn.ChoiceDependencyPres v (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath) arrsChildUpdates sChoiceTypeName soCovExempt
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement (determinantSwitchOutcome lm soCovExempt) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] false
-    let testCaseFnc = dependencyTestCaseFnc d
+        updateResult lm checkPath v (initExpr r lm m child.Type) soDefault updateStatement (determinantSwitchOutcome lm soCovExempt) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] false
+    let testCaseFnc = consumerTestCaseFnc d
     let icdComments = []
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[]; testCaseFnc = testCaseFnc; localVariables=[]}), us
 
@@ -454,7 +507,8 @@ and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.Reference
         let v = lm.lg.getValue vTarget.accessPath
         let pBase, relPath = resolveDepScope r lm nestingScope pSrcRoot d.asn1Type
         let choicePath, checkPath = getAccessFromScopeNodeList relPath false lm pBase
-        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfCheckPath checkPath)
+        let soDefault = defaultWhenAbsent r lm m bForceInitFlag child.Type
+        let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfUpdate checkPath soDefault)
         let arrsChildUpdates =
             chc.children |>
             List.mapi(fun idx ch ->
@@ -467,20 +521,33 @@ and private handleChoiceDeterminant (ctx: DepContext) (enm: Asn1AcnAst.Reference
         // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for
         // accessing enums fields instead of a compiler-unchecked access
         let updateStatement2 = lm.lg.formatAcnDeterminantUpdate (choicePath.accessPath.joined lm.lg) checkPath updateStatement
-        updateResult lm checkPath v (initExpr r lm m child.Type) updateStatement2 (determinantSwitchOutcome lm soCovExempt) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] true
-    let testCaseFnc = dependencyTestCaseFnc d
+        updateResult lm checkPath v (initExpr r lm m child.Type) soDefault updateStatement2 (determinantSwitchOutcome lm soCovExempt) [choiceSelectorKey (choicePath.accessPath.joined lm.lg) (lm.lg.getAccess choicePath.accessPath)] true
+    let testCaseFnc = consumerTestCaseFnc d
     let icdComments = icdCommentsForDependency ctx.d
     Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; icdComments=icdComments; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
 and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm: LanguageMacros) (m: Asn1AcnAst.Asn1Module) (acnChildOrAcnParameterId) (us:State) : (AcnChildUpdateResult option*State)=
     let multiAcnUpdate       = lm.acn.MultiAcnUpdate
 
+    // Issue 123: an ACN field none of whose consumers is in the test value takes its default value when it can
+    // (fieldTakesDefault), else the value is not valid for ACN (its encoding fails); an ACN parameter passes "no consumer"
+    // on to the field or to the caller's MultiAcnUpdate
+    let forField (d1: AcnDependency) (res: AcnChildUpdateResult option) =
+        match d1.determinant with
+        | AcnParameterDeterminant _ -> res
+        | AcnChildDeterminant ch    ->
+            res |> Option.map (fun u ->
+                let testCaseFnc (atc: AutomaticTestCase) =
+                    match u.testCaseFnc atc with
+                    | Some TcvNoConsumer when not (fieldTakesDefault lm ch.Type) -> None
+                    | v                                                         -> v
+                {u with testCaseFnc = testCaseFnc})
     match deps.acnDependencies |> List.filter(fun d -> d.determinant.id = acnChildOrAcnParameterId) with
     | []  ->
         None, us
     | d1::[]    ->
         let ret, ns = handleSingleUpdateDependency r deps lm m d1 us
-        ret, ns
+        forField d1 ret, ns
     | d1::dds         ->
         let _errCodeName = ToC ("ERR_ACN" + ((lm.lg.codecSuffix Encode).ToUpper()) + "_UPDATE_" + ((acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
         let errFieldPath = match acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.toList with [] -> "" | first :: rest -> (String.concat "." ((r.args.TypePrefix + first) :: rest)).Replace("#","elm")
@@ -488,27 +555,18 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
 
         let ds = d1::dds
         let c_name0 = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) 0
-        // Issue 105 (legacy ACN): when no source is set, i.e. every consumer of the determinant is absent from the
-        // value, an ACN field takes its default value (initExpr; no consumer reads it) instead of failing the encoding.
-        // Not for an IA5String field (a C char array is not assignable) nor for an ACN parameter, whose value is a source
-        // of the caller's determinant: both keep the failing else.
-        let noSourceDefault =
-            match lm.lg.multiAcnUpdateDefaultWhenNoSource, d1.determinant with
-            | false, _                          -> false
-            | true, AcnParameterDeterminant _   -> false
-            | true, AcnChildDeterminant ch      ->
-                match ch.Type with
-                | Asn1AcnAst.AcnInteger _
-                | Asn1AcnAst.AcnBoolean _
-                | Asn1AcnAst.AcnReferenceToEnumerated _ -> true
-                | Asn1AcnAst.AcnNullType _
-                | Asn1AcnAst.AcnReferenceToIA5String _  -> false
-        // the test value agrees: valid when no consumer is in it (a consumer present whose value is unknown keeps it
-        // invalid)
-        let noSourceValue (atc:AutomaticTestCase) =
-            match noSourceDefault && (ds |> List.forall (fun d -> not (atc.testCaseTypeIDsMap.ContainsKey d.asn1Type))) with
-            | true  -> Some TcvAnyValue
-            | false -> None
+        // Issue 105 (legacy ACN) / Issue 123: when no source is set, i.e. every consumer of the determinant is absent
+        // from the value. The determinant's own update (an ACN field's, or an ACN parameter's that is the field's only
+        // update): the field takes its default value (initExpr; no consumer reads it) instead of failing the encoding,
+        // except an IA5String field (a C char array is not assignable). A source of the caller's MultiAcnUpdate
+        // (bForceInitFlag: an ACN parameter's update next to other consumers of the field) leaves its value unset: its
+        // flag stays FALSE, so the caller ignores it (Fable i108 C1: it then may be unset, init MaybeUninitialized).
+        let noSourceArm (bForceInitFlag: bool) (child: AcnChild) =
+            match lm.lg.multiAcnUpdateDefaultWhenNoSource, bForceInitFlag, fieldTakesDefault lm child.Type with
+            | false, _, _           -> NoSourceFails
+            | true, true, _         -> NoSourceLeavesUnset
+            | true, false, true     -> NoSourceDefault
+            | true, false, false    -> NoSourceFails
         let localVars (child: AcnChild) =
             ds |>
             List.mapi(fun i d1 ->
@@ -589,14 +647,24 @@ and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.Ac
                     let choicePath, _ = getAccessFromScopeNodeList relPath d.dependencyKind.isString lm pBase
                     cmp v vi (choicePath.accessPath.joined lm.lg) (isAlwaysInit d))
             // the determinant is set whenever the update succeeds (else ret / result is FALSE and the check after it stops
-            // the encoding)
-            let bSetInitFlag = setsInitFlag lm bForceInitFlag AlwaysInitialized
-            let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) (arrsLocalUpdateStatements |> List.map (fun u -> u.updateBody)) arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality (initExpr r lm m child.Type) bSetInitFlag noSourceDefault
+            // the encoding), except by a no-source arm that leaves it unset (Issue 123)
+            let noSource = noSourceArm bForceInitFlag child
+            let init =
+                match bIsFirstIntValueSingle, noSource with
+                | false, NoSourceLeavesUnset                        -> MaybeUninitialized
+                | true, _ | false, (NoSourceDefault | NoSourceFails) -> AlwaysInitialized
+            let bSetInitFlag = setsInitFlag lm bForceInitFlag init
+            let bNoSourceDefault, bNoSourceLeavesUnset =
+                match noSource with
+                | NoSourceDefault       -> true, false
+                | NoSourceLeavesUnset   -> false, true
+                | NoSourceFails         -> false, false
+            let updateStatement = multiAcnUpdate (vTarget.accessPath.joined lm.lg) c_name0 (errCode.errCodeName) (localVars child) (arrsLocalUpdateStatements |> List.map (fun u -> u.updateBody)) arrsGetFirstIntValue bIsFirstIntValueSingle arrsLocalCheckEquality (initExpr r lm m child.Type) bSetInitFlag bNoSourceDefault bNoSourceLeavesUnset
             // coverage step 12e: the determinant takes the value of one of the sources, after all their switches ran
-            {updateBody = updateStatement; init = AlwaysInitialized; updOutcome = lm.lg.encodeTemplateOutcome EncDeterminantMulti
+            {updateBody = updateStatement; init = init; updOutcome = lm.lg.encodeTemplateOutcome EncDeterminantMulti
              checkedSelectors = arrsLocalUpdateStatements |> List.collect (fun u -> u.checkedSelectors)
              writesOnlyEnumItems = arrsLocalUpdateStatements |> List.forall (fun u -> u.writesOnlyEnumItems)}
-        let testCaseFnc = agreedTestCaseValue noSourceValue (localUpdateFuns |> List.map (Option.map (fun res -> res.testCaseFnc)))
+        let testCaseFnc = agreedTestCaseValue (localUpdateFuns |> List.map (Option.map (fun res -> res.testCaseFnc)))
 
         let ret = Some(({AcnChildUpdateResult.updateAcnChildFnc = multiUpdateFunc; icdComments=icdComments; errCodes=errCode::restErrCodes ; testCaseFnc = testCaseFnc; localVariables = restLocalVariables}))
-        ret, ns
+        forField d1 ret, ns

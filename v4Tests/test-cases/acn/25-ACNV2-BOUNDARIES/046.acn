@@ -1,0 +1,11 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    Pay <INTEGER:len> [] { has BOOLEAN [], d [present-when has, size len], e [] }
+    PayF <INTEGER:len> [] { h BOOLEAN [], o [present-when h, size len], e [] }
+    S10 [] { h BOOLEAN [], n INTEGER [size 4, encoding pos-int], o [present-when h, size n], pl <n> [], tail [] }
+    S13 [] { g BOOLEAN [], n INTEGER [size 4, encoding pos-int], pl <n> [], d [present-when g, size n], tail [] }
+    S14 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PG <INTEGER:len> [] { items [] { [size len] } }
+    S15 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PGV <INTEGER:len> [] { has BOOLEAN [], d [present-when has, size len], items [] { [size len] } }
+    S16 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+END

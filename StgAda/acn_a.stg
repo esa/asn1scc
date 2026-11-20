@@ -1402,7 +1402,7 @@ MultiAcnUpdate_get_first_init_value_str(sV0, sVi, sChPath, bIsFirst, bIsSingleEl
 MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
 MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag, bNoSourceDefault) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag, bNoSourceDefault, bNoSourceLeavesUnset) ::= <<
 declare
     <arrsLocalDeclarations; separator="\n">
     -- a source whose update is unconditional makes its flag tests constant (GNAT -gnatwc)
@@ -1414,19 +1414,27 @@ begin
 <if(bIsFirstIntValueSingle)>
     <arrsGetFirstIntValue; separator="\n">
 <else>
+<if(bNoSourceLeavesUnset)>
+    <v>_is_initialized := True;<\n>
+<endif>
     <arrsGetFirstIntValue; separator="\n">
     else
 <if(bNoSourceDefault)>
         -- no source is set: no consumer of the determinant is in the value, it takes its default value
         <v> := <sDefaultExpr>;		--COVERAGE_IGNORE<\n>
 <else>
+<if(bNoSourceLeavesUnset)>
+        -- no source is set: no consumer of <v> is in the value; it stays unset and its flag False, so the determinant it is a source of ignores it
+        <v>_is_initialized := False;		--COVERAGE_IGNORE<\n>
+<else>
         result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);		--COVERAGE_IGNORE<\n>
+<endif>
 <endif>
     end if;<\n>
 <endif>
 
     result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success and (<arrsLocalCheckEquality; separator=" and ">), ErrorCode => <sErrCode>);
-<if(bSetInitFlag)>    <v>_is_initialized := result.Success;<\n><endif>    pragma Warnings (On, "condition is always*");
+<if(bSetInitFlag)><if(!bNoSourceLeavesUnset)>    <v>_is_initialized := result.Success;<\n><endif><endif>    pragma Warnings (On, "condition is always*");
 end;
 >>
 
@@ -1492,7 +1500,11 @@ case <sChPath><sAcc>kind is
 end case;
 >>
 
-checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
+checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr, bDefaultWhenAbsent) ::= <<
+<if(bDefaultWhenAbsent)>
+-- the default value of <v>, kept when no consumer of it is in the value
+<v> := <sInitExpr>;<\n>
+<endif>
 if (<arrsCheckPaths; separator=" and then ">) then
     <sUpdateStatement>
 end if;

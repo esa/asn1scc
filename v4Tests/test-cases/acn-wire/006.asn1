@@ -7,8 +7,7 @@
 -- - a value whose consumers disagree (ACN-inconsistent) fails with a nonzero error code (it was encoded);
 -- - the patch of a fixed-size consumer runs only when it is encoded (no failure, no error code on a valid value).
 -- No directives: run by v4Tests/scripts/runWireTests.sh with 006_wire_test.c / 006_wire_test.adb (C with ASan / UBSan,
--- Ada with -gnata), --acn-v2; the C test also runs on the legacy encoder (same bytes and rejections, except the
--- values marked there). The corpus twin with automatic tests is test-cases/acn/25-ACNV2-BOUNDARIES/042.
+-- Ada with -gnata), --acn-v2; the C test also runs on the legacy encoder (same bytes and rejections). The corpus twin with automatic tests is test-cases/acn/25-ACNV2-BOUNDARIES/042.
 WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     MyOct ::= OCTET STRING (SIZE(0..15))
     -- two OPTIONAL consumers, a named and an inline one

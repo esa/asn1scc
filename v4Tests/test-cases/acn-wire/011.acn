@@ -1,0 +1,24 @@
+WIRE DEFINITIONS ::= BEGIN
+    Ch <INTEGER:k> [] { one [present-when k==0], two [present-when k==1] }
+    Pay <INTEGER:len> [] { has BOOLEAN [], d [present-when has, size len], e [] }
+    Pay2 <INTEGER:len> [] { has1 BOOLEAN [], has2 BOOLEAN [], d1 [present-when has1, size len], d2 [present-when has2, size len], e [] }
+    PayF <INTEGER:len> [] { h BOOLEAN [], o [present-when h, size len], e [] }
+    Mid <INTEGER:len> [] { hm BOOLEAN [], m [present-when hm, size len], q <len> [] }
+    S7 [] { g BOOLEAN [], n INTEGER [size 4, encoding pos-int], p [present-when g, size n], tail [] }
+    S8 [] { g BOOLEAN [], k INTEGER [size 4, encoding pos-int], c <k> [present-when g], tail [] }
+    S4 [] { g BOOLEAN [], f BOOLEAN [], h [present-when f] { a [], k INTEGER [size 4, encoding pos-int] }, c <h.k> [present-when g], tail [] }
+    S9 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    S12 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    S10 [] { h BOOLEAN [], n INTEGER [size 4, encoding pos-int], o [present-when h, size n], pl <n> [], tail [] }
+    S13 [] { g BOOLEAN [], n INTEGER [size 4, encoding pos-int], pl <n> [], d [present-when g, size n], tail [] }
+    S14 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PG <INTEGER:len> [] { items [] { [size len] } }
+    S15 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    S17 [] { h BOOLEAN [], n INTEGER [size 4, encoding pos-int], o [present-when h, size n], pl <n> [], tail [] }
+    S19 [] { h BOOLEAN [], n INTEGER [size 4, encoding pos-int], o [present-when h, size n], pl <n> [], tail [] }
+    T1 [] { g BOOLEAN [], n Len [], p [present-when g, size n], tail [] }
+    PayL <Len5:len> [] { has BOOLEAN [], d [present-when has, size len], e [] }
+    T2 [] { n Len5 [], pl <n> [], tail [] }
+    QQ <INTEGER:x> [] { o [size x] }
+    TA [] { n INTEGER [encoding pos-int, size 8], c [] { list [] { [] { q <n> [] } }, z [] } }
+END

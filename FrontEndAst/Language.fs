@@ -888,6 +888,9 @@ type ILangGeneric () =
     /// Issue 105 (legacy ACN): when no source of a MultiAcnUpdate is set (every consumer of the determinant is absent
     /// from the value) the determinant takes its default value instead of failing the encoding; the automatic test
     /// values agree (AcnDependencies.agreedTestCaseValue). C and Ada; ACN fields of type INTEGER, BOOLEAN or ENUMERATED.
+    /// Issue 123: the same for a single update whose consumer is absent (the else of checkAccessPath) and for an ACN
+    /// parameter's MultiAcnUpdate that is the field's only update; one that is a source of the caller's MultiAcnUpdate
+    /// leaves its value unset (its flag FALSE: the caller ignores it).
     abstract member multiAcnUpdateDefaultWhenNoSource : bool
     default _.multiAcnUpdateDefaultWhenNoSource = false
     abstract member encoderBodySplit : bool

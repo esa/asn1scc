@@ -29,18 +29,19 @@ let deferredDetRefName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (identity: R
     AcnExternalField.deferredDetRefName r lm identity
 
 
-/// Whether the PatchDet of a fixed-size size consumer (SIZE min = max: the value is a constant) runs under the checks
-/// of the consumer's path (exist of an OPTIONAL component, kind of a CHOICE alternative).
+/// Which checks of the consumer's path (exist of an OPTIONAL component, kind of a CHOICE alternative) the PatchDet of a
+/// fixed-size size consumer (SIZE min = max: the value is a constant) runs under. Never none (q/issues.md Issue 125):
+/// an absent consumer must not write its constant, which rejected a valid value when another consumer was present with
+/// another size (203) and replaced the field's default (the fallback, = legacy) when it was alone.
 type FixedSizePatchGuard =
-    /// The constant is patched on every path, also when the consumer is absent: the only consumer of the field in
-    /// the function (today's code; an absent fixed-size consumer next to a variable one elsewhere is q/issues.md
-    /// Issue 125, not changed here).
-    | FixedSizeUnguarded
-    /// The constant is patched only when the consumer is encoded: one of several consumers of a parameter of a
-    /// specialised encoder (q/issues.md Issue 121), whose other consumers may be present with another size; an
-    /// unguarded constant would then reject a valid value or, as a patch that "cannot fail", return success with a
-    /// nonzero code (C) / make an Ada pragma Assume false.
-    | FixedSizeUnderPathChecks
+    /// Patched once, not per element: under the checks of its path down to the first SEQUENCE OF on it (the whole path
+    /// when there is none). Every element of that SEQUENCE OF needs the constant, and an empty list keeps it too, as
+    /// legacy does, which updates the constant under the checks above the SEQUENCE OF (cycle i108, Fable C3: the same
+    /// bytes in both modes).
+    | FixedSizeAboveSequenceOf
+    /// Patched per element (LoopConsumer, Issue 124): under the checks of its whole path, which patchLoopBlock places
+    /// around and inside the loops.
+    | FixedSizeWholePath
 
 /// How many formal parameters of one specialised function stand for an ACN field (AcnExternalField.paramIdentity).
 type private FieldBinding =
@@ -104,8 +105,10 @@ let computePatchDetValueExpr
     | Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _) ->
         if minSize.acn = maxSize.acn then
             match fixedSizeGuard with
-            | FixedSizeUnguarded       -> (None, minSize.acn.ToString(), [])
-            | FixedSizeUnderPathChecks ->
+            | FixedSizeAboveSequenceOf ->
+                let _, checks = relAccess (relParts |> List.takeWhile (function SQF -> false | _ -> true)) false
+                (None, minSize.acn.ToString(), checks)
+            | FixedSizeWholePath ->
                 let _, checks = relAccess relParts false
                 (None, minSize.acn.ToString(), checks)
         else
@@ -183,7 +186,7 @@ let guardPatchBlock (lm: LanguageMacros) (checks: string list) (preBlock: string
         | Some pre -> lm.acn.acn_deferred_det_preblock_wrap pre patchCall
     match checks with
     | []    -> block
-    | _     -> lm.acn.checkAccessPath checks block "" ""
+    | _     -> lm.acn.checkAccessPath checks block "" "" false
 
 /// Where the PatchDet of a consumer of a specialised encoder's ACN parameter runs (q/issues.md Issue 124).
 type private ConsumerPlacement =
@@ -981,7 +984,7 @@ let private createDeferredSequenceFunction
                                 match lm.lg.getDeferredDetFunctions determinant.Type with
                                 | None -> None
                                 | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                    let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true FixedSizeUnguarded
+                                    let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true FixedSizeAboveSequenceOf
                                     let valueExpr = patchDetWireValue r lm (Some determinant) uperMinOffset rawValueExpr
                                     let detName = deferredDetRefName r lm determinant.id
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
@@ -1038,7 +1041,7 @@ let private createDeferredSequenceFunction
                             | None -> []
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 siblingConsumers acId |> List.map (fun dep root ->
-                                    let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true FixedSizeUnguarded
+                                    let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true FixedSizeAboveSequenceOf
                                     let valueExpr = patchDetWireValue r lm (localPatchedField acId) uperMinOffset rawValueExpr
                                     let detName = deferredDetRefName r lm acId
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
@@ -1092,13 +1095,21 @@ let private createDeferredSequenceFunction
                             | None, Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 let detVarName = deferredDetRefName r lm acId
                                 let defaultVal =
-                                    let value = lm.lg.computeDeferredFallbackValue acType uperMinOffset
-                                    // a field with a mapping-function carries the mapped value of its default (Issue 59)
+                                    // a field with a mapping-function (an INTEGER) carries the mapped value of its default
+                                    // (Issue 59)
                                     let field = localPatchedField acId
                                     match field |> Option.bind (fieldMappingFunction r lm codec), boolPatternWireValues field with
-                                    | Some _, _            -> patchDetWireValue r lm field uperMinOffset value
+                                    | Some _, _            ->
+                                        let fieldDefault =
+                                            match acType with
+                                            | Asn1AcnAst.AcnInsertedType.AcnInteger ai -> acnIntegerDefaultValue ai
+                                            | Asn1AcnAst.AcnInsertedType.AcnBoolean _ | Asn1AcnAst.AcnInsertedType.AcnNullType _
+                                            | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated _
+                                            | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> 0I
+                                        patchDetWireValue r lm field uperMinOffset (fieldDefault.ToString())
                                     | None, Some (_, vFalse) -> vFalse.ToString()    // Issue 65: the false-pattern
-                                    | None, None           -> value
+                                    // Issue 142: the wire value of the field's default (a uPER-encoded field: less its minimum)
+                                    | None, None           -> lm.lg.computeDeferredFallbackValue acType uperMinOffset
                                 Some (detVarName, patchFn, nBitsOpt, defaultVal, acType)
                             | Some _, _
                             | None, None -> None)
@@ -1527,22 +1538,22 @@ let private appendPatchDetCalls
                         match binding with
                         | AliasedField -> allConsumerDeps |> List.truncate 1
                         | SingleFormal -> allConsumerDeps
-                    // Several consumers: each patch runs only when its consumer is encoded, also a fixed-size one
-                    // (an unguarded constant would collide with another consumer that is present); one consumer:
-                    // the code of before (Issue 125)
-                    let fixedSizeGuard =
-                        match consumerDeps with
-                        | [] | [_]  -> FixedSizeUnguarded
-                        | _ :: _ :: _ -> FixedSizeUnderPathChecks
                     // Issue 124: a consumer below a SEQUENCE OF of the specialised type is patched from every element,
-                    // except a single fixed-size one: its constant needs no element and stays unguarded (Issue 125)
+                    // except a single fixed-size one: its constant needs no element and is patched once, under the
+                    // checks above the SEQUENCE OF (Issue 125, FixedSizeAboveSequenceOf)
                     let placementOf (dep: Asn1AcnAst.AcnDependency) =
                         let belowSequenceOf =
                             dep.asn1Type.ToScopeNodeList |> List.skip boundaryPath.Length |> List.exists (function SQF -> true | _ -> false)
-                        match belowSequenceOf, dep.dependencyKind, fixedSizeGuard with
+                        match belowSequenceOf, dep.dependencyKind, consumerDeps with
                         | false, _, _ -> DirectConsumer
-                        | true, Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _), FixedSizeUnguarded when minSize.acn = maxSize.acn -> DirectConsumer
+                        | true, Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _), [_] when minSize.acn = maxSize.acn -> DirectConsumer
                         | true, _, _ -> LoopConsumer
+                    // Issue 125: every patch runs only when its consumer is encoded, also a fixed-size one (an
+                    // unguarded constant collided with another consumer that is present, or replaced the default)
+                    let fixedSizeGuard (placement: ConsumerPlacement) =
+                        match placement with
+                        | DirectConsumer -> FixedSizeAboveSequenceOf
+                        | LoopConsumer   -> FixedSizeWholePath
                     match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
                     | None -> []
                     | Some detFns ->
@@ -1550,7 +1561,9 @@ let private appendPatchDetCalls
                             // Skip CONTAINING size deps — handled by CONTAINING wrapper
                             match dep.dependencyKind with
                             | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> None
-                            | _ -> Some (prm, binding, dep, fixedSizeGuard, placementOf dep, detFns)))
+                            | _ ->
+                                let placement = placementOf dep
+                                Some (prm, binding, dep, fixedSizeGuard placement, placement, detFns)))
             // coverage step 14d: only the first patch of a field in this block can be its first patch since the
             // InitDet. Counted per field (paramIdentity); an aliased field (two formal parameters standing for it,
             // `pl <n, n>`) keeps the per-parameter rule of before (Issue 126).
@@ -1582,7 +1595,7 @@ let private appendPatchDetCalls
                             // check of legacy), and only when no parameter standing for the field is passed on (the
                             // callee it is passed to patches first). isOnlyPatchOfField holds only for consumers in
                             // different CHOICE alternatives, whose patches are all under their path checks
-                            // (FixedSizeUnderPathChecks), so one runs
+                            // (fixed-size ones too since Issue 125), so at most one runs
                             // Issue 124: a patch in a loop runs once per element and fails when two elements disagree:
                             // never exempt as a first / only patch (isFirstPatchOfField does not see the loop inside the
                             // callee); only consumersWriteOneValue (every patch writes the same constant) exempts it

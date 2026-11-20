@@ -1354,7 +1354,7 @@ MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_
 MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized && strcmp(<sV0>,<sVi>) == 0) || !<sVi>_is_initialized)"
 
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag, bNoSourceDefault) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag, bNoSourceDefault, bNoSourceLeavesUnset) ::= <<
 {
     <arrsLocalDeclarations; separator="\n">
 
@@ -1365,16 +1365,24 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
         <arrsGetFirstIntValue; separator=" ">
         ret = (<arrsLocalCheckEquality; separator=" && ">);<if(bSetInitFlag)><\n>        <v>_is_initialized = TRUE;<endif><\n>
 <else>
+<if(bNoSourceLeavesUnset)>
+        <v>_is_initialized = TRUE;<\n>
+<endif>
         <arrsGetFirstIntValue; separator=" "> else {
 <if(bNoSourceDefault)>
             /* no source is set: no consumer of the determinant is in the value, it takes its default value */
             <v> = <sDefaultExpr>; /*COVERAGE_IGNORE*/<\n>
 <else>
+<if(bNoSourceLeavesUnset)>
+            /* no source is set: no consumer of <v> is in the value; it stays unset and its flag FALSE, so the determinant it is a source of ignores it */
+            <v>_is_initialized = FALSE; /*COVERAGE_IGNORE*/<\n>
+<else>
             ret = FALSE; /*COVERAGE_IGNORE*/<\n>
+<endif>
 <endif>
         }
         if (ret) {
-            ret = (<arrsLocalCheckEquality; separator=" && ">);<if(bSetInitFlag)><\n>            <v>_is_initialized = TRUE;<endif>
+            ret = (<arrsLocalCheckEquality; separator=" && ">);<if(bSetInitFlag)><if(!bNoSourceLeavesUnset)><\n>            <v>_is_initialized = TRUE;<endif><endif>
         }<\n>
 <endif>
         if (!ret) {
@@ -1389,7 +1397,11 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
 
 
 
-checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
+checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr, bDefaultWhenAbsent) ::= <<
+<if(bDefaultWhenAbsent)>
+/* the default value of <v>, kept when no consumer of it is in the value */
+<v> = <sInitExpr>;<\n>
+<endif>
 if (<arrsCheckPaths; separator=" && ">) {
     <sUpdateStatement>
 }

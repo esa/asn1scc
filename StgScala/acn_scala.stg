@@ -1089,7 +1089,7 @@ MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= <<
 <MultiAcnUpdate_checkEqual_pri(sV0=sV0, sVi=sVi, sChPath=sChPath, bIsAlwaysInit=bIsAlwaysInit)>
 >>
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag, bNoSourceDefault) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag, bNoSourceDefault, bNoSourceLeavesUnset) ::= <<
 val <v> = {
     <arrsLocalDeclarations; separator="\n">
 
@@ -1108,7 +1108,7 @@ val <v> = {
 >>
 
 
-checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
+checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr, bDefaultWhenAbsent) ::= <<
 val <v> =
     if <arrsCheckPaths; separator=" && "> then
         <sUpdateStatement>

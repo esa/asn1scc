@@ -57,7 +57,7 @@ for n in 004 010 011 016 017 018 019 020 021 022 023 024 025 028 030 033 035 036
 done
 
 # The fixes checked by these cases are not specific to --acn-v2.
-for n in 019 020 022 023 024 025 030 033 035 036 037; do
+for n in 019 020 022 023 024 025 030 033 035 036 037 038; do
     run_wire_test $n -legacy
 done
 
@@ -253,16 +253,14 @@ echo "acn-wire 005 (Ada) --acn-v2 OK"
 # --acn-v2: an ACN parameter of a referenced type with several consumers inside it (OPTIONAL, mandatory, CHOICE
 # alternatives, fixed-size next to variable, determinants, present-when flags): valid values encode to the bytes legacy
 # writes with a zero error code, values whose consumers disagree fail with a nonzero code (q: Issue 121); C (ASan /
-# UBSan) acn-v2 and legacy (the same bytes; -DLEGACY skips the one value legacy does not encode), Ada x86 (-gnata,
+# UBSan) acn-v2 and legacy (the same bytes, also with no consumer present since Issue 123), Ada x86 (-gnata,
 # acn-v2: a false pragma Assume after a patch raises).
 for mode in "" "--acn-v2"; do
-    legacy=
-    [ -z "$mode" ] && legacy=-DLEGACY
     out=$work/acn006c$mode
     mkdir "$out"
     run_compiler -c -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/006.asn1" "$root/test-cases/acn-wire/006.acn" 2>/dev/null
     cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
-        $legacy -I "$out" "$out"/*.c "$root/test-cases/acn-wire/006_wire_test.c" -o "$out/wire_test"
+        -I "$out" "$out"/*.c "$root/test-cases/acn-wire/006_wire_test.c" -o "$out/wire_test"
     "$out/wire_test"
     echo "acn-wire 006 $mode OK"
 done
@@ -272,6 +270,27 @@ run_compiler -Ada -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/006.
 cp "$root/test-cases/acn-wire/006_wire_test.adb" "$out/wire_test.adb"
 (cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
 echo "acn-wire 006 (Ada) --acn-v2 OK"
+
+# acn-wire/011 (q/issues.md Issues 123 / 125 / 142, cycle i108a): a determinant field none of whose consumers is in the
+# value takes its default value, the same bytes in both modes; C (ASan / UBSan) and Ada (-gnata), legacy and --acn-v2.
+for mode in "" "--acn-v2"; do
+    out=$work/acn011c$mode
+    mkdir "$out"
+    run_compiler -c -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/011.asn1" "$root/test-cases/acn-wire/011.acn" 2>/dev/null
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/acn-wire/011_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 011 $mode OK"
+    out=$work/acn011ada$mode
+    mkdir "$out"
+    run_compiler -Ada -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/011.asn1" "$root/test-cases/acn-wire/011.acn" 2>/dev/null
+    cp "$root/test-cases/acn-wire/011_wire_test.adb" "$out/wire_test.adb"
+    legacy=False
+    [ -z "$mode" ] && legacy=True
+    printf 'package Wire_Mode is\n   Legacy : constant Boolean := %s;\nend Wire_Mode;\n' "$legacy" > "$out/wire_mode.ads"
+    (cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
+    echo "acn-wire 011 (Ada) $mode OK"
+done
 
 # acn-wire/007 (q/issues.md Issue 124): an ACN parameter of a referenced type consumed inside the elements of a
 # SEQUENCE OF of that type: every element patches the determinant (--acn-v2; legacy rejects the shapes, below).

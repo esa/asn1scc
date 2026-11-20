@@ -1,9 +1,8 @@
 /* --acn-v2: an ACN parameter of a referenced type with several consumers inside it (run by
    v4Tests/scripts/runWireTests.sh, ASan / UBSan, --acn-v2 and legacy). Valid values encode to the bytes legacy writes
    with a zero error code and decode back; values whose consumers disagree fail with a nonzero error code (the
-   specialised encoders patched one consumer per parameter: q/issues.md Issue 121). LEGACY (-DLEGACY) skips the values
-   legacy does not encode (no consumer present: --acn-v2 writes the fallback 0 into the size field, which no consumer
-   reads). */
+   specialised encoders patched one consumer per parameter: q/issues.md Issue 121). A value with no consumer present
+   encodes the default 0 of the size field in both modes (legacy failed before Issue 123). */
 #include <stdio.h>
 #include <string.h>
 #include "006.h"
@@ -140,8 +139,8 @@ int main(void)
         REJECT(TP, v);
     }
     /* fixed-size consumers: o (SIZE(3)) absent, d present with 5 octets (master rejected the value / encoded n = 3);
-       o present, d absent; o present and d of 5 octets (inconsistent); both absent (legacy fails, q/issues.md
-       Issue 123 note) */
+       o present, d absent; o present and d of 5 octets (inconsistent); both absent (the default 0 in both modes since
+       Issue 123) */
     {
         static TF1 v;
         memset(&v, 0, sizeof v);
@@ -152,11 +151,9 @@ int main(void)
         ENCODE(TF1, v, 0x01, 0x38, 0x04, 0x08, 0x0C, 0x14, 0x1C);
         v.pl.exist.d = 1; FILL(v.pl.d, 5);
         REJECT(TF1, v);
-#ifndef LEGACY
         memset(&v, 0, sizeof v);
         v.a = 1; v.pl.e = 5; v.tail = 7;
         ENCODE(TF1, v, 0x01, 0x00, 0x14, 0x1C);
-#endif
     }
     {
         static TF2 v;
@@ -190,8 +187,7 @@ int main(void)
         ENCODE(TC2, v, 0x01, 0x34, 0x04, 0x08, 0x0C, 0x1C);
     }
     /* no consumer present: the size field takes the fallback 0 (master --acn-v2 wrote 3 when the fixed-size consumer
-       was the last component; legacy rejects these values) */
-#ifndef LEGACY
+       was the last component; legacy rejected these values before Issue 123) */
     {
         static TF2 v;
         memset(&v, 0, sizeof v);
@@ -204,7 +200,6 @@ int main(void)
         v.a = 1; v.pl.kind = CF2_c_PRESENT; v.pl.u.c = 4; v.tail = 7;
         ENCODE(TC2, v, 0x01, 0x0A, 0x03, 0x80);
     }
-#endif
     /* a direct consumer and one inside a SEQUENCE OF of the callee: d absent with elements, and d of 3 octets */
     {
         static TQ v;
