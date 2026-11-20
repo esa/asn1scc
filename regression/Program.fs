@@ -231,7 +231,11 @@ let sparkProblems (workDir:string) (sparkLog:string list) : string list =
 /// assertions checked at run time) and -gnatwn after their own compiler switches, i.e. after -gnatwe -gnatwa (a later
 /// warning switch wins): with assertions enabled GNAT warns about the assertion code itself ("condition is always
 /// True", "check will fail at run time" on the loop invariant of an empty loop), which -gnatwe would make errors.
-let addAdaAssertionSwitches (workDir:string) =
+/// What GNAT prints for a failed Pre / Post / Assert / Assume / Loop_Invariant (the exception name, also in the
+/// harness's sweep reports): a KNOWN_FAILURE(...,gnata) marker accepts only a failure that shows it.
+let assertionFailureText = "ADA.ASSERTIONS.ASSERTION_ERROR"
+
+let addAdaAssertionSwitches (workDir:string) : string option =
     let makefile = Path.Combine(workDir, "Makefile")
     let switches = " -gnata -gnatwn"
     let rewrite (l:string) =
@@ -241,7 +245,10 @@ let addAdaAssertionSwitches (workDir:string) =
             match l.IndexOf " -largs" with
             | -1 -> l + switches
             | i  -> l.Substring(0, i) + switches + l.Substring i
-    File.WriteAllLines(makefile, File.ReadAllLines makefile |> Array.map rewrite)
+    try
+        File.WriteAllLines(makefile, File.ReadAllLines makefile |> Array.map rewrite)
+        None
+    with ex -> Some (sprintf "--ada-assertions: cannot add the switches to %s: %s" makefile ex.Message)
 
 let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) (assertions:bool) =
     let wsa = if ws=8 then "-fpWordSize 8 -wordSize 8" else "-fpWordSize 4 -wordSize 4"
@@ -284,6 +291,11 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                     markError "pytest failed.\n%s\n%s\n%s" pytestRes.StdOut pytestRes.StdErr cmd
                 else
                     markSuccess "pytest OK"
+        elif res.ExitCode <> 0 then
+            // a directive that must pass needs a compiler that succeeded (as runTests.py checks): files written
+            // before a late failure (e.g. an export step) would otherwise build and pass; with --ada-assertions they
+            // also lack the -gnata switches (i115c review)
+            markError "asn1scc failed (exit code %d)\n%s\n%s" res.ExitCode res.StdErr cmd
         else
             // NOCOVERAGE (first line, as in runTests.py) skips only the line gate on the .gcov file:
             // the coverage target still runs the automatic tests, and RUN_SPARK still proves.
@@ -302,10 +314,21 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
             let covLinesToIgnore = ["}";"default:";"break;";"end";"declare"] |> Set.ofList
 
             let makeCommand = sprintf "make%s" (if bNoAtc then "" else " coverage")
-            if assertions && res.ExitCode = 0 then addAdaAssertionSwitches workDir
-            let res = executeBashScript workDir makeCommand
+            let res =
+                match (if assertions then addAdaAssertionSwitches workDir else None) with
+                | Some err -> { ExitCode = -1; StdOut = ""; StdErr = err }
+                | None     -> executeBashScript workDir makeCommand
             if res.ExitCode <> 0 then
-                markError "Error code is %d\n%s\n%s" res.ExitCode res.StdErr cmd
+                // --ada-assertions: the run-time contract failures the tests printed (a sweep reports them on stdout,
+                // an exception out of a test goes to stderr); a gnata KNOWN_FAILURE marker needs one of them
+                let assertionLines =
+                    match assertions with
+                    | false -> ""
+                    | true  ->
+                        (res.StdOut + "\n" + res.StdErr).Split('\n')
+                        |> Array.filter (fun l -> l.Contains assertionFailureText)
+                        |> Array.truncate 5 |> String.concat "\n"
+                markError "Error code is %d\n%s%s\n%s" res.ExitCode (match assertionLines with "" -> "" | a -> a + "\n") res.StdErr cmd
             else
                 if bNoAtc then
                     markSuccess "Make OK"
@@ -358,6 +381,9 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
         | ErrorFile   (a,c,errMsg)      -> checkErrMsg errMsg res
     match knownFailureMarker t (lang, ws, slim, enableIG, enableAcnV2) assertions, ret with
     | None, _                   -> ret
+    // a gnata marker stands for a run-time contract failure: any other failure (generation, build) is a failure
+    | Some k, Failed msg when k.Contains "gnata" && not (msg.Contains assertionFailureText) ->
+        markError "%s expects a run-time assertion failure (%s), but the case failed otherwise:\n%s" k assertionFailureText msg
     | Some k, Failed msg        -> KnownFailure (sprintf "%s: %s" k msg)
     | Some k, Success _         -> markError "%s, but the test case passed: remove the marker\n%s" k cmd
     | Some _, KnownFailure _    -> ret

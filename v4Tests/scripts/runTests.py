@@ -174,6 +174,19 @@ def isTestSelected(cfg: TestConfig, asn1file: str) -> bool:
     return True
 
 
+# What GNAT prints for a failed Pre / Post / Assert / Assume / Loop_Invariant (also in the harness's sweep reports):
+# a KNOWN_FAILURE(...,gnata) marker accepts only a failure that shows it (same rule in regression/Program.fs).
+ASSERTION_FAILURE_TEXT = "ADA.ASSERTIONS.ASSERTION_ERROR"
+
+
+def assertionFailed(targetDir: str) -> bool:
+    """Whether the automatic tests of the work dir (make output in covlog.txt) failed a run-time contract."""
+    try:
+        return ASSERTION_FAILURE_TEXT in open(os.path.join(targetDir, "covlog.txt"), errors="replace").read()
+    except OSError:
+        return False
+
+
 def knownFailureMarker(cfg: TestConfig, asn1file: str) -> Optional[str]:
     """KNOWN_FAILURE(<lang>[,<mode>...]) on the first line (same rules in regression/Program.fs): the test cases of
     the file are known to fail in the configurations it names; every mode must match (legacy, acn-v2, slim, ig, ws4,
@@ -216,18 +229,23 @@ def isWarningOnly(err_msg: str) -> bool:
     return all(": warning: " in l for l in lines)
 
 
-def addAdaAssertionSwitches(targetDir: str):
+def addAdaAssertionSwitches(cfg: TestConfig, targetDir: str, asn1: str, acn: str):
     """--ada-assertions (Issue 115, same as regression/Program.fs): -gnata -gnatwn after the compiler switches of the
     gprbuild calls of the generated Makefile, i.e. after -gnatwe -gnatwa (a later warning switch wins): with assertions
     enabled GNAT warns about the assertion code itself, which -gnatwe would make errors."""
     path = os.path.join(targetDir, "Makefile")
-    out = []
-    for line in open(path).read().split("\n"):
-        if line.startswith("\tgprbuild") and " -cargs " in line:
-            i = line.find(" -largs")
-            line = line + " -gnata -gnatwn" if i < 0 else line[:i] + " -gnata -gnatwn" + line[i:]
-        out.append(line)
-    open(path, "w").write("\n".join(out))
+    try:
+        out = []
+        for line in open(path).read().split("\n"):
+            if line.startswith("\tgprbuild") and " -cargs " in line:
+                i = line.find(" -largs")
+                line = line + " -gnata -gnatwn" if i < 0 else line[:i] + " -gnata -gnatwn" + line[i:]
+            out.append(line)
+        open(path, "w").write("\n".join(out))
+    except OSError as e:
+        PrintFailed(f"--ada-assertions: cannot add the switches to {path}: {e}")
+        results.add_error(f'Failed {asn1} {acn} in {cfg.language}')
+        raise Exception('TestFailed')
 
 
 def CreateACNFile(targetDir: str, content: str):
@@ -307,6 +325,8 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
             res = mysystem(cfg, targetDir, "CC=gcc make", False, asn1, acn)
             return
         elif language == 'Ada':
+            if cfg.adaAssertions:
+                addAdaAssertionSwitches(cfg, targetDir, asn1, acn)
             res = mysystem(cfg, targetDir, "CC=gcc make", False, asn1, acn)
             return
         elif language == 'Rust':
@@ -389,7 +409,7 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
                 raise Exception('TestFailed')
     elif language == 'Ada':
         if cfg.adaAssertions:
-            addAdaAssertionSwitches(targetDir)
+            addAdaAssertionSwitches(cfg, targetDir, asn1, acn)
         # NOCOVERAGE exempts the line gate; the coverage target also runs the tests.
         res = mysystem(cfg, targetDir, "make coverage >covlog.txt 2>&1", True, asn1, acn)
         if res != 0 and behavior != 2:
@@ -618,14 +638,22 @@ def prepare_and_run_item(cfg: TestConfig, item: WorkItem):
             CreateACNFile(targetDir, item.acn_content)
 
     failed = False
+    label = f'Failed {item.asn1_label} {item.acn_label} in {cfg.language}'
     try:
         RunTestCase(cfg, item)
-    except Exception:
-        failed = True  # errors already recorded in results
+    except Exception as e:
+        failed = True
+        if str(e) != 'TestFailed':
+            # not recorded yet (an error of the runner itself): a failure, never a known one
+            PrintFailed(f"unexpected error: {e!r}")
+            results.add_error(f'{label}: unexpected error {e!r}')
     marker = knownFailureMarker(cfg, item.asn1file_path)
     if marker is not None:
-        label = f'Failed {item.asn1_label} {item.acn_label} in {cfg.language}'
-        if failed and results.remove_error(label):
+        if failed and "gnata" in marker and not assertionFailed(targetDir):
+            # a gnata marker stands for a run-time contract failure: generation / build failures stay failures
+            PrintFailed(f"{marker} expects a run-time assertion failure ({ASSERTION_FAILURE_TEXT}), "
+                        "but the case failed otherwise")
+        elif failed and results.remove_error(label):
             PrintWarning(f"known failure: {marker}")
             results.add_known_failure(f'{label}: {marker}')
         elif not failed:
