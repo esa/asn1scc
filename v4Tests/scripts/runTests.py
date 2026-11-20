@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import sys
 import shutil
 import getopt
@@ -179,12 +180,20 @@ def isTestSelected(cfg: TestConfig, asn1file: str) -> bool:
 ASSERTION_FAILURE_TEXT = "ADA.ASSERTIONS.ASSERTION_ERROR"
 
 
+# --ada-assertions: the run of the test executable writes its output to this file in its directory, then prints it
+# (addAdaAssertionSwitches): it exists only when the build succeeded and the executable ran, and holds nothing of the
+# build (same rule in regression/Program.fs).
+GNATA_RUN_LOG = "mainprogram-gnata.log"
+
+
 def assertionFailed(targetDir: str) -> bool:
-    """Whether the automatic tests of the work dir (make output in covlog.txt) failed a run-time contract."""
+    """Whether the test executable ran and failed a run-time contract ("raised ADA.ASSERTIONS.ASSERTION_ERROR" in its
+    own output: an exception out of a test, or a sweep report)."""
     try:
-        return ASSERTION_FAILURE_TEXT in open(os.path.join(targetDir, "covlog.txt"), errors="replace").read()
+        text = open(os.path.join(targetDir, "obj_x86", "debug", GNATA_RUN_LOG), errors="replace").read()
     except OSError:
-        return False
+        return False   # not run: the build failed (whatever its messages say)
+    return ("raised " + ASSERTION_FAILURE_TEXT) in text
 
 
 def knownFailureMarker(cfg: TestConfig, asn1file: str) -> Optional[str]:
@@ -237,7 +246,11 @@ def addAdaAssertionSwitches(cfg: TestConfig, targetDir: str, asn1: str, acn: str
     try:
         out = []
         for line in open(path).read().split("\n"):
-            if line.startswith("\tgprbuild") and " -cargs " in line:
+            # the run of the tests: its own output file, so that a known failure can be told from a build failure
+            m = re.match(r"^\t(cd \S+ ; \./mainprogram)\s*$", line)
+            if m:
+                line = f"\t{m.group(1)} > {GNATA_RUN_LOG} 2>&1 ; rc=$$? ; cat {GNATA_RUN_LOG} ; exit $$rc"
+            elif line.startswith("\tgprbuild") and " -cargs " in line:
                 i = line.find(" -largs")
                 line = line + " -gnata -gnatwn" if i < 0 else line[:i] + " -gnata -gnatwn" + line[i:]
             out.append(line)
@@ -651,8 +664,8 @@ def prepare_and_run_item(cfg: TestConfig, item: WorkItem):
     if marker is not None:
         if failed and "gnata" in marker and not assertionFailed(targetDir):
             # a gnata marker stands for a run-time contract failure: generation / build failures stay failures
-            PrintFailed(f"{marker} expects a run-time assertion failure ({ASSERTION_FAILURE_TEXT}), "
-                        "but the case failed otherwise")
+            PrintFailed(f"{marker} expects a run-time assertion failure ({ASSERTION_FAILURE_TEXT} while the tests "
+                        "run), but the case failed otherwise")
         elif failed and results.remove_error(label):
             PrintWarning(f"known failure: {marker}")
             results.add_known_failure(f'{label}: {marker}')
