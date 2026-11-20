@@ -1,4 +1,4 @@
--- ACNV2_ONLY
+-- ACNV2_ONLY KNOWN_FAILURE(Ada,acn-v2,gnata): with -gnata, a corrupted --acn-v2 CONTAINING region longer than the largest encoding of its contents is decoded, while the decoders' contracts bound the position by that maximum (a postcondition / precondition fails in the corruption sweep)
 -- The contents of an OCTET STRING CONTAINING region are not a multiple of 8
 -- bits: the encoder pads the region to a byte boundary before the trailer.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN

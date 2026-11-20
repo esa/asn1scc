@@ -46,7 +46,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
        Post =>
-         bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+         bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
 >>
 
 sparkAnnotations_decode(sTypeDefName) ::= <<
@@ -55,7 +55,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
        Post =>
-         bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+         bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
 >>
 
 TasEncodeMain(sVarName, sFuncName, sTypeDefName, bReqBytesForEncodingIsZero) ::= /*nogen*/<<
@@ -1202,7 +1202,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
        Post =>
-         result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+         result.Success and bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
 >>
 
 

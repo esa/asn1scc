@@ -1,4 +1,4 @@
--- ACNV2_ONLY (the --acn-v2 references of determinant fields; several types use fields of referenced components)
+-- ACNV2_ONLY (the --acn-v2 references of determinant fields; several types use fields of referenced components) KNOWN_FAILURE(Ada,acn-v2,gnata): with -gnata, a corrupted --acn-v2 CONTAINING region longer than the largest encoding of its contents is decoded, while the decoders' contracts bound the position by that maximum (a postcondition / precondition fails in the corruption sweep)
 -- A determinant field in a component the stream may say absent (OPTIONAL, nested OPTIONAL, an OPTIONAL component of a
 -- referenced component), read outside it by a specialised function: an ACN argument (size, BOOLEAN present-when,
 -- fixed size, CHOICE determinant, IA5String size, a reference passed through two functions), a CONTAINING size (at the

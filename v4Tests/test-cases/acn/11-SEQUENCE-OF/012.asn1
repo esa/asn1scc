@@ -1,4 +1,4 @@
--- C_ADA_ONLY (Python cannot decode fixed-size subtypes of variable-size types, pre-existing)
+-- C_ADA_ONLY (Python cannot decode fixed-size subtypes of variable-size types, pre-existing) KNOWN_FAILURE(Ada,gnata): with -gnata, the uPER encoder of a WITH COMPONENTS subtype calls the base type's encoder with a stream sized for the subtype, which the base encoder's precondition (sized for the base type) rejects; valid values fit
 -- A fixed size given by WITH COMPONENTS to the components of a variable-size SEQUENCE: the subtype shares the
 -- variable-size typedefs, so the ACN embedded lengths are decoded with the variable-size templates over a 0-bit field
 -- (SIZE (1), (10), (20)). The Ada decoder reads them with the _FullRange twin (it cannot fail: its Post gives the one

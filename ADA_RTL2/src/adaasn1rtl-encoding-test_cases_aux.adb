@@ -73,8 +73,11 @@ package body adaasn1rtl.encoding.test_cases_aux is
                   end if;
                exception
                   when E : others =>
+                     --  the message names the failed check (file:line), e.g.
+                     --  a contract when the tests are built with -gnata
                      Report (i, Pattern, "raised "
-                             & Ada.Exceptions.Exception_Name (E));
+                             & Ada.Exceptions.Exception_Name (E) & " "
+                             & Ada.Exceptions.Exception_Message (E));
                end;
                bs.Buffer (i) := Saved;
             end if;
@@ -145,7 +148,8 @@ package body adaasn1rtl.encoding.test_cases_aux is
                Ada.Text_IO.Put_Line
                  (Name & ": decoding with the view" & Integer'Image (k)
                   & " bits shorter raised "
-                  & Ada.Exceptions.Exception_Name (E));
+                  & Ada.Exceptions.Exception_Name (E) & " "
+                  & Ada.Exceptions.Exception_Message (E));
                Result := (Success => False, ErrorCode => 7);
          end;
       end loop;
@@ -257,7 +261,8 @@ package body adaasn1rtl.encoding.test_cases_aux is
                          when Decoding   => "decoding",
                          when Validating => "validating",
                          when Comparing  => "comparing")
-                     & " raised " & Ada.Exceptions.Exception_Name (E));
+                     & " raised " & Ada.Exceptions.Exception_Name (E) & " "
+                     & Ada.Exceptions.Exception_Message (E));
          end;
       end loop;
    end Offset_Round_Trips;
