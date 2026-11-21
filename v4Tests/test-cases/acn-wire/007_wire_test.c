@@ -187,30 +187,21 @@ int main(void)
         ENCODE(TV, v, 0x01, 0x01, 0xC0);
         v.exist.pl = 1; v.pl.items.nCount = 0;
         ENCODE(TV, v, 0x01, 0x40, 0x70);
-        /* holder absent, elements present (no field in the stream for them to read: ACN-inconsistent): every patch
-           of the loop finds the field not in the stream (q/issues.md Issue 107) and writes nothing, in particular not
-           at bit 0 of the buffer; the decoder rejects the stream (a dependent present while the holder is absent) */
+        /* holder absent, elements present (no field in the stream for them to read: ACN-inconsistent): the first
+           element fails before it is written, with a nonzero error code (q/issues.md Issue 108; before, every patch
+           of the loop found the field not in the stream, Issue 107, and the encoder wrote a stream its decoder
+           rejects) */
         {
             static byte buf[TV_REQUIRED_BYTES_FOR_ACN_ENCODING + 16];
-            static const byte expected[] = {0x01, 0x60, 0x10, 0x20, 0x30, 0x40, 0x70};
             BitStream bs;
             int err = 0;
-            static TV dec;
             flag ok;
             v.pl.items.nCount = 2; FILL(v.pl.items.arr[0].o, 1, 2); FILL(v.pl.items.arr[1].o, 3, 2);
             memset(buf, 0, sizeof(buf));
             BitStream_Init(&bs, buf, sizeof(buf));
             ok = TV_ACN_Encode(&v, &bs, &err, TRUE);
-            if (!ok || err != 0 || BitStream_GetLength(&bs) != (int)sizeof(expected) || memcmp(buf, expected, sizeof(expected)) != 0) {
-                printf("TV line %d: encode ok=%d err=%d, bytes:", __LINE__, ok, err);
-                for (int k = 0; k < BitStream_GetLength(&bs); k++)
-                    printf(" %02X", buf[k]);
-                printf("\n");
-                failures++;
-            }
-            BitStream_AttachBuffer(&bs, buf, sizeof(buf));
-            if (TV_ACN_Decode(&dec, &bs, &err) || err == 0) {
-                printf("TV line %d: decoded a stream with the holder absent and elements present\n", __LINE__);
+            if (ok || err == 0) {
+                printf("TV line %d: encode ok=%d err=%d with the holder absent and elements present\n", __LINE__, ok, err);
                 failures++;
             }
         }

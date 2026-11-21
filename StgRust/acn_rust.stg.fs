@@ -611,6 +611,14 @@ let acn_dec_absent_holder_reset (sLocal:string) (sInitValue:string) (sField:stri
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "acn_dec_absent_holder_reset" [("sLocal",(if sLocal = null then null else ST.StrHelper sLocal:>Object) );("sInitValue",(if sInitValue = null then null else ST.StrHelper sInitValue:>Object) );("sField",(if sField = null then null else ST.StrHelper sField:>Object) );("sHolders",(if sHolders = null then null else ST.StrHelper sHolders:>Object) )]
 
+let acn_enc_absent_holder_guard (arrsGuards:seq<string>) (sBody:string) (sErrCode:string) (sFields:string) (sHolders:string) (bTestsCannotReach:bool) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_enc_absent_holder_guard" [("arrsGuards",(arrsGuards|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sBody",(if sBody = null then null else ST.StrHelper sBody:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("sFields",(if sFields = null then null else ST.StrHelper sFields:>Object) );("sHolders",(if sHolders = null then null else ST.StrHelper sHolders:>Object) );("bTestsCannotReach",bTestsCannotReach :>Object)]
+
+let acn_enc_absent_holder_fail (sBody:string) (sErrCode:string) (sFields:string) (sHolders:string) (bTestsCannotReach:bool) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "acn_enc_absent_holder_fail" [("sBody",(if sBody = null then null else ST.StrHelper sBody:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("sFields",(if sFields = null then null else ST.StrHelper sFields:>Object) );("sHolders",(if sHolders = null then null else ST.StrHelper sHolders:>Object) );("bTestsCannotReach",bTestsCannotReach :>Object)]
+
 let sequence_save_bitStream_start (sBitStreamPositionsLocalVar:string) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with

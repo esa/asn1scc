@@ -902,6 +902,9 @@ type AcnFunction = {
     isTestVaseValid     : AutomaticTestCase -> bool
     userDefinedFunctions : UserDefinedFunction list //a list of user defined functions prototypes used in this function body. Emitted at the begining of the source file
     icdTas              : IcdTypeAss option (* always present in Encode, always None in Decode *)
+    // the error code of the type's own failures (q/issues.md Issue 108: the guard a SEQUENCE emits around a component
+    // that is present when a BOOLEAN field is TRUE fails with the component's code)
+    errCode             : ErrorCode
 }
 
 type EncodeDecodeTestFunc = {

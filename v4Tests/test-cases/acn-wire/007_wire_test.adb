@@ -33,6 +33,8 @@ procedure Wire_Test is
       procedure Enc (Name : String; V : T; Expected : Bytes);
       --  encode V (ACN-inconsistent): a failure with ERR_ACN_DET_CONSISTENCY_MISMATCH
       procedure Rej (Name : String; V : T);
+      --  encode V (ACN-inconsistent): a failure with any nonzero error code
+      procedure Rej_Any (Name : String; V : T);
    end Checks;
 
    package body Checks is
@@ -76,6 +78,19 @@ procedure Wire_Test is
       exception
          when others => Fail (Name & ": exception");
       end Rej;
+
+      procedure Rej_Any (Name : String; V : T) is
+         S : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init (Size);
+         R : adaasn1rtl.ASN1_RESULT;
+      begin
+         Encode (V, S, R);
+         if R.Success or else R.ErrorCode = 0 then
+            Fail (Name & ": encoded, Success=" & Boolean'Image (R.Success) & " ErrorCode="
+                  & Integer'Image (R.ErrorCode));
+         end if;
+      exception
+         when others => Fail (Name & ": exception");
+      end Rej_Any;
    end Checks;
 
    package CA is new Checks (TA, TA_ACN_STREAM_SIZE, TA_ACN_Encode, TA_ACN_Decode, TA_Equal);
@@ -245,6 +260,9 @@ begin
    CV.Enc ("TV no h no pl", VV, (16#01#, 16#01#, 16#C0#));
    VV.Exist := (h => 0, pl => 1);
    CV.Enc ("TV no h", VV, (16#01#, 16#40#, 16#70#));
+   --  holder absent, elements present: the encoder fails before the first element is written (q/issues.md Issue 108)
+   VV.pl.items.Length := 2;
+   CV.Rej_Any ("TV no h, elements", VV);
    if not Failed then
       Ada.Text_IO.Put_Line ("007 OK");
    end if;

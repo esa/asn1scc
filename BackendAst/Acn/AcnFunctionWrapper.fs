@@ -50,65 +50,95 @@ let rec private hasBoundedFixedDeducedDecoder (t: Asn1AcnAst.Asn1Type) =
 /// enclosing scopes (AcnHelpers.tryResolveDepScope), as the encoder finds the dependent's path for its update. With an
 /// ALWAYS ABSENT holder the dependent can never be decoded: only the failure is emitted (its body, and the locals only
 /// the body used, are dropped). Every dependent of a field decoded on all paths keeps its body unchanged (NoGuard).
-let private withAbsentHolderGuard (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (lm: LanguageMacros)
-                                  (codec: Codec) (t: Asn1AcnAst.Asn1Type) (funcBody: AcnAlignment.FuncBody) : AcnAlignment.FuncBody =
-    let guard =
-        match codec, lm.lg.decodeFailsWhenHolderAbsent with
-        | Decode, true          -> AbsentHolder.decodeGuard r deps (fun ft -> (lm.lg.getDeferredDetFunctions ft).IsSome) t
-        | Decode, false
-        | Encode, _             -> AbsentHolder.NoGuard
+/// q/issues.md Issue 108 (rule R4): the encoder of the dependent gets the same guard, on the value (AbsentHolder.
+/// encodeGuard): a value whose holder is absent while the dependent is present fails before the dependent is written
+/// (legacy encoded it from fields the holder's encoding never set, e.g. the length of a CONTAINING; --acn-v2 skipped
+/// the patch of a never-reserved ref): the part may fail now (EncodeOutcome).
+let applyAbsentHolderGuard (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (lm: LanguageMacros) (codec: Codec)
+                           (dependentId: ReferenceToType) (guard: AbsentHolder.DecodeGuard) (errCodeName: string)
+                           (prms: (RelativePath * AcnParameter) list) (nestingScope: NestingScope) (b: AcnFuncBodyResult) : AcnFuncBodyResult =
     // the field / holder paths after the type assignment, for the comment (`header.n`, `header`)
     let pathText (id: ReferenceToType) = (id.AcnAbsPath |> List.skip 2 |> String.concat ".").Replace("#", "elm")
     let describe (holders: ReferenceToType list) (fields: ReferenceToType list) =
         (fields |> List.map pathText |> String.concat ", "), (holders |> List.map pathText |> String.concat " / ")
+    // the arm that fails: it writes ret / result (Issue 108, encode)
+    let failArm = {canFail = true; writes = AlwaysWrites; callee = None}
+    // Issue 108: the automatic tests reach the failing arm of an encoder guard (14d) only where the type assignment's
+    // test values can show each holder absent with the dependent present (AbsentHolder.holderAbsentChecks); elsewhere
+    // (a holder or dependent behind a reference site or in a SEQUENCE OF element, a field read through a ref) the arm
+    // is checked by the wire tests and is not counted by the line gate
+    let bTestsCannotReach (holders: ReferenceToType list) (refs: (AbsentHolder.RefTest * ReferenceToType list) list) =
+        match refs, dependentId.ToScopeNodeList with
+        | [], (MD md) :: (TA ta) :: _ ->
+            let checks = AbsentHolder.holderAbsentChecks r deps (fun ft -> (lm.lg.getDeferredDetFunctions ft).IsSome) (ReferenceToType [MD md; TA ta])
+            not (holders |> List.forall (fun h -> checks |> List.exists (fun (d, hs) -> d = dependentId && List.contains h hs)))
+        | _ -> true
+    match guard with
+    | AbsentHolder.NoGuard -> b
+    | AbsentHolder.HolderAlwaysAbsent (holders, fields) ->
+        let sFields, sHolders = describe holders fields
+        match codec with
+        | Decode ->
+            {b with funcBody = lm.acn.acn_dec_absent_holder_fail b.funcBody errCodeName sFields sHolders
+                    localVariables = []; bBsIsUnReferenced = true}
+        | Encode ->
+            {b with funcBody = lm.acn.acn_enc_absent_holder_fail b.funcBody errCodeName sFields sHolders (bTestsCannotReach holders [])
+                    localVariables = []; bBsIsUnReferenced = true; encOutcome = failArm}
+    | AbsentHolder.TestHolders (holders, refs, fields) ->
+        let presence (holderId: ReferenceToType) =
+            match AcnHelpers.tryResolveDepScope r lm nestingScope holderId with
+            | Some (scope, ReferenceToType relNodes) ->
+                let pParent, _ = getAccessFromScopeNodeList (ReferenceToType (List.take (relNodes.Length - 1) relNodes)) false lm scope
+                match List.last relNodes with
+                | SEQ_CHILD (name, _) -> lm.lg.getSeqChildIsPresent pParent.accessPath (ToC name)
+                | MD _ | TA _ | VA _ | PRM _ | CH_CHILD _ | SQF ->
+                    raise (BugErrorException (sprintf "Issue 106 guard: %s is not a SEQUENCE component" holderId.AsString))
+            | None ->
+                // the field's SEQUENCE must enclose the dependent in this function (AbsentHolder.fieldAndReader)
+                raise (BugErrorException (sprintf "Issue 106 guard: no enclosing scope holds %s (dependent %s)" holderId.AsString dependentId.AsString))
+        // q/issues.md Issue 107 (--acn-v2): a field read through an AcnInsertedFieldRef is in the stream when the ref's
+        // in_stream is set (the decoder of the field sets it, DAstACNDeferred; AbsentHolder.fieldsReadThroughRef; the
+        // encoder's InitDet sets it where it reserves the field)
+        let inStream (refTest: AbsentHolder.RefTest) =
+            match refTest with
+            // the formal parameter the dependent reads (AcnExternalField.getExternalField0)
+            | AbsentHolder.FormalRef prm -> lm.acn.acn_deferred_det_in_stream_ptr (getAcnDeterminantName prm.id)
+            // the ref the call passes for the parameter (as DAstACNDeferred.buildCallerWrapper): the enclosing
+            // function's formal parameter standing for the same field, else the local of the field
+            | AbsentHolder.ArgumentRef prm ->
+                let identity = AcnExternalField.paramIdentity r deps prm
+                match prms |> List.tryFind (fun (_, parentPrm) -> AcnExternalField.paramIdentity r deps parentPrm = identity) with
+                | Some (_, parentPrm) -> lm.acn.acn_deferred_det_in_stream_ptr (getAcnDeterminantName parentPrm.id)
+                | None                -> lm.acn.acn_deferred_det_in_stream_value (AcnExternalField.deferredDetRefName r lm identity)
+        let allHolders = (holders @ (refs |> List.collect snd)) |> List.distinct
+        let sFields, sHolders = describe allHolders fields
+        match nestingScope.isStandaloneRender with
+        // the ICD renders an inline type alone (its code is not emitted): no enclosing scope holds the holder
+        | true  -> b
+        | false ->
+            let guards = (holders |> List.map presence) @ (refs |> List.map (fst >> inStream))
+            match codec with
+            | Decode -> {b with funcBody = lm.acn.acn_dec_absent_holder_guard guards b.funcBody errCodeName sFields sHolders}
+            | Encode ->
+                {b with funcBody = lm.acn.acn_enc_absent_holder_guard guards b.funcBody errCodeName sFields sHolders (bTestsCannotReach holders refs)
+                        encOutcome = EncodeOutcome.alternatives true [b.encOutcome; failArm]}
+
+let private withAbsentHolderGuard (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (lm: LanguageMacros)
+                                  (codec: Codec) (t: Asn1AcnAst.Asn1Type) (funcBody: AcnAlignment.FuncBody) : AcnAlignment.FuncBody =
+    let isDeferrable (ft: AcnInsertedType) = (lm.lg.getDeferredDetFunctions ft).IsSome
+    let guard =
+        match codec, lm.lg.decodeFailsWhenHolderAbsent, lm.lg.encodeFailsWhenHolderAbsent with
+        | Decode, true, _       -> AbsentHolder.decodeGuard r deps isDeferrable t
+        | Encode, _, true       -> AbsentHolder.encodeGuard r deps isDeferrable t
+        | Decode, false, _
+        | Encode, _, false      -> AbsentHolder.NoGuard
     match guard with
     | AbsentHolder.NoGuard -> funcBody
-    | AbsentHolder.HolderAlwaysAbsent (holders, fields) ->
+    | AbsentHolder.HolderAlwaysAbsent _
+    | AbsentHolder.TestHolders _ ->
         fun st errCode prms nestingScope p ->
             let res, st1 = funcBody st errCode prms nestingScope p
-            let sFields, sHolders = describe holders fields
-            let res =
-                res |> Option.map (fun b ->
-                    {b with funcBody = lm.acn.acn_dec_absent_holder_fail b.funcBody errCode.errCodeName sFields sHolders
-                            localVariables = []; bBsIsUnReferenced = true})
-            res, st1
-    | AbsentHolder.TestHolders (holders, refs, fields) ->
-        fun st errCode prms nestingScope p ->
-            let res, st1 = funcBody st errCode prms nestingScope p
-            let presence (holderId: ReferenceToType) =
-                match AcnHelpers.tryResolveDepScope r lm nestingScope holderId with
-                | Some (scope, ReferenceToType relNodes) ->
-                    let pParent, _ = getAccessFromScopeNodeList (ReferenceToType (List.take (relNodes.Length - 1) relNodes)) false lm scope
-                    match List.last relNodes with
-                    | SEQ_CHILD (name, _) -> lm.lg.getSeqChildIsPresent pParent.accessPath (ToC name)
-                    | MD _ | TA _ | VA _ | PRM _ | CH_CHILD _ | SQF ->
-                        raise (BugErrorException (sprintf "Issue 106 guard: %s is not a SEQUENCE component" holderId.AsString))
-                | None ->
-                    // the field's SEQUENCE must enclose the dependent in this function (AbsentHolder.fieldAndReader)
-                    raise (BugErrorException (sprintf "Issue 106 guard: no enclosing scope holds %s (dependent %s)" holderId.AsString t.id.AsString))
-            // q/issues.md Issue 107 (--acn-v2): a field read through an AcnInsertedFieldRef is in the stream when the ref's
-            // in_stream is set (the decoder of the field sets it, DAstACNDeferred; AbsentHolder.fieldsReadThroughRef)
-            let inStream (refTest: AbsentHolder.RefTest) =
-                match refTest with
-                // the formal parameter the dependent reads (AcnExternalField.getExternalField0)
-                | AbsentHolder.FormalRef prm -> lm.acn.acn_deferred_det_in_stream_ptr (getAcnDeterminantName prm.id)
-                // the ref the call passes for the parameter (as DAstACNDeferred.buildCallerWrapper): the enclosing
-                // function's formal parameter standing for the same field, else the local of the field
-                | AbsentHolder.ArgumentRef prm ->
-                    let identity = AcnExternalField.paramIdentity r deps prm
-                    match prms |> List.tryFind (fun (_, parentPrm) -> AcnExternalField.paramIdentity r deps parentPrm = identity) with
-                    | Some (_, parentPrm) -> lm.acn.acn_deferred_det_in_stream_ptr (getAcnDeterminantName parentPrm.id)
-                    | None                -> lm.acn.acn_deferred_det_in_stream_value (AcnExternalField.deferredDetRefName r lm identity)
-            let allHolders = (holders @ (refs |> List.collect snd)) |> List.distinct
-            let sFields, sHolders = describe allHolders fields
-            let res =
-                match nestingScope.isStandaloneRender with
-                // the ICD renders an inline type alone (its code is not emitted): no enclosing scope holds the holder
-                | true  -> res
-                | false ->
-                    res |> Option.map (fun b ->
-                        {b with funcBody = lm.acn.acn_dec_absent_holder_guard ((holders |> List.map presence) @ (refs |> List.map (fst >> inStream))) b.funcBody errCode.errCodeName sFields sHolders})
-            res, st1
+            res |> Option.map (applyAbsentHolderGuard r deps lm codec t.id guard errCode.errCodeName prms nestingScope), st1
 
 // If the type assignment has acnParameters, then no function is generated.
 // This function can only be inlined by the calling function (i.e. by the parent
@@ -502,5 +532,6 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
             icdTas                        = icdAux
             userDefinedFunctions       = userDefinedFunctions
             encodingSizeConstant       = sEncodingSizeConstant
+            errCode                    = errCode
         }
     ret, ns3

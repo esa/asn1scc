@@ -841,6 +841,13 @@ type ILangGeneric () =
     abstract member decodeFailsWhenHolderAbsent : bool
     default _.decodeFailsWhenHolderAbsent = false
 
+    /// q/issues.md Issue 108 (rule R4): the encoder of a dependent fails (error code of the dependent) when the value
+    /// holds the dependent while the component holding its determinant field is absent (BackendAst/AbsentHolder.fs
+    /// encodeGuard / presenceEncodeGuard, macros acn_enc_absent_holder_guard / _fail), and such a value is not valid for
+    /// the automatic tests (AbsentHolder.holderAbsentChecks). C and Ada; the other backends keep their output (stubs).
+    abstract member encodeFailsWhenHolderAbsent : bool
+    default _.encodeFailsWhenHolderAbsent = false
+
     /// q/issues.md Issue 107 (--acn-v2): the RTL AcnInsertedFieldRef carries `in_stream` (set by InitDet; a PatchDet of a
     /// ref whose field is not in the stream writes nothing), the decoder sets it where it reads a field that a consumer
     /// reads through a ref while the component holding the field may be absent, and the refs of such fields are reset

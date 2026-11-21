@@ -109,6 +109,13 @@ WIRE DEFINITIONS ::= BEGIN
         header [] { a [], n INTEGER [size 4, encoding pos-int] },
         data [present-when flg2, size header.n]
     }
+    RefKc <INTEGER:k> [] { one [present-when k==0], two [present-when k==1] }
+    RefChPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], k INTEGER [size 2, encoding pos-int] },
+        ch <header.k> [present-when flg2]
+    }
     SamePDU [] {
         flg BOOLEAN [],
         header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },

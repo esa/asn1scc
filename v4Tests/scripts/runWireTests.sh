@@ -196,7 +196,7 @@ done
 # dependent present the decoders fail with the dependent's error code (they read the field's unset local), and a
 # present-when on a BOOLEAN field of an absent component reads FALSE (also in SEQUENCE OF elements); C (ASan / UBSan)
 # and Ada x86 (-gnata, 003 also -gnatVa), legacy and acn-v2 (003), acn-v2 only for fields exposed by a referenced
-# component (004).
+# component (004). The encoders reject a value with the component absent and the dependent present (003 encode).
 for mode in "" "--acn-v2"; do
     def=
     [ "$mode" = --acn-v2 ] && def=-DWIRE_ACN_V2
@@ -217,6 +217,21 @@ for mode in "" "--acn-v2"; do
     [ "$mode" = --acn-v2 ] && v2=True
     (cd "$out" && gnatmake -q -gnat2012 -gnata -gnatVa -gnateDACN_V2=$v2 decode_test.adb && ./decode_test)
     echo "acn-wire 003 (Ada) $mode OK"
+    # the encoders: a value with the component absent and the dependent present fails with a nonzero error code
+    # (q/issues.md Issue 108, rule R4)
+    out=$work/acn003enc$mode
+    mkdir "$out"
+    run_compiler -c -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/003.asn1" "$root/test-cases/acn-wire/003.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        $def -I "$out" "$out"/*.c "$root/test-cases/acn-wire/003_encode_test.c" -o "$out/encode_test"
+    "$out/encode_test"
+    echo "acn-wire 003 encode $mode OK"
+    out=$work/acn003encada$mode
+    mkdir "$out"
+    run_compiler -Ada -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/003.asn1" "$root/test-cases/acn-wire/003.acn"
+    cp "$root/test-cases/acn-wire/003_encode_test.adb" "$out/encode_test.adb"
+    (cd "$out" && gnatmake -q -gnat2012 -gnata -gnateDACN_V2=$v2 encode_test.adb && ./encode_test)
+    echo "acn-wire 003 encode (Ada) $mode OK"
 done
 out=$work/acn004c
 mkdir "$out"

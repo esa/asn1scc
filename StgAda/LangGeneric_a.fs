@@ -503,6 +503,7 @@ type LangGeneric_a() =
         override _.decodeReadFailureModel = ReadsCannotFail
         // Issue 106: fail at the dependent when the holder of its determinant field is absent
         override _.decodeFailsWhenHolderAbsent = true
+        override _.encodeFailsWhenHolderAbsent = true
         // Issue 107: the AcnInsertedFieldRef of the RTL tracks whether its field is in the stream
         override _.deferredRefTracksStream = true
         // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.

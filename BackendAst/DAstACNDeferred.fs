@@ -1179,7 +1179,9 @@ let private createDeferredSequenceFunction
                 || checkedConsumers |> List.forall (function
                     | None   -> false
                     | Some c -> not (atc.testCaseTypeIDsMap.ContainsKey c.Type.id)))
-        {acnFunction with isTestVaseValid = fun atc -> DAstACN.isTestCaseValidForAcnChildren children atc && nestedDeferredFieldsValid children atc && producersConsistent atc}, ns
+        // q/issues.md Issue 108: a dependent present while a holder of its field is absent (AcnSequence.holderAbsentValid)
+        let holdersPresent = AcnSequence.holderAbsentValid r deps lm t.id
+        {acnFunction with isTestVaseValid = fun atc -> DAstACN.isTestCaseValidForAcnChildren children atc && nestedDeferredFieldsValid children atc && producersConsistent atc && holdersPresent atc}, ns
 
 
 // ---------------------------------------------------------------------------

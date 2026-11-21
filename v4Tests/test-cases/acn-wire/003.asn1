@@ -2,7 +2,8 @@
 -- absent and the dependent present does not hold the field, and the decoder fails with the dependent's error code (it
 -- used to read the field's unset local: C wrote past the array of data, Ada raised Constraint_Error). Hand-made streams,
 -- the bytes after them 0xAB.
--- No directives: run by v4Tests/scripts/runWireTests.sh with 003_decode_test.c / 003_decode_test.adb, legacy and
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 003_decode_test.c / 003_decode_test.adb (and the encoder
+-- checks 003_encode_test.c / 003_encode_test.adb: a value with the component absent and the dependent present), legacy and
 -- --acn-v2 (an ACN argument and a CONTAINING size are passed to an --acn-v2 specialised function as a reference whose
 -- in_stream says whether the field is in the stream: the error codes of those two types differ by mode).
 WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
@@ -109,6 +110,12 @@ WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
         header  Hdr OPTIONAL,
         data    OCTET STRING (SIZE(0..15)) OPTIONAL
     } (WITH COMPONENTS {header ABSENT, data})
+    -- a referenced CHOICE whose determinant is an ACN argument (q/issues.md Issue 108: encoder checks only)
+    RefKc ::= CHOICE { one INTEGER(0..7), two BOOLEAN }
+    RefChPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        ch      RefKc OPTIONAL
+    }
     -- component and dependent present when the same field says so: no check, both decode together
     SamePDU ::= SEQUENCE {
         header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,

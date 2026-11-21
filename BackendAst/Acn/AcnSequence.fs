@@ -150,6 +150,19 @@ let private handleAsn1Child
         match chFunc with
         | Some chFunc -> chFunc.funcBodyAsSeqComp {us with acnSequenceCheckedSelectors = []} ctx.acnArgs childNestingScope childP childName ctx.bitStreamPositionsLocalVar
         | None -> None, us
+    // q/issues.md Issue 108 (rule R4): a component present when a BOOLEAN field is TRUE whose holder the value leaves
+    // absent is not encoded: the field is not written, so the stream would decode the component absent. The guard is
+    // emitted here, around the component's encoding, with the component's own error code (AbsentHolder.presenceEncodeGuard)
+    let childContentResult, presenceGuardErrCodes =
+        match codec, lm.lg.encodeFailsWhenHolderAbsent, child.Optionality, chFunc, childContentResult with
+        | Encode, true, Some (Optional {acnPresentWhen = Some (PresenceWhenBool _)}), Some chFunc, Some childContent ->
+            let isDeferrable (ft: AcnInsertedType) = (lm.lg.getDeferredDetFunctions ft).IsSome
+            match AbsentHolder.presenceEncodeGuard r deps isDeferrable child.Type.id with
+            | AbsentHolder.NoGuard -> childContentResult, []
+            | guard ->
+                Some (AcnFunctionWrapper.applyAbsentHolderGuard r deps lm codec child.Type.id guard chFunc.errCode.errCodeName ctx.acnArgs childNestingScope childContent),
+                [chFunc.errCode]
+        | _ -> childContentResult, []
     // coverage step 12e: a mandatory SEQUENCE child encoded inline in this function ran its determinant updates on every
     // path that reaches the next children (a call of its own encoder leaves the list empty)
     // coverage step 14c3: in decode, the ENUMERATED determinants it decoded (ASN1SCC-COV-008)
@@ -300,7 +313,7 @@ let private handleAsn1Child
             let adjustedResultExpr =
                 let parentId = p.accessPath.asIdentifier lm.lg
                 lm.lg.adjustChildDecodeResultExpr codec isPrimitiveType parentId childName childContent.resultExpr
-            Some childBody, lvs, childContent.userDefinedFunctions, childContent.errCodes, adjustedResultExpr, childContent.auxiliaries, ns2
+            Some childBody, lvs, childContent.userDefinedFunctions, presenceGuardErrCodes @ childContent.errCodes, adjustedResultExpr, childContent.auxiliaries, ns2
 
     let optAux, theCombinedBody =
         if presentWhenStmts.IsNone && childBody.IsNone then [], None
@@ -540,6 +553,23 @@ let isTestCaseValidForAcnChildren (children:SeqChildInfo list) (atc:AutomaticTes
         | Some funcUpdateStatement, _   -> (funcUpdateStatement.testCaseFnc atc).IsSome
         | None, Some testCaseFnc        -> (testCaseFnc atc).IsSome
         | None, None                    -> false)
+
+/// q/issues.md Issue 108 (rule R4): an automatic test value whose map holds a dependent while a component holding its
+/// determinant field is absent is not valid for the ACN encoding of the SEQUENCE seqId (its encoder rejects it, the 14d
+/// tests check that), where the map can tell (AbsentHolder.holderAbsentChecks: inline components only).
+let holderAbsentValid (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (seqId:ReferenceToType) : AutomaticTestCase -> bool =
+    match lm.lg.encodeFailsWhenHolderAbsent with
+    | false -> fun _ -> true
+    | true  ->
+        let isDeferrable (ft: AcnInsertedType) = (lm.lg.getDeferredDetFunctions ft).IsSome
+        match AbsentHolder.holderAbsentChecks r deps isDeferrable seqId with
+        | []     -> fun _ -> true
+        | checks ->
+            let present (atc:AutomaticTestCase) (id:ReferenceToType) =
+                match atc.testCaseTypeIDsMap.TryFind id with
+                | Some TcvComponentAbsent | None -> false
+                | Some _                         -> true
+            fun atc -> checks |> List.forall (fun (dependent, holders) -> not (present atc dependent) || holders |> List.forall (present atc))
 
 let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (_:DastAcnParameter list) (fallbackEpilogue:(CodegenScope -> string option * string list) option) (us:State)  =
     (*
@@ -923,7 +953,8 @@ let createSequenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIns
             //Console.Out.WriteLine (FrontEntMain.formatSemanticWarning loc errMessage)
             //None, ns
 
-    let isTestVaseValid (atc:AutomaticTestCase) = isTestCaseValidForAcnChildren children atc
+    let holdersPresent = holderAbsentValid r deps lm t.id
+    let isTestVaseValid (atc:AutomaticTestCase) = isTestCaseValidForAcnChildren children atc && holdersPresent atc
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
 
     AcnFunctionWrapper.createAcnFunction r deps lm codec t typeDefinition  isValidFunc  funcBody isTestVaseValid soSparkAnnotations  [] us
