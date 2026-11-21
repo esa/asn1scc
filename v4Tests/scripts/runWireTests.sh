@@ -292,6 +292,22 @@ for mode in "" "--acn-v2"; do
     echo "acn-wire 011 (Ada) $mode OK"
 done
 
+# acn-wire/011_v2 (cycle i108a round 2, --acn-v2 only: legacy rejects the grammar): an OPTIONAL fixed-size consumer
+# inside the elements of a callee's SEQUENCE OF is patched per element (no element holding it: the default 0).
+out=$work/acn011v2c
+mkdir "$out"
+run_compiler -c -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/011_v2.asn1" "$root/test-cases/acn-wire/011_v2.acn" 2>/dev/null
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I "$out" "$out"/*.c "$root/test-cases/acn-wire/011_v2_wire_test.c" -o "$out/wire_test"
+"$out/wire_test"
+echo "acn-wire 011_v2 --acn-v2 OK"
+out=$work/acn011v2ada
+mkdir "$out"
+run_compiler -Ada -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/011_v2.asn1" "$root/test-cases/acn-wire/011_v2.acn" 2>/dev/null
+cp "$root/test-cases/acn-wire/011_v2_wire_test.adb" "$out/wire_test.adb"
+(cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
+echo "acn-wire 011_v2 (Ada) --acn-v2 OK"
+
 # acn-wire/007 (q/issues.md Issue 124): an ACN parameter of a referenced type consumed inside the elements of a
 # SEQUENCE OF of that type: every element patches the determinant (--acn-v2; legacy rejects the shapes, below).
 out=$work/acn007c

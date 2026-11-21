@@ -82,15 +82,18 @@ let icdCommentsForDependency (d: AcnDependency) : string list =
     | AcnDepChoiceDeterminant (_, chc, _)             -> [sprintf "Used as a presence determinant for %s " (chc.typeDef[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)]
 
 /// i108a: `node` (the parent of a consumer) lies below the deepest component that holds both the field `fieldId` and
-/// that consumer, in the same type assignment, and is not in the test value. Only inline components: the map holds no
-/// key for a reference site (its value is keyed by the referenced type's ids), so a site or a node of another type
-/// assignment (a callee's consumer in legacy) is never called absent here.
+/// that consumer, in the same type assignment, not below a SEQUENCE OF, and is not in the test value. Only inline
+/// components: the map holds no key for a reference site (its value is keyed by the referenced type's ids), so a site
+/// or a node of another type assignment (a callee's consumer in legacy) is never called absent here.
 let private absentBelowCommonHolder (atc:AutomaticTestCase) (fieldId:ReferenceToType) (node:ReferenceToType) : bool =
     let common =
         List.zip (fieldId.ToScopeNodeList |> List.truncate node.ToScopeNodeList.Length)
                  (node.ToScopeNodeList |> List.truncate fieldId.ToScopeNodeList.Length)
         |> List.takeWhile (fun (a, b) -> a = b) |> List.length
-    common >= 2 && node.ToScopeNodeList.Length > common && not (atc.testCaseTypeIDsMap.ContainsKey node)
+    // i108a r3 (Codex): not below a SEQUENCE OF either: the map has no key for an element (`#`) and merges the maps of
+    // all elements, so it cannot tell an absent node there
+    let belowSequenceOf = node.ToScopeNodeList |> List.skip common |> List.exists (function SQF -> true | _ -> false)
+    common >= 2 && node.ToScopeNodeList.Length > common && not belowSequenceOf && not (atc.testCaseTypeIDsMap.ContainsKey node)
 
 /// The value of a determinant computed from an automatic test value, per dependency; None when it
 /// cannot be computed (the test value is then not valid for ACN). The update handlers below use it,

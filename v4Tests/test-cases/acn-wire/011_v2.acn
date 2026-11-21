@@ -1,0 +1,4 @@
+WIRE DEFINITIONS ::= BEGIN
+    PGX <INTEGER:len> [] { items [] { [] { hx BOOLEAN [], x [present-when hx, size len], e [] } } }
+    S17 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+END
