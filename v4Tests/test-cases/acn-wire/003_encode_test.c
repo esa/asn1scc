@@ -10,6 +10,15 @@
 
 static int failures = 0;
 
+/* --acn-v2 encodes a reference site with ACN arguments by a call of a specialised function: the site's own error code is
+   the call wrapper's, whose name gets the generated de-duplication suffix _2_2 (getNextValidErrorCode: the wrapper and
+   the resolved type both derive ERR_ACN_ENCODE_<site>, deterministic for a given grammar) */
+#ifdef WIRE_ACN_V2
+#define SITE_CODE(name) name##_2_2
+#else
+#define SITE_CODE(name) name
+#endif
+
 /* encode val: expect failure with expErr (expErr > 0) or any nonzero code (expErr = -1) */
 #define REJECT(T, val, expErr)                                                                          \
     do {                                                                                                \
@@ -93,7 +102,7 @@ int main(void)
         v.exist.ch = 1;
         v.ch.kind = two_PRESENT;
         v.ch.u.two = TRUE;
-        REJECT(RefChPDU, v, -1);
+        REJECT(RefChPDU, v, SITE_CODE(ERR_ACN_ENCODE_REFCHPDU_CH));
     }
     /* CHOICE present-when an INTEGER field, a string field */
     {
@@ -229,7 +238,7 @@ int main(void)
         v.exist.d = 1;
         v.d.nCount = 1;
 #ifndef WIRE_ACN_V2
-        REJECT_AT(DefPDU, v, -1, 0);
+        REJECT_AT(DefPDU, v, ERR_ACN_ENCODE_UPDATE_DEFPDU_F, 0);
 #else
         REJECT_AT(DefPDU, v, ERR_ACN_ENCODE_DEFPDU_D, 1);
 #endif
@@ -260,7 +269,27 @@ int main(void)
         v.exist.ch = 1;
         v.ch.kind = e2_PRESENT;
         v.ch.u.e2 = TRUE;
-        REJECT_AT(EnChPDU, v, -1, 2);
+        REJECT_AT(EnChPDU, v, SITE_CODE(ERR_ACN_ENCODE_ENCHPDU_CH), 2);
+    }
+    /* referenced dependents aligned at the site (a CHOICE, a parameterised OCTET STRING, a SEQUENCE OF aligned to a
+       word): rejected after the four flags (bit 4), before the padding, in both modes (--acn-v2 tests the ref the call
+       passes, before the site's alignment and the call) */
+    {
+        AlRefPDU v;
+        memset(&v, 0, sizeof v);
+        ACCEPT(AlRefPDU, v);
+        v.exist.ch = 1;
+        v.ch.kind = e2_PRESENT;
+        v.ch.u.e2 = TRUE;
+        REJECT_AT(AlRefPDU, v, SITE_CODE(ERR_ACN_ENCODE_ALREFPDU_CH), 4);
+        memset(&v, 0, sizeof v);
+        v.exist.d = 1;
+        v.d.nCount = 1;
+        REJECT_AT(AlRefPDU, v, SITE_CODE(ERR_ACN_ENCODE_ALREFPDU_D), 4);
+        memset(&v, 0, sizeof v);
+        v.exist.arr = 1;
+        v.arr.nCount = 1;
+        REJECT_AT(AlRefPDU, v, SITE_CODE(ERR_ACN_ENCODE_ALREFPDU_ARR), 4);
     }
     /* component and dependent present when the same field says so: the field's update rejects the disagreement */
     {

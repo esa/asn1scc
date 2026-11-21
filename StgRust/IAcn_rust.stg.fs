@@ -171,6 +171,8 @@ type IAcn_rust() =
             acn_rust.acn_dec_absent_holder_reset  sLocal sInitValue sField sHolders 
         override this.acn_enc_absent_holder_guard  (arrsGuards:seq<string>) (sBody:string) (sErrCode:string) (sFields:string) (sHolders:string) (bTestsCannotReach:bool) =
             acn_rust.acn_enc_absent_holder_guard  arrsGuards sBody sErrCode sFields sHolders bTestsCannotReach 
+        override this.acn_enc_absent_holder_no_bits  () =
+            acn_rust.acn_enc_absent_holder_no_bits  () 
         override this.acn_enc_absent_holder_fail  (sBody:string) (sErrCode:string) (sFields:string) (sHolders:string) (bTestsCannotReach:bool) =
             acn_rust.acn_enc_absent_holder_fail  sBody sErrCode sFields sHolders bTestsCannotReach 
         override this.sequence_save_bitStream_start  (sBitStreamPositionsLocalVar:string) (codec:Codec) =

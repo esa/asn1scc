@@ -93,6 +93,8 @@ procedure Encode_Test is
    procedure StrOnly is new Check (WIRE.StrOnlyPDU, WIRE.StrOnlyPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.StrOnlyPDU_ACN_Encode_aux);
    procedure StrOnly_At is new Check_At (WIRE.StrOnlyPDU, WIRE.StrOnlyPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.StrOnlyPDU_ACN_Encode_aux);
    procedure EnCh is new Check (WIRE.EnChPDU, WIRE.EnChPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.EnChPDU_ACN_Encode_aux);
+   procedure AlRef is new Check (WIRE.AlRefPDU, WIRE.AlRefPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.AlRefPDU_ACN_Encode_aux);
+   procedure AlRef_At is new Check_At (WIRE.AlRefPDU, WIRE.AlRefPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.AlRefPDU_ACN_Encode_aux);
    procedure EnCh_At is new Check_At (WIRE.EnChPDU, WIRE.EnChPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.EnChPDU_ACN_Encode_aux);
 
    VMy : WIRE.MyPDU := WIRE.MyPDU_Init;
@@ -114,6 +116,7 @@ procedure Encode_Test is
    VAl : WIRE.AlPDU := WIRE.AlPDU_Init;
    VStrOnly : WIRE.StrOnlyPDU := WIRE.StrOnlyPDU_Init;
    VEnCh : WIRE.EnChPDU := WIRE.EnChPDU_Init;
+   VAlRef : WIRE.AlRefPDU := WIRE.AlRefPDU_Init;
 begin
    --  sizes of an OCTET STRING and of an IA5String, both present when flg2 says so: data fails first
    VMy.Exist.header := 0;
@@ -221,7 +224,7 @@ begin
 #if ACN_V2 then
    Def_At ("DefPDU r", VDef, WIRE.ERR_ACN_ENCODE_DEFPDU_D, 1);
 #else
-   Def_At ("DefPDU r", VDef, -1, 0);
+   Def_At ("DefPDU r", VDef, WIRE.ERR_ACN_ENCODE_UPDATE_DEFPDU_F, 0);
 #end if;
    --  an aligned dependent: rejected after flg and g, before the padding
    VAl.Exist.header := 0;
@@ -242,7 +245,41 @@ begin
    EnCh ("EnChPDU ok", VEnCh, 0);
    VEnCh.Exist.ch := 1;
    VEnCh.ch := (kind => WIRE.e2_PRESENT, e2 => True);
-   EnCh_At ("EnChPDU r", VEnCh, -1, 2);
+#if ACN_V2 then
+   EnCh_At ("EnChPDU r", VEnCh, WIRE.ERR_ACN_ENCODE_ENCHPDU_CH_2_2, 2);
+#else
+   EnCh_At ("EnChPDU r", VEnCh, WIRE.ERR_ACN_ENCODE_ENCHPDU_CH, 2);
+#end if;
+   --  referenced dependents aligned at the site: rejected after the four flags (bit 4), before the padding, in both
+   --  modes (--acn-v2: the site's code is the call wrapper's, with the generated suffix _2_2)
+   VAlRef.Exist.header := 0;
+   VAlRef.Exist.ch := 0;
+   VAlRef.Exist.d := 0;
+   VAlRef.Exist.arr := 0;
+   AlRef ("AlRefPDU ok", VAlRef, 0);
+   VAlRef.Exist.ch := 1;
+   VAlRef.ch := (kind => WIRE.e2_PRESENT, e2 => True);
+#if ACN_V2 then
+   AlRef_At ("AlRefPDU ch", VAlRef, WIRE.ERR_ACN_ENCODE_ALREFPDU_CH_2_2, 4);
+#else
+   AlRef_At ("AlRefPDU ch", VAlRef, WIRE.ERR_ACN_ENCODE_ALREFPDU_CH, 4);
+#end if;
+   VAlRef.Exist.ch := 0;
+   VAlRef.Exist.d := 1;
+   VAlRef.d.Length := 1;
+#if ACN_V2 then
+   AlRef_At ("AlRefPDU d", VAlRef, WIRE.ERR_ACN_ENCODE_ALREFPDU_D_2_2, 4);
+#else
+   AlRef_At ("AlRefPDU d", VAlRef, WIRE.ERR_ACN_ENCODE_ALREFPDU_D, 4);
+#end if;
+   VAlRef.Exist.d := 0;
+   VAlRef.Exist.arr := 1;
+   VAlRef.arr.Length := 1;
+#if ACN_V2 then
+   AlRef_At ("AlRefPDU arr", VAlRef, WIRE.ERR_ACN_ENCODE_ALREFPDU_ARR_2_2, 4);
+#else
+   AlRef_At ("AlRefPDU arr", VAlRef, WIRE.ERR_ACN_ENCODE_ALREFPDU_ARR, 4);
+#end if;
    --  component and dependent present when the same field says so: the field's update rejects the disagreement
    VSame.Exist.header := 0;
    Same ("SamePDU r", VSame, -1);

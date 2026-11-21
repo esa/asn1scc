@@ -1080,6 +1080,8 @@ acn_enc_absent_holder_guard(arrsGuards, sBody, sErrCode, sFields, sHolders, bTes
 <sBody>
 >>
 
+acn_enc_absent_holder_no_bits() ::= ""
+
 acn_enc_absent_holder_fail(sBody, sErrCode, sFields, sHolders, bTestsCannotReach) ::= <<
 <sBody>
 >>

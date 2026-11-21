@@ -166,7 +166,7 @@ let private handleAsn1Child
                 [chFunc.errCode]
             | _, None when childNestingScope.isStandaloneRender -> childContentResult, []
             | guard, None ->
-                let noBits = {AcnFuncBodyResult.funcBody = null; errCodes = []; localVariables = []; userDefinedFunctions = []
+                let noBits = {AcnFuncBodyResult.funcBody = lm.acn.acn_enc_absent_holder_no_bits (); errCodes = []; localVariables = []; userDefinedFunctions = []
                               bValIsUnReferenced = false; bBsIsUnReferenced = true; resultExpr = None; auxiliaries = []
                               icdResult = None; encOutcome = EncodeOutcome.noWrite}
                 Some (AcnFunctionWrapper.applyAbsentHolderGuard r deps lm codec child.Type.id guard chFunc.errCode.errCodeName ctx.acnArgs childNestingScope noBits),

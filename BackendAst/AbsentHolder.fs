@@ -443,6 +443,29 @@ let private isReferenceKind (kind: Asn1TypeKind) : bool =
     | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | NullType _ | TimeType _
     | BitString _ | Boolean _ | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | Choice _ -> false
 
+/// The type of the node at `path` (MD :: TA :: ...), walking the type assignment through SEQUENCE components, CHOICE
+/// alternatives and SEQUENCE OF elements (references by their actual type); the node's own type (a reference site is
+/// a ReferenceType). None when a step does not match.
+let private componentTypeAt (r: AstRoot) (path: ScopeNode list) : Asn1Type option =
+    let rec walk (t: Asn1Type) (nodes: ScopeNode list) : Asn1Type option =
+        match nodes, t.ActualType.Kind with
+        | [], _ -> Some t
+        | (SEQ_CHILD (name, _)) :: rest, Sequence s ->
+            s.children
+            |> List.tryPick (fun c ->
+                match c with
+                | Asn1Child c when c.Name.Value = name -> Some c.Type
+                | Asn1Child _ | AcnChild _             -> None)
+            |> Option.bind (fun ct -> walk ct rest)
+        | (CH_CHILD (name, _, _)) :: rest, Choice ch ->
+            ch.children |> List.tryFind (fun c -> c.Name.Value = name) |> Option.bind (fun c -> walk c.Type rest)
+        | SQF :: rest, SequenceOf sqf -> walk sqf.child rest
+        | _ -> None
+    match path with
+    | (MD md) :: (TA tas) :: rest ->
+        r.typeAssignmentsMap.TryFind (md, tas) |> Option.bind (fun ts -> walk ts.Type rest)
+    | _ -> None
+
 /// The DecodeGuard of the decoder of t (NoGuard for every type that does not read a determinant whose holder may be
 /// absent).
 let decodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (isDeferrable: AcnInsertedType -> bool) (t: Asn1Type) : DecodeGuard =
@@ -466,9 +489,27 @@ let encodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (isDeferrable:
             | AcnDepRefTypeArgument _ | AcnDepPresence _ | AcnDepPresenceStr _ | AcnDepChoiceDeterminant _ -> false)
         |> List.collect (fun (_, steps, _, _) -> steps |> List.map fst)
         |> Set.ofList
+    // --acn-v2: a reference site encoded by a call of its specialised function (the resolved type has ACN parameters)
+    // whose own size / CHOICE determinant is read through a ref: the test of that ref is at the call (the ref the call
+    // passes, as for a CONTAINING size), before the site's alignment, not inside the callee (whose body, the resolved
+    // type with the site's id, would pad first)
+    let tested ((d, _, _, prm): GuardedDependency) =
+        let atCall =
+            r.args.acnDeferred && prm.IsSome &&
+            (match d.dependencyKind with
+             | AcnDepPresenceBool | AcnDepRefTypeArgument _ -> false
+             | AcnDepIA5StringSizeDeterminant _ | AcnDepSizeDeterminant _ | AcnDepSizeDeterminant_bit_oct_str_contain _
+             | AcnDepPresence _ | AcnDepPresenceStr _ | AcnDepChoiceDeterminant _ -> true) &&
+            (match componentTypeAt r d.asn1Type.ToScopeNodeList |> Option.map (fun ct -> ct.Kind) with
+             | Some (ReferenceType rf) -> not rf.resolvedType.acnParameters.IsEmpty
+             | Some _ | None           -> false)
+        match isReferenceKind t.Kind, atCall with
+        | true, true   -> true
+        | false, true  -> false
+        | _, false     -> readsTheDeterminant t.Kind d
     let xs =
         all
-        |> List.filter (fun (d, _, _, _) -> readsTheDeterminant t.Kind d)
+        |> List.filter tested
         |> List.filter (fun (_, steps, _, _) -> not (steps |> List.forall (fun (h, _) -> presenceHolders.Contains h)))
     guardOf xs (isReferenceKind t.Kind)
 
@@ -485,25 +526,6 @@ let presenceEncodeGuard (r: AstRoot) (deps: AcnInsertedFieldDependencies) (isDef
             | AcnDepIA5StringSizeDeterminant _ | AcnDepSizeDeterminant _ | AcnDepSizeDeterminant_bit_oct_str_contain _
             | AcnDepRefTypeArgument _ | AcnDepPresence _ | AcnDepPresenceStr _ | AcnDepChoiceDeterminant _ -> false)
     guardOf xs false
-
-/// The type of the component at `path` (MD :: TA :: ... ), walking the type assignment through SEQUENCE components
-/// only (references by their actual type); None when a step is not a SEQUENCE component.
-let private sequenceComponentType (r: AstRoot) (path: ScopeNode list) : Asn1Type option =
-    let rec walk (t: Asn1Type) (nodes: ScopeNode list) : Asn1Type option =
-        match nodes, t.ActualType.Kind with
-        | [], _ -> Some t
-        | (SEQ_CHILD (name, _)) :: rest, Sequence s ->
-            s.children
-            |> List.tryPick (fun c ->
-                match c with
-                | Asn1Child c when c.Name.Value = name -> Some c.Type
-                | Asn1Child _ | AcnChild _             -> None)
-            |> Option.bind (fun ct -> walk ct rest)
-        | _ -> None
-    match path with
-    | (MD md) :: (TA tas) :: rest ->
-        r.typeAssignmentsMap.TryFind (md, tas) |> Option.bind (fun ts -> walk ts.Type rest)
-    | _ -> None
 
 /// q/issues.md Issue 108 (rule R4) for the automatic test values: the encoder-guarded dependencies (encodeGuard /
 /// presenceEncodeGuard) that the SEQUENCE seqId can check on a test value's map: (dependent, holders). A value whose
@@ -522,7 +544,7 @@ let holderAbsentChecks (r: AstRoot) (deps: AcnInsertedFieldDependencies) (isDefe
                 let sub = List.take n path
                 match List.last sub with
                 | SEQ_CHILD _ ->
-                    match sequenceComponentType r sub with
+                    match componentTypeAt r sub with
                     | Some ct -> not (isReferenceKind ct.Kind)
                     | None    -> false
                 | MD _ | TA _ | VA _ | PRM _ | CH_CHILD _ | SQF -> false)
@@ -536,7 +558,7 @@ let holderAbsentChecks (r: AstRoot) (deps: AcnInsertedFieldDependencies) (isDefe
             // an OPTIONAL NULL component is never in the automatic test values (DAstInitialize skips it; C leaves its
             // flag unset, Ada's T_Init sets it): its presence cannot be read from the map
             let isNull (id: ReferenceToType) =
-                match sequenceComponentType r id.ToScopeNodeList |> Option.map (fun ct -> ct.ActualType.Kind) with
+                match componentTypeAt r id.ToScopeNodeList |> Option.map (fun ct -> ct.ActualType.Kind) with
                 | Some (NullType _) -> true
                 | Some _ | None     -> false
             match keyedBelow d.asn1Type && not (isNull d.asn1Type) && holders |> List.forall keyedBelow with

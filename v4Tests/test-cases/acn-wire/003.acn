@@ -143,6 +143,18 @@ WIRE DEFINITIONS ::= BEGIN
         header [present-when flg] { a [], k Kind2 [encoding pos-int, size 1] },
         ch <header.k> [present-when flg2]
     }
+    MyOct <INTEGER:len> [size len]
+    MySq <INTEGER:len> [size len]
+    AlRefPDU [] {
+        flg BOOLEAN [],
+        g1 BOOLEAN [],
+        g2 BOOLEAN [],
+        g3 BOOLEAN [],
+        header [present-when flg] { a [], k Kind2 [encoding pos-int, size 1], n INTEGER [size 4, encoding pos-int] },
+        ch <header.k> [present-when g1, align-to-next byte],
+        d <header.n> [present-when g2, align-to-next byte],
+        arr <header.n> [present-when g3, align-to-next word]
+    }
     SamePDU [] {
         flg BOOLEAN [],
         header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },

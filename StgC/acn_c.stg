@@ -988,13 +988,16 @@ acn_dec_absent_holder_reset(sLocal, sInitValue, sField, sHolders) ::= <<
 /* q/issues.md Issue 108: the encoder of a dependent whose determinant field is in a component the value may leave absent (BackendAst/AbsentHolder.fs); bTestsCannotReach: no automatic test value can show the component absent with the dependent present (AbsentHolder.holderAbsentChecks) */
 acn_enc_absent_holder_guard(arrsGuards, sBody, sErrCode, sFields, sHolders, bTestsCannotReach) ::= <<
 if (<arrsGuards; separator=" && ">) {
-    <if(sBody)><sBody><else>/* no bits to encode */<endif>
+    <sBody>
 } else {
     /* <sFields> is in <sHolders>, absent in this value: the stream cannot hold the field */
     ret = FALSE;<if(bTestsCannotReach)>  /*COVERAGE_IGNORE*/<endif>
     *pErrCode = <sErrCode>;<if(bTestsCannotReach)>  /*COVERAGE_IGNORE*/<endif>
 }
 >>
+
+/* the body of a guarded dependent without bits (a NULL without pattern, an empty SEQUENCE) */
+acn_enc_absent_holder_no_bits() ::= "/* no bits to encode */"
 
 acn_enc_absent_holder_fail(sBody, sErrCode, sFields, sHolders, bTestsCannotReach) ::= <<
 /* <sFields> is in <sHolders>, which is always absent: the stream never holds the field */

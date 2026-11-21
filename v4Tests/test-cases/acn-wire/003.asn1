@@ -142,6 +142,16 @@ WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
         header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
         ch      RefKe OPTIONAL
     }
+    -- referenced dependents whose determinant is an ACN argument, aligned at the site (--acn-v2: a call of a
+    -- specialised function; encoder checks only)
+    MyOct ::= OCTET STRING (SIZE(0..15))
+    MySq ::= SEQUENCE (SIZE(0..3)) OF INTEGER(0..255)
+    AlRefPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        ch      RefKe OPTIONAL,
+        d       MyOct OPTIONAL,
+        arr     MySq OPTIONAL
+    }
     -- component and dependent present when the same field says so: no check, both decode together
     SamePDU ::= SEQUENCE {
         header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
