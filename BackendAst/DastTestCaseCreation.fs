@@ -961,10 +961,19 @@ and private withComponentsViolations (r:DAst.AstRoot) (lm:LanguageMacros) (path:
                     | _ -> []
                 absent @ values)
 
+/// Whether the type's own CHOICE selector set to <X>_NONE is a test here (cycle 15f: a type assignment
+/// without a tested encoding has no step-02 test_case_invalid_* that would cover it).
+type OwnSelectorTest =
+    | OwnSelectorInInvalidValueTests        // step 02's test_case_invalid_* (a type with a tested codec)
+    | OwnSelectorInViolationTests           // here: the validator's error code + Equal against the start value
+
 /// One automatic test per constraint violation of a type assignment (coverage step 11c), independent of the
 /// encoding: it calls IsConstraintValid and every checked encoder of the type; for a nested invalid discriminant
-/// (step 12d) every unchecked encoder too.
-let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Type) (encoders:(string*string) list) =
+/// (step 12d) every unchecked encoder too. soEqualFunc: the type's Equal function when it is emitted; a nested CHOICE
+/// selector set to <X>_NONE must make it return FALSE against the start value, both ways (cycle 15f: the validator's
+/// own error code proves that the changed selector is reached, so Equal reaches it too and compares the kinds; the C
+/// kind compare of a one-alternative CHOICE was never FALSE). ownSelector: see OwnSelectorTest.
+let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Type) (encoders:(string*string) list) (soEqualFunc:string option) (ownSelector:OwnSelectorTest) =
     let isValidFuncName = t.isValidFunction |> Option.bind (fun f -> f.funcName)
     match lm.lg.atcEmitsConstraintViolationTests, isValidFuncName with
     | true, Some sIsValidFunc ->
@@ -994,11 +1003,13 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
             | InvalidEnumItem OwnTree
             | InvalidSelector OwnTree -> List.tryHead fitting
         constraintViolations r lm (uniqueReferenceSites r t) p.accessPath t |>
-        // the type's own CHOICE selectors: step 02's test_case_invalid_* cover them, checked and unchecked
+        // the type's own CHOICE selectors: step 02's test_case_invalid_* cover them, checked and unchecked, when the type
+        // has a tested codec
         List.filter (fun v ->
-            match v.encoding with
-            | InvalidSelector OwnTree -> false
-            | CheckedOnly | InvalidEnumItem _ | InvalidSelector Nested -> true) |>
+            match v.encoding, ownSelector with
+            | InvalidSelector OwnTree, OwnSelectorInInvalidValueTests   -> false
+            | InvalidSelector OwnTree, OwnSelectorInViolationTests      -> true
+            | (CheckedOnly | InvalidEnumItem _ | InvalidSelector Nested), _ -> true) |>
         List.choose (fun v ->
             start v |>
             Option.map (fun atc ->
@@ -1023,7 +1034,13 @@ let constraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:Asn1Typ
                     let encodeChecks = checkedEncodes @ uncheckedEncodes
                     // the text goes into a comment and a string literal
                     let sWhat = what.Replace("\"", "'").Replace("\\", "/").Replace("*/", "* /")
-                    let func_body = lm.atc.emitConstraintViolationTestCase sFuncName arrsVars td.programUnit sTasName encAmper initStatement.funcBody bStatic v.setInvalid sWhat sIsValidFunc v.errCodeModule v.errCode.errCodeName encodeChecks
+                    let soSelectorEqualFunc =
+                        match v.encoding with
+                        | InvalidSelector Nested
+                        | InvalidSelector OwnTree   -> soEqualFunc
+                        | CheckedOnly
+                        | InvalidEnumItem _         -> None
+                    let func_body = lm.atc.emitConstraintViolationTestCase sFuncName arrsVars td.programUnit sTasName encAmper initStatement.funcBody bStatic v.setInvalid sWhat sIsValidFunc v.errCodeModule v.errCode.errCodeName encodeChecks soSelectorEqualFunc
                     (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)))
     | true, None
     | false, _ -> []
@@ -1330,8 +1347,9 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                         | Asn1Encoding.ACN when tested e && hasAcnEncodeFunction t.Type.acnEncFunction t.Type.acnParameters t.Type.id.tasInfo ->
                             t.Type.acnEncFunction |> Option.bind (fun f -> f.funcName) |> Option.map (fun f -> (f, GetEncodingString lm e))
                         | Asn1Encoding.UPER | Asn1Encoding.ACN | Asn1Encoding.XER | Asn1Encoding.BER -> None)
+                // the test functions of a tested type assignment call its Equal (EncodeDecodeTestCase)
                 match r.args.encodings |> List.exists tested with
-                | true  -> yield! constraintViolationTestCases r lm t.Type encoders
+                | true  -> yield! constraintViolationTestCases r lm t.Type encoders t.Type.equalFunction.isEqualFuncName OwnSelectorInInvalidValueTests
                 | false -> () ]
     // Equal tests with two different values (coverage step 14a) come after them.
     let equalityFunctors =
@@ -1373,7 +1391,11 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                     match emitted IsValidFunctionType with
                     | true  ->
                         yield! validityTestCases lm t.Type
-                        yield! constraintViolationTestCases r lm t.Type []
+                        let soEqualFunc =
+                            match r.args.GenerateEqualFunctions && emitted EqualFunctionType with
+                            | true  -> t.Type.equalFunction.isEqualFuncName
+                            | false -> None
+                        yield! constraintViolationTestCases r lm t.Type [] soEqualFunc OwnSelectorInViolationTests
                     | false -> ()
                     match r.args.GenerateEqualFunctions && emitted EqualFunctionType with
                     | true  -> yield! equalityVariantTestCases lm t.Type

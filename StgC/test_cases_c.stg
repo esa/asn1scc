@@ -984,7 +984,7 @@ decodingCaseKind(sBody, sIdentifier) ::= <<
 
 /* Coverage step 11c (T2): a value just outside one constraint. IsConstraintValid and every checked encoder must
    fail with the error code of that constraint. */
-emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks) ::= <<
+emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks, soEqualFunc) ::= <<
 void <sFuncName>(const TestOutput* output, int *totalErrors)
 {
     flag result;
@@ -998,6 +998,10 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <sTasName> tc_data;
     <endif>
     <sInitializeTcData>
+    <if(soEqualFunc)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_start", sFuncName=sFuncName)>
+    memcpy(tc_start_p, <sAmber>tc_data, sizeof(<sTasName>));
+    <endif>
     /* the automatic test value is valid before the change */
     result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
     if (result) {
@@ -1006,12 +1010,21 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         errCode = 0;
         result = !<sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == <sErrCode>;
     }
+    <if(soEqualFunc)>
+    /* the validator reached the changed selector, so <soEqualFunc> reaches it too and must tell the two values apart,
+       in both orders (coverage cycle 15f) */
+    result = result && !<soEqualFunc>(<sAmber>tc_start, <sAmber>tc_data) && !<soEqualFunc>(<sAmber>tc_data, <sAmber>tc_start);
+    <testDataFree(sVar="tc_start")>
+    <endif>
     <arrsEncodeChecks; separator="\n">
     if (result) {
         output->report_test_case_success("<sTasName>/<sFuncName>", 0);
     } else {
         output->report_failure_begin();
         output->report_failure_message("Test case '<sFuncName>' failed: <sWhat>: not rejected with <sErrCode>, or the starting value was not valid.");
+        <if(soEqualFunc)>
+        output->report_failure_message("(or <soEqualFunc> did not tell the changed value from the starting value)");
+        <endif>
         output->report_failure_message("========================================");
         *totalErrors = (*totalErrors) + 1;
         output->report_failure_end();
