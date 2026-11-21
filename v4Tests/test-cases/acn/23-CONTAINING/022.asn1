@@ -1,0 +1,29 @@
+-- C_ADA_ONLY (CONTAINING of aliases / subtypes across modules, as 021)
+-- Issue 138 across modules (Ada packages): the CONTAINING components of TEST-CASE call the functions of ModB's Sub (a
+-- WITH COMPONENTS subtype of ModA's T, no ACN specification from T: r in 8 bits) and Al (an alias of T with an ACN
+-- specification of its own: r in 32 bits), module-qualified, not T's (r in 16 bits), whose typedef they share. Legacy
+-- and --acn-v2.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    IMPORTS Sub, Al FROM ModB;
+
+    MyPDU ::= SEQUENCE {
+        f OCTET STRING (CONTAINING Sub),
+        g BIT STRING (CONTAINING Al),
+        h OCTET STRING (CONTAINING Al),
+        z BOOLEAN
+    }
+END
+
+ModA DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    EXPORTS ALL;
+    T ::= SEQUENCE { r INTEGER (0..255), k INTEGER (0..7) }
+END
+
+ModB DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    EXPORTS ALL;
+    IMPORTS T FROM ModA;
+    Sub ::= T (WITH COMPONENTS {..., k (0..3)})
+    Al  ::= T
+END
+
+--TCFS     022.acn

@@ -1285,16 +1285,26 @@ let containingCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : As
     | Some _ -> None
     | None   -> chainCalleeTas r o
 
-/// q/issues.md Issue 134: the type assignment whose function encodes / decodes the contents of a CONTAINING site
-/// (a site with encoding options) when the chain of type assignments of the contents reaches a CONTAINING
-/// (`f OCTET STRING (CONTAINING Box)`, `Box ::= OCTET STRING (CONTAINING T)`: Box); None otherwise. Its name is also the
-/// prefix of the site's temporary buffer constant (`<Box>_REQUIRED_BYTES_FOR_[ACN_]ENCODING`). Before, the call and the
-/// buffer were named after the shared typedef (T), while the region range came from Box: the legacy decoders wrote past
-/// the buffer.
+/// q/issues.md Issue 134 / Issue 138: the type assignment whose function encodes / decodes the contents of a CONTAINING
+/// site (a site with encoding options): the referenced type assignment itself (`f OCTET STRING (CONTAINING Sub)`: Sub);
+/// None for a site without encoding options. Its name is also the prefix of the site's temporary buffer constant
+/// (`<Sub>_REQUIRED_BYTES_FOR_[ACN_]ENCODING`). Every type assignment has functions and constants of its own, and the
+/// site's contents (without a site specification that overrides them, q/issues.md Issue 135) are exactly its encoding. Before, the call and the buffer were named after the typedef the referenced type assignment shares
+/// (getBaseFuncName), while the region range came from the referenced type assignment: `Box ::= OCTET STRING
+/// (CONTAINING T)` (Issue 134), `Sub ::= T (WITH COMPONENTS ...)` and `Sub ::= T` with an ACN specification of its own
+/// (Issue 138) all share `typedef T`, so the site called T's functions (another encoding: --acn-v2 wrote a wrong
+/// stream, the legacy decoders wrote past the buffer).
 let containedCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.TypeAssignment option =
     match o.encodingOptions with
     | None   -> None
-    | Some _ -> chainCalleeTas r o
+    | Some _ -> Some ((r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r)
+
+/// The contents type whose encoding the function called by a CONTAINING site has (Issues 134, 138): the referenced type
+/// assignment's (containedCalleeTas). For the outcome of the call (DecodeOutcome) and for size checks against the region.
+let containedCalleeType (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.Asn1Type =
+    match containedCalleeTas r o with
+    | Some tas -> tas.Type
+    | None     -> Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
 
 /// The type name of a type assignment as a call from the module of t names it (module-qualified across modules).
 let private tasTypeNameFrom (lm:LanguageMacros) (t: Asn1AcnAst.Asn1Type) (tas:Asn1AcnAst.TypeAssignment) =

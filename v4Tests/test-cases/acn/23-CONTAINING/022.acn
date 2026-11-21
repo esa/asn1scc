@@ -1,0 +1,11 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    MyPDU [] { f [], g [], h [], z [] }
+END
+
+ModA DEFINITIONS ::= BEGIN
+    T [] { r [encoding pos-int, size 16], k [] }
+END
+
+ModB DEFINITIONS ::= BEGIN
+    Al [] { r [encoding pos-int, size 32], k [] }
+END

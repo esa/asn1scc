@@ -220,12 +220,10 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
         //the check and the Ada reads of the region and after it ran past the stream the decoder precondition provides.
         //A site's maximum can also be larger (a site ACN specification that overrides the contents' children; legacy
         //rejects it below, --acn-v2 encodes the type assignment's encoding anyway, Issue 135): the type assignment's then.
-        //Issue 134: the callee is the type assignment the contents' chain reaches when it reaches a CONTAINING (Box of
-        //`OCTET STRING (CONTAINING Box)`, Box ::= OCTET STRING (CONTAINING T)); its constants size the temporary buffer.
-        let calleeType =
-            match containedCalleeTas r o with
-            | Some tas -> tas.Type
-            | None     -> GetActualTypeByName r o.modName o.tasName
+        //Issues 134 / 138: the callee is the referenced type assignment (Box of `OCTET STRING (CONTAINING Box)`, Box ::=
+        //OCTET STRING (CONTAINING T); Sub of `CONTAINING Sub`, Sub ::= T (WITH COMPONENTS ...)), not the end of its chain:
+        //its functions are called and its constants size the temporary buffer (containedCalleeTas).
+        let calleeType = containedCalleeType r o
         let nReqBitsForAcnEncoding = min o.resolvedType.acnMaxSizeInBits calleeType.acnMaxSizeInBits
         let nReqBytesForAcnEncoding = System.Numerics.BigInteger (ceil ((double nReqBitsForAcnEncoding)/8.0))
 

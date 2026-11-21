@@ -1,0 +1,34 @@
+-- C_ADA_ONLY (CONTAINING of aliases / subtypes; the experimental Python backend ignores an inline CONTAINING's type)
+-- Issue 138: the contents of a CONTAINING are encoded by the referenced type assignment's own functions and sized by
+-- its constants, also when it shares another type's typedef: a WITH COMPONENTS subtype (Sub9: takes no ACN
+-- specification from T9, its REAL is the default encoding, T9's IEEE754-1985-32), an alias with an ACN specification
+-- of its own (Sub12, 24 bits for T12's 8; A14 through the alias chain A14b ::= A14). Before, the call and its buffer
+-- followed the typedef (T9, T12, T14): --acn-v2 wrote that type's encoding into the region, legacy rejected the sites.
+-- Sub11 (an INTEGER subtype with a typedef of its own, 1 octet for T11's 2) was always called by its own functions;
+-- legacy rejected it since 4.9.151.0 (a size check against the end of the chain). Legacy and --acn-v2. Bytes:
+-- acn-wire/014.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    T9    ::= SEQUENCE { r REAL, k INTEGER (0..7) }
+    Sub9  ::= T9 (WITH COMPONENTS {..., k (0..3)})
+    T11   ::= INTEGER (0..65535)
+    Sub11 ::= T11 (0..7)
+    T12   ::= INTEGER (0..255)
+    Sub12 ::= T12
+    T14   ::= INTEGER (0..255)
+    A14   ::= T14
+    A14b  ::= A14
+
+    MyPDU ::= SEQUENCE {
+        f9  OCTET STRING (CONTAINING Sub9),
+        f11 OCTET STRING (CONTAINING Sub11),
+        f12 OCTET STRING (CONTAINING Sub12),
+        g12 BIT STRING (CONTAINING Sub12),
+        x14 A14b,
+        f14 OCTET STRING (CONTAINING A14b),
+        z   BOOLEAN
+    }
+
+END
+
+--TCLS     T9[] { r[encoding IEEE754-1985-32], k[] } T12[encoding pos-int, size 8] Sub12[encoding pos-int, size 24] T14[encoding pos-int, size 8] A14[encoding pos-int, size 24] MyPDU[] { f9[], f11[], f12[], g12[], x14[], f14[], z[] }

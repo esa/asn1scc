@@ -610,4 +610,27 @@ for mode in "" "--acn-v2"; do
     echo "acn-wire 009 same $mode OK"
 done
 
+# The contents of a CONTAINING are encoded by the referenced type assignment's functions, also when it shares another
+# type's typedef (an alias with an ACN specification of its own, a WITH COMPONENTS subtype; Issue 138: before, the call
+# and its buffer followed the typedef, --acn-v2 wrote another encoding, legacy rejected the sites). Legacy and
+# --acn-v2; C with ASan / UBSan into buffers of exactly REQUIRED_BYTES, Ada with and without -gnata.
+for mode in "" "--acn-v2"; do
+    out=$work/acn014$mode
+    mkdir "$out"
+    run_compiler -c -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/014.asn1" "$root/test-cases/acn-wire/014.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/acn-wire/014_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 014 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/acn014ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/014.asn1" \
+            "$root/test-cases/acn-wire/014.acn"
+        cp "$root/test-cases/acn-wire/014_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "acn-wire 014 (Ada) $mode $gnata OK"
+    done
+done
+
 echo "acn-v2 wire checks passed"
