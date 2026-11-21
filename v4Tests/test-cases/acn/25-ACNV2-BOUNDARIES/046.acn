@@ -8,4 +8,6 @@ TEST-CASE DEFINITIONS ::= BEGIN
     S15 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
     PGV <INTEGER:len> [] { has BOOLEAN [], d [present-when has, size len], items [] { [size len] } }
     S16 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PGX <INTEGER:len> [] { items [] { [] { hx BOOLEAN [], x [present-when hx, size len], e [] } } }
+    S17 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
 END

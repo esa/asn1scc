@@ -25,6 +25,7 @@ TEST-CASE DEFINITIONS ::= BEGIN
     Kc3 <Kind:k> [determinant k]
     T3b [] { g BOOLEAN [], k Kind [], c <k> [present-when g], tail [] }
     T4 [] { g BOOLEAN [], b BOOLEAN [true-value '1010'B], q [present-when g] { x [present-when b], y [] }, tail [] }
+    B1 [] { g1 BOOLEAN [], g2 BOOLEAN [], b BOOLEAN [true-value '1010'B, false-value '0101'B], q1 [present-when g1] { x [present-when b], y [] }, q2 [present-when g2] { x [present-when b], y [] }, tail [] }
     T6 [] { [] { f BOOLEAN [], g BOOLEAN [], h [present-when f] { a [], n INTEGER [size 4, encoding pos-int] }, p [present-when g, size h.n], tail [] } }
     T7 [] { n INTEGER [size 4, encoding pos-int], c [] { ca [size n], cb [] }, tail [] }
     MidP <INTEGER:len> [] { hq BOOLEAN [], q <len> [present-when hq], z [] }

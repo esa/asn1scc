@@ -81,6 +81,17 @@ let icdCommentsForDependency (d: AcnDependency) : string list =
     | AcnDepPresenceStr _                             -> []
     | AcnDepChoiceDeterminant (_, chc, _)             -> [sprintf "Used as a presence determinant for %s " (chc.typeDef[CommonTypes.ProgrammingLanguage.ActiveLanguages.Head].asn1Name)]
 
+/// i108a: `node` (the parent of a consumer) lies below the deepest component that holds both the field `fieldId` and
+/// that consumer, in the same type assignment, and is not in the test value. Only inline components: the map holds no
+/// key for a reference site (its value is keyed by the referenced type's ids), so a site or a node of another type
+/// assignment (a callee's consumer in legacy) is never called absent here.
+let private absentBelowCommonHolder (atc:AutomaticTestCase) (fieldId:ReferenceToType) (node:ReferenceToType) : bool =
+    let common =
+        List.zip (fieldId.ToScopeNodeList |> List.truncate node.ToScopeNodeList.Length)
+                 (node.ToScopeNodeList |> List.truncate fieldId.ToScopeNodeList.Length)
+        |> List.takeWhile (fun (a, b) -> a = b) |> List.length
+    common >= 2 && node.ToScopeNodeList.Length > common && not (atc.testCaseTypeIDsMap.ContainsKey node)
+
 /// The value of a determinant computed from an automatic test value, per dependency; None when it
 /// cannot be computed (the test value is then not valid for ACN). The update handlers below use it,
 /// and so does an --acn-v2 deferred determinant, which has no update statement (DAstConstruction);
@@ -100,6 +111,10 @@ let private dependencyTestCaseFnc (d:AcnDependency) (atc:AutomaticTestCase) : Te
     | AcnDepPresenceBool ->
         match atc.testCaseTypeIDsMap.TryFind(d.asn1Type) with
         | Some _    -> Some TcvComponentPresent
+        // i108a (Fable F2): the OPTIONAL consumer's parent, below the deepest component that holds both the field and
+        // the consumer, is absent too: no consumer is in the value (None, consumerTestCaseFnc: TcvNoConsumer); the
+        // encoder skips that update (its path check). Before, "absent" disagreed with another present consumer.
+        | None when absentBelowCommonHolder atc d.determinant.id d.asn1Type.dropLast -> None
         | None      -> Some TcvComponentAbsent
     | AcnDepPresence (relPath, chc) ->
         let updateValues =

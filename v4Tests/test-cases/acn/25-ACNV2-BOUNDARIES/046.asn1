@@ -4,7 +4,9 @@
 -- encoding of a valid value failed (203: S10 in the field's function, S13 in the callee), alone it replaced the
 -- field's default (S14: n = 3 instead of 0, legacy wrote 0). Inside the elements of the callee's SEQUENCE OF the constant
 -- is written also for an empty list (S15, as legacy); next to a direct consumer such an element consumer is patched per
--- element (S16). The variable consumers start at 3 octets, so that automatic values with the fixed-size one present
+-- element (S16: an empty list with d absent leaves the default 0, where legacy writes 3 and rejects d present with an
+-- empty list); S17: the element consumer OPTIONAL inside the element is patched per element too (no element holding it:
+-- the default). The variable consumers start at 3 octets, so that automatic values with the fixed-size one present
 -- agree with them. Wire bytes: test-cases/acn-wire/011.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
     Pay ::= SEQUENCE { d OCTET STRING (SIZE(3..15)) OPTIONAL, e INTEGER (0..255) }
@@ -16,6 +18,8 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
     S15 ::= SEQUENCE { pl PG, tail INTEGER (0..255) }
     PGV ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(3)) }
     S16 ::= SEQUENCE { pl PGV, tail INTEGER (0..255) }
+    PGX ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF SEQUENCE { x OCTET STRING (SIZE(3)) OPTIONAL, e INTEGER (0..255) } }
+    S17 ::= SEQUENCE { pl PGX, tail INTEGER (0..255) }
 END
 
 --TCFS   046.acn

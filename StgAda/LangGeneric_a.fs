@@ -451,7 +451,8 @@ type LangGeneric_a() =
             match acnType with
             | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
                 // the wire value of the field's default (Issues 123 / 142): the default less the offset of a uPER-encoded
-                // field (PatchDet writes its argument as is); a range holding no value >= 0 keeps 0
+                // field (PatchDet writes its argument as is). A range holding no value >= 0 keeps 0 (legacy would write the
+                // bound): not reachable, no ACN size / present-when consumer takes a negative value (i108a review)
                 let wire = Asn1AcnAstUtilFunctions.acnIntegerDefaultValue ai - uperMinOffset
                 if wire >= 0I then wire.ToString() else "0"
             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> "0"

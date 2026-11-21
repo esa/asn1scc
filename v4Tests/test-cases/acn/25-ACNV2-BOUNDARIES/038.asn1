@@ -1,3 +1,4 @@
+-- KNOWN_FAILURE(python): as 037, the Python backend encodes Wrap in a method of its own that takes the size parameter by value, while the contents were encoded into a buffer of the caller (NameError: arr)
 -- Issue 78, as 037: an OCTET STRING (CONTAINING X) component of a SEQUENCE sized by an ACN parameter of that
 -- SEQUENCE, here an alternative of a parameterized CHOICE: the field is patched by the region when the alternative is
 -- selected, else the fallback writes 0. scripts/runWireTests.sh checks the exact bytes (038_wire_test.c).

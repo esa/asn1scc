@@ -1375,7 +1375,7 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
 <else>
 <if(bNoSourceLeavesUnset)>
             /* no source is set: no consumer of <v> is in the value; it stays unset and its flag FALSE, so the determinant it is a source of ignores it */
-            <v>_is_initialized = FALSE; /*COVERAGE_IGNORE*/<\n>
+            <v>_is_initialized = FALSE;<\n>
 <else>
             ret = FALSE; /*COVERAGE_IGNORE*/<\n>
 <endif>

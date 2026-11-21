@@ -32,7 +32,9 @@ let deferredDetRefName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (identity: R
 /// Which checks of the consumer's path (exist of an OPTIONAL component, kind of a CHOICE alternative) the PatchDet of a
 /// fixed-size size consumer (SIZE min = max: the value is a constant) runs under. Never none (q/issues.md Issue 125):
 /// an absent consumer must not write its constant, which rejected a valid value when another consumer was present with
-/// another size (203) and replaced the field's default (the fallback, = legacy) when it was alone.
+/// another size (203) and replaced the field's default (the fallback, = legacy) when it was alone. Inside SEQUENCE OF
+/// elements the constant is patched once only when nothing below the SEQUENCE OF can make the consumer absent
+/// (appendPatchDetCalls placementOf); an empty list then keeps the constant.
 type FixedSizePatchGuard =
     /// Patched once, not per element: under the checks of its path down to the first SEQUENCE OF on it (the whole path
     /// when there is none). Every element of that SEQUENCE OF needs the constant, and an empty list keeps it too, as
@@ -1541,12 +1543,18 @@ let private appendPatchDetCalls
                     // Issue 124: a consumer below a SEQUENCE OF of the specialised type is patched from every element,
                     // except a single fixed-size one: its constant needs no element and is patched once, under the
                     // checks above the SEQUENCE OF (Issue 125, FixedSizeAboveSequenceOf)
+                    // i108a (Fable F4): only when nothing below the first SEQUENCE OF can make the consumer absent (no
+                    // OPTIONAL component, no CHOICE alternative on the way): else per element, so that a list with no
+                    // such consumer leaves the fallback
                     let placementOf (dep: Asn1AcnAst.AcnDependency) =
-                        let belowSequenceOf =
-                            dep.asn1Type.ToScopeNodeList |> List.skip boundaryPath.Length |> List.exists (function SQF -> true | _ -> false)
+                        let relNodes = dep.asn1Type.ToScopeNodeList |> List.skip boundaryPath.Length
+                        let belowSequenceOf = relNodes |> List.exists (function SQF -> true | _ -> false)
+                        let checkedBelowSequenceOf =
+                            relNodes |> List.skipWhile (function SQF -> false | _ -> true)
+                            |> List.exists (function SEQ_CHILD (_, true) | CH_CHILD _ -> true | _ -> false)
                         match belowSequenceOf, dep.dependencyKind, consumerDeps with
                         | false, _, _ -> DirectConsumer
-                        | true, Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _), [_] when minSize.acn = maxSize.acn -> DirectConsumer
+                        | true, Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _), [_] when minSize.acn = maxSize.acn && not checkedBelowSequenceOf -> DirectConsumer
                         | true, _, _ -> LoopConsumer
                     // Issue 125: every patch runs only when its consumer is encoded, also a fixed-size one (an
                     // unguarded constant collided with another consumer that is present, or replaced the default)

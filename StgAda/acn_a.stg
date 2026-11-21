@@ -1425,7 +1425,7 @@ begin
 <else>
 <if(bNoSourceLeavesUnset)>
         -- no source is set: no consumer of <v> is in the value; it stays unset and its flag False, so the determinant it is a source of ignores it
-        <v>_is_initialized := False;		--COVERAGE_IGNORE<\n>
+        <v>_is_initialized := False;<\n>
 <else>
         result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);		--COVERAGE_IGNORE<\n>
 <endif>
