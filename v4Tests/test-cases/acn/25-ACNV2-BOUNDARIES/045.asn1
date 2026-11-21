@@ -1,4 +1,4 @@
--- ACNV2_ONLY C_ADA_ONLY (legacy: no CHOICE of CONTAINING regions sized by an ACN parameter, as 009) KNOWN_FAILURE(Ada,acn-v2,gnata): with -gnata, an encoder postcondition fails: REQUIRED_BITS of an OCTET STRING region around a CHOICE counts the CHOICE's maximum bits, not the region padded to whole octets (Doc2: 17 bits, 3 octets on the wire; Doc3 from an odd bit offset: 47 bits, 6 octets)
+-- ACNV2_ONLY C_ADA_ONLY (legacy: no CHOICE of CONTAINING regions sized by an ACN parameter, as 009)
 -- Issue 132: the OCTET twins of 044. The region around a CHOICE whose alternatives share one size parameter holds the
 -- whole CHOICE body padded to whole octets: Doc2 its own index (1 bit) and the contents (16 bits), 3 octets; Doc3
 -- aligned alternatives in a region that starts off a byte boundary, up to 6 octets. The decoders bound the region by

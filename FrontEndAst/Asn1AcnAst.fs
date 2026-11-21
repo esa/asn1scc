@@ -823,6 +823,11 @@ and Choice = {
     typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
     definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
     maxAlignment        : AcnAlignment option
+    /// q/issues.md Issues 132 / 141, --acn-v2 only: the region the CHOICE is encoded in when its own ACN parameter
+    /// (name) sizes CONTAINING alternatives, and the region's kind (Asn1AcnAstUtilFunctions.choiceContainingRegion,
+    /// computed where the CHOICE is merged with its declared parameters). The single source for the CHOICE's ACN sizes
+    /// (an OCTET region counts its padding) and for the wrapper DAstACNDeferred emits. None in legacy.
+    containingRegion    : (string * ContainedInOctOrBitString) option
 }
 
 and ChChildInfo = {

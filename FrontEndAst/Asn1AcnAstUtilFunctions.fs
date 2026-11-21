@@ -779,3 +779,33 @@ let acnIntegerDefaultValue (a: AcnInteger) : BigInteger =
     | PosInf lo when lo > 0I        -> lo
     | NegInf hi when hi < 0I        -> hi
     | Concrete _ | PosInf _ | NegInf _ | Full -> 0I
+
+/// q/issues.md Issues 132 / 141: --acn-v2 encodes a CHOICE whose own ACN parameter sizes CONTAINING alternatives
+/// (`Payload <INTEGER:length> [] { value [size length], other [size length] }`) as one region around the whole CHOICE
+/// body (index, alignment, every alternative), measured into that parameter (BackendAst/DAstACNDeferred.fs, CHOICE
+/// wrapper). The region is an OCTET STRING one, padded to whole octets from its start, when any alternative on the
+/// parameter is an OCTET STRING CONTAINING, else a BIT STRING one (exact): not the first alternative's kind (a BIT
+/// alternative before OCTET ones still gets an OCTET region). The parameter and the region's kind; None when no
+/// alternative is a CONTAINING sized by a parameter of the CHOICE. The single source for the CHOICE's ACN sizes
+/// (AcnCreateFromAntlr: an OCTET region rounds them up to whole octets, else REQUIRED_BITS undercounts the padding) and
+/// for the wrapper the backend emits.
+let choiceContainingRegion (acnParameters: AcnGenericTypes.AcnParameter list) (children: ChChildInfo list) : (AcnGenericTypes.AcnParameter * ContainedInOctOrBitString) option =
+    let regionKinds (prm: AcnGenericTypes.AcnParameter) =
+        children |> List.choose (fun c ->
+            match c.Type.Kind with
+            | ReferenceType rf ->
+                match rf.encodingOptions with
+                | Some eo ->
+                    match eo.acnEncodingClass with
+                    | SZ_EC_ExternalField rp when rp.asStringList = [prm.name] -> Some eo.octOrBitStr
+                    | SZ_EC_ExternalField _ | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_TerminationPattern _
+                    | SZ_EC_Deduced -> None
+                | None -> None
+            | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | NullType _ | BitString _ | Boolean _
+            | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | Choice _ | TimeType _ -> None)
+    acnParameters |> List.tryPick (fun prm ->
+        let kinds = regionKinds prm
+        match kinds |> List.contains ContainedInOctString, kinds |> List.contains ContainedInBitString with
+        | true, _      -> Some (prm, ContainedInOctString)
+        | false, true  -> Some (prm, ContainedInBitString)
+        | false, false -> None)

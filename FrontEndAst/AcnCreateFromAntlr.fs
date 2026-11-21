@@ -1638,6 +1638,21 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let maxChildSize = mergedChildren  |> List.map(fun x -> x.Type.uperMaxSizeInBits) |> Seq.max
 
             let acnMinSizeInBits, acnMaxSizeInBits = AcnEncodingClasses.GetChoiceEncodingClass  mergedChildren alignment t.Location acnProperties
+            // q/issues.md Issue 141: --acn-v2 encodes a CHOICE whose own parameter sizes OCTET STRING CONTAINING
+            // alternatives as one region padded to whole octets from its start (choiceContainingRegion); the CHOICE's
+            // sizes (and so every enclosing REQUIRED_BITS, the Ada contracts and stream sizes, the ICD) count the padding.
+            // Before, they counted the CHOICE's bits: the C encoder of a maximal value wrote one octet past a buffer of
+            // REQUIRED_BYTES, Ada encoder postconditions failed. The alignment of the CHOICE is inside the region.
+            // Legacy has no such region (it rejects the shape).
+            let containingRegion =
+                match asn1.args.acnDeferred with
+                | true  -> choiceContainingRegion acnParameters mergedChildren |> Option.map (fun (prm, kind) -> prm.name, kind)
+                | false -> None
+            let acnMinSizeInBits, acnMaxSizeInBits =
+                match containingRegion with
+                | Some (_, ContainedInOctString) -> ((acnMinSizeInBits + 7I) / 8I) * 8I, ((acnMaxSizeInBits + 7I) / 8I) * 8I
+                | Some (_, ContainedInBitString)
+                | None -> acnMinSizeInBits, acnMaxSizeInBits
             // TODO: Voir si cela ne prove pas de dup? + SequenceOf
             // let detArg = acnType |> Option.bind (fun acnType -> acnType.acnProperties |> List.tryFindMap (fun prop ->
             //     match prop with
@@ -1656,7 +1671,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
 
             Choice ({Choice.children = mergedChildren; acnProperties = acnProperties; cons=cons; withcons = wcons;
                 uperMaxSizeInBits=indexSize+maxChildSize; uperMinSizeInBits=indexSize+minChildSize; acnMinSizeInBits =acnMinSizeInBits;
-                acnMaxSizeInBits=acnMaxSizeInBits; (*acnParameters = acnParameters;*) acnArgs = allAcnArgsSubsted; acnLoc = acnLoc; typeDef=typeDef; definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}), chus
+                acnMaxSizeInBits=acnMaxSizeInBits; (*acnParameters = acnParameters;*) acnArgs = allAcnArgsSubsted; acnLoc = acnLoc; typeDef=typeDef; definitionOrRef=definitionOrRef; maxAlignment=maxAlignment; containingRegion=containingRegion}), chus
 
         | Asn1Ast.ReferenceType rf    ->
             let acnArguments = acnArgs

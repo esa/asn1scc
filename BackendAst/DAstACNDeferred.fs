@@ -2088,10 +2088,24 @@ let private createDeferredReferenceFunction
             // encoded, so the CHOICE boundary is the containing region and
             // must measure/limit it. The selected child's referenced type has
             // no explicit ACN argument of its own, so it cannot do this work.
+            // q/issues.md Issue 141: the region's kind (OCTET / BIT) is the CHOICE's containingRegion (front end,
+            // Asn1AcnAstUtilFunctions.choiceContainingRegion), the rule the CHOICE's sizes follow; the size dependency
+            // found here must be on the same parameter, else the sizes and the code disagree (a compiler bug, made loud)
+            let choiceRegion =
+                match isContainingExternalField, ctx.o.resolvedType.Kind, findContainingSizeParamInfo ctx.deps ctx.o with
+                | false, Asn1AcnAst.Asn1TypeKind.Choice ch, found ->
+                    match found, ch.containingRegion with
+                    | Some (sizePrm, _), Some (regionPrmName, octOrBitStr) when regionPrmName = sizePrm.name -> Some (ch, sizePrm, octOrBitStr)
+                    | None, None -> None
+                    | Some (sizePrm, _), Some _
+                    | Some (sizePrm, _), None ->
+                        raise (BugErrorException (sprintf "CONTAINING region of the CHOICE %s: the size parameter %s is not the CHOICE's region parameter (Choice.containingRegion)" ctx.t.id.AsString sizePrm.id.AsString))
+                    | None, Some (regionPrmName, _) ->
+                        raise (BugErrorException (sprintf "CONTAINING region of the CHOICE %s: no size dependency for its region parameter %s (Choice.containingRegion)" ctx.t.id.AsString regionPrmName))
+                | _ -> None
             let bodyResult =
-                match isContainingExternalField, ctx.o.resolvedType.Kind,
-                      findContainingSizeParamInfo ctx.deps ctx.o with
-                | false, Asn1AcnAst.Asn1TypeKind.Choice ch, Some (sizePrm, containing) ->
+                match choiceRegion with
+                | Some (ch, sizePrm, regionKind) ->
                     // Some alternative's contents use 'size deduced' (Ada decodes
                     // the region from a stream limited to it).
                     let bDeducedContent =
@@ -2114,15 +2128,15 @@ let private createDeferredReferenceFunction
                     // coverage step 14q: no check of the body's result when it cannot fail
                     let soNoCheckNote = encodeNoCheckNote ctx.lm ctx.codec bodyResult.encOutcome
                     let wrappedBody =
-                        match containing.encodingOptions.Value.octOrBitStr with
+                        match regionKind with
                         | CommonTypes.ContainedInOctString ->
                             ctx.lm.acn.octet_string_containing_deferred_wrapper
                                 bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName bDeducedContent (containingSizePatchCannotFail ctx sizePrm)
                                 (choiceRegionFixedOctets ctx.o.resolvedType ch |> Option.map string)
-                                (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType containing.encodingOptions.Value.octOrBitStr) ctx.codec
+                                (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType regionKind) ctx.codec
                         | CommonTypes.ContainedInBitString ->
                             ctx.lm.acn.bit_string_containing_deferred_wrapper
-                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType containing.encodingOptions.Value.octOrBitStr) ctx.codec
+                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType regionKind) ctx.codec
                     { bodyResult with
                         funcBody = wrappedBody
                         // the end of the region reads the body's result (q/issues.md Issue 63) unless it cannot fail (14q)

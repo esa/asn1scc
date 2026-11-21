@@ -654,4 +654,23 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# The REQUIRED_BITS of an --acn-v2 OCTET STRING region around a CHOICE count its padding to whole octets (Issue 141:
+# before, the C encoder of a maximal value wrote one octet past a buffer of REQUIRED_BYTES). C built with -DNDEBUG (the
+# runtime's assert would stop first) and ASan / UBSan, Ada with and without -gnata. --acn-v2 only.
+out=$work/acn015
+mkdir "$out"
+run_compiler -c -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/015.asn1" "$root/test-cases/acn-wire/015.acn"
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -DNDEBUG -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I "$out" "$out"/*.c "$root/test-cases/acn-wire/015_wire_test.c" -o "$out/wire_test"
+"$out/wire_test"
+echo "acn-wire 015 OK"
+for gnata in "" "-gnata"; do
+    out=$work/acn015ada$gnata
+    mkdir "$out"
+    run_compiler -Ada -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/015.asn1" "$root/test-cases/acn-wire/015.acn"
+    cp "$root/test-cases/acn-wire/015_wire_test.adb" "$out/wire_test.adb"
+    (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+    echo "acn-wire 015 (Ada) $gnata OK"
+done
+
 echo "acn-v2 wire checks passed"

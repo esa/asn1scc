@@ -1,0 +1,7 @@
+ACN-WIRE-CHOICE-REGION DEFINITIONS ::= BEGIN
+    Val16 [] { number [encoding pos-int, size 16] }
+    Payload <INTEGER:length> [] { value [size length], other [size length] }
+    Doc [] { length INTEGER [encoding pos-int, size 16], pl <length> [], trailer [encoding pos-int, size 8], extra [] }
+    Payload13 <INTEGER:length> [] { value [size length], other [size length], third [size length] }
+    Doc13 [] { length INTEGER [encoding pos-int, size 16], pl <length> [], trailer [encoding pos-int, size 8], extra [] }
+END
