@@ -116,6 +116,32 @@ WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
         header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
         ch      RefKc OPTIONAL
     }
+    -- the dependent present when the same field says so as the component, the field also passed to a reference
+    -- (--acn-v2: a deferred field, whose patches are checked after the value is written; encoder checks only)
+    DefPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        d       OCTET STRING (SIZE(0..15)) OPTIONAL,
+        p       Payload3,
+        tail    INTEGER(0..255)
+    }
+    -- an aligned dependent (encoder checks only)
+    AlPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        d       OCTET STRING (SIZE(0..15)) OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- an IA5String size alone (encoder checks only)
+    StrOnlyPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        str     IA5String (SIZE(0..15)) OPTIONAL
+    }
+    -- a referenced CHOICE whose ENUMERATED determinant is an ACN argument (encoder checks only)
+    Kind2 ::= ENUMERATED { e1, e2 }
+    RefKe ::= CHOICE { e1 INTEGER(0..7), e2 BOOLEAN }
+    EnChPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        ch      RefKe OPTIONAL
+    }
     -- component and dependent present when the same field says so: no check, both decode together
     SamePDU ::= SEQUENCE {
         header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,

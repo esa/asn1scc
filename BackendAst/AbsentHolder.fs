@@ -51,6 +51,27 @@ let determinantIdentity (r: AstRoot) (deps: AcnInsertedFieldDependencies) (det: 
     | AcnChildDeterminant ac      -> ac.id
     | AcnParameterDeterminant prm -> paramIdIdentity r deps prm.id
 
+/// The ACN parameters (ids) that stand for each ACN field (determinantIdentity), built once per dependency list (moved
+/// from Acn/AcnExternalField.fs: the encoder guard needs isDeferredField).
+let private fieldParamsCache =
+    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, ReferenceToType list>>()
+
+let fieldParams (r: AstRoot) (deps: AcnInsertedFieldDependencies) : Map<ReferenceToType, ReferenceToType list> =
+    fieldParamsCache.GetValue(deps, fun deps ->
+        Seq.append (paramLinks deps |> Map.keys) (r.closureParamDeterminants |> Map.keys)
+        |> Seq.distinct
+        |> Seq.map (fun prmId -> paramIdIdentity r deps prmId, prmId)
+        |> Seq.filter (fun (identity, prmId) -> identity <> prmId)
+        |> Seq.toList
+        |> List.groupBy fst
+        |> List.map (fun (identity, xs) -> identity, xs |> List.map snd)
+        |> Map.ofList)
+
+/// --acn-v2: whether the ACN field fieldId is held in an AcnInsertedFieldRef (InitDet / PatchDet): some ACN
+/// parameter stands for it (determinantIdentity), i.e. it is passed to a referenced type or exposed by its own.
+let isDeferredField (r: AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : bool =
+    (fieldParams r deps).ContainsKey fieldId
+
 /// --acn-v2: whether the parameter determinant of a dependency is a producer parameter of a referenced child that
 /// exposes the field to its siblings (closure conversion rewrites such a sibling consumer to it,
 /// AcnClosureConversion.applyDepRewrites): its boundary does not enclose the dependent. The decoder then reads the
@@ -179,7 +200,7 @@ type private FlagDominance =
     | DecoderDominance
     /// the encoder (Issue 108): the holder is present when a BOOLEAN field is TRUE that also decides the presence of
     /// the reader or of a component holding it (the field's update rejects a value in which the two disagree, before
-    /// the reader is written), or the holder holds a field that decides the presence of a component strictly holding
+    /// the reader is written; not an --acn-v2 deferred field, whose patches reject after the reader is written), or the holder holds a field that decides the presence of a component strictly holding
     /// the reader (that component's own guard rejects the value first). A field of the holder that decides the
     /// presence of the reader itself does not dominate: the encoder writes the reader from the value, and the
     /// present-when BOOLEAN dependency of the reader gets the guard
@@ -221,10 +242,16 @@ let private holderStepsOf (dominance: FlagDominance) (r: AstRoot) (deps: AcnInse
             match presenceFieldOf r deps stepPath with
             | Some h -> readerFlags |> List.contains h && not ((collidingFields deps).Contains h)
             | None   -> false
+        // the encoder: the flag's update rejects a disagreement before the reader is written, unless --acn-v2 defers
+        // the flag (a field passed to a reference: its patches, checked after the SEQUENCE is written, reject late)
+        let sameFlagRejectsFirst () =
+            match presenceFieldOf r deps stepPath with
+            | Some h -> not (r.args.acnDeferred && isDeferredField r deps h)
+            | None   -> false
         match dominance with
         | NoDominance      -> false
         | DecoderDominance -> sameFlag () || readerFlags |> List.exists holdsFlag
-        | EncoderDominance -> sameFlag () || holdingFlags |> List.exists holdsFlag
+        | EncoderDominance -> (sameFlag () && sameFlagRejectsFirst ()) || holdingFlags |> List.exists holdsFlag
     // the components strictly between the common ancestor and the field (the field itself is the last node)
     [common + 1 .. fieldPath.Length - 1]
     |> List.choose (fun n ->
@@ -506,7 +533,13 @@ let holderAbsentChecks (r: AstRoot) (deps: AcnInsertedFieldDependencies) (isDefe
         | Some _ -> None
         | None   ->
             let holders = steps |> List.map fst
-            match keyedBelow d.asn1Type && holders |> List.forall keyedBelow with
+            // an OPTIONAL NULL component is never in the automatic test values (DAstInitialize skips it; C leaves its
+            // flag unset, Ada's T_Init sets it): its presence cannot be read from the map
+            let isNull (id: ReferenceToType) =
+                match sequenceComponentType r id.ToScopeNodeList |> Option.map (fun ct -> ct.ActualType.Kind) with
+                | Some (NullType _) -> true
+                | Some _ | None     -> false
+            match keyedBelow d.asn1Type && not (isNull d.asn1Type) && holders |> List.forall keyedBelow with
             | true  -> Some (d.asn1Type, holders)
             | false -> None)
     |> List.distinct

@@ -116,6 +116,33 @@ WIRE DEFINITIONS ::= BEGIN
         header [present-when flg] { a [], k INTEGER [size 2, encoding pos-int] },
         ch <header.k> [present-when flg2]
     }
+    DefPDU [] {
+        f BOOLEAN [],
+        header [present-when f] { a [], n INTEGER [size 4, encoding pos-int] },
+        d [present-when f, size header.n],
+        p <f> [],
+        tail []
+    }
+    AlPDU [] {
+        flg BOOLEAN [],
+        g BOOLEAN [],
+        header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },
+        d [present-when g, size header.n, align-to-next byte],
+        tail []
+    }
+    StrOnlyPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], m INTEGER [size 4, encoding pos-int] },
+        str [present-when flg2, size header.m]
+    }
+    RefKe <Kind2:k> [determinant k] { e1 [], e2 [] }
+    EnChPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], k Kind2 [encoding pos-int, size 1] },
+        ch <header.k> [present-when flg2]
+    }
     SamePDU [] {
         flg BOOLEAN [],
         header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },

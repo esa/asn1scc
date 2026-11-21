@@ -286,6 +286,25 @@ cp "$root/test-cases/acn-wire/006_wire_test.adb" "$out/wire_test.adb"
 (cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
 echo "acn-wire 006 (Ada) --acn-v2 OK"
 
+# acn-wire/012 (q/issues.md Issue 108): dependents without bits (a NULL, an empty SEQUENCE) present when a field of an
+# absent component says so are rejected right after the fields before them; C (ASan / UBSan, no -pedantic-errors: the
+# empty SEQUENCE is an empty struct) and Ada (-gnata), legacy and --acn-v2.
+for mode in "" "--acn-v2"; do
+    out=$work/acn012c$mode
+    mkdir "$out"
+    run_compiler -c -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/012.asn1" "$root/test-cases/acn-wire/012.acn"
+    cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/acn-wire/012_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 012 $mode OK"
+    out=$work/acn012ada$mode
+    mkdir "$out"
+    run_compiler -Ada -ACN $mode -equal -o "$out" "$root/test-cases/acn-wire/012.asn1" "$root/test-cases/acn-wire/012.acn"
+    cp "$root/test-cases/acn-wire/012_wire_test.adb" "$out/wire_test.adb"
+    (cd "$out" && gnatmake -q -gnat2012 -gnata wire_test.adb && ./wire_test)
+    echo "acn-wire 012 (Ada) $mode OK"
+done
+
 # acn-wire/011 (q/issues.md Issues 123 / 125 / 142, cycle i108a): a determinant field none of whose consumers is in the
 # value takes its default value, the same bytes in both modes; C (ASan / UBSan) and Ada (-gnata), legacy and --acn-v2.
 for mode in "" "--acn-v2"; do

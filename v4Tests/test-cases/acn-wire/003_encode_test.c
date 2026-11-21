@@ -25,6 +25,24 @@ static int failures = 0;
         }                                                                                               \
     } while (0)
 
+/* REJECT, and the encoder stopped at bit expBit of the stream (nothing of the dependent written) */
+#define REJECT_AT(T, val, expErr, expBit)                                                               \
+    do {                                                                                                \
+        static byte buf[T##_REQUIRED_BYTES_FOR_ACN_ENCODING + 16];                                      \
+        BitStream bs;                                                                                   \
+        int err = 0;                                                                                    \
+        flag ok;                                                                                        \
+        long pos;                                                                                       \
+        BitStream_Init(&bs, buf, sizeof(buf));                                                          \
+        ok = T##_ACN_Encode(&(val), &bs, &err, TRUE);                                                   \
+        pos = (long)bs.currentByte * 8 + bs.currentBit;                                                 \
+        if (ok || err == 0 || ((expErr) > 0 && err != (expErr)) || pos != (expBit)) {                   \
+            printf("%s line %d: encode ok=%d err=%d at bit %ld, expected err %d at bit %d\n", #T, __LINE__, \
+                   ok, err, pos, (int)(expErr), (int)(expBit));                                         \
+            failures++;                                                                                 \
+        }                                                                                               \
+    } while (0)
+
 /* encode val: expect success with a zero error code and the value back from a decode */
 #define ACCEPT(T, val)                                                                                  \
     do {                                                                                                \
@@ -47,7 +65,8 @@ static int failures = 0;
 
 int main(void)
 {
-    /* sizes of an OCTET STRING and of an IA5String (both present when flg2 says so: data fails first) */
+    /* sizes of an OCTET STRING and of an IA5String (both present when flg2 says so: data fails first, so str's guard
+       is never reached here; StrOnlyPDU below reaches it) */
     {
         MyPDU v;
         memset(&v, 0, sizeof v);
@@ -199,6 +218,49 @@ int main(void)
         ACCEPT(AbsPDU, v);
         v.exist.data = 1;
         REJECT(AbsPDU, v, ERR_ACN_ENCODE_ABSPDU_DATA);
+    }
+    /* the dependent present when the same field says so as the component, the field also passed to p: legacy's update
+       of f rejects the disagreement before f; --acn-v2 defers f (checked after the value is written), so d's guard
+       rejects it after f's bit, before d */
+    {
+        DefPDU v;
+        memset(&v, 0, sizeof v);
+        ACCEPT(DefPDU, v);
+        v.exist.d = 1;
+        v.d.nCount = 1;
+#ifndef WIRE_ACN_V2
+        REJECT_AT(DefPDU, v, -1, 0);
+#else
+        REJECT_AT(DefPDU, v, ERR_ACN_ENCODE_DEFPDU_D, 1);
+#endif
+    }
+    /* an aligned dependent: rejected after flg and g, before the padding to the next byte */
+    {
+        AlPDU v;
+        memset(&v, 0, sizeof v);
+        ACCEPT(AlPDU, v);
+        v.exist.d = 1;
+        v.d.nCount = 1;
+        REJECT_AT(AlPDU, v, ERR_ACN_ENCODE_ALPDU_D, 2);
+    }
+    /* an IA5String size */
+    {
+        StrOnlyPDU v;
+        memset(&v, 0, sizeof v);
+        ACCEPT(StrOnlyPDU, v);
+        v.exist.str = 1;
+        strcpy(v.str, "AB");
+        REJECT_AT(StrOnlyPDU, v, ERR_ACN_ENCODE_STRONLYPDU_STR, 2);
+    }
+    /* a referenced CHOICE whose ENUMERATED determinant is an ACN argument */
+    {
+        EnChPDU v;
+        memset(&v, 0, sizeof v);
+        ACCEPT(EnChPDU, v);
+        v.exist.ch = 1;
+        v.ch.kind = e2_PRESENT;
+        v.ch.u.e2 = TRUE;
+        REJECT_AT(EnChPDU, v, -1, 2);
     }
     /* component and dependent present when the same field says so: the field's update rejects the disagreement */
     {

@@ -164,8 +164,14 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                               (funcDefAnnots: string list)
                               (us: State) =
     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
-    // Issue 106: the dependent's own body, under the presence test of the holder of its determinant field
-    let funcBody = withAbsentHolderGuard r deps lm codec t funcBody
+    // Issue 106: the dependent's own body, under the presence test of the holder of its determinant field. The decoder
+    // tests it inside the alignment (as before); the encoder outside it (Issue 108: nothing is written, not even the
+    // padding, before the value is rejected)
+    let withGuardOf (c: Codec) (fb: AcnAlignment.FuncBody) : AcnAlignment.FuncBody =
+        match codec = c with
+        | true  -> withAbsentHolderGuard r deps lm codec t fb
+        | false -> fb
+    let funcBody = withGuardOf Decode funcBody
     // --acn-v2: a type assignment whose ACN field determines a field of an
     // enclosing type has no standalone ACN function, like a type with ACN
     // parameters (AcnClosureConversion.findTassesWithExportedDeterminants).
@@ -229,10 +235,12 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
         let funcBody = AcnAlignment.handleSavePosition funcBody t.SaveBitStreamPosition c_name lvName t.id lm codec
         let ret = AcnAlignment.handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
         let ret = lm.lg.adaptAcnFuncBody r deps ret isValidFuncName t codec
+        let ret = withGuardOf Encode ret
         ret st errCode prms nestingScope p
 
     let funcBody = AcnAlignment.handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
     let funcBody = lm.lg.adaptAcnFuncBody r deps funcBody isValidFuncName t codec
+    let funcBody = withGuardOf Encode funcBody
 
     let sf = lm.lg.getTypeBasedSuffix FunctionType.AcnEncDecFunctionType t.Kind
     let p : CodegenScope = lm.lg.getParamTypeSuffix t sf codec

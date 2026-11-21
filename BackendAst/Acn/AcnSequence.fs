@@ -153,14 +153,23 @@ let private handleAsn1Child
     // q/issues.md Issue 108 (rule R4): a component present when a BOOLEAN field is TRUE whose holder the value leaves
     // absent is not encoded: the field is not written, so the stream would decode the component absent. The guard is
     // emitted here, around the component's encoding, with the component's own error code (AbsentHolder.presenceEncodeGuard)
+    // A component without bits (a NULL without pattern, an empty SEQUENCE) gets the guard alone: the stream cannot say
+    // it is present either (the decoder reads the field FALSE).
     let childContentResult, presenceGuardErrCodes =
-        match codec, lm.lg.encodeFailsWhenHolderAbsent, child.Optionality, chFunc, childContentResult with
-        | Encode, true, Some (Optional {acnPresentWhen = Some (PresenceWhenBool _)}), Some chFunc, Some childContent ->
+        match codec, lm.lg.encodeFailsWhenHolderAbsent, child.Optionality, chFunc with
+        | Encode, true, Some (Optional {acnPresentWhen = Some (PresenceWhenBool _)}), Some chFunc ->
             let isDeferrable (ft: AcnInsertedType) = (lm.lg.getDeferredDetFunctions ft).IsSome
-            match AbsentHolder.presenceEncodeGuard r deps isDeferrable child.Type.id with
-            | AbsentHolder.NoGuard -> childContentResult, []
-            | guard ->
+            match AbsentHolder.presenceEncodeGuard r deps isDeferrable child.Type.id, childContentResult with
+            | AbsentHolder.NoGuard, _ -> childContentResult, []
+            | guard, Some childContent ->
                 Some (AcnFunctionWrapper.applyAbsentHolderGuard r deps lm codec child.Type.id guard chFunc.errCode.errCodeName ctx.acnArgs childNestingScope childContent),
+                [chFunc.errCode]
+            | _, None when childNestingScope.isStandaloneRender -> childContentResult, []
+            | guard, None ->
+                let noBits = {AcnFuncBodyResult.funcBody = null; errCodes = []; localVariables = []; userDefinedFunctions = []
+                              bValIsUnReferenced = false; bBsIsUnReferenced = true; resultExpr = None; auxiliaries = []
+                              icdResult = None; encOutcome = EncodeOutcome.noWrite}
+                Some (AcnFunctionWrapper.applyAbsentHolderGuard r deps lm codec child.Type.id guard chFunc.errCode.errCodeName ctx.acnArgs childNestingScope noBits),
                 [chFunc.errCode]
         | _ -> childContentResult, []
     // coverage step 12e: a mandatory SEQUENCE child encoded inline in this function ran its determinant updates on every

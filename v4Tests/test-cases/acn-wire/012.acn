@@ -1,0 +1,9 @@
+ZERO DEFINITIONS ::= BEGIN
+    ZeroPDU [] {
+        flg BOOLEAN [],
+        header [present-when flg] { a [], more BOOLEAN [], more2 BOOLEAN [] },
+        z [present-when header.more],
+        e [present-when header.more2],
+        tail []
+    }
+END

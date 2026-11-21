@@ -37,25 +37,10 @@ let private paramIdIdentity = AbsentHolder.paramIdIdentity
 let paramIdentity (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (prm: AcnParameter) : ReferenceToType =
     determinantIdentity r deps (AcnParameterDeterminant prm)
 
-/// The ACN parameters (ids) that stand for each ACN field (determinantIdentity), built once per dependency list.
-let private fieldParamsCache =
-    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, ReferenceToType list>>()
+let private fieldParams = AbsentHolder.fieldParams
 
-let private fieldParams (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) : Map<ReferenceToType, ReferenceToType list> =
-    fieldParamsCache.GetValue(deps, fun deps ->
-        Seq.append (paramLinks deps |> Map.keys) (r.closureParamDeterminants |> Map.keys)
-        |> Seq.distinct
-        |> Seq.map (fun prmId -> paramIdIdentity r deps prmId, prmId)
-        |> Seq.filter (fun (identity, prmId) -> identity <> prmId)
-        |> Seq.toList
-        |> List.groupBy fst
-        |> List.map (fun (identity, xs) -> identity, xs |> List.map snd)
-        |> Map.ofList)
-
-/// --acn-v2: whether the ACN field fieldId is held in an AcnInsertedFieldRef (InitDet / PatchDet): some ACN
-/// parameter stands for it (determinantIdentity), i.e. it is passed to a referenced type or exposed by its own.
-let isDeferredField (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : bool =
-    (fieldParams r deps).ContainsKey fieldId
+/// --acn-v2: whether the ACN field fieldId is held in an AcnInsertedFieldRef (InitDet / PatchDet) (AbsentHolder).
+let isDeferredField = AbsentHolder.isDeferredField
 
 /// --acn-v2: the formal parameter (id) that holds the ACN field fieldId in the function that encodes it: the
 /// parameter standing for the field of the innermost reference boundary enclosing it, when the field is exposed to

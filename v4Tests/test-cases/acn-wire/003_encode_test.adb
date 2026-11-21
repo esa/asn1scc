@@ -46,6 +46,31 @@ procedure Encode_Test is
          Fail (Name & ": exception");
    end Check;
 
+   --  as Check (Exp_Err /= 0), and the encoder stopped at bit Exp_Bit (nothing of the dependent written)
+   generic
+      type T is private;
+      Size : Positive;
+      with procedure Encode
+        (V : T; S : in out adaasn1rtl.encoding.Bitstream; R : out adaasn1rtl.ASN1_RESULT);
+   procedure Check_At (Name : String; V : T; Exp_Err : Integer; Exp_Bit : Natural);
+
+   procedure Check_At (Name : String; V : T; Exp_Err : Integer; Exp_Bit : Natural) is
+      S : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init (Size);
+      R : adaasn1rtl.ASN1_RESULT;
+   begin
+      Encode (V, S, R);
+      if R.Success or else R.ErrorCode = 0 or else (Exp_Err > 0 and then R.ErrorCode /= Exp_Err)
+        or else S.Current_Bit_Pos /= Exp_Bit
+      then
+         Fail (Name & ": Success=" & Boolean'Image (R.Success) & " ErrorCode=" & Integer'Image (R.ErrorCode) &
+               " at bit" & Natural'Image (S.Current_Bit_Pos) & ", expected" & Integer'Image (Exp_Err) & " at bit" &
+               Natural'Image (Exp_Bit));
+      end if;
+   exception
+      when others =>
+         Fail (Name & ": exception");
+   end Check_At;
+
    procedure My is new Check (WIRE.MyPDU, WIRE.MyPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.MyPDU_ACN_Encode_aux);
    procedure Ch is new Check (WIRE.ChPDU, WIRE.ChPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.ChPDU_ACN_Encode_aux);
    procedure RefCh is new Check (WIRE.RefChPDU, WIRE.RefChPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.RefChPDU_ACN_Encode_aux);
@@ -61,6 +86,14 @@ procedure Encode_Test is
    procedure OptArg is new Check (WIRE.OptArgPDU, WIRE.OptArgPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.OptArgPDU_ACN_Encode_aux);
    procedure Abs_Check is new Check (WIRE.AbsPDU, WIRE.AbsPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.AbsPDU_ACN_Encode_aux);
    procedure Same is new Check (WIRE.SamePDU, WIRE.SamePDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.SamePDU_ACN_Encode_aux);
+   procedure Def is new Check (WIRE.DefPDU, WIRE.DefPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.DefPDU_ACN_Encode_aux);
+   procedure Def_At is new Check_At (WIRE.DefPDU, WIRE.DefPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.DefPDU_ACN_Encode_aux);
+   procedure Al is new Check (WIRE.AlPDU, WIRE.AlPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.AlPDU_ACN_Encode_aux);
+   procedure Al_At is new Check_At (WIRE.AlPDU, WIRE.AlPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.AlPDU_ACN_Encode_aux);
+   procedure StrOnly is new Check (WIRE.StrOnlyPDU, WIRE.StrOnlyPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.StrOnlyPDU_ACN_Encode_aux);
+   procedure StrOnly_At is new Check_At (WIRE.StrOnlyPDU, WIRE.StrOnlyPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.StrOnlyPDU_ACN_Encode_aux);
+   procedure EnCh is new Check (WIRE.EnChPDU, WIRE.EnChPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.EnChPDU_ACN_Encode_aux);
+   procedure EnCh_At is new Check_At (WIRE.EnChPDU, WIRE.EnChPDU_REQUIRED_BYTES_FOR_ACN_ENCODING, WIRE.EnChPDU_ACN_Encode_aux);
 
    VMy : WIRE.MyPDU := WIRE.MyPDU_Init;
    VCh : WIRE.ChPDU := WIRE.ChPDU_Init;
@@ -77,6 +110,10 @@ procedure Encode_Test is
    VOptArg : WIRE.OptArgPDU := WIRE.OptArgPDU_Init;
    VAbs : WIRE.AbsPDU := WIRE.AbsPDU_Init;
    VSame : WIRE.SamePDU := WIRE.SamePDU_Init;
+   VDef : WIRE.DefPDU := WIRE.DefPDU_Init;
+   VAl : WIRE.AlPDU := WIRE.AlPDU_Init;
+   VStrOnly : WIRE.StrOnlyPDU := WIRE.StrOnlyPDU_Init;
+   VEnCh : WIRE.EnChPDU := WIRE.EnChPDU_Init;
 begin
    --  sizes of an OCTET STRING and of an IA5String, both present when flg2 says so: data fails first
    VMy.Exist.header := 0;
@@ -173,6 +210,39 @@ begin
    Abs_Check ("AbsPDU ok", VAbs, 0);
    VAbs.Exist.data := 1;
    Abs_Check ("AbsPDU r", VAbs, WIRE.ERR_ACN_ENCODE_ABSPDU_DATA);
+   --  the dependent present when the same field says so as the component, the field also passed to p: legacy's update
+   --  of f rejects before f; --acn-v2 defers f, so d's guard rejects after f's bit, before d
+   VDef.Exist.header := 0;
+   VDef.Exist.d := 0;
+   VDef.p.Exist.y := 0;
+   Def ("DefPDU ok", VDef, 0);
+   VDef.Exist.d := 1;
+   VDef.d.Length := 1;
+#if ACN_V2 then
+   Def_At ("DefPDU r", VDef, WIRE.ERR_ACN_ENCODE_DEFPDU_D, 1);
+#else
+   Def_At ("DefPDU r", VDef, -1, 0);
+#end if;
+   --  an aligned dependent: rejected after flg and g, before the padding
+   VAl.Exist.header := 0;
+   VAl.Exist.d := 0;
+   Al ("AlPDU ok", VAl, 0);
+   VAl.Exist.d := 1;
+   VAl.d.Length := 1;
+   Al_At ("AlPDU r", VAl, WIRE.ERR_ACN_ENCODE_ALPDU_D, 2);
+   --  an IA5String size
+   VStrOnly.Exist.header := 0;
+   VStrOnly.Exist.str := 0;
+   StrOnly ("StrOnlyPDU ok", VStrOnly, 0);
+   VStrOnly.Exist.str := 1;
+   StrOnly_At ("StrOnlyPDU r", VStrOnly, WIRE.ERR_ACN_ENCODE_STRONLYPDU_STR, 2);
+   --  a referenced CHOICE whose ENUMERATED determinant is an ACN argument
+   VEnCh.Exist.header := 0;
+   VEnCh.Exist.ch := 0;
+   EnCh ("EnChPDU ok", VEnCh, 0);
+   VEnCh.Exist.ch := 1;
+   VEnCh.ch := (kind => WIRE.e2_PRESENT, e2 => True);
+   EnCh_At ("EnChPDU r", VEnCh, -1, 2);
    --  component and dependent present when the same field says so: the field's update rejects the disagreement
    VSame.Exist.header := 0;
    Same ("SamePDU r", VSame, -1);
