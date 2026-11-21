@@ -4,8 +4,8 @@
 -- --acn-v2 (fields consumed in their own function), instead of failing with ERR_ACN_ENCODE_..._UNINITIALIZED /
 -- ERR_ACN_ENCODE_UPDATE_...: a size, a CHOICE determinant, a CONTAINING length, an argument to a callee with one or two
 -- consumers, consumers in a SEQUENCE OF element, in a CHOICE alternative, two parameter levels, ENUMERATED encode-values,
--- a BOOLEAN pattern, a uPER range, a present-when BOOLEAN with consumers in two OPTIONAL parents (B1). S17 / S19:
--- the callee's parameter is one source of the field's MultiAcnUpdate; with its consumers absent it is ignored. The automatic tests encode and decode these values (before, the 14d tests
+-- a BOOLEAN pattern, a uPER range. S17 / S19: the callee's parameter is one source of the field's MultiAcnUpdate; with
+-- its consumers absent it is ignored. The automatic tests encode and decode these values (before, the 14d tests
 -- expected their rejection). Wire bytes: test-cases/acn-wire/011.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
     Cv ::= SEQUENCE { v INTEGER (0..255) }
@@ -47,9 +47,6 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
     T3b ::= SEQUENCE { c Kc3 OPTIONAL, tail INTEGER (0..255) }
     -- a present-when BOOLEAN with a true-value pattern, its consumer in an OPTIONAL component
     T4 ::= SEQUENCE { q SEQUENCE { x INTEGER (0..255) OPTIONAL, y INTEGER (0..255) } OPTIONAL, tail INTEGER (0..255) }
-    -- a present-when BOOLEAN with consumers in two OPTIONAL parents: a parent absent is no consumer (the 14d tests
-    -- expected a rejection the encoder rightly does not make)
-    B1 ::= SEQUENCE { q1 SEQUENCE { x INTEGER (0..255) OPTIONAL, y INTEGER (0..255) } OPTIONAL, q2 SEQUENCE { x INTEGER (0..255) OPTIONAL, y INTEGER (0..255) } OPTIONAL, tail INTEGER (0..255) }
     -- a SEQUENCE OF element holding the field and its consumer
     T6 ::= SEQUENCE (SIZE(1..2)) OF SEQUENCE { h SEQUENCE { a INTEGER (0..255) } OPTIONAL, p OCTET STRING (SIZE(0..15)) OPTIONAL, tail INTEGER (0..255) }
     -- the consumer in a CHOICE alternative

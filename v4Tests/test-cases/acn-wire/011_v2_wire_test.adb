@@ -75,6 +75,14 @@ begin
    VS17.pl.items.Data (1).Exist := (x => 1);
    VS17.pl.items.Data (1).x.Data := F3;
    CS17.Enc ("S17 element with x", VS17, (16#36#, 16#02#, 16#04#, 16#06#, 16#0A#, 16#0E#));
+   --  two elements, x only in the second: every element is patched (n = 3)
+   VS17.pl.items.Length := 2;
+   VS17.pl.items.Data (1).Exist := (x => 0);
+   VS17.pl.items.Data (1).e := 5;
+   VS17.pl.items.Data (2).Exist := (x => 1);
+   VS17.pl.items.Data (2).x.Data := F3;
+   VS17.pl.items.Data (2).e := 6;
+   CS17.Enc ("S17 x in the second element", VS17, (16#38#, 16#0B#, 16#01#, 16#02#, 16#03#, 16#06#, 16#07#));
    if not Failed then
       Ada.Text_IO.Put_Line ("011_v2 wire test OK");
    end if;

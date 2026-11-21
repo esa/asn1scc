@@ -50,6 +50,10 @@ int main(void)
         ENCODE(S17, v, 0x04, 0x0A, 0x0E);
         v.pl.items.arr[0].exist.x = 1; FIXED3(v.pl.items.arr[0].x.arr);
         ENCODE(S17, v, 0x36, 0x02, 0x04, 0x06, 0x0A, 0x0E);
+        /* two elements, x only in the second: every element is patched (n = 3) */
+        v.pl.items.nCount = 2; v.pl.items.arr[0].exist.x = 0; v.pl.items.arr[0].e = 5;
+        v.pl.items.arr[1].exist.x = 1; FIXED3(v.pl.items.arr[1].x.arr); v.pl.items.arr[1].e = 6;
+        ENCODE(S17, v, 0x38, 0x0B, 0x01, 0x02, 0x03, 0x06, 0x07);
     }
     if (failures != 0) {
         printf("%d failures\n", failures);
