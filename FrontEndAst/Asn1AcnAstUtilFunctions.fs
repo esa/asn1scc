@@ -783,12 +783,13 @@ let acnIntegerDefaultValue (a: AcnInteger) : BigInteger =
 /// q/issues.md Issues 132 / 141: --acn-v2 encodes a CHOICE whose own ACN parameter sizes CONTAINING alternatives
 /// (`Payload <INTEGER:length> [] { value [size length], other [size length] }`) as one region around the whole CHOICE
 /// body (index, alignment, every alternative), measured into that parameter (BackendAst/DAstACNDeferred.fs, CHOICE
-/// wrapper). The region is an OCTET STRING one, padded to whole octets from its start, when any alternative on the
-/// parameter is an OCTET STRING CONTAINING, else a BIT STRING one (exact): not the first alternative's kind (a BIT
-/// alternative before OCTET ones still gets an OCTET region). The parameter and the region's kind; None when no
-/// alternative is a CONTAINING sized by a parameter of the CHOICE. The single source for the CHOICE's ACN sizes
-/// (AcnCreateFromAntlr: an OCTET region rounds them up to whole octets, else REQUIRED_BITS undercounts the padding) and
-/// for the wrapper the backend emits.
+/// wrapper). The region's kind is the one of the **last** declared CONTAINING alternative on the parameter, the kind the
+/// backend has always used (the first match of the size dependencies, DAstACNDeferred.findContainingSizeParamInfo, is
+/// the last alternative): an OCTET STRING region is padded to whole octets from its start, a BIT STRING one is exact.
+/// Mixed kinds keep their wire (OCT, OCT, BIT: a BIT region; BIT, OCT, OCT: an OCTET one). The parameter and the
+/// region's kind; None when no alternative is a CONTAINING sized by a parameter of the CHOICE. The single source for the
+/// CHOICE's ACN sizes (AcnCreateFromAntlr: an OCTET region rounds them up to whole octets, else REQUIRED_BITS undercounts
+/// the padding) and for the wrapper the backend emits.
 let choiceContainingRegion (acnParameters: AcnGenericTypes.AcnParameter list) (children: ChChildInfo list) : (AcnGenericTypes.AcnParameter * ContainedInOctOrBitString) option =
     let regionKinds (prm: AcnGenericTypes.AcnParameter) =
         children |> List.choose (fun c ->
@@ -804,8 +805,4 @@ let choiceContainingRegion (acnParameters: AcnGenericTypes.AcnParameter list) (c
             | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | NullType _ | BitString _ | Boolean _
             | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | Choice _ | TimeType _ -> None)
     acnParameters |> List.tryPick (fun prm ->
-        let kinds = regionKinds prm
-        match kinds |> List.contains ContainedInOctString, kinds |> List.contains ContainedInBitString with
-        | true, _      -> Some (prm, ContainedInOctString)
-        | false, true  -> Some (prm, ContainedInBitString)
-        | false, false -> None)
+        regionKinds prm |> List.tryLast |> Option.map (fun kind -> prm, kind))

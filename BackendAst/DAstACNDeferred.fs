@@ -1931,10 +1931,12 @@ let private createDeferredReferenceFunction
         // q/issues.md Issue 135: contents with ACN parameters cannot be specialised here (no closure work for
         // embedded-length / fixed-size regions): an ACN specification that overrides them is rejected, instead of
         // calling the type assignment's function with another encoding than the region's sizes
+        // (also when the specification refers to a field outside the contents: closure conversion then gives the contents
+        // a parameter; before, both shapes called the type assignment's function and ignored the specification)
         match o.contentsSpecOverride && (not o.acnArguments.IsEmpty || not o.resolvedType.acnParameters.IsEmpty) with
         | true ->
             let errLoc = match t.acnLocation with Some l -> l | None -> o.tasName.Location
-            raise (SemanticError (errLoc, sprintf "an ACN specification that changes the encoding of the contents of this CONTAINING is not supported when %s has ACN parameters (use a type assignment for the contents)" o.tasName.Value))
+            raise (SemanticError (errLoc, sprintf "an ACN specification that changes the encoding of the contents of this CONTAINING is not supported when the contents (%s) take ACN arguments or the specification refers to a field outside them (use a type assignment for the contents)" o.tasName.Value))
         | false -> ()
         // q/issues.md Issue 135: a site that is not specialised calls the referenced type assignment's function; the
         // region's length range (from the site's merged contents) must hold that function's encoding, as legacy requires
@@ -1968,7 +1970,8 @@ let private createDeferredReferenceFunction
                 let specAux = emitSpecializedFunctionDecl ctx specP [] specFuncName [] [] specBody
                 let res, _ = stgCall (specialisedCallOutcome ctx specFuncName specBody) pp specFuncName errCode
                 (res |> Option.map (fun x -> {x with auxiliaries = x.auxiliaries @ specAux; userDefinedFunctions = x.userDefinedFunctions @ specBody.userDefinedFunctions})), us1
-            | true, None
+            | true, None ->
+                raise (BugErrorException (sprintf "Issue 135: specialised CONTAINING site %s without an ACN function of its contents" t.id.AsString))
             | false, _ ->
                 let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
                 stgCall callOutcome pp callTarget errCode
@@ -2090,16 +2093,19 @@ let private createDeferredReferenceFunction
             // no explicit ACN argument of its own, so it cannot do this work.
             // q/issues.md Issue 141: the region's kind (OCTET / BIT) is the CHOICE's containingRegion (front end,
             // Asn1AcnAstUtilFunctions.choiceContainingRegion), the rule the CHOICE's sizes follow; the size dependency
-            // found here must be on the same parameter, else the sizes and the code disagree (a compiler bug, made loud)
+            // found here must be on the same parameter with the same kind (the last CONTAINING alternative's), else the
+            // sizes and the code disagree (a compiler bug, made loud)
             let choiceRegion =
                 match isContainingExternalField, ctx.o.resolvedType.Kind, findContainingSizeParamInfo ctx.deps ctx.o with
                 | false, Asn1AcnAst.Asn1TypeKind.Choice ch, found ->
                     match found, ch.containingRegion with
-                    | Some (sizePrm, _), Some (regionPrmName, octOrBitStr) when regionPrmName = sizePrm.name -> Some (ch, sizePrm, octOrBitStr)
+                    | Some (sizePrm, containing), Some (regionPrmName, octOrBitStr)
+                            when regionPrmName = sizePrm.name && containing.encodingOptions.Value.octOrBitStr = octOrBitStr ->
+                        Some (ch, sizePrm, octOrBitStr)
                     | None, None -> None
                     | Some (sizePrm, _), Some _
                     | Some (sizePrm, _), None ->
-                        raise (BugErrorException (sprintf "CONTAINING region of the CHOICE %s: the size parameter %s is not the CHOICE's region parameter (Choice.containingRegion)" ctx.t.id.AsString sizePrm.id.AsString))
+                        raise (BugErrorException (sprintf "CONTAINING region of the CHOICE %s: the size parameter %s or its region kind is not the CHOICE's region (Choice.containingRegion)" ctx.t.id.AsString sizePrm.id.AsString))
                     | None, Some (regionPrmName, _) ->
                         raise (BugErrorException (sprintf "CONTAINING region of the CHOICE %s: no size dependency for its region parameter %s (Choice.containingRegion)" ctx.t.id.AsString regionPrmName))
                 | _ -> None

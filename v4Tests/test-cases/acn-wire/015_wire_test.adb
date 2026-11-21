@@ -54,10 +54,14 @@ procedure Wire_Test is
      (Doc, Doc_REQUIRED_BYTES_FOR_ACN_ENCODING, Doc_ACN_Encode, Doc_ACN_Decode, Doc_Equal);
    procedure RT_Doc13 is new Round_Trip
      (Doc13, Doc13_REQUIRED_BYTES_FOR_ACN_ENCODING, Doc13_ACN_Encode, Doc13_ACN_Decode, Doc13_Equal);
+   procedure RT_DocL is new Round_Trip
+     (DocL, DocL_REQUIRED_BYTES_FOR_ACN_ENCODING, DocL_ACN_Encode, DocL_ACN_Decode, DocL_Equal);
 
 begin
    RT_Doc ("Doc", (pl => (kind => other_PRESENT, other => (number => 16#FFFF#)), trailer => 16#FF#, extra => True),
            (16#00#, 16#03#, 16#FF#, 16#FF#, 16#80#, 16#FF#, 16#80#), 49);
    RT_Doc13 ("Doc13", (pl => (kind => value_PRESENT, value => (number => 16#ABCD#)), trailer => 16#11#, extra => True),
              (16#00#, 16#03#, 16#2A#, 16#F3#, 16#40#, 16#11#, 16#80#), 49);
+   RT_DocL ("DocL", (pl => (kind => other_PRESENT, other => (number => 16#FFFF#)), trailer => 16#FF#, extra => True),
+            (16#00#, 16#12#, 16#7F#, 16#FF#, 16#FF#, 16#E0#), 43);
 end Wire_Test;

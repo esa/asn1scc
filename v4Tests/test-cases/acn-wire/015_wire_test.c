@@ -1,7 +1,7 @@
 /* --acn-v2 checks of 015.asn1 / 015.acn (run by v4Tests/scripts/runWireTests.sh, built with -DNDEBUG and ASan / UBSan;
-   Issue 141): maximal values encoded into a heap buffer of exactly REQUIRED_BYTES (before the fix one octet too small:
-   with NDEBUG the runtime's assert is gone and the encoder wrote past the buffer, an ASan heap-buffer-overflow), the
-   bytes compared with the ones written by hand, decoded back. CHECK, not assert: NDEBUG removes assert. The Ada twin
+   Issue 141): maximal values encoded into a heap buffer of exactly REQUIRED_BYTES (before the fix one octet too small
+   for an OCTET STRING region: with NDEBUG the runtime's assert is gone and the encoder wrote past the buffer, an ASan
+   heap-buffer-overflow), the bytes compared with the ones written by hand, decoded back. CHECK, not assert: NDEBUG removes assert. The Ada twin
    015_wire_test.adb checks the same values and bytes. */
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,5 +58,14 @@ int main(void)
     e.extra = TRUE;
     static const byte doc13[] = {0x00, 0x03, 0x2A, 0xF3, 0x40, 0x11, 0x80};
     ROUND_TRIP(Doc13, e, doc13, 49);
+    /* a BIT STRING alternative last: a BIT STRING region of 18 bits (length 0x12), index 01, number FFFF, no padding */
+    DocL l;
+    memset(&l, 0, sizeof l);
+    l.pl.kind = PayloadL_other_PRESENT;
+    l.pl.u.other.number = 0xFFFF;
+    l.trailer = 0xFF;
+    l.extra = TRUE;
+    static const byte docL[] = {0x00, 0x12, 0x7F, 0xFF, 0xFF, 0xE0};
+    ROUND_TRIP(DocL, l, docL, 43);
     return 0;
 }
