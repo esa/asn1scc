@@ -11,6 +11,7 @@ open Asn1AcnAstUtilFunctions
 open DAst
 open DAstUtilFunctions
 open Language
+open FragmentationLayout
 
 let callBaseTypeFunc (lm:LanguageMacros) = lm.uper.call_base_type_func
 let callSuperclassFunc (lm:LanguageMacros) = lm.uper.call_superclass_func
@@ -480,34 +481,6 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e ns p b -> Some (funcBody e ns p b)) soSparkAnnotations [] us
 
-let C64K = BigInteger 0x10000
-let C48K = BigInteger 0xC000
-let C32K = BigInteger 0x8000
-let C16K = BigInteger 0x4000
-let C_127 = BigInteger 0x7F
-
-type FragmentationParts = {
-    nBlocks64K :  BigInteger
-    has48KBlock : bool
-    has32KBlock : bool
-    has16KBlock : bool
-    nRemainingItemsVar : BigInteger
-}
-
-let FragmentationParts (size:BigInteger) =
-    let nBlocks64K = size / C64K
-    let nRemainingItemsVar1 = size % C64K
-    let has48KBlock = nRemainingItemsVar1 >= C48K
-
-    let nRemainingItemsVar2 = if has48KBlock then (nRemainingItemsVar1 - C48K) else nRemainingItemsVar1
-    let has32KBlock = nRemainingItemsVar2 >= C32K
-
-    let nRemainingItemsVar3 = if has32KBlock then (nRemainingItemsVar2 - C32K) else nRemainingItemsVar2
-    let has16KBlock = nRemainingItemsVar3 >= C16K
-
-    let nRemainingItemsVar = if has16KBlock then (nRemainingItemsVar3 - C16K) else nRemainingItemsVar3
-
-    { nBlocks64K = nBlocks64K; has48KBlock = has48KBlock; has32KBlock = has32KBlock; has16KBlock = has16KBlock; nRemainingItemsVar = nRemainingItemsVar}
 
 
 /// itemOutcome: what the encoding of one element does (coverage step 14p: the blocks are joined by it)

@@ -29,8 +29,8 @@ type ITestCases_rust() =
             test_cases_rust.Codec_DecodeSweep_helper  nBudget 
         override this.Codec_DecodeSweep_adapter  (sModName:string) (sFuncName:string) (sDecFuncName:string) (soEncFuncName:string option) (sTasName:string) (sAmber:string) (soIsValidFunc:string option) =
             test_cases_rust.Codec_DecodeSweep_adapter  sModName sFuncName sDecFuncName soEncFuncName sTasName sAmber soIsValidFunc 
-        override this.Codec_DecodeSweep  (sModName:string) (sFuncName:string) (sDecFuncName:string) (soEncFuncName:string option) (sTasName:string) (sEnc:string) (sAmber:string) (sVal:string) (soIsValidFunc:string option) (bTruncate:bool) (bDeduced:bool) (nBudget:BigInteger) (soEqualFunc:string option) (sInitFunc:string) (nLastOffset:BigInteger) (nExtraBytes:BigInteger) =
-            test_cases_rust.Codec_DecodeSweep  sModName sFuncName sDecFuncName soEncFuncName sTasName sEnc sAmber sVal soIsValidFunc bTruncate bDeduced nBudget soEqualFunc sInitFunc nLastOffset nExtraBytes 
+        override this.Codec_DecodeSweep  (sModName:string) (sFuncName:string) (sDecFuncName:string) (soEncFuncName:string option) (sTasName:string) (sEnc:string) (sAmber:string) (sVal:string) (soIsValidFunc:string option) (bTruncate:bool) (bDeduced:bool) (nBudget:BigInteger) (soEqualFunc:string option) (sInitFunc:string) (nLastOffset:BigInteger) (nExtraBytes:BigInteger) (arrnCorruptAt:seq<BigInteger>) =
+            test_cases_rust.Codec_DecodeSweep  sModName sFuncName sDecFuncName soEncFuncName sTasName sEnc sAmber sVal soIsValidFunc bTruncate bDeduced nBudget soEqualFunc sInitFunc nLastOffset nExtraBytes arrnCorruptAt 
         override this.Codec_write_CharstreamToFile  () =
             test_cases_rust.Codec_write_CharstreamToFile  () 
         override this.Codec_write_bitstreamToFile  () =

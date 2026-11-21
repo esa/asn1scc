@@ -28,6 +28,17 @@ A decremented byte turns a length field `n` into `n - 1` when the field ends at 
 `--acn-v2`) that is one octet too short then makes the contents end a few bits past the region, inside its
 last byte. That happens only when the region starts inside a byte, hence the copies encoded from bit 1 and 3.
 
+The corruption also reaches the headers of a fixed-size fragmented encoding. A uPER IA5String,
+NumericString, OCTET STRING or BIT STRING with `SIZE(N)`, `N >= 65536`, is encoded in blocks: a header octet before each
+block of 64K items, one before a block of 48K, 32K or 16K items, then the length of the rest (one or two octets). In a
+large value most of these headers lie far from both ends, beyond the positions the budget allows, so the corruption
+sweep (C and Ada, the same patterns as above) also changes each header byte and the byte after it. The positions are
+computed by the compiler from `N` and the item size; to keep their number small for any `N`, only the first and the
+last 64K header are taken (the others are decoded by the same code), plus the header of the smaller block and the
+length of the rest: at most 9 positions. This applies to a test value of such a type itself (also through a type
+reference), with uPER, and with ACN when the type has no ACN encoding properties (a fixed-size OCTET / BIT STRING
+has no headers in ACN). A fragmented type inside a SEQUENCE, CHOICE or SEQUENCE OF gets no extra positions.
+
 Ada runs the corruption sweep (with the bit flips) and the round trips from a bit offset without
 truncation: the value is encoded again into a new stream starting at bit `s = 1 .. 7` (`1 .. 15` / `1 .. 31` for an ACN
 type with `align-to-next word` / `dword`, so that every alignment residue is reached), decoded from bit `s`; the
@@ -67,6 +78,7 @@ the start and 128 at the end of the encoding, and stops after the decoders have 
 (512 KB per end); the truncations at the 7 bit offsets share one more such budget. The Ada round trips from a bit
 offset are not limited by the budget: they add 7 (15, 31) encodes and decodes of the whole value per test. At least two positions
 are always tried at each end. Encodings of up to 256 bytes are swept completely.
+The fragmentation headers (at most 9 positions) come on top of the budget.
 
 The budget can be changed with `-atcSweepBudget <bytes>`:
 

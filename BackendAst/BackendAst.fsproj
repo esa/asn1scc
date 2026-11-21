@@ -15,6 +15,7 @@
     <Compile Include="DAstEqual.fs" />
     <Compile Include="DAstEqualExp.fs" />
     <Compile Include="DastValidate2.fs" />
+    <Compile Include="FragmentationLayout.fs" />
     <Compile Include="EncodeDecodeTestCase.fs" />
     <Compile Include="DAstInitialize.fs" />
     <Compile Include="SizeDeterminantBounds.fs" />

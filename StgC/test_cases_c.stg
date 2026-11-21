@@ -384,10 +384,17 @@ static flag <sFuncName>_sweep_encoder(const void* pVal, BitStream* pBitStrm, int
 <endif>
 >>
 
-Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sEnc, sAmber, sVal, soIsValidFunc, bTruncate, bDeduced, nBudget, soEqualFunc, sInitFunc, nLastOffset, nExtraBytes) ::= <<
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sEnc, sAmber, sVal, soIsValidFunc, bTruncate, bDeduced, nBudget, soEqualFunc, sInitFunc, nLastOffset, nExtraBytes, arrnCorruptAt) ::= <<
 // Decode truncated and corrupted copies of the encoded value
 *pErrCode = asn1scc_decode_fault_sweep("<sFuncName>", encBuff, BitStream_GetLength(&bitStrm), &decodedPDU, <sFuncName>_sweep_decoder, <if(soEncFuncName)>(const void*)<sVal>, <sFuncName>_sweep_encoder<else>NULL, NULL<endif>, (long)sizeof(encBuff) - 1, <if(bTruncate)>TRUE<else>FALSE<endif>, <if(bDeduced)>TRUE<else>FALSE<endif>);
-ret = *pErrCode == 0;
+ret = *pErrCode == 0;<if(arrnCorruptAt)><\n>if (ret) {
+    /* the fragmentation headers of the fixed-size encoding and the byte after each, deep inside the value where the
+       positions above do not reach (coverage cycle 15d): corrupted with the same patterns */
+    static const long fragmentationHeaderBytes[] = {<arrnCorruptAt; separator=", ">};
+    *pErrCode = asn1scc_sweep_corrupted("<sFuncName>", encBuff, BitStream_GetLength(&bitStrm), 0, 0, 18, fragmentationHeaderBytes,
+                                        (int)(sizeof(fragmentationHeaderBytes) / sizeof(fragmentationHeaderBytes[0])), &decodedPDU, <sFuncName>_sweep_decoder);
+    ret = *pErrCode == 0;
+}<endif>
 >>
 
 Codec_write_CharstreamToFile() ::= <<
