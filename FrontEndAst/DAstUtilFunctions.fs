@@ -1289,7 +1289,8 @@ let containingCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : As
 /// site (a site with encoding options): the referenced type assignment itself (`f OCTET STRING (CONTAINING Sub)`: Sub);
 /// None for a site without encoding options. Its name is also the prefix of the site's temporary buffer constant
 /// (`<Sub>_REQUIRED_BYTES_FOR_[ACN_]ENCODING`). Every type assignment has functions and constants of its own, and the
-/// site's contents (without a site specification that overrides them, q/issues.md Issue 135) are exactly its encoding. Before, the call and the buffer were named after the typedef the referenced type assignment shares
+/// site's contents (without a site specification that overrides them, Issue 135: containingSiteSpecialised) are exactly
+/// its encoding. Before, the call and the buffer were named after the typedef the referenced type assignment shares
 /// (getBaseFuncName), while the region range came from the referenced type assignment: `Box ::= OCTET STRING
 /// (CONTAINING T)` (Issue 134), `Sub ::= T (WITH COMPONENTS ...)` and `Sub ::= T` with an ACN specification of its own
 /// (Issue 138) all share `typedef T`, so the site called T's functions (another encoding: --acn-v2 wrote a wrong
@@ -1299,12 +1300,31 @@ let containedCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn
     | None   -> None
     | Some _ -> Some ((r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r)
 
-/// The contents type whose encoding the function called by a CONTAINING site has (Issues 134, 138): the referenced type
-/// assignment's (containedCalleeTas). For the outcome of the call (DecodeOutcome) and for size checks against the region.
+/// q/issues.md Issue 135: --acn-v2 gives an embedded-length or fixed-size CONTAINING site whose ACN specification
+/// overrides the encoding of the contents (ReferenceType.contentsSpecOverride: `f [] { a [size 32] }`, also on the
+/// CONTAINING type assignment itself, `Box [] { a [size 32] }`) a function of its own with the merged contents
+/// (`<Path>_Containing_ACN_Encode/Decode`, DAstACNDeferred), as the external-size class does through closure conversion;
+/// the region then calls it instead of the type assignment's function (containedCalleeTas), whose encoding is another
+/// one. Not for contents with ACN parameters (DAstACNDeferred rejects an override of them) nor in legacy (which rejects
+/// a site whose sizes the type assignment's encoding does not fit, AcnReference.fs). The single predicate for the
+/// function the site calls (DAstACNDeferred) and for the classification of that call (BackendAst/DecodeOutcome.fs).
+let containingSiteSpecialised (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : bool =
+    match r.args.acnDeferred, o.encodingOptions with
+    | false, _ | true, None -> false
+    | true, Some eo ->
+        match eo.acnEncodingClass with
+        | Asn1AcnAst.SZ_EC_FIXED_SIZE | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _ ->
+            o.contentsSpecOverride && o.acnArguments.IsEmpty && o.resolvedType.acnParameters.IsEmpty
+        | Asn1AcnAst.SZ_EC_ExternalField _ | Asn1AcnAst.SZ_EC_TerminationPattern _ | Asn1AcnAst.SZ_EC_Deduced -> false
+
+/// The contents type whose encoding the function called by a CONTAINING site has (Issues 134, 135, 138): the site's own
+/// merged contents when the site is specialised (containingSiteSpecialised), else the referenced type assignment's
+/// (containedCalleeTas). For the outcome of the call (DecodeOutcome) and for size checks against the region.
 let containedCalleeType (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.Asn1Type =
-    match containedCalleeTas r o with
-    | Some tas -> tas.Type
-    | None     -> Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+    match containingSiteSpecialised r o, containedCalleeTas r o with
+    | true, _         -> o.resolvedType
+    | false, Some tas -> tas.Type
+    | false, None     -> Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
 
 /// The type name of a type assignment as a call from the module of t names it (module-qualified across modules).
 let private tasTypeNameFrom (lm:LanguageMacros) (t: Asn1AcnAst.Asn1Type) (tas:Asn1AcnAst.TypeAssignment) =

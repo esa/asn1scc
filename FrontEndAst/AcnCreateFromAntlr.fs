@@ -1131,6 +1131,19 @@ let rec mapAnyConstraint (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (cons:Asn1A
         let oldBaseType  = Asn1Ast.GetBaseTypeByName rf.modName rf.tasName asn1
         mapAnyConstraint asn1 oldBaseType cons
 
+/// q/issues.md Issue 135: whether an ACN property in the specification of a CONTAINING (at a site or on the CONTAINING
+/// type assignment) changes the encoding of the contents, i.e. whether the contents' merged encoding can differ from
+/// the encoding of the referenced type assignment. The properties of the container are not: its alignment (removed from
+/// the contents' spec, Issue 134), its presence (`present-when` of an OPTIONAL CONTAINING child), its saved position,
+/// and its length (`size`, `termination-pattern`: the region; for non-deduced contents they still leak into the
+/// contents' spec, the legacy "property leak", which leaves the contents' encoding as it is). Exhaustive on purpose: a
+/// new property must be classified here.
+let private acnPropertyOfContents (p:GenericAcnProperty) : bool =
+    match p with
+    | ALIGNTONEXT _ | PRESENT_WHEN _ | PRESENT_WHEN_EXP _ | SAVE_POSITION | SIZE _ | TERMINATION_PATTERN _ -> false
+    | ENCODING _ | ENCODE_VALUES | TRUE_VALUE _ | FALSE_VALUE _ | PATTERN _ | CHOICE_DETERMINANT _ | ENDIANNESS _
+    | ENUM_SET_VALUE _ | MAPPING_FUNCTION _ | POST_ENCODING_FUNCTION _ | PRE_DECODING_FUNCTION _ -> true
+
 let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map<String,int>) (lms:(ProgrammingLanguage*LanguageMacros) list) 
                            (m:Asn1Ast.Asn1Module) 
                            (t:Asn1Ast.Asn1Type) 
@@ -1733,6 +1746,13 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 | ReferenceType baseRef   -> b1 || baseRef.hasExtraConstrainsOrChildrenOrAcnArgs
                 | _                       -> b1
 
+            // q/issues.md Issue 135: the ACN specification of this CONTAINING changes the encoding of its contents
+            // (DAstUtilFunctions.containingSiteSpecialised): children, or a property of the contents. acnTypeForMerge
+            // has the container's ALIGNTONEXT already removed.
+            let contentsSpecOverride =
+                match rf.refEnc, acnTypeForMerge with
+                | Some _, Some ts -> ts.children.Length > 0 || ts.acnProperties |> List.exists acnPropertyOfContents
+                | Some _, None | None, _ -> false
             let refCons = mapAnyConstraint asn1 t t.Constraints
 
             let toByte sizeInBits =
@@ -1777,7 +1797,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let maxAlignment = maxAlignmentOf [alignment; resolvedType.maxAlignment]
 
             let definitionOrRef = resolvedType.typeDefinitionOrReference
-            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions; hasExtraConstrainsOrChildrenOrAcnArgs=hasExtraConstrainsOrChildrenOrAcnArgs; refCons = refCons;definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}
+            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions; hasExtraConstrainsOrChildrenOrAcnArgs=hasExtraConstrainsOrChildrenOrAcnArgs; contentsSpecOverride=contentsSpecOverride; refCons = refCons;definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}
             ReferenceType newRef, us2
 
     {

@@ -858,6 +858,10 @@ and ReferenceType = {
     resolvedType: Asn1Type
     hasConstraints : bool
     hasExtraConstrainsOrChildrenOrAcnArgs : bool
+    /// q/issues.md Issue 135: a CONTAINING (encodingOptions) whose ACN specification (at the site or on the CONTAINING
+    /// type assignment) changes the encoding of the contents: children, or a property that is not the container's
+    /// (AcnCreateFromAntlr.acnPropertyOfContents). False for every other reference.
+    contentsSpecOverride : bool
     typeDef             : Map<ProgrammingLanguage, FE_TypeDefinition>
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger

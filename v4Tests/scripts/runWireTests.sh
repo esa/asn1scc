@@ -610,6 +610,27 @@ for mode in "" "--acn-v2"; do
     echo "acn-wire 009 same $mode OK"
 done
 
+# An embedded-length / fixed-size CONTAINING whose ACN specification (at the site or on the CONTAINING type assignment)
+# overrides the encoding of the contents encodes them as specified (Issue 135, --acn-v2: before, the region's sizes
+# followed the specification but the code called T's own function; the embedded forms wrote a length outside their
+# range). Controls with unchanged bytes: present-when only, an external size. C with ASan / UBSan, Ada with and without
+# -gnata. Without --acn-v2 such specifications are rejected (009).
+out=$work/acn013
+mkdir "$out"
+run_compiler -c -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/013.asn1" "$root/test-cases/acn-wire/013.acn"
+cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+    -I "$out" "$out"/*.c "$root/test-cases/acn-wire/013_wire_test.c" -o "$out/wire_test"
+"$out/wire_test"
+echo "acn-wire 013 OK"
+for gnata in "" "-gnata"; do
+    out=$work/acn013ada$gnata
+    mkdir "$out"
+    run_compiler -Ada -ACN --acn-v2 -equal -o "$out" "$root/test-cases/acn-wire/013.asn1" "$root/test-cases/acn-wire/013.acn"
+    cp "$root/test-cases/acn-wire/013_wire_test.adb" "$out/wire_test.adb"
+    (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+    echo "acn-wire 013 (Ada) $gnata OK"
+done
+
 # The contents of a CONTAINING are encoded by the referenced type assignment's functions, also when it shares another
 # type's typedef (an alias with an ACN specification of its own, a WITH COMPONENTS subtype; Issue 138: before, the call
 # and its buffer followed the typedef, --acn-v2 wrote another encoding, legacy rejected the sites). Legacy and

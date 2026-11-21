@@ -106,6 +106,38 @@ let buildReferenceIcdArgAux
     | None -> None
 
 
+/// Issue 134 (S3) / Issue 135: an embedded-length or fixed-size CONTAINING region writes the length of the encoding of
+/// the function it calls (calleeType) under the length range of the contents at the site (encOptions, from
+/// o.resolvedType; octets for an OCTET STRING, bits for a BIT STRING). It fits only when the maxima are equal (a larger
+/// site maximum: the legacy decoder writes past its buffer of the callee's maximum; a smaller one: the encoder writes a
+/// length above its range) and, with an embedded length, the site's minimum is not above the callee's (else a length
+/// below the range). Compared in the region's unit, so a change of bits inside the same octets of an OCTET STRING region
+/// fits. The message when it does not fit; None when it fits or the region has another class.
+let containingCalleeMismatch (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (encOptions:EncodeWithinOctetOrBitStringProperties) (calleeType:Asn1AcnAst.Asn1Type) : string option =
+    let regionUnits (bits:bigint) =
+        match encOptions.octOrBitStr with
+        | ContainedInOctString -> (bits + 7I) / 8I
+        | ContainedInBitString -> bits
+    let unitName =
+        match encOptions.octOrBitStr with
+        | ContainedInOctString -> "octets"
+        | ContainedInBitString -> "bits"
+    let calleeMin, calleeMax = regionUnits calleeType.acnMinSizeInBits, regionUnits calleeType.acnMaxSizeInBits
+    let siteMin, siteMax = encOptions.minSize.acn, encOptions.maxSize.acn
+    let calleeDoesNotFit =
+        match encOptions.acnEncodingClass with
+        | SZ_EC_LENGTH_EMBEDDED _ -> siteMax <> calleeMax || siteMin > calleeMin
+        | SZ_EC_FIXED_SIZE        -> siteMax <> calleeMax
+        | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> false
+    match calleeDoesNotFit with
+    | false -> None
+    | true  ->
+        let calleeName =
+            match calleeType.id.topLevelTas with
+            | Some tas -> tas.tasName
+            | None     -> o.tasName.Value
+        Some (sprintf "the length of this CONTAINING region (%s .. %s %s) does not match the encoding of %s (%s .. %s %s), whose functions the region calls" (siteMin.ToString()) (siteMax.ToString()) unitName calleeName (calleeMin.ToString()) (calleeMax.ToString()) unitName)
+
 let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
   let baseTypeDefinitionName, baseFncName = getReferenceCallFuncName r lm typeDefinition o t "_ACN" codec
 
@@ -219,7 +251,8 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
         //[present-when ...], ...}` has no CHOICE index: 259 octets, PayloadData 260); a length between the two passed
         //the check and the Ada reads of the region and after it ran past the stream the decoder precondition provides.
         //A site's maximum can also be larger (a site ACN specification that overrides the contents' children; legacy
-        //rejects it below, --acn-v2 encodes the type assignment's encoding anyway, Issue 135): the type assignment's then.
+        //rejects it below, --acn-v2 gives an embedded / fixed site a function of its own, Issue 135, DAstACNDeferred):
+        //the type assignment's then.
         //Issues 134 / 138: the callee is the referenced type assignment (Box of `OCTET STRING (CONTAINING Box)`, Box ::=
         //OCTET STRING (CONTAINING T); Sub of `CONTAINING Sub`, Sub ::= T (WITH COMPONENTS ...)), not the end of its chain:
         //its functions are called and its constants size the temporary buffer (containedCalleeTas).
@@ -235,33 +268,14 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
         //site's minimum is not above the callee's (else a length below the range). A site ACN specification with child
         //overrides (`f [] { a [size 12] }`) breaks this in either direction: reject it. Compared in the region's unit,
         //so a change of bits inside the same octets of an OCTET STRING region is accepted. --acn-v2 decodes in place (no
-        //buffer, Issue 135); the external-size class (CFDP) checks its length against the buffer.
-        let regionUnits (bits:bigint) =
-            match encOptions.octOrBitStr with
-            | ContainedInOctString -> (bits + 7I) / 8I
-            | ContainedInBitString -> bits
-        let unitName =
-            match encOptions.octOrBitStr with
-            | ContainedInOctString -> "octets"
-            | ContainedInBitString -> "bits"
-        let calleeMin, calleeMax = regionUnits calleeType.acnMinSizeInBits, regionUnits calleeType.acnMaxSizeInBits
-        let siteMin, siteMax = encOptions.minSize.acn, encOptions.maxSize.acn
-        let calleeDoesNotFit =
-            match encOptions.acnEncodingClass with
-            | SZ_EC_LENGTH_EMBEDDED _ -> siteMax <> calleeMax || siteMin > calleeMin
-            | SZ_EC_FIXED_SIZE        -> siteMax <> calleeMax
-            | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> false
-        match r.args.acnDeferred, encOptions.acnEncodingClass, calleeDoesNotFit with
-        | false, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_FIXED_SIZE), true ->
+        //buffer) and gives a site with such overrides a function of its own (Issue 135, DAstACNDeferred, which applies
+        //the same check to the other sites); the external-size class (CFDP) checks its length against the buffer.
+        match r.args.acnDeferred, containingCalleeMismatch t o encOptions calleeType with
+        | false, Some msg ->
             let errLoc = match t.acnLocation with Some l -> l | None -> loc
-            let calleeName =
-                match calleeType.id.topLevelTas with
-                | Some tas -> tas.tasName
-                | None     -> o.tasName.Value
-            raise (SemanticError (errLoc, sprintf "the length of this CONTAINING region (%s .. %s %s) does not match the encoding of %s (%s .. %s %s), whose functions the region calls; not supported without --acn-v2 (use a type assignment for the contents)" (siteMin.ToString()) (siteMax.ToString()) unitName calleeName (calleeMin.ToString()) (calleeMax.ToString()) unitName))
-        | true, _, _
-        | false, (SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_FIXED_SIZE), false
-        | false, (SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced), _ -> ()
+            raise (SemanticError (errLoc, msg + "; not supported without --acn-v2 (use a type assignment for the contents)"))
+        | true, _
+        | false, None -> ()
         let octet_string_containing_func            = lm.acn.octet_string_containing_func
         let bit_string_containing_func              = lm.acn.bit_string_containing_func
         let octet_string_containing_ext_field_func  = lm.acn.octet_string_containing_ext_field_func

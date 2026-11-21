@@ -680,7 +680,8 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
             // 14j (G7a): --acn-v2 decodes a fixed-size CONTAINING without ACN arguments by a plain call of the contained
             // type assignment's T_ACN_Decode_aux (DAstACNDeferred: octet / bit_string_containing_deferred_fixed_func;
             // the OCTET form then only moves the position past the padding): the outcome of that call, classified by the
-            // function the site calls (Issue 138, DAstUtilFunctions.containedCalleeType): the referenced type
+            // function the site calls (Issues 135 / 138, DAstUtilFunctions.containedCalleeType): the site's own
+            // specialised function when its ACN specification overrides the contents, else the referenced type
             // assignment's (not the end of its chain, GetActualTypeByName: `Sub ::= T (...)` calls Sub's functions)
             | Some enc, _ when r.args.acnDeferred && enc.acnEncodingClass = SZ_EC_FIXED_SIZE && o.acnArguments.IsEmpty ->
                 match acn r deps lm (DAstUtilFunctions.containedCalleeType r o) with

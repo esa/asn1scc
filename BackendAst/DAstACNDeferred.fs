@@ -1699,10 +1699,13 @@ let private buildSpecializedFormalParams
 /// Step 4 — emit the specialized function (definition + body) and assemble
 /// the auxiliaries list.  The returned list is bodyResult_auxiliaries
 /// followed by the function's def + body strings.
+/// ownErrCodes: the codes its definition declares besides its body's (the specialised function's own code; none for a
+/// CONTAINING site's contents function, Issue 135, whose region reports the site's code, declared by the parent: Ada
+/// rejects a second declaration of a constant).
 let private emitSpecializedFunctionDecl
         (ctx: DeferredRefCtx)
         (specP: CodegenScope)
-        (errCode: ErrorCode)
+        (ownErrCodes: ErrorCode list)
         (specFuncName: string)
         (deferredFormalParams: string list)
         (deferredParamNames: string list)
@@ -1768,7 +1771,7 @@ let private emitSpecializedFunctionDecl
         |> ctx.lm.lg.wrapDeferredSpecBody
 
     let specErrCodStr =
-        (errCode :: finalBody.errCodes)
+        (ownErrCodes @ finalBody.errCodes)
         |> List.groupBy (fun x -> x.errCodeName)
         |> List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath})
         |> List.map (fun x -> ctx.lm.acn.EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath)
@@ -1925,12 +1928,50 @@ let private createDeferredReferenceFunction
     // coverage step 14q: stgCall also takes the outcome of the call of the contents' encoder (looked up in the state the
     // function body is built with)
     let makeContainingFuncBody (stgCall: EncodeOutcome -> string -> string -> ErrorCode -> (AcnFuncBodyResult option) * State) =
+        // q/issues.md Issue 135: contents with ACN parameters cannot be specialised here (no closure work for
+        // embedded-length / fixed-size regions): an ACN specification that overrides them is rejected, instead of
+        // calling the type assignment's function with another encoding than the region's sizes
+        match o.contentsSpecOverride && (not o.acnArguments.IsEmpty || not o.resolvedType.acnParameters.IsEmpty) with
+        | true ->
+            let errLoc = match t.acnLocation with Some l -> l | None -> o.tasName.Location
+            raise (SemanticError (errLoc, sprintf "an ACN specification that changes the encoding of the contents of this CONTAINING is not supported when %s has ACN parameters (use a type assignment for the contents)" o.tasName.Value))
+        | false -> ()
+        // q/issues.md Issue 135: a site that is not specialised calls the referenced type assignment's function; the
+        // region's length range (from the site's merged contents) must hold that function's encoding, as legacy requires
+        // (AcnReference.containingCalleeMismatch), else the region writes a length outside its range (C: a read past a
+        // mask table of the runtime) or another encoding than its sizes say. A defence against a site the
+        // contentsSpecOverride test misses; it fires on no tracked grammar (i135 dry run: corpus, PUS-C, wire tests).
+        match containingSiteSpecialised r o, o.encodingOptions with
+        | false, Some eo ->
+            match AcnReference.containingCalleeMismatch t o eo (containedCalleeType r o) with
+            | Some msg ->
+                let errLoc = match t.acnLocation with Some l -> l | None -> o.tasName.Location
+                raise (SemanticError (errLoc, msg + "; not supported (use a type assignment for the contents)"))
+            | None -> ()
+        | true, _ | false, None -> ()
         // coverage step 14q (Q3 b): the body of the contents' encoder when this site's validation is the one it repeats
         let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
         let funcBody (us:State) (errCode:ErrorCode) (_acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (_nestingScope: NestingScope) (p:CodegenScope) =
             let pp = lm.lg.getParamValue t p.accessPath codec
-            let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
-            stgCall callOutcome pp callTarget errCode
+            // q/issues.md Issue 135: a site whose ACN specification overrides the contents' encoding calls a function of
+            // its own with the merged contents (the region's sizes come from them), the external-size class's mechanism
+            // (buildContainingClosureBody). No error code of its own (the region keeps the site's code, its body the
+            // codes of the merged contents, allocated when they were built): no other code changes. Every other site
+            // calls the referenced type assignment's function.
+            match containingSiteSpecialised r o, baseType.getAcnFunction codec with
+            | true, Some baseAcnFunc ->
+                let pathStr = t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin "_"
+                let specFuncName = ToC2(r.args.TypePrefix + pathStr) + "_Containing_ACN" + (lm.lg.codecSuffix codec)
+                let specP : CodegenScope = lm.lg.getParamType t codec
+                let ctx : DeferredRefCtx = { r = r; deps = deps; lm = lm; codec = codec; t = t; o = o; typeDefinition = typeDefinition; isValidFunc = isValidFunc; refIcd = refIcd; emittedValidatorOutcomes = us.emittedValidatorOutcomes }
+                let specBody, us1 = buildNormalReferenceBody ctx specP baseAcnFunc id us
+                let specAux = emitSpecializedFunctionDecl ctx specP [] specFuncName [] [] specBody
+                let res, _ = stgCall (specialisedCallOutcome ctx specFuncName specBody) pp specFuncName errCode
+                (res |> Option.map (fun x -> {x with auxiliaries = x.auxiliaries @ specAux; userDefinedFunctions = x.userDefinedFunctions @ specBody.userDefinedFunctions})), us1
+            | true, None
+            | false, _ ->
+                let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
+                stgCall callOutcome pp callTarget errCode
         DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc
             (fun us e acnArgs nestingScope p -> funcBody us e acnArgs nestingScope p)
             (fun _atc -> true) soSparkAnnotations [] us
@@ -2126,7 +2167,7 @@ let private createDeferredReferenceFunction
             // Step 4: emit the specialized function (def + body) into auxiliaries.
             let allAuxiliaries =
                 emitSpecializedFunctionDecl
-                    ctx specP errCode
+                    ctx specP [errCode]
                     specFuncName deferredFormalParams deferredParamNames finalBody
 
             // Step 5: build the caller's funcBody, record the cross-TAS call,
