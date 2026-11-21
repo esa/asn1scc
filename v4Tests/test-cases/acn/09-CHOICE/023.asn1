@@ -1,0 +1,16 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+-- A component named like a local of the generated C tests: the constraint-violation test that sets the selector
+-- of tc-start to <X>_NONE keeps a copy of its start value and compares it with Equal; the copy must not be a macro
+-- named after a member (coverage cycle 15f: tc_start broke tc_data.tc_start.kind).
+OnlyChoice ::= CHOICE {
+    only NULL
+}
+Parent ::= SEQUENCE {
+    tc-start OnlyChoice,
+    tail INTEGER (0..15)
+}
+
+END
+
+--TCLS     Parent[]

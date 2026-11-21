@@ -35,7 +35,8 @@ large value most of these headers lie far from both ends, beyond the positions t
 sweep (C and Ada, the same patterns as above) also changes each header byte and the byte after it. The positions are
 computed by the compiler from `N` and the item size; to keep their number small for any `N`, only the first and the
 last 64K header are taken (the others are decoded by the same code), plus the header of the smaller block and the
-length of the rest: at most 9 positions. This applies to a test value of such a type itself (also through a type
+length of the rest: at most 9 positions, without the first and the last two bytes of the encoding (the sweep
+corrupts them at any budget) and without a byte past its end (items of 0 bits, `FROM("A")`). This applies to a test value of such a type itself (also through a type
 reference), with uPER, and with ACN when the type has no ACN encoding properties (a fixed-size OCTET / BIT STRING
 has no headers in ACN). A fragmented type inside a SEQUENCE, CHOICE or SEQUENCE OF gets no extra positions.
 
@@ -78,7 +79,8 @@ the start and 128 at the end of the encoding, and stops after the decoders have 
 (512 KB per end); the truncations at the 7 bit offsets share one more such budget. The Ada round trips from a bit
 offset are not limited by the budget: they add 7 (15, 31) encodes and decodes of the whole value per test. At least two positions
 are always tried at each end. Encodings of up to 256 bytes are swept completely.
-The fragmentation headers (at most 9 positions) come on top of the budget.
+The fragmentation headers (at most 9 positions) come on top of the budget: they are a fixed, small set whatever the
+size of the value, and a smaller budget does not remove them.
 
 The budget can be changed with `-atcSweepBudget <bytes>`:
 

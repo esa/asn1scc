@@ -101,9 +101,13 @@ type private SweepEncoding =
     | SweepAcn
 
 let rec private fragmentationHeaderBytes (enc:SweepEncoding) (t:Asn1AcnAst.Asn1Type) : BigInteger list =
+    // the sweep corrupts the first 2 and the last 2 bytes at any budget (asn1scc_sweep_positions / Ada
+    // Decode_Corruption_Sweep: at least 2 positions per end): not again
     let fixedFragmented (minSize:BigInteger) (maxSize:BigInteger) (itemBits:BigInteger) =
         match minSize = maxSize && maxSize >= FragmentationLayout.C64K with
-        | true  -> FragmentationLayout.fixedSizeFragmentationHeaderBytes maxSize itemBits
+        | true  ->
+            let encodedBytes = (FragmentationLayout.fixedSizeFragmentedBits maxSize itemBits + 7I) / 8I
+            FragmentationLayout.fixedSizeFragmentationHeaderBytes maxSize itemBits |> List.filter (fun p -> p >= 2I && p < encodedBytes - 2I)
         | false -> []
     let stringHeaders (o:Asn1AcnAst.StringType) =
         fixedFragmented o.minSize.uper o.maxSize.uper (GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length - 1)))

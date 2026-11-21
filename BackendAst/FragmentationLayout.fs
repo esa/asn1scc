@@ -33,12 +33,25 @@ let FragmentationParts (size:BigInteger) =
 
     { nBlocks64K = nBlocks64K; has48KBlock = has48KBlock; has32KBlock = has32KBlock; has16KBlock = has16KBlock; nRemainingItemsVar = nRemainingItemsVar}
 
+/// Coverage cycle 15d: the bits of a fixed-size fragmented encoding of size items of itemBits bits (headers included).
+let fixedSizeFragmentedBits (size:BigInteger) (itemBits:BigInteger) : BigInteger =
+    let r = FragmentationParts size
+    let smallItems = [(r.has48KBlock, C48K); (r.has32KBlock, C32K); (r.has16KBlock, C16K)] |> List.filter fst |> List.sumBy snd
+    let nSmallHeaders = [r.has48KBlock; r.has32KBlock; r.has16KBlock] |> List.filter id |> List.length |> BigInteger
+    let restHeaderBits =
+        match r.nRemainingItemsVar > 0I, r.nRemainingItemsVar <= C_127 with
+        | false, _     -> 0I
+        | true, true   -> 8I
+        | true, false  -> 16I
+    8I * r.nBlocks64K + 8I * nSmallHeaders + restHeaderBits + (r.nBlocks64K * C64K + smallItems + r.nRemainingItemsVar) * itemBits
+
 /// Coverage cycle 15d: byte positions of the headers of a fixed-size fragmented encoding (handleFixedSizeFragmentation:
 /// a 0xC4 octet per 64K block, one 0xC3 / 0xC2 / 0xC1 octet for a 48K / 32K / 16K block, then the length of the rest
 /// in 1 octet (<= 127) or 2) that starts at bit 0, each with the byte after it (the first items of its block); the
 /// decode sweep of the automatic tests corrupts them. Every block holds a multiple of 16K items, so every header is
 /// byte aligned whatever the item size. Capped to the first and the last 64K header (the others run the same loop),
-/// the small block header and the length of the rest: at most 9 positions for any size.
+/// the small block header and the length of the rest: at most 9 positions for any size. Only positions inside the
+/// encoding (items of 0 bits, FROM("A"): the byte after a header may not exist).
 let fixedSizeFragmentationHeaderBytes (size:BigInteger) (itemBits:BigInteger) : BigInteger list =
     let r = FragmentationParts size
     let blockBytes (nItems:BigInteger) = 1I + nItems * itemBits / 8I       // header octet + items (nItems = k x 16K)
@@ -47,6 +60,7 @@ let fixedSizeFragmentationHeaderBytes (size:BigInteger) (itemBits:BigInteger) : 
         [(r.has48KBlock, C48K); (r.has32KBlock, C32K); (r.has16KBlock, C16K)] |> List.tryFind fst |> Option.map snd
     let smallStart = n64 * blockBytes C64K
     let restStart = smallStart + (smallBlock |> Option.map blockBytes |> Option.defaultValue 0I)
+    let encodedBytes = (fixedSizeFragmentedBits size itemBits + 7I) / 8I
     let headers =                                                           // (first byte, bytes)
         [
             if n64 > 0I then yield (0I, 1I)
@@ -56,4 +70,5 @@ let fixedSizeFragmentationHeaderBytes (size:BigInteger) (itemBits:BigInteger) : 
             | None   -> ()
             if r.nRemainingItemsVar > 0I then yield (restStart, (if r.nRemainingItemsVar <= C_127 then 1I else 2I))
         ]
-    headers |> List.collect (fun (first, nBytes) -> [first .. first + nBytes]) |> List.distinct |> List.sort
+    headers |> List.collect (fun (first, nBytes) -> [first .. first + nBytes]) |> List.distinct |> List.sort |>
+    List.filter (fun p -> p < encodedBytes)

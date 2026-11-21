@@ -999,8 +999,20 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <endif>
     <sInitializeTcData>
     <if(soEqualFunc)>
-    <testDataOnHeap(sTasName=sTasName, sVar="tc_start", sFuncName=sFuncName)>
-    memcpy(tc_start_p, <sAmber>tc_data, sizeof(<sTasName>));
+    /* the start value (no macro, and "__" is never in a name generated from an ASN.1 name) */
+    <sTasName>* const tc__start = (<sTasName>*)malloc(sizeof(<sTasName>));
+    if (tc__start == NULL) {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>': out of memory.");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+        <if(bStatic)>
+        free(tc_data_p);
+        <endif>
+        output->report_case_end();
+        return;
+    }
+    memcpy(tc__start, <sAmber>tc_data, sizeof(<sTasName>));
     <endif>
     /* the automatic test value is valid before the change */
     result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
@@ -1013,8 +1025,8 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <if(soEqualFunc)>
     /* the validator reached the changed selector, so <soEqualFunc> reaches it too and must tell the two values apart,
        in both orders (coverage cycle 15f) */
-    result = result && !<soEqualFunc>(<sAmber>tc_start, <sAmber>tc_data) && !<soEqualFunc>(<sAmber>tc_data, <sAmber>tc_start);
-    <testDataFree(sVar="tc_start")>
+    result = result && !<soEqualFunc>(<sAmber>(*tc__start), <sAmber>tc_data) && !<soEqualFunc>(<sAmber>tc_data, <sAmber>(*tc__start));
+    free(tc__start);
     <endif>
     <arrsEncodeChecks; separator="\n">
     if (result) {
