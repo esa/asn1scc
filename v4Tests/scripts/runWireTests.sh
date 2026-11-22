@@ -150,6 +150,36 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# Fragmented lengths (X.691 11.9.3.8) of variable-size types whose maximum is 64K or more: every rejected stream pins
+# the error code and the bit position after the decoder, every valid one decodes to the expected value and encodes to
+# the same bytes (Issue 152: the Ada decoders read blocks past the maximum size, took headers from C0 on as lengths,
+# skipped a final part over the maximum and lost item failures). uPER and the ACN IA5String path, legacy and
+# --acn-v2; C with ASan / UBSan; Ada without and with -gnata, and with -gnatp (no run-time checks: rows G1 / P1
+# compare the guard regions around a value and the next component, which a write past the value inside the same
+# allocation changes without any sanitizer report; ASan on top, with a finite stack).
+for mode in "" "--acn-v2"; do
+    out=$work/uper004$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/004.asn1"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/uper-wire/004_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "uper-wire 004 $mode OK"
+    for gnat in "" "-gnata" "-gnatp"; do
+        out=$work/uper004ada$mode$gnat
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/004.asn1"
+        cp "$root/test-cases/uper-wire/004_wire_test.adb" "$out/wire_test.adb"
+        if [ "$gnat" = -gnatp ]; then
+            (cd "$out" && gnatmake -q -gnat2012 -gnatp -g wire_test.adb -cargs -fsanitize=address \
+                -largs -fsanitize=address && if [ "$(ulimit -s)" = unlimited ]; then ulimit -s 524288; fi && ./wire_test)
+        else
+            (cd "$out" && gnatmake -q -gnat2012 $gnat wire_test.adb && ./wire_test)
+        fi
+        echo "uper-wire 004 (Ada) $mode $gnat OK"
+    done
+done
+
 # ACN INTEGER as ASCII digits with a terminator: a value outside the range of the type, or a digit string beyond the
 # integer type, is an error code (Ada used to raise Constraint_Error, and accepted digit strings that wrapped around);
 # C, Ada x86 and Ada msp430 (-gnata: the RTL contracts are checked too).

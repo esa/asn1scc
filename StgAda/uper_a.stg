@@ -862,7 +862,6 @@ adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsV
 <sCurOffset> := 1;
 
 while result.Success AND (<sRemainingItemsVar> = 16#C4# OR <sRemainingItemsVar> = 16#C3# OR <sRemainingItemsVar> = 16#C2# OR <sRemainingItemsVar> = 16#C1#)  loop
-    --# assert <sBLI> >=<sCurOffset> and <sBLI>\<=<sCurOffset> + <sRemainingItemsVar> ;
     if <sRemainingItemsVar> = 16#C4# then
         <sCurBlockSize> := 16#10000#;
     elsif <sRemainingItemsVar> = 16#C3# then
@@ -873,61 +872,74 @@ while result.Success AND (<sRemainingItemsVar> = 16#C4# OR <sRemainingItemsVar> 
         <sCurBlockSize> := 16#4000#;
     end if;
 
-    <sBLI> := <sCurOffset>;
-    while <sBLI>\<= <sCurOffset> + <sCurBlockSize> - 1 AND result.Success loop
-    --# assert  <sBLI> >=<sCurOffset> and <sBLI>\<=<sCurOffset> + <sRemainingItemsVar>  and
-    --#        K.K>=K~.K and K.K\<=K~.K+8+ <nIntItemMaxSize>*(<sBLI>-1);
-        <sInternalItem>
-        <sBLI> := <sBLI> + 1;
-    end loop;
-    <if(bIsVariableSize)><sLengthTmp> := <sLengthTmp> + <sCurBlockSize>;<endif>
-    <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
-    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+    if <sCurOffset> + <sCurBlockSize> - 1 > <nSizeMax> then
+        -- the items of the fragment do not fit the maximum size
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCodeName>); -- COVERAGE_IGNORE
+    else
+        <sBLI> := <sCurOffset>;
+        while <sBLI>\<= <sCurOffset> + <sCurBlockSize> - 1 AND result.Success loop
+            <sInternalItem>
+            <sBLI> := <sBLI> + 1;
+        end loop;
+        if result.Success then
+            <if(bIsVariableSize)><sLengthTmp> := <sLengthTmp> + <sCurBlockSize>;<endif>
+            <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
+            result.ErrorCode := <sErrCodeName>;
+            adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+        end if;
+    end if;
 end loop;
 
-if <sRemainingItemsVar> >= 16#80# then
-    declare
-        len2:Integer;
-    begin
-        <sRemainingItemsVar> := (<sRemainingItemsVar> - 16#80#) * 16#100#;
-        adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, len2, 0, 255, 8, result.Success);
-        if result.Success then
-             <sRemainingItemsVar> := <sRemainingItemsVar> + len2;
-        end if;
-    end;
+if result.Success then
+    if <sRemainingItemsVar> >= 16#C0# then
+        -- a fragment header other than C1 .. C4
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCodeName>);
+    elsif <sRemainingItemsVar> >= 16#80# then
+        declare
+            len2:Integer;
+        begin
+            adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, len2, 0, 255, 8, result.Success);
+            <sRemainingItemsVar> := (<sRemainingItemsVar> - 16#80#) * 16#100# + len2;
+        end;
+    end if;
 end if;
 
-if <sCurOffset> + <sRemainingItemsVar> -1 \<= <nSizeMax> then
-    <sBLI> := <sCurOffset>;
-    while <sBLI>\<= <sCurOffset> + <sRemainingItemsVar> -1 loop
-    --# assert  <sBLI> >=<sCurOffset> and <sBLI>\<=<sCurOffset> + <sRemainingItemsVar>  and
-    --#        K.K>=K~.K and K.K\<=K~.K+8+ <nIntItemMaxSize>*(<sBLI>-1);
-        <sInternalItem>
-        <sBLI> := <sBLI> + 1;
-    end loop;
-    <if(bIsVariableSize)><sLengthTmp> := <sLengthTmp> + <sRemainingItemsVar>;<endif>
+if result.Success then
+    if <sCurOffset> + <sRemainingItemsVar> - 1 \<= <nSizeMax> then
+        <sBLI> := <sCurOffset>;
+        while <sBLI>\<= <sCurOffset> + <sRemainingItemsVar> - 1 AND result.Success loop
+            <sInternalItem>
+            <sBLI> := <sBLI> + 1;
+        end loop;
+        <if(bIsVariableSize)><sLengthTmp> := <sLengthTmp> + <sRemainingItemsVar>;<endif>
+    else
+        -- the last part does not fit the maximum size
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCodeName>); -- COVERAGE_IGNORE
+    end if;
 end if;
 
 <if(bIsVariableSize)>
 
-if <sLengthTmp> >= <nSizeMin> and <sLengthTmp> \<= <nSizeMax> then
-    <if(!bIsAsciiString)>
-    <p><sAcc>Length := <sLengthTmp>;
+if result.Success then
+    if <sLengthTmp> >= <nSizeMin> and <sLengthTmp> \<= <nSizeMax> then
+        <if(!bIsAsciiString)>
+        <p><sAcc>Length := <sLengthTmp>;
 
-    <else>
-    <p>(<sLengthTmp> + 1) := adaasn1rtl.NUL;
+        <else>
+        <p>(<sLengthTmp> + 1) := adaasn1rtl.NUL;
 
-    --add nulls until the end
-    while <sBLI>\<= <nSizeMax> + 1  loop
-        pragma Loop_Invariant (<sBLI> >=1 and <sBLI>\<=<nSizeMax> + 1);
-        <p>(<sBLI>) := adaasn1rtl.NUL;
-        <sBLI> := <sBLI> + 1;
-    end loop;
+        --add nulls until the end
+        while <sBLI>\<= <nSizeMax> + 1  loop
+            pragma Loop_Invariant (<sBLI> >=1 and <sBLI>\<=<nSizeMax> + 1);
+            <p>(<sBLI>) := adaasn1rtl.NUL;
+            <sBLI> := <sBLI> + 1;
+        end loop;
 
 
-    <endif>
-else
-    result.Success := false;	--COVERAGE_IGNORE
+        <endif>
+    else
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCodeName>); --COVERAGE_IGNORE
+    end if;
 end if;
 
 <else>
