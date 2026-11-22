@@ -3,14 +3,21 @@
 -- next byte) are decoded as the alignment only and write no result: the Ada decoders must not count on them for
 -- result.Success / ErrorCode. PDU1: such an alternative beside a plain NULL (full index); PDU2: an inline SEQUENCE
 -- holding only such a component as an alternative; PDU3: such an alternative beside an INTEGER (0..7) (full index,
--- the arms treat the result differently). Each CHOICE is the first component of its SEQUENCE and a mandatory component
+-- the arms treat the result differently); PDU4: such an alternative in a CHOICE selected by an ENUMERATED field, beside
+-- references to NULL type assignments (one of them aligned in its own specification); PDU5: the same with present-when
+-- alternatives. Each CHOICE is the first component (after the ACN field) of its SEQUENCE and a mandatory component
 -- follows. The CHOICEs are components (a CHOICE type assignment is not provable in Ada).
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 PDU1 ::= SEQUENCE { item CHOICE { pad NULL, q NULL }, tail BOOLEAN }
 PDU2 ::= SEQUENCE { item CHOICE { pad SEQUENCE { z NULL }, q NULL }, tail BOOLEAN }
 PDU3 ::= SEQUENCE { item CHOICE { pad NULL, n INTEGER (0..7) }, tail BOOLEAN }
+MyNull ::= NULL
+ANull ::= NULL
+Kind ::= ENUMERATED { a, b, c, d }
+PDU4 ::= SEQUENCE { item CHOICE { a MyNull, b NULL, c NULL, d ANull }, tail BOOLEAN }
+PDU5 ::= SEQUENCE { item CHOICE { a MyNull, b NULL, c NULL, d ANull }, tail BOOLEAN }
 
 END
 
---TCLS PDU1 [] { item [] { pad [align-to-next byte], q [] }, tail [] } PDU2 [] { item [] { pad [] { z [align-to-next byte] }, q [] }, tail [] } PDU3 [] { item [] { pad [align-to-next byte], n [] }, tail [] }
+--TCLS PDU1 [] { item [] { pad [align-to-next byte], q [] }, tail [] } PDU2 [] { item [] { pad [] { z [align-to-next byte] }, q [] }, tail [] } PDU3 [] { item [] { pad [align-to-next byte], n [] }, tail [] } ANull [align-to-next byte] PDU4 [] { k Kind [], item [determinant k] { a [], b [align-to-next byte], c [], d [] }, tail [] } PDU5 [] { k INTEGER [size 8, encoding pos-int], item [] { a [present-when k==1], b [present-when k==2, align-to-next byte], c [present-when k==3], d [present-when k==4] }, tail [] }

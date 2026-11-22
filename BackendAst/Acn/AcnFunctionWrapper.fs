@@ -211,6 +211,8 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
         | None   -> Some (typeDefinitionName + lm.init.methodNameSuffix())
     let bValInOut =
         match codec with
+        // cycle 15g-b1 (round 2, F3): a decoder of alignments only defines val first (sInitialExp below)
+        | Decode when lm.lg.decodeReadFailureModel = ReadsCannotFail && DecodeOutcome.acnAlignmentOnlyBody t && soInitFuncName.IsSome -> false
         | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite r deps lm t) soValInitFuncName
         | Encode -> false
     let soSparkAnnotations =
@@ -364,12 +366,12 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         | true, None
                         | false, _ -> ns1a
                     | Decode -> ns1a
-                // cycle 15g-b1 (Issue 112): an aligned NULL without pattern decodes only its alignment,
-                // which writes neither val (an `out` parameter, DecodeOutcome.valWrite) nor result: the decoder defines
-                // both first, as for an empty body (sInitialExp), instead of the result initialisation alone
+                // cycle 15g-b1 (Issue 112; round 2: also a SEQUENCE of aligned NULLs): a type whose decoding is only
+                // alignments writes neither val nor result: the decoder defines both first, as for an empty body
+                // (sInitialExp), instead of the result initialisation alone; val stays `out` (bValInOutOfDecoder)
                 let bAlignedNullDecode =
-                    match codec, lm.lg.decodeReadFailureModel, t.Kind, content with
-                    | Decode, ReadsCannotFail, Asn1AcnAst.NullType _, Some _ -> DecodeOutcome.acnAlignedWithoutContent t && soInitFuncName.IsSome
+                    match codec, lm.lg.decodeReadFailureModel, content with
+                    | Decode, ReadsCannotFail, Some _ -> DecodeOutcome.acnAlignmentOnlyBody t && soInitFuncName.IsSome
                     | _ -> false
                 let sInitialExp =
                     // A null attribute disables the optional template initializer.
@@ -406,7 +408,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                             | Decode, ReadsCanFail      -> bodyResult.funcBody
                             | Encode, _                 -> withEncodeResultInit bodyResult.funcBody
                         // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
-                        let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
+                        let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail) && not bAlignedNullDecode
                         body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
 
                 let handleAcnParameter (p:AcnParameter) =

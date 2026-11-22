@@ -3,7 +3,9 @@
 -- only, which writes neither the result nor the component. S1: such a component before an INTEGER; S2: the same as an
 -- OPTIONAL component; S3: a NULL type assignment aligned in its own ACN specification, used by a component (its decoder
 -- is the alignment and must still define val and result); S4: an aligned reference to a NULL type assignment (the
--- referenced body is inlined with the alignment); S5: an inline SEQUENCE holding only an aligned NULL.
+-- referenced body is inlined with the alignment); S5: an inline SEQUENCE holding only an aligned NULL; S6: a type
+-- assignment that references a NULL type assignment and adds an alignment; T7: a SEQUENCE type assignment holding only
+-- an aligned NULL (its decoder is the alignment and must still define val and result), used by S8.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 ANull ::= NULL
@@ -13,7 +15,13 @@ S2 ::= SEQUENCE { z NULL OPTIONAL, n INTEGER (0..5) }
 S3 ::= SEQUENCE { a ANull, b BOOLEAN }
 S4 ::= SEQUENCE { a INTEGER (0..7), m MyNull, b INTEGER (0..5) }
 S5 ::= SEQUENCE { e SEQUENCE { z NULL }, tail BOOLEAN }
+ANull3 ::= MyNull
+S6 ::= SEQUENCE { a ANull3, b BOOLEAN }
+T7 ::= SEQUENCE { z NULL }
+S8 ::= SEQUENCE { t T7, b BOOLEAN }
+
+s2present S2 ::= { z NULL, n 3 }
 
 END
 
---TCLS ANull [align-to-next byte] S1 [] { z [align-to-next byte], n [] } S2 [] { z [align-to-next byte], n [] } S3 [] { a [], b [] } S4 [] { a [], m [align-to-next byte], b [] } S5 [] { e [] { z [align-to-next byte] }, tail [] }
+--TCLS ANull [align-to-next byte] S1 [] { z [align-to-next byte], n [] } S2 [] { z [align-to-next byte], n [] } S3 [] { a [], b [] } S4 [] { a [], m [align-to-next byte], b [] } S5 [] { e [] { z [align-to-next byte] }, tail [] } ANull3 [align-to-next byte] T7 [] { z [align-to-next byte] }

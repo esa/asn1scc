@@ -870,7 +870,38 @@ and acnAlignedWithoutContent (t:Asn1Type) : bool =
             | ReferenceType o when not (acnReferenceIsCall o) && o.encodingOptions.IsNone -> aligned o.resolvedType
             | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
             | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | Choice _ | NullType _ | ReferenceType _ -> false
-    not (acnHasDecodeContent t) && aligned t
+    // a CONTAINING site (encoding options; also at the end of an inlined chain: a reference to a CONTAINING type
+    // assignment resolves to a reference with encoding options) reads its octet / bit string and calls the contents'
+    // decoder: never the alignment only, whatever acnHasDecodeContent says of its contents (code review 15g-b1 F1)
+    let rec containing (x:Asn1Type) =
+        match x.Kind with
+        | ReferenceType o when o.encodingOptions.IsSome -> true
+        | ReferenceType o when not (acnReferenceIsCall o) -> containing o.resolvedType
+        | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
+        | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | Choice _ | NullType _ | ReferenceType _ -> false
+    not (acnHasDecodeContent t) && not (containing t) && aligned t
+
+/// Cycle 15g-b1 (round 2, code review F3): a type whose whole ACN decoding is alignments of parts without content: an
+/// aligned NULL without pattern (i112d), or a SEQUENCE whose components are all mandatory, without content and at least
+/// one of them aligned (no ACN field, no pre-decoding function). Its decoder as a function of its own writes neither val
+/// nor result, so AcnFunctionWrapper defines both first (sInitialExp; val stays `out`), and a call of it writes all of
+/// val (valWrite). Inline, such a SEQUENCE is the alignments only (valWrite: not written).
+and acnAlignmentOnlyBody (t:Asn1Type) : bool =
+    match t.Kind with
+    | NullType _ -> acnAlignedWithoutContent t
+    | Sequence o ->
+        o.acnProperties.preDecodingFunction.IsNone
+        && not o.children.IsEmpty
+        && o.children |> List.forall (fun c ->
+            match c with
+            | AcnChild _  -> false
+            | Asn1Child c -> c.Optionality.IsNone && not (acnHasDecodeContent c.Type))
+        && o.children |> List.exists (fun c ->
+            match c with
+            | AcnChild _  -> false
+            | Asn1Child c -> acnAlignedWithoutContent c.Type)
+    | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | BitString _ | Boolean _ | TimeType _
+    | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Choice _ | ReferenceType _ -> false
 
 /// The decode part of an ASN.1 child of an ACN SEQUENCE (AcnSequence.handleAsn1Child): its outcome and ErrorCode
 /// summary, None when the child has no statement. An ALWAYS ABSENT child only clears its flag and sets result :=
@@ -1095,6 +1126,9 @@ let rec private valWrite (outcome: Asn1Type -> DecodeOutcome) (choiceAssigns: As
             match o.encodingOptions, containingCall o with
             // Issue 133: a call of a CONTAINING type assignment's function writes what that function writes
             | None, Some calleeType -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement containingCall acnChildrenDecoded acnDeferred lm calleeType
+            // cycle 15g-b1 (round 2, F3): the decoder of a type whose ACN decoding is only alignments defines all of val
+            // first (AcnFunctionWrapper, sInitialExp), so its call writes the component
+            | None, None when acnChildrenDecoded && acnReferenceIsCall o && acnAlignmentOnlyBody o.resolvedType -> FullWrite
             | None, None -> valWrite outcome choiceAssigns acnFieldOutcome hasStatement containingCall acnChildrenDecoded acnDeferred lm o.resolvedType
             | Some enc, _ ->                                                               // CONTAINING
                 // --acn-v2 decodes a fixed-size CONTAINING by a plain call of the contained type's decoder
