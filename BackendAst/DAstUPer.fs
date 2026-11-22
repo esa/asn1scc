@@ -484,7 +484,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
 
 
 /// itemOutcome: what the encoding of one element does (coverage step 14p: the blocks are joined by it)
-let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (fixSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString (itemOutcome:EncodeOutcome) =
+let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (fixSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString (itemOutcome:EncodeOutcome) (bItemCannotFail:bool) =
     let fixedSize_Fragmentation_sqf_64K          = lm.uper.FixedSize_Fragmentation_sqf_64K
     let fixedSize_Fragmentation_sqf_small_block  = lm.uper.FixedSize_Fragmentation_sqf_small_block
     let fixedSize_Fragmentation_sqf_remaining    = lm.uper.FixedSize_Fragmentation_sqf_remaining
@@ -498,12 +498,12 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:Com
     let r = FragmentationParts fixSize
     //let nBlocks64K = fixSize / C64K
     let parts =
-        let part = fixedSize_Fragmentation_sqf_64K (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) sCurOffset sCurBlockSize sBlockIndex r.nBlocks64K internalItem_funcBody sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+        let part = fixedSize_Fragmentation_sqf_64K (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) sCurOffset sCurBlockSize sBlockIndex r.nBlocks64K internalItem_funcBody sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName bItemCannotFail codec
         [part]
     let smallBlockParts =
         [(r.has48KBlock, lm.lg.toHex 195, C48K);(r.has32KBlock, lm.lg.toHex 194, C32K);(r.has16KBlock, lm.lg.toHex 193, C16K)] |>  //0xC3, 0xC2, 0xC1
         List.filter (fun (a,_,_) -> a) |>
-        List.map (fun (_, sBlockId, nBlockSize) -> fixedSize_Fragmentation_sqf_small_block (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) internalItem_funcBody nBlockSize sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec)
+        List.map (fun (_, sBlockId, nBlockSize) -> fixedSize_Fragmentation_sqf_small_block (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) internalItem_funcBody nBlockSize sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName bItemCannotFail codec)
     let parts = parts@smallBlockParts
 
     let bRemainingItemsWithinByte = r.nRemainingItemsVar <= C_127
@@ -514,7 +514,7 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:Com
         let parts = parts |> List.map (fun x -> x, blockOutcome)
         match r.nRemainingItemsVar > 0I with
         | true  ->
-            let part = fixedSize_Fragmentation_sqf_remaining (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) internalItem_funcBody bRemainingItemsWithinByte r.nRemainingItemsVar sCurOffset sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+            let part = fixedSize_Fragmentation_sqf_remaining (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) internalItem_funcBody bRemainingItemsWithinByte r.nRemainingItemsVar sCurOffset sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName bItemCannotFail codec
             parts@[(part, blockOutcome)]
         | false ->
             let part = lm.uper.FixedSize_Fragmentation_sqf_final_zero sCurOffset fixSize sRemainingItemsVar errCode.errCodeName codec
@@ -535,10 +535,15 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:Com
         | Decode -> nestChildItems lm  codec (parts |> List.map fst) |> Option.toList
     fixedSize_Fragmentation_sqf (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) singleNestedPart fixSize bIsAsciiString codec, fragmentationVars
 
-let handleFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString (itemOutcome:EncodeOutcome) =
+let handleFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString (itemOutcome:EncodeOutcome) (item:DecodeOutcome.FragmentItem) =
+    // 15g-b2: decode items that cannot fail get loops without a check of result (DecodeOutcome.fragmentItemCannotFail)
+    let bItemCannotFail =
+        match codec with
+        | Decode -> DecodeOutcome.fragmentItemCannotFail lm item
+        | Encode -> false
     match minSize = maxSize with
     | true ->
-        handleFixedSizeFragmentation lm p codec errCode ii uperMaxSizeInBits minSize internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString itemOutcome
+        handleFixedSizeFragmentation lm p codec errCode ii uperMaxSizeInBits minSize internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString itemOutcome bItemCannotFail
     | false ->
         let fragmentation   = lm.uper.Fragmentation_sqf
         let sRemainingItemsVar = sprintf "%s%d" "nRemainingItemsVar" ii
@@ -557,7 +562,7 @@ let handleFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.
         let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode && lm.lg.uper.requires_sBLJ) (createLv sBLJ)
         let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode) (createLv sBlockIndex)
         let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode && minSize <> maxSize) (createLv sLengthTmp)
-        fragmentation (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) internalItem_funcBody  nIntItemMaxSize ( minSize) ( maxSize) uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString codec, fragmentationVars
+        fragmentation (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) internalItem_funcBody  nIntItemMaxSize ( minSize) ( maxSize) uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString bItemCannotFail codec, fragmentationVars
 
 /// Decoding a string subtype whose typedef is the longer array of its base type (VeryShortString ::=
 /// ShortString (SIZE(1..16)), a String(1..65) in Ada): the decoder sets only the positions up to the
@@ -643,7 +648,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper ->
                 str_VarSize pp (p.accessPath.joined lm.lg) typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr callAux typeDefinitionName errCode.errCodeName codec, lv::charIndex@nStringLength, EncStringVarSizeUper
             | _ ->
-                let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)
+                let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true (lm.lg.encodeTemplateOutcome EncRtlWritesOnly) DecodeOutcome.Character
                 let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || o.maxSize.uper<>o.minSize.uper) lv
                 funcBodyContent, charIndex@localVariables, EncFragmentation
 
@@ -699,7 +704,7 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
             lm.uper.octet_VarSize_fullRange pp access minSize nSizeInBits, nStringLength, EncOctetStringVarSize lengthCheck
         | _ when maxSize < 65536I && (not isFixedSize) -> varSize td pp access minSize maxSize nSizeInBits  errCode.errCodeName (lengthEnforced lengthCheck) codec, (if false  then lv::nStringLength else nStringLength), EncOctetStringVarSize lengthCheck
         | _ ->
-            let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem nIntItemMaxSize false false (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)
+            let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem nIntItemMaxSize false false (lm.lg.encodeTemplateOutcome EncRtlWritesOnly) DecodeOutcome.RtlOctet
             let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || (not isFixedSize)) (lv)
             funcBodyContent, localVariables, EncFragmentation
 
@@ -756,7 +761,7 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)
             lm.uper.bitString_VarSize_fullRange pp access minSize nSizeInBits, nStringLength, EncBitStringVarSize lengthCheck
         | _ when maxSize < 65536I && (not isFixedSize) -> bitString_VarSize td pp access minSize maxSize errCode.errCodeName nSizeInBits (lengthEnforced lengthCheck) codec, nStringLength, EncBitStringVarSize lengthCheck
         | _ ->
-            let funcBodyContent, fragmentationLvars = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem 1I true false (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)
+            let funcBodyContent, fragmentationLvars = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem 1I true false (lm.lg.encodeTemplateOutcome EncRtlWritesOnly) DecodeOutcome.RtlBit
             let fragmentationLvars = fragmentationLvars |> List.addIf ((not isFixedSize) &&  lm.lg.uper.requires_sBLJ) (iVar)
             (funcBodyContent,fragmentationLvars, EncFragmentation)
 
@@ -862,7 +867,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                     let funcBody = varSize pp access  td i (null : string) o.minSize.uper o.maxSize.uper nSizeInBits child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux false false (lengthEnforced lengthCheck) codec
                     Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = auxiliaries; encOutcome = ownOutcome})
                 | _                                                ->
-                    let funcBody, localVariables = handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper "" nIntItemMaxSize false false EncodeOutcome.noWrite
+                    let funcBody, localVariables = handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper "" nIntItemMaxSize false false EncodeOutcome.noWrite DecodeOutcome.Element
                     Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries = auxiliaries; encOutcome = ownOutcome})
             | Some internalItem ->
                 let childErrCodes =  internalItem.errCodes
@@ -895,7 +900,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper -> fixedSize pp td i internalItemBody o.minSize.uper child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux bFixedItemCannotFail bFixedItemWritesResult codec, nStringLength
                     | _ when varFullRange.IsSome -> lm.uper.seqOf_VarSize_fullRange pp access i internalItemBody o.minSize.uper o.maxSize.uper nSizeInBits nIntItemMaxSize varFullRange.Value, nStringLength
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper -> varSize pp access  td i internalItemBody o.minSize.uper o.maxSize.uper nSizeInBits child.uperMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux bItemCannotFail bItemWritesResult (lengthEnforced lengthCheck) codec, nStringLength
-                    | _ -> handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItemBody nIntItemMaxSize false false internalItem.encOutcome
+                    | _ -> handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItemBody nIntItemMaxSize false false internalItem.encOutcome DecodeOutcome.Element
                 let ret = withFixedSizeCount r lm codec t o.isFixedSize o.minSize.uper p ret
                 let encOutcome = encodeOutcomeOf codec (EncodeOutcome.sequence [ownOutcome; EncodeOutcome.loopElement internalItem.encOutcome])
                 Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(localVariables@internalItem.localVariables); bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=internalItem.auxiliaries@auxiliaries; encOutcome = encOutcome})

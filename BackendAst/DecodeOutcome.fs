@@ -63,6 +63,30 @@ let fixedStringCannotFail (lm:LanguageMacros) (kind:FixedStringKind) (fixedNotFr
     | ReadsCannotFail, FixedOctets  -> fixedNotFragmented
     | ReadsCannotFail, FixedBits    -> fixedNotFragmented && not CommonTypes.bitStringAlignment
 
+/// 15g-b2: what one item of a uPER fragmented encoding (DAstUPer.handleFragmentation, SIZE max >= 64K) is. A new caller
+/// of the fragmentation templates names its kind here, so the decision below is a positive list.
+type FragmentItem =
+    | RtlOctet      // OCTET STRING: one BitStream_DecodeByte (Post: success)
+    | RtlBit        // BIT STRING: one BitStream_ReadBit (Post: success), also with -adaBitStringAlignment
+    | Character     // IA5String / NumericString (uPER, and ACN Acn_Enc_String_uPER): a character outside the alphabet fails
+    | Element       // SEQUENCE OF: the element's own decoder (a value / index can be invalid)
+
+/// 15g-b2: the decode item cannot fail, so the item loops of the fragmentation templates need no check of result. Only
+/// the two RTL reads qualify: under the decoder's precondition every read of the fragmentation templates stays inside
+/// REQUIRED_BITS (the fixed-size layouts read exactly it; the variable-size template checks each block and the last part
+/// against the maximum before reading their items and rejects every non-canonical header (Issue 154), so at most
+/// max/64K + 3 header octets precede the items), so the read's Pre holds and its Post states success. Characters and
+/// SEQUENCE OF elements keep their checks.
+let fragmentItemCannotFail (lm:LanguageMacros) (item:FragmentItem) : bool =
+    match item with
+    | RtlOctet
+    | RtlBit        ->
+        match lm.lg.decodeReadFailureModel with
+        | ReadsCannotFail   -> true
+        | ReadsCanFail      -> false
+    | Character     -> false
+    | Element       -> false
+
 /// Coverage step 14c2b (B2): a length minSize .. maxSize whose field of nBits bits holds exactly its values (maxSize -
 /// minSize + 1 = 2^nBits): read with UPER_Dec_ConstraintWholeNumberInt_FullRange (Integer target, whose Pre allows nBits
 /// <= 30), so the read cannot fail and its Post bounds the length to the SIZE range. 14k (K5): also minSize = maxSize in 0
