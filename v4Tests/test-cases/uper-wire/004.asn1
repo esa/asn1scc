@@ -7,10 +7,11 @@ UPER-WIRE-FRAG DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     VBit  ::= BIT STRING (SIZE(0..70000))
     VSeq  ::= SEQUENCE (SIZE(0..70000)) OF INTEGER (0..5)
     VOctM ::= OCTET STRING (SIZE(0..81920))
+    VOctN ::= OCTET STRING (SIZE(0..81919))
     VBit3 ::= BIT STRING (SIZE(3..200000))
     Elm   ::= SEQUENCE { a INTEGER (0..5), b BOOLEAN }
     VSeqR ::= SEQUENCE (SIZE(0..150000)) OF Elm
-    POct  ::= SEQUENCE { o VOct, tail OCTET STRING (SIZE(4096)) }
+    POct  ::= SEQUENCE { o VOct, tail OCTET STRING (SIZE(32768)) }
     PInl  ::= SEQUENCE {
         o    OCTET STRING (SIZE(0..70000)),
         s    IA5String (SIZE(0..70000)) (FROM("A".."Z")),

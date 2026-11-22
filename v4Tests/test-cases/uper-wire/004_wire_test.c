@@ -9,7 +9,7 @@
 
 #include "004.h"
 
-typedef enum { T_VOCT, T_VSTR, T_VBIT, T_VSEQ, T_VOCTM, T_VBIT3, T_VSEQR, T_POCT, T_PINL } Ty;
+typedef enum { T_VOCT, T_VSTR, T_VBIT, T_VSEQ, T_VOCTM, T_VOCTN, T_VBIT3, T_VSEQR, T_POCT, T_PINL } Ty;
 
 /* n times the value v in nBits bits; comp = 0: a length / header field, comp = k > 0: n items of the k-th
    variable-size component (the value: VStr / PInl.s the index in "A".."Z", VSeqR the bits a (3) and b (1)) */
@@ -46,6 +46,7 @@ static size_t type_size(Ty t)
     case T_VBIT: return sizeof(VBit);
     case T_VSEQ: return sizeof(VSeq);
     case T_VOCTM: return sizeof(VOctM);
+    case T_VOCTN: return sizeof(VOctN);
     case T_VBIT3: return sizeof(VBit3);
     case T_VSEQR: return sizeof(VSeqR);
     case T_POCT: return sizeof(POct);
@@ -62,6 +63,7 @@ static long required_bytes(Ty t, int acn)
     case T_VBIT: return VBit_REQUIRED_BYTES_FOR_ENCODING;
     case T_VSEQ: return VSeq_REQUIRED_BYTES_FOR_ENCODING;
     case T_VOCTM: return VOctM_REQUIRED_BYTES_FOR_ENCODING;
+    case T_VOCTN: return VOctN_REQUIRED_BYTES_FOR_ENCODING;
     case T_VBIT3: return VBit3_REQUIRED_BYTES_FOR_ENCODING;
     case T_VSEQR: return VSeqR_REQUIRED_BYTES_FOR_ENCODING;
     case T_POCT: return POct_REQUIRED_BYTES_FOR_ENCODING;
@@ -78,6 +80,7 @@ static flag decode(Ty t, int acn, void* v, BitStream* s, int* e)
     case T_VBIT: return VBit_Decode(v, s, e);
     case T_VSEQ: return VSeq_Decode(v, s, e);
     case T_VOCTM: return VOctM_Decode(v, s, e);
+    case T_VOCTN: return VOctN_Decode(v, s, e);
     case T_VBIT3: return VBit3_Decode(v, s, e);
     case T_VSEQR: return VSeqR_Decode(v, s, e);
     case T_POCT: return POct_Decode(v, s, e);
@@ -94,6 +97,7 @@ static flag encode(Ty t, int acn, const void* v, BitStream* s, int* e)
     case T_VBIT: return VBit_Encode(v, s, e, TRUE);
     case T_VSEQ: return VSeq_Encode(v, s, e, TRUE);
     case T_VOCTM: return VOctM_Encode(v, s, e, TRUE);
+    case T_VOCTN: return VOctN_Encode(v, s, e, TRUE);
     case T_VBIT3: return VBit3_Encode(v, s, e, TRUE);
     case T_VSEQR: return VSeqR_Encode(v, s, e, TRUE);
     case T_POCT: return POct_Encode(v, s, e, TRUE);
@@ -110,6 +114,7 @@ static flag equal(Ty t, const void* a, const void* b)
     case T_VBIT: return VBit_Equal(a, b);
     case T_VSEQ: return VSeq_Equal(a, b);
     case T_VOCTM: return VOctM_Equal(a, b);
+    case T_VOCTN: return VOctN_Equal(a, b);
     case T_VBIT3: return VBit3_Equal(a, b);
     case T_VSEQR: return VSeqR_Equal(a, b);
     case T_POCT: return POct_Equal(a, b);
@@ -134,6 +139,7 @@ static void add_item(Ty t, void* v, int comp, unsigned x, long* count)
     case T_VBIT: set_bit(((VBit*)v)->arr, (int)i, x); ((VBit*)v)->nCount++; break;
     case T_VSEQ: ((VSeq*)v)->arr[i] = x; ((VSeq*)v)->nCount++; break;
     case T_VOCTM: ((VOctM*)v)->arr[i] = (byte)x; ((VOctM*)v)->nCount++; break;
+    case T_VOCTN: ((VOctN*)v)->arr[i] = (byte)x; ((VOctN*)v)->nCount++; break;
     case T_VBIT3: set_bit(((VBit3*)v)->arr, (int)i, x); ((VBit3*)v)->nCount++; break;
     case T_VSEQR: ((VSeqR*)v)->arr[i].a = x >> 1; ((VSeqR*)v)->arr[i].b = (flag)(x & 1); ((VSeqR*)v)->nCount++; break;
     case T_POCT:
@@ -252,6 +258,8 @@ static void vstr_rows(int acn, int err)
           H(0xC4), I(0, 5, 65535), I(26, 5, 1), H(0x00));
     CHECK("R3c VStr C4, item 100 of the final part fails", T_VSTR, acn, REJECT, err, 328204,
           H(0xC4), I(0, 5, 65536), L2(4464), I(0, 5, 99), I(27, 5, 1), I(0, 5, 4364));
+    CHECK("R3d VStr C3, last item of the block fails", T_VSTR, acn, REJECT, err, 245768,
+          H(0xC3), I(0, 5, 49151), I(29, 5, 1), H(0x00));
     /* a block whose items pass the maximum 70000, a final part that passes it */
     CHECK("R4 VStr C4 C1: 81920 items", T_VSTR, acn, REJECT, err, 327696,
           H(0xC4), I(0, 5, 65536), H(0xC1), I(0, 5, 16384), H(0x00));
@@ -269,6 +277,7 @@ static void vstr_rows(int acn, int err)
           H(0xC4), I(1, 5, 65536), L2(4464), I(2, 5, 4464));
     CHECK("A2 VStr 16384 Z + 3 A", T_VSTR, acn, ACCEPT, 0, 81951, H(0xC1), I(25, 5, 16384), H(0x03), I(0, 5, 3));
     CHECK("A2b VStr 65536 D, empty final part", T_VSTR, acn, ACCEPT, 0, 327696, H(0xC4), I(3, 5, 65536), H(0x00));
+    CHECK("A2c VStr C3: 49152 E + 5 F", T_VSTR, acn, ACCEPT, 0, 245801, H(0xC3), I(4, 5, 49152), H(0x05), I(5, 5, 5));
 }
 
 int main(void)
@@ -286,6 +295,8 @@ int main(void)
     CHECK("A3 VOct 70000", T_VOCT, UPER, ACCEPT, 0, 560024, H(0xC4), I(0x5A, 8, 65536), L2(4464), I(0xA5, 8, 4464));
     CHECK("A4 VOct 16384", T_VOCT, UPER, ACCEPT, 0, 131088, H(0xC1), I(0x11, 8, 16384), H(0x00));
     CHECK("A4b VOct empty", T_VOCT, UPER, ACCEPT, 0, 8, H(0x00));
+    CHECK("A4c VOct C3 + 848: 50000", T_VOCT, UPER, ACCEPT, 0, 400024,
+          H(0xC3), I(0x3C, 8, 49152), L2(848), I(0xC3, 8, 848));
 
     /* OCTET STRING (SIZE(0..81920)): blocks that end exactly at the maximum */
     CHECK("M1 VOctM C4 C1 00: 81920", T_VOCTM, UPER, ACCEPT, 0, 655384,
@@ -295,6 +306,12 @@ int main(void)
     CHECK("M3 VOctM C4 C2: 98304", T_VOCTM, UPER, REJECT, ERR_UPER_DECODE_VOCTM, 524304,
           H(0xC4), I(0x5A, 8, 65536), H(0xC2), I(0x02, 8, 32768));
     CHECK("M4 VOctM C4 + 16383", T_VOCTM, UPER, ACCEPT, 0, 655376,
+          H(0xC4), I(0x5A, 8, 65536), L2(16383), I(0x07, 8, 16383));
+
+    /* OCTET STRING (SIZE(0..81919)): a block that passes the maximum by one item */
+    CHECK("M5 VOctN C4 C1: 81920, one over the maximum", T_VOCTN, UPER, REJECT, ERR_UPER_DECODE_VOCTN, 524304,
+          H(0xC4), I(0x5A, 8, 65536), H(0xC1), I(0x02, 8, 16384), H(0x00));
+    CHECK("M6 VOctN C4 + 16383: 81919", T_VOCTN, UPER, ACCEPT, 0, 655376,
           H(0xC4), I(0x5A, 8, 65536), L2(16383), I(0x07, 8, 16383));
 
     /* BIT STRING (SIZE(0..70000)) */
@@ -345,10 +362,11 @@ int main(void)
     CHECK("Q6 VSeqR C4 C4 C2: 163840", T_VSEQR, UPER, REJECT, ERR_UPER_DECODE_VSEQR, 524312,
           H(0xC4), I(5, 4, 65536), H(0xC4), I(5, 4, 65536), H(0xC2), I(5, 4, 32768));
 
-    /* a component of type VOct, then a fixed-size tail: a block over the maximum leaves the tail untouched */
+    /* a component of type VOct, then a fixed-size tail of 32768 octets: a block over the maximum leaves the tail
+       untouched (the 28304 octets a decoder without the block check writes past o would stay inside the tail) */
     CHECK("P1 POct o = C4 C2, tail kept", T_POCT, UPER, REJECT, ERR_UPER_DECODE_VOCT, 524304,
-          H(0xC4), C(1, 0xAA, 8, 65536), H(0xC2), C(1, 0xBB, 8, 32768), H(0x00), C(2, 0xBB, 8, 4096));
-    CHECK("P2 POct o = 3 octets", T_POCT, UPER, ACCEPT, 0, 32800, H(0x03), C(1, 0xAA, 8, 3), C(2, 0xCC, 8, 4096));
+          H(0xC4), C(1, 0xAA, 8, 65536), H(0xC2), C(1, 0xBB, 8, 32768), H(0x00), C(2, 0xBB, 8, 32768));
+    CHECK("P2 POct o = 3 octets", T_POCT, UPER, ACCEPT, 0, 262176, H(0x03), C(1, 0xAA, 8, 3), C(2, 0xCC, 8, 32768));
 
     /* three inline fragmented components (o OCTET, s IA5String, q SEQUENCE OF) and an INTEGER */
     CHECK("N1 PInl a block in o, s and q", T_PINL, UPER, ACCEPT, 0, 262203,

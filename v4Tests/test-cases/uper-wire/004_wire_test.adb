@@ -3,8 +3,9 @@
 --  one stream from runs of fields; the decoder must reject it with the given error code and stop at the given bit
 --  position, or accept it, decode to the value the runs describe (Equal) and that value must encode to the same bytes.
 --  Rows G1 / P1 also check that a rejected value leaves the octets after the value and the next component untouched:
---  under -gnatp an index check cannot stop a write past the maximum size, and such a write may stay inside the
---  allocation, where a sanitizer does not see it. Before the fix the decoders read every block without checking it
+--  under -gnatp an index check cannot stop a write past the maximum size; the guards and the tail (32768 octets) are
+--  longer than the 28304 octets such a write puts past the value, so it stays inside the allocation, where a sanitizer
+--  does not see it. An optional argument runs only the rows whose name starts with it (e.g. "G1", "P1"). Before the fix the decoders read every block without checking it
 --  against the maximum (Constraint_Error, or a write past the value under -gnatp), took any header from C0 on as a
 --  length, skipped a final part over the maximum and returned Success, and lost the failure of an item.
 with Ada.Text_IO;
@@ -63,6 +64,12 @@ procedure Wire_Test is
    procedure Check
      (Name : String; Expect : Outcome; Err : Integer; Pos : Natural; Segs : Seg_Array);
 
+   function Selected (Name : String) return Boolean is
+     (Ada.Command_Line.Argument_Count = 0
+      or else (Name'Length >= Ada.Command_Line.Argument (1)'Length
+               and then Name (Name'First .. Name'First + Ada.Command_Line.Argument (1)'Length - 1)
+                        = Ada.Command_Line.Argument (1)));
+
    procedure Check
      (Name : String; Expect : Outcome; Err : Integer; Pos : Natural; Segs : Seg_Array)
    is
@@ -77,6 +84,9 @@ procedure Wire_Test is
       At_Bit  : Natural := 0;
       Cnt     : Counts := (others => 0);
    begin
+      if not Selected (Name) then
+         return;
+      end if;
       for G of Segs loop
          N_Bits := N_Bits + G.N_Bits * G.N;
       end loop;
@@ -160,6 +170,7 @@ procedure Wire_Test is
    function Always (V : VBit) return Boolean is (True);
    function Always (V : VSeq) return Boolean is (True);
    function Always (V : VOctM) return Boolean is (True);
+   function Always (V : VOctN) return Boolean is (True);
    function Always (V : VBit3) return Boolean is (True);
    function Always (V : VSeqR) return Boolean is (True);
    function Always (V : PInl) return Boolean is (True);
@@ -186,6 +197,11 @@ procedure Wire_Test is
       V.Length := Idx;
    end Add;
    procedure Add (V : in out VOctM; Comp, Idx : Positive; X : Natural) is
+   begin
+      V.Data (Idx) := Asn1Byte (X);
+      V.Length := Idx;
+   end Add;
+   procedure Add (V : in out VOctN; Comp, Idx : Positive; X : Natural) is
    begin
       V.Data (Idx) := Asn1Byte (X);
       V.Length := Idx;
@@ -238,7 +254,7 @@ procedure Wire_Test is
 
    --  VOct between two guard regions in one allocation
    Guard_Fill : constant Asn1Byte := 16#A5#;
-   type Guard_Region is array (1 .. 4096) of Asn1Byte;
+   type Guard_Region is array (1 .. 32768) of Asn1Byte;
    type Guarded_VOct is record
       G1 : Guard_Region;
       V  : VOct;
@@ -276,6 +292,8 @@ procedure Wire_Test is
                                       Always, VSeq_REQUIRED_BYTES_FOR_ENCODING);
    procedure Check_VOctM is new Check (VOctM, VOctM_Decode_aux, VOctM_Encode_aux, VOctM_Equal, VOctM_Init,
                                        VOctM_Init, Add, Always, VOctM_REQUIRED_BYTES_FOR_ENCODING);
+   procedure Check_VOctN is new Check (VOctN, VOctN_Decode_aux, VOctN_Encode_aux, VOctN_Equal, VOctN_Init,
+                                       VOctN_Init, Add, Always, VOctN_REQUIRED_BYTES_FOR_ENCODING);
    procedure Check_VBit3 is new Check (VBit3, VBit3_Decode_aux, VBit3_Encode_aux, VBit3_Equal, VBit3_Init,
                                        VBit3_Init, Add, Always, VBit3_REQUIRED_BYTES_FOR_ENCODING);
    procedure Check_VSeqR is new Check (VSeqR, VSeqR_Decode_aux, VSeqR_Encode_aux, VSeqR_Equal, VSeqR_Init,
@@ -305,6 +323,8 @@ procedure Wire_Test is
            (H (16#C4#), It (0, 5, 65535), It (26, 5, 1), H (16#00#)));
       Chk ("R3c VStr C4, item 100 of the final part fails", Rejected, Err, 328204,
            (H (16#C4#), It (0, 5, 65536), L2 (4464), It (0, 5, 99), It (27, 5, 1), It (0, 5, 4364)));
+      Chk ("R3d VStr C3, last item of the block fails", Rejected, Err, 245768,
+           (H (16#C3#), It (0, 5, 49151), It (29, 5, 1), H (16#00#)));
       --  a block whose items pass the maximum 70000, a final part that passes it
       Chk ("R4 VStr C4 C1: 81920 items", Rejected, Err, 327696,
            (H (16#C4#), It (0, 5, 65536), H (16#C1#), It (0, 5, 16384), H (16#00#)));
@@ -322,6 +342,8 @@ procedure Wire_Test is
            (H (16#C4#), It (1, 5, 65536), L2 (4464), It (2, 5, 4464)));
       Chk ("A2 VStr 16384 Z + 3 A", Accepted, 0, 81951, (H (16#C1#), It (25, 5, 16384), H (16#03#), It (0, 5, 3)));
       Chk ("A2b VStr 65536 D, empty final part", Accepted, 0, 327696, (H (16#C4#), It (3, 5, 65536), H (16#00#)));
+      Chk ("A2c VStr C3: 49152 E + 5 F", Accepted, 0, 245801,
+           (H (16#C3#), It (4, 5, 49152), H (16#05#), It (5, 5, 5)));
    end VStr_Rows;
 
    procedure VStr_Uper_Rows is new VStr_Rows (Check_VStr);
@@ -341,7 +363,9 @@ begin
                (H (16#C4#), It (16#5A#, 8, 65536), L2 (4464), It (16#A5#, 8, 4464)));
    Check_VOct ("A4 VOct 16384", Accepted, 0, 131088, (H (16#C1#), It (16#11#, 8, 16384), H (16#00#)));
    Check_VOct ("A4b VOct empty", Accepted, 0, 8, (1 => H (16#00#)));
-   --  the R9 stream into a VOct between two guard regions
+   Check_VOct ("A4c VOct C3 + 848: 50000", Accepted, 0, 400024,
+               (H (16#C3#), It (16#3C#, 8, 49152), L2 (848), It (16#C3#, 8, 848)));
+   --  the R9 stream into a VOct between two guard regions of 32768 octets
    Check_Guarded ("G1 VOct C4 C2 between guards", Rejected, ERR_UPER_DECODE_VOCT, 524304,
                   (H (16#C4#), It (16#5A#, 8, 65536), H (16#C2#), It (16#5A#, 8, 32768), H (16#00#)));
    Check_Guarded ("G2 VOct 70000 between guards", Accepted, 0, 560024,
@@ -356,6 +380,12 @@ begin
    Check_VOctM ("M3 VOctM C4 C2: 98304", Rejected, ERR_UPER_DECODE_VOCTM, 524304,
                 (H (16#C4#), It (16#5A#, 8, 65536), H (16#C2#), It (16#02#, 8, 32768)));
    Check_VOctM ("M4 VOctM C4 + 16383", Accepted, 0, 655376,
+                (H (16#C4#), It (16#5A#, 8, 65536), L2 (16383), It (16#07#, 8, 16383)));
+
+   --  OCTET STRING (SIZE(0..81919)): a block that passes the maximum by one item
+   Check_VOctN ("M5 VOctN C4 C1: 81920, one over the maximum", Rejected, ERR_UPER_DECODE_VOCTN, 524304,
+                (H (16#C4#), It (16#5A#, 8, 65536), H (16#C1#), It (16#02#, 8, 16384), H (16#00#)));
+   Check_VOctN ("M6 VOctN C4 + 16383: 81919", Accepted, 0, 655376,
                 (H (16#C4#), It (16#5A#, 8, 65536), L2 (16383), It (16#07#, 8, 16383)));
 
    --  BIT STRING (SIZE(0..70000))
@@ -413,12 +443,13 @@ begin
    Check_VSeqR ("Q6 VSeqR C4 C4 C2: 163840", Rejected, ERR_UPER_DECODE_VSEQR, 524312,
                 (H (16#C4#), It (5, 4, 65536), H (16#C4#), It (5, 4, 65536), H (16#C2#), It (5, 4, 32768)));
 
-   --  a component of type VOct, then a fixed-size tail: a block over the maximum leaves the tail untouched
+   --  a component of type VOct, then a fixed-size tail of 32768 octets: a block over the maximum leaves the tail
+   --  untouched
    Check_POct ("P1 POct o = C4 C2, tail kept", Rejected, ERR_UPER_DECODE_VOCT, 524304,
                (H (16#C4#), C (1, 16#AA#, 8, 65536), H (16#C2#), C (1, 16#BB#, 8, 32768), H (16#00#),
-                C (2, 16#BB#, 8, 4096)));
-   Check_POct ("P2 POct o = 3 octets", Accepted, 0, 32800,
-               (H (16#03#), C (1, 16#AA#, 8, 3), C (2, 16#CC#, 8, 4096)));
+                C (2, 16#BB#, 8, 32768)));
+   Check_POct ("P2 POct o = 3 octets", Accepted, 0, 262176,
+               (H (16#03#), C (1, 16#AA#, 8, 3), C (2, 16#CC#, 8, 32768)));
 
    --  three inline fragmented components (o OCTET, s IA5String, q SEQUENCE OF) and an INTEGER
    Check_PInl ("N1 PInl a block in o, s and q", Accepted, 0, 262203,
