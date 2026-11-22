@@ -690,6 +690,11 @@ while <sBLI> \< (<sCurOffset> + <nRemainingItemsVar>) as usize
 <endif>
 >>
 
+FixedSize_Fragmentation_sqf_final_zero_encode(sCurOffset, nFixedSize, sRemainingItemsVar, sErrCodeName) ::= <<
+//the final length of a fragmented length whose last fragment holds a multiple of 16K items is a single zero octet (X.691 10.9.3.8.3 NOTE)
+pBitStrm.encode_constraint_whole_number(0, 0, 0xFF);
+>>
+
 FixedSize_Fragmentation_sqf_encode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
 <arrsEncodingParts; separator="\n">
 >>
@@ -843,6 +848,16 @@ if ret {
     }
 
     <endif>
+}
+>>
+
+FixedSize_Fragmentation_sqf_final_zero_decode(sCurOffset, nFixedSize, sRemainingItemsVar, sErrCodeName) ::= <<
+//the final length of a fragmented length whose last fragment holds a multiple of 16K items is a single zero octet (X.691 10.9.3.8.3 NOTE)
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(0, 0xFF);
+    <sRemainingItemsVar> = val;
+    ret = ok && (<sRemainingItemsVar> == 0);
+    *pErrCode = if ret { 0 } else { <sErrCodeName> };
 }
 >>
 

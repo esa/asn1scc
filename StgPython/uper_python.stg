@@ -676,6 +676,12 @@ for <sBLI> in range(int(<sCurOffset>), int(<sCurOffset> + <nRemainingItemsVar>))
 <endif>
 >>
 
+FixedSize_Fragmentation_sqf_final_zero_encode(sCurOffset, nFixedSize, sRemainingItemsVar, sErrCodeName) ::= <<
+# the final length of a fragmented length whose last fragment holds a multiple of 16K items is a single zero octet (X.691 10.9.3.8.3 NOTE)
+res = codec.encode_constrained_whole_number(0, 0, 0xFF)
+<CheckEncodeResult(sInp="res", sErrCode=sErrCodeName)>
+>>
+
 FixedSize_Fragmentation_sqf_encode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
 <arrsEncodingParts; separator="\n">
 >>
@@ -822,6 +828,17 @@ while <sBLI> \< int(<sCurOffset> + <nRemainingItemsVar>):
     <sBLI> += 1
 <endif>
 
+>>
+
+FixedSize_Fragmentation_sqf_final_zero_decode(sCurOffset, nFixedSize, sRemainingItemsVar, sErrCodeName) ::= <<
+# the final length of a fragmented length whose last fragment holds a multiple of 16K items is a single zero octet (X.691 10.9.3.8.3 NOTE)
+_decoded_len = codec.decode_constrained_whole_number(0, 0xFF)
+if not _decoded_len or _decoded_len.decoded_value is None:
+    if _decoded_len.error_code == ErrorCode.INSUFFICIENT_DATA:
+        raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCodeName>}: {_decoded_len.error_message}", field_name=cls.DecodeConstants.<sErrCodeName>_path)
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCodeName>}: {_decoded_len.error_message}", field_name=cls.DecodeConstants.<sErrCodeName>_path)
+if _decoded_len.decoded_value != 0:
+    raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCodeName>}: Invalid final zero length", field_name=cls.DecodeConstants.<sErrCodeName>_path)
 >>
 
 FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<

@@ -507,12 +507,18 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:Com
     let parts = parts@smallBlockParts
 
     let bRemainingItemsWithinByte = r.nRemainingItemsVar <= C_127
-    let parts=
+    // each part with its encode outcome: the blocks and the remaining items encode elements; the final zero length
+    // (Issue 151: the last fragment holds a multiple of 16K items, X.691 10.9.3.8.3 NOTE) is one RTL write
+    let parts =
+        let blockOutcome = EncodeOutcome.loopElement itemOutcome
+        let parts = parts |> List.map (fun x -> x, blockOutcome)
         match r.nRemainingItemsVar > 0I with
         | true  ->
             let part = fixedSize_Fragmentation_sqf_remaining (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) internalItem_funcBody bRemainingItemsWithinByte r.nRemainingItemsVar sCurOffset sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
-            parts@[part]
-        | false -> parts
+            parts@[(part, blockOutcome)]
+        | false ->
+            let part = lm.uper.FixedSize_Fragmentation_sqf_final_zero sCurOffset fixSize sRemainingItemsVar errCode.errCodeName codec
+            parts@[(part, lm.lg.encodeTemplateOutcome EncRtlWritesOnly)]
 
     let createLv = lm.lg.uper.createLv
 
@@ -525,8 +531,8 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:Com
     // write no result, e.g. the octets of an OCTET STRING); decoding as before
     let singleNestedPart =
         match codec with
-        | Encode -> DAstUtilFunctions.nestEncodeParts lm (parts |> List.map (fun x -> x, EncodeOutcome.loopElement itemOutcome)) |> Option.toList
-        | Decode -> nestChildItems lm  codec parts |> Option.toList
+        | Encode -> DAstUtilFunctions.nestEncodeParts lm parts |> Option.toList
+        | Decode -> nestChildItems lm  codec (parts |> List.map fst) |> Option.toList
     fixedSize_Fragmentation_sqf (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) singleNestedPart fixSize bIsAsciiString codec, fragmentationVars
 
 let handleFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString (itemOutcome:EncodeOutcome) =

@@ -33,21 +33,22 @@ let FragmentationParts (size:BigInteger) =
 
     { nBlocks64K = nBlocks64K; has48KBlock = has48KBlock; has32KBlock = has32KBlock; has16KBlock = has16KBlock; nRemainingItemsVar = nRemainingItemsVar}
 
-/// Coverage cycle 15d: the bits of a fixed-size fragmented encoding of size items of itemBits bits (headers included).
+/// Coverage cycle 15d: the bits of a fixed-size fragmented encoding of size items of itemBits bits (headers included;
+/// a size that is a multiple of 16K ends with the final zero length octet, Issue 151, X.691 10.9.3.8.3 NOTE).
 let fixedSizeFragmentedBits (size:BigInteger) (itemBits:BigInteger) : BigInteger =
     let r = FragmentationParts size
     let smallItems = [(r.has48KBlock, C48K); (r.has32KBlock, C32K); (r.has16KBlock, C16K)] |> List.filter fst |> List.sumBy snd
     let nSmallHeaders = [r.has48KBlock; r.has32KBlock; r.has16KBlock] |> List.filter id |> List.length |> BigInteger
     let restHeaderBits =
         match r.nRemainingItemsVar > 0I, r.nRemainingItemsVar <= C_127 with
-        | false, _     -> 0I
+        | false, _     -> 8I                                               // the final zero length
         | true, true   -> 8I
         | true, false  -> 16I
     8I * r.nBlocks64K + 8I * nSmallHeaders + restHeaderBits + (r.nBlocks64K * C64K + smallItems + r.nRemainingItemsVar) * itemBits
 
 /// Coverage cycle 15d: byte positions of the headers of a fixed-size fragmented encoding (handleFixedSizeFragmentation:
 /// a 0xC4 octet per 64K block, one 0xC3 / 0xC2 / 0xC1 octet for a 48K / 32K / 16K block, then the length of the rest
-/// in 1 octet (<= 127) or 2) that starts at bit 0, each with the byte after it (the first items of its block); the
+/// in 1 octet (<= 127, also the final zero length when the rest is 0, Issue 151) or 2) that starts at bit 0, each with the byte after it (the first items of its block); the
 /// decode sweep of the automatic tests corrupts them. Every block holds a multiple of 16K items, so every header is
 /// byte aligned whatever the item size. Capped to the first and the last 64K header (the others run the same loop),
 /// the small block header and the length of the rest: at most 9 positions for any size. Only positions inside the
@@ -68,7 +69,7 @@ let fixedSizeFragmentationHeaderBytes (size:BigInteger) (itemBits:BigInteger) : 
             match smallBlock with
             | Some _ -> yield (smallStart, 1I)
             | None   -> ()
-            if r.nRemainingItemsVar > 0I then yield (restStart, (if r.nRemainingItemsVar <= C_127 then 1I else 2I))
+            yield (restStart, (if r.nRemainingItemsVar <= C_127 then 1I else 2I))     // rest 0: the final zero length
         ]
     headers |> List.collect (fun (first, nBytes) -> [first .. first + nBytes]) |> List.distinct |> List.sort |>
     List.filter (fun p -> p < encodedBytes)

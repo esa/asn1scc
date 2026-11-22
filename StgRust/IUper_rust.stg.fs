@@ -99,6 +99,8 @@ type IUper_rust() =
             uper_rust.FixedSize_Fragmentation_sqf_small_block  p sAcc sInternalItem nBlockSize sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType sErrCodeName codec
         override this.FixedSize_Fragmentation_sqf_remaining  (p:string) (sAcc:string) (sInternalItem:string) (bRemainingItemsWithinByte:bool) (nRemainingItemsVar:BigInteger) (sCurOffset:string) (sBLI:string) (sRemainingItemsVar:string) (bIsBitStringType:bool) (sErrCodeName:string) (codec:Codec) =
             uper_rust.FixedSize_Fragmentation_sqf_remaining  p sAcc sInternalItem bRemainingItemsWithinByte nRemainingItemsVar sCurOffset sBLI sRemainingItemsVar bIsBitStringType sErrCodeName codec
+        override this.FixedSize_Fragmentation_sqf_final_zero  (sCurOffset:string) (nFixedSize:BigInteger) (sRemainingItemsVar:string) (sErrCodeName:string) (codec:Codec) =
+            uper_rust.FixedSize_Fragmentation_sqf_final_zero  sCurOffset nFixedSize sRemainingItemsVar sErrCodeName codec
         override this.FixedSize_Fragmentation_sqf  (p:string) (sAcc:string) (arrsEncodingParts:seq<string>) (nFixedSize:BigInteger) (bIsBitStringType:bool) (codec:Codec) =
             uper_rust.FixedSize_Fragmentation_sqf  p sAcc arrsEncodingParts nFixedSize bIsBitStringType codec
         override this.Fragmentation_sqf  (p:string) (sAcc:string) (sInternalItem:string) (nIntItemMaxSize:BigInteger) (nSizeMin:BigInteger) (nSizeMax:BigInteger) (nRequiredBitsForUPerEncoding:BigInteger) (bIsVariableSize:bool) (sErrCodeName:string) (sRemainingItemsVar:string) (sCurBlockSize:string) (sBlockIndex:string) (sCurOffset:string) (sBLJ:string) (sBLI:string) (sLengthTmp:string) (bIsBitStringType:bool) (bIsAsciiString:bool) (codec:Codec) =

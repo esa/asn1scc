@@ -232,6 +232,39 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# Fixed-size fragmented lengths (Issue 151): when the last fragment of SIZE(N), N >= 64K, holds a multiple of 16K items,
+# a final length octet 0 follows (X.691 10.9.3.8.3 NOTE); valid streams are byte-exact (= asn1tools), any other final
+# octet is rejected with the type's error code after the octet (Ada also after a block of elements with their own
+# decoder, which set the error code to 0). uPER and the ACN IA5String path, legacy and --acn-v2; C with ASan / UBSan,
+# Ada without and with -gnata (also --exact-size: buffers of exactly REQUIRED_BYTES). The generated Ada package is
+# also compiled with the switches of the generated project (-gnatwae, no -gnata): the encoders of SIZE(81920) /
+# SIZE(114688) / SIZE(147456) ended with a "possibly useless assignment" (-gnatwm), an error under -gnatwe.
+for mode in "" "--acn-v2"; do
+    out=$work/uper007$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/007.asn1"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/uper-wire/007_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "uper-wire 007 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/uper007ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/007.asn1"
+        if [ "$gnata" = "" ]; then
+            (cd "$out" && gcc -c -gnatwae -gnat2012 -g -gnatf -gnaty -gnatwa -gnatg -fstack-check uper_wire_fixed.adb \
+                && rm uper_wire_fixed.o uper_wire_fixed.ali)
+            echo "uper-wire 007 (Ada) $mode package builds with -gnatwae"
+        fi
+        cp "$root/test-cases/uper-wire/007_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        if [ "$gnata" = -gnata ]; then
+            (cd "$out" && ./wire_test --exact-size)
+        fi
+        echo "uper-wire 007 (Ada) $mode $gnata OK"
+    done
+done
+
 # ACN INTEGER as ASCII digits with a terminator: a value outside the range of the type, or a digit string beyond the
 # integer type, is an error code (Ada used to raise Constraint_Error, and accepted digit strings that wrapped around);
 # C, Ada x86 and Ada msp430 (-gnata: the RTL contracts are checked too).

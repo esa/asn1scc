@@ -359,6 +359,14 @@ let FixedSize_Fragmentation_sqf_remaining (p:string) (sAcc:string) (sInternalIte
     | Decode    ->
         ST.call "uper_rust" "FixedSize_Fragmentation_sqf_remaining_decode" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sInternalItem",(if sInternalItem = null then null else ST.StrHelper sInternalItem:>Object) );("bRemainingItemsWithinByte",bRemainingItemsWithinByte :>Object);("nRemainingItemsVar",nRemainingItemsVar :>Object);("sCurOffset",(if sCurOffset = null then null else ST.StrHelper sCurOffset:>Object) );("sBLI",(if sBLI = null then null else ST.StrHelper sBLI:>Object) );("sRemainingItemsVar",(if sRemainingItemsVar = null then null else ST.StrHelper sRemainingItemsVar:>Object) );("bIsBitStringType",bIsBitStringType :>Object);("sErrCodeName",(if sErrCodeName = null then null else ST.StrHelper sErrCodeName:>Object) )]
 
+let FixedSize_Fragmentation_sqf_final_zero (sCurOffset:string) (nFixedSize:BigInteger) (sRemainingItemsVar:string) (sErrCodeName:string) codec =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    match codec with
+    | Encode    ->
+        ST.call "uper_rust" "FixedSize_Fragmentation_sqf_final_zero_encode" [("sCurOffset",(if sCurOffset = null then null else ST.StrHelper sCurOffset:>Object) );("nFixedSize",nFixedSize :>Object);("sRemainingItemsVar",(if sRemainingItemsVar = null then null else ST.StrHelper sRemainingItemsVar:>Object) );("sErrCodeName",(if sErrCodeName = null then null else ST.StrHelper sErrCodeName:>Object) )]
+    | Decode    ->
+        ST.call "uper_rust" "FixedSize_Fragmentation_sqf_final_zero_decode" [("sCurOffset",(if sCurOffset = null then null else ST.StrHelper sCurOffset:>Object) );("nFixedSize",nFixedSize :>Object);("sRemainingItemsVar",(if sRemainingItemsVar = null then null else ST.StrHelper sRemainingItemsVar:>Object) );("sErrCodeName",(if sErrCodeName = null then null else ST.StrHelper sErrCodeName:>Object) )]
+
 let FixedSize_Fragmentation_sqf (p:string) (sAcc:string) (arrsEncodingParts:seq<string>) (nFixedSize:BigInteger) (bIsBitStringType:bool) codec =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     match codec with
