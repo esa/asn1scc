@@ -848,6 +848,9 @@ if not _decoded_marker or _decoded_marker.decoded_value is None:
     raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCodeName>}: {_decoded_marker.error_message}", field_name=cls.DecodeConstants.<sErrCodeName>_path)
 <sRemainingItemsVar> = _decoded_marker.decoded_value
 while (<sRemainingItemsVar> & 0xC0) == 0xC0:
+    if <sCurBlockSize> % 0x10000 != 0:
+        # a fragment of fewer than 64K items is the last one: only the final length may follow (X.691 10.9.3.8.1)
+        raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCodeName>}: Fragment after a fragment of fewer than 64K items", field_name=cls.DecodeConstants.<sErrCodeName>_path)
     if <sRemainingItemsVar> == 0xC4:
         <sCurBlockSize> = 0x10000
     elif <sRemainingItemsVar> == 0xC3:
@@ -888,6 +891,9 @@ if (<sRemainingItemsVar> & 0x80) > 0:
             raise Asn1UnexpectedEndOfDataException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCodeName>}: {_decoded_len2.error_message}", field_name=cls.DecodeConstants.<sErrCodeName>_path)
         raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCodeName>}: {_decoded_len2.error_message}", field_name=cls.DecodeConstants.<sErrCodeName>_path)
     <sRemainingItemsVar> = (<sRemainingItemsVar> | _decoded_len2.decoded_value) & 0x7FFF
+    if <sRemainingItemsVar> \< 0x80:
+        # a length below 128 takes one octet (X.691 10.9.3.6)
+        raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCodeName>}: A length below 128 in two octets", field_name=cls.DecodeConstants.<sErrCodeName>_path)
 if <sCurOffset> + <sRemainingItemsVar> > <nSizeMax>:
     raise Asn1InvalidValueException(f"Decoding failed with Error Code {cls.DecodeConstants.<sErrCodeName>}: Fragmentation exceeds max size", field_name=cls.DecodeConstants.<sErrCodeName>_path)
 <if(bIsBitStringType)>

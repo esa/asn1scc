@@ -1962,6 +1962,7 @@ impl<'a> BitStream<'a> {
     pub fn decode_general_length(&mut self, arr: &mut [u8], n_max: i32, n_unit_bits: i32) -> (i32, bool) {
         let mut n_offset: i32 = 0;
         let mut b_last = false;
+        let mut b_short_fragment = false;
         let mut ret = true;
         while ret && !b_last {
             let mut n_part: Asn1SccSint = 0;
@@ -1977,7 +1978,9 @@ impl<'a> BitStream<'a> {
                     ret = ok2 && n_part >= 0x80;
                     b_last = true;
                 } else {
-                    ret = (0xC1..=0xC4).contains(&n_header);
+                    // X.691 10.9.3.8.1: a part of 16K .. 48K units is the last fragment, only the final length follows
+                    ret = !b_short_fragment && (0xC1..=0xC4).contains(&n_header);
+                    b_short_fragment = n_header != 0xC4;
                     n_part = (n_header & 0x07) * 0x4000;
                 }
             }

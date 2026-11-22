@@ -1701,6 +1701,7 @@ flag BitStream_DecodeGeneralLength(BitStream* pBitStrm, byte* arr, int* pCount, 
 	   128 .. 16K - 1 in two); every part is checked against the maximum (nMax units, the size of arr) before it is read */
 	int nOffset = 0;
 	flag bLast = FALSE;
+	flag bShortFragment = FALSE;
 	flag ret = TRUE;
 	while (ret && !bLast) {
 		asn1SccSint nHeader = 0;
@@ -1717,7 +1718,9 @@ flag BitStream_DecodeGeneralLength(BitStream* pBitStrm, byte* arr, int* pCount, 
 				ret = ret && nPart >= 0x80; /* X.691 10.9.3.6: a shorter length takes one octet */
 				bLast = TRUE;
 			} else {
-				ret = nHeader >= 0xC1 && nHeader <= 0xC4;
+				/* X.691 10.9.3.8.1: a part of 16K .. 48K units is the last fragment, only the final length follows */
+				ret = !bShortFragment && nHeader >= 0xC1 && nHeader <= 0xC4;
+				bShortFragment = nHeader != 0xC4;
 				nPart = (nHeader & 0x07) * 0x4000;
 			}
 		}

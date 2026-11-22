@@ -156,7 +156,10 @@ done
 # skipped a final part over the maximum and lost item failures). uPER and the ACN IA5String path, legacy and
 # --acn-v2; C with ASan / UBSan; Ada without and with -gnata, and with -gnatp (no run-time checks: rows G1 / P1
 # compare the guard regions around a value and the next component, which a write past the value inside the same
-# allocation changes without any sanitizer report; ASan on top, with a finite stack).
+# allocation changes without any sanitizer report; ASan on top, with a finite stack). Issue 154: the rows NC* reject
+# the layouts no X.691 encoder writes (a fragment header after a C1 .. C3 fragment, a two-octet length below 128);
+# the -gnata build runs once more with every stream in a buffer of exactly REQUIRED_BYTES (--exact-size), where a
+# decoder reading past REQUIRED_BITS fails an RTL precondition instead of returning FALSE.
 for mode in "" "--acn-v2"; do
     out=$work/uper004$mode
     mkdir "$out"
@@ -176,7 +179,33 @@ for mode in "" "--acn-v2"; do
         else
             (cd "$out" && gnatmake -q -gnat2012 $gnat wire_test.adb && ./wire_test)
         fi
+        if [ "$gnat" = -gnata ]; then
+            (cd "$out" && ./wire_test --exact-size)
+        fi
         echo "uper-wire 004 (Ada) $mode $gnat OK"
+    done
+done
+
+# uPER OCTET / BIT STRING (CONTAINING X) of 16K units or more (Issue 154): the general length rejects a fragment
+# header after a C1 .. C3 fragment and a two-octet length below 128, and accepts a final length after a C1 .. C3;
+# rejections pin the error code and the bit position (Ada restores the position to the start of the CONTAINING when
+# a fragmented length is rejected), valid streams are byte-exact. uPER, legacy and --acn-v2; C with ASan / UBSan,
+# Ada without and with -gnata.
+for mode in "" "--acn-v2"; do
+    out=$work/uper005$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/005.asn1"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/uper-wire/005_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "uper-wire 005 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/uper005ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/005.asn1"
+        cp "$root/test-cases/uper-wire/005_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "uper-wire 005 (Ada) $mode $gnata OK"
     done
 done
 

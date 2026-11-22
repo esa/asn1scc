@@ -8,6 +8,11 @@
 --  does not see it. An optional argument runs only the rows whose name starts with it (e.g. "G1", "P1"). Before the fix the decoders read every block without checking it
 --  against the maximum (Constraint_Error, or a write past the value under -gnatp), took any header from C0 on as a
 --  length, skipped a final part over the maximum and returned Success, and lost the failure of an item.
+--  Issue 154: the rows NC* reject the layouts no X.691 encoder writes (a fragment header after a C1 .. C3 fragment,
+--  a two-octet length below 128). With the first argument --exact-size every stream is decoded from a buffer of
+--  exactly REQUIRED_BYTES (a longer stream is cut there; the row name prefix moves to the second argument): under
+--  -gnata a decoder that reads past REQUIRED_BITS then fails an RTL precondition (Assertion_Error) instead of
+--  returning FALSE. Before Issue 154, NC1 and NC15 did (the decoders accepted 16K fragments after a C1 .. C3).
 with Ada.Text_IO;
 with Ada.Command_Line;
 with Ada.Exceptions;
@@ -64,11 +69,15 @@ procedure Wire_Test is
    procedure Check
      (Name : String; Expect : Outcome; Err : Integer; Pos : Natural; Segs : Seg_Array);
 
+   Exact_Size : constant Boolean :=
+     Ada.Command_Line.Argument_Count >= 1 and then Ada.Command_Line.Argument (1) = "--exact-size";
+   Prefix_Arg : constant Natural := (if Exact_Size then 2 else 1);
+
    function Selected (Name : String) return Boolean is
-     (Ada.Command_Line.Argument_Count = 0
-      or else (Name'Length >= Ada.Command_Line.Argument (1)'Length
-               and then Name (Name'First .. Name'First + Ada.Command_Line.Argument (1)'Length - 1)
-                        = Ada.Command_Line.Argument (1)));
+     (Ada.Command_Line.Argument_Count < Prefix_Arg
+      or else (Name'Length >= Ada.Command_Line.Argument (Prefix_Arg)'Length
+               and then Name (Name'First .. Name'First + Ada.Command_Line.Argument (Prefix_Arg)'Length - 1)
+                        = Ada.Command_Line.Argument (Prefix_Arg)));
 
    procedure Check
      (Name : String; Expect : Outcome; Err : Integer; Pos : Natural; Segs : Seg_Array)
@@ -91,13 +100,13 @@ procedure Wire_Test is
          N_Bits := N_Bits + G.N_Bits * G.N;
       end loop;
       N_Bytes := (N_Bits + 7) / 8;
-      Cap := Positive'Max (N_Bytes, Req);
+      Cap := (if Exact_Size then Req else Positive'Max (N_Bytes, Req));
       S := new adaasn1rtl.encoding.Bitstream'(adaasn1rtl.encoding.BitStream_init (Cap));
       S.Buffer := (others => 0);
       for G of Segs loop
          for J in 1 .. G.N loop
             for B in reverse 0 .. G.N_Bits - 1 loop
-               if (G.V / 2 ** B) mod 2 = 1 then
+               if At_Bit / 8 + 1 <= Cap and then (G.V / 2 ** B) mod 2 = 1 then
                   S.Buffer (At_Bit / 8 + 1) :=
                     S.Buffer (At_Bit / 8 + 1) or Asn1Byte (2 ** (7 - At_Bit mod 8));
                end if;
@@ -348,6 +357,23 @@ procedure Wire_Test is
 
    procedure VStr_Uper_Rows is new VStr_Rows (Check_VStr);
    procedure VStr_ACN_Rows is new VStr_Rows (Check_VStr_ACN);
+
+   --  Issue 154: the non-canonical VStr rows, uPER and ACN (see the comment before the NC rows)
+   generic
+      with procedure Chk (Name : String; Expect : Outcome; Err : Integer; Pos : Natural; Segs : Seg_Array);
+   procedure NC_VStr_Rows (Err : Integer);
+   procedure NC_VStr_Rows (Err : Integer) is
+   begin
+      Chk ("NC-S1 VStr C1 C1 00", Rejected, Err, 81936,
+           (H (16#C1#), It (0, 5, 16384), H (16#C1#), It (0, 5, 16384), H (16#00#)));
+      Chk ("NC-S2 VStr two-octet 5", Rejected, Err, 16, (L2 (5), It (0, 5, 5)));
+      Chk ("NC-S3 VStr two-octet 127 after C4", Rejected, Err, 327704,
+           (H (16#C4#), It (0, 5, 65536), L2 (127), It (0, 5, 127)));
+      Chk ("NA-S1 VStr 128 (two octets)", Accepted, 0, 656, (L2 (128), It (4, 5, 128)));
+   end NC_VStr_Rows;
+
+   procedure NC_VStr_Uper_Rows is new NC_VStr_Rows (Check_VStr);
+   procedure NC_VStr_ACN_Rows is new NC_VStr_Rows (Check_VStr_ACN);
 begin
    VStr_Uper_Rows (ERR_UPER_DECODE_VSTR);
    VStr_ACN_Rows (ERR_ACN_DECODE_VSTR);
@@ -465,9 +491,81 @@ begin
                (H (16#01#), C (1, 7, 8, 1), H (16#02#), C (2, 1, 5, 1), C (2, 0, 5, 1), H (16#02#), C (3, 7, 3, 1),
                 C (3, 1, 3, 1), C (4, 16#77#, 8, 1)));
 
+   --  Issue 154 (X.691 10.9.3.6, 10.9.3.8.1): (1) a fragment of 16K .. 48K items (C1 .. C3) is the last one, so a
+   --  fragment header after it is rejected right after that header is read, before its items; (2) a length below
+   --  128 takes one octet, so a two-octet one is rejected right after its second octet. Every other non-canonical
+   --  layout is one of these two. A final length (one or two octets, also 00) after a C1 .. C3 stays valid (A2, A4,
+   --  NA3, NA4, X7, X8). With both rejected a decoder reads at most REQUIRED_BITS (X2 is rejected exactly there).
+   NC_VStr_Uper_Rows (ERR_UPER_DECODE_VSTR);
+   NC_VStr_ACN_Rows (ERR_ACN_DECODE_VSTR);
+   Check_VOct ("NC1 VOct C1 x4 + 4464 (70000 in 16K fragments)", Rejected, ERR_UPER_DECODE_VOCT, 131088,
+               (H (16#C1#), It (16#5A#, 8, 16384), H (16#C1#), It (16#5A#, 8, 16384), H (16#C1#),
+                It (16#5A#, 8, 16384), H (16#C1#), It (16#5A#, 8, 16384), L2 (4464), It (16#5A#, 8, 4464)));
+   Check_VOct ("NC2 VOct C2 C1 00", Rejected, ERR_UPER_DECODE_VOCT, 262160,
+               (H (16#C2#), It (16#5A#, 8, 32768), H (16#C1#), It (16#5A#, 8, 16384), H (16#00#)));
+   Check_VOct ("NC3 VOct C3 C1 00 (65536 items)", Rejected, ERR_UPER_DECODE_VOCT, 393232,
+               (H (16#C3#), It (16#5A#, 8, 49152), H (16#C1#), It (16#5A#, 8, 16384), H (16#00#)));
+   Check_VOct ("NC4 VOct C1 then header C5", Rejected, ERR_UPER_DECODE_VOCT, 131088,
+               (H (16#C1#), It (16#5A#, 8, 16384), H (16#C5#)));
+   Check_VOct ("NC5 VOct two-octet 0", Rejected, ERR_UPER_DECODE_VOCT, 16, (1 => L2 (0)));
+   Check_VOct ("NC6 VOct C4 + two-octet 127", Rejected, ERR_UPER_DECODE_VOCT, 524312,
+               (H (16#C4#), It (16#5A#, 8, 65536), L2 (127), It (16#5A#, 8, 127)));
+   Check_VOct ("NC7 VOct C1 + two-octet 5", Rejected, ERR_UPER_DECODE_VOCT, 131096,
+               (H (16#C1#), It (16#5A#, 8, 16384), L2 (5), It (16#5A#, 8, 5)));
+   Check_VOct ("NA1 VOct 127 (one octet)", Accepted, 0, 1024, (H (16#7F#), It (16#33#, 8, 127)));
+   Check_VOct ("NA2 VOct 128 (two octets)", Accepted, 0, 1040, (L2 (128), It (16#33#, 8, 128)));
+   Check_VOct ("NA3 VOct C3 + 5 (49157)", Accepted, 0, 393272,
+               (H (16#C3#), It (16#44#, 8, 49152), H (16#05#), It (16#44#, 8, 5)));
+   Check_VOct ("NA4 VOct C3 + 16383 (65535)", Accepted, 0, 524304,
+               (H (16#C3#), It (16#44#, 8, 49152), L2 (16383), It (16#44#, 8, 16383)));
+   Check_VOct ("X5 VOct C1 then header C0", Rejected, ERR_UPER_DECODE_VOCT, 131088,
+               (H (16#C1#), It (16#5A#, 8, 16384), H (16#C0#)));
+   Check_VOct ("X6 VOct C1 then header FF", Rejected, ERR_UPER_DECODE_VOCT, 131088,
+               (H (16#C1#), It (16#5A#, 8, 16384), H (16#FF#)));
+   Check_VOct ("X7 VOct C1 + 80 80 + 128 (16512)", Accepted, 0, 132120,
+               (H (16#C1#), It (16#44#, 8, 16384), L2 (128), It (16#44#, 8, 128)));
+   Check_VOct ("X8 VOct C1 + BF FF + 16383 (32767)", Accepted, 0, 262160,
+               (H (16#C1#), It (16#44#, 8, 16384), L2 (16383), It (16#44#, 8, 16383)));
+   Check_VOctM ("NC8 VOctM C2 C2 00 (65536 items)", Rejected, ERR_UPER_DECODE_VOCTM, 262160,
+                (H (16#C2#), It (16#5A#, 8, 32768), H (16#C2#), It (16#5A#, 8, 32768), H (16#00#)));
+   Check_VOctM ("X1 VOctM C1 C4 00 (81920 items, the blocks in the wrong order)", Rejected,
+                ERR_UPER_DECODE_VOCTM, 131088,
+                (H (16#C1#), It (16#5A#, 8, 16384), H (16#C4#), It (16#5A#, 8, 65536), H (16#00#)));
+   Check_VOctM ("X2 VOctM C4 C1 + two-octet 0 (rejected at REQUIRED_BITS)", Rejected, ERR_UPER_DECODE_VOCTM,
+                655392, (H (16#C4#), It (16#5A#, 8, 65536), H (16#C1#), It (16#5A#, 8, 16384), L2 (0)));
+   Check_VOctM ("X3 VOctM C4 C1 C1", Rejected, ERR_UPER_DECODE_VOCTM, 655384,
+                (H (16#C4#), It (16#5A#, 8, 65536), H (16#C1#), It (16#5A#, 8, 16384), H (16#C1#)));
+   Check_VBit ("NC9 VBit C1 C1 00", Rejected, ERR_UPER_DECODE_VBIT, 16400,
+               (H (16#C1#), It (1, 1, 16384), H (16#C1#), It (1, 1, 16384), H (16#00#)));
+   Check_VBit ("NC10 VBit two-octet 100", Rejected, ERR_UPER_DECODE_VBIT, 16, (L2 (100), It (1, 1, 100)));
+   Check_VBit3 ("NC11 VBit3 C4 C1 C1 00", Rejected, ERR_UPER_DECODE_VBIT3, 81944,
+                (H (16#C4#), It (1, 1, 65536), H (16#C1#), It (1, 1, 16384), H (16#C1#), It (1, 1, 16384),
+                 H (16#00#)));
+   Check_VBit3 ("X13 VBit3 C4 C4 C3 C1", Rejected, ERR_UPER_DECODE_VBIT3, 180256,
+                (H (16#C4#), It (1, 1, 65536), H (16#C4#), It (0, 1, 65536), H (16#C3#), It (1, 1, 49152),
+                 H (16#C1#)));
+   Check_VBit3 ("NA5 VBit3 C4 C3 + 16383 (131071)", Accepted, 0, 131103,
+                (H (16#C4#), It (1, 1, 65536), H (16#C3#), It (0, 1, 49152), L2 (16383), It (1, 1, 16383)));
+   Check_VSeq ("NC12 VSeq C2 C1 00", Rejected, ERR_UPER_DECODE_VSEQ, 98320,
+               (H (16#C2#), It (5, 3, 32768), H (16#C1#), It (5, 3, 16384), H (16#00#)));
+   Check_VSeq ("NC13 VSeq two-octet 3", Rejected, ERR_UPER_DECODE_VSEQ, 16, (L2 (3), It (5, 3, 3)));
+   Check_VSeqR ("NC14 VSeqR C4 C3 C1 00", Rejected, ERR_UPER_DECODE_VSEQR, 458776,
+                (H (16#C4#), It (5, 4, 65536), H (16#C3#), It (5, 4, 49152), H (16#C1#), It (5, 4, 16384),
+                 H (16#00#)));
+   Check_POct ("NC15 POct o = C2 C1 C1 + 4464 (70000 octets, 5 header octets), tail kept", Rejected,
+               ERR_UPER_DECODE_VOCT, 262160,
+               (H (16#C2#), C (1, 16#AA#, 8, 32768), H (16#C1#), C (1, 16#AA#, 8, 16384), H (16#C1#),
+                C (1, 16#AA#, 8, 16384), L2 (4464), C (1, 16#AA#, 8, 4464), C (2, 16#BB#, 8, 32768)));
+   Check_PInl ("NC16 PInl q = C1 C1 00", Rejected, ERR_UPER_DECODE_PINL_Q, 49184,
+               (H (16#00#), H (16#00#), H (16#C1#), C (3, 4, 3, 16384), H (16#C1#), C (3, 4, 3, 16384), H (16#00#),
+                C (4, 16#77#, 8, 1)));
+   Check_PInl ("NC17 PInl s = two-octet 2", Rejected, ERR_UPER_DECODE_PINL_S, 24,
+               (H (16#00#), L2 (2), C (2, 1, 5, 2), H (16#00#), C (4, 16#77#, 8, 1)));
+
    if Failed then
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    else
-      Ada.Text_IO.Put_Line ("uper-wire 004 (Ada): all checks passed");
+      Ada.Text_IO.Put_Line ("uper-wire 004 (Ada"
+                            & (if Exact_Size then ", buffers of REQUIRED_BYTES" else "") & "): all checks passed");
    end if;
 end Wire_Test;

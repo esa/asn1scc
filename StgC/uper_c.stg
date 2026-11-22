@@ -791,6 +791,11 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 
 if (ret) {
 	while(ret && (<sRemainingItemsVar> & 0xC0)==0xC0)
 	{
+		if (<sCurBlockSize> % 0x10000 != 0) {
+			/*a fragment of fewer than 64K items is the last one: only the final length may follow (X.691 10.9.3.8.1)*/
+			*pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
+			return FALSE; /*COVERAGE_IGNORE*/
+		}
 		if (<sRemainingItemsVar> == 0xC4)
 			<sCurBlockSize> = 0x10000;
 		else if (<sRemainingItemsVar> == 0xC3)
@@ -836,6 +841,8 @@ if (ret) {
             if (ret) {
 		        <sRemainingItemsVar> |= len2;
 		        <sRemainingItemsVar> &= 0x7FFF;
+		        /*a length below 128 takes one octet (X.691 10.9.3.6)*/
+		        ret = <sRemainingItemsVar> >= 0x80;
             }
 	    }
         ret = ret && (<sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>);

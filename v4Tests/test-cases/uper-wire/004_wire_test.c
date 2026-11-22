@@ -2,7 +2,9 @@
    (X.691 11.9.3.8) of variable-size types whose maximum is 64K or more. Each row builds one stream from runs of
    fields; the decoder must reject it with the given error code and stop at the given bit position, or accept it,
    decode to the value the runs describe (Equal) and that value must encode to the same bytes (byte-exact). The Ada
-   twin 004_wire_test.adb checks the same rows; the C results are the reference. */
+   twin 004_wire_test.adb checks the same rows; the C results are the reference. Since Issue 154 the decoders accept
+   only the layouts an X.691 encoder writes: the rows NC* reject the two other forms, and the rows NA* / X7 / X8
+   accept their nearest valid neighbours (see the comment before the NC rows). */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -280,6 +282,17 @@ static void vstr_rows(int acn, int err)
     CHECK("A2c VStr C3: 49152 E + 5 F", T_VSTR, acn, ACCEPT, 0, 245801, H(0xC3), I(4, 5, 49152), H(0x05), I(5, 5, 5));
 }
 
+/* Issue 154: the non-canonical VStr rows, uPER and ACN (see the comment before the NC rows in main) */
+static void nc_vstr_rows(int acn, int err)
+{
+    CHECK("NC-S1 VStr C1 C1 00", T_VSTR, acn, REJECT, err, 81936,
+          H(0xC1), I(0, 5, 16384), H(0xC1), I(0, 5, 16384), H(0x00));
+    CHECK("NC-S2 VStr two-octet 5", T_VSTR, acn, REJECT, err, 16, L2(5), I(0, 5, 5));
+    CHECK("NC-S3 VStr two-octet 127 after C4", T_VSTR, acn, REJECT, err, 327704,
+          H(0xC4), I(0, 5, 65536), L2(127), I(0, 5, 127));
+    CHECK("NA-S1 VStr 128 (two octets)", T_VSTR, acn, ACCEPT, 0, 656, L2(128), I(4, 5, 128));
+}
+
 int main(void)
 {
     vstr_rows(UPER, ERR_UPER_DECODE_VSTR);
@@ -380,6 +393,72 @@ int main(void)
     CHECK("N4 PInl q: first element fails", T_PINL, UPER, REJECT, ERR_UPER_DECODE_PINL_Q_ELM, 45,
           H(0x01), C(1, 7, 8, 1), H(0x02), C(2, 1, 5, 1), C(2, 0, 5, 1), H(0x02), C(3, 7, 3, 1), C(3, 1, 3, 1),
           C(4, 0x77, 8, 1));
+
+    /* Issue 154 (X.691 10.9.3.6, 10.9.3.8.1): (1) a fragment of 16K .. 48K items (C1 .. C3) is the last one, so a
+       fragment header after it is rejected right after that header is read, before its items; (2) a length below
+       128 takes one octet, so a two-octet one is rejected right after its second octet. Every other non-canonical
+       layout is one of these two. A final length (one or two octets, also 00) after a C1 .. C3 stays valid (A2, A4,
+       NA3, NA4, X7, X8). With both rejected a decoder reads at most REQUIRED_BITS (X2 is rejected exactly there). */
+    nc_vstr_rows(UPER, ERR_UPER_DECODE_VSTR);
+    nc_vstr_rows(ACN, ERR_ACN_DECODE_VSTR);
+    CHECK("NC1 VOct C1 x4 + 4464 (70000 in 16K fragments)", T_VOCT, UPER, REJECT, ERR_UPER_DECODE_VOCT, 131088,
+          H(0xC1), I(0x5A, 8, 16384), H(0xC1), I(0x5A, 8, 16384), H(0xC1), I(0x5A, 8, 16384), H(0xC1),
+          I(0x5A, 8, 16384), L2(4464), I(0x5A, 8, 4464));
+    CHECK("NC2 VOct C2 C1 00", T_VOCT, UPER, REJECT, ERR_UPER_DECODE_VOCT, 262160,
+          H(0xC2), I(0x5A, 8, 32768), H(0xC1), I(0x5A, 8, 16384), H(0x00));
+    CHECK("NC3 VOct C3 C1 00 (65536 items)", T_VOCT, UPER, REJECT, ERR_UPER_DECODE_VOCT, 393232,
+          H(0xC3), I(0x5A, 8, 49152), H(0xC1), I(0x5A, 8, 16384), H(0x00));
+    CHECK("NC4 VOct C1 then header C5", T_VOCT, UPER, REJECT, ERR_UPER_DECODE_VOCT, 131088,
+          H(0xC1), I(0x5A, 8, 16384), H(0xC5));
+    CHECK("NC5 VOct two-octet 0", T_VOCT, UPER, REJECT, ERR_UPER_DECODE_VOCT, 16, L2(0));
+    CHECK("NC6 VOct C4 + two-octet 127", T_VOCT, UPER, REJECT, ERR_UPER_DECODE_VOCT, 524312,
+          H(0xC4), I(0x5A, 8, 65536), L2(127), I(0x5A, 8, 127));
+    CHECK("NC7 VOct C1 + two-octet 5", T_VOCT, UPER, REJECT, ERR_UPER_DECODE_VOCT, 131096,
+          H(0xC1), I(0x5A, 8, 16384), L2(5), I(0x5A, 8, 5));
+    CHECK("NA1 VOct 127 (one octet)", T_VOCT, UPER, ACCEPT, 0, 1024, H(0x7F), I(0x33, 8, 127));
+    CHECK("NA2 VOct 128 (two octets)", T_VOCT, UPER, ACCEPT, 0, 1040, L2(128), I(0x33, 8, 128));
+    CHECK("NA3 VOct C3 + 5 (49157)", T_VOCT, UPER, ACCEPT, 0, 393272, H(0xC3), I(0x44, 8, 49152), H(0x05),
+          I(0x44, 8, 5));
+    CHECK("NA4 VOct C3 + 16383 (65535)", T_VOCT, UPER, ACCEPT, 0, 524304, H(0xC3), I(0x44, 8, 49152), L2(16383),
+          I(0x44, 8, 16383));
+    CHECK("X5 VOct C1 then header C0", T_VOCT, UPER, REJECT, ERR_UPER_DECODE_VOCT, 131088,
+          H(0xC1), I(0x5A, 8, 16384), H(0xC0));
+    CHECK("X6 VOct C1 then header FF", T_VOCT, UPER, REJECT, ERR_UPER_DECODE_VOCT, 131088,
+          H(0xC1), I(0x5A, 8, 16384), H(0xFF));
+    CHECK("X7 VOct C1 + 80 80 + 128 (16512)", T_VOCT, UPER, ACCEPT, 0, 132120,
+          H(0xC1), I(0x44, 8, 16384), L2(128), I(0x44, 8, 128));
+    CHECK("X8 VOct C1 + BF FF + 16383 (32767)", T_VOCT, UPER, ACCEPT, 0, 262160,
+          H(0xC1), I(0x44, 8, 16384), L2(16383), I(0x44, 8, 16383));
+    CHECK("NC8 VOctM C2 C2 00 (65536 items)", T_VOCTM, UPER, REJECT, ERR_UPER_DECODE_VOCTM, 262160,
+          H(0xC2), I(0x5A, 8, 32768), H(0xC2), I(0x5A, 8, 32768), H(0x00));
+    CHECK("X1 VOctM C1 C4 00 (81920 items, the blocks in the wrong order)", T_VOCTM, UPER, REJECT,
+          ERR_UPER_DECODE_VOCTM, 131088, H(0xC1), I(0x5A, 8, 16384), H(0xC4), I(0x5A, 8, 65536), H(0x00));
+    CHECK("X2 VOctM C4 C1 + two-octet 0 (rejected at REQUIRED_BITS)", T_VOCTM, UPER, REJECT, ERR_UPER_DECODE_VOCTM,
+          655392, H(0xC4), I(0x5A, 8, 65536), H(0xC1), I(0x5A, 8, 16384), L2(0));
+    CHECK("X3 VOctM C4 C1 C1", T_VOCTM, UPER, REJECT, ERR_UPER_DECODE_VOCTM, 655384,
+          H(0xC4), I(0x5A, 8, 65536), H(0xC1), I(0x5A, 8, 16384), H(0xC1));
+    CHECK("NC9 VBit C1 C1 00", T_VBIT, UPER, REJECT, ERR_UPER_DECODE_VBIT, 16400,
+          H(0xC1), I(1, 1, 16384), H(0xC1), I(1, 1, 16384), H(0x00));
+    CHECK("NC10 VBit two-octet 100", T_VBIT, UPER, REJECT, ERR_UPER_DECODE_VBIT, 16, L2(100), I(1, 1, 100));
+    CHECK("NC11 VBit3 C4 C1 C1 00", T_VBIT3, UPER, REJECT, ERR_UPER_DECODE_VBIT3, 81944,
+          H(0xC4), I(1, 1, 65536), H(0xC1), I(1, 1, 16384), H(0xC1), I(1, 1, 16384), H(0x00));
+    CHECK("X13 VBit3 C4 C4 C3 C1", T_VBIT3, UPER, REJECT, ERR_UPER_DECODE_VBIT3, 180256,
+          H(0xC4), I(1, 1, 65536), H(0xC4), I(0, 1, 65536), H(0xC3), I(1, 1, 49152), H(0xC1));
+    CHECK("NA5 VBit3 C4 C3 + 16383 (131071)", T_VBIT3, UPER, ACCEPT, 0, 131103,
+          H(0xC4), I(1, 1, 65536), H(0xC3), I(0, 1, 49152), L2(16383), I(1, 1, 16383));
+    CHECK("NC12 VSeq C2 C1 00", T_VSEQ, UPER, REJECT, ERR_UPER_DECODE_VSEQ, 98320,
+          H(0xC2), I(5, 3, 32768), H(0xC1), I(5, 3, 16384), H(0x00));
+    CHECK("NC13 VSeq two-octet 3", T_VSEQ, UPER, REJECT, ERR_UPER_DECODE_VSEQ, 16, L2(3), I(5, 3, 3));
+    CHECK("NC14 VSeqR C4 C3 C1 00", T_VSEQR, UPER, REJECT, ERR_UPER_DECODE_VSEQR, 458776,
+          H(0xC4), I(5, 4, 65536), H(0xC3), I(5, 4, 49152), H(0xC1), I(5, 4, 16384), H(0x00));
+    CHECK("NC15 POct o = C2 C1 C1 + 4464 (70000 octets, 5 header octets), tail kept", T_POCT, UPER, REJECT,
+          ERR_UPER_DECODE_VOCT, 262160,
+          H(0xC2), C(1, 0xAA, 8, 32768), H(0xC1), C(1, 0xAA, 8, 16384), H(0xC1), C(1, 0xAA, 8, 16384), L2(4464),
+          C(1, 0xAA, 8, 4464), C(2, 0xBB, 8, 32768));
+    CHECK("NC16 PInl q = C1 C1 00", T_PINL, UPER, REJECT, ERR_UPER_DECODE_PINL_Q, 49184,
+          H(0x00), H(0x00), H(0xC1), C(3, 4, 3, 16384), H(0xC1), C(3, 4, 3, 16384), H(0x00), C(4, 0x77, 8, 1));
+    CHECK("NC17 PInl s = two-octet 2", T_PINL, UPER, REJECT, ERR_UPER_DECODE_PINL_S, 24,
+          H(0x00), L2(2), C(2, 1, 5, 2), H(0x00), C(4, 0x77, 8, 1));
 
     if (failures != 0) {
         printf("uper-wire 004: %d checks failed\n", failures);

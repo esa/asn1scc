@@ -861,7 +861,8 @@ result.ErrorCode := <sErrCodeName>;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
 <sCurOffset> := 1;
 
-while result.Success AND (<sRemainingItemsVar> = 16#C4# OR <sRemainingItemsVar> = 16#C3# OR <sRemainingItemsVar> = 16#C2# OR <sRemainingItemsVar> = 16#C1#)  loop
+-- a fragment of fewer than 64K items is the last one: only the final length may follow it (X.691 10.9.3.8.1)
+while result.Success AND (<sRemainingItemsVar> = 16#C4# OR <sRemainingItemsVar> = 16#C3# OR <sRemainingItemsVar> = 16#C2# OR <sRemainingItemsVar> = 16#C1#) AND <sCurBlockSize> mod 16#10000# = 0 loop
     if <sRemainingItemsVar> = 16#C4# then
         <sCurBlockSize> := 16#10000#;
     elsif <sRemainingItemsVar> = 16#C3# then
@@ -892,7 +893,7 @@ end loop;
 
 if result.Success then
     if <sRemainingItemsVar> >= 16#C0# then
-        -- a fragment header other than C1 .. C4
+        -- a fragment header where none may follow: other than C1 .. C4, or after a fragment of fewer than 64K items
         result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCodeName>);
     elsif <sRemainingItemsVar> >= 16#80# then
         declare
@@ -900,6 +901,8 @@ if result.Success then
         begin
             adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, len2, 0, 255, 8, result.Success);
             <sRemainingItemsVar> := (<sRemainingItemsVar> - 16#80#) * 16#100# + len2;
+            -- a length below 128 takes one octet (X.691 10.9.3.6); result.ErrorCode holds <sErrCodeName> here
+            result.Success := result.Success AND <sRemainingItemsVar> >= 16#80#;
         end;
     end if;
 end if;

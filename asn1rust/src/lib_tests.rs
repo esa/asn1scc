@@ -296,4 +296,53 @@ mod tests {
         set_string(&mut s, "toolongstring");
         assert_eq!(&s, b"toolon");
     }
+
+    // ─── general length (X.691 10.9): only the layouts an encoder writes (Issue 154) ───
+
+    /// header octets / two-octet lengths, each followed by its units (octets, zero) in one buffer
+    fn general_length_stream(parts: &[(u32, usize)]) -> Vec<u8> {
+        let mut v = Vec::new();
+        for &(h, n) in parts {
+            if h > 0xFF { v.push((h >> 8) as u8); }
+            v.push(h as u8);
+            v.extend(std::iter::repeat(0u8).take(n));
+        }
+        v.extend([0u8; 8]);
+        v
+    }
+
+    #[test]
+    fn general_length_accepts_canonical_fragments() {
+        let mut arr = vec![0u8; 32768];
+        for parts in [vec![(0xC2, 32768), (0x00, 0)], vec![(0xC1, 16384), (0x02, 2)],
+                      vec![(0xC1, 16384), (0x8080, 128)], vec![(0x8080, 128)], vec![(0x7F, 127)]] {
+            let mut buf = general_length_stream(&parts);
+            let total: usize = parts.iter().map(|p| p.1).sum();
+            let headers: usize = parts.iter().map(|p| if p.0 > 0xFF { 2 } else { 1 }).sum();
+            let mut bs = dec(&mut buf);
+            let (n, ok) = bs.decode_general_length(&mut arr, 32768, 8);
+            assert!(ok, "{:x?} rejected", parts);
+            assert_eq!(n as usize, total);
+            assert_eq!(bs.current_byte as usize, total + headers);
+        }
+    }
+
+    #[test]
+    fn general_length_rejects_non_canonical_fragments() {
+        let mut arr = vec![0u8; 32768];
+        // (1) a fragment header after a fragment of 16K .. 48K units: rejected right after that header
+        for (parts, at) in [(vec![(0xC1, 16384), (0xC1, 16384), (0x00, 0)], 16386),
+                            (vec![(0xC2, 32768), (0xC1, 0)], 32770)] {
+            let mut buf = general_length_stream(&parts);
+            let mut bs = dec(&mut buf);
+            let (_, ok) = bs.decode_general_length(&mut arr, 32768, 8);
+            assert!(!ok, "{:x?} accepted", parts);
+            assert_eq!(bs.current_byte, at, "{:x?}", parts);
+        }
+        // (2) a two-octet length below 128: rejected right after its second octet
+        let mut buf = general_length_stream(&[(0x8005, 5)]);
+        let mut bs = dec(&mut buf);
+        assert!(!bs.decode_general_length(&mut arr, 32768, 8).1);
+        assert_eq!(bs.current_byte, 2);
+    }
 }

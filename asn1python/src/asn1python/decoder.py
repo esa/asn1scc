@@ -840,6 +840,7 @@ class Decoder(Codec):
         data = bytearray()
         n_offset = 0
         b_last = False
+        b_short_fragment = False
         while not b_last:
             res = self.decode_constrained_whole_number(0, 0xFF)
             if not res or res.decoded_value is None:
@@ -857,6 +858,10 @@ class Decoder(Codec):
                     return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="general length: a length below 128 in two octets")
                 b_last = True
             elif 0xC1 <= n_header <= 0xC4:
+                if b_short_fragment:
+                    # X.691 10.9.3.8.1: a part of 16K .. 48K units is the last fragment, only the final length follows
+                    return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="general length: a fragment after a fragment of fewer than 64K units")
+                b_short_fragment = n_header != 0xC4
                 n_part = (n_header & 0x07) * 0x4000
             else:
                 return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=f"general length: header {n_header:#x}")

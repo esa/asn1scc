@@ -1220,6 +1220,7 @@ is
       nLow    : Integer          := 0;
       nPart   : Integer          := 0;
       bLast   : Boolean          := False;
+      bShort  : Boolean          := False;
       function Fits (nBits : Natural) return Boolean is
         (bs.Current_Bit_Pos - nStart + nBits <= nBudget
          and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits);
@@ -1247,7 +1248,11 @@ is
                   end if;
                   bLast := True;
                when 16#C1# .. 16#C4# =>
-                  nPart := (nHeader - 16#C0#) * 16#4000#;
+                  --  X.691 10.9.3.8.1: after a part of 16K .. 48K units
+                  --  only the final length follows
+                  success := not bShort;
+                  bShort  := nHeader /= 16#C4#;
+                  nPart   := (nHeader - 16#C0#) * 16#4000#;
                when others =>
                   success := False;
             end case;
