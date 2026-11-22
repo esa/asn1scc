@@ -80,16 +80,26 @@ def test_decode_general_length_canonical(parts) -> None:
     assert decoder.bit_index == 8 * sum(n + (2 if h > 0xFF else 1) for h, n in parts)
 
 
-@pytest.mark.parametrize("parts, bit_index", [
+@pytest.mark.parametrize("parts, n_max, bit_index", [
     # (1) a fragment header after a fragment of 16K .. 48K units: rejected right after that header
-    ([(0xC1, 16384), (0xC1, 16384), (0x00, 0)], 8 * 16386),
-    ([(0xC2, 32768), (0xC1, 0)], 8 * 32770),
+    ([(0xC1, 16384), (0xC1, 16384), (0x00, 0)], 32768, 8 * 16386),
+    ([(0xC2, 32768), (0xC1, 16384), (0x00, 0)], 81920, 8 * 32770),
     # (2) a two-octet length below 128: rejected right after its second octet
-    ([(0x8005, 5)], 16),
+    ([(0x8005, 5)], 32768, 16),
 ])
-def test_decode_general_length_non_canonical(parts, bit_index: int) -> None:
+def test_decode_general_length_non_canonical(parts, n_max: int, bit_index: int) -> None:
     from asn1python.codec_uper import UPERDecoder
     decoder = UPERDecoder.from_buffer(_general_length_stream(parts))
-    res = decoder.decode_general_length(32768, 8)
+    res = decoder.decode_general_length(n_max, 8)
     assert not res.success
     assert decoder.bit_index == bit_index
+
+
+def test_decode_general_length_fragment_after_c4() -> None:
+    """after a 64K fragment (C4) another fragment header may follow (X.691 10.9.3.8.1)"""
+    from asn1python.codec_uper import UPERDecoder
+    decoder = UPERDecoder.from_buffer(_general_length_stream([(0xC4, 65536), (0xC1, 16384), (0x00, 0)]))
+    res = decoder.decode_general_length(81920, 8)
+    assert res.success
+    assert len(res.decoded_value) == 81920
+    assert decoder.bit_index == 8 * 81923

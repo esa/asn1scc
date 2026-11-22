@@ -1,0 +1,11 @@
+-- Issues 155 / 156: the uPER encoding of an OBJECT IDENTIFIER / RELATIVE-OID (X.691 23 / 24) is a general length
+-- (10.9: one octet below 128, two octets 10xxxxxx from 128) and the subidentifiers of X.690 8.19; at most 20 arcs of
+-- up to 64 bits, i.e. 190 (OID) / 200 (RELATIVE-OID) contents octets. The decoders accept exactly what the encoders
+-- write: a two-octet length below 128, a fragment header (no value of at most 20 arcs has 16K contents octets), a
+-- length of 0, a length that ends inside a subidentifier and an arc beyond 64 bits are rejected. The ACN encoding of
+-- these types is the uPER one.
+UPER-WIRE-OID DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    T ::= OBJECT IDENTIFIER
+    R ::= RELATIVE-OID
+    S ::= SEQUENCE { o OBJECT IDENTIFIER, tail INTEGER (0..255) }
+END

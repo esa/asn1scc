@@ -12,7 +12,7 @@
 
 #include "005.h"
 
-typedef enum { T_C32K, T_B32K, T_CV } Ty;
+typedef enum { T_C32K, T_B32K, T_CV, T_B80K } Ty;
 
 typedef struct {
     int kind; /* 0: H, 1: L2, 2: P */
@@ -50,6 +50,10 @@ static void make_value(Ty t, void* x, long n, int seed)
         for (int i = 0; i < n; i++)
             ((CV*)x)->arr[i] = (byte)(i * 7 + seed);
         break;
+    case T_B80K:
+        for (int i = 0; i < 10240; i++)
+            ((B80K*)x)->arr[i] = (byte)(i * 7 + seed);
+        break;
     }
 }
 
@@ -62,11 +66,13 @@ static void check(const char* name, Ty t, long n, int expectAccept, int expErr, 
     static C32K d32;
     static B32K db;
     static CV dv;
-    void* x = t == T_C32K ? (void*)&x32 : t == T_B32K ? (void*)&xb : (void*)&xv;
-    void* d = t == T_C32K ? (void*)&d32 : t == T_B32K ? (void*)&db : (void*)&dv;
-    int unitBits = t == T_B32K ? 1 : 8;
-    memset(x, 0, t == T_C32K ? sizeof x32 : t == T_B32K ? sizeof xb : sizeof xv);
-    memset(d, 0, t == T_C32K ? sizeof d32 : t == T_B32K ? sizeof db : sizeof dv);
+    static B80K x80;
+    static B80K d80;
+    void* x = t == T_C32K ? (void*)&x32 : t == T_B32K ? (void*)&xb : t == T_CV ? (void*)&xv : (void*)&x80;
+    void* d = t == T_C32K ? (void*)&d32 : t == T_B32K ? (void*)&db : t == T_CV ? (void*)&dv : (void*)&d80;
+    int unitBits = t == T_B32K || t == T_B80K ? 1 : 8;
+    memset(x, 0, t == T_C32K ? sizeof x32 : t == T_B32K ? sizeof xb : t == T_CV ? sizeof xv : sizeof x80);
+    memset(d, 0, t == T_C32K ? sizeof d32 : t == T_B32K ? sizeof db : t == T_CV ? sizeof dv : sizeof d80);
     make_value(t, x, n, 1);
 
     /* the region: the contents' own encoding */
@@ -77,7 +83,8 @@ static void check(const char* name, Ty t, long n, int expectAccept, int expErr, 
     BitStream_Init(&s, region, sizeof region);
     flag ok = t == T_C32K ? O32768_Encode(x, &s, &e, TRUE)
             : t == T_B32K ? O4096_Encode(x, &s, &e, TRUE)
-                          : OV_Encode(x, &s, &e, TRUE);
+            : t == T_CV   ? OV_Encode(x, &s, &e, TRUE)
+                          : O10240_Encode(x, &s, &e, TRUE);
     if (!ok) {
         fail(name, "contents encode failed, error code", e, 0);
         return;
@@ -107,7 +114,10 @@ static void check(const char* name, Ty t, long n, int expectAccept, int expErr, 
 
     BitStream_AttachBuffer(&s, stream, sizeof stream);
     e = 0;
-    ok = t == T_C32K ? C32K_Decode(d, &s, &e) : t == T_B32K ? B32K_Decode(d, &s, &e) : CV_Decode(d, &s, &e);
+    ok = t == T_C32K ? C32K_Decode(d, &s, &e)
+       : t == T_B32K ? B32K_Decode(d, &s, &e)
+       : t == T_CV   ? CV_Decode(d, &s, &e)
+                     : B80K_Decode(d, &s, &e);
     long at = s.currentByte * 8 + s.currentBit;
     if (expectAccept == REJECT) {
         if (ok)
@@ -124,7 +134,10 @@ static void check(const char* name, Ty t, long n, int expectAccept, int expErr, 
         fail(name, "rejected, error code", e, 0);
     if (at != pos)
         fail(name, "bit position after the decoder", at, pos);
-    if (ok && !(t == T_C32K ? C32K_Equal(x, d) : t == T_B32K ? B32K_Equal(x, d) : CV_Equal(x, d)))
+    if (ok && !(t == T_C32K ? C32K_Equal(x, d)
+                : t == T_B32K ? B32K_Equal(x, d)
+                : t == T_CV   ? CV_Equal(x, d)
+                              : B80K_Equal(x, d)))
         fail(name, "decoded value differs from the expected one", 0, 1);
     static byte enc[40000];
     memset(enc, 0, sizeof enc);
@@ -132,7 +145,8 @@ static void check(const char* name, Ty t, long n, int expectAccept, int expErr, 
     e = 0;
     ok = t == T_C32K ? C32K_Encode(x, &s, &e, TRUE)
        : t == T_B32K ? B32K_Encode(x, &s, &e, TRUE)
-                     : CV_Encode(x, &s, &e, TRUE);
+       : t == T_CV   ? CV_Encode(x, &s, &e, TRUE)
+                     : B80K_Encode(x, &s, &e, TRUE);
     if (!ok)
         fail(name, "encode failed, error code", e, 0);
     at = s.currentByte * 8 + s.currentBit;
@@ -167,6 +181,11 @@ int main(void)
     CHECK("J4 CV 16384 octets: region C1 + 80 02", T_CV, 16384, REJECT, ERR_UPER_DECODE_CV_2, 131096,
           H(0xC1), P(16384), L2(2), P(2));
     CHECK("J5 CV two-octet 5", T_CV, 16384, REJECT, ERR_UPER_DECODE_CV_2, 16, L2(5), P(5));
+    /* a fragment header after a 64K fragment (C4): a C1 and a final length 0 fill B80K's 81920 bits exactly; one bit
+       more is over the maximum */
+    CHECK("V6 B80K C4 C1 00 (bits)", T_B80K, 0, ACCEPT, 0, 81944, H(0xC4), P(65536), H(0xC1), P(16384), H(0x00));
+    CHECK("J6 B80K C4 C1 01 (over the maximum)", T_B80K, 0, REJECT, ERR_UPER_DECODE_B80K_2, 81944,
+          H(0xC4), P(65536), H(0xC1), P(16384), H(0x01), P(1));
 
     if (failures != 0) {
         printf("uper-wire 005: %d checks failed\n", failures);

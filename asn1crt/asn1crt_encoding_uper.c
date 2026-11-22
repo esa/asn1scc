@@ -116,6 +116,8 @@ static flag ObjectIdentifier_uper_decode_length(BitStream* pBitStrm, asn1SccSint
 		(*totalSize) <<= 8;
 		(*totalSize) |= len2;
 		(*totalSize) &= 0x7FFF;
+		/* X.691 10.9.3.6: a length below 128 takes one octet */
+		if (*totalSize < 0x80) return FALSE;
 	}
 	return *totalSize > 0;
 }

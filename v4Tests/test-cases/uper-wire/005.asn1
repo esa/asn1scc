@@ -1,7 +1,8 @@
 -- Issue 154: uPER OCTET / BIT STRING (CONTAINING X) of 16K units or more, whose general length (X.691 10.9) has
 -- fragments. A fragment of 16K .. 48K units (C1 .. C3) is the last one (10.9.3.8.1): the decoders reject a fragment
 -- header after it, and a two-octet length below 128 (10.9.3.6), and accept a final length after it. The contents of
--- C32K / CV are 32768 octets / 16384 .. 32768 octets with a 15-bit length; B32K counts bits.
+-- C32K / CV are 32768 octets / 16384 .. 32768 octets with a 15-bit length; B32K counts bits. B80K has a maximum of
+-- exactly 81920 bits = C4 + C1: after a 64K fragment (C4) another fragment header may follow.
 UPER-WIRE-CONT DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     O32768 ::= OCTET STRING (SIZE(32768))
     O4096  ::= OCTET STRING (SIZE(4096))
@@ -9,4 +10,6 @@ UPER-WIRE-CONT DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     C32K   ::= OCTET STRING (CONTAINING O32768)
     B32K   ::= BIT STRING (CONTAINING O4096)
     CV     ::= OCTET STRING (CONTAINING OV)
+    O10240 ::= OCTET STRING (SIZE(10240))
+    B80K   ::= BIT STRING (CONTAINING O10240)
 END

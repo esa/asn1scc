@@ -189,8 +189,8 @@ done
 # uPER OCTET / BIT STRING (CONTAINING X) of 16K units or more (Issue 154): the general length rejects a fragment
 # header after a C1 .. C3 fragment and a two-octet length below 128, and accepts a final length after a C1 .. C3;
 # rejections pin the error code and the bit position (Ada restores the position to the start of the CONTAINING when
-# a fragmented length is rejected), valid streams are byte-exact. uPER, legacy and --acn-v2; C with ASan / UBSan,
-# Ada without and with -gnata.
+# a fragmented length is rejected), valid streams are byte-exact; B80K: a fragment header after a C4.
+# uPER, legacy and --acn-v2; C with ASan / UBSan, Ada without and with -gnata.
 for mode in "" "--acn-v2"; do
     out=$work/uper005$mode
     mkdir "$out"
@@ -206,6 +206,29 @@ for mode in "" "--acn-v2"; do
         cp "$root/test-cases/uper-wire/005_wire_test.adb" "$out/wire_test.adb"
         (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
         echo "uper-wire 005 (Ada) $mode $gnata OK"
+    done
+done
+
+# uPER OBJECT IDENTIFIER / RELATIVE-OID (Issues 155 / 156): the contents length is a general length (one octet below
+# 128, two octets from 128: Ada read 80 xx as a one-octet length of 128), and the decoders reject what no encoder
+# writes (a two-octet length below 128, a fragment header, length 0, a length that ends inside a subidentifier, an arc
+# beyond 64 bits) with the type's error code and C's bit position; valid streams up to 190 / 200 contents octets are
+# byte-exact. uPER and ACN decoders, legacy and --acn-v2; C with ASan / UBSan, Ada without and with -gnata.
+for mode in "" "--acn-v2"; do
+    out=$work/uper006$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/006.asn1"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/uper-wire/006_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "uper-wire 006 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/uper006ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/006.asn1"
+        cp "$root/test-cases/uper-wire/006_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "uper-wire 006 (Ada) $mode $gnata OK"
     done
 done
 

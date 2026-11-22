@@ -1222,6 +1222,55 @@ class Decoder(Codec):
         except (BitStreamError, struct.error) as e:
             return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=str(e))
 
+    def _oid_decode_subidentifier(self, remaining: int):
+        """
+        Decode one subidentifier of an OBJECT IDENTIFIER / RELATIVE-OID (X.690 8.19.2).
+
+        Matches C: ObjectIdentifier_subidentifiers_uper_decode. Returns (value, remaining octets); the value is None
+        when the stream ends, when the contents length ends inside the subidentifier or when the arc exceeds 64 bits.
+        """
+        si_value = 0
+        while remaining > 0:
+            byte_result = self.read_byte()
+            if not byte_result.success or byte_result.decoded_value is None:
+                return None, remaining
+            remaining -= 1
+            b = byte_result.decoded_value
+            si_value = (si_value << 7) | (b & 0x7F)
+            if si_value >= 1 << 64:
+                # an arc beyond the 64-bit unsigned range of the other runtimes
+                return None, remaining
+            if (b & 0x80) == 0:
+                return si_value, remaining
+        return None, 0
+
+    def _oid_decode_length(self, what: str):
+        """
+        Decode the contents length of an OBJECT IDENTIFIER / RELATIVE-OID: a general length (X.691 10.9).
+
+        Matches C: ObjectIdentifier_uper_decode_length. Returns (length, None) or (None, failed DecodeResult).
+        """
+        len_result = self.decode_constrained_whole_number(0, 0xFF)
+        if not len_result.success or len_result.decoded_value is None:
+            return None, DecodeResult(success=False, error_code=len_result.error_code, error_message=f"Failed to decode {what} length")
+        total_size = len_result.decoded_value
+        if total_size >= 0xC0:
+            # X.691 10.9.3.8: a fragment header cannot start the length of at most OBJECT_IDENTIFIER_MAX_LENGTH arcs
+            return None, DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=f"{what} length: fragment header")
+        if total_size > 0x7F:
+            # Two-byte length: read second byte
+            len2_result = self.decode_constrained_whole_number(0, 0xFF)
+            if not len2_result.success or len2_result.decoded_value is None:
+                return None, DecodeResult(success=False, error_code=len2_result.error_code, error_message=f"Failed to decode {what} length (second byte)")
+            total_size = ((total_size << 8) | len2_result.decoded_value) & 0x7FFF
+            if total_size < 0x80:
+                # X.691 10.9.3.6: a length below 128 takes one octet
+                return None, DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=f"{what} length: two octets below 128")
+        if total_size == 0:
+            # a value has at least one subidentifier
+            return None, DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message=f"{what} length: 0")
+        return total_size, None
+
     def ObjectIdentifier_decode(self) -> 'DecodeResult':
         """
         Decode an OBJECT IDENTIFIER value.
@@ -1232,34 +1281,12 @@ class Decoder(Codec):
         """
         from .asn1_types import Asn1ObjectIdentifier, OBJECT_IDENTIFIER_MAX_LENGTH
 
-        def decode_subidentifier(remaining: int):
-            si_value = 0
-            while remaining > 0:
-                byte_result = self.read_byte()
-                if not byte_result.success or byte_result.decoded_value is None:
-                    return None, remaining
-                remaining -= 1
-                b = byte_result.decoded_value
-                si_value = (si_value << 7) | (b & 0x7F)
-                if (b & 0x80) == 0:
-                    return si_value, remaining
-            return None, 0
-
-        # Read length prefix (8 bits, range [0, 0xFF])
-        len_result = self.decode_constrained_whole_number(0, 0xFF)
-        if not len_result.success or len_result.decoded_value is None:
-            return DecodeResult(success=False, error_code=len_result.error_code, error_message="Failed to decode OID length")
-
-        total_size = len_result.decoded_value
-        if total_size > 0x7F:
-            # Two-byte length: read second byte
-            len2_result = self.decode_constrained_whole_number(0, 0xFF)
-            if not len2_result.success or len2_result.decoded_value is None:
-                return DecodeResult(success=False, error_code=len2_result.error_code, error_message="Failed to decode OID length (second byte)")
-            total_size = ((total_size << 8) | len2_result.decoded_value) & 0x7FFF
+        total_size, failed = self._oid_decode_length("OID")
+        if failed is not None:
+            return failed
 
         # Decode first subidentifier (encodes arc[0] and arc[1])
-        si, total_size = decode_subidentifier(total_size)
+        si, total_size = self._oid_decode_subidentifier(total_size)
         if si is None:
             return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode OID first subidentifier")
 
@@ -1271,7 +1298,7 @@ class Decoder(Codec):
 
         # Decode remaining subidentifiers
         while total_size > 0 and result.n_count < OBJECT_IDENTIFIER_MAX_LENGTH:
-            si, total_size = decode_subidentifier(total_size)
+            si, total_size = self._oid_decode_subidentifier(total_size)
             if si is None:
                 return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode OID subidentifier")
             result.values[result.n_count] = si
@@ -1291,35 +1318,15 @@ class Decoder(Codec):
         """
         from .asn1_types import Asn1ObjectIdentifier, OBJECT_IDENTIFIER_MAX_LENGTH
 
-        def decode_subidentifier(remaining: int):
-            si_value = 0
-            while remaining > 0:
-                byte_result = self.read_byte()
-                if not byte_result.success or byte_result.decoded_value is None:
-                    return None, remaining
-                remaining -= 1
-                b = byte_result.decoded_value
-                si_value = (si_value << 7) | (b & 0x7F)
-                if (b & 0x80) == 0:
-                    return si_value, remaining
-            return None, 0
-
-        len_result = self.decode_constrained_whole_number(0, 0xFF)
-        if not len_result.success or len_result.decoded_value is None:
-            return DecodeResult(success=False, error_code=len_result.error_code, error_message="Failed to decode RelativeOID length")
-
-        total_size = len_result.decoded_value
-        if total_size > 0x7F:
-            len2_result = self.decode_constrained_whole_number(0, 0xFF)
-            if not len2_result.success or len2_result.decoded_value is None:
-                return DecodeResult(success=False, error_code=len2_result.error_code, error_message="Failed to decode RelativeOID length (second byte)")
-            total_size = ((total_size << 8) | len2_result.decoded_value) & 0x7FFF
+        total_size, failed = self._oid_decode_length("RelativeOID")
+        if failed is not None:
+            return failed
 
         result = Asn1ObjectIdentifier()
         result.n_count = 0
 
         while total_size > 0 and result.n_count < OBJECT_IDENTIFIER_MAX_LENGTH:
-            si, total_size = decode_subidentifier(total_size)
+            si, total_size = self._oid_decode_subidentifier(total_size)
             if si is None:
                 return DecodeResult(success=False, error_code=ERROR_INVALID_VALUE, error_message="Failed to decode RelativeOID subidentifier")
             result.values[result.n_count] = si

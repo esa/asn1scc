@@ -328,14 +328,27 @@ mod tests {
     }
 
     #[test]
+    fn general_length_accepts_a_fragment_after_c4() {
+        // after a 64K fragment (C4) another fragment header may follow (X.691 10.9.3.8.1)
+        let mut arr = vec![0u8; 81920];
+        let mut buf = general_length_stream(&[(0xC4, 65536), (0xC1, 16384), (0x00, 0)]);
+        let mut bs = dec(&mut buf);
+        let (n, ok) = bs.decode_general_length(&mut arr, 81920, 8);
+        assert!(ok);
+        assert_eq!(n, 81920);
+        assert_eq!(bs.current_byte, 81923);
+    }
+
+    #[test]
     fn general_length_rejects_non_canonical_fragments() {
         let mut arr = vec![0u8; 32768];
         // (1) a fragment header after a fragment of 16K .. 48K units: rejected right after that header
-        for (parts, at) in [(vec![(0xC1, 16384), (0xC1, 16384), (0x00, 0)], 16386),
-                            (vec![(0xC2, 32768), (0xC1, 0)], 32770)] {
+        let mut arr80 = vec![0u8; 81920];
+        for (parts, max, at) in [(vec![(0xC1, 16384), (0xC1, 16384), (0x00, 0)], 32768, 16386),
+                                 (vec![(0xC2, 32768), (0xC1, 16384), (0x00, 0)], 81920, 32770)] {
             let mut buf = general_length_stream(&parts);
             let mut bs = dec(&mut buf);
-            let (_, ok) = bs.decode_general_length(&mut arr, 32768, 8);
+            let (_, ok) = bs.decode_general_length(&mut arr80[..], max, 8);
             assert!(!ok, "{:x?} accepted", parts);
             assert_eq!(bs.current_byte, at, "{:x?}", parts);
         }

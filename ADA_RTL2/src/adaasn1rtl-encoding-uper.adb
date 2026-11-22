@@ -451,16 +451,23 @@ is
       result := ASN1_RESULT'(ErrorCode => 0, Success => True);
       UPER_Dec_ConstraintWholeNumberInt
         (bs, length, 0, 255, 8, result.Success);
-      if result.Success then
-         if length > 16#80# then
+      --  X.691 10.9.3.6 / 10.9.3.7: one octet below 128, two octets
+      --  (10xxxxxx xxxxxxxx) for 128 .. 16383; a fragment header (11xxxxxx)
+      --  cannot start the length of at most 20 arcs, and a two-octet length
+      --  below 128 is not canonical
+      if result.Success and then length >= 16#80# then
+         if length < 16#C0# then
             length := (length - 16#80#) * 16#100#;
             UPER_Dec_ConstraintWholeNumberInt
               (bs, len2, 0, 255, 8, result.Success);
-            if result.Success then
-               length := length + len2;
-            end if;
+            length := length + len2;
+            result.Success := result.Success and length >= 16#80#;
+         else
+            result.Success := False;
          end if;
       end if;
+      --  a value has at least one subidentifier
+      result.Success := result.Success and length > 0;
    end ObjectIdentifier_uper_decode_length;
 
 --  Each subidentifier is represented as a series of (one or more) octets.
@@ -566,12 +573,17 @@ is
          remainingOctets := remainingOctets - 1;
          bLastOctet      := (curByte and 16#80#) = 0;
          curOctetValue   := Asn1UInt (curByte and 16#7F#);
+         --  an arc beyond Asn1UInt is rejected (it would wrap around)
+         Result.Success  :=
+           Result.Success and siValue <= Asn1UInt'Last / 128;
          siValue         := Shift_Left (siValue, 7);
 
          siValue := siValue or curOctetValue;
          i       := i + 1;
 
       end loop;
+      --  the contents length must not end inside a subidentifier
+      Result.Success := Result.Success and bLastOctet;
 
    end ObjectIdentifier_subidentifiers_uper_decode;
 

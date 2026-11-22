@@ -174,6 +174,15 @@ procedure Wire_Test is
       end loop;
       return V;
    end Make_B32K;
+   function Make_B80K (N : Natural) return B80K is
+      pragma Unreferenced (N);
+      V : B80K;
+   begin
+      for I in V.Data'Range loop
+         V.Data (I) := Octet (I - 1);
+      end loop;
+      return V;
+   end Make_B80K;
    function Make_CV (N : Natural) return CV is
       V : CV := CV_Init;
    begin
@@ -189,6 +198,8 @@ procedure Wire_Test is
    procedure Check_B32K is new Check (B32K, O4096_Encode_aux, B32K_Decode_aux, B32K_Encode_aux, B32K_Equal,
                                       B32K_Init, Make_B32K, 1);
    procedure Check_CV is new Check (CV, OV_Encode_aux, CV_Decode_aux, CV_Encode_aux, CV_Equal, CV_Init, Make_CV, 8);
+   procedure Check_B80K is new Check (B80K, O10240_Encode_aux, B80K_Decode_aux, B80K_Encode_aux, B80K_Equal,
+                                      B80K_Init, Make_B80K, 1);
 begin
    --  the canonical layouts (C32K / B32K: 32768 units = C2 + final length 00; CV: a final length after a C1, in one
    --  and in two octets)
@@ -211,6 +222,12 @@ begin
    Check_CV ("J4 CV 16384 octets: region C1 + 80 02", 16384, Rejected, ERR_UPER_DECODE_CV_2, 0,
              (H (16#C1#), P (16384), L2 (2), P (2)));
    Check_CV ("J5 CV two-octet 5", 16384, Rejected, ERR_UPER_DECODE_CV_2, 16, (L2 (5), P (5)));
+   --  a fragment header after a 64K fragment (C4): a C1 and a final length 0 fill B80K's 81920 bits exactly; one bit
+   --  more is over the maximum (fragmented: restored to 0)
+   Check_B80K ("V6 B80K C4 C1 00 (bits)", 0, Accepted, 0, 81944,
+               (H (16#C4#), P (65536), H (16#C1#), P (16384), H (16#00#)));
+   Check_B80K ("J6 B80K C4 C1 01 (over the maximum)", 0, Rejected, ERR_UPER_DECODE_B80K_2, 0,
+               (H (16#C4#), P (65536), H (16#C1#), P (16384), H (16#01#), P (1)));
 
    if Failed then
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
