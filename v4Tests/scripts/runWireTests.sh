@@ -212,8 +212,8 @@ done
 # uPER OBJECT IDENTIFIER / RELATIVE-OID (Issues 155 / 156): the contents length is a general length (one octet below
 # 128, two octets from 128: Ada read 80 xx as a one-octet length of 128), and the decoders reject what no encoder
 # writes (a two-octet length below 128, a fragment header, length 0, a length that ends inside a subidentifier, an arc
-# beyond 64 bits) with the type's error code and C's bit position; valid streams up to 190 / 200 contents octets are
-# byte-exact. uPER and ACN decoders, legacy and --acn-v2; C with ASan / UBSan, Ada without and with -gnata.
+# beyond 64 bits, a subidentifier whose leading octet is 0x80) with the type's error code and C's bit position; valid
+# streams up to 190 / 200 contents octets are byte-exact. uPER and ACN decoders, legacy and --acn-v2; C with ASan / UBSan, Ada without and with -gnata.
 for mode in "" "--acn-v2"; do
     out=$work/uper006$mode
     mkdir "$out"

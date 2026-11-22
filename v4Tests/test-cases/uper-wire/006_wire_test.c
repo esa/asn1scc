@@ -232,6 +232,15 @@ int main(void)
     row("E7 T first subidentifier 2^64", 'T', REJECT, 88, "0a 82808080808080808000", "", -1);
     row("E8 R arc 2^70", 'R', REJECT, 96, "0b 8180808080808080808000", "", -1);
     row("E9 R 80 80 + 128 continuation octets", 'R', REJECT, 104, "8080 81*128", "", -1);
+    /* a subidentifier whose leading octet is 0x80 (X.690 8.19.2): rejected after that octet */
+    row("K1 R 02 80 05", 'R', REJECT, 16, "028005", "", -1);
+    row("K2 T 03 2A 80 05", 'T', REJECT, 24, "032a8005", "", -1);
+    row("K3 T 03 80 2A 05 (first subidentifier)", 'T', REJECT, 16, "03802a05", "", -1);
+    row("K4 R 11 + 16 x 80 + 05", 'R', REJECT, 16, "11 80*16 05", "", -1);
+    row("K5 R 12 + 17 x 80 + 05", 'R', REJECT, 16, "12 80*17 05", "", -1);
+    row("K6 R BF FF + 318 x 80", 'R', REJECT, 24, "bfff 80*318", "", -1);
+    row("K7 R 128 octets, padded last arc", 'R', REJECT, 1032, "8080 c08080808080808000*14 8007", "", -1);
+    row("K8 S o padded", 'S', REJECT, 24, "032a8005a5", "", -1);
 
     if (failures != 0) {
         printf("uper-wire 006: %d checks failed\n", failures);

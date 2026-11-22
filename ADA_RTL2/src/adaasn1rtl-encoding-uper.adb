@@ -569,6 +569,9 @@ is
               bs.Current_Bit_Pos'Loop_Entry + (i - 1) * 8 and
             remainingOctets = remainingOctets'Loop_Entry - (i - 1));
          BitStream_DecodeByte (bs, curByte, Result.Success);
+         --  X.690 8.19.2: the leading octet of a subidentifier is not 16#80#
+         Result.Success :=
+           Result.Success and (i > 1 or else curByte /= 16#80#);
 
          remainingOctets := remainingOctets - 1;
          bLastOctet      := (curByte and 16#80#) = 0;

@@ -255,6 +255,15 @@ begin
    Row ("E7 T first subidentifier 2^64", 'T', Rejected, 88, "0a 82808080808080808000", "", -1);
    Row ("E8 R arc 2^70", 'R', Rejected, 96, "0b 8180808080808080808000", "", -1);
    Row ("E9 R 80 80 + 128 continuation octets", 'R', Rejected, 104, "8080 81*128", "", -1);
+   --  a subidentifier whose leading octet is 0x80 (X.690 8.19.2): rejected after that octet
+   Row ("K1 R 02 80 05", 'R', Rejected, 16, "028005", "", -1);
+   Row ("K2 T 03 2A 80 05", 'T', Rejected, 24, "032a8005", "", -1);
+   Row ("K3 T 03 80 2A 05 (first subidentifier)", 'T', Rejected, 16, "03802a05", "", -1);
+   Row ("K4 R 11 + 16 x 80 + 05", 'R', Rejected, 16, "11 80*16 05", "", -1);
+   Row ("K5 R 12 + 17 x 80 + 05", 'R', Rejected, 16, "12 80*17 05", "", -1);
+   Row ("K6 R BF FF + 318 x 80", 'R', Rejected, 24, "bfff 80*318", "", -1);
+   Row ("K7 R 128 octets, padded last arc", 'R', Rejected, 1032, "8080 c08080808080808000*14 8007", "", -1);
+   Row ("K8 S o padded", 'S', Rejected, 24, "032a8005a5", "", -1);
 
    if Failed then
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);

@@ -139,7 +139,8 @@ fn subidentifiers_uper_encode(encoding_buf: &mut [u8], p_size: &mut usize, mut s
 /// big-endian into `si_value`.
 ///
 /// Returns `false` if the stream is exhausted or the contents length ends
-/// before a complete sub-identifier is read, or if the arc exceeds 64 bits.
+/// before a complete sub-identifier is read, if the arc exceeds 64 bits, or
+/// if the leading octet is 0x80 (not the fewest octets, X.690 8.19.2).
 ///
 /// Mirrors the C `ObjectIdentifier_subidentifiers_uper_decode`.
 fn subidentifiers_uper_decode(
@@ -157,6 +158,11 @@ fn subidentifiers_uper_decode(
             return false;
         }
         *p_remaining_octets -= 1;
+        // X.690 8.19.2: the leading octet of a sub-identifier is not 0x80
+        // (si_value is 0 at the leading octet only).
+        if *si_value == 0 && cur_byte == 0x80 {
+            return false;
+        }
 
         b_last_octet = (cur_byte & 0x80) == 0;
         cur_octet_value = cur_byte & 0x7F;
@@ -511,6 +517,21 @@ mod tests {
         }
         // the first subidentifier 2^64 - 1 = {2, 2^64 - 81}
         assert_eq!(decode_oid(&with_length(&subid(max as u128)), false), (true, 88, vec![2, max - 80]));
+    }
+
+    #[test]
+    fn test_oid_rejects_non_minimal_subidentifier() {
+        // X.690 8.19.2: a leading octet 0x80 is rejected right after it, also in a subidentifier of more than 16 octets
+        assert_eq!(decode_oid_bytes(&[0x02, 0x80, 0x05], true), (false, 16));
+        assert_eq!(decode_oid_bytes(&[0x03, 0x2A, 0x80, 0x05], false), (false, 24));
+        assert_eq!(decode_oid_bytes(&[0x03, 0x80, 0x2A, 0x05], false), (false, 16));
+        let mut stream = vec![0x12];
+        stream.extend([0x80u8; 17]);
+        stream.push(0x05);
+        assert_eq!(decode_oid_bytes(&stream, true), (false, 16));
+        // 0x80 after the leading octet is a valid part of a subidentifier
+        assert_eq!(decode_oid(&[0x03, 0x81, 0x80, 0x00], true), (true, 32, vec![16384]));
+        assert_eq!(decode_oid(&[0x03, 0x81, 0x80, 0x00], false), (true, 32, vec![2, 16304]));
     }
 
     #[test]

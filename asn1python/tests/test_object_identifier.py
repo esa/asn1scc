@@ -104,6 +104,25 @@ def test_oid_subidentifier_rejections(stream, relative, bit_index) -> None:
     assert at == bit_index
 
 
+@pytest.mark.parametrize("stream, relative, bit_index", [
+    # X.690 8.19.2: a leading octet 0x80 is rejected right after it, also in a subidentifier of more than 16 octets
+    (b"\x02\x80\x05", True, 16),
+    (b"\x03\x2a\x80\x05", False, 24),
+    (b"\x03\x80\x2a\x05", False, 16),
+    (b"\x12" + b"\x80" * 17 + b"\x05", True, 16),
+])
+def test_oid_non_minimal_subidentifier(stream, relative, bit_index) -> None:
+    res, at = _decode(stream, relative)
+    assert not res.success
+    assert at == bit_index
+
+
+@pytest.mark.parametrize("relative, arcs", [(True, [16384]), (False, [2, 16304])])
+def test_oid_0x80_inside_a_subidentifier(relative, arcs) -> None:
+    res, at = _decode(b"\x03\x81\x80\x00", relative)
+    assert res.success and res.decoded_value.values[:len(arcs)] == arcs and at == 32
+
+
 def test_oid_largest_arcs() -> None:
     res, at = _decode(_with_length(_subid(MAX)), True)
     assert res.success and res.decoded_value.values[:1] == [MAX] and at == 88

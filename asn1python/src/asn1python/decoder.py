@@ -1227,7 +1227,8 @@ class Decoder(Codec):
         Decode one subidentifier of an OBJECT IDENTIFIER / RELATIVE-OID (X.690 8.19.2).
 
         Matches C: ObjectIdentifier_subidentifiers_uper_decode. Returns (value, remaining octets); the value is None
-        when the stream ends, when the contents length ends inside the subidentifier or when the arc exceeds 64 bits.
+        when the stream ends, when the contents length ends inside the subidentifier, when the arc exceeds 64 bits or
+        when the leading octet is 0x80 (not the fewest octets).
         """
         si_value = 0
         while remaining > 0:
@@ -1236,6 +1237,9 @@ class Decoder(Codec):
                 return None, remaining
             remaining -= 1
             b = byte_result.decoded_value
+            if si_value == 0 and b == 0x80:
+                # X.690 8.19.2: the leading octet of a subidentifier is not 0x80 (si_value is 0 at the leading octet only)
+                return None, remaining
             si_value = (si_value << 7) | (b & 0x7F)
             if si_value >= 1 << 64:
                 # an arc beyond the 64-bit unsigned range of the other runtimes
