@@ -1706,6 +1706,7 @@ let private emitSpecializedFunctionDecl
         (ctx: DeferredRefCtx)
         (specP: CodegenScope)
         (ownErrCodes: ErrorCode list)
+        (bRegionCheck: bool)
         (specFuncName: string)
         (deferredFormalParams: string list)
         (deferredParamNames: string list)
@@ -1733,10 +1734,16 @@ let private emitSpecializedFunctionDecl
             sq.children |> List.exists (fun c -> match c with Asn1AcnAst.Asn1Child _ -> true | _ -> false)
         | _ -> true
     let bVarNameIsUnreferenced = finalBody.bValIsUnReferenced || not hasAsn1Children
-    // coverage step 10c: val is `in out` when the decoder may leave it partly written (DecodeOutcome.acnValWrite)
+    // coverage step 10c: val is `in out` when the decoder may leave it partly written (DecodeOutcome.acnValWrite); cycle
+    // 15g-b1 (U4): a body that checks a CONTAINING region first fails without writing val (the caller's component is
+    // already initialised, DecodeOutcome.valWrite), whatever its contents write
     let bValInOut =
+        let vw =
+            match bRegionCheck with
+            | true  -> DecodeOutcome.MayLeavePartial
+            | false -> DecodeOutcome.acnValWrite ctx.r ctx.deps ctx.lm ctx.o.resolvedType
         match ctx.codec with
-        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite ctx.r ctx.deps ctx.lm ctx.o.resolvedType) soValInitFuncName && not bVarNameIsUnreferenced
+        | Decode -> DecodeOutcome.valInOut vw soValInitFuncName && not bVarNameIsUnreferenced
         | Encode -> false
 
     // coverage step 12a / 12b: as AcnFunctionWrapper.createAcnFunction
@@ -1967,7 +1974,8 @@ let private createDeferredReferenceFunction
                 let specP : CodegenScope = lm.lg.getParamType t codec
                 let ctx : DeferredRefCtx = { r = r; deps = deps; lm = lm; codec = codec; t = t; o = o; typeDefinition = typeDefinition; isValidFunc = isValidFunc; refIcd = refIcd; emittedValidatorOutcomes = us.emittedValidatorOutcomes }
                 let specBody, us1 = buildNormalReferenceBody ctx specP baseAcnFunc id us
-                let specAux = emitSpecializedFunctionDecl ctx specP [] specFuncName [] [] specBody
+                // the region is checked by the caller (the CONTAINING macro around this call): the body is the contents
+                let specAux = emitSpecializedFunctionDecl ctx specP [] false specFuncName [] [] specBody
                 let res, _ = stgCall (specialisedCallOutcome ctx specFuncName specBody) pp specFuncName errCode
                 (res |> Option.map (fun x -> {x with auxiliaries = x.auxiliaries @ specAux; userDefinedFunctions = x.userDefinedFunctions @ specBody.userDefinedFunctions})), us1
             | true, None ->
@@ -2180,6 +2188,15 @@ let private createDeferredReferenceFunction
                                   // the indexes of the patch loops (Issue 124); declared once with the body's own
                                   localVariables = bodyResult.localVariables @ patchIndexes }
 
+            // cycle 15g-b1 (U4): the body checks a CONTAINING region before the contents (the external-size wrappers of
+            // buildContainingClosureBody when it found the size parameter, buildContainingStandaloneBody, the CHOICE region)
+            let bRegionCheck =
+                match isContainingExternalField, baseAcnFunc.funcName.IsNone, choiceRegion with
+                | true, true, _     -> (findContainingSizeParam ctx.deps ctx.o).IsSome
+                | true, false, _    -> true
+                | false, _, Some _  -> true
+                | false, _, None    -> false
+
             // Step 3: build the specialized function's deferred formal params.
             let deferredFormalParams, deferredParamNames =
                 buildSpecializedFormalParams ctx o.resolvedType.acnParameters
@@ -2187,7 +2204,7 @@ let private createDeferredReferenceFunction
             // Step 4: emit the specialized function (def + body) into auxiliaries.
             let allAuxiliaries =
                 emitSpecializedFunctionDecl
-                    ctx specP [errCode]
+                    ctx specP [errCode] bRegionCheck
                     specFuncName deferredFormalParams deferredParamNames finalBody
 
             // Step 5: build the caller's funcBody, record the cross-TAS call,

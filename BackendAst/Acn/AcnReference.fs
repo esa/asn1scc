@@ -145,7 +145,8 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
 
   match o.encodingOptions with
   | None          ->
-      match o.hasExtraConstrainsOrChildrenOrAcnArgs with
+      // cycle 15g-b1: the same predicate tells the decode classifier that this site is a call (DecodeOutcome.acnHasDecodeContent)
+      match not (DecodeOutcome.acnReferenceIsCall o) with
       | true  ->
           // TODO: this is where stuff gets inlined
           TL "ACN_REF_01" (fun () ->

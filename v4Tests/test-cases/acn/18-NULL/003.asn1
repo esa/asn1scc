@@ -1,0 +1,20 @@
+--RUN_SPARK C_ADA_ONLY (the file tests the Ada decoders; not run in the experimental Python / Rust legs)
+-- References to NULL type assignments are decoded by a call of the type assignment's decoder, which cannot fail
+-- (it only defines val and result): the callers rely on its contract. Markers: NULL fields beside such a reference
+-- (val is not written by the fields: the decoder takes it in out); S2: OPTIONAL references; S3: a fixed-size SEQUENCE OF
+-- such references; S4: a variable-size one; S5: an inline CHOICE of such references and a plain NULL; S6: a reference
+-- to a NULL type assignment with a pattern (it may fail) beside a BOOLEAN.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+MyNull ::= NULL
+PNull ::= NULL
+Markers ::= SEQUENCE { marker1 NULL, marker2 NULL, marker3 MyNull }
+S2 ::= SEQUENCE { x MyNull OPTIONAL, y MyNull OPTIONAL, b BOOLEAN }
+S3 ::= SEQUENCE { l SEQUENCE (SIZE(3)) OF MyNull, b BOOLEAN }
+S4 ::= SEQUENCE (SIZE(0..3)) OF MyNull
+S5 ::= SEQUENCE { item CHOICE { m MyNull, k MyNull, q NULL, n BOOLEAN }, tail BOOLEAN }
+S6 ::= SEQUENCE { a PNull, b BOOLEAN }
+
+END
+
+--TCLS PNull [pattern '1010'B]

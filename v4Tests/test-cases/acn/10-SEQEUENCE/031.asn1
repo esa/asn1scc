@@ -1,0 +1,19 @@
+--RUN_SPARK C_ADA_ONLY (the file tests the Ada decoders; not run in the experimental Python / Rust legs)
+-- Components without content of their own (NULL without pattern) that have an alignment are decoded as the alignment
+-- only, which writes neither the result nor the component. S1: such a component before an INTEGER; S2: the same as an
+-- OPTIONAL component; S3: a NULL type assignment aligned in its own ACN specification, used by a component (its decoder
+-- is the alignment and must still define val and result); S4: an aligned reference to a NULL type assignment (the
+-- referenced body is inlined with the alignment); S5: an inline SEQUENCE holding only an aligned NULL.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+ANull ::= NULL
+MyNull ::= NULL
+S1 ::= SEQUENCE { z NULL, n INTEGER (0..5) }
+S2 ::= SEQUENCE { z NULL OPTIONAL, n INTEGER (0..5) }
+S3 ::= SEQUENCE { a ANull, b BOOLEAN }
+S4 ::= SEQUENCE { a INTEGER (0..7), m MyNull, b INTEGER (0..5) }
+S5 ::= SEQUENCE { e SEQUENCE { z NULL }, tail BOOLEAN }
+
+END
+
+--TCLS ANull [align-to-next byte] S1 [] { z [align-to-next byte], n [] } S2 [] { z [align-to-next byte], n [] } S3 [] { a [], b [] } S4 [] { a [], m [align-to-next byte], b [] } S5 [] { e [] { z [align-to-next byte] }, tail [] }

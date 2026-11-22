@@ -364,9 +364,17 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         | true, None
                         | false, _ -> ns1a
                     | Decode -> ns1a
+                // cycle 15g-b1 (Issue 112): an aligned NULL without pattern decodes only its alignment,
+                // which writes neither val (an `out` parameter, DecodeOutcome.valWrite) nor result: the decoder defines
+                // both first, as for an empty body (sInitialExp), instead of the result initialisation alone
+                let bAlignedNullDecode =
+                    match codec, lm.lg.decodeReadFailureModel, t.Kind, content with
+                    | Decode, ReadsCannotFail, Asn1AcnAst.NullType _, Some _ -> DecodeOutcome.acnAlignedWithoutContent t && soInitFuncName.IsSome
+                    | _ -> false
                 let sInitialExp =
                     // A null attribute disables the optional template initializer.
                     match content with
+                    | Some _ when bAlignedNullDecode -> soInitFuncName.Value
                     | Some _ -> null
                     | None ->
                         match codec, lm.lg.initMethod with
@@ -391,6 +399,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         // error code (DecodeOutcome.acnNeedsResultInit)
                         let body =
                             match codec, lm.lg.decodeReadFailureModel with
+                            | Decode, ReadsCannotFail when bAlignedNullDecode -> bodyResult.funcBody  // sInitialExp defines result
                             | Decode, ReadsCannotFail when DecodeOutcome.acnNeedsResultInit r deps lm t ->
                                 lm.uper.decode_result_init () + "\n" + bodyResult.funcBody
                             | Decode, ReadsCannotFail
