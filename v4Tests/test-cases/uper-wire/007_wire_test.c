@@ -305,6 +305,11 @@ static void s80_rows(int acn, int err)
           I(25, 5, 16384), H(0xFF));
     CHECK("E8 S80 no final octet, exact buffer", T_S80, acn, EXACT, err, 409616, H(0xC4), I(3, 5, 65536), H(0xC1),
           I(25, 5, 16384));
+    /* a character that fails (index 31: not in "A".."Z") before the last one of its block: rejected after it */
+    CHECK("X1 S80 64K block, character 2 = 31", T_S80, acn, REJECT, err, 18, H(0xC4), I(3, 5, 1), I(31, 5, 1),
+          I(3, 5, 65534), H(0xC1), I(25, 5, 16384), H(0x00));
+    CHECK("X2 S80 C1 block, character 2 = 31", T_S80, acn, REJECT, err, 327706, H(0xC4), I(3, 5, 65536), H(0xC1),
+          I(25, 5, 1), I(31, 5, 1), I(25, 5, 16382), H(0x00));
 }
 
 /* the final octet 01, 7F, 80, C1, FF after the blocks of a row (the 00 of a valid stream replaced) */
@@ -414,6 +419,21 @@ int main(int argc, char** argv)
           H(0xC4), I(4, 4, 65536), H(0xC1), I(11, 4, 16383), I(12, 4, 1), H(0x00));
     CHECK("H11 QN last element 3", T_QN, UPER, REJECT, ERR_UPER_DECODE_EN, 163856, H(0xC4), I(2, 2, 65536), H(0xC1),
           I(1, 2, 16383), I(3, 2, 1), H(0x00));
+    /* an element that fails before the last one of its part (64K block, small block, rest), and the last element of
+       a 64K block that another 64K block follows: rejected right after the element (the Ada decoders leave the item
+       loop and the block loop; cycle 15g-b2: these checks stay for elements with their own decoder) */
+    CHECK("X3 QE 64K block, element 2 a = 6", T_QE, UPER, REJECT, ERR_UPER_DECODE_ELM_A, 15, H(0xC4), I(9, 4, 1),
+          I(12, 4, 1), I(9, 4, 65534), H(0xC4), I(4, 4, 65536), H(0xC1), I(11, 4, 16384), H(0x00));
+    CHECK("X4 QE element 65536 a = 6, a 64K block follows", T_QE, UPER, REJECT, ERR_UPER_DECODE_ELM_A, 262151,
+          H(0xC4), I(9, 4, 65535), I(12, 4, 1), H(0xC4), I(4, 4, 65536), H(0xC1), I(11, 4, 16384), H(0x00));
+    CHECK("X5 QE C1 block, element 2 a = 6", T_QE, UPER, REJECT, ERR_UPER_DECODE_ELM_A, 524319, H(0xC4),
+          I(9, 4, 65536), H(0xC4), I(4, 4, 65536), H(0xC1), I(11, 4, 1), I(12, 4, 1), I(11, 4, 16382), H(0x00));
+    CHECK("X6 QN 64K block, element 32769 = 3", T_QN, UPER, REJECT, ERR_UPER_DECODE_EN, 65546, H(0xC4),
+          I(2, 2, 32768), I(3, 2, 1), I(2, 2, 32767), H(0xC1), I(1, 2, 16384), H(0x00));
+    CHECK("X7 QN C1 block, element 8193 = 3", T_QN, UPER, REJECT, ERR_UPER_DECODE_EN, 147474, H(0xC4),
+          I(2, 2, 65536), H(0xC1), I(1, 2, 8192), I(3, 2, 1), I(1, 2, 8191), H(0x00));
+    CHECK("X8 QR rest, element 2 a = 6", T_QR, UPER, REJECT, ERR_UPER_DECODE_ELM_A, 262175, H(0xC4), I(7, 4, 65536),
+          L2(4464), I(2, 4, 1), I(12, 4, 1), I(2, 4, 4462));
 
     if (dumpIndex != NULL)
         fclose(dumpIndex);

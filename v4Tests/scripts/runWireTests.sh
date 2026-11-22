@@ -236,9 +236,11 @@ done
 # a final length octet 0 follows (X.691 10.9.3.8.3 NOTE); valid streams are byte-exact (= asn1tools), any other final
 # octet is rejected with the type's error code after the octet (Ada also after a block of elements with their own
 # decoder, which set the error code to 0). uPER and the ACN IA5String path, legacy and --acn-v2; C with ASan / UBSan,
-# Ada without and with -gnata (also --exact-size: buffers of exactly REQUIRED_BYTES). The generated Ada package is
-# also compiled with the switches of the generated project (-gnatwae, no -gnata): the encoders of SIZE(81920) /
-# SIZE(114688) / SIZE(147456) ended with a "possibly useless assignment" (-gnatwm), an error under -gnatwe.
+# Ada without and with -gnata (also --exact-size: buffers of exactly REQUIRED_BYTES), and with -gnatp + ASan. The
+# generated Ada package is also compiled with the switches of the generated project (-gnatwae, no -gnata): the encoders
+# of SIZE(81920) / SIZE(114688) / SIZE(147456) ended with a "possibly useless assignment" (-gnatwm), an error under
+# -gnatwe. The X rows fail an element before the last one of its block (cycle 15g-b2: the OCTET / BIT STRING item loops
+# have no check, those of IA5String characters and SEQUENCE OF elements must keep theirs).
 for mode in "" "--acn-v2"; do
     out=$work/uper007$mode
     mkdir "$out"
@@ -247,7 +249,7 @@ for mode in "" "--acn-v2"; do
         -I "$out" "$out"/*.c "$root/test-cases/uper-wire/007_wire_test.c" -o "$out/wire_test"
     "$out/wire_test"
     echo "uper-wire 007 $mode OK"
-    for gnata in "" "-gnata"; do
+    for gnata in "" "-gnata" "-gnatp"; do
         out=$work/uper007ada$mode$gnata
         mkdir "$out"
         run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/007.asn1"
@@ -257,7 +259,12 @@ for mode in "" "--acn-v2"; do
             echo "uper-wire 007 (Ada) $mode package builds with -gnatwae"
         fi
         cp "$root/test-cases/uper-wire/007_wire_test.adb" "$out/wire_test.adb"
-        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        if [ "$gnata" = -gnatp ]; then
+            (cd "$out" && gnatmake -q -gnat2012 -gnatp -g wire_test.adb -cargs -fsanitize=address \
+                -largs -fsanitize=address && if [ "$(ulimit -s)" = unlimited ]; then ulimit -s 524288; fi && ./wire_test)
+        else
+            (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        fi
         if [ "$gnata" = -gnata ]; then
             (cd "$out" && ./wire_test --exact-size)
         fi

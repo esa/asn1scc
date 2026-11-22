@@ -282,6 +282,12 @@ procedure Wire_Test is
       Chk ("Z8 S80 final octet 80", Rejected, Err, 409624, Blocks & H (16#80#));
       Chk ("Z8 S80 final octet C1", Rejected, Err, 409624, Blocks & H (16#C1#));
       Chk ("Z8 S80 final octet FF", Rejected, Err, 409624, Blocks & H (16#FF#));
+      --  a character that fails (index 31: not in "A".."Z") before the last one of its block: rejected after it
+      Chk ("X1 S80 64K block, character 2 = 31", Rejected, Err, 18,
+           (H (16#C4#), It (3, 5, 1), It (31, 5, 1), It (3, 5, 65534), H (16#C1#), It (25, 5, 16384), H (16#00#)));
+      Chk ("X2 S80 C1 block, character 2 = 31", Rejected, Err, 327706,
+           (H (16#C4#), It (3, 5, 65536), H (16#C1#), It (25, 5, 1), It (31, 5, 1), It (25, 5, 16382),
+            H (16#00#)));
    end S80_Rows;
 
    procedure S80_Uper_Rows is new S80_Rows (Check_S80);
@@ -401,6 +407,25 @@ begin
               It (12, 4, 1), H (16#00#)));
    Check_QN ("H11 QN last element 3", Rejected, ERR_UPER_DECODE_EN, 163856,
              (H (16#C4#), It (2, 2, 65536), H (16#C1#), It (1, 2, 16383), It (3, 2, 1), H (16#00#)));
+   --  an element that fails before the last one of its part (64K block, small block, rest), and the last element of
+   --  a 64K block that another 64K block follows: rejected right after the element (the decoder leaves the item loop
+   --  and the block loop; cycle 15g-b2: these checks stay for elements with their own decoder)
+   Check_QE ("X3 QE 64K block, element 2 a = 6", Rejected, ERR_UPER_DECODE_ELM_A, 15,
+             (H (16#C4#), It (9, 4, 1), It (12, 4, 1), It (9, 4, 65534), H (16#C4#), It (4, 4, 65536), H (16#C1#),
+              It (11, 4, 16384), H (16#00#)));
+   Check_QE ("X4 QE element 65536 a = 6, a 64K block follows", Rejected, ERR_UPER_DECODE_ELM_A, 262151,
+             (H (16#C4#), It (9, 4, 65535), It (12, 4, 1), H (16#C4#), It (4, 4, 65536), H (16#C1#),
+              It (11, 4, 16384), H (16#00#)));
+   Check_QE ("X5 QE C1 block, element 2 a = 6", Rejected, ERR_UPER_DECODE_ELM_A, 524319,
+             (H (16#C4#), It (9, 4, 65536), H (16#C4#), It (4, 4, 65536), H (16#C1#), It (11, 4, 1), It (12, 4, 1),
+              It (11, 4, 16382), H (16#00#)));
+   Check_QN ("X6 QN 64K block, element 32769 = 3", Rejected, ERR_UPER_DECODE_EN, 65546,
+             (H (16#C4#), It (2, 2, 32768), It (3, 2, 1), It (2, 2, 32767), H (16#C1#), It (1, 2, 16384),
+              H (16#00#)));
+   Check_QN ("X7 QN C1 block, element 8193 = 3", Rejected, ERR_UPER_DECODE_EN, 147474,
+             (H (16#C4#), It (2, 2, 65536), H (16#C1#), It (1, 2, 8192), It (3, 2, 1), It (1, 2, 8191), H (16#00#)));
+   Check_QR ("X8 QR rest, element 2 a = 6", Rejected, ERR_UPER_DECODE_ELM_A, 262175,
+             (H (16#C4#), It (7, 4, 65536), L2 (4464), It (2, 4, 1), It (12, 4, 1), It (2, 4, 4462)));
 
    if Failed then
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
