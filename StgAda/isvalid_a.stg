@@ -89,14 +89,14 @@ end if;
 >>
 
 ExpressionOrStatement(sExp1, sStat2) ::= <<
-ret := <sExp1>;
+ret.Success := <sExp1>;
 if not ret.Success then
     <sStat2>
 end if;
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
-<sStat1>;
+<sStat1>
 if not ret.Success then
     ret.Success := <sExp2>;
 end if;
@@ -117,14 +117,14 @@ end if;
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
-<sStat1>;
+<sStat1>
 if ret.Success then
     ret.Success := <sExp2>;
 end if;
 >>
 
 StatementNot(sStat) ::= <<
-<sStat>;
+<sStat>
 ret.Success := not ret.Success;
 >>
 
@@ -145,7 +145,7 @@ end if;
 >>
 
 StatementExceptExpression(sStat1, sExp2) ::= <<
-<sStat1>;
+<sStat1>
 if ret.Success then
     ret.Success := not (<sExp2>);
 end if;
@@ -158,7 +158,7 @@ StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
     pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
     pragma Loop_Variant (Increases => <i>);
-    <soInnerStatement>
+    <sInnerStatement>
     <i> := <i>+1;
 end loop;
 >>

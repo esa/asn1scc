@@ -967,6 +967,8 @@ type LangGeneric_c() =
         // coverage step 14c3: no read of a one-value type, no `if (ret)` after a decode part that writes no ret
         override _.decodeOneValueWithoutRead = true
         override _.decodeJoinsByWrites = true
+        // cycle i174 round 2: the second operand of a union of validation statements starts from ret = TRUE
+        override _.unionRestartsStatementOperand = true
         // Issue 106: fail at the dependent when the holder of its determinant field is absent
         override _.decodeFailsWhenHolderAbsent = true
         override _.encodeFailsWhenHolderAbsent = true

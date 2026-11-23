@@ -52,6 +52,22 @@ let ValidationBlockAsStringExpr = function
     | VCBStatement (sStat,_) -> sStat
 
 
+/// Cycle i174 round 2 (ILangGeneric.unionRestartsStatementOperand): the second operand of a union runs only after the
+/// first one failed, so the result holds FALSE there, while a validation statement starts from a valid result (a loop
+/// runs while it holds, an OPTIONAL / CHOICE child check that does not apply leaves it). The operand is preceded by a
+/// reset to TRUE, except when its first line assigns the result anyway (the reset would be a dead store: gnatprove flow
+/// "unused assignment" in Ada).
+let unionStatementOperand (lm:LanguageMacros) (sStat:string) =
+    match lm.lg.unionRestartsStatementOperand with
+    | false -> sStat
+    | true  ->
+        let noSpace (s:string) = s.Replace(" ", "").Replace("\t", "")
+        let assignPrefix = noSpace ((lm.isvalid.ExpressionToStatement "\u0001").Split('\u0001').[0])
+        let firstLine = noSpace ((sStat.TrimStart().Split('\n').[0]))
+        match firstLine.StartsWith assignPrefix with
+        | true  -> sStat
+        | false -> lm.isvalid.ExpressionToStatement lm.lg.TrueLiteral + "\n" + sStat
+
 let ValidationCodeBlock_OR (lm:LanguageMacros) vp1 vp2 =
     let expressionOrStatement  =  lm.isvalid.ExpressionOrStatement
     let statementOrExpression  = lm.isvalid.StatementOrExpression
@@ -63,9 +79,9 @@ let ValidationCodeBlock_OR (lm:LanguageMacros) vp1 vp2 =
     | VCBFalse, _                                        -> vp2
     | _, VCBFalse                                        -> vp1
     | VCBExpression sExp1, VCBExpression sExp2    -> VCBExpression (expOr sExp1 sExp2)
-    | VCBExpression sExp1, VCBStatement (sStat2, lv2)    -> VCBStatement(expressionOrStatement sExp1 sStat2, lv2)
+    | VCBExpression sExp1, VCBStatement (sStat2, lv2)    -> VCBStatement(expressionOrStatement sExp1 (unionStatementOperand lm sStat2), lv2)
     | VCBStatement (sStat1, lv1), VCBExpression sExp2    -> VCBStatement(statementOrExpression sStat1 sExp2, lv1)
-    | VCBStatement (sStat1, lv1), VCBStatement (sStat2,lv2)    -> VCBStatement(statementOrStatement sStat1 sStat2, lv1@lv2)
+    | VCBStatement (sStat1, lv1), VCBStatement (sStat2,lv2)    -> VCBStatement(statementOrStatement sStat1 (unionStatementOperand lm sStat2), lv1@lv2)
 
 let ValidationCodeBlock_AND  (lm:LanguageMacros) vp1 vp2 =
     let expressionAndStatement  = lm.isvalid.ExpressionAndStatement
@@ -199,7 +215,9 @@ let foldSizableConstraint (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) hasCount co
         c
         st
 
-let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeId:ReferenceToType)   (c:IA5StringConstraint) (us0:State) =
+/// maxChars: the most characters a value of the type can hold (its SIZE maximum). Cycle i174 round 4: a single value
+/// longer than that is never equal (no comparison: Ada would take a slice past the typedef's array, a compile error).
+let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeId:ReferenceToType) (maxChars:BigInteger)  (c:IA5StringConstraint) (us0:State) =
     let print_AlphabetCheckFunc = lm.isvalid.Print_AlphabetCheckFunc
     let stringContainsChar    (v:String)  =
         let newStr =
@@ -229,7 +247,10 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
 
     let typeName = ToC ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm"))
     foldStringTypeConstraint2 (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
-        (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpStringEqual (p.accessPath.joined lm.lg) (lm.lg.quoteStringLiteral (lm.lg.escapeStringLiteral v)) (BigInteger v.Length)))  ,s)
+        (fun _ v  s         ->
+            match BigInteger v.Length > maxChars with
+            | true  -> (fun p -> VCBFalse), s
+            | false -> (fun p -> VCBExpression (lm.isvalid.ExpStringEqual (p.accessPath.joined lm.lg) (lm.lg.quoteStringLiteral (lm.lg.escapeStringLiteral v)) (BigInteger v.Length)))  ,s)
         (fun _ intCon s     -> foldSizeRangeTypeConstraint r lm (fun l p -> lm.isvalid.StrLen (p.accessPath.joined lm.lg)) intCon s)
         (fun _ alphcon (s:State)      ->
             let alphaBody p =
@@ -402,7 +423,7 @@ let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMac
     match t.ActualType.Kind, ac with
     | Integer o, IntegerTypeConstraint c        -> integerConstraint2ValidationCodeBlock r l (o.baseInfo.intClass) c st
     | Real o, RealTypeConstraint   c            -> realConstraint2ValidationCodeBlock l o.baseInfo.acnEncodingClass c st
-    | IA5String  o, IA5StringConstraint c       -> ia5StringConstraint2ValidationCodeBlock r l t.id  c st
+    | IA5String  o, IA5StringConstraint c       -> ia5StringConstraint2ValidationCodeBlock r l t.id o.baseInfo.maxSize.uper c st
     | OctetString o, OctetStringConstraint c    -> octetStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo (typedefIsFixedSize r t.ActualType.toAsn1AcnAst) o.equalFunction c st
     | BitString o, BitStringConstraint c        -> bitStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo (typedefIsFixedSize r t.ActualType.toAsn1AcnAst) o.equalFunction c st
     | NullType o, NullConstraint                -> (fun p -> VCBTrue), st
@@ -860,7 +881,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Acn
     createIsValidFunction r l t (funcBodyOrImplied l enforced fncs errorCodeComment)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefinitionOrReference) (us:State)  =
-    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l t.id c us) {us with alphaIndex=0; alphaFuncs=[]}
+    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l t.id o.maxSize.uper c us) {us with alphaIndex=0; alphaFuncs=[]}
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t (funcBody l fncs) typeDefinition ns.alphaFuncs [] [] [] (Some errorCodeComment) ns
 
@@ -1254,7 +1275,7 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  refTypeId bs.baseInfo (typedefIsFixedSize r t.ActualType) resolvedType.equalFunction c us) us
     | IA5String st ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IA5StringConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l refTypeId c us) {us with alphaIndex=0; alphaFuncs=[]}
+        cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l refTypeId st.baseInfo.maxSize.uper c us) {us with alphaIndex=0; alphaFuncs=[]}
     | ObjectIdentifier _ ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.ObjectIdConstraint z -> Some z | _ -> None )
         cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock r l c us) us

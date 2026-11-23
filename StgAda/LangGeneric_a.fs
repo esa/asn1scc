@@ -510,6 +510,8 @@ type LangGeneric_a() =
         override _.typedefConstraintModel = TypedefsEnforceRanges
         // The discriminant of a CHOICE is an enumeration of its alternatives (coverage step 14i).
         override _.choiceSelectorHoldsOnlyAlternatives = true
+        // cycle i174 round 2: the second operand of a union of validation statements starts from ret.Success = True
+        override _.unionRestartsStatementOperand = true
         override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValidPrimitives

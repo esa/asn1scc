@@ -898,4 +898,40 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# Validators of constraints at the composite level (Issue 174): the Ada validator of a WITH COMPONENT on a SEQUENCE OF
+# checked nothing (the encoders then wrote past a stream of REQUIRED_BYTES where the narrowing narrows the elements'
+# sizes, or encoded the invalid value); a union whose second operand is such a loop or an OPTIONAL child check rejected
+# values valid by that operand (C and Ada); a loop combined with an expression and a value-set string longer than the
+# maximum did not compile in Ada (Issue 183). Invalid values rejected by IsConstraintValid, the uPER / ACN encoders and
+# the decoders with the constraint's error code, valid values byte-exact; legacy and --acn-v2; C with -DNDEBUG and
+# ASan / UBSan into buffers of exactly REQUIRED_BYTES, Ada plain (+ the package alone with -gnatwa -gnatwe), with
+# -gnata, and with -gnatp + ASan (guard regions around each encoder's stream).
+for mode in "" "--acn-v2"; do
+    out=$work/acn018$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/018.asn1"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -DNDEBUG -fsanitize=address,undefined \
+        -fno-sanitize-recover=undefined -I "$out" "$out"/*.c "$root/test-cases/acn-wire/018_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 018 $mode OK"
+    for gnat in "" "-gnata" "-gnatp"; do
+        out=$work/acn018ada$mode$gnat
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/018.asn1"
+        cp "$root/test-cases/acn-wire/018_wire_test.adb" "$out/wire_test.adb"
+        if [ "$gnat" = -gnatp ]; then
+            (cd "$out" && gnatmake -q -gnat2012 -gnatp -g wire_test.adb -cargs -fsanitize=address \
+                -largs -fsanitize=address && if [ "$(ulimit -s)" = unlimited ]; then ulimit -s 524288; fi && ./wire_test)
+        else
+            if [ -z "$gnat" ]; then
+                # the generated package alone, with the warnings of the -atc builds as errors (an alphabet function
+                # nothing calls, -gnatwu)
+                (cd "$out" && gcc -c -gnat2012 -gnatwa -gnatwe acn_wire_with_component.adb)
+            fi
+            (cd "$out" && gnatmake -q -gnat2012 $gnat wire_test.adb && ./wire_test)
+        fi
+        echo "acn-wire 018 (Ada) $mode $gnat OK"
+    done
+done
+
 echo "acn-v2 wire checks passed"

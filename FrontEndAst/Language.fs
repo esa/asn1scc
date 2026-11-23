@@ -873,6 +873,14 @@ type ILangGeneric () =
     abstract member keepsUncalledChildValidators : bool
     default _.keepsUncalledChildValidators = false
 
+    /// Cycle i174 round 2: whether the second operand of a union of validation statements is preceded by a reset of the
+    /// result to "valid". A statement starts from a valid result (a loop runs while it holds, an OPTIONAL / CHOICE child
+    /// check that does not apply leaves it), but the union runs its second operand only after the first one failed, so
+    /// without the reset `(WITH COMPONENT A) | (WITH COMPONENT B)` or a union of WITH COMPONENTS with an OPTIONAL child
+    /// rejected values valid by the second operand. C and Ada (the other backends keep their output).
+    abstract member unionRestartsStatementOperand : bool
+    default _.unionRestartsStatementOperand = false
+
     /// Whether an encoder calls its type's IsConstraintValid when that function is AlwaysValid (see
     /// EncoderValidationModel; coverage step 12a).
     abstract member encoderValidationModel : EncoderValidationModel
