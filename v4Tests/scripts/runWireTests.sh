@@ -272,6 +272,33 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# Ranges and sizes given with MIN / MAX against a range of the parent (Issue 173): MIN / MAX take the parent's bound.
+# Before, n..MAX on lo..hi (n <= lo) gave a semi-constrained INTEGER (the reference chain U1 ::= U0 (0..255) with
+# U0 ::= INTEGER (0..MAX): 72 bits) or "infinite size", and MIN..m on lo..hi gave m..hi (the C encoders of the values
+# below m wrote past the buffer, the Ada subtypes excluded them). Valid values byte-exact (= pycrate), REQUIRED_BITS
+# pinned, rejected rows with the type's error code and bit position (C = Ada), the ACN scaled-integer REAL of such a
+# range; legacy and --acn-v2; C with -DNDEBUG and ASan / UBSan into buffers of exactly REQUIRED_BYTES, Ada plain and
+# with -gnata.
+for mode in "" "--acn-v2"; do
+    out=$work/uper008$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/008.asn1" \
+        "$root/test-cases/uper-wire/008.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -DNDEBUG -fsanitize=address,undefined \
+        -fno-sanitize-recover=undefined -I "$out" "$out"/*.c "$root/test-cases/uper-wire/008_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "uper-wire 008 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/uper008ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/008.asn1" \
+            "$root/test-cases/uper-wire/008.acn"
+        cp "$root/test-cases/uper-wire/008_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "uper-wire 008 (Ada) $mode $gnata OK"
+    done
+done
+
 # ACN INTEGER as ASCII digits with a terminator: a value outside the range of the type, or a digit string beyond the
 # integer type, is an error code (Ada used to raise Constraint_Error, and accepted digit strings that wrapped around);
 # C, Ada x86 and Ada msp430 (-gnata: the RTL contracts are checked too).
@@ -843,6 +870,31 @@ for mode in "" "--acn-v2"; do
         cp "$root/test-cases/acn-wire/017_wire_test.adb" "$out/wire_test.adb"
         (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
         echo "acn-wire 017 (Ada) $mode $gnata OK"
+    done
+done
+
+# The ACN side of Issue 173: the default ACN encoding of a type assignment with such a range (its uPER body), the length
+# fields of OCTET / BIT STRING / SEQUENCE OF / ASCII strings narrowed by SIZE(MIN..m) at a WITH COMPONENTS site (1..m,
+# was m..max), SIZE(0..MAX) at a site (was "infinite size"), ACN specs that fit the corrected range (were rejected), and
+# a default-encoding string narrowed at a site (REQUIRED_BITS, decoder rejects a length above m). Byte-exact, legacy and
+# --acn-v2; C with -DNDEBUG and ASan / UBSan into buffers of exactly REQUIRED_BYTES, Ada plain and with -gnata.
+for mode in "" "--acn-v2"; do
+    out=$work/acn019$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/019.asn1" \
+        "$root/test-cases/acn-wire/019.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -DNDEBUG -fsanitize=address,undefined \
+        -fno-sanitize-recover=undefined -I "$out" "$out"/*.c "$root/test-cases/acn-wire/019_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 019 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/acn019ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/019.asn1" \
+            "$root/test-cases/acn-wire/019.acn"
+        cp "$root/test-cases/acn-wire/019_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "acn-wire 019 (Ada) $mode $gnata OK"
     done
 done
 

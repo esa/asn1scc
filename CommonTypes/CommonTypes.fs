@@ -1007,12 +1007,12 @@ let rec uperIntersection r1 r2 (l:SrcLoc) =
     | (PosInf(a), PosInf(b))        -> PosInf(max a b)
     | (PosInf(a), NegInf(b))        -> if a<=b then Concrete(a,b) else emptyTypeError l
     | (PosInf(a1), Concrete(a,b))   -> if a1>b then emptyTypeError l
-                                        elif a1<=a then r1
+                                        elif a1<=a then r2
                                         else Concrete(a1,b)
     | (NegInf(a), NegInf(b))        -> NegInf(min a b)
     | (NegInf(a), PosInf(b))        -> if a>=b then Concrete(b,a) else emptyTypeError l
     | (NegInf(a1), Concrete(a,b))   -> if a1<a then emptyTypeError l
-                                        elif a1<b then Concrete(a1,b)
+                                        elif a1<b then Concrete(a,a1)
                                         else r2
     | (Concrete(a1,b1), Concrete(a2,b2)) -> if a1<=a2 && a2<=b1 && b1<=b2 then Concrete(a2,b1)
                                             elif a2<=a1 && a1<=b2 && b2<=b1 then Concrete(a1, b2)

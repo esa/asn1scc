@@ -125,6 +125,10 @@ int main(void)
     ROW(OuterM5, OuterM5_ACN_Decode, OuterM5_ACN_Encode, OuterM5_REQUIRED_BYTES_FOR_ACN_ENCODING, TRUE, 0, 11, 0x18, 0x60);
     /* M5_ab: valid */
     ROW(OuterM5, OuterM5_ACN_Decode, OuterM5_ACN_Encode, OuterM5_REQUIRED_BYTES_FOR_ACN_ENCODING, TRUE, 0, 18, 0x38, 0x71, 0x40);
+    /* M5_len3: length 3 > 2 (SIZE(MIN..2) = 1..2, Issue 173): rejected after the length field */
+    ROW(OuterM5, OuterM5_ACN_Decode, OuterM5_ACN_Encode, OuterM5_REQUIRED_BYTES_FOR_ACN_ENCODING, FALSE, ERR_ACN_DECODE_OUTERM5_X_S, 3, 0x58, 0x71, 0x63);
+    /* M5_len6: length 6 */
+    ROW(OuterM5, OuterM5_ACN_Decode, OuterM5_ACN_Encode, OuterM5_REQUIRED_BYTES_FOR_ACN_ENCODING, FALSE, ERR_ACN_DECODE_OUTERM5_X_S, 3, 0xB8, 0x71, 0x63);
     /* G_ab: valid */
     ROW(OuterG, OuterG_ACN_Decode, OuterG_ACN_Encode, OuterG_REQUIRED_BYTES_FOR_ACN_ENCODING, TRUE, 0, 23, 0x02, 0xC3, 0x8A);
     /* G_len1: length 1 < 2: the validation rejects it */

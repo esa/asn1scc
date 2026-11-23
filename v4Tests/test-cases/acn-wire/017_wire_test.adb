@@ -139,6 +139,10 @@ begin
    A_OuterM5 ("M5_a", OctetBuffer'(1 => 16#18#, 2 => 16#60#), True, 0, 11);
    --  M5_ab: valid
    A_OuterM5 ("M5_ab", OctetBuffer'(1 => 16#38#, 2 => 16#71#, 3 => 16#40#), True, 0, 18);
+   --  M5_len3: length 3 > 2 (SIZE(MIN..2) = 1..2, Issue 173): rejected after the length field
+   A_OuterM5 ("M5_len3", OctetBuffer'(1 => 16#58#, 2 => 16#71#, 3 => 16#63#), False, ERR_ACN_DECODE_OUTERM5_X_S, 3);
+   --  M5_len6: length 6
+   A_OuterM5 ("M5_len6", OctetBuffer'(1 => 16#B8#, 2 => 16#71#, 3 => 16#63#), False, ERR_ACN_DECODE_OUTERM5_X_S, 3);
    --  G_ab: valid
    A_OuterG ("G_ab", OctetBuffer'(1 => 16#02#, 2 => 16#C3#, 3 => 16#8A#), True, 0, 23);
    --  G_len1: length 1 < 2: the validation rejects it

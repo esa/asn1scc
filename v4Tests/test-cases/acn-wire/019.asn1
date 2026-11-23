@@ -1,0 +1,28 @@
+-- Issue 173: MIN / MAX in a range or SIZE applied to a range of the parent take the parent's bound (X.680; see
+-- uper-wire/008 for the uPER rows). ACN wire change (approved): the default ACN encoding of a type assignment is its
+-- uPER body (U1 8 bits, was 72), the length field of an OCTET STRING / SEQUENCE OF / BIT STRING / ASCII string narrowed
+-- by SIZE(MIN..m) at a WITH COMPONENTS site follows 1..m (W3, WC: 1 bit, was 2..6 in 3 bits, and a length 1 was encoded
+-- with a negative offset; WA: 0 bits), an ACN spec that fits the real range is accepted (U1p, U2p: before "values up
+-- to 18446744073709551615"), a site SIZE(0..MAX) / (1..MAX) is the base's range (W4: before "infinite size"). A
+-- default-encoding string narrowed at a site (W1) keeps its uPER length field (no wire change), REQUIRED_BITS shrinks
+-- (50 -> 22) and its decoder rejects a length above 2 right after the length field (Issue 171 check, absent before).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 019_wire_test.c (-DNDEBUG, ASan / UBSan, buffers of
+-- exactly REQUIRED_BYTES) / 019_wire_test.adb (with and without -gnata), legacy and --acn-v2.
+ACN-WIRE-RANGE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    U0  ::= INTEGER (0..MAX)
+    U1  ::= U0 (0..255)
+    U1p ::= U0 (0..255)
+    U2p ::= U0 (5..10)
+    I1  ::= INTEGER (0..10) (MIN..5)
+    I2  ::= INTEGER (3..10) (1..MAX)
+    S1  ::= IA5String (SIZE(1..6)) (SIZE(MIN..2))
+    O1  ::= OCTET STRING (SIZE(1..6)) (SIZE(MIN..2))
+    InO ::= SEQUENCE { o OCTET STRING (SIZE(1..6)), q SEQUENCE (SIZE(1..6)) OF BOOLEAN, b BIT STRING (SIZE(1..6)) }
+    W3  ::= SEQUENCE { x InO (WITH COMPONENTS { o (SIZE(MIN..2)), q (SIZE(MIN..2)), b (SIZE(MIN..2)) }) }
+    W4  ::= SEQUENCE { x InO (WITH COMPONENTS { o (SIZE(0..MAX)), q (SIZE(1..MAX)), b (SIZE(0..MAX)) }) }
+    InA ::= SEQUENCE { s IA5String (SIZE(1..6)), i INTEGER (0..10), b BOOLEAN }
+    W1  ::= SEQUENCE { x InA (WITH COMPONENTS { ..., s (SIZE(MIN..2)), i (MIN..5) }) }
+    InX ::= SEQUENCE { s IA5String (SIZE(1..6)), b BOOLEAN }
+    WA  ::= SEQUENCE { x InX (WITH COMPONENTS { ..., s (SIZE(MIN..1)) }) }
+    WC  ::= SEQUENCE { x InX (WITH COMPONENTS { ..., s (SIZE(MIN..2)) }) }
+END

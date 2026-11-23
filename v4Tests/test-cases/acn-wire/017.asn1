@@ -2,8 +2,8 @@
 -- COMPONENT(S) constraint narrows reads the length field of the PER-visible range (inner subtype constraints are not
 -- PER-visible), while REQUIRED_BITS counts only the narrowed characters (Issue 168). It now rejects a length above the
 -- narrowed maximum right after the length field (type's error code; also the fragmentation decoder of a base >= 64K,
--- OuterG / OuterG2), before the characters; a length below the narrowed minimum is left to the validation (a minimum
--- written with MIN comes out too large: OuterM5). Before, C read the characters and failed later with another code,
+-- OuterG / OuterG2), before the characters; a length below the narrowed minimum is left to the validation (OuterM5:
+-- SIZE(MIN..2) is 1..2 since Issue 173, before 2..6 with no check). Before, C read the characters and failed later,
 -- Ada read past REQUIRED_BITS (with -gnata a precondition / the decoder's postcondition failed; PDU: FALSE with error
 -- code 0; OuterF / OuterE were classified "cannot fail"). No wire change: valid rows are encoded back byte-exact.
 -- Issue 172: the Ada value-set check of a BIT / OCTET STRING whose typedef allows length 0 (OuterB4 / OuterO4, uPER)

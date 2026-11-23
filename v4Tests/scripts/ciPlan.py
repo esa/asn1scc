@@ -140,7 +140,9 @@ def build_jobs():
     jobs["ada-ws4"] += [sh("python3 ./scripts/runTests.py -l Ada --xer")]
     jobs["python"] = [reg("-l python -ws 4 -s false"), reg("-l python -ws 8 -s false"),
                       sh("uvx --python=3.11 pytest tests -v", cwd="asn1python"),
-                      sh("./tools/check_generated_code.sh", cwd="asn1python")]
+                      sh("./tools/check_generated_code.sh", cwd="asn1python"),
+                      # property test of the range algebra (CommonTypes.uperIntersection / uperUnion, Issue 173): ~10 s
+                      sh("./scripts/checkRangeAlgebra.sh")]
     jobs["rust"] = [reg("-l Rust -ws 4 -s false"), reg("-l Rust -ws 8 -s false")]
     # Ada automatic tests with -gnata (Pre / Post / Assert / Assume / Loop_Invariant checked at run time, Issue 115):
     # two shards per mode, appended to the four shortest jobs (the org runs at most 20 jobs at a time: no new job)

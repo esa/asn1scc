@@ -120,7 +120,7 @@ let uperStringCannotFail (lm:LanguageMacros) (o:StringType) : bool =
 /// Acn_Enc_String_uPER): that body reads the length with the PER-visible range, so its decoder checks the length against
 /// this maximum before reading the characters (REQUIRED_BITS counts at most this many characters). Only the maximum:
 /// the narrowed minimum plays no role in the decoder's contract (a shorter length reads fewer characters, the
-/// validation rejects it), and a minimum written with MIN can come out too large (uperIntersection).
+/// validation rejects it), so a length below the narrowed minimum is left to the validation.
 let acnStringNarrowedMax (o:StringType) : BigInteger option =
     match o.acnEncodingClass with
     | Acn_Enc_String_uPER _ -> if o.maxSize.acn < o.maxSize.uper then Some o.maxSize.acn else None

@@ -56,6 +56,9 @@ echo "run c tests, with word-size=8, slim-mode=false, acnv2"
 echo "run acn-v2 wire checks (C)"
 ./scripts/runWireTests.sh || exit 1
 
+echo "run the range algebra property test"
+./scripts/checkRangeAlgebra.sh || exit 1
+
 echo "run -icdPdus checks (C)"
 ./scripts/runIcdPdusTests.sh || exit 1
 
