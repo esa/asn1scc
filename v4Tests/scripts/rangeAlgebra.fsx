@@ -44,6 +44,10 @@ let refUnion (r1: uperRange<'a>) (r2: uperRange<'a>) =
 // None = the compiler rejects the intersection as empty
 let inter r1 r2 = try Some (uperIntersection r1 r2 loc) with SemanticError _ -> None
 
+// at most this many failures are printed in all (formatting a range with %A is slow: a red run stays ~10 s)
+let maxShown = 20
+let mutable shown = 0
+
 let run (name: string) (pts: 'a list) =
     let ranges : uperRange<'a> list =
         [ yield Full
@@ -53,19 +57,19 @@ let run (name: string) (pts: 'a list) =
               for b in pts do
                   if a <= b then yield Concrete (a, b) ]
     let mutable failures = 0
-    let mutable shown = 0
-    let fail (msg: string) =
+    // the message is formatted only when it is printed
+    let fail (msg: unit -> string) =
         failures <- failures + 1
-        if shown < 10 then
+        if shown < maxShown then
             shown <- shown + 1
-            printfn "  %s: %s" name msg
+            printfn "  %s: %s" name (msg ())
     for r1 in ranges do
         for r2 in ranges do
             let g = inter r1 r2
             let e = refInter r1 r2
-            if g <> e then fail (sprintf "%A ^ %A = %A, expected %A" r1 r2 g e)
+            if g <> e then fail (fun () -> sprintf "%A ^ %A = %A, expected %A" r1 r2 g e)
             let u = uperUnion r1 r2
-            if Some u <> refUnion r1 r2 then fail (sprintf "%A | %A = %A, expected %A" r1 r2 u (refUnion r1 r2))
+            if Some u <> refUnion r1 r2 then fail (fun () -> sprintf "%A | %A = %A, expected %A" r1 r2 u (refUnion r1 r2))
     // the serial constraints of a type are folded from the left: every order of three gives the same result
     let rs = List.toArray ranges
     let rnd = Random 173
@@ -75,7 +79,7 @@ let run (name: string) (pts: 'a list) =
         let exp = refInter a b |> Option.bind (fun ab -> refInter ab c)
         for (x, y, z) in [ a, b, c; a, c, b; b, c, a; c, b, a; c, a, b; b, a, c ] do
             let got = inter x y |> Option.bind (fun xy -> inter xy z)
-            if got <> exp then fail (sprintf "(%A ^ %A) ^ %A = %A, expected %A" x y z got exp)
+            if got <> exp then fail (fun () -> sprintf "(%A ^ %A) ^ %A = %A, expected %A" x y z got exp)
     printfn "%s: %d ranges, %d pairs, %d triples x 6 orders: %d failures" name ranges.Length
         (ranges.Length * ranges.Length) triples failures
     failures
