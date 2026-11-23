@@ -1,0 +1,46 @@
+-- Issue 168 / Issue 92: the REQUIRED_BITS of a type with a WITH COMPONENT(S) site (or subtype) that narrows a string or
+-- a BIT STRING counted less than its encoder writes. The narrowing reaches the child as an ACN size only (X.691: inner
+-- subtype constraints are not PER-visible), and
+--  - ACN, IA5String / NumericString with the default encoding (the uPER body): the encoder writes the length field of
+--    the PER-visible range, REQUIRED_BITS counted a length field of the narrowed range (now: uPER length field + the
+--    narrowed characters, e.g. P9 18 bits, was 16);
+--  - uPER, BIT STRING: REQUIRED_BITS counted the narrowed bits, the encoder (the base type's, called by the site, or
+--    the inlined body) writes the PER-visible length field (now: the uPER sizes, e.g. Outer9 177 bits, was 12; Fixed92
+--    1830 = Base92, was 1642, which failed the base encoder's precondition in Ada).
+-- The C encoders of valid values wrote past a buffer of REQUIRED_BYTES (with NDEBUG, an ASan heap overflow; Outer5:
+-- a silently truncated stream), the Ada encoders raised Constraint_Error / failed a precondition. The wire is unchanged
+-- (the bytes below are the ones the compiler wrote before the fix): Oct18 is a CONTAINING of a narrowed fixed-size
+-- string that worked before (B0E2C780, an exact sizing must not add a length field), Sub15 a 'size deduced' octet
+-- string followed by a narrowed string (its decoder subtracts the follower's ACN maximum: 18 bits, was 14).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 016_wire_test.c (-DNDEBUG, ASan) / 016_wire_test.adb
+-- (with and without -gnata, streams of exactly REQUIRED_BYTES), legacy and --acn-v2.
+ACN-WIRE-SITE-SIZES DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    S9In      ::= SEQUENCE { s IA5String (SIZE(1..6)), b BOOLEAN }
+    P9        ::= SEQUENCE { x S9In (WITH COMPONENTS { ..., s ("ab" | "a") }) }
+    Base92    ::= SEQUENCE { cmds SEQUENCE (SIZE(0..10)) OF BOOLEAN, buf OCTET STRING (SIZE(0..200)),
+                             bits BIT STRING (SIZE(0..200)) }
+    Fixed92   ::= Base92 (WITH COMPONENTS { cmds (SIZE(1)), buf (SIZE(10)), bits (SIZE(20)) })
+    Msg18     ::= SEQUENCE { s IA5String (SIZE(1..3)), k BOOLEAN }
+    MsgN18    ::= Msg18 (WITH COMPONENTS { ..., s (SIZE(3)) })
+    Oct18     ::= SEQUENCE { o OCTET STRING (CONTAINING MsgN18), b BOOLEAN }
+    Bit18     ::= SEQUENCE { p BIT STRING (CONTAINING MsgN18), b BOOLEAN }
+    S15In     ::= SEQUENCE { data OCTET STRING (SIZE(0..10)), s IA5String (SIZE(1..10)) }
+    Sub15     ::= S15In (WITH COMPONENTS { ..., s (SIZE(2)) })
+    Str10     ::= IA5String (SIZE(1..20))
+    S10In     ::= SEQUENCE { s Str10, b BOOLEAN }
+    Outer10   ::= SEQUENCE { x S10In (WITH COMPONENTS { ..., s (SIZE(3)) }) }
+    S12In     ::= SEQUENCE { s IA5String (SIZE(1..10)) OPTIONAL, bs BIT STRING (SIZE(0..50)) OPTIONAL, b BOOLEAN }
+    Outer12   ::= SEQUENCE { x S12In (WITH COMPONENTS { ..., s ("ab") PRESENT, bs (SIZE(3)) PRESENT }) }
+    Flags9    ::= BIT STRING { fa(0), fb(1) } (SIZE(0..100))
+    B9In      ::= SEQUENCE { f Flags9, g BIT STRING { ga(0), gb(3) } (SIZE(1..64)) }
+    Outer9    ::= SEQUENCE { x B9In (WITH COMPONENTS { f (SIZE(8)), g (SIZE(4)) }) }
+    Msg8      ::= SEQUENCE { s IA5String (SIZE(1..10)), k BOOLEAN }
+    MsgN8     ::= Msg8 (WITH COMPONENTS { ..., s (SIZE(2)) })
+    Both8     ::= SEQUENCE { o OCTET STRING (CONTAINING MsgN8), p BIT STRING (CONTAINING MsgN8), b BOOLEAN }
+    S7In      ::= SEQUENCE { s IA5String (SIZE(1..70000)), b BOOLEAN }
+    Outer7    ::= SEQUENCE { x S7In (WITH COMPONENTS { ..., s (SIZE(2)) }) }
+    S5In      ::= SEQUENCE { s IA5String (SIZE(1..20)), b BOOLEAN }
+    Sub5      ::= S5In (WITH COMPONENTS { ..., s (SIZE(2)) })
+    Arr5      ::= SEQUENCE (SIZE(1..2)) OF BIT STRING (SIZE(0..100))
+    Outer5    ::= SEQUENCE { x Arr5 (WITH COMPONENT (SIZE(8))) }
+END

@@ -1,4 +1,4 @@
---NOCOVERAGE KNOWN_FAILURE(Ada,gnata): with -gnata, the uPER encoder of a WITH COMPONENTS subtype calls the base type's encoder with a stream sized for the subtype, which the base encoder's precondition (sized for the base type) rejects; valid values fit
+--NOCOVERAGE
 TEST-CASE DEFINITIONS ::=
 BEGIN
 

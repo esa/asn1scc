@@ -1,0 +1,23 @@
+-- C_ADA_ONLY (the Python backend fails these sites before and after the fix: uPER / ACN decodes report "Insufficient data") KNOWN_FAILURE(Ada,gnata): with -gnata, the decode sweep fails RTL preconditions: a corrupted length of a narrowed string is read with the PER-visible range and its characters past the stream end, and the value-set check of a narrowed BIT STRING calls BitString_equal with a decoded length 0; without -gnata both decoders fail cleanly
+-- A WITH COMPONENT(S) site that narrows an IA5String / NumericString (default ACN encoding) or a BIT STRING by a value
+-- set or a fixed size (Issue 168, Issue 92): the encoders write the length field of the PER-visible range (ACN strings:
+-- the uPER body; uPER BIT STRING: the base type's encoder, or the inlined body for SEQUENCE OF elements), so
+-- REQUIRED_BITS counts it (before, the narrowed sizes: the encoders of the automatic test values did not fit the
+-- stream of REQUIRED_BYTES, C assert / Ada Constraint_Error). Byte-exact checks: v4Tests/test-cases/acn-wire/016.
+-- No SEQUENCE holds these types: a corrupted length of a narrowed string makes its decoder read up to the PER-visible
+-- maximum, more than REQUIRED_BITS counts, and an Ada part after it that cannot fail under the decoder's precondition
+-- then returns FALSE without an error code (the decode sweep fails; open, a check of the narrowed length is missing).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    InnerS  ::= SEQUENCE { s IA5String (SIZE(1..6)), b BOOLEAN }
+    OuterS  ::= SEQUENCE { x InnerS (WITH COMPONENTS { ..., s ("ab" | "a") }) }
+    InnerN  ::= SEQUENCE { n NumericString (SIZE(1..12)), b BOOLEAN }
+    OuterN  ::= SEQUENCE { x InnerN (WITH COMPONENTS { ..., n ("12" | "345") }) }
+    InnerB  ::= SEQUENCE { b BIT STRING (SIZE(0..200)) }
+    OuterB  ::= SEQUENCE { x InnerB (WITH COMPONENTS { b (SIZE(20)) }) }
+    InnerB4 ::= SEQUENCE { b BIT STRING (SIZE(0..60)), k BOOLEAN }
+    OuterB4 ::= SEQUENCE { x InnerB4 (WITH COMPONENTS { ..., b ('1010'B | '11'B) }) }
+    Arr     ::= SEQUENCE (SIZE(1..2)) OF BIT STRING (SIZE(0..100))
+    OuterA  ::= SEQUENCE { x Arr (WITH COMPONENT (SIZE(8))) }
+END
+
+--TCLS     OuterS[]

@@ -1,0 +1,6 @@
+-- Sub15: a 'size deduced' OCTET STRING followed by the narrowed string (default encoding); S5In: the base's
+-- 'encoding ASCII' does not reach the subtype Sub5 (Issue 83), which encodes s with the default encoding.
+ACN-WIRE-SITE-SIZES DEFINITIONS ::= BEGIN
+    Sub15 [] { data [size deduced], s [] }
+    S5In [] { s [encoding ASCII], b [] }
+END

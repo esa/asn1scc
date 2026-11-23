@@ -300,3 +300,17 @@ let getSizeableTypeSize (a:BigInteger) (b:BigInteger) (internalSize:BigInteger) 
     | _ when a<>b && b<65536I -> a*internalSize + (lenSize a b), b*internalSize + (lenSize a b)
     // max >= 64K: a general length (X.691 10.9), whose shortest form is one octet below 128 units, two above
     | _                       -> a*internalSize + generalLengthMinBits a, b*internalSize + generalLengthMaxBits b
+
+/// Min / max size in bits of the uPER encoding of a sizeable type whose length field follows the PER-visible size range
+/// uMin..uMax while its values have aMin..aMax units (a WITH COMPONENT(S) narrowing reaches a child only as an ACN size,
+/// X.691: inner subtype constraints are not PER-visible). Used for the ACN default string class
+/// (Acn_Enc_String_uPER), which encodes with the uPER body (AcnStrings.fs): the length field of the uPER range and only
+/// the narrowed number of characters (Issue 168). aMin..aMax = uMin..uMax gives getSizeableTypeSize uMin uMax.
+let getNarrowedSizeableTypeSize (uMin:BigInteger) (uMax:BigInteger) (aMin:BigInteger) (aMax:BigInteger) (internalSize:BigInteger) =
+    match uMin = uMax, uMax < 65536I with
+    | true,  true  -> aMin*internalSize, aMax*internalSize
+    | false, true  ->
+        let lenSize = GetNumberOfBitsForNonNegativeInteger(uMax-uMin)
+        aMin*internalSize + lenSize, aMax*internalSize + lenSize
+    // max >= 64K: a general length of the narrowed number of units (a fixed narrowed size keeps min = max)
+    | _,     false -> aMin*internalSize + generalLengthMinBits aMin, aMax*internalSize + generalLengthMaxBits aMax

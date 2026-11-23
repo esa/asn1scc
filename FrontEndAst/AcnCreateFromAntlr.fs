@@ -536,7 +536,10 @@ let private mergeStringType (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*La
 
     let charSize =  GetNumberOfBitsForNonNegativeInteger (BigInteger (uperCharSet.Length-1))
     let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper charSize
-    let acnUperMinSizeInBits, acnUperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn charSize
+    // the sizes of the default ACN class (Acn_Enc_String_uPER), which encodes with the uPER body: the uPER length field
+    // and the narrowed characters of a WITH COMPONENT(S) site (Issue 168; before, a length field of the narrowed range,
+    // narrower than the one the encoder writes: REQUIRED_BITS too small)
+    let acnUperMinSizeInBits, acnUperMaxSizeInBits = uPER.getNarrowedSizeableTypeSize minSize.uper maxSize.uper minSize.acn maxSize.acn charSize
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
 
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetStringEncodingClass alignment loc acnProperties acnUperMinSizeInBits acnUperMaxSizeInBits minSize.acn maxSize.acn uperCharSet
@@ -650,7 +653,9 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot)
     let maxSize = {SIZE.uper = umaxSize; acn = amaxSize }
     let hasNCount = minSize.uper <> maxSize.uper
     let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 1I
-    let acnUperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn 1I
+    // (Issue 92 / 168: this pair used to rebind uperMaxSizeInBits, so the uPER maximum of a BIT STRING narrowed at a
+    // WITH COMPONENT(S) site counted the narrowed bits while its uPER encoder writes the PER-visible length field)
+    let acnUperMinSizeInBits, acnUperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn 1I
     //let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
 
     let acnProperties =
@@ -666,7 +671,7 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot)
     let acnArgsSubsted = substAcnArgs acnParamSubst (sizeDetArg |> Option.toList)
 
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
-    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass alignment loc acnProperties acnUperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn hasNCount
+    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass alignment loc acnProperties acnUperMinSizeInBits acnUperMaxSizeInBits minSize.acn maxSize.acn hasNCount
 
     let typeDef, us1 = getSizeableTypeDefinition tdarg us
     let definitionOrRef = 

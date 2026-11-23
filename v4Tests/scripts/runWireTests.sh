@@ -795,4 +795,29 @@ for gnata in "" "-gnata"; do
     echo "acn-wire 015 (Ada) $gnata OK"
 done
 
+# The REQUIRED_BITS of a type with a WITH COMPONENT(S) site / subtype that narrows a string (ACN default encoding) or a
+# BIT STRING (uPER) count what the encoder writes (Issue 168, Issue 92: before, the narrowed sizes, smaller than the
+# length field of the PER-visible range that the encoder writes; the C encoders of valid values wrote past a buffer of
+# REQUIRED_BYTES, the Ada encoders raised). Bytes unchanged by the fix, REQUIRED_BITS pinned, uPER and ACN. Legacy and
+# --acn-v2; C built with -DNDEBUG and ASan / UBSan into buffers of exactly REQUIRED_BYTES, Ada with and without -gnata.
+for mode in "" "--acn-v2"; do
+    out=$work/acn016$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/016.asn1" \
+        "$root/test-cases/acn-wire/016.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -DNDEBUG -fsanitize=address,undefined \
+        -fno-sanitize-recover=undefined -I "$out" "$out"/*.c "$root/test-cases/acn-wire/016_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 016 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/acn016ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/016.asn1" \
+            "$root/test-cases/acn-wire/016.acn"
+        cp "$root/test-cases/acn-wire/016_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "acn-wire 016 (Ada) $mode $gnata OK"
+    done
+done
+
 echo "acn-v2 wire checks passed"
