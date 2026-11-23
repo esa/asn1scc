@@ -123,6 +123,15 @@ procedure Wire_Test is
      (Outer5, Outer5_ACN_STREAM_SIZE, Outer5_REQUIRED_BITS_FOR_ACN_ENCODING, Outer5_ACN_Encode,
       Outer5_ACN_Decode, Outer5_Equal);
 
+   procedure U_OctR is new Round_Trip
+     (OctR, OctR_REQUIRED_BYTES_FOR_ENCODING, OctR_REQUIRED_BITS_FOR_ENCODING, OctR_Encode, OctR_Decode, OctR_Equal);
+   procedure A_OctR is new Round_Trip
+     (OctR, OctR_ACN_STREAM_SIZE, OctR_REQUIRED_BITS_FOR_ACN_ENCODING, OctR_ACN_Encode, OctR_ACN_Decode, OctR_Equal);
+   procedure U_BitR is new Round_Trip
+     (BitR, BitR_REQUIRED_BYTES_FOR_ENCODING, BitR_REQUIRED_BITS_FOR_ENCODING, BitR_Encode, BitR_Decode, BitR_Equal);
+   procedure A_BitR is new Round_Trip
+     (BitR, BitR_ACN_STREAM_SIZE, BitR_REQUIRED_BITS_FOR_ACN_ENCODING, BitR_ACN_Encode, BitR_ACN_Decode, BitR_Equal);
+
    V_P9 : P9 := P9_Init;
    V_F92 : Fixed92 := Fixed92_Init;
    V_O18 : Oct18 := Oct18_Init;
@@ -135,6 +144,8 @@ procedure Wire_Test is
    V_O7 : Outer7 := Outer7_Init;
    V_S5 : Sub5 := Sub5_Init;
    V_O5 : Outer5 := Outer5_Init;
+   V_OR : OctR := OctR_Init;
+   V_BR : BitR := BitR_Init;
 begin
    V_P9.x.s := (1 => 'a', 2 => 'b', others => NUL);
    V_P9.x.b := True;
@@ -223,4 +234,22 @@ begin
    V_O5.x.Data (2).Data (1 .. 8) := (0, 0, 0, 0, 1, 1, 1, 1);
    U_Outer5 ("Outer5 uPER", V_O5, 215, (16#88#, 16#FF#, 16#10#, 16#1E#), 31);
    A_Outer5 ("Outer5 ACN", V_O5, 17, (16#FF#, 16#87#, 16#80#), 17);
+
+   --  the ACN wire change of the fix (approved): CONTAINING of a range-narrowed string (see 016_wire_test.c)
+   V_OR.o.s := (1 => 'a', others => NUL);
+   V_OR.o.b := True;
+   V_OR.z := True;
+   V_BR.p.s := (1 => 'a', others => NUL);
+   V_BR.p.b := True;
+   V_BR.z := True;
+   U_OctR ("OctR a uPER", V_OR, 57, (16#02#, 16#18#, 16#60#, 16#80#), 25);
+   A_OctR ("OctR a ACN", V_OR, 26, (16#0C#, 16#30#, 16#40#), 18);
+   U_BitR ("BitR a uPER", V_BR, 57, (16#10#, 16#18#, 16#60#, 16#80#), 25);
+   A_BitR ("BitR a ACN", V_BR, 22, (16#03#, 16#0E#), 15);
+   V_OR.o.s := (1 => 'a', 2 => 'b', others => NUL);
+   V_BR.p.s := (1 => 'a', 2 => 'b', others => NUL);
+   U_OctR ("OctR ab uPER", V_OR, 57, (16#03#, 16#38#, 16#71#, 16#40#, 16#80#), 33);
+   A_OctR ("OctR ab ACN", V_OR, 26, (16#9C#, 16#38#, 16#A0#, 16#40#), 26);
+   U_BitR ("BitR ab uPER", V_BR, 57, (16#18#, 16#38#, 16#71#, 16#40#, 16#80#), 33);
+   A_BitR ("BitR ab ACN", V_BR, 22, (16#E7#, 16#0E#, 16#2C#), 22);
 end Wire_Test;

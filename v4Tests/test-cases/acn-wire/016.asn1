@@ -8,10 +8,15 @@
 --    the inlined body) writes the PER-visible length field (now: the uPER sizes, e.g. Outer9 177 bits, was 12; Fixed92
 --    1830 = Base92, was 1642, which failed the base encoder's precondition in Ada).
 -- The C encoders of valid values wrote past a buffer of REQUIRED_BYTES (with NDEBUG, an ASan heap overflow; Outer5:
--- a silently truncated stream), the Ada encoders raised Constraint_Error / failed a precondition. The wire is unchanged
--- (the bytes below are the ones the compiler wrote before the fix): Oct18 is a CONTAINING of a narrowed fixed-size
--- string that worked before (B0E2C780, an exact sizing must not add a length field), Sub15 a 'size deduced' octet
--- string followed by a narrowed string (its decoder subtracts the follower's ACN maximum: 18 bits, was 14).
+-- a silently truncated stream), the Ada encoders raised Constraint_Error / failed a precondition. The encoders are
+-- unchanged, and so is the wire wherever the narrowed string has one length (the bytes below are the ones the compiler
+-- wrote before the fix): Oct18 is a CONTAINING of a narrowed fixed-size string that worked before (B0E2C780, an exact
+-- sizing must not add a length field), Sub15 a 'size deduced' octet string followed by a narrowed string (its decoder
+-- subtracts the follower's ACN maximum: 18 bits, was 14).
+-- ACN wire change (approved 2026-11-23): a CONTAINING of a subtype that narrows a default-encoding string to a range
+-- of lengths (OctR / BitR: "ab" | "a"). The contents' ACN sizes are now the bits the encoder writes (11 .. 18, was
+-- 9 .. 16), so the region gets a length field (OCTET "a": 0C3040, was 186080). Unavoidable: the old region could not
+-- hold the longest value ("ab" did not fit), so any size that does changes the region's length range.
 -- No directives: run by v4Tests/scripts/runWireTests.sh with 016_wire_test.c (-DNDEBUG, ASan) / 016_wire_test.adb
 -- (with and without -gnata, streams of exactly REQUIRED_BYTES), legacy and --acn-v2.
 ACN-WIRE-SITE-SIZES DEFINITIONS AUTOMATIC TAGS ::= BEGIN
@@ -43,4 +48,7 @@ ACN-WIRE-SITE-SIZES DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     Sub5      ::= S5In (WITH COMPONENTS { ..., s (SIZE(2)) })
     Arr5      ::= SEQUENCE (SIZE(1..2)) OF BIT STRING (SIZE(0..100))
     Outer5    ::= SEQUENCE { x Arr5 (WITH COMPONENT (SIZE(8))) }
+    MsgR      ::= S9In (WITH COMPONENTS { ..., s ("ab" | "a") })
+    OctR      ::= SEQUENCE { o OCTET STRING (CONTAINING MsgR), z BOOLEAN }
+    BitR      ::= SEQUENCE { p BIT STRING (CONTAINING MsgR), z BOOLEAN }
 END

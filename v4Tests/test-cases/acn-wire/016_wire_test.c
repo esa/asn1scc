@@ -2,7 +2,8 @@
    ASan / UBSan; Issue 168, Issue 92): valid values (the longest the narrowing allows) encoded with uPER and ACN into a
    heap buffer of exactly REQUIRED_BYTES (before the fix too small: with NDEBUG the runtime's assert is gone and the
    encoder wrote past the buffer, an ASan heap-buffer-overflow, or skipped a write and returned a short stream), the
-   number of bits and the bytes compared with the ones the compiler wrote before the fix (no wire change), REQUIRED_BITS
+   number of bits and the bytes compared with the ones the compiler wrote before the fix (except OctR / BitR: the ACN
+   wire change of a CONTAINING of a range-narrowed string, approved), REQUIRED_BITS
    pinned, decoded back from a buffer of the written octets only (a 'size deduced' decoder deduces the count from the
    end of the buffer). CHECK, not assert: NDEBUG removes assert. The Ada twin 016_wire_test.adb checks the same values
    and bytes. */
@@ -180,5 +181,37 @@ int main(void)
     o5.x.arr[1].arr[0] = 0x0F;
     UPER(Outer5, o5, 215, o5u, 31);
     ACN(Outer5, o5, 17, o5a, 17);
+
+    /* the ACN wire change of the fix (approved): a CONTAINING of a subtype that narrows a default-encoding string to a
+       range ("ab" | "a" of SIZE(1..6)). The contents now take 11 .. 18 bits = 2 .. 3 octets (OCTET) / 11 .. 18 bits
+       (BIT), so the region gets a 1-bit length field. Before: 9 .. 16 bits, i.e. always 2 octets without a length
+       field (OCTET: "a" = 186080, 17 bits; BIT: "a" = 430E, a 3-bit length of 9..16), and "ab" did not fit (25 > 17,
+       22 > 20 bits). uPER unchanged (X.691 general length). */
+    static OctR oR;
+    static BitR bR;
+    static const byte oRu1[] = {0x02, 0x18, 0x60, 0x80};
+    static const byte oRa1[] = {0x0C, 0x30, 0x40};
+    static const byte bRu1[] = {0x10, 0x18, 0x60, 0x80};
+    static const byte bRa1[] = {0x03, 0x0E};
+    static const byte oRu2[] = {0x03, 0x38, 0x71, 0x40, 0x80};
+    static const byte oRa2[] = {0x9C, 0x38, 0xA0, 0x40};
+    static const byte bRu2[] = {0x18, 0x38, 0x71, 0x40, 0x80};
+    static const byte bRa2[] = {0xE7, 0x0E, 0x2C};
+    strcpy(oR.o.s, "a");
+    oR.o.b = TRUE;
+    oR.z = TRUE;
+    strcpy(bR.p.s, "a");
+    bR.p.b = TRUE;
+    bR.z = TRUE;
+    UPER(OctR, oR, 57, oRu1, 25);
+    ACN(OctR, oR, 26, oRa1, 18);
+    UPER(BitR, bR, 57, bRu1, 25);
+    ACN(BitR, bR, 22, bRa1, 15);
+    strcpy(oR.o.s, "ab");
+    strcpy(bR.p.s, "ab");
+    UPER(OctR, oR, 57, oRu2, 33);
+    ACN(OctR, oR, 26, oRa2, 26);
+    UPER(BitR, bR, 57, bRu2, 33);
+    ACN(BitR, bR, 22, bRa2, 22);
     return 0;
 }

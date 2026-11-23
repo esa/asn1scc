@@ -1,4 +1,4 @@
--- C_ADA_ONLY (the Python backend fails these sites before and after the fix: uPER / ACN decodes report "Insufficient data") KNOWN_FAILURE(Ada,gnata): with -gnata, the decode sweep fails RTL preconditions: a corrupted length of a narrowed string is read with the PER-visible range and its characters past the stream end, and the value-set check of a narrowed BIT STRING calls BitString_equal with a decoded length 0; without -gnata both decoders fail cleanly
+-- C_ADA_ONLY (the Python backend fails these sites before and after the fix: uPER / ACN decodes report "Insufficient data") KNOWN_FAILURE(Ada,gnata): with -gnata the decode sweep fails contracts, two open causes: the ACN decoder of a narrowed default-encoding string reads a corrupted length with the PER-visible range, so it reads past REQUIRED_BITS (the decoder's postcondition, e.g. OuterN_ACN_Decode_aux, or an RTL precondition fails), and the value-set check of a narrowed BIT STRING calls BitString_equal with a decoded length 0 (RTL precondition len1 > 0); without -gnata both decoders fail cleanly
 -- A WITH COMPONENT(S) site that narrows an IA5String / NumericString (default ACN encoding) or a BIT STRING by a value
 -- set or a fixed size (Issue 168, Issue 92): the encoders write the length field of the PER-visible range (ACN strings:
 -- the uPER body; uPER BIT STRING: the base type's encoder, or the inlined body for SEQUENCE OF elements), so
@@ -6,7 +6,8 @@
 -- stream of REQUIRED_BYTES, C assert / Ada Constraint_Error). Byte-exact checks: v4Tests/test-cases/acn-wire/016.
 -- No SEQUENCE holds these types: a corrupted length of a narrowed string makes its decoder read up to the PER-visible
 -- maximum, more than REQUIRED_BITS counts, and an Ada part after it that cannot fail under the decoder's precondition
--- then returns FALSE without an error code (the decode sweep fails; open, a check of the narrowed length is missing).
+-- then returns FALSE without an error code (the decode sweep fails; open: the decoder does not check the narrowed
+-- length).
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     InnerS  ::= SEQUENCE { s IA5String (SIZE(1..6)), b BOOLEAN }
     OuterS  ::= SEQUENCE { x InnerS (WITH COMPONENTS { ..., s ("ab" | "a") }) }
