@@ -820,4 +820,30 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# The ACN decoder of a default-encoding IA5String / NumericString that a WITH COMPONENT(S) constraint narrows rejects a
+# length above the narrowed maximum right after the length field (Issue 171: before, it read that many characters, past
+# REQUIRED_BITS: Ada failed contracts under -gnata, C failed later with another code), and the Ada value-set check of a
+# BIT / OCTET STRING whose typedef allows length 0 no longer violates the RTL precondition (Issue 172). Rows decoded from
+# buffers of exactly REQUIRED_BYTES: result, error code and bit position pinned (C = Ada), valid rows re-encoded
+# byte-exact. Legacy and --acn-v2; C built with -DNDEBUG and ASan / UBSan, Ada with and without -gnata.
+for mode in "" "--acn-v2"; do
+    out=$work/acn017$mode
+    mkdir "$out"
+    run_compiler -c -uPER -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/017.asn1" \
+        "$root/test-cases/acn-wire/017.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -DNDEBUG -fsanitize=address,undefined \
+        -fno-sanitize-recover=undefined -I "$out" "$out"/*.c "$root/test-cases/acn-wire/017_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 017 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/acn017ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/017.asn1" \
+            "$root/test-cases/acn-wire/017.acn"
+        cp "$root/test-cases/acn-wire/017_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "acn-wire 017 (Ada) $mode $gnata OK"
+    done
+done
+
 echo "acn-v2 wire checks passed"

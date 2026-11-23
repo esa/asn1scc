@@ -115,6 +115,19 @@ let uperStringCannotFail (lm:LanguageMacros) (o:StringType) : bool =
     && (o.minSize.uper = o.maxSize.uper
         || lengthFullRange lm o.minSize.uper o.maxSize.uper (GetNumberOfBitsForNonNegativeInteger (o.maxSize.uper - o.minSize.uper)))
 
+/// The maximum size to which a WITH COMPONENTS site narrows an IA5String / NumericString below its PER-visible maximum
+/// (it reaches the child only as its ACN size), when the site's ACN body is the uPER body (the default class
+/// Acn_Enc_String_uPER): that body reads the length with the PER-visible range, so its decoder checks the length against
+/// this maximum before reading the characters (REQUIRED_BITS counts at most this many characters). Only the maximum:
+/// the narrowed minimum plays no role in the decoder's contract (a shorter length reads fewer characters, the
+/// validation rejects it), and a minimum written with MIN can come out too large (uperIntersection).
+let acnStringNarrowedMax (o:StringType) : BigInteger option =
+    match o.acnEncodingClass with
+    | Acn_Enc_String_uPER _ -> if o.maxSize.acn < o.maxSize.uper then Some o.maxSize.acn else None
+    | Acn_Enc_String_uPER_Ascii _ | Acn_Enc_String_Ascii_Null_Terminated _
+    | Acn_Enc_String_Ascii_External_Field_Determinant _ | Acn_Enc_String_CharIndex_External_Field_Determinant _
+    | Acn_Enc_String_Ascii_Deduced _ -> None
+
 /// 14c2b (B2): a uPER variable-size OCTET / BIT STRING (not fragmented) whose length fills its field: the length read
 /// cannot fail, the content read states success in its Post (BitStream_DecodeOctetString_no_length,
 /// BitStream_ReadBitArray; not BitStream_ReadBits of -adaBitStringAlignment): octet_VarSize_fullRange /
@@ -785,7 +798,10 @@ let rec acn (r:AstRoot) (deps:AcnInsertedFieldDependencies) (lm:LanguageMacros) 
             | Real_uPER | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian | Real_ScaledInt _ -> MayFail
         | IA5String o | NumericString o ->
             match o.acnEncodingClass with
-            | Acn_Enc_String_uPER _ -> uper r lm t                                  // 14c2b: the uPER body (AcnStrings)
+            | Acn_Enc_String_uPER _ ->
+                (match acnStringNarrowedMax o with
+                 | Some _ -> MayFail                                                // the narrowed length check (str_VarSize / fragmentation)
+                 | None   -> uper r lm t)                                           // 14c2b: the uPER body (AcnStrings)
             | _ when acnStringAsciiFixSizeCannotFail lm o -> AlwaysSucceeds WritesResult   // Acn_String_Ascii_FixSize_cannotFail (14j G5)
             | _                     -> MayFail
         | SequenceOf o ->
@@ -1079,7 +1095,10 @@ and acnErrorCodeSummaryOfBody (r:AstRoot) (deps:AcnInsertedFieldDependencies) (l
     | Enumerated o -> leaf (acnEnumFullIndex r lm o).IsNone                            // _FullRange read: no ErrorCode
     | IA5String o | NumericString o ->
         match o.acnEncodingClass with
-        | Acn_Enc_String_uPER _ -> uperErrorCodeSummary r lm t                        // 14c2b: the uPER body
+        | Acn_Enc_String_uPER _ ->
+            (match acnStringNarrowedMax o with
+             | Some _ -> leaf true                                                  // the narrowed length check writes the type's code
+             | None   -> uperErrorCodeSummary r lm t)                               // 14c2b: the uPER body
         | _                     -> leaf true
     | Real o ->
         match o.acnEncodingClass with

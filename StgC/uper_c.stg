@@ -475,7 +475,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 <p>[<nFixedSize>] = 0x0;
 >>
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode, noNarrowedMax) ::= <<
 nStringLength = strlen(<p>);
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
 BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSizeMax>);
@@ -483,9 +483,9 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSiz
 
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode, noNarrowedMax) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nStringLength, <nSizeMin>, <nSizeMax>);
-*pErrCode = ret ? 0 : <sErrCode>;
+<if(noNarrowedMax)>ret = ret && nStringLength \<= <noNarrowedMax>; /* a WITH COMPONENTS constraint narrows the SIZE: no longer string is read */<\n><endif>*pErrCode = ret ? 0 : <sErrCode>;
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 <p>[nStringLength] = 0x0;
 >>

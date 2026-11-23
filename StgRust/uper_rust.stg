@@ -510,7 +510,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 <p>[<nFixedSize>] = 0x0;
 >>
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode, noNarrowedMax) ::= <<
 let n_string_length = <p>.len() as i64;
 /*ret = n_string_length \>= <nSizeMin> && n_string_length \<= <nSizeMax>;*/
 pBitStrm.encode_constraint_whole_number(n_string_length, <nSizeMin>, <nSizeMax>);
@@ -518,11 +518,11 @@ pBitStrm.encode_constraint_whole_number(n_string_length, <nSizeMin>, <nSizeMax>)
 
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode, noNarrowedMax) ::= <<
 {
     let (val, ok) = pBitStrm.decode_constraint_whole_number(<nSizeMin>, <nSizeMax>);
     let n_string_length = val;
-    ret = ok;
+    ret = ok;<if(noNarrowedMax)><\n>    ret = ret && n_string_length \<= <noNarrowedMax>; // a WITH COMPONENTS constraint narrows the SIZE: no longer string is read<endif>
     *pErrCode = if ret { 0 } else { <sErrCode> };
     <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="n_string_length as usize")>
     <p>[n_string_length as usize] = 0x0;

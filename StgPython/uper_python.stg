@@ -482,7 +482,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 >>
 
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode, noNarrowedMax) ::= <<
 nStringLength = len(<p>.arr)
 # ret = nStringLength >= <nSizeMin> and nStringLength \<= <nSizeMax>
 res = codec.encode_constrained_whole_number(nStringLength, <nSizeMin>, <nSizeMax>)
@@ -491,13 +491,13 @@ if not res:
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode, noNarrowedMax) ::= <<
 decoded_length = codec.decode_constrained_whole_number(<nSizeMin>, <nSizeMax>)
 if not decoded_length.success or decoded_length.decoded_value is None:
     if decoded_length.error_code == ErrorCode.INSUFFICIENT_DATA:
         raise Asn1UnexpectedEndOfDataException(f"Decoding of string length failed: {decoded_length.error_message}")
     raise Asn1InvalidValueException(f"Decoding of string length failed: {decoded_length.error_message}")
-nStringLength = decoded_length.decoded_value
+nStringLength = decoded_length.decoded_value<if(noNarrowedMax)><\n>if nStringLength > <noNarrowedMax>:<\n>    # a WITH COMPONENTS constraint narrows the SIZE: no longer string is read<\n>    raise Asn1InvalidValueException(f"Decoding of string length failed: {nStringLength} is above the maximum size <noNarrowedMax>")<endif>
 
 <p>_arr = [0] * nStringLength
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>

@@ -99,29 +99,37 @@ is
       elsif abs Left > abs Right then abs Right / abs Left >= 0.99999
       else abs Left / abs Right >= 0.99999);
 
+   --  len1 is a decoded length: any value >= 0 (a value set at a WITH
+   --  COMPONENTS site keeps a typedef that allows length 0); the slices
+   --  are taken only when len1 = len2
    function OctetString_equal
      (len1 : Integer; len2 : Integer; arr1 : OctetBuffer; arr2 : OctetBuffer)
       return Boolean is
      (len1 = len2
       and then arr1 (arr1'First .. arr1'First + (len1 - 1)) =
         arr2 (arr2'First .. arr2'First + (len2 - 1))) with
-      Pre => len1 > 0 and then len2 > 0
-      and then arr1'First <= Integer'Last - (len1 - 1)
+      Pre => len1 >= 0 and then len2 > 0
       and then arr2'First <= Integer'Last - (len2 - 1)
-      and then arr1'First + (len1 - 1) <= arr1'Last
-      and then arr2'First + (len2 - 1) <= arr2'Last;
+      and then arr2'First + (len2 - 1) <= arr2'Last
+      and then (len1 /= len2
+                or else (arr1'First <= Integer'Last - (len1 - 1)
+                         and then arr1'First + (len1 - 1) <= arr1'Last));
 
+   --  len1 is a decoded length: any value >= 0 (a value set at a WITH
+   --  COMPONENTS site keeps a typedef that allows length 0); the slices
+   --  are taken only when len1 = len2
    function BitString_equal
      (len1 : Integer; len2 : Integer; arr1 : BitArray; arr2 : BitArray)
       return Boolean is
      (len1 = len2
       and then arr1 (arr1'First .. arr1'First + (len1 - 1)) =
         arr2 (arr2'First .. arr2'First + (len2 - 1))) with
-      Pre => len1 > 0 and then len2 > 0
-      and then arr1'First <= Integer'Last - (len1 - 1)
+      Pre => len1 >= 0 and then len2 > 0
       and then arr2'First <= Integer'Last - (len2 - 1)
-      and then arr1'First + (len1 - 1) <= arr1'Last
-      and then arr2'First + (len2 - 1) <= arr2'Last;
+      and then arr2'First + (len2 - 1) <= arr2'Last
+      and then (len1 /= len2
+                or else (arr1'First <= Integer'Last - (len1 - 1)
+                         and then arr1'First + (len1 - 1) <= arr1'Last));
 
    --  Conversion between the packed (LSB-first) in-memory BitArray and the
    --  wire-order (MSB-first) array of whole bytes used by the C backend.

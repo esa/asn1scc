@@ -535,7 +535,7 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:Com
         | Decode -> nestChildItems lm  codec (parts |> List.map fst) |> Option.toList
     fixedSize_Fragmentation_sqf (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) singleNestedPart fixSize bIsAsciiString codec, fragmentationVars
 
-let handleFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString (itemOutcome:EncodeOutcome) (item:DecodeOutcome.FragmentItem) =
+let handleFragmentationNarrowed (narrowedMax:BigInteger option) (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.Codec) (errCode:ErrorCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString (itemOutcome:EncodeOutcome) (item:DecodeOutcome.FragmentItem) =
     // 15g-b2: decode items that cannot fail get loops without a check of result (DecodeOutcome.fragmentItemCannotFail)
     let bItemCannotFail =
         match codec with
@@ -562,7 +562,15 @@ let handleFragmentation (lm:LanguageMacros) (p:CodegenScope) (codec:CommonTypes.
         let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode && lm.lg.uper.requires_sBLJ) (createLv sBLJ)
         let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode) (createLv sBlockIndex)
         let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode && minSize <> maxSize) (createLv sLengthTmp)
-        fragmentation (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) internalItem_funcBody  nIntItemMaxSize ( minSize) ( maxSize) uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString bItemCannotFail codec, fragmentationVars
+        // an ACN string narrowed at a WITH COMPONENTS site: the decoder checks the blocks, the last part and the total
+        // against the narrowed maximum (the length forms still follow the PER-visible range: no wire change)
+        let chkMax =
+            match codec, narrowedMax with
+            | Decode, Some aMax       -> aMax
+            | Decode, None | Encode, _ -> maxSize
+        fragmentation (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) internalItem_funcBody  nIntItemMaxSize ( minSize) chkMax uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString bItemCannotFail codec, fragmentationVars
+
+let handleFragmentation (lm:LanguageMacros) = handleFragmentationNarrowed None lm
 
 /// Decoding a string subtype whose typedef is the longer array of its base type (VeryShortString ::=
 /// ShortString (SIZE(1..16)), a String(1..65) in Ada): the decoder sets only the positions up to the
@@ -636,7 +644,18 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
             match o.uperCharSet.Length = 128 with
             | true  -> lm.uper.InternalItem_string_no_alpha_fullRange pp i
             | false -> lm.uper.InternalItem_string_with_alpha_fullRange (p.accessPath.joined lm.lg) td i nBits
-        let cannotFail = codec = Decode && DecodeOutcome.uperStringCannotFail lm o
+        // the ACN body of a string narrowed at a WITH COMPONENTS site reads the length field of the PER-visible range:
+        // its decoder rejects a length above the narrowed maximum before reading the characters (REQUIRED_BITS counts
+        // only the narrowed characters); no _fullRange forms then (DecodeOutcome.acn: MayFail)
+        let noNarrowedMax =
+            match fromACN, codec with
+            | true, Decode           -> DecodeOutcome.acnStringNarrowedMax o
+            | true, Encode | false, _ -> None
+        let cannotFail =
+            match codec, noNarrowedMax with
+            | Decode, None   -> DecodeOutcome.uperStringCannotFail lm o
+            | Decode, Some _ -> false
+            | Encode, _      -> false
         let funcBodyContent,localVariables, encTemplate =
             match o.minSize with
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper && cannotFail ->
@@ -646,9 +665,19 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper ->
                 str_FixedSize pp typeDefinitionName i internalItem o.minSize.uper nBits nBits 0I initExpr introSnap callAux codec, lv::charIndex@nStringLength, EncStringFixedSize
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper ->
-                str_VarSize pp (p.accessPath.joined lm.lg) typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr callAux typeDefinitionName errCode.errCodeName codec, lv::charIndex@nStringLength, EncStringVarSizeUper
+                str_VarSize pp (p.accessPath.joined lm.lg) typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr callAux typeDefinitionName errCode.errCodeName noNarrowedMax codec, lv::charIndex@nStringLength, EncStringVarSizeUper
             | _ ->
-                let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true (lm.lg.encodeTemplateOutcome EncRtlWritesOnly) DecodeOutcome.Character
+                let funcBodyContent,localVariables = handleFragmentationNarrowed noNarrowedMax lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true (lm.lg.encodeTemplateOutcome EncRtlWritesOnly) DecodeOutcome.Character
+                // the fragmentation decoder pads only up to the narrowed maximum + 1 (Ada compares whole arrays): pad the
+                // rest of the PER-visible array (no text in the backends without padding)
+                let funcBodyContent =
+                    match noNarrowedMax with
+                    | Some aMax ->
+                        let pad = lm.uper.str_pad_to_typedef_size pp (aMax + 2I) (o.maxSize.uper + 1I)
+                        match pad with
+                        | "" -> funcBodyContent
+                        | _  -> funcBodyContent + "\n" + pad
+                    | None -> funcBodyContent
                 let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || o.maxSize.uper<>o.minSize.uper) lv
                 funcBodyContent, charIndex@localVariables, EncFragmentation
 

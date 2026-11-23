@@ -549,7 +549,7 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 <p>(<nFixedSize> + 1) := adaasn1rtl.NUL;
 >>
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode, noNarrowedMax) ::= <<
 nStringLength := <rtlModuleName()>.getStringSize(<p>);
 -- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
 pragma Assume (nStringLength >= <nSizeMin> AND nStringLength \<= <nSizeMax>);
@@ -558,10 +558,11 @@ adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.As
 <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
-result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA;
-adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
-<i> := 1;
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode, noNarrowedMax) ::= <<
+<if(noNarrowedMax)>-- a WITH COMPONENTS constraint narrows the SIZE: a length above <noNarrowedMax> is rejected before the characters
+result.ErrorCode := <sErrCode>;
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <noNarrowedMax>, <nSizeInBits>, result.Success);<\n><else>result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA;
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);<\n><endif><i> := 1;
 <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 
 --add nulls until the end
