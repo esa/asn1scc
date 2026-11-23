@@ -1308,10 +1308,88 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l refTypeId sqo.baseInfo (typedefIsFixedSize r t.ActualType) sqo.childType resolvedType.equalFunction c cs) us
 
 
+/// Issue 184: an extension marker with additions (rangeAdd) / any extension marker (rangeRoot) in a range constraint.
+let rec private rangeAdd (c:RangeTypeConstraint<'a,'b>) =
+    match c with
+    | RangeRootConstraint2 _                                                -> true
+    | RangeRootConstraint (_, a) | RangeAllExceptConstraint (_, a)          -> rangeAdd a
+    | RangeUnionConstraint (_, a, b, _) | RangeIntersectionConstraint (_, a, b)
+    | RangeExceptConstraint (_, a, b)                                       -> rangeAdd a || rangeAdd b
+    | RangeSingleValueConstraint _ | RangeConstraint _
+    | RangeConstraint_val_MAX _ | RangeConstraint_MIN_val _                 -> false
+let rec private rangeRoot (c:RangeTypeConstraint<'a,'b>) =
+    match c with
+    | RangeRootConstraint _ | RangeRootConstraint2 _                        -> true
+    | RangeAllExceptConstraint (_, a)                                       -> rangeRoot a
+    | RangeUnionConstraint (_, a, b, _) | RangeIntersectionConstraint (_, a, b)
+    | RangeExceptConstraint (_, a, b)                                       -> rangeRoot a || rangeRoot b
+    | RangeSingleValueConstraint _ | RangeConstraint _
+    | RangeConstraint_val_MAX _ | RangeConstraint_MIN_val _                 -> false
+/// Issue 184 (X.680 46.8, G.4.2.3): constraints applied at a reference site discard the extension additions of the
+/// referenced type (its last constraint), so the values of the site are the site's constraints applied to the referenced
+/// type's ROOT. The referenced type's validator accepts its additions (T0 ::= INTEGER (0..10, ..., -3): -3), while the
+/// encoder of the site uses the merged type, whose constraints are the roots (AcnCreateFromAntlr.serialRoots): the site
+/// checks that root itself. Returns the root (taken from the merged type) when the referenced type's last constraint has
+/// extension additions and the merged one has none left (a string whose additions are in a FROM keeps them: the alphabet
+/// check of a reference site is not emitted, Issue 169, so AcnCreateFromAntlr does not strip it).
+let private discardedAdditionsRoot (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.AnyConstraint list =
+    // add = true: an extension marker with additions anywhere; add = false: any extension marker anywhere
+    let rec sizeExt (add:bool) (c:SizableTypeConstraint<'v>) =
+        match c with
+        | SizeRootConstraint2 _                                                 -> true
+        | SizeRootConstraint (_, a)                                             -> not add || sizeExt add a
+        | SizeAllExceptConstraint (_, a)                                        -> sizeExt add a
+        | SizeUnionConstraint (_, a, b, _) | SizeIntersectionConstraint (_, a, b)
+        | SizeExceptConstraint (_, a, b)                                        -> sizeExt add a || sizeExt add b
+        | SizeConstraint (_, x)                                                 -> if add then rangeAdd x else rangeRoot x
+        | SizeSingleValueConstraint _                                           -> false
+    let rec strExt (add:bool) (c:IA5StringConstraint) =
+        match c with
+        | StrRootConstraint2 _                                                  -> true
+        | StrRootConstraint (_, a)                                              -> not add || strExt add a
+        | StrAllExceptConstraint (_, a)                                         -> strExt add a
+        | StrUnionConstraint (_, a, b, _) | StrIntersectionConstraint (_, a, b)
+        | StrExceptConstraint (_, a, b)                                         -> strExt add a || strExt add b
+        | StrSizeConstraint (_, x)                                              -> if add then rangeAdd x else rangeRoot x
+        | AlphabetConstraint (_, x)                                             -> if add then rangeAdd x else rangeRoot x
+        | StrSingleValueConstraint _                                            -> false
+    let rec seqOfExt (add:bool) (c:SequenceOfConstraint) =
+        match c with
+        | SeqOfSizeRootConstraint2 _                                            -> true
+        | SeqOfSizeRootConstraint (_, a)                                        -> not add || seqOfExt add a
+        | SeqOfSizeAllExceptConstraint (_, a)                                   -> seqOfExt add a
+        | SeqOfSizeUnionConstraint (_, a, b, _) | SeqOfSizeIntersectionConstraint (_, a, b)
+        | SeqOfSizeExceptConstraint (_, a, b)                                   -> seqOfExt add a || seqOfExt add b
+        | SeqOfSizeConstraint (_, x)                                            -> if add then rangeAdd x else rangeRoot x
+        | SeqOfSizeSingleValueConstraint _ | SeqOfSeqWithComponentConstraint _  -> false
+    // the stripped twin of the referenced type's last constraint: same position in the merged list (the merged list is
+    // the referenced type's constraints followed by the site's)
+    let pick (hasAdditions: 'c -> bool) (hasRoot: 'c -> bool) (wrap: 'c -> AnyConstraint) (refCons: 'c list) (merged: 'c list) =
+        match List.tryLast refCons with
+        | Some last when hasAdditions last && merged.Length > refCons.Length ->
+            let x = merged.[refCons.Length - 1]
+            match hasRoot x with
+            | true  -> []
+            | false -> [wrap x]
+        | Some _ | None -> []
+    match o.refCons with
+    | [] -> []
+    | _  ->
+        let act = GetActualTypeByName r o.modName o.tasName
+        match act.Kind, t.ActualType.Kind with
+        | Asn1AcnAst.Integer a, Asn1AcnAst.Integer m          -> pick rangeAdd rangeRoot IntegerTypeConstraint a.cons m.cons
+        | Asn1AcnAst.Real a, Asn1AcnAst.Real m                -> pick rangeAdd rangeRoot RealTypeConstraint a.cons m.cons
+        | Asn1AcnAst.IA5String a, Asn1AcnAst.IA5String m
+        | Asn1AcnAst.NumericString a, Asn1AcnAst.NumericString m -> pick (strExt true) (strExt false) IA5StringConstraint a.cons m.cons
+        | Asn1AcnAst.OctetString a, Asn1AcnAst.OctetString m  -> pick (sizeExt true) (sizeExt false) OctetStringConstraint a.cons m.cons
+        | Asn1AcnAst.BitString a, Asn1AcnAst.BitString m      -> pick (sizeExt true) (sizeExt false) BitStringConstraint a.cons m.cons
+        | Asn1AcnAst.SequenceOf a, Asn1AcnAst.SequenceOf m    -> pick (seqOfExt true) (seqOfExt false) SequenceOfConstraint a.cons m.cons
+        | _                             -> []
+
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State)  =
     let callBaseTypeFunc = l.isvalid.call_base_type_func
     let callSuperclassFunc = l.isvalid.call_superclass_func
-    let vcbs,us = createReferenceTypeFunction_this_type r l t t.id o.refCons typeDefinition resolvedType us
+    let vcbs,us = createReferenceTypeFunction_this_type r l t t.id (discardedAdditionsRoot r t o @ o.refCons) typeDefinition resolvedType us
 
     let moduleName, typeDefinitionName, typeDefinitionName0 =
         match typeDefinition with

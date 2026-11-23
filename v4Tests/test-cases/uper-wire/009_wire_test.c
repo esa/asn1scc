@@ -183,6 +183,20 @@ int main(void)
     INT_UA(SEMI, 5, EXT_REQ, 17, 0x00, 0x80, 0x00);
     /* (a) SEMI 1000 */
     INT_UA(SEMI, 1000, EXT_REQ, 25, 0x01, 0x01, 0xF1, 0x80);
+    /* (b) TR 0: master 00 in 5 bits; a site of a base with additions (T0A ::= INTEGER (0..10, ..., -3)); master: ext bit + 0..10 */
+    INT_UA(TR, 0, 3, 3, 0x00);
+    /* (b) TR 5: master 28 in 5 bits */
+    INT_UA(TR, 5, 3, 3, 0xA0);
+    /* (b) TRX 5: master 28 in 5 bits; master: ext bit + 0..10 */
+    INT_UA(TRX, 5, EXT_REQ, 4, 0x50);
+    /* (b) TRA 5: master 28 in 5 bits; through an alias of T0A */
+    INT_UA(TRA, 5, 3, 3, 0xA0);
+    /* (b) TB 5: master 28 in 5 bits; B20 ::= INTEGER (0..10, ..., 20), TB ::= B20 (5..MAX); master: ext bit + 0..10 */
+    INT_UA(TB, 5, 3, 3, 0x00);
+    /* (b) TB 10: master 50 in 5 bits */
+    INT_UA(TB, 10, 3, 3, 0xA0);
+    /* (b) A12 5: master 28 in 5 bits; through an alias of B10E (P2: the Ada automatic tests of A12 raised Constraint_Error) */
+    INT_UA(A12, 5, 3, 3, 0xA0);
     /* (c) IE3 10; control: single extensible constraint, unchanged */
     INT_UA(IE3, 10, EXT_REQ, 5, 0x50);
     /* (c) IE10 33; control: unchanged */
@@ -342,6 +356,30 @@ int main(void)
         UPER(AFX, , v_, 3, x_, 2);
     }
     {
+        /* a component T0A (MIN..5): 3 bits, no extension bit */
+        static const byte x_[] = {0xB0};
+        static SCR v_;
+        memset(&v_, 0, sizeof v_);
+        v_.a = 5; v_.b = TRUE;
+        UPER(SCR, &, v_, 4, x_, 4);
+    }
+    {
+        /* FROM with additions at a site: master's 7-bit characters kept (Issue 169) */
+        static const byte x_[] = {0xC1, 0x84};
+        static SS v_;
+        memset(&v_, 0, sizeof v_);
+        strcpy(v_, "AB");
+        UPER(SS, , v_, 15, x_, 15);
+    }
+    {
+        /* and master's validity: CD (an addition of S0) is accepted */
+        static const byte x_[] = {0xC3, 0x88};
+        static SS v_;
+        memset(&v_, 0, sizeof v_);
+        strcpy(v_, "CD");
+        UPER(SS, , v_, 15, x_, 15);
+    }
+    {
         /* pos-int on (0..10, ...)(MIN..5): master rejected the ACN spec (signed) */
         static const byte x_[] = {0x05};
         static AP v_;
@@ -416,6 +454,53 @@ int main(void)
     REJECT(N5, ERR_UPER_DECODE_N5, 3, 0xC0);
     /* field 6 */
     REJECT(IE2, ERR_UPER_DECODE_IE2, 3, 0xC0);
+    /* round 2: a value that is only an extension addition of the base is not a value of the site: the validator and
+       the checked encoders reject it with the site's code at bit 0 (C only: the Ada subtypes of TR / TRX / TB cannot
+       hold it). Before the round-2 fix the validator accepted it and the encoder wrote it past the buffer. */
+    {
+        TR v_ = -3;
+        int e_ = 0;
+        CHECK(!TR_IsConstraintValid(&v_, &e_) && e_ == ERR_TR_2);
+    }
+    ENC_FAIL(TR, TR_Encode, TR_REQUIRED_BYTES_FOR_ENCODING, -3, ERR_TR_2, 0);
+    ENC_FAIL(TR, TR_ACN_Encode, TR_REQUIRED_BYTES_FOR_ACN_ENCODING, -3, ERR_TR_2, 0);
+    {
+        TRX v_ = -3;
+        int e_ = 0;
+        CHECK(!TRX_IsConstraintValid(&v_, &e_) && e_ == ERR_TRX_2);
+    }
+    ENC_FAIL(TRX, TRX_Encode, TRX_REQUIRED_BYTES_FOR_ENCODING, -3, ERR_TRX_2, 0);
+    ENC_FAIL(TRX, TRX_ACN_Encode, TRX_REQUIRED_BYTES_FOR_ACN_ENCODING, -3, ERR_TRX_2, 0);
+    {
+        TRA v_ = -3;
+        int e_ = 0;
+        CHECK(!TRA_IsConstraintValid(&v_, &e_) && e_ == ERR_TRA_2_2);
+    }
+    ENC_FAIL(TRA, TRA_Encode, TRA_REQUIRED_BYTES_FOR_ENCODING, -3, ERR_TRA_2_2, 0);
+    ENC_FAIL(TRA, TRA_ACN_Encode, TRA_REQUIRED_BYTES_FOR_ACN_ENCODING, -3, ERR_TRA_2_2, 0);
+    {
+        TB v_ = 20;
+        int e_ = 0;
+        CHECK(!TB_IsConstraintValid(&v_, &e_) && e_ == ERR_TB_2);
+    }
+    ENC_FAIL(TB, TB_Encode, TB_REQUIRED_BYTES_FOR_ENCODING, 20, ERR_TB_2, 0);
+    ENC_FAIL(TB, TB_ACN_Encode, TB_REQUIRED_BYTES_FOR_ACN_ENCODING, 20, ERR_TB_2, 0);
+    {
+        static SCR v_;
+        int e_ = 0;
+        v_.a = -3;
+        v_.b = TRUE;
+        CHECK(!SCR_IsConstraintValid(&v_, &e_) && e_ == ERR_SCR_A_2);
+        e_ = 0;
+        {
+            byte* buf_ = calloc(SCR_REQUIRED_BYTES_FOR_ENCODING, 1);
+            BitStream s_;
+            BitStream_Init(&s_, buf_, SCR_REQUIRED_BYTES_FOR_ENCODING);
+            CHECK(!SCR_Encode(&v_, &s_, &e_, TRUE) && e_ == ERR_SCR_A_2);
+            CHECK(s_.currentByte * 8 + s_.currentBit == 0);
+            free(buf_);
+        }
+    }
     /* a root value in the extension form (non-canonical, X.691 12.1) is still accepted: value 0, bit 17 */
     {
         static const byte src_[] = {0x80, 0x80};

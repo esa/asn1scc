@@ -343,6 +343,21 @@ for mode in "" "--acn-v2"; do
         fi
         echo "uper-wire 009 (Ada) $mode $gnata OK"
     done
+    # the automatic tests (-atc) of the 009 types in C and Ada (without WBIG, whose valid 2^64 - 1 cannot be encoded):
+    # the constraint-violation values of a referenced INTEGER must fit the site's Ada subtype, also through an alias
+    # (A12 ::= AL (MIN..5), AL ::= B10E: before, -1 raised Constraint_Error in the Ada test program)
+    for lang in c Ada; do
+        out=$work/uper009atc-$lang$mode
+        mkdir -p "$out/in"
+        grep -vE 'WS8-ONLY|NO-ATC' "$root/test-cases/uper-wire/009.asn1" > "$out/in/009.asn1"
+        run_compiler -$lang -uPER -ACN -equal -atc $mode -o "$out" "$out/in/009.asn1" "$root/test-cases/uper-wire/009.acn"
+        if [ $lang = c ]; then
+            (cd "$out" && make -s > make.log 2>&1 && ./mainprogram > run.log 2>&1) || { tail -n 20 "$out/make.log" "$out/run.log"; exit 1; }
+        else
+            (cd "$out" && make -s > make.log 2>&1 && ./obj_x86/debug/mainprogram > run.log 2>&1) || { tail -n 20 "$out/make.log" "$out/run.log"; exit 1; }
+        fi
+        echo "uper-wire 009 -atc ($lang) $mode OK"
+    done
     out=$work/uper009ada$mode-msp430
     mkdir -p "$out/in"
     grep -v WS8-ONLY "$root/test-cases/uper-wire/009.asn1" > "$out/in/009.asn1"

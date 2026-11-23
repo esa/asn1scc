@@ -8,12 +8,16 @@
 --       stream; Ada did not compile; IE2 / IE19 raised Constraint_Error in Ada on an extension-bit-1 stream; SE2 / AF3
 --       were "infinite size"; AP and the ACN field n of SQL were rejected (pos-int on a "signed" type); the ACN field
 --       n L2 [] of SQD did not compile (C -Werror, Ada).
+--   Round 2 (code review): a site of a base with extension additions (TR ::= T0A (MIN..5), T0A ::= INTEGER (0..10,
+--       ..., -3)) must not accept -3: the site now checks the base's root (before the round-2 fix the validator called
+--       only T0A's and the C encoder wrote -3 with the root 0..5, past the buffer; master: extension bit + -3, 80fe80).
 --   (b) self-consistent but not X.691 (master bytes in the harness comments): an extensible base narrowed where used
 --       (N5, SC, IE2, ...) kept the extension bit; two extensible constraints took the first root (IE4, IR3, IR5);
 --       an extensible FROM followed by a SIZE (AF2, AFX) was not PER-visible (7-bit characters).
 -- No directives: run by v4Tests/scripts/runWireTests.sh with 009_wire_test.c (-DNDEBUG, ASan / UBSan, buffers of
 -- exactly REQUIRED_BYTES) / 009_wire_test.adb (plain and -gnata), legacy and --acn-v2; the lines marked WS8-ONLY are
--- dropped for the -wordSize 4 build (C -Wall -Wextra -Werror + harness, Ada -gnatwa -gnatwe).
+-- dropped for the -wordSize 4 build (C -Wall -Wextra -Werror + harness, Ada -gnatwa -gnatwe) and for the automatic tests
+-- (-atc, C and Ada), which also drop the NO-ATC lines (the -atc values of S0 ignore its extensible FROM: master too).
 UPER-WIRE-EXT DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- an extensible base type narrowed where used: not extensible (X.680 48.5 "B is inextensible")
     B10E  ::= INTEGER (0..10, ...)
@@ -51,6 +55,20 @@ UPER-WIRE-EXT DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     SEMI  ::= INTEGER (0..MAX) (5..MAX, ...)
     W32   ::= INTEGER (0..MAX) (0..5, ..., 4294967295)
     WBIG  ::= INTEGER (0..MAX) (0..5, ..., 18446744073709551615)   -- WS8-ONLY
+    -- a site discards the base's extension additions (X.680 46.8): T0A's -3 / B20's 20 are not values of the sites
+    T0A   ::= INTEGER (0..10, ..., -3)
+    TR    ::= T0A (MIN..5)
+    TRX   ::= T0A (MIN..5, ...)
+    T1A   ::= T0A
+    TRA   ::= T1A (MIN..5)
+    SCR   ::= SEQUENCE { a T0A (MIN..5), b BOOLEAN }
+    B20   ::= INTEGER (0..10, ..., 20)
+    TB    ::= B20 (5..MAX)
+    AL    ::= B10E
+    A12   ::= AL (MIN..5)
+    -- a permitted alphabet with additions narrowed at a site keeps master's encoding (known deviation, Issue 169)
+    S0    ::= IA5String (SIZE(1..4)) (FROM("AB"), ..., FROM("CD"))     -- NO-ATC
+    SS    ::= S0 (SIZE(1..2))                                          -- NO-ATC
     -- controls: a single extensible constraint (unchanged)
     IE3   ::= INTEGER (0..10, ...)
     IE10  ::= INTEGER (1..32, ..., 33..128)

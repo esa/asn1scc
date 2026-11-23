@@ -365,6 +365,7 @@ let private serialRoots (rootOf: 'c -> 'c) (cons: 'c list) : 'c list =
     | []              -> []
     | last :: earlier -> (List.rev earlier |> List.map rootOf) @ [last]
 
+
 /// Issue 184 (S1): an extension marker in the PER-visible SIZE of the last serial constraint (X.680 47.5: SIZE(x, ...);
 /// a root (x, ...) whose root holds a SIZE; X.691 9.3.18 and 16.3 / 27.4 then need an extension bit before the length)
 /// is not supported by the size templates; before, such a marker was ignored after an earlier SIZE (no extension bit,
@@ -402,6 +403,42 @@ let rec private seqOfHasExtensibleSize (inRoot:bool) (c:SequenceOfConstraint) =
     | SeqOfSizeAllExceptConstraint (_, a)                                   -> seqOfHasExtensibleSize inRoot a
     | SeqOfSizeConstraint (_, r)                                            -> inRoot || rangeIsExtensible r
     | SeqOfSizeSingleValueConstraint _ | SeqOfSeqWithComponentConstraint _  -> false
+let rec private rangeAdditions (c:RangeTypeConstraint<'v1,'v2>) =
+    match c with
+    | RangeRootConstraint2 _                                                -> true
+    | RangeRootConstraint (_, a) | RangeAllExceptConstraint (_, a)          -> rangeAdditions a
+    | RangeUnionConstraint (_, a, b, _) | RangeIntersectionConstraint (_, a, b)
+    | RangeExceptConstraint (_, a, b)                                       -> rangeAdditions a || rangeAdditions b
+    | RangeSingleValueConstraint _ | RangeConstraint _
+    | RangeConstraint_val_MAX _ | RangeConstraint_MIN_val _                 -> false
+/// Strings: the constraints of a type (own) followed by those of the reference sites that apply it (site), serially.
+/// Exception (Issue 184): when the last own constraint has extension additions in a permitted alphabet
+/// (S0 ::= IA5String (SIZE(1..4)) (FROM("AB"), ..., FROM("CD")); S ::= S0 (SIZE(1..2))) it is kept as it is: its root
+/// alphabet would be PER-visible at the site, but the site's validator would have to check that alphabet itself
+/// (DastValidate2.discardedAdditionsRoot), and an alphabet check of a reference site is not emitted (Issue 169). So
+/// such a site keeps master's encoding (the full alphabet) and validity (the additions); a known deviation from X.680.
+let private strSerialRoots (own: IA5StringConstraint list) (site: IA5StringConstraint list) : IA5StringConstraint list =
+    let rec hasAlphabet (c:IA5StringConstraint) =
+        match c with
+        | AlphabetConstraint _                                                  -> true
+        | StrRootConstraint (_, a) | StrAllExceptConstraint (_, a)              -> hasAlphabet a
+        | StrRootConstraint2 (_, a, b) | StrUnionConstraint (_, a, b, _)
+        | StrIntersectionConstraint (_, a, b) | StrExceptConstraint (_, a, b)   -> hasAlphabet a || hasAlphabet b
+        | StrSizeConstraint _ | StrSingleValueConstraint _                      -> false
+    let rec additions (c:IA5StringConstraint) =
+        match c with
+        | StrRootConstraint2 _                                                  -> true
+        | StrRootConstraint (_, a) | StrAllExceptConstraint (_, a)              -> additions a
+        | StrUnionConstraint (_, a, b, _) | StrIntersectionConstraint (_, a, b)
+        | StrExceptConstraint (_, a, b)                                         -> additions a || additions b
+        | StrSizeConstraint (_, r)                                              -> rangeAdditions r
+        | AlphabetConstraint (_, r)                                             -> rangeAdditions r
+        | StrSingleValueConstraint _                                            -> false
+    match List.rev own, site with
+    | ownLast :: ownEarlier, _ :: _ when additions ownLast && hasAlphabet (strRootOf ownLast) && not (strHasExtensibleSize false ownLast) ->
+        (List.rev ownEarlier |> List.map strRootOf) @ [ownLast] @ serialRoots strRootOf site
+    | _ -> serialRoots strRootOf (own @ site)
+
 /// cons: after serialRoots, so only the last constraint can still be extensible.
 let private checkExtensibleSize (hasExtensibleSize: bool -> 'c -> bool) (loc:SrcLoc) (cons: 'c list) : 'c list =
     match cons |> List.exists (hasExtensibleSize false) with
@@ -1354,14 +1391,16 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             TimeType o, us1
         | Asn1Ast.IA5String                ->
             let defaultCharSet = [|for i in 0..127 -> System.Convert.ToChar(i) |]
-            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t) |> serialRoots strRootOf |> checkExtensibleSize strHasExtensibleSize sizeErrLoc
+            let strCons (cs:Asn1Ast.Asn1Constraint list) = cs |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
+            let cons =  strSerialRoots (strCons t.Constraints) (strCons refTypeCons) |> checkExtensibleSize strHasExtensibleSize sizeErrLoc
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
             let o, us1 = mergeStringType asn1 lms (Some t) t.Location acnErrLoc combinedProperties cons wcons defaultCharSet false (EnmStrGetTypeDefinition_arg tfdArg) us
             IA5String o , us1
         | Asn1Ast.NumericString            ->
             let defaultCharSet = [| ' ';'0';'1';'2';'3';'4';'5';'6';'7';'8';'9'|]
 
-            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t) |> serialRoots strRootOf |> checkExtensibleSize strHasExtensibleSize sizeErrLoc
+            let strCons (cs:Asn1Ast.Asn1Constraint list) = cs |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
+            let cons =  strSerialRoots (strCons t.Constraints) (strCons refTypeCons) |> checkExtensibleSize strHasExtensibleSize sizeErrLoc
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
             let o, us1 = mergeStringType asn1 lms (Some t) t.Location acnErrLoc combinedProperties cons wcons defaultCharSet true (EnmStrGetTypeDefinition_arg tfdArg) us
             NumericString o, us1

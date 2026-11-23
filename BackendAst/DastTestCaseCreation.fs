@@ -759,7 +759,8 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (unique:Set<st
                 // site's typedef, which can be narrower (Ada: B ::= INTEGER (0..10, ...), the typedef of B (MIN..5) is
                 // range 0 .. 5 and -1 is a compile error, "Constraint_Error will be raised at run time")
                 let siteHolds (v:ConstraintViolation) =
-                    match ts.Type.Kind, ref.resolvedType.Kind with
+                    // the referenced type may be an alias (AL ::= B10E): its INTEGER is at the end of the chain
+                    match ts.Type.ActualType.Kind, ref.resolvedType.ActualType.Kind with
                     | Integer bo, Integer so when v.nodeId = ts.Type.id ->
                         intViolatingValues r lm bo.baseInfo [] bo.baseInfo.cons |>
                         List.filter (representableInt r lm so.baseInfo) |>

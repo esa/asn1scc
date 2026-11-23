@@ -163,6 +163,16 @@ procedure Wire_Test is
      (NEG3, Positive'Max (1, NEG3_REQUIRED_BYTES_FOR_ENCODING), NEG3_REQUIRED_BITS_FOR_ENCODING, NEG3_Encode, NEG3_Decode, NEG3_Equal);
    procedure U_SEMI is new Round_Trip
      (SEMI, Positive'Max (1, SEMI_REQUIRED_BYTES_FOR_ENCODING), SEMI_REQUIRED_BITS_FOR_ENCODING, SEMI_Encode, SEMI_Decode, SEMI_Equal);
+   procedure U_TR is new Round_Trip
+     (TR, Positive'Max (1, TR_REQUIRED_BYTES_FOR_ENCODING), TR_REQUIRED_BITS_FOR_ENCODING, TR_Encode, TR_Decode, TR_Equal);
+   procedure U_TRX is new Round_Trip
+     (TRX, Positive'Max (1, TRX_REQUIRED_BYTES_FOR_ENCODING), TRX_REQUIRED_BITS_FOR_ENCODING, TRX_Encode, TRX_Decode, TRX_Equal);
+   procedure U_TRA is new Round_Trip
+     (TRA, Positive'Max (1, TRA_REQUIRED_BYTES_FOR_ENCODING), TRA_REQUIRED_BITS_FOR_ENCODING, TRA_Encode, TRA_Decode, TRA_Equal);
+   procedure U_TB is new Round_Trip
+     (TB, Positive'Max (1, TB_REQUIRED_BYTES_FOR_ENCODING), TB_REQUIRED_BITS_FOR_ENCODING, TB_Encode, TB_Decode, TB_Equal);
+   procedure U_A12 is new Round_Trip
+     (A12, Positive'Max (1, A12_REQUIRED_BYTES_FOR_ENCODING), A12_REQUIRED_BITS_FOR_ENCODING, A12_Encode, A12_Decode, A12_Equal);
    procedure U_IE3 is new Round_Trip
      (IE3, Positive'Max (1, IE3_REQUIRED_BYTES_FOR_ENCODING), IE3_REQUIRED_BITS_FOR_ENCODING, IE3_Encode, IE3_Decode, IE3_Equal);
    procedure U_IE10 is new Round_Trip
@@ -195,6 +205,10 @@ procedure Wire_Test is
      (AF2, Positive'Max (1, AF2_REQUIRED_BYTES_FOR_ENCODING), AF2_REQUIRED_BITS_FOR_ENCODING, AF2_Encode, AF2_Decode, AF2_Equal);
    procedure U_AFX is new Round_Trip
      (AFX, Positive'Max (1, AFX_REQUIRED_BYTES_FOR_ENCODING), AFX_REQUIRED_BITS_FOR_ENCODING, AFX_Encode, AFX_Decode, AFX_Equal);
+   procedure U_SCR is new Round_Trip
+     (SCR, Positive'Max (1, SCR_REQUIRED_BYTES_FOR_ENCODING), SCR_REQUIRED_BITS_FOR_ENCODING, SCR_Encode, SCR_Decode, SCR_Equal);
+   procedure U_SS is new Round_Trip
+     (SS, Positive'Max (1, SS_REQUIRED_BYTES_FOR_ENCODING), SS_REQUIRED_BITS_FOR_ENCODING, SS_Encode, SS_Decode, SS_Equal);
    procedure A_N5 is new Round_Trip
      (N5, Positive'Max (1, N5_REQUIRED_BYTES_FOR_ACN_ENCODING), N5_REQUIRED_BITS_FOR_ACN_ENCODING, N5_ACN_Encode, N5_ACN_Decode, N5_Equal);
    procedure A_IE2 is new Round_Trip
@@ -243,6 +257,16 @@ procedure Wire_Test is
      (NEG3, Positive'Max (1, NEG3_REQUIRED_BYTES_FOR_ACN_ENCODING), NEG3_REQUIRED_BITS_FOR_ACN_ENCODING, NEG3_ACN_Encode, NEG3_ACN_Decode, NEG3_Equal);
    procedure A_SEMI is new Round_Trip
      (SEMI, Positive'Max (1, SEMI_REQUIRED_BYTES_FOR_ACN_ENCODING), SEMI_REQUIRED_BITS_FOR_ACN_ENCODING, SEMI_ACN_Encode, SEMI_ACN_Decode, SEMI_Equal);
+   procedure A_TR is new Round_Trip
+     (TR, Positive'Max (1, TR_REQUIRED_BYTES_FOR_ACN_ENCODING), TR_REQUIRED_BITS_FOR_ACN_ENCODING, TR_ACN_Encode, TR_ACN_Decode, TR_Equal);
+   procedure A_TRX is new Round_Trip
+     (TRX, Positive'Max (1, TRX_REQUIRED_BYTES_FOR_ACN_ENCODING), TRX_REQUIRED_BITS_FOR_ACN_ENCODING, TRX_ACN_Encode, TRX_ACN_Decode, TRX_Equal);
+   procedure A_TRA is new Round_Trip
+     (TRA, Positive'Max (1, TRA_REQUIRED_BYTES_FOR_ACN_ENCODING), TRA_REQUIRED_BITS_FOR_ACN_ENCODING, TRA_ACN_Encode, TRA_ACN_Decode, TRA_Equal);
+   procedure A_TB is new Round_Trip
+     (TB, Positive'Max (1, TB_REQUIRED_BYTES_FOR_ACN_ENCODING), TB_REQUIRED_BITS_FOR_ACN_ENCODING, TB_ACN_Encode, TB_ACN_Decode, TB_Equal);
+   procedure A_A12 is new Round_Trip
+     (A12, Positive'Max (1, A12_REQUIRED_BYTES_FOR_ACN_ENCODING), A12_REQUIRED_BITS_FOR_ACN_ENCODING, A12_ACN_Encode, A12_ACN_Decode, A12_Equal);
    procedure A_IE3 is new Round_Trip
      (IE3, Positive'Max (1, IE3_REQUIRED_BYTES_FOR_ACN_ENCODING), IE3_REQUIRED_BITS_FOR_ACN_ENCODING, IE3_ACN_Encode, IE3_ACN_Decode, IE3_Equal);
    procedure A_IE10 is new Round_Trip
@@ -349,6 +373,20 @@ begin
    A_SEMI ("SEMI 5", 5, 73, OctetBuffer'(1 => 16#00#, 2 => 16#80#, 3 => 16#00#), 17);
    U_SEMI ("SEMI 1000", 1000, 73, OctetBuffer'(1 => 16#01#, 2 => 16#01#, 3 => 16#F1#, 4 => 16#80#), 25);
    A_SEMI ("SEMI 1000", 1000, 73, OctetBuffer'(1 => 16#01#, 2 => 16#01#, 3 => 16#F1#, 4 => 16#80#), 25);
+   U_TR ("TR 0", 0, 3, OctetBuffer'(1 => 16#00#), 3);
+   A_TR ("TR 0", 0, 3, OctetBuffer'(1 => 16#00#), 3);
+   U_TR ("TR 5", 5, 3, OctetBuffer'(1 => 16#A0#), 3);
+   A_TR ("TR 5", 5, 3, OctetBuffer'(1 => 16#A0#), 3);
+   U_TRX ("TRX 5", 5, 73, OctetBuffer'(1 => 16#50#), 4);
+   A_TRX ("TRX 5", 5, 73, OctetBuffer'(1 => 16#50#), 4);
+   U_TRA ("TRA 5", 5, 3, OctetBuffer'(1 => 16#A0#), 3);
+   A_TRA ("TRA 5", 5, 3, OctetBuffer'(1 => 16#A0#), 3);
+   U_TB ("TB 5", 5, 3, OctetBuffer'(1 => 16#00#), 3);
+   A_TB ("TB 5", 5, 3, OctetBuffer'(1 => 16#00#), 3);
+   U_TB ("TB 10", 10, 3, OctetBuffer'(1 => 16#A0#), 3);
+   A_TB ("TB 10", 10, 3, OctetBuffer'(1 => 16#A0#), 3);
+   U_A12 ("A12 5", 5, 3, OctetBuffer'(1 => 16#A0#), 3);
+   A_A12 ("A12 5", 5, 3, OctetBuffer'(1 => 16#A0#), 3);
    U_IE3 ("IE3 10", 10, 73, OctetBuffer'(1 => 16#50#), 5);
    A_IE3 ("IE3 10", 10, 73, OctetBuffer'(1 => 16#50#), 5);
    U_IE10 ("IE10 33", 33, 73, OctetBuffer'(1 => 16#80#, 2 => 16#90#, 3 => 16#80#), 17);
@@ -383,6 +421,9 @@ begin
    U_AF2 ("AF2 21c0", Pad ("ABD", AF2'Length), 24, OctetBuffer'(1 => 16#21#, 2 => 16#C0#), 10);
    U_AFX ("AFX a0", Pad ("AB", AFX'Length), 3, OctetBuffer'(1 => 16#A0#), 3);
    U_AFX ("AFX 40", Pad ("B", AFX'Length), 3, OctetBuffer'(1 => 16#40#), 2);
+   U_SCR ("SCR b0", SCR'(a => 5, b => True), 4, OctetBuffer'(1 => 16#B0#), 4);
+   U_SS ("SS c184", Pad ("AB", SS'Length), 15, OctetBuffer'(1 => 16#C1#, 2 => 16#84#), 15);
+   U_SS ("SS c388", Pad ("CD", SS'Length), 15, OctetBuffer'(1 => 16#C3#, 2 => 16#88#), 15);
    A_AP ("AP 05", 5, 8, OctetBuffer'(1 => 16#05#), 8);
    A_AP ("AP 00", 0, 8, OctetBuffer'(1 => 16#00#), 8);
    A_AQ ("AQ 05", 5, 8, OctetBuffer'(1 => 16#05#), 8);
